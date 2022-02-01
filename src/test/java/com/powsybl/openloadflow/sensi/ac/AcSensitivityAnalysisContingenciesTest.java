@@ -632,7 +632,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testDanglingLineContingencyDistributedSlackOnLoads() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
@@ -670,7 +670,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testDanglingLineContingencyDistributedSlackOnGenerators() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);

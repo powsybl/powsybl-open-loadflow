@@ -16,18 +16,19 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.EquationUtil;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
-import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
@@ -109,7 +110,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     private void calculatePostContingencySensitivityValues(List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors, LfContingency lfContingency,
-                                                           LfNetwork lfNetwork, AcloadFlowEngine engine, List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups,
+                                                           LfNetwork lfNetwork, AcLoadFlowContext context, List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups,
                                                            Map<LfBus, Double> participationByBus,
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                            int contingencyIndex, SensitivityValueWriter valueWriter,
@@ -126,10 +127,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         List<Equation<AcVariableType, AcEquationType>> deactivatedEquations = new ArrayList<>();
         List<EquationTerm<AcVariableType, AcEquationType>> deactivatedEquationTerms = new ArrayList<>();
 
-        EquationUtil.deactivateEquations(lfContingency.getBranches(), lfContingency.getBuses(), engine.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
+        EquationUtil.deactivateEquations(lfContingency.getBranches(), lfContingency.getBuses(), context.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
-        engine.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-        engine.run(reporter);
+        context.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+        new AcloadFlowEngine(context)
+                .run(reporter);
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
@@ -140,15 +142,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
 
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
-        try (JacobianMatrix<AcVariableType, AcEquationType> j = createJacobianMatrix(lfNetwork, engine.getEquationSystem(), new PreviousValueVoltageInitializer())) {
-            // solve system
-            DenseMatrix factorsStates = initFactorsRhs(engine.getEquationSystem(), factorGroups, participationByBus); // this is the rhs for the moment
-            j.solveTransposed(factorsStates);
-            setFunctionReferences(lfFactors);
 
-            // calculate sensitivity values
-            calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, valueWriter);
-        }
+        // solve system
+        DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, participationByBus); // this is the rhs for the moment
+        context.getJacobianMatrix().solveTransposed(factorsStates);
+        setFunctionReferences(lfFactors);
+
+        // calculate sensitivity values
+        calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, valueWriter);
 
         EquationUtil.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
     }
@@ -162,11 +163,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 throw new NotImplementedException("Contingencies on a DC line are not yet supported in AC mode.");
             }
         }
-    }
-
-    private JacobianMatrix<AcVariableType, AcEquationType> createJacobianMatrix(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer voltageInitializer) {
-        NewtonRaphson.initStateVector(network, equationSystem, voltageInitializer);
-        return new JacobianMatrix<>(equationSystem, matrixFactory);
     }
 
     /**
@@ -226,9 +222,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
                                                                                     lfParametersExt, false, true,
                                                                                     branchesWithMeasuredCurrent, reporter);
-        try (AcloadFlowEngine engine = new AcloadFlowEngine(lfNetwork, acParameters)) {
+        try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
-            engine.run(reporter);
+            new AcloadFlowEngine(context)
+                    .run(reporter);
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups = createFactorGroups(lfFactors.stream()
@@ -259,19 +256,21 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             }
 
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
-            try (JacobianMatrix<AcVariableType, AcEquationType> j = createJacobianMatrix(lfNetwork, engine.getEquationSystem(), new PreviousValueVoltageInitializer())) {
-                // otherwise, defining the rhs matrix will result in integer overflow
-                assert Integer.MAX_VALUE / (engine.getEquationSystem().getSortedEquationsToSolve().size() * Double.BYTES) > factorGroups.size();
-                // initialize right hand side from valid factors
-                DenseMatrix factorsStates = initFactorsRhs(engine.getEquationSystem(), factorGroups, slackParticipationByBus); // this is the rhs for the moment
 
-                // solve system
-                j.solveTransposed(factorsStates);
-
-                // calculate sensitivity values
-                setFunctionReferences(lfFactors);
-                calculateSensitivityValues(factorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, valueWriter);
+            // otherwise, defining the rhs matrix will result in integer overflow
+            if (factorGroups.size() >= Integer.MAX_VALUE / (context.getEquationSystem().getSortedEquationsToSolve().size() * Double.BYTES)) {
+                throw new PowsyblException("Too many factors!");
             }
+
+            // initialize right hand side from valid factors
+            DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, slackParticipationByBus); // this is the rhs for the moment
+
+            // solve system
+            context.getJacobianMatrix().solveTransposed(factorsStates);
+
+            // calculate sensitivity values
+            setFunctionReferences(lfFactors);
+            calculateSensitivityValues(factorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, valueWriter);
 
             GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity(connectivityProvider);
 
@@ -296,7 +295,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             lfFactor.setSensitivityValuePredefinedResult(0d);
                             lfFactor.setFunctionPredefinedResult(0d);
                         });
-                calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBus, lfParameters,
+                calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, slackParticipationByBus, lfParameters,
                         lfParametersExt, lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
                 ElementState.restore(busStates);
             }
@@ -333,7 +332,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     slackParticipationByBusForThisConnectivity = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
                 }
 
-                calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, engine, factorGroups, slackParticipationByBusForThisConnectivity,
+                calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, slackParticipationByBusForThisConnectivity,
                     lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
                 ElementState.restore(busStates);
 

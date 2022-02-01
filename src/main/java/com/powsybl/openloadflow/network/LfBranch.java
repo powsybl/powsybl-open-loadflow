@@ -97,11 +97,13 @@ public interface LfBranch extends LfElement {
 
     boolean isPhaseController();
 
-    boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide);
-
     boolean isPhaseControlled();
 
     void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
+
+    boolean isPhaseControlEnabled();
+
+    void setPhaseControlEnabled(boolean phaseControlEnabled);
 
     Optional<TransformerVoltageControl> getVoltageControl();
 

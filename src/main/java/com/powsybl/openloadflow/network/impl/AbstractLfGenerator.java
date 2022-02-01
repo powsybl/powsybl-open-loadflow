@@ -83,8 +83,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     @Override
-    public boolean hasReactivePowerControl() {
-        return generatorControlType == GeneratorControlType.REACTIVE_POWER;
+    public boolean hasRemoteReactivePowerControl() {
+        return generatorControlType == GeneratorControlType.REMOTE_REACTIVE_POWER;
     }
 
     @Override
@@ -164,14 +164,15 @@ public abstract class AbstractLfGenerator implements LfGenerator {
             LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
             return;
         }
-        boolean inSameSynchronousComponent = breakers ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
-                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
+        boolean inSameSynchronousComponent = breakers
+                ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().getNum() == terminal.getBusBreakerView().getBus().getSynchronousComponent().getNum()
+                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().getNum() == terminal.getBusView().getBus().getSynchronousComponent().getNum();
         if (!inSameSynchronousComponent) {
             LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
         }
         this.controlledBusId = controlledBus.getId();
-        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV());
+        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report);
         this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
@@ -193,17 +194,19 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return consistency;
     }
 
-    protected void setTargetV(double targetV) {
+    protected void setTargetV(double targetV, LfNetworkLoadingReport report) {
         double newTargetV = targetV;
         // check that targetV has a plausible value (wrong nominal voltage issue)
         if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU) {
             newTargetV = PlausibleValues.MIN_TARGET_VOLTAGE_PU;
-            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+            LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
                 getId(), targetV, PlausibleValues.MIN_TARGET_VOLTAGE_PU);
+            report.generatorsWithInconsistentTargetVoltage++;
         } else if (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
             newTargetV = PlausibleValues.MAX_TARGET_VOLTAGE_PU;
-            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+            LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
                 getId(), targetV, PlausibleValues.MAX_TARGET_VOLTAGE_PU);
+            report.generatorsWithInconsistentTargetVoltage++;
         }
         this.targetV = newTargetV;
     }
@@ -225,7 +228,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
                     getId(), connectable.getClass());
             return;
         }
-        this.generatorControlType = GeneratorControlType.REACTIVE_POWER;
+        this.generatorControlType = GeneratorControlType.REMOTE_REACTIVE_POWER;
         this.remoteTargetQ = targetQ / PerUnit.SB;
     }
 
@@ -245,7 +248,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     protected enum GeneratorControlType {
-        OFF, REACTIVE_POWER, VOLTAGE
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
     }
 
     @Override
@@ -256,5 +259,10 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setUserObject(Object userObject) {
         this.userObject = userObject;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        // nothing to do
     }
 }

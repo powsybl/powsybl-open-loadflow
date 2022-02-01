@@ -800,9 +800,9 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0, result.getSensitivityValue("g6", "g2", "l13"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0, result.getSensitivityValue("g6", "g2", "l23"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(-1.0667d, result.getFunctionReferenceValue("g6", "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.0667d, result.getFunctionReferenceValue("g6", "l13"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(1.1333d, result.getFunctionReferenceValue("g6", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.3333d, result.getFunctionReferenceValue("g6", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.3333d, result.getFunctionReferenceValue("g6", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.6666d, result.getFunctionReferenceValue("g6", "l23"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1625,7 +1625,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testDanglingLineContingencyDistributedSlackOnLoads() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
@@ -1656,7 +1656,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testDanglingLineContingencyDistributedSlackOnGenerators() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);

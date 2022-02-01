@@ -143,7 +143,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void defaultMethodsTest2() {
-        network = DanglingLineFactory.create();
+        network = BoundaryFactory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
@@ -151,5 +151,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfDanglingLineBus = mainNetwork.getBusById("dl1_BUS");
         LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
         assertEquals(0, generator.getDroop(), 10E-3);
+        generator.setParticipating(true);
+        assertFalse(generator.isParticipating());
     }
 }

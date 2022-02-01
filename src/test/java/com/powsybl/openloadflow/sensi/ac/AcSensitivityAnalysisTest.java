@@ -787,7 +787,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testDanglingLineSensi() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0");

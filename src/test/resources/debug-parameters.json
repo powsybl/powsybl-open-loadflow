@@ -24,7 +24,7 @@
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,
         "plausibleActivePowerLimit" : 5000.0,
-        "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : false,
+        "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : true,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
         "maxIteration" : 30,

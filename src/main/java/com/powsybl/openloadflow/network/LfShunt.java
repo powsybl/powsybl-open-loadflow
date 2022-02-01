@@ -6,12 +6,15 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface LfShunt extends LfElement {
+
+    List<String> getIds();
 
     double getB();
 

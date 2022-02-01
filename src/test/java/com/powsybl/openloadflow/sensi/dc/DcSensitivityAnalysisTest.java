@@ -18,7 +18,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.network.DanglingLineFactory;
+import com.powsybl.openloadflow.network.BoundaryFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
@@ -727,7 +727,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testDanglingLineSensi() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");

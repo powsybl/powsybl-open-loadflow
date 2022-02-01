@@ -42,7 +42,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
         SensitivityAnalysisParameters sensitivityAnalysisParameters = new SensitivityAnalysisParameters();
-        sensitivityAnalysisParameters.getLoadFlowParameters().setDc(true);
+        sensitivityAnalysisParameters.setLoadFlowParameters(securityAnalysisParameters.getLoadFlowParameters());
 
         ContingencyContext contingencyContext = new ContingencyContext(null, ContingencyContextType.ALL);
         String variableId = network.getLoads().iterator().next().getId();
@@ -76,7 +76,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             Map<String, BranchResult> postContingencyBranchResults = new HashMap<>();
             List<SensitivityValue> values = res.getValues(contingency.getId());
             List<LimitViolation> violations = new ArrayList<>();
-            double branchInContingencyP1 = preContingencyBranchResults.get(contingency.getId()).getP1();
+            double branchInContingencyP1 = Double.NaN;
+            if (contingency.getElements().size() == 1 && contingency.getElements().get(0).getType() == ContingencyElementType.BRANCH) {
+                branchInContingencyP1 = preContingencyBranchResults.get(contingency.getElements().get(0).getId()).getP1();
+            }
 
             for (SensitivityValue v : values) {
                 SensitivityFactor factor = factors.get(v.getFactorIndex());
@@ -85,7 +88,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                 if (monitor.getBranchIds().contains(branchId)) {
                     BranchResult preContingencyBranchResult = preContingencyBranchResults.get(branchId);
-                    double flowTransfer = (v.getFunctionReference() - preContingencyBranchResult.getP1()) / branchInContingencyP1;
+                    double flowTransfer = Double.isNaN(branchInContingencyP1) ? Double.NaN : (v.getFunctionReference() - preContingencyBranchResult.getP1()) / branchInContingencyP1;
                     postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, flowTransfer));
                 }
 
