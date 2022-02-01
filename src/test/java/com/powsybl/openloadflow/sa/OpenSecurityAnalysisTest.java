@@ -888,8 +888,8 @@ class OpenSecurityAnalysisTest {
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(104.0, preContingencyResult.getPreContingencyBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(46.0, preContingencyResult.getPreContingencyBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(110.0, preContingencyResult.getPreContingencyBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(40.0, preContingencyResult.getPreContingencyBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-50.0, preContingencyResult.getPreContingencyBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests
@@ -901,7 +901,7 @@ class OpenSecurityAnalysisTest {
         // post-contingency tests
         PostContingencyResult g2ContingencyResult = getPostContingencyResult(result, "g2");
         assertEquals(-60.000, g2ContingencyResult.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(170.0, g2ContingencyResult.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(210.0, g2ContingencyResult.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-50.0, g2ContingencyResult.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
