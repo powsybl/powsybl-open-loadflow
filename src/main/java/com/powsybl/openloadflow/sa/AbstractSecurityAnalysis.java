@@ -83,9 +83,11 @@ public abstract class AbstractSecurityAnalysis {
         return CompletableFuture.supplyAsync(() -> {
             String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            SecurityAnalysisReport result = runSync(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
-            network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
-            return result;
+            try {
+                return runSync(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
+            } finally {
+                network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
+            }
         });
     }
 
