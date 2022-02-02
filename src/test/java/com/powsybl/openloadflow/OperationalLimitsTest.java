@@ -42,8 +42,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     @BeforeEach
     void setUp() {
         parameters = new LoadFlowParameters();
-        parametersExt = new OpenLoadFlowParameters();
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        parametersExt = OpenLoadFlowParameters.create(parameters);
     }
 
     @Test

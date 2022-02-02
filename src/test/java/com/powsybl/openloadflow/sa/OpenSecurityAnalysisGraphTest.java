@@ -59,8 +59,8 @@ class OpenSecurityAnalysisGraphTest {
             .collect(Collectors.toList());
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        lfParameters.addExtension(OpenLoadFlowParameters.class,
-            new OpenLoadFlowParameters().setSlackBusSelectionMode(SlackBusSelectionMode.FIRST));
+        OpenLoadFlowParameters.create(lfParameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         securityAnalysisParameters = new SecurityAnalysisParameters().setLoadFlowParameters(lfParameters);
     }
 

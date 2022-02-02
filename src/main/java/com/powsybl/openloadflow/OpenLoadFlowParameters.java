@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -350,6 +351,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             parametersExt = OpenLoadFlowParameters.load();
         }
         return parametersExt;
+    }
+
+    private static OpenLoadFlowParameters create(LoadFlowParameters parameters, Supplier<OpenLoadFlowParameters> parametersExtSupplier) {
+        Objects.requireNonNull(parameters);
+        OpenLoadFlowParameters parametersExt = parametersExtSupplier.get();
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        return parametersExt;
+    }
+
+    public static OpenLoadFlowParameters create(LoadFlowParameters parameters) {
+        return create(parameters, OpenLoadFlowParameters::new);
+    }
+
+    public static OpenLoadFlowParameters load(LoadFlowParameters parameters) {
+        return create(parameters, OpenLoadFlowParameters::load);
     }
 
     public static void logDc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {

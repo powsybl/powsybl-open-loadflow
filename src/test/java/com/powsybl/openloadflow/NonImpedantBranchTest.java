@@ -38,8 +38,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
-        parametersExt = new OpenLoadFlowParameters();
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        parametersExt = OpenLoadFlowParameters.create(parameters);
     }
 
     @Test
