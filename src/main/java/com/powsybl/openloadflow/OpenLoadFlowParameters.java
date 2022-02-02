@@ -408,10 +408,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 return getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
 
             case VOLTAGE_MAGNITUDE:
-                return new VoltageMagnitudeInitializer(matrixFactory);
+                return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory);
 
             case FULL_VOLTAGE:
-                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(matrixFactory),
+                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory),
                         new DcValueVoltageInitializer(networkParameters,
                                                       parameters.isDistributedSlack(),
                                                       parameters.getBalanceType(),
