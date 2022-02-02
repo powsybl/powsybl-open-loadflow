@@ -51,7 +51,7 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
         // The transformer voltage controls are enabled.
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
-                if (bus.isVoltageControlled() && controlledNominalVoltages.contains(bus.getNominalV())) {
+                if (bus.isVoltageControlled() && bus.getVoltageControl().isPresent() && controlledNominalVoltages.contains(bus.getNominalV())) {
                     bus.getVoltageControl().get().getControllerBuses().stream().forEach(controllerBus -> {
                         controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
                         controllerBus.setVoltageControlEnabled(false);
