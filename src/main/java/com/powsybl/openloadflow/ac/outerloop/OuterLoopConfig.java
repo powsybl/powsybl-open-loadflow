@@ -6,10 +6,14 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import org.apache.commons.compress.utils.Lists;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.ServiceLoader;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -17,4 +21,19 @@ import java.util.List;
 public interface OuterLoopConfig {
 
     List<OuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt);
+
+    static OuterLoopConfig findOuterLoopConfig(OuterLoopConfig defaultOuterLoopConfig) {
+        Objects.requireNonNull(defaultOuterLoopConfig);
+        OuterLoopConfig outerLoopConfig;
+        List<OuterLoopConfig> outerLoopConfigs = Lists.newArrayList(ServiceLoader.load(OuterLoopConfig.class, OuterLoopConfig.class.getClassLoader()).iterator());
+        if (outerLoopConfigs.isEmpty()) {
+            outerLoopConfig = defaultOuterLoopConfig;
+        } else {
+            if (outerLoopConfigs.size() > 1) {
+                throw new PowsyblException("Only one outer loop config is expected on class path");
+            }
+            outerLoopConfig = outerLoopConfigs.get(0);
+        }
+        return outerLoopConfig;
+    }
 }
