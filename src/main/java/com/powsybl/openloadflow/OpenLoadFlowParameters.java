@@ -353,6 +353,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static void logDc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        LOGGER.info("Direct current: {}", parameters.isDc());
         LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
         LOGGER.info("Use transformer ratio: {}", parameters.isDcUseTransformerRatio());
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
@@ -366,6 +367,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
      * Log parameters interesting for AC calculation
      */
     public static void logAc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        LOGGER.info("Direct current: {}", parameters.isDc());
         LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
         LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
         LOGGER.info("Voltage initialization mode override: {}", parametersExt.getVoltageInitModeOverride());
@@ -375,7 +377,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
         LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
-        LOGGER.info("Direct current: {}", parameters.isDc());
         LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
         LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
