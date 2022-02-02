@@ -224,20 +224,20 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .filter(branch -> branch.getId().equals("l14"))
                 .map(AcSensitivityAnalysisTest::createBranchFlow)
                 .map(branchFlow -> new BranchFlowPerPSTAngle(branchFlow, new PhaseTapChangerAngle("l23", "l23", "l23"))).collect(Collectors.toList());
-        CompletionException e1 = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-                        sensiParameters, LocalComputationManager.getDefault())
-                .join());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                        sensiParameters, LocalComputationManager.getDefault()).join();
 
-        assertEquals("Variable A1 or R1 on open branch not supported: l23", e1.getCause().getMessage());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0, getValue(result, "l23", "l14"), LoadFlowAssert.DELTA_ANGLE);
 
         network.getBranch("l23").getTerminal1().connect();
         network.getBranch("l23").getTerminal2().disconnect();
 
-        CompletionException e2 = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-                        sensiParameters, LocalComputationManager.getDefault())
-                .join());
+        SensitivityAnalysisResult result2 = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                        sensiParameters, LocalComputationManager.getDefault()).join();
 
-        assertEquals("Variable A1 or R1 on open branch not supported: l23", e2.getCause().getMessage());
+        assertEquals(1, result2.getSensitivityValues().size());
+        assertEquals(0, getValue(result2, "l23", "l14"), LoadFlowAssert.DELTA_ANGLE);
     }
 
     @Test
@@ -253,20 +253,20 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .filter(branch -> branch.getId().equals("l14"))
                 .map(AcSensitivityAnalysisTest::createBranchIntensity)
                 .map(branchIntensity -> new BranchIntensityPerPSTAngle(branchIntensity, new PhaseTapChangerAngle("l23", "l23", "l23"))).collect(Collectors.toList());
-        CompletionException e1 = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-                        sensiParameters, LocalComputationManager.getDefault())
-                .join());
+        SensitivityAnalysisResult result = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                        sensiParameters, LocalComputationManager.getDefault()).join();
 
-        assertEquals("Variable A1 or R1 on open branch not supported: l23", e1.getCause().getMessage());
+        assertEquals(1, result.getSensitivityValues().size());
+        assertEquals(0, getValue(result, "l23", "l14"), LoadFlowAssert.DELTA_ANGLE);
 
         network.getBranch("l23").getTerminal1().connect();
         network.getBranch("l23").getTerminal2().disconnect();
 
-        CompletionException e2 = assertThrows(CompletionException.class, () -> sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-                        sensiParameters, LocalComputationManager.getDefault())
-                .join());
+        SensitivityAnalysisResult result2 = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
+                        sensiParameters, LocalComputationManager.getDefault()).join();
 
-        assertEquals("Variable A1 or R1 on open branch not supported: l23", e2.getCause().getMessage());
+        assertEquals(1, result2.getSensitivityValues().size());
+        assertEquals(0, getValue(result2, "l23", "l14"), LoadFlowAssert.DELTA_ANGLE);
     }
 
     @Test
@@ -832,7 +832,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testDanglingLineSensi() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
         runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0");

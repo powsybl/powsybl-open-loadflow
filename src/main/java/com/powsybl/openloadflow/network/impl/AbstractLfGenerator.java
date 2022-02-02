@@ -83,8 +83,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     @Override
-    public boolean hasReactivePowerControl() {
-        return generatorControlType == GeneratorControlType.REACTIVE_POWER;
+    public boolean hasRemoteReactivePowerControl() {
+        return generatorControlType == GeneratorControlType.REMOTE_REACTIVE_POWER;
     }
 
     @Override
@@ -154,8 +154,9 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return lfNetwork.getBusById(controlledBusId);
     }
 
-    protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers, LfNetworkLoadingReport report) {
-        if (!checkVoltageControlConsistency(report)) {
+    protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
+                                     boolean reactiveLimits, LfNetworkLoadingReport report) {
+        if (!checkVoltageControlConsistency(reactiveLimits, report)) {
             return;
         }
         Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
@@ -163,24 +164,27 @@ public abstract class AbstractLfGenerator implements LfGenerator {
             LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
             return;
         }
-        boolean inSameSynchronousComponent = breakers ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
-                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
+        boolean inSameSynchronousComponent = breakers
+                ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().getNum() == terminal.getBusBreakerView().getBus().getSynchronousComponent().getNum()
+                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().getNum() == terminal.getBusView().getBus().getSynchronousComponent().getNum();
         if (!inSameSynchronousComponent) {
             LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
         }
         this.controlledBusId = controlledBus.getId();
-        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV());
+        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report);
         this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
-    protected boolean checkVoltageControlConsistency(LfNetworkLoadingReport report) {
+    protected boolean checkVoltageControlConsistency(boolean reactiveLimits, LfNetworkLoadingReport report) {
         boolean consistency = true;
-        double maxRangeQ = getMaxRangeQ();
-        if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-            LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
-            report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-            consistency = false;
+        if (reactiveLimits) {
+            double maxRangeQ = getMaxRangeQ();
+            if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
+                report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
+                consistency = false;
+            }
         }
         if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
@@ -190,17 +194,19 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return consistency;
     }
 
-    protected void setTargetV(double targetV) {
+    protected void setTargetV(double targetV, LfNetworkLoadingReport report) {
         double newTargetV = targetV;
         // check that targetV has a plausible value (wrong nominal voltage issue)
         if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU) {
             newTargetV = PlausibleValues.MIN_TARGET_VOLTAGE_PU;
-            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+            LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
                 getId(), targetV, PlausibleValues.MIN_TARGET_VOLTAGE_PU);
+            report.generatorsWithInconsistentTargetVoltage++;
         } else if (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
             newTargetV = PlausibleValues.MAX_TARGET_VOLTAGE_PU;
-            LOGGER.warn("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is rescaled to {}",
+            LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
                 getId(), targetV, PlausibleValues.MAX_TARGET_VOLTAGE_PU);
+            report.generatorsWithInconsistentTargetVoltage++;
         }
         this.targetV = newTargetV;
     }
@@ -222,7 +228,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
                     getId(), connectable.getClass());
             return;
         }
-        this.generatorControlType = GeneratorControlType.REACTIVE_POWER;
+        this.generatorControlType = GeneratorControlType.REMOTE_REACTIVE_POWER;
         this.remoteTargetQ = targetQ / PerUnit.SB;
     }
 
@@ -242,7 +248,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     protected enum GeneratorControlType {
-        OFF, REACTIVE_POWER, VOLTAGE
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
     }
 
     @Override
@@ -253,5 +259,10 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setUserObject(Object userObject) {
         this.userObject = userObject;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        // nothing to do
     }
 }

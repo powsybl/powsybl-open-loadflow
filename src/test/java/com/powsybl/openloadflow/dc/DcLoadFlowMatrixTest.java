@@ -61,18 +61,16 @@ class DcLoadFlowMatrixTest {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters);
 
         for (LfBus b : mainNetwork.getBuses()) {
-            equationSystem.createEquation(b.getNum(), DcEquationType.BUS_P);
+            equationSystem.createEquation(b.getNum(), DcEquationType.BUS_TARGET_P);
             equationSystem.getVariableSet().getVariable(b.getNum(), DcVariableType.BUS_PHI);
         }
 
-        double[] x = DcLoadFlowEngine.createStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+        DcLoadFlowEngine.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("X=");
-            Matrix.createFromColumn(x, new DenseMatrixFactory())
+            Matrix.createFromColumn(equationSystem.getStateVector().get(), new DenseMatrixFactory())
                     .print(ps, equationSystem.getColumnNames(mainNetwork), null);
         }
-
-        equationSystem.updateEquations(x);
 
         Matrix j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {

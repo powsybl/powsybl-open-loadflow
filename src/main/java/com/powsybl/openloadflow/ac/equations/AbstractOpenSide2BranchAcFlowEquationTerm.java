@@ -10,8 +10,8 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import net.jafama.FastMath;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -21,18 +21,19 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
 
     protected final List<Variable<AcVariableType>> variables;
 
-    protected double shunt;
-
     protected AbstractOpenSide2BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
                                                         LfBus bus, VariableSet<AcVariableType> variableSet,
                                                         boolean deriveA1, boolean deriveR1) {
         super(branch);
-        variables = Collections.singletonList(variableSet.getVariable(bus.getNum(), variableType));
-        shunt = (g2 + y * sinKsi) * (g2 + y * sinKsi) + (-b2 + y * cosKsi) * (-b2 + y * cosKsi);
-
+        variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
         if (deriveA1 || deriveR1) {
             throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());
         }
+    }
+
+    protected double shunt() {
+        double cosKsi = FastMath.cos(ksi);
+        return (g2 + y * FastMath.sin(ksi)) * (g2 + y * FastMath.sin(ksi)) + (-b2 + y * cosKsi) * (-b2 + y * cosKsi);
     }
 
     @Override

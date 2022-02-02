@@ -220,7 +220,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 case BRANCH_CURRENT:
                     return (EquationTerm<V, E>) ((LfBranch) functionElement).getI1();
                 case BUS_VOLTAGE:
-                    return (EquationTerm<V, E>) ((LfBus) functionElement).getV();
+                    return (EquationTerm<V, E>) ((LfBus) functionElement).getCalculatedV();
                 default:
                     throw createFunctionTypeNotSupportedException(functionType);
             }
@@ -322,7 +322,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     return ((EquationTerm<V, E>) lfBranch.getA1()).getEquation();
                 case BUS_TARGET_VOLTAGE:
                     LfBus lfBus = (LfBus) variableElement;
-                    return ((EquationTerm<V, E>) lfBus.getV()).getEquation();
+                    return ((EquationTerm<V, E>) lfBus.getCalculatedV()).getEquation();
                 default:
                     return null;
             }

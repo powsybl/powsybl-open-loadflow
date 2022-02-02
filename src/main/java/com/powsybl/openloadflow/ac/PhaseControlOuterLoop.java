@@ -82,7 +82,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     private void switchOffPhaseControl(DiscretePhaseControl phaseControl) {
         // switch off phase control
-        phaseControl.setMode(DiscretePhaseControl.Mode.OFF);
+        phaseControl.getController().setPhaseControlEnabled(false);
 
         // round the phase shift to the closest tap
         LfBranch controllerBranch = phaseControl.getController();
@@ -119,6 +119,15 @@ public class PhaseControlOuterLoop implements OuterLoop {
             ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = (ClosedBranchSide2CurrentMagnitudeEquationTerm) controllerBranch.getI2();
             Variable<AcVariableType> a1Var = i2.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
             return i2.der(a1Var) > 0;
+        }
+    }
+
+    @Override
+    public void cleanup(LfNetwork network) {
+        for (LfBranch branch : network.getBranches()) {
+            if (branch.isPhaseController()) {
+                branch.setPhaseControlEnabled(true);
+            }
         }
     }
 }

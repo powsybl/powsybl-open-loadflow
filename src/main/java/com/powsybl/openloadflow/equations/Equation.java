@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -20,10 +21,7 @@ import java.util.stream.Collectors;
  */
 public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Evaluable, Comparable<Equation<V, E>> {
 
-    /**
-     * Bus or any other equipment id.
-     */
-    private final int num;
+    private final int elementNum;
 
     private final E type;
 
@@ -31,30 +29,21 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private int column = -1;
 
-    private Object data;
-
     /**
      * true if this equation term active, false otherwise
      */
     private boolean active = true;
 
-    private EquationUpdateType updateType;
-
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
-    Equation(int num, E type, EquationSystem<V, E> equationSystem) {
-        this(num, type, equationSystem, EquationUpdateType.DEFAULT);
-    }
-
-    Equation(int num, E type, EquationSystem<V, E> equationSystem, EquationUpdateType updateType) {
-        this.num = num;
+    Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
+        this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.updateType = updateType;
     }
 
-    public int getNum() {
-        return num;
+    public int getElementNum() {
+        return elementNum;
     }
 
     public E getType() {
@@ -84,24 +73,12 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         }
     }
 
-    public EquationUpdateType getUpdateType() {
-        return updateType;
-    }
-
-    public void setUpdateType(EquationUpdateType updateType) {
-        this.updateType = Objects.requireNonNull(updateType);
-    }
-
-    public void setData(Object data) {
-        this.data = data;
-    }
-
-    public <T> T getData() {
-        return (T) data;
-    }
-
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
         Objects.requireNonNull(term);
+        if (term.getEquation() != null) {
+            throw new PowsyblException("Equation term already added to another equation: "
+                    + term.getEquation());
+        }
         terms.add(term);
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
@@ -121,14 +98,6 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return terms;
     }
 
-    public void update(double[] x) {
-        for (EquationTerm<V, E> term : terms) {
-            if (term.isActive()) {
-                term.update(x);
-            }
-        }
-    }
-
     @Override
     public double eval() {
         double value = 0;
@@ -145,7 +114,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     @Override
     public int hashCode() {
-        return num + type.hashCode();
+        return elementNum + type.hashCode();
     }
 
     @Override
@@ -164,23 +133,29 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         if (o == this) {
             return 0;
         }
-        int c = num - o.num;
+        int c = elementNum - o.elementNum;
         if (c == 0) {
             c = type.ordinal() - o.type.ordinal();
         }
         return c;
     }
 
-    public void write(Writer writer) throws IOException {
-        writer.write(type.getSymbol());
-        writer.append(Integer.toString(num));
-        writer.append(" = ");
-        List<EquationTerm<V, E>> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
+    public void write(Writer writer, boolean writeInactiveTerms) throws IOException {
+        writer.append(type.getSymbol())
+                .append(Integer.toString(elementNum))
+                .append(" = ");
+        List<EquationTerm<V, E>> activeTerms = writeInactiveTerms ? terms : terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
         for (Iterator<EquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
             EquationTerm<V, E> term = it.next();
+            if (!term.isActive()) {
+                writer.write("[ ");
+            }
             term.write(writer);
+            if (!term.isActive()) {
+                writer.write(" ]");
+            }
             if (it.hasNext()) {
-                writer.write(" + ");
+                writer.append(" + ");
             }
         }
     }
@@ -190,10 +165,13 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         LfElement element = null;
         switch (type.getElementType()) {
             case BUS:
-                element = network.getBus(num);
+                element = network.getBus(elementNum);
                 break;
             case BRANCH:
-                element = network.getBranch(num);
+                element = network.getBranch(elementNum);
+                break;
+            case SHUNT_COMPENSATOR:
+                element = network.getShunt(elementNum);
                 break;
         }
         return Optional.ofNullable(element);
@@ -201,7 +179,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     @Override
     public String toString() {
-        return "Equation(num=" + num +
+        return "Equation(elementNum=" + elementNum +
                 ", type=" + type +
                 ", column=" + column + ")";
     }

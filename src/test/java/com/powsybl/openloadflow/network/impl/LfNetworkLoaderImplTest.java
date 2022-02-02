@@ -88,7 +88,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
+        assertFalse(lfNetwork.getBus(0).isVoltageControlEnabled());
     }
 
     @Test
@@ -98,7 +98,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         g.setMinP(1);
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
+        assertFalse(lfNetwork.getBus(0).isVoltageControlEnabled());
     }
 
     @Test
@@ -144,7 +144,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void defaultMethodsTest2() {
-        network = DanglingLineFactory.create();
+        network = BoundaryFactory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
@@ -152,12 +152,14 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfBus lfDanglingLineBus = mainNetwork.getBusById("dl1_BUS");
         LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
         assertEquals(0, generator.getDroop(), 10E-3);
+        generator.setParticipating(true);
+        assertFalse(generator.isParticipating());
     }
 
     @Test
     void validationLevelTest() {
         network = Network.create("test", "code");
-        network.setMinimumAcceptableValidationLevel(ValidationLevel.SCADA);
+        network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
         Bus b = createBus(network, "b", 380);
         Bus b2 = createBus(network, "b2", 380);
         createLine(network, b, b2, "l", 1);
@@ -169,7 +171,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void validationLevelTest2() {
         network = VoltageControlNetworkFactory.createNetworkWithT2wt();
-        network.setMinimumAcceptableValidationLevel(ValidationLevel.SCADA);
+        network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
         network.getTwoWindingsTransformer("T2wT").getRatioTapChanger().setTargetV(Double.NaN).setRegulating(true);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
@@ -178,7 +180,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void validationLevelTest3() {
         network = VoltageControlNetworkFactory.createTransformerBaseNetwork("network");
-        network.setMinimumAcceptableValidationLevel(ValidationLevel.SCADA);
+        network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
         network.getLoad("LOAD_2").setP0(Double.NaN).setQ0(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
@@ -187,7 +189,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     @Test
     void validationLevelTest4() {
         network = HvdcNetworkFactory.createVsc();
-        network.setMinimumAcceptableValidationLevel(ValidationLevel.SCADA);
+        network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
         network.getHvdcLine("hvdc23").setConvertersMode(null).setActivePowerSetpoint(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
@@ -195,8 +197,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void validationLevelTest5() {
-        network = DanglingLineFactory.create();
-        network.setMinimumAcceptableValidationLevel(ValidationLevel.SCADA);
+        network = BoundaryFactory.create();
+        network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
         network.getDanglingLine("dl1").setP0(Double.NaN).setQ0(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());

@@ -54,7 +54,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, leg, rtcPosition, ptcPosition);
                 models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
             }
-            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition().orElseThrow(), network);
+            piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition(), network);
         }
 
         RatioTapChanger rtc = leg.getRatioTapChanger();
@@ -68,7 +68,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, leg, rtcPosition, ptcPosition);
                     models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
                 }
-                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition().orElseThrow(), network);
+                piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition(), network);
             } else {
                 throw new PowsyblException("Unsupported type of branch for voltage and phase controls of branch: " + twt.getId());
             }
@@ -133,7 +133,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 
-        if (phaseShifterRegulationOn && isPhaseController() && discretePhaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that leg
             updateTapPosition(leg.getPhaseTapChanger());
         }

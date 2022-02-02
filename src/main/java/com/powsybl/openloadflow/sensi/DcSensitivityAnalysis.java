@@ -365,14 +365,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             LfBus bus1 = lfBranch.getBus1();
             LfBus bus2 = lfBranch.getBus2();
             if (bus1.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p.getColumn(), element.getContingencyIndex(), -1);
             } else if (bus2.isSlack()) {
-                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p.getColumn(), element.getContingencyIndex(), 1);
             } else {
-                Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p1.getColumn(), element.getContingencyIndex(), 1);
                 rhs.set(p2.getColumn(), element.getContingencyIndex(), -1);
             }
@@ -629,6 +629,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (LfGeneratorImpl generator : generators) {
             generator.setTargetP(0);
             if (distributedSlackOnGenerators && generator.isParticipating()) {
+                generator.setParticipating(false);
                 participatingGeneratorsToRemove.add(generator);
             }
         }
@@ -708,8 +709,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private JacobianMatrix<DcVariableType, DcEquationType> createJacobianMatrix(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer voltageInitializer) {
-        double[] x = DcLoadFlowEngine.createStateVector(network, equationSystem, voltageInitializer);
-        equationSystem.updateEquations(x);
+        DcLoadFlowEngine.initStateVector(network, equationSystem, voltageInitializer);
         return new JacobianMatrix<>(equationSystem, matrixFactory);
     }
 
@@ -727,6 +727,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                         lfParameters.isDistributedSlack() && lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                                                         false,
                                                         false,
+                                                        false,
+                                                        false,
+                                                        true,
                                                         false,
                                                         false);
 
@@ -761,7 +764,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, false, true, lfParameters.isTwtSplitShuntAdmittance(),
                 false, lfParametersExt.getPlausibleActivePowerLimit(), false, true, lfParameters.getCountriesToBalance(),
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                false, false, false, false);
+                false, false, false, false, true, false, false);
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
