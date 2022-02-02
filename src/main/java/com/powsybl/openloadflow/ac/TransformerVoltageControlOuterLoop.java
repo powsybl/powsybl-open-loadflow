@@ -81,8 +81,7 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
                     double r1Value = piModel.getR1();
                     piModel.roundR1ToClosestTap();
                     double roundedR1Value = piModel.getR1();
-                    LOGGER.error("Round voltage ratio of '{}': {} -> {}", branch.getId(), r1Value, roundedR1Value);
-
+                    LOGGER.trace("Round voltage ratio of '{}': {} -> {}", branch.getId(), r1Value, roundedR1Value);
                     status = OuterLoopStatus.UNSTABLE;
                 }
             }
