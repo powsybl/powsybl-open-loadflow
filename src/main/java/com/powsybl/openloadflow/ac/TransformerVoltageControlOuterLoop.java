@@ -14,9 +14,6 @@ import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
-import java.util.Set;
-
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
@@ -24,17 +21,16 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransformerVoltageControlOuterLoop.class);
 
-    private Set<Double> controlledNominalVoltages = new HashSet<>();
+    private double maxControlledNominalVoltage = Double.MIN_VALUE;
 
     @Override
     public void initialize(LfNetwork network) {
         // All transformer voltage control are disabled for the first equation system resolution.
         for (LfBranch branch : network.getBranches()) {
-            TransformerVoltageControl voltageControl = branch.getVoltageControl().orElse(null);
-            if (voltageControl != null) {
+            branch.getVoltageControl().ifPresent(voltageControl -> {
                 branch.setVoltageControlEnabled(false);
-                controlledNominalVoltages.add(voltageControl.getControlled().getNominalV());
-            }
+                maxControlledNominalVoltage = Math.max(maxControlledNominalVoltage, voltageControl.getControlled().getNominalV());
+            });
         }
     }
 
@@ -46,14 +42,15 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
+
         // At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
         // the set controlledNominalVoltages are disabled.
         // The transformer voltage controls are enabled.
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
-                if (bus.isVoltageControlled() && controlledNominalVoltages.contains(bus.getNominalV())) {
+                if (bus.isVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
                     bus.getVoltageControl().ifPresent(voltageControl -> {
-                        voltageControl.getControllerBuses().stream().forEach(controllerBus -> {
+                        voltageControl.getControllerBuses().forEach(controllerBus -> {
                             controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
                             controllerBus.setVoltageControlEnabled(false);
                         });
@@ -88,13 +85,14 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
                 }
             }
             for (LfBus bus : context.getNetwork().getBuses()) {
-                if (bus.hasVoltageControllerCapability() && controlledNominalVoltages.contains(bus.getNominalV())) {
+                if (bus.hasVoltageControllerCapability() && bus.getNominalV() <= maxControlledNominalVoltage) {
                     bus.setGenerationTargetQ(0);
                     bus.setVoltageControlEnabled(true);
                     status = OuterLoopStatus.UNSTABLE;
                 }
             }
         }
+
         return status;
     }
 
