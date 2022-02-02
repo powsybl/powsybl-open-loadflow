@@ -64,9 +64,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
-        parametersExt = new OpenLoadFlowParameters()
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test
@@ -340,8 +339,6 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isOk());
@@ -377,8 +374,6 @@ class AcLoadFlowEurostagTutorialExample1Test {
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isOk());

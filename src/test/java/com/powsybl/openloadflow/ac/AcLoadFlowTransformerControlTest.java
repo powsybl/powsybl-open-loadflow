@@ -49,9 +49,8 @@ class AcLoadFlowTransformerControlTest {
         parameters = new LoadFlowParameters();
         parameters.setTransformerVoltageControlOn(false);
         parameters.setDistributedSlack(false);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+        OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-        this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test

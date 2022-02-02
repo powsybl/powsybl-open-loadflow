@@ -43,8 +43,8 @@ class DcLoadFlowTest {
     void setUp() {
         parameters = new LoadFlowParameters()
                 .setDc(true);
-        parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST));
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
