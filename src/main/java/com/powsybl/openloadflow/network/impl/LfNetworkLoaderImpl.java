@@ -771,7 +771,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         Objects.requireNonNull(parameters);
 
         if (!network.getValidationLevel().equals(ValidationLevel.STEADY_STATE_HYPOTHESIS)) {
-            throw new PowsyblException("Only LOADFLOW validation level of the network is supported");
+            throw new PowsyblException("Only STEADY STATE HYPOTHESIS validation level of the network is supported");
         }
 
         Stopwatch stopwatch = Stopwatch.createStarted();
