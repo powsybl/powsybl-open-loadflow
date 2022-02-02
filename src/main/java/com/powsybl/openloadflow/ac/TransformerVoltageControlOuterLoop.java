@@ -52,12 +52,12 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
                 if (bus.isVoltageControlled() && controlledNominalVoltages.contains(bus.getNominalV())) {
-                    if (bus.getVoltageControl().isPresent()) {
-                        bus.getVoltageControl().get().getControllerBuses().stream().forEach(controllerBus -> {
+                    bus.getVoltageControl().ifPresent(voltageControl -> {
+                        voltageControl.getControllerBuses().stream().forEach(controllerBus -> {
                             controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
                             controllerBus.setVoltageControlEnabled(false);
                         });
-                    }
+                    });
                     status = OuterLoopStatus.UNSTABLE;
                 }
             }
