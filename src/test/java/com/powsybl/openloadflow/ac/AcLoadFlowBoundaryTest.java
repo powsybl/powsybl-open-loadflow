@@ -47,11 +47,11 @@ class AcLoadFlowBoundaryTest {
         dl1 = network.getDanglingLine("dl1");
         g1 = network.getGenerator("g1");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters()
+                .setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
-        parametersExt = new OpenLoadFlowParameters()
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test
