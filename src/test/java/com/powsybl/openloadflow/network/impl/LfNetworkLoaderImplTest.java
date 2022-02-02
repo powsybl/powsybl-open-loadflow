@@ -165,7 +165,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b, b2, "l", 1);
         g = createGenerator2(b, "g", 10, 400);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
-        assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
+        assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
     }
 
     @Test
@@ -174,7 +174,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
         network.getTwoWindingsTransformer("T2wT").getRatioTapChanger().setTargetV(Double.NaN).setRegulating(true);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
-        assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
+        assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
     }
 
     @Test
@@ -183,7 +183,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
         network.getLoad("LOAD_2").setP0(Double.NaN).setQ0(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
-        assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
+        assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
     }
 
     @Test
@@ -192,7 +192,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
         network.getHvdcLine("hvdc23").setConvertersMode(null).setActivePowerSetpoint(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
-        assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
+        assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
     }
 
     @Test
@@ -201,6 +201,6 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
         network.getDanglingLine("dl1").setP0(Double.NaN).setQ0(Double.NaN);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
-        assertEquals("Only LOADFLOW validation level of the network is supported", e.getMessage());
+        assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
     }
 }
