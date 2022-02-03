@@ -21,19 +21,19 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private static final double DEFAULT_DROOP = 1; // why not
 
-    private final Battery generator;
+    private final Battery battery;
 
     private boolean participating;
 
     private double droop;
 
-    private LfBatteryImpl(Battery generator, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
-        super(generator.getP0());
-        this.generator = generator;
+    private LfBatteryImpl(Battery battery, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
+        super(battery.getP0());
+        this.battery = battery;
         participating = true;
         droop = DEFAULT_DROOP;
         // get participation factor from extension
-        ActivePowerControl<Battery> activePowerControl = generator.getExtension(ActivePowerControl.class);
+        ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
             participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
             if (activePowerControl.getDroop() != 0) {
@@ -41,7 +41,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
             }
         }
 
-        if (!checkActivePowerControl(generator.getP0(), generator.getMinP(), generator.getMaxP(), plausibleActivePowerLimit, report)) {
+        if (!checkActivePowerControl(battery.getP0(), battery.getMinP(), battery.getMaxP(), plausibleActivePowerLimit, report)) {
             participating = false;
         }
     }
@@ -54,27 +54,27 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     @Override
     public String getId() {
-        return generator.getId();
+        return battery.getId();
     }
 
     @Override
     public double getTargetQ() {
-        return generator.getQ0() / PerUnit.SB;
+        return battery.getQ0() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return generator.getMinP() / PerUnit.SB;
+        return battery.getMinP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return generator.getMaxP() / PerUnit.SB;
+        return battery.getMaxP() / PerUnit.SB;
     }
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.of(generator.getReactiveLimits());
+        return Optional.of(battery.getReactiveLimits());
     }
 
     @Override
@@ -94,8 +94,8 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     @Override
     public void updateState() {
-        generator.getTerminal()
+        battery.getTerminal()
                 .setP(-targetP)
-                .setQ(-generator.getQ0());
+                .setQ(-battery.getQ0());
     }
 }
