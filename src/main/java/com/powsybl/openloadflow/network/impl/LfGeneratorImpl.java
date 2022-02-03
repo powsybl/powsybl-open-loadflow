@@ -59,7 +59,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         if (generator.getTargetP() > generator.getMaxP()) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
                     generator.getId(), generator.getTargetP(), generator.getMaxP());
-            report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP++;
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
+            participating = false;
+        }
+        if (generator.getTargetP() < generator.getMinP()) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) < minP ({})",
+                    generator.getId(), generator.getTargetP(), generator.getMinP());
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
             participating = false;
         }
         if (generator.getMaxP() > plausibleActivePowerLimit) {
