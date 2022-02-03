@@ -23,6 +23,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     private static final double POWER_EPSILON_SI = 1e-4;
 
+    private static final double TARGET_P_EPSILON = 1e-2;
+
     protected double targetP;
 
     protected LfBus bus;
@@ -264,5 +266,41 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setParticipating(boolean participating) {
         // nothing to do
+    }
+
+    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, double plausibleActivePowerLimit,
+                                              LfNetworkLoadingReport report) {
+        boolean participating = true;
+        if (Math.abs(targetP) < TARGET_P_EPSILON) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
+                    getId(), targetP);
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
+            participating = false;
+        }
+        if (targetP > maxP) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
+                    getId(), targetP, maxP);
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
+            participating = false;
+        }
+        if (targetP < minP) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) < minP ({})",
+                    getId(), targetP, minP);
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
+            participating = false;
+        }
+        if (maxP > plausibleActivePowerLimit) {
+            LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
+                    getId(), maxP, plausibleActivePowerLimit);
+            report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
+            participating = false;
+        }
+        if ((maxP - minP) < TARGET_P_EPSILON) {
+            LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
+                    getId(), maxP, minP);
+            report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
+            participating = false;
+        }
+        return participating;
     }
 }

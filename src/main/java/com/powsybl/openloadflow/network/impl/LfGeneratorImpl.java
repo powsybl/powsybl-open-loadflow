@@ -12,8 +12,6 @@ import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
 import com.powsybl.openloadflow.network.PerUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -24,11 +22,7 @@ import java.util.OptionalDouble;
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfGeneratorImpl.class);
-
     private static final double DEFAULT_DROOP = 4; // why not
-
-    private static final double TARGET_P_EPSILON = 1e-2;
 
     private final Generator generator;
 
@@ -50,34 +44,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 droop = activePowerControl.getDroop();
             }
         }
-        if (Math.abs(generator.getTargetP()) < TARGET_P_EPSILON) {
-            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
-                    generator.getId(), generator.getTargetP());
-            report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
-            participating = false;
-        }
-        if (generator.getTargetP() > generator.getMaxP()) {
-            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
-                    generator.getId(), generator.getTargetP(), generator.getMaxP());
-            report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
-            participating = false;
-        }
-        if (generator.getTargetP() < generator.getMinP()) {
-            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) < minP ({})",
-                    generator.getId(), generator.getTargetP(), generator.getMinP());
-            report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
-            participating = false;
-        }
-        if (generator.getMaxP() > plausibleActivePowerLimit) {
-            LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
-                    generator.getId(), generator.getMaxP(), plausibleActivePowerLimit);
-            report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
-            participating = false;
-        }
-        if ((generator.getMaxP() - generator.getMinP()) < TARGET_P_EPSILON) {
-            LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
-                generator.getId(), generator.getMaxP(), generator.getMinP());
-            report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
+
+        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), plausibleActivePowerLimit, report)) {
             participating = false;
         }
 
