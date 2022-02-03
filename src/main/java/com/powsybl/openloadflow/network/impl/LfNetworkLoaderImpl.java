@@ -265,7 +265,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             @Override
             public void visitBattery(Battery battery) {
-                lfBus.addBattery(battery);
+                lfBus.addBattery(battery, parameters.getPlausibleActivePowerLimit(), report);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(battery, lfBus));
             }
 
