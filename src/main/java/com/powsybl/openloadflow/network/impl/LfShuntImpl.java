@@ -124,6 +124,17 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         }
     }
 
+    public LfShuntImpl(Double b, Double nominalV, LfNetwork network, LfBus bus) {
+        // if there is no shunt connected on a bus, we have to create a special shunt that has no voltage control capability
+        // to model static var compensators in stand by.
+        super(network);
+        this.shuntCompensators = Collections.emptyList();
+        this.bus = Objects.requireNonNull(bus);
+        this.voltageControlCapability = false;
+        zb = nominalV * nominalV / PerUnit.SB;
+        this.b = b * zb;
+    }
+
     @Override
     public ElementType getType() {
         return ElementType.SHUNT_COMPENSATOR;

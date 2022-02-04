@@ -154,4 +154,19 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         generator.setParticipating(true);
         assertFalse(generator.isParticipating());
     }
+
+    @Test
+    void defaultMethodsTest3() {
+        network = EurostagTutorialExample1Factory.create();
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        if (mainNetwork.getBusById("VLGEN_0").getVoltageControl().isPresent()) {
+            VoltageControl voltageControl = mainNetwork.getBusById("VLGEN_0").getVoltageControl().get();
+            assertEquals(1.02, voltageControl.getTargetValue(), 10E-3);
+            voltageControl.setTargetValue(1.7);
+            assertEquals(1.7, voltageControl.getTargetValue(), 10E-3);
+        }
+    }
 }

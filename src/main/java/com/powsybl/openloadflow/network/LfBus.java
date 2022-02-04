@@ -122,6 +122,8 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getControllerShunt();
 
+    void addShunt(LfShunt shunt);
+
     LfLoads getLfLoads();
 
     List<LfBranch> getBranches();

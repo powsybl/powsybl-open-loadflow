@@ -26,6 +26,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private double slope = 0;
 
+    private double optionalB = 0;
+
+    double targetQ;
+
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         super(0);
         this.svc = svc;
@@ -67,6 +71,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                 this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
             }
         }
+        targetQ = -svc.getReactivePowerSetpoint();
     }
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
@@ -82,7 +87,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return -svc.getReactivePowerSetpoint() / PerUnit.SB;
+        return targetQ / PerUnit.SB;
     }
 
     @Override
@@ -102,9 +107,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public void updateState() {
+        double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
         svc.getTerminal()
                 .setP(0)
-                .setQ(Double.isNaN(calculatedQ) ? svc.getReactivePowerSetpoint() : -calculatedQ);
+                .setQ((Double.isNaN(calculatedQ) ? -targetQ : -calculatedQ) - optionalB * vSquare);
     }
 
     @Override
@@ -115,5 +121,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     @Override
     public void setSlope(double slope) {
         this.slope = slope;
+    }
+
+    public void setOptionalB(double b) {
+        optionalB = b;
     }
 }

@@ -247,10 +247,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return remoteTargetQ;
     }
 
-    protected enum GeneratorControlType {
-        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
-    }
-
     @Override
     public Object getUserObject() {
         return userObject;
@@ -264,5 +260,15 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setParticipating(boolean participating) {
         // nothing to do
+    }
+
+    @Override
+    public GeneratorControlType getGeneratorControlType() {
+        return this.generatorControlType;
+    }
+
+    @Override
+    public void setGeneratorControlType(GeneratorControlType generatorControlType) {
+        this.generatorControlType = generatorControlType;
     }
 }

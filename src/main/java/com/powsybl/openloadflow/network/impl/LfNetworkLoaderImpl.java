@@ -711,6 +711,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
+        postProcessors.forEach(pp -> pp.onNetworkAdded(lfNetwork));
+
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             reporter.report(Report.builder()
                 .withKey("notStartedGenerators")

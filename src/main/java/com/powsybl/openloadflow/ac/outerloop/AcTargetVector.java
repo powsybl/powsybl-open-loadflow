@@ -14,6 +14,8 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -22,6 +24,8 @@ import java.util.Optional;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcTargetVector.class);
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
@@ -35,7 +39,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
         return bus.getVoltageControl().filter(vc -> bus.isVoltageControlled()).map(vc -> {
             if (vc.getControllerBuses().stream().noneMatch(LfBus::isVoltageControlEnabled)) {
-                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
+                LOGGER.warn("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
             }
             return vc.getTargetValue();
         });

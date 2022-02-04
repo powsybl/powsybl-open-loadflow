@@ -75,6 +75,14 @@ public interface LfGenerator {
 
     double getRemoteTargetQ();
 
+    public enum GeneratorControlType {
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
+    }
+
+    GeneratorControlType getGeneratorControlType();
+
+    void setGeneratorControlType(GeneratorControlType generatorControlType);
+
     Object getUserObject();
 
     void setUserObject(Object userObject);

@@ -92,7 +92,7 @@ public final class AcEquationSystem {
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
             createBusWithSlopeEquation(bus, slope, networkParameters, equationSystem, vTerm, creationParameters);
         } else {
-            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
+            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm).setActive(bus.isVoltageControlEnabled());
         }
     }
 

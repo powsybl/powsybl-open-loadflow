@@ -432,6 +432,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void addShunt(LfShunt shunt) {
+        this.shunt = shunt;
+    }
+
+    @Override
     public List<LfGenerator> getGenerators() {
         return generators;
     }
