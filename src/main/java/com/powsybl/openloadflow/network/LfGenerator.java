@@ -47,6 +47,8 @@ public interface LfGenerator {
         return false;
     }
 
+    void setParticipating(boolean participating);
+
     default double getDroop() {
         return 0;
     }

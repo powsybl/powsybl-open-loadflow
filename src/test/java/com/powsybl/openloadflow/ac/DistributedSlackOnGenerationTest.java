@@ -51,10 +51,9 @@ class DistributedSlackOnGenerationTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+        OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test
@@ -173,5 +172,15 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-200, g2.getTerminal());
         assertActivePowerEquals(-150, g3.getTerminal());
         assertActivePowerEquals(-150, g4.getTerminal());
+    }
+
+    @Test
+    void generatorWithTargetPLowerThanMinP() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").setMaxP(1000);
+        network.getGenerator("GEN").setMinP(200);
+        network.getGenerator("GEN").setTargetP(100);
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
+                "Failed to distribute slack bus active power mismatch, 504.9476825313616 MW remains");
     }
 }

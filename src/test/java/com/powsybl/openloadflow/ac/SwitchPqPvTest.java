@@ -190,9 +190,8 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
                 .setDistributedSlack(false);
-        parametersExt = new OpenLoadFlowParameters()
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test

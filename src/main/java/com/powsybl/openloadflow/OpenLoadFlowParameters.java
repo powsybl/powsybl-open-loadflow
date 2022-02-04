@@ -7,20 +7,45 @@
 package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
+import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.ac.DefaultOuterLoopConfig;
+import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
+import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoopConfig;
+import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
+import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.NetworkSlackBusSelector;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OpenLoadFlowParameters.class);
 
     public static final SlackBusSelectionMode SLACK_BUS_SELECTION_DEFAULT_VALUE = SlackBusSelectionMode.MOST_MESHED;
 
@@ -50,6 +75,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static final VoltageInitModeOverride VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE = VoltageInitModeOverride.NONE;
+
+    public enum TransformerVoltageControlMode {
+        WITH_GENERATOR_VOLTAGE_CONTROL,
+        AFTER_GENERATOR_VOLTAGE_CONTROL
+    }
+
+    public static final TransformerVoltageControlMode TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
 
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_DEFAULT_VALUE;
 
@@ -83,6 +115,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double newtonRaphsonConvEpsPerEq = DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
 
     private VoltageInitModeOverride voltageInitModeOverride = VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE;
+
+    private TransformerVoltageControlMode transformerVoltageControlMode = TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -223,6 +257,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public TransformerVoltageControlMode getTransformerVoltageControlMode() {
+        return transformerVoltageControlMode;
+    }
+
+    public OpenLoadFlowParameters setTransformerVoltageControlMode(TransformerVoltageControlMode transformerVoltageControlMode) {
+        this.transformerVoltageControlMode = Objects.requireNonNull(transformerVoltageControlMode);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -244,6 +287,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", maxIteration=" + maxIteration +
                 ", newtonRaphsonConvEpsPerEq=" + newtonRaphsonConvEpsPerEq +
                 ", voltageInitModeOverride=" + voltageInitModeOverride +
+                ", transformerVoltageControlMode=" + transformerVoltageControlMode +
                 ')';
     }
 
@@ -278,6 +322,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         public static final String VOLTAGE_INIT_MODE_OVERRIDE_NAME = "voltageInitModeOverride";
 
+        public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME = "transformerVoltageControlMode";
+
         @Override
         public OpenLoadFlowParameters load(PlatformConfig platformConfig) {
             OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
@@ -300,6 +346,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         .setMaxIteration(config.getIntProperty(MAX_ITERATION_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
                         .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                         .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
+                        .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 );
             return parameters;
         }
@@ -326,5 +373,195 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             parametersExt = OpenLoadFlowParameters.load();
         }
         return parametersExt;
+    }
+
+    private static OpenLoadFlowParameters create(LoadFlowParameters parameters, Supplier<OpenLoadFlowParameters> parametersExtSupplier) {
+        Objects.requireNonNull(parameters);
+        OpenLoadFlowParameters parametersExt = parametersExtSupplier.get();
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        return parametersExt;
+    }
+
+    public static OpenLoadFlowParameters create(LoadFlowParameters parameters) {
+        return create(parameters, OpenLoadFlowParameters::new);
+    }
+
+    public static OpenLoadFlowParameters load(LoadFlowParameters parameters) {
+        return create(parameters, OpenLoadFlowParameters::load);
+    }
+
+    public static void logDc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        LOGGER.info("Direct current: {}", parameters.isDc());
+        LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
+        LOGGER.info("Use transformer ratio: {}", parameters.isDcUseTransformerRatio());
+        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
+        LOGGER.info("Balance type: {}", parameters.getBalanceType());
+        LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
+        LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
+    }
+
+    /**
+     * Log parameters interesting for AC calculation
+     */
+    public static void logAc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        LOGGER.info("Direct current: {}", parameters.isDc());
+        LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
+        LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
+        LOGGER.info("Voltage initialization mode override: {}", parametersExt.getVoltageInitModeOverride());
+        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
+        LOGGER.info("Balance type: {}", parameters.getBalanceType());
+        LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
+        LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
+        LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
+        LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
+        LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
+        LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
+        LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
+        LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
+        LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
+        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
+        LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
+        LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
+        LOGGER.info("Shunt voltage control: {}", parameters.isSimulShunt());
+    }
+
+    static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
+        switch (parameters.getVoltageInitMode()) {
+            case UNIFORM_VALUES:
+                return new UniformValueVoltageInitializer();
+            case PREVIOUS_VALUES:
+                return new PreviousValueVoltageInitializer();
+            case DC_VALUES:
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, reporter);
+            default:
+                throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
+        }
+    }
+
+    static VoltageInitializer getExtendedVoltageInitializer(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                            LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
+        switch (parametersExt.getVoltageInitModeOverride()) {
+            case NONE:
+                return getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+
+            case VOLTAGE_MAGNITUDE:
+                return new VoltageMagnitudeInitializer(matrixFactory);
+
+            case FULL_VOLTAGE:
+                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(matrixFactory),
+                        new DcValueVoltageInitializer(networkParameters,
+                                                      parameters.isDistributedSlack(),
+                                                      parameters.getBalanceType(),
+                                                      parameters.isDcUseTransformerRatio(),
+                                                      matrixFactory,
+                                                      reporter));
+
+            default:
+                throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());
+        }
+    }
+
+    static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                    SlackBusSelector slackBusSelector, boolean breakers) {
+        return new LfNetworkParameters(slackBusSelector,
+                                       parametersExt.hasVoltageRemoteControl(),
+                                       parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
+                                       parameters.isTwtSplitShuntAdmittance(),
+                                       breakers,
+                                       parametersExt.getPlausibleActivePowerLimit(),
+                                       parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                       parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                       parameters.getCountriesToBalance(),
+                                       parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                       parameters.isPhaseShifterRegulationOn(),
+                                       parameters.isTransformerVoltageControlOn(),
+                                       parametersExt.isVoltagePerReactivePowerControl(),
+                                       parametersExt.hasReactivePowerRemoteControl(),
+                                       parameters.isDc(),
+                                       parameters.isSimulShunt(),
+                                       !parameters.isNoGeneratorReactiveLimits());
+    }
+
+    public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                          MatrixFactory matrixFactory, Reporter reporter) {
+        return createAcParameters(network, parameters, parametersExt, matrixFactory, reporter, false, false);
+    }
+
+    public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                          MatrixFactory matrixFactory, Reporter reporter, boolean breakers, boolean forceA1Var) {
+        AcLoadFlowParameters acParameters = createAcParameters(parameters, parametersExt, matrixFactory, reporter, breakers, forceA1Var);
+        if (parameters.isReadSlackBus()) {
+            acParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, acParameters.getNetworkParameters().getSlackBusSelector()));
+        }
+        return acParameters;
+    }
+
+    public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                          MatrixFactory matrixFactory, Reporter reporter, boolean breakers, boolean forceA1Var) {
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds());
+
+        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, breakers);
+
+        var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var);
+
+        VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory, reporter);
+
+        var newtonRaphsonParameters = new NewtonRaphsonParameters()
+                .setVoltageInitializer(voltageInitializer)
+                .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
+                .setMaxIteration(parametersExt.getMaxIteration());
+
+        OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
+        List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
+
+        return new AcLoadFlowParameters(networkParameters,
+                                        equationSystemCreationParameters,
+                                        newtonRaphsonParameters,
+                                        outerLoops, matrixFactory);
+    }
+
+    public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                          MatrixFactory matrixFactory, boolean forcePhaseControlOffAndAddAngle1Var) {
+        var dcParameters = createDcParameters(parameters, parametersExt, matrixFactory, forcePhaseControlOffAndAddAngle1Var);
+        if (parameters.isReadSlackBus()) {
+            dcParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, dcParameters.getNetworkParameters().getSlackBusSelector()));
+        }
+        return dcParameters;
+    }
+
+    public static DcLoadFlowParameters createDcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                          MatrixFactory matrixFactory, boolean forcePhaseControlOffAndAddAngle1Var) {
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds());
+
+        var networkParameters = new LfNetworkParameters(slackBusSelector,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        parametersExt.getPlausibleActivePowerLimit(),
+                                                        false,
+                                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
+                                                        parameters.getCountriesToBalance(),
+                                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        false,
+                                                        true,
+                                                        false,
+                                                        false);
+
+        var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
+                                                                                      false,
+                                                                                      forcePhaseControlOffAndAddAngle1Var,
+                                                                                      parameters.isDcUseTransformerRatio());
+
+        return new DcLoadFlowParameters(networkParameters,
+                                        equationSystemCreationParameters,
+                                        matrixFactory,
+                                        parameters.isDistributedSlack(),
+                                        parameters.getBalanceType(),
+                                        true);
     }
 }
