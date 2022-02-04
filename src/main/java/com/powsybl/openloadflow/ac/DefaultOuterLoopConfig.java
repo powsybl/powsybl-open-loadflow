@@ -34,7 +34,13 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
             outerLoops.add(new ReactiveLimitsOuterLoop());
         }
         if (parameters.isTransformerVoltageControlOn()) {
-            outerLoops.add(new TransformerVoltageControlOuterLoop());
+            if (parametersExt.getTransformerVoltageControlMode() == OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL) {
+                outerLoops.add(new SimpleTransformerVoltageControlOuterLoop());
+            } else if (parametersExt.getTransformerVoltageControlMode() == OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL) {
+                outerLoops.add(new TransformerVoltageControlOuterLoop());
+            } else {
+                throw new IllegalStateException("Unknown transformer voltage control mode: " + parametersExt.getTransformerVoltageControlMode());
+            }
         }
         if (parameters.isSimulShunt()) {
             outerLoops.add(new ShuntVoltageControlOuterLoop());
