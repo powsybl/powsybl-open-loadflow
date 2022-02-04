@@ -15,14 +15,12 @@ import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -61,8 +59,8 @@ class OpenSecurityAnalysisGraphTest {
             .collect(Collectors.toList());
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        lfParameters.addExtension(OpenLoadFlowParameters.class,
-            new OpenLoadFlowParameters().setSlackBusSelectionMode(SlackBusSelectionMode.FIRST));
+        OpenLoadFlowParameters.create(lfParameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         securityAnalysisParameters = new SecurityAnalysisParameters().setLoadFlowParameters(lfParameters);
     }
 
@@ -157,8 +155,8 @@ class OpenSecurityAnalysisGraphTest {
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
 
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network,
-            new DenseMatrixFactory(), lfParameters, lfParametersExt, true, Reporter.NO_OP);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+            lfParameters, lfParametersExt, new DenseMatrixFactory(), Reporter.NO_OP, true, false);
 
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());

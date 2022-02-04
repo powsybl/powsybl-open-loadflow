@@ -127,10 +127,9 @@ class OpenSecurityAnalysisTest {
     }
 
     private static void setSlackBusId(LoadFlowParameters lfParameters, String slackBusId) {
-        OpenLoadFlowParameters olfParameters = new OpenLoadFlowParameters()
+        OpenLoadFlowParameters.create(lfParameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
                 .setSlackBusId(slackBusId);
-        lfParameters.addExtension(OpenLoadFlowParameters.class, olfParameters);
     }
 
     private static PostContingencyResult getPostContingencyResult(SecurityAnalysisResult result, String contingencyId) {

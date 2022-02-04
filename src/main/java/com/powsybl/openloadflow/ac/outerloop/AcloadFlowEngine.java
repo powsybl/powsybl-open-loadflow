@@ -104,17 +104,17 @@ public class AcloadFlowEngine {
         NewtonRaphson newtonRaphson = new NewtonRaphson(context.getNetwork(), context.getParameters().getNewtonRaphsonParameters(),
                 context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector());
 
+        // outer loops initialization
+        for (OuterLoop outerLoop : context.getParameters().getOuterLoops()) {
+            outerLoop.initialize(context.getNetwork());
+        }
+
         // run initial Newton-Raphson
         runningContext.lastNrResult = newtonRaphson.run(reporter);
 
         // continue with outer loops only if initial Newton-Raphson succeed
         if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
             updatePvBusesReactivePower(runningContext.lastNrResult, context.getNetwork(), context.getEquationSystem());
-
-            // outer loops initialization
-            for (OuterLoop outerLoop : context.getParameters().getOuterLoops()) {
-                outerLoop.initialize(context.getNetwork());
-            }
 
             // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
             int oldIterationCount;
