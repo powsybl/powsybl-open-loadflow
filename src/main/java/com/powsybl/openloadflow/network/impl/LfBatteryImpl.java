@@ -19,8 +19,6 @@ import java.util.Optional;
  */
 public final class LfBatteryImpl extends AbstractLfGenerator {
 
-    private static final double DEFAULT_DROOP = 1; // why not
-
     private final Battery battery;
 
     private boolean participating;

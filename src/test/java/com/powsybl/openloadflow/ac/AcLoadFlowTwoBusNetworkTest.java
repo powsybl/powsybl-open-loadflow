@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -110,6 +111,7 @@ class AcLoadFlowTwoBusNetworkTest {
                 .setMinP(-2)
                 .setMaxP(2)
                 .add();
+        network.getBattery("bt2").newExtension(ActivePowerControlAdder.class).withDroop(1).withParticipate(true).add();
         network.getGenerator("g1").setMaxP(3);
         parameters.setDistributedSlack(true);
         parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
@@ -124,5 +126,31 @@ class AcLoadFlowTwoBusNetworkTest {
         assertActivePowerEquals(-2.2727, line1.getTerminal2());
         assertReactivePowerEquals(-1.097, line1.getTerminal2());
         assertActivePowerEquals(0.275, network.getBattery("bt2").getTerminal());
+    }
+
+    @Test
+    void withAnAdditionalBattery3() {
+        bus2.getVoltageLevel().newBattery()
+                .setId("bt2")
+                .setBus("b2")
+                .setP0(-1)
+                .setQ0(-0.1)
+                .setMinP(-2)
+                .setMaxP(2)
+                .add();
+        network.getGenerator("g1").setMaxP(3);
+        parameters.setDistributedSlack(true);
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(1, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(0.812, bus2);
+        assertAngleEquals(-18.680062, bus2);
+        assertActivePowerEquals(2.600, line1.getTerminal1());
+        assertReactivePowerEquals(2.309, line1.getTerminal1());
+        assertActivePowerEquals(-2.600, line1.getTerminal2());
+        assertReactivePowerEquals(-1.0999, line1.getTerminal2());
+        assertActivePowerEquals(0.600, network.getBattery("bt2").getTerminal());
     }
 }

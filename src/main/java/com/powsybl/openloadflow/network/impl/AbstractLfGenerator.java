@@ -25,6 +25,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     private static final double TARGET_P_EPSILON = 1e-2;
 
+    protected static final double DEFAULT_DROOP = 4; // why not
+
     protected double targetP;
 
     protected LfBus bus;

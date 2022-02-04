@@ -22,8 +22,6 @@ import java.util.OptionalDouble;
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
 
-    private static final double DEFAULT_DROOP = 4; // why not
-
     private final Generator generator;
 
     private boolean participating;
