@@ -629,6 +629,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (LfGeneratorImpl generator : generators) {
             generator.setTargetP(0);
             if (distributedSlackOnGenerators && generator.isParticipating()) {
+                generator.setParticipating(false);
                 participatingGeneratorsToRemove.add(generator);
             }
         }

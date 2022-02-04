@@ -150,9 +150,8 @@ class AcLoadFlowShuntTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
                 .setDistributedSlack(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
     }
 
     @Test

@@ -21,7 +21,7 @@ public interface LfGenerator {
 
     boolean hasVoltageControl();
 
-    boolean hasReactivePowerControl();
+    boolean hasRemoteReactivePowerControl();
 
     double getTargetV();
 
@@ -46,6 +46,8 @@ public interface LfGenerator {
     default boolean isParticipating() {
         return false;
     }
+
+    void setParticipating(boolean participating);
 
     default double getDroop() {
         return 0;

@@ -23,6 +23,10 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     private static final double POWER_EPSILON_SI = 1e-4;
 
+    private static final double TARGET_P_EPSILON = 1e-2;
+
+    protected static final double DEFAULT_DROOP = 4; // why not
+
     protected double targetP;
 
     protected LfBus bus;
@@ -83,8 +87,8 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     @Override
-    public boolean hasReactivePowerControl() {
-        return generatorControlType == GeneratorControlType.REACTIVE_POWER;
+    public boolean hasRemoteReactivePowerControl() {
+        return generatorControlType == GeneratorControlType.REMOTE_REACTIVE_POWER;
     }
 
     @Override
@@ -164,8 +168,9 @@ public abstract class AbstractLfGenerator implements LfGenerator {
             LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
             return;
         }
-        boolean inSameSynchronousComponent = breakers ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().equals(terminal.getBusBreakerView().getBus().getSynchronousComponent())
-                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().equals(terminal.getBusView().getBus().getSynchronousComponent());
+        boolean inSameSynchronousComponent = breakers
+                ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().getNum() == terminal.getBusBreakerView().getBus().getSynchronousComponent().getNum()
+                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().getNum() == terminal.getBusView().getBus().getSynchronousComponent().getNum();
         if (!inSameSynchronousComponent) {
             LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
@@ -227,7 +232,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
                     getId(), connectable.getClass());
             return;
         }
-        this.generatorControlType = GeneratorControlType.REACTIVE_POWER;
+        this.generatorControlType = GeneratorControlType.REMOTE_REACTIVE_POWER;
         this.remoteTargetQ = targetQ / PerUnit.SB;
     }
 
@@ -247,7 +252,7 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     protected enum GeneratorControlType {
-        OFF, REACTIVE_POWER, VOLTAGE
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
     }
 
     @Override
@@ -258,5 +263,46 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setUserObject(Object userObject) {
         this.userObject = userObject;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        // nothing to do
+    }
+
+    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, double plausibleActivePowerLimit,
+                                              LfNetworkLoadingReport report) {
+        boolean participating = true;
+        if (Math.abs(targetP) < TARGET_P_EPSILON) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
+                    getId(), targetP);
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
+            participating = false;
+        }
+        if (targetP > maxP) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
+                    getId(), targetP, maxP);
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
+            participating = false;
+        }
+        if (targetP < minP) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) < minP ({})",
+                    getId(), targetP, minP);
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
+            participating = false;
+        }
+        if (maxP > plausibleActivePowerLimit) {
+            LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
+                    getId(), maxP, plausibleActivePowerLimit);
+            report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
+            participating = false;
+        }
+        if ((maxP - minP) < TARGET_P_EPSILON) {
+            LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
+                    getId(), maxP, minP);
+            report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
+            participating = false;
+        }
+        return participating;
     }
 }

@@ -41,7 +41,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector, false, false, false, breakers,
                                                                         LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                                                                         true, Collections.emptySet(), false, false, false, false, false, false, false, true);
-        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
+        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(new UniformValueVoltageInitializer());
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
@@ -70,7 +70,7 @@ class NonImpedantBranchWithBreakerIssueTest {
                 LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                 true, Collections.emptySet(), false, false, false, false, false, false, false, true);
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
-        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
+        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(new UniformValueVoltageInitializer());
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
