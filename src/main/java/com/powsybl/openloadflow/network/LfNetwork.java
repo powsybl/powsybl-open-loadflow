@@ -14,6 +14,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;

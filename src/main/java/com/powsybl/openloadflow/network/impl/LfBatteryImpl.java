@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
 import java.util.Optional;

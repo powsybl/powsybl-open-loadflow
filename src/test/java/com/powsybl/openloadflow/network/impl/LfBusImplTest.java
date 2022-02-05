@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -12,6 +12,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;

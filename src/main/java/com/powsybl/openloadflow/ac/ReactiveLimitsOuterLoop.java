@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.network.VoltageControl;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
