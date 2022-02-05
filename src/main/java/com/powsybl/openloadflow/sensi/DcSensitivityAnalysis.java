@@ -33,7 +33,7 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.PropagatedContingency;
+import com.powsybl.openloadflow.util.sa.PropagatedContingency;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
