@@ -69,7 +69,14 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 if (disabled && bus.isSlack()) {
                     throw new PowsyblException("Slack bus '" + bus.getId() + "' disabling is not supported");
                 }
-                AcEquationSystem.updateBusEquations(bus, equationSystem);
+                equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_PHI)
+                        .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
+                equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P)
+                        .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
+                // set voltage target equation inactive, various voltage control will set next the the correct value
+                equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)
+                        .orElseThrow()
+                        .setActive(false);
                 bus.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateGeneratorVoltageControl(voltageControl, equationSystem));
                 bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
                 bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));

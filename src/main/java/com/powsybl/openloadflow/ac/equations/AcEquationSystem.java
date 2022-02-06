@@ -55,16 +55,6 @@ public final class AcEquationSystem {
         }
     }
 
-    public static void updateBusEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_PHI)
-                .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
-        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P)
-                .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
-        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)
-                .orElseThrow()
-                .setActive(false);
-    }
-
     private static void createBusesEquations(LfNetwork network, LfNetworkParameters networkParameters,
                                              EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                              AcEquationSystemCreationParameters creationParameters) {
