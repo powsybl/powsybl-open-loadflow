@@ -25,7 +25,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     @Override
     public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
-        AcEquationSystem.updateGeneratorVoltageControl(controllerBus.getVoltageControl().orElseThrow(), equationSystem);
+        controllerBus.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateGeneratorVoltageControl(voltageControl, equationSystem));
+        controllerBus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystem.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
     }
 
     @Override
@@ -75,6 +76,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 LfBranch branch = (LfBranch) element;
                 branch.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
                 branch.getDiscretePhaseControl().ifPresent(phaseControl -> AcEquationSystem.updateTransformerPhaseControlEquations(phaseControl, equationSystem));
+                branch.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystem.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case SHUNT_COMPENSATOR:
                 LfShunt shunt = (LfShunt) element;

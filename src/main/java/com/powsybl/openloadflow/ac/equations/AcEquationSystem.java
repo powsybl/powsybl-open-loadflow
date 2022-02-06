@@ -117,10 +117,21 @@ public final class AcEquationSystem {
                         .addTerm(q);
 
                 // if bus has both voltage and remote reactive power controls, then only voltage control has been kept
-                equationSystem.createEquation(rpc.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q)
-                        .setActive(false);
+                equationSystem.createEquation(rpc.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q);
+
+                updateReactivePowerControlBranchEquations(rpc, equationSystem);
             });
         }
+    }
+
+    public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        // FIXME no way to deactivate the control, use voltageControlEnabled of controller bus?
+        equationSystem.getEquation(reactivePowerControl.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q)
+                .orElseThrow()
+                .setActive(true);
+        equationSystem.getEquation(reactivePowerControl.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q)
+                .orElseThrow()
+                .setActive(false);
     }
 
     private static void createShuntEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
