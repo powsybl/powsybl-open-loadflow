@@ -18,9 +18,6 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.EquationUtil;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
@@ -112,6 +109,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                            String contingencyId, int contingencyIndex, SensitivityValueWriter valueWriter,
                                                            Reporter reporter, boolean hasTransformerBusTargetVoltage) {
+        for (LfBranch branch : lfContingency.getBranches()) {
+            branch.setDisabled(true);
+        }
         for (LfBus bus : lfContingency.getBuses()) {
             bus.setDisabled(true);
         }
@@ -120,11 +120,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant());
             activePowerDistribution.run(lfNetwork, lfContingency.getActivePowerLoss());
         }
-
-        List<Equation<AcVariableType, AcEquationType>> deactivatedEquations = new ArrayList<>();
-        List<EquationTerm<AcVariableType, AcEquationType>> deactivatedEquationTerms = new ArrayList<>();
-
-        EquationUtil.deactivateEquations(lfContingency.getBranches(), lfContingency.getBuses(), context.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         context.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         new AcloadFlowEngine(context)
@@ -147,8 +142,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         // calculate sensitivity values
         calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyId, contingencyIndex, valueWriter);
-
-        EquationUtil.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
     }
 
     @Override
@@ -270,6 +263,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     .collect(Collectors.toList());
 
             List<BusState> busStates = ElementState.save(lfNetwork.getBuses(), BusState::save);
+            List<BranchState> branchStates = ElementState.save(lfNetwork.getBranches(), BranchState::save);
 
             // Contingency not breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
@@ -288,7 +282,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         });
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, slackParticipationByBus, lfParameters,
                         lfParametersExt, lfContingency.getId(), lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
+
                 ElementState.restore(busStates);
+                ElementState.restore(branchStates);
             }
 
             // Contingency breaking connectivity

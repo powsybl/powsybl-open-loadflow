@@ -18,16 +18,11 @@ import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.EquationUtil;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -178,15 +173,14 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
                                                                Map<String, BranchResult> preContingencyBranchResults) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getId());
+        LOGGER.debug("Remove buses {}, branches {}, shunts {}", lfContingency.getBuses(), lfContingency.getBranches(),
+                lfContingency.getShunts());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        List<Equation<AcVariableType, AcEquationType>> deactivatedEquations = new ArrayList<>();
-        List<EquationTerm<AcVariableType, AcEquationType>> deactivatedEquationTerms = new ArrayList<>();
         List<BranchResult> branchResults = new ArrayList<>();
         List<BusResults> busResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
-        EquationUtil.deactivateEquations(lfContingency.getBranches(), lfContingency.getBuses(), context.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         // restart LF on post contingency equation system
         context.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
@@ -214,8 +208,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 postContingencyLimitViolations.remove(subjectSideId);
             }
         });
-
-        EquationUtil.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
 
         stopwatch.stop();
         LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getId(),

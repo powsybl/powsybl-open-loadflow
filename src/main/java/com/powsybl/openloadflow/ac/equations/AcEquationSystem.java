@@ -55,6 +55,16 @@ public final class AcEquationSystem {
         }
     }
 
+    public static void updateBusEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_PHI)
+                .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
+        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P)
+                .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
+        equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)
+                .orElseThrow()
+                .setActive(false);
+    }
+
     private static void createBusesEquations(LfNetwork network, LfNetworkParameters networkParameters,
                                              EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                              AcEquationSystemCreationParameters creationParameters) {
@@ -128,7 +138,8 @@ public final class AcEquationSystem {
         // FIXME no way to deactivate the control, use voltageControlEnabled of controller bus?
         equationSystem.getEquation(reactivePowerControl.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q)
                 .orElseThrow()
-                .setActive(true);
+                .setActive(!reactivePowerControl.getControllerBus().isDisabled()
+                        && !reactivePowerControl.getControlledBranch().isDisabled());
         equationSystem.getEquation(reactivePowerControl.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q)
                 .orElseThrow()
                 .setActive(false);
@@ -295,10 +306,10 @@ public final class AcEquationSystem {
             if (voltageControl.isVoltageControlLocal()) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
-                        .setActive(controlledBus.isVoltageControlEnabled());
+                        .setActive(!controlledBus.isDisabled() && controlledBus.isVoltageControlEnabled());
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
-                        .setActive(!controlledBus.isVoltageControlEnabled());
+                        .setActive(!controlledBus.isDisabled() && !controlledBus.isVoltageControlEnabled());
             } else {
                 AcEquationSystem.updateRemoteVoltageControlEquations(voltageControl, equationSystem);
             }
