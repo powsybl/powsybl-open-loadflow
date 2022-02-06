@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -24,40 +23,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         this.equationSystem = Objects.requireNonNull(equationSystem);
     }
 
-    private void updateVoltageControl(VoltageControl voltageControl) {
-        LfBus controlledBus = voltageControl.getControlledBus();
-        Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
-
-        LfBus firstControllerBus = controllerBuses.iterator().next();
-        if (firstControllerBus.hasGeneratorsWithSlope()) {
-            // we only support one controlling static var compensator without any other controlling generators
-            // we don't support controller bus that wants to control back voltage with slope.
-            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
-                    .orElseThrow()
-                    .setActive(firstControllerBus.isVoltageControlEnabled());
-        } else {
-            if (voltageControl.isVoltageControlLocal()) {
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                        .orElseThrow()
-                        .setActive(controlledBus.isVoltageControlEnabled());
-            } else {
-                AcEquationSystem.updateRemoteVoltageControlEquations(voltageControl, equationSystem);
-            }
-        }
-    }
-
-    private void updateVoltageControl(LfBus controllerBus, boolean newVoltageControllerEnabled) {
-        // active/de-activate bus target reactive power equation to switch bus PV or PQ
-        equationSystem.getEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
-                .orElseThrow()
-                .setActive(!newVoltageControllerEnabled);
-
-        updateVoltageControl(controllerBus.getVoltageControl().orElseThrow());
-    }
-
     @Override
     public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
-        updateVoltageControl(controllerBus, newVoltageControllerEnabled);
+        AcEquationSystem.updateGeneratorVoltageControl(controllerBus.getVoltageControl().orElseThrow(), equationSystem);
     }
 
     @Override
@@ -99,7 +67,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 if (disabled && bus.isSlack()) {
                     throw new PowsyblException("Slack bus '" + bus.getId() + "' disabling is not supported");
                 }
-                bus.getVoltageControl().ifPresent(this::updateVoltageControl);
+                bus.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateGeneratorVoltageControl(voltageControl, equationSystem));
                 bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
                 bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
                 break;

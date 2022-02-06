@@ -66,14 +66,12 @@ public final class AcEquationSystem {
         Optional<VoltageControl> optVoltageControl = bus.getVoltageControl();
         if (optVoltageControl.isPresent()) {
             VoltageControl voltageControl = optVoltageControl.get();
-            if (voltageControl.isVoltageControlLocal()) {
-                createLocalVoltageControlEquation(bus, networkParameters, equationSystem, creationParameters);
-            } else if (bus.isVoltageControlled()) {
-                createRemoteVoltageControlEquations(voltageControl, networkParameters, equationSystem, creationParameters);
-            }
-
-            if (bus.isVoltageControlEnabled()) {
-                equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).setActive(false);
+            if (bus.isVoltageControlled()) {
+                if (voltageControl.isVoltageControlLocal()) {
+                    createLocalVoltageControlEquation(bus, networkParameters, equationSystem, creationParameters);
+                } else {
+                    createRemoteVoltageControlEquations(voltageControl, networkParameters, equationSystem, creationParameters);
+                }
             }
         } else { // If bus has both voltage and remote reactive power controls, then only voltage control has been kept
             bus.getReactivePowerControl()
@@ -87,13 +85,26 @@ public final class AcEquationSystem {
         EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
                 .createTerm();
         bus.setCalculatedV(vTerm);
+        Equation<AcVariableType, AcEquationType> vEq;
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
-            createBusWithSlopeEquation(bus, slope, networkParameters, equationSystem, vTerm, creationParameters);
+
+            // we only support one generator controlling voltage with a non zero slope at a bus.
+            // equation is: V + slope * qSVC = targetV
+            // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
+            vEq = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
+                    .addTerm(vTerm)
+                    .addTerms(createReactiveTerms(bus, networkParameters, equationSystem.getVariableSet(), creationParameters)
+                            .stream()
+                            .map(term -> term.multiply(slope))
+                            .collect(Collectors.toList()));
         } else {
-            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
+            vEq = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).addTerm(vTerm);
         }
+        vEq.setActive(bus.isVoltageControlEnabled());
+        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q)
+                .setActive(!bus.isVoltageControlEnabled());
     }
 
     private static void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
@@ -131,8 +142,28 @@ public final class AcEquationSystem {
                 .addTerm(vTerm);
         controlledBus.setCalculatedV(vTerm);
 
-        // create reactive power distribution equations at voltage controller buses
-        createReactivePowerDistributionEquations(voltageControl.getControllerBuses(), networkParameters, equationSystem, creationParameters);
+        for (LfBus controllerBus : voltageControl.getControllerBuses()) {
+            equationSystem.createEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q);
+
+            // create reactive power distribution equations at voltage controller buses
+
+            // reactive power at controller bus i (supposing this voltage control is enabled)
+            // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
+            // 0 = qPercent_i * sum_j(q_j) - q_i
+            // which can be rewritten in a more simple way
+            // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
+            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
+                    .addTerms(createReactiveTerms(controllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
+                            .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
+                            .collect(Collectors.toList()));
+            for (LfBus otherControllerBus : voltageControl.getControllerBuses()) {
+                if (otherControllerBus != controllerBus) {
+                    zero.addTerms(createReactiveTerms(otherControllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
+                            .map(term -> term.multiply(controllerBus::getRemoteVoltageControlReactivePercent))
+                            .collect(Collectors.toList()));
+                }
+            }
+        }
 
         updateRemoteVoltageControlEquations(voltageControl, equationSystem);
     }
@@ -156,6 +187,9 @@ public final class AcEquationSystem {
                 equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
                         .orElseThrow()
                         .setActive(false);
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
+                        .orElseThrow()
+                        .setActive(true);
             }
         } else {
             List<LfBus> enabledControllerBuses = controllerBuses.stream()
@@ -171,6 +205,9 @@ public final class AcEquationSystem {
                 equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
                         .orElseThrow()
                         .setActive(false);
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
+                        .orElseThrow()
+                        .setActive(true);
             }
 
             // activate reactive power distribution equation at all enabled controller buses except one (first)
@@ -178,7 +215,11 @@ public final class AcEquationSystem {
                 boolean active = i != 0;
                 LfBus controllerBus = enabledControllerBuses.get(i);
                 equationSystem.getEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
-                        .ifPresent(qDistrEq -> qDistrEq.setActive(active));
+                        .orElseThrow()
+                        .setActive(active);
+                equationSystem.getEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
+                        .orElseThrow()
+                        .setActive(false);
             }
         }
     }
@@ -224,41 +265,32 @@ public final class AcEquationSystem {
         return terms;
     }
 
-    private static void createReactivePowerDistributionEquations(Collection<LfBus> controllerBuses, LfNetworkParameters networkParameters,
-                                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                 AcEquationSystemCreationParameters creationParameters) {
-        for (LfBus controllerBus : controllerBuses) {
-            // reactive power at controller bus i (supposing this voltage control is enabled)
-            // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
-            // 0 = qPercent_i * sum_j(q_j) - q_i
-            // which can be rewritten in a more simple way
-            // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
-            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
-                    .addTerms(createReactiveTerms(controllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
-                                .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
-                                .collect(Collectors.toList()));
-            for (LfBus otherControllerBus : controllerBuses) {
-                if (otherControllerBus != controllerBus) {
-                    zero.addTerms(createReactiveTerms(otherControllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(controllerBus::getRemoteVoltageControlReactivePercent))
-                            .collect(Collectors.toList()));
-                }
+    public static void updateGeneratorVoltageControl(VoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBus controlledBus = voltageControl.getControlledBus();
+        Set<LfBus> controllerBuses = voltageControl.getControllerBuses();
+
+        LfBus firstControllerBus = controllerBuses.iterator().next();
+        if (firstControllerBus.hasGeneratorsWithSlope()) {
+            // we only support one controlling static var compensator without any other controlling generators
+            // we don't support controller bus that wants to control back voltage with slope.
+            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
+                    .orElseThrow()
+                    .setActive(firstControllerBus.isVoltageControlEnabled());
+            equationSystem.getEquation(firstControllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
+                    .orElseThrow()
+                    .setActive(!firstControllerBus.isVoltageControlEnabled());
+        } else {
+            if (voltageControl.isVoltageControlLocal()) {
+                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
+                        .orElseThrow()
+                        .setActive(controlledBus.isVoltageControlEnabled());
+                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
+                        .orElseThrow()
+                        .setActive(!controlledBus.isVoltageControlEnabled());
+            } else {
+                AcEquationSystem.updateRemoteVoltageControlEquations(voltageControl, equationSystem);
             }
         }
-    }
-
-    private static void createBusWithSlopeEquation(LfBus bus, double slope, LfNetworkParameters networkParameters,
-                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                   EquationTerm<AcVariableType, AcEquationType> vTerm, AcEquationSystemCreationParameters creationParameters) {
-        // we only support one generator controlling voltage with a non zero slope at a bus.
-        // equation is: V + slope * qSVC = targetV
-        // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
-        equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
-                .addTerm(vTerm)
-                .addTerms(createReactiveTerms(bus, networkParameters, equationSystem.getVariableSet(), creationParameters)
-                        .stream()
-                        .map(term -> term.multiply(slope))
-                        .collect(Collectors.toList()));
     }
 
     private static void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
