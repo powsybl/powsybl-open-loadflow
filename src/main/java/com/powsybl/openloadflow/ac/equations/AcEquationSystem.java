@@ -43,11 +43,14 @@ public final class AcEquationSystem {
         if (networkParameters.isShuntVoltageControl()) {
             createShuntVoltageControlEquations(bus, equationSystem);
         }
-        Equation<AcVariableType, AcEquationType> v = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V);
-        if (v.getTerms().isEmpty()) {
-            v.setActive(false);
+
+        // maybe to fix later, but there is so part of OLF (like sensitivity) that needs a voltage target equation
+        // deactivated
+        if (!equationSystem.hasEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)) {
             EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V).createTerm();
-            v.addTerm(vTerm);
+            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)
+                    .addTerm(vTerm)
+                    .setActive(false);
             bus.setCalculatedV(vTerm);
         }
     }
