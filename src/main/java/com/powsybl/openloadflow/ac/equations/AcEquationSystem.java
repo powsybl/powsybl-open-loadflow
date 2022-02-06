@@ -357,6 +357,21 @@ public final class AcEquationSystem {
         }
     }
 
+    public static void updateTransformerPhaseControlEquations(DiscretePhaseControl phaseControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBranch controllerBranch = phaseControl.getController();
+        LfBranch controlledBranch = phaseControl.getControlled();
+
+        // activate/de-activate phase control equation
+        equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_P)
+                .orElseThrow()
+                .setActive(!controllerBranch.isDisabled() && controllerBranch.isPhaseControlEnabled());
+
+        // de-activate/activate constant A1 equation
+        equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
+                .orElseThrow()
+                .setActive(!controllerBranch.isDisabled() && !controllerBranch.isPhaseControlEnabled());
+    }
+
     private static void createTransformerVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getTransformerVoltageControl()
                 .ifPresent(voltageControl -> {

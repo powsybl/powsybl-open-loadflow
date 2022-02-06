@@ -33,7 +33,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             // we only support one controlling static var compensator without any other controlling generators
             // we don't support controller bus that wants to control back voltage with slope.
             equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
-                    .orElseThrow().setActive(firstControllerBus.isVoltageControlEnabled());
+                    .orElseThrow()
+                    .setActive(firstControllerBus.isVoltageControlEnabled());
         } else {
             if (voltageControl.isVoltageControlLocal()) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
@@ -61,17 +62,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     @Override
     public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
-        DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl().orElseThrow();
-
-        // activate/de-activate phase control equation
-        equationSystem.getEquation(phaseControl.getControlled().getNum(), AcEquationType.BRANCH_TARGET_P)
-                .orElseThrow()
-                .setActive(!branch.isDisabled() && branch.isPhaseControlEnabled());
-
-        // de-activate/activate constant A1 equation
-        equationSystem.getEquation(phaseControl.getController().getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
-                .orElseThrow()
-                .setActive(!branch.isDisabled() && !branch.isPhaseControlEnabled());
+        AcEquationSystem.updateTransformerPhaseControlEquations(branch.getDiscretePhaseControl().orElseThrow(), equationSystem);
     }
 
     @Override
@@ -82,6 +73,22 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     @Override
     public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
         AcEquationSystem.updateShuntVoltageControlEquations(controllerShunt.getVoltageControl().orElseThrow(), equationSystem);
+    }
+
+    private void updateElementEquations(LfElement element, boolean enable) {
+        // update all equations related to the element
+        for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
+            if (equation.isActive() != enable) {
+                equation.setActive(enable);
+            }
+        }
+
+        // update all equation terms related to the element
+        for (var equationTerm : equationSystem.getEquationTerms(element.getType(), element.getNum())) {
+            if (equationTerm.isActive() != enable) {
+                equationTerm.setActive(enable);
+            }
+        }
     }
 
     @Override
@@ -99,7 +106,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
             case BRANCH:
                 LfBranch branch = (LfBranch) element;
                 branch.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
-                branch.getDiscretePhaseControl().ifPresent(phaseControl -> onTransformerPhaseControlChange(branch, branch.isPhaseControlEnabled()));
+                branch.getDiscretePhaseControl().ifPresent(phaseControl -> AcEquationSystem.updateTransformerPhaseControlEquations(phaseControl, equationSystem));
                 break;
             case SHUNT_COMPENSATOR:
                 LfShunt shunt = (LfShunt) element;
