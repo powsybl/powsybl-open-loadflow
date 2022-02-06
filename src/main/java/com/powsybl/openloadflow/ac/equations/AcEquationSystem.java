@@ -66,21 +66,17 @@ public final class AcEquationSystem {
     private static void createGeneratorControlEquations(LfBus bus, LfNetworkParameters networkParameters,
                                                         EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                         AcEquationSystemCreationParameters creationParameters) {
-        Optional<VoltageControl> optVoltageControl = bus.getVoltageControl();
-        if (optVoltageControl.isPresent()) {
-            VoltageControl voltageControl = optVoltageControl.get();
-            if (bus.isVoltageControlled()) {
-                if (voltageControl.isVoltageControlLocal()) {
-                    createLocalVoltageControlEquation(bus, networkParameters, equationSystem, creationParameters);
-                } else {
-                    createRemoteVoltageControlEquations(voltageControl, networkParameters, equationSystem, creationParameters);
-                }
-                updateGeneratorVoltageControl(voltageControl, equationSystem);
-            }
-        } else { // If bus has both voltage and remote reactive power controls, then only voltage control has been kept
-            bus.getReactivePowerControl()
-                .ifPresent(rpc -> equationSystem.createEquation(rpc.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q).setActive(false));
-        }
+        bus.getVoltageControl()
+                .ifPresent(voltageControl -> {
+                    if (bus.isVoltageControlled()) {
+                        if (voltageControl.isVoltageControlLocal()) {
+                            createLocalVoltageControlEquation(bus, networkParameters, equationSystem, creationParameters);
+                        } else {
+                            createRemoteVoltageControlEquations(voltageControl, networkParameters, equationSystem, creationParameters);
+                        }
+                        updateGeneratorVoltageControl(voltageControl, equationSystem);
+                    }
+                });
     }
 
     private static void createLocalVoltageControlEquation(LfBus bus, LfNetworkParameters networkParameters,
@@ -119,6 +115,10 @@ public final class AcEquationSystem {
                         : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_TARGET_Q)
                         .addTerm(q);
+
+                // if bus has both voltage and remote reactive power controls, then only voltage control has been kept
+                equationSystem.createEquation(rpc.getControllerBus().getNum(), AcEquationType.BUS_TARGET_Q)
+                        .setActive(false);
             });
         }
     }
