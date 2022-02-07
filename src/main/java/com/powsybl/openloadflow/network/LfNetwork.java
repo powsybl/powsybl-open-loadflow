@@ -14,6 +14,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -413,23 +414,25 @@ public class LfNetwork {
         }
     }
 
-    private void validateBuses(Reporter reporter) {
-        boolean hasAtLeastOneBusVoltageControlled = false;
-        for (LfBus bus : busesByIndex) {
-            if (bus.isVoltageControlled()) {
-                hasAtLeastOneBusVoltageControlled = true;
-                break;
+    private void validateBuses(boolean dc, Reporter reporter) {
+        if (!dc) {
+            boolean hasAtLeastOneBusVoltageControlled = false;
+            for (LfBus bus : busesByIndex) {
+                if (bus.isVoltageControlled()) {
+                    hasAtLeastOneBusVoltageControlled = true;
+                    break;
+                }
             }
-        }
-        if (!hasAtLeastOneBusVoltageControlled) {
-            LOGGER.error("Network {} must have at least one bus voltage controlled", this);
-            reporter.report(Report.builder()
-                    .withKey("networkMustHaveAtLEastOneBusVoltageControlled")
-                    .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled")
-                    .withValue("numNetworkCc", numCC)
-                    .withValue("numNetworkSc", numSC)
-                    .build());
-            valid = false;
+            if (!hasAtLeastOneBusVoltageControlled) {
+                LOGGER.error("Network {} must have at least one bus voltage controlled", this);
+                reporter.report(Report.builder()
+                        .withKey("networkMustHaveAtLEastOneBusVoltageControlled")
+                        .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled")
+                        .withValue("numNetworkCc", numCC)
+                        .withValue("numNetworkSc", numSC)
+                        .build());
+                valid = false;
+            }
         }
     }
 
@@ -457,9 +460,9 @@ public class LfNetwork {
         }
     }
 
-    public void validate(boolean minImpedance, Reporter reporter) {
+    public void validate(boolean minImpedance, boolean dc, Reporter reporter) {
         valid = true;
-        validateBuses(reporter);
+        validateBuses(dc, reporter);
         validateBranches(minImpedance);
     }
 
@@ -485,7 +488,7 @@ public class LfNetwork {
                 Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
                     "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
             lfNetwork.fix(parameters.isMinImpedance());
-            lfNetwork.validate(parameters.isMinImpedance(), reporterNetwork);
+            lfNetwork.validate(parameters.isMinImpedance(), parameters.isDc(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
                 lfNetwork.reportBalance(reporterNetwork);

@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,8 +63,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected final LfLoads lfLoads = new LfLoads();
 
     protected boolean ensurePowerFactorConstantByLoad = false;
-
-    protected final List<Battery> batteries = new ArrayList<>();
 
     protected final List<LccConverterStation> lccCss = new ArrayList<>();
 
@@ -209,13 +208,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         lfLoads.add(load, distributedOnConformLoad);
     }
 
-    void addBattery(Battery battery) {
-        // note that batteries are out of the slack distribution.
-        batteries.add(battery);
-        loadTargetP += battery.getP0();
-        loadTargetQ += battery.getQ0();
-    }
-
     void addLccConverterStation(LccConverterStation lccCs) {
         // note that LCC converter station are out of the slack distribution.
         lccCss.add(lccCs);
@@ -277,6 +269,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addVscConverterStation(VscConverterStation vscCs, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         add(LfVscConverterStationImpl.create(vscCs, breakers, reactiveLimits, report));
+    }
+
+    void addBattery(Battery generator, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
+        add(LfBatteryImpl.create(generator, plausibleActivePowerLimit, report));
     }
 
     void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl) {
@@ -503,13 +499,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
         // update load power
         lfLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
-
-        // update battery power (which are not part of slack distribution)
-        for (Battery battery : batteries) {
-            battery.getTerminal()
-                    .setP(battery.getP0())
-                    .setQ(battery.getQ0());
-        }
 
         // update lcc converter station power
         for (LccConverterStation lccCs : lccCss) {
