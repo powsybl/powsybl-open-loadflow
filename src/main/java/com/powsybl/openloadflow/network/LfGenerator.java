@@ -86,12 +86,4 @@ public interface LfGenerator {
     Object getUserObject();
 
     void setUserObject(Object userObject);
-
-    enum GeneratorControlType {
-        OFF, REACTIVE_POWER, VOLTAGE
-    }
-
-    GeneratorControlType getGeneratorControlType();
-
-    void setGeneratorControlType(GeneratorControlType generatorControlType);
 }

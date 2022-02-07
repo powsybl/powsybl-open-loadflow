@@ -32,8 +32,6 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
             setTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(), report);
             this.generatorControlType = GeneratorControlType.VOLTAGE;
         }
-
-        targetQ = danglingLine.getGeneration().getTargetQ() / PerUnit.SB;
     }
 
     @Override
@@ -48,7 +46,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return targetQ;
+        return danglingLine.getGeneration().getTargetQ() / PerUnit.SB;
     }
 
     @Override

@@ -83,8 +83,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         if (reactivePowerControl != null && reactivePowerControl.isEnabled() && !generator.isVoltageRegulatorOn()) {
             setReactivePowerControl(reactivePowerControl.getRegulatingTerminal(), reactivePowerControl.getTargetQ());
         }
-
-        targetQ = generator.getTargetQ() / PerUnit.SB;
     }
 
     public static LfGeneratorImpl create(Generator generator, boolean breakers, double plausibleActivePowerLimit,
@@ -110,7 +108,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return targetQ;
+        return generator.getTargetQ() / PerUnit.SB;
     }
 
     @Override

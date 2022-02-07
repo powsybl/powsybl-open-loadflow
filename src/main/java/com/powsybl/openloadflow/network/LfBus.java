@@ -166,6 +166,4 @@ public interface LfBus extends LfElement {
     double getRemoteVoltageControlReactivePercent();
 
     void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
-
-    void addShunt(LfShunt shunt);
 }
