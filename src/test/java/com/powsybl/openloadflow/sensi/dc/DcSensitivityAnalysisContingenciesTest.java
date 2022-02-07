@@ -839,6 +839,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
         loadFlowParameters.setDc(true);
         loadFlowParameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
         sensiParameters.setLoadFlowParameters(loadFlowParameters);
         SensitivityFactorsProvider factorsProvider = n -> {
             return createFactorMatrix(List.of("g2").stream().map(network::getGenerator).collect(Collectors.toList()),
@@ -857,9 +858,9 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0, getValue(contingencyResult, "g2", "l13"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0, getValue(contingencyResult, "g2", "l23"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(-1.0667d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.0667d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(1.1333d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.3333d, getFunctionReference(contingencyResult, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.3333d, getFunctionReference(contingencyResult, "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.6666d, getFunctionReference(contingencyResult, "l23"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1766,7 +1767,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
         }
 
-        String dateStr = contingenciesFile.getFileName().toString().substring(14, 38);
+        String fileName = contingenciesFile.getFileName().toString();
+        String dateStr = fileName.substring(14, fileName.length() - 5);
         DateTime date = DateTime.parse(dateStr, DateTimeFormat.forPattern(OpenSensitivityAnalysisProvider.DATE_TIME_FORMAT));
 
         List<SensitivityValue2> values2 = sensiProvider.replay(date, fileSystem.getPath(debugDir));
@@ -1782,7 +1784,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testDanglingLineContingencyDistributedSlackOnLoads() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         SensitivityFactorsProvider factorsProvider = n -> List.of(new BranchFlowPerInjectionIncrease(new BranchFlow("l1", "l1", "l1"),
@@ -1811,7 +1813,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testDanglingLineContingencyDistributedSlackOnGenerators() {
-        Network network = DanglingLineFactory.createWithLoad();
+        Network network = BoundaryFactory.createWithLoad();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         SensitivityFactorsProvider factorsProvider2 = n -> List.of(new BranchFlowPerInjectionIncrease(new BranchFlow("l1", "l1", "l1"),

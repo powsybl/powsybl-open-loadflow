@@ -87,7 +87,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
 
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
+        assertFalse(lfNetwork.getBus(0).isVoltageControlEnabled());
     }
 
     @Test
@@ -97,7 +97,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         g.setMinP(1);
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertFalse(lfNetwork.getBus(0).isVoltageControllerEnabled());
+        assertFalse(lfNetwork.getBus(0).isVoltageControlEnabled());
     }
 
     @Test
@@ -142,7 +142,21 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void defaultMethodsTest4() {
+    void defaultMethodsTest2() {
+        network = BoundaryFactory.create();
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        LfBus lfDanglingLineBus = mainNetwork.getBusById("dl1_BUS");
+        LfGenerator generator = lfDanglingLineBus.getGenerators().get(0);
+        assertEquals(0, generator.getDroop(), 10E-3);
+        generator.setParticipating(true);
+        assertFalse(generator.isParticipating());
+    }
+
+    @Test
+    void defaultMethodsTest3() {
         network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
@@ -153,7 +167,6 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
             assertEquals(1.02, voltageControl.getTargetValue(), 10E-3);
             voltageControl.setTargetValue(1.7);
             assertEquals(1.7, voltageControl.getTargetValue(), 10E-3);
-
         }
     }
 }

@@ -26,15 +26,15 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private double slope = 0;
 
-    private double targetQ;
+    private double optionalB = 0;
 
-    private double q = Double.NaN;
+    double targetQ;
 
-    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
+    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         super(0);
         this.svc = svc;
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
-        reactiveLimits = new MinMaxReactiveLimits() {
+        this.reactiveLimits = new MinMaxReactiveLimits() {
 
             @Override
             public double getMinQ() {
@@ -65,18 +65,19 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         };
 
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
-            setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), breakers, report);
+            setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), breakers,
+                              reactiveLimits, report);
             if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
                 this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
             }
         }
-
-        targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
+        targetQ = -svc.getReactivePowerSetpoint();
     }
 
-    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, LfNetworkLoadingReport report) {
+    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
+                                                    boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         Objects.requireNonNull(svc);
-        return new LfStaticVarCompensatorImpl(svc, bus, voltagePerReactivePowerControl, breakers, report);
+        return new LfStaticVarCompensatorImpl(svc, bus, voltagePerReactivePowerControl, breakers, reactiveLimits, report);
     }
 
     @Override
@@ -86,7 +87,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return targetQ;
+        return targetQ / PerUnit.SB;
     }
 
     @Override
@@ -106,20 +107,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public void updateState() {
-        if (Double.isNaN(q)) {
-            q = Double.isNaN(calculatedQ) ? -targetQ * PerUnit.SB : -calculatedQ;
-        }
+        double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
         svc.getTerminal()
                 .setP(0)
-                .setQ(q);
-    }
-
-    public double getQ() {
-        return q;
-    }
-
-    public void updateQ(double q) {
-        svc.getTerminal().setQ(q);
+                .setQ((Double.isNaN(calculatedQ) ? -targetQ : -calculatedQ) - optionalB * vSquare);
     }
 
     @Override
@@ -130,5 +121,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     @Override
     public void setSlope(double slope) {
         this.slope = slope;
+    }
+
+    public void setOptionalB(double b) {
+        optionalB = b;
     }
 }

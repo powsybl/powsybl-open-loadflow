@@ -51,10 +51,9 @@ class DistributedSlackOnGenerationTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+        OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test

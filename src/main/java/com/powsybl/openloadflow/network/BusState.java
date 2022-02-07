@@ -12,19 +12,27 @@ package com.powsybl.openloadflow.network;
 public class BusState extends BusDcState {
 
     private final double angle;
+    private final double voltage;
     private final double loadTargetQ;
     private final double generationTargetQ;
-    private final boolean isVoltageControllerEnabled;
-    private final DiscreteVoltageControl.Mode discreteVoltageControlMode;
+    private final boolean voltageControlEnabled;
+    private final Boolean shuntVoltageControlEnabled;
     private final boolean disabled;
+    private final double shuntB;
+    private final double controllerShuntB;
 
     public BusState(LfBus bus) {
         super(bus);
         this.angle = bus.getAngle();
+        this.voltage = bus.getV();
         this.loadTargetQ = bus.getLoadTargetQ();
         this.generationTargetQ = bus.getGenerationTargetQ();
-        this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
-        discreteVoltageControlMode = bus.getDiscreteVoltageControl().map(DiscreteVoltageControl::getMode).orElse(null);
+        this.voltageControlEnabled = bus.isVoltageControlEnabled();
+        LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
+        shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
+        controllerShuntB = controllerShunt != null ? controllerShunt.getB() : Double.NaN;
+        LfShunt shunt = bus.getShunt().orElse(null);
+        shuntB = shunt != null ? shunt.getB() : Double.NaN;
         this.disabled = bus.isDisabled();
     }
 
@@ -32,12 +40,19 @@ public class BusState extends BusDcState {
     public void restore() {
         super.restore();
         element.setAngle(angle);
+        element.setV(voltage);
         element.setLoadTargetQ(loadTargetQ);
         element.setGenerationTargetQ(generationTargetQ);
-        element.setVoltageControllerEnabled(isVoltageControllerEnabled);
+        element.setVoltageControlEnabled(voltageControlEnabled);
         element.setVoltageControlSwitchOffCount(0);
-        if (discreteVoltageControlMode != null) {
-            element.getDiscreteVoltageControl().ifPresent(control -> control.setMode(discreteVoltageControlMode));
+        if (shuntVoltageControlEnabled != null) {
+            element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
+        }
+        if (!Double.isNaN(controllerShuntB)) {
+            element.getControllerShunt().orElseThrow().setB(controllerShuntB);
+        }
+        if (!Double.isNaN(shuntB)) {
+            element.getShunt().orElseThrow().setB(shuntB);
         }
         element.setDisabled(disabled);
     }

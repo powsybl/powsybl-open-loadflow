@@ -66,10 +66,9 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                   .setDistributedSlack(false);
-        parametersExt = new OpenLoadFlowParameters()
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setVoltageRemoteControl(true);
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test

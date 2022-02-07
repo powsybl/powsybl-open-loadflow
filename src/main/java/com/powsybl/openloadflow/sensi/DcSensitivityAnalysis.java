@@ -629,6 +629,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (LfGeneratorImpl generator : generators) {
             generator.setTargetP(0);
             if (distributedSlackOnGenerators && generator.isParticipating()) {
+                generator.setParticipating(false);
                 participatingGeneratorsToRemove.add(generator);
             }
         }
@@ -728,7 +729,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                         false,
                                                         false,
                                                         false,
-                                                        true);
+                                                        true,
+                                                        false,
+                                                        false);
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       true,
@@ -761,7 +764,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, false, true, lfParameters.isTwtSplitShuntAdmittance(),
                 false, lfParametersExt.getPlausibleActivePowerLimit(), false, true, lfParameters.getCountriesToBalance(),
                 lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                false, false, false, false, true);
+                false, false, false, false, true, false, false);
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);

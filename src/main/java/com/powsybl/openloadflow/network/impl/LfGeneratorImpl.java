@@ -36,9 +36,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double droop;
 
-    private double targetQ;
-
-    private LfGeneratorImpl(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+    private LfGeneratorImpl(Generator generator, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
+                            LfNetworkLoadingReport report) {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
@@ -77,7 +76,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
 
         if (generator.isVoltageRegulatorOn()) {
-            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), breakers, report);
+            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), breakers, reactiveLimits, report);
         }
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
@@ -88,10 +87,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         targetQ = generator.getTargetQ() / PerUnit.SB;
     }
 
-    public static LfGeneratorImpl create(Generator generator, boolean breakers, LfNetworkLoadingReport report, double plausibleActivePowerLimit) {
+    public static LfGeneratorImpl create(Generator generator, boolean breakers, double plausibleActivePowerLimit,
+                                         boolean reactiveLimits, LfNetworkLoadingReport report) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, breakers, report, plausibleActivePowerLimit);
+        return new LfGeneratorImpl(generator, breakers, plausibleActivePowerLimit, reactiveLimits, report);
     }
 
     @Override
@@ -131,6 +131,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public boolean isParticipating() {
         return participating;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        this.participating = participating;
     }
 
     @Override

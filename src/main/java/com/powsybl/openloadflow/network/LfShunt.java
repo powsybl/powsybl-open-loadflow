@@ -6,20 +6,33 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.util.Evaluable;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface LfShunt extends LfElement {
 
+    List<String> getIds();
+
     double getB();
 
-    void setQ(Evaluable q);
+    void setB(double b);
 
-    Evaluable getQ();
+    double dispatchB();
 
     void updateState();
 
-    boolean isPartOfStaticVarCompensator();
+    boolean hasVoltageControlCapability();
+
+    void setVoltageControlCapability(boolean voltageControlCapability);
+
+    boolean isVoltageControlEnabled();
+
+    void setVoltageControlEnabled(boolean voltageControlEnabled);
+
+    Optional<ShuntVoltageControl> getVoltageControl();
+
+    void setVoltageControl(ShuntVoltageControl voltageControl);
 }

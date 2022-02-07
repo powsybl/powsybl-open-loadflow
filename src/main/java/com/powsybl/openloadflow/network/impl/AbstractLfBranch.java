@@ -4,10 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.network;
+package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.network.impl.Transformers;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import org.apache.commons.math3.util.FastMath;
 import org.slf4j.Logger;
@@ -19,37 +19,6 @@ import java.util.*;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractLfBranch extends AbstractElement implements LfBranch {
-
-    public static final class LfLimit {
-
-        private int acceptableDuration;
-        private final double value;
-
-        private LfLimit(int acceptableDuration, double value) {
-            this.acceptableDuration = acceptableDuration;
-            this.value = value;
-        }
-
-        private static LfLimit createTemporaryLimit(int acceptableDuration, double valuePerUnit) {
-            return new LfLimit(acceptableDuration, valuePerUnit);
-        }
-
-        private static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(Integer.MAX_VALUE, valuePerUnit);
-        }
-
-        public int getAcceptableDuration() {
-            return acceptableDuration;
-        }
-
-        public double getValue() {
-            return value;
-        }
-
-        public void setAcceptableDuration(int acceptableDuration) {
-            this.acceptableDuration = acceptableDuration;
-        }
-    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
@@ -65,7 +34,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected DiscretePhaseControl discretePhaseControl;
 
-    protected DiscreteVoltageControl discreteVoltageControl;
+    protected boolean phaseControlEnabled = false;
+
+    protected TransformerVoltageControl voltageControl;
+
+    protected boolean voltageControlEnabled = false;
 
     protected boolean spanningTreeEdge = false;
 
@@ -156,8 +129,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public boolean isPhaseControlled(DiscretePhaseControl.ControlledSide controlledSide) {
-        return isPhaseControlled() && discretePhaseControl.getControlledSide() == controlledSide;
+    public boolean isPhaseControlEnabled() {
+        return phaseControlEnabled;
+    }
+
+    @Override
+    public void setPhaseControlEnabled(boolean phaseControlEnabled) {
+        if (this.phaseControlEnabled != phaseControlEnabled) {
+            this.phaseControlEnabled = phaseControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onTransformerPhaseControlChange(this, phaseControlEnabled);
+            }
+        }
     }
 
     protected void updateTapPosition(PhaseTapChanger ptc) {
@@ -174,7 +157,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         double distance = Math.abs(p - discretePhaseControl.getTargetValue()); // in per unit system
         if (distance > discretePhaseControl.getTargetDeadband() / 2) {
             LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                    discretePhaseControl.getControlledSide(), getId(), p,
+                    discretePhaseControl.getControlledSide(), getId(), Math.abs(p) * PerUnit.SB,
                     discretePhaseControl.getTargetValue() * PerUnit.SB, discretePhaseControl.getTargetDeadband() / 2 * PerUnit.SB);
         }
     }
@@ -182,11 +165,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected void checkTargetDeadband(RatioTapChanger rtc) {
         if (rtc.getTargetDeadband() != 0) {
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = discreteVoltageControl.getControlled().getV();
-            double distance = Math.abs(v - discreteVoltageControl.getTargetValue()); // in per unit system
+            double v = voltageControl.getControlled().getV();
+            double distance = Math.abs(v - voltageControl.getTargetValue()); // in per unit system
             if (distance > rtc.getTargetDeadband() / 2) {
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        discreteVoltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
+                        voltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
             }
         }
     }
@@ -205,18 +188,32 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public Optional<DiscreteVoltageControl> getDiscreteVoltageControl() {
-        return Optional.ofNullable(discreteVoltageControl);
+    public Optional<TransformerVoltageControl> getVoltageControl() {
+        return Optional.ofNullable(voltageControl);
     }
 
     @Override
     public boolean isVoltageController() {
-        return discreteVoltageControl != null;
+        return voltageControl != null;
     }
 
     @Override
-    public void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl) {
-        this.discreteVoltageControl = discreteVoltageControl;
+    public void setVoltageControl(TransformerVoltageControl transformerVoltageControl) {
+        this.voltageControl = transformerVoltageControl;
+    }
+
+    @Override
+    public boolean isVoltageControlEnabled() {
+        return voltageControlEnabled;
+    }
+
+    public void setVoltageControlEnabled(boolean voltageControlEnabled) {
+        if (this.voltageControlEnabled != voltageControlEnabled) {
+            this.voltageControlEnabled = voltageControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onTransformerVoltageControlChange(this, voltageControlEnabled);
+            }
+        }
     }
 
     public double computeApparentPower1() {

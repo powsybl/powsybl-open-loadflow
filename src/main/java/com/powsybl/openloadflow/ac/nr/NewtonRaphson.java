@@ -114,6 +114,10 @@ public class NewtonRaphson {
                     x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getElementNum())));
                     break;
 
+                case SHUNT_B:
+                    x[v.getRow()] = network.getShunt(v.getElementNum()).getB();
+                    break;
+
                 case BRANCH_ALPHA1:
                     x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getA1();
                     break;
@@ -145,6 +149,10 @@ public class NewtonRaphson {
 
                 case BUS_PHI:
                     network.getBus(v.getElementNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
+                    break;
+
+                case SHUNT_B:
+                    network.getShunt(v.getElementNum()).setB(stateVector.get(v.getRow()));
                     break;
 
                 case BRANCH_ALPHA1:

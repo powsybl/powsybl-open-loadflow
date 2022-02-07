@@ -21,7 +21,7 @@ public interface LfGenerator {
 
     boolean hasVoltageControl();
 
-    boolean hasReactivePowerControl();
+    boolean hasRemoteReactivePowerControl();
 
     double getTargetV();
 
@@ -46,6 +46,8 @@ public interface LfGenerator {
     default boolean isParticipating() {
         return false;
     }
+
+    void setParticipating(boolean participating);
 
     default double getDroop() {
         return 0;
@@ -72,6 +74,14 @@ public interface LfGenerator {
     ReactivePowerControl.ControlledSide getControlledBranchSide();
 
     double getRemoteTargetQ();
+
+    public enum GeneratorControlType {
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
+    }
+
+    GeneratorControlType getGeneratorControlType();
+
+    void setGeneratorControlType(GeneratorControlType generatorControlType);
 
     Object getUserObject();
 
