@@ -124,6 +124,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     }
 
     public void setOptionalB(double b) {
+        // FIXME not in per unit for the moment
         optionalB = b;
     }
 }
