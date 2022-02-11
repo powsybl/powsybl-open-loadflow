@@ -534,7 +534,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         var networkParameters = new LfNetworkParameters(slackBusSelector,
                                                         false,
-                                                        false,
+                                                        parametersExt.getLowImpedanceBranchMode() == LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                                                         false,
                                                         false,
                                                         parametersExt.getPlausibleActivePowerLimit(),
