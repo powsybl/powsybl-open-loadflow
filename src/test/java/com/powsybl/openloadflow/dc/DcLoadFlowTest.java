@@ -167,4 +167,12 @@ class DcLoadFlowTest {
         assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
         assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
     }
+
+    @Test
+    void nonImpedantBranchTest() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        network.getLine("L2").setX(0).setR(0);
+        loadFlowRunner.run(network, parameters);
+        assertEquals(Double.NaN, network.getLine("L2").getTerminal1().getP());
+    }
 }
