@@ -403,11 +403,11 @@ public class LfNetwork {
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    public void fix(boolean minImpedance) {
+    public void fix(boolean minImpedance, boolean dc) {
         if (minImpedance) {
             for (LfBranch branch : branches) {
                 PiModel piModel = branch.getPiModel();
-                if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD)) {
+                if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD, dc)) {
                     LOGGER.trace("Branch {} has a low impedance, set to min {}", branch.getId(), LOW_IMPEDANCE_THRESHOLD);
                 }
             }
@@ -487,7 +487,7 @@ public class LfNetwork {
             Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
                 Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
                     "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
-            lfNetwork.fix(parameters.isMinImpedance());
+            lfNetwork.fix(parameters.isMinImpedance(), parameters.isDc());
             lfNetwork.validate(parameters.isMinImpedance(), parameters.isDc(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
