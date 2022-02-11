@@ -172,7 +172,14 @@ class DcLoadFlowTest {
     void nonImpedantBranchTest() {
         Network network = PhaseShifterTestCaseFactory.create();
         network.getLine("L2").setX(0).setR(0);
+        parameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        loadFlowRunner.run(network, parameters);
+        assertEquals(66.6666, network.getLine("L2").getTerminal1().getP(), 0.01);
+        assertEquals(33.3333, network.getLine("L1").getTerminal1().getP(), 0.01);
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
         loadFlowRunner.run(network, parameters);
         assertEquals(Double.NaN, network.getLine("L2").getTerminal1().getP());
+        assertEquals(33.3333, network.getLine("L1").getTerminal1().getP(), 0.01);
     }
 }
