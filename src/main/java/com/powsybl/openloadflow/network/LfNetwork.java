@@ -14,6 +14,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -410,34 +411,36 @@ public class LfNetwork {
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    public void fix(boolean minImpedance) {
+    public void fix(boolean minImpedance, boolean dc) {
         if (minImpedance) {
             for (LfBranch branch : branches) {
                 PiModel piModel = branch.getPiModel();
-                if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD)) {
+                if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD, dc)) {
                     LOGGER.trace("Branch {} has a low impedance, set to min {}", branch.getId(), LOW_IMPEDANCE_THRESHOLD);
                 }
             }
         }
     }
 
-    private void validateBuses(Reporter reporter) {
-        boolean hasAtLeastOneBusVoltageControlled = false;
-        for (LfBus bus : busesByIndex) {
-            if (bus.isVoltageControlled()) {
-                hasAtLeastOneBusVoltageControlled = true;
-                break;
+    private void validateBuses(boolean dc, Reporter reporter) {
+        if (!dc) {
+            boolean hasAtLeastOneBusVoltageControlled = false;
+            for (LfBus bus : busesByIndex) {
+                if (bus.isVoltageControlled()) {
+                    hasAtLeastOneBusVoltageControlled = true;
+                    break;
+                }
             }
-        }
-        if (!hasAtLeastOneBusVoltageControlled) {
-            LOGGER.error("Network {} must have at least one bus voltage controlled", this);
-            reporter.report(Report.builder()
-                    .withKey("networkMustHaveAtLEastOneBusVoltageControlled")
-                    .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled")
-                    .withValue("numNetworkCc", numCC)
-                    .withValue("numNetworkSc", numSC)
-                    .build());
-            valid = false;
+            if (!hasAtLeastOneBusVoltageControlled) {
+                LOGGER.error("Network {} must have at least one bus voltage controlled", this);
+                reporter.report(Report.builder()
+                        .withKey("networkMustHaveAtLEastOneBusVoltageControlled")
+                        .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled")
+                        .withValue("numNetworkCc", numCC)
+                        .withValue("numNetworkSc", numSC)
+                        .build());
+                valid = false;
+            }
         }
     }
 
@@ -465,9 +468,9 @@ public class LfNetwork {
         }
     }
 
-    public void validate(boolean minImpedance, Reporter reporter) {
+    public void validate(boolean minImpedance, boolean dc, Reporter reporter) {
         valid = true;
-        validateBuses(reporter);
+        validateBuses(dc, reporter);
         validateBranches(minImpedance);
     }
 
@@ -492,8 +495,8 @@ public class LfNetwork {
             Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
                 Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
                     "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
-            lfNetwork.fix(parameters.isMinImpedance());
-            lfNetwork.validate(parameters.isMinImpedance(), reporterNetwork);
+            lfNetwork.fix(parameters.isMinImpedance(), parameters.isDc());
+            lfNetwork.validate(parameters.isMinImpedance(), parameters.isDc(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
                 lfNetwork.reportBalance(reporterNetwork);
