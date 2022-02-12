@@ -4,13 +4,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.util.sa;
+package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetail;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
@@ -18,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -233,5 +236,68 @@ public class PropagatedContingency {
         Connectable<?> c1 = terminal1.getConnectable();
         Connectable<?> c2 = terminal2.getConnectable();
         return c1 != c2 && c1.getType() == IdentifiableType.BUSBAR_SECTION && c2.getType() == IdentifiableType.BUSBAR_SECTION;
+    }
+
+    public Optional<LfContingency> toLfContingency(LfNetwork network, GraphDecrementalConnectivity<LfBus> connectivity,
+                                                   boolean useSmallComponents) {
+        // find contingency branches that are part of this network
+        Set<LfBranch> branches = new HashSet<>(1);
+        for (String branchId : branchIdsToOpen) {
+            LfBranch branch = network.getBranchById(branchId);
+            if (branch != null) {
+                branches.add(branch);
+            }
+        }
+
+        // check if contingency split this network into multiple components
+        if (branches.isEmpty()
+                && shuntIdsToLose.isEmpty()
+                && loadIdsToLose.isEmpty()
+                && generatorIdsToLose.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // update connectivity with triggered branches
+        for (LfBranch branch : branches) {
+            connectivity.cut(branch.getBus1(), branch.getBus2());
+        }
+
+        // add to contingency description buses and branches that won't be part of the main connected
+        // component in post contingency state
+        Set<LfBus> buses;
+        if (useSmallComponents) {
+            buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+        } else {
+            int slackBusComponent = connectivity.getComponentNumber(network.getSlackBus());
+            buses = network.getBuses().stream().filter(b -> connectivity.getComponentNumber(b) != slackBusComponent).collect(Collectors.toSet());
+        }
+        buses.forEach(b -> branches.addAll(b.getBranches()));
+
+        Set<Pair<LfShunt, Double>> shunts = new HashSet<>(1);
+        for (Pair<String, Double> shuntAndB : shuntIdsToLose) {
+            LfShunt shunt = network.getShuntById(shuntAndB.getKey());
+            if (shunt != null) {
+                shunts.add(Pair.of(shunt, shuntAndB.getValue()));
+            }
+        }
+
+        Set<LfGenerator> generators = new HashSet<>(1);
+        for (Pair<String, Double> generatorInfo : generatorIdsToLose) {
+            LfGenerator generator = network.getGeneratorById(generatorInfo.getKey());
+            generators.add(generator);
+        }
+
+        Set<Triple<LfBus, Pair<Double, Double>, Double>> loadBuses = new HashSet<>(1);
+        for (Triple<String, Pair<Double, Double>, Double> loadInfo : loadIdsToLose) {
+            LfBus bus = network.getBusById(loadInfo.getLeft());
+            if (bus != null) {
+                loadBuses.add(Triple.of(bus, loadInfo.getMiddle(), loadInfo.getRight()));
+            }
+        }
+
+        // reset connectivity to discard triggered branches
+        connectivity.reset();
+
+        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, loadBuses, generators));
     }
 }

@@ -22,7 +22,7 @@ import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.util.sa.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.AfterEach;
@@ -78,7 +78,7 @@ class LfContingencyTest extends AbstractConverterTest {
             PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false);
 
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
-                .flatMap(propagatedContingency -> LfContingency.create(propagatedContingency, mainNetwork, mainNetwork.createDecrementalConnectivity(connectivityProvider), true).stream())
+                .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(mainNetwork, mainNetwork.createDecrementalConnectivity(connectivityProvider), true).stream())
                 .collect(Collectors.toList());
         assertEquals(1, lfContingencies.size());
 

@@ -25,10 +25,10 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
-import com.powsybl.openloadflow.util.sa.PropagatedContingency;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
@@ -266,7 +266,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity(connectivityProvider);
 
             List<LfContingency> lfContingencies = contingencies.stream()
-                    .flatMap(contingency -> LfContingency.create(contingency, lfNetwork, connectivity, false).stream())
+                    .flatMap(contingency -> contingency.toLfContingency(lfNetwork, connectivity, false).stream())
                     .collect(Collectors.toList());
 
             List<BusState> busStates = ElementState.save(lfNetwork.getBuses(), BusState::save);

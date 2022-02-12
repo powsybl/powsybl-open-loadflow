@@ -25,7 +25,7 @@ import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.sa.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;

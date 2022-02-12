@@ -21,7 +21,7 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.sa.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
@@ -166,7 +166,7 @@ class OpenSecurityAnalysisGraphTest {
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();
         for (LfNetwork lfNetwork : lfNetworks) {
             listLfContingencies.add(propagatedContingencies.stream()
-                    .flatMap(propagatedContingency -> LfContingency.create(propagatedContingency, lfNetwork, lfNetwork.createDecrementalConnectivity(connectivityProvider), true).stream())
+                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork, lfNetwork.createDecrementalConnectivity(connectivityProvider), true).stream())
                     .collect(Collectors.toList()));
         }
         LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);
