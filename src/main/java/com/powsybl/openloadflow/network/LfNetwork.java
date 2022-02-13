@@ -63,11 +63,11 @@ public class LfNetwork {
 
     private int shuntCount = 0;
 
-    private List<LfShunt> shuntsByIndex = new ArrayList<>();
+    private final List<LfShunt> shuntsByIndex = new ArrayList<>();
 
-    private Map<String, LfShunt> shuntsById = new HashMap<>();
+    private final Map<String, LfShunt> shuntsById = new HashMap<>();
 
-    private Map<String, LfGenerator> generatorsById = new HashMap<>();
+    private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -139,14 +139,14 @@ public class LfNetwork {
         bus.getShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().stream().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getControllerShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().stream().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
         });
-        bus.getGenerators().stream().forEach(gen -> generatorsById.put(gen.getId(), gen));
+        bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
     }
 
     public List<LfBus> getBuses() {
