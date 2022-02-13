@@ -12,7 +12,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
@@ -44,7 +43,6 @@ class AcloadFlowReactiveLimitsTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
-    private OpenLoadFlowParameters parametersExt;
 
     private void createNetwork() {
         network = EurostagTutorialExample1Factory.create();
@@ -112,8 +110,6 @@ class AcloadFlowReactiveLimitsTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
                 .setDistributedSlack(false);
-        parametersExt = new OpenLoadFlowParameters();
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test

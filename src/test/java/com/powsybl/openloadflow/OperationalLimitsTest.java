@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -42,8 +43,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
     @BeforeEach
     void setUp() {
         parameters = new LoadFlowParameters();
-        parametersExt = new OpenLoadFlowParameters();
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        parametersExt = OpenLoadFlowParameters.create(parameters);
     }
 
     @Test

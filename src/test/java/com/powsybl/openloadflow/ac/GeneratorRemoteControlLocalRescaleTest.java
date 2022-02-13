@@ -90,9 +90,8 @@ class GeneratorRemoteControlLocalRescaleTest {
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+        OpenLoadFlowParameters.create(parameters)
                 .setVoltageRemoteControl(false);
-        this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test

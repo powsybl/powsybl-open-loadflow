@@ -21,7 +21,7 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.PropagatedContingency;
+import com.powsybl.openloadflow.util.sa.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
@@ -59,8 +59,8 @@ class OpenSecurityAnalysisGraphTest {
             .collect(Collectors.toList());
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        lfParameters.addExtension(OpenLoadFlowParameters.class,
-            new OpenLoadFlowParameters().setSlackBusSelectionMode(SlackBusSelectionMode.FIRST));
+        OpenLoadFlowParameters.create(lfParameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         securityAnalysisParameters = new SecurityAnalysisParameters().setLoadFlowParameters(lfParameters);
     }
 

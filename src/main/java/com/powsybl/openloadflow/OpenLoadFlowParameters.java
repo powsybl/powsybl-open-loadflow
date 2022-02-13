@@ -14,14 +14,12 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.ac.DefaultOuterLoopConfig;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopConfig;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -38,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -75,6 +74,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final VoltageInitModeOverride VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE = VoltageInitModeOverride.NONE;
 
+    public enum TransformerVoltageControlMode {
+        WITH_GENERATOR_VOLTAGE_CONTROL,
+        AFTER_GENERATOR_VOLTAGE_CONTROL
+    }
+
+    public static final TransformerVoltageControlMode TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
+
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_DEFAULT_VALUE;
 
     private List<String> slackBusesIds = Collections.emptyList();
@@ -107,6 +113,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double newtonRaphsonConvEpsPerEq = DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
 
     private VoltageInitModeOverride voltageInitModeOverride = VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE;
+
+    private TransformerVoltageControlMode transformerVoltageControlMode = TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -247,6 +255,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public TransformerVoltageControlMode getTransformerVoltageControlMode() {
+        return transformerVoltageControlMode;
+    }
+
+    public OpenLoadFlowParameters setTransformerVoltageControlMode(TransformerVoltageControlMode transformerVoltageControlMode) {
+        this.transformerVoltageControlMode = Objects.requireNonNull(transformerVoltageControlMode);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return new OpenLoadFlowConfigLoader().load(PlatformConfig.defaultConfig());
     }
@@ -268,6 +285,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", maxIteration=" + maxIteration +
                 ", newtonRaphsonConvEpsPerEq=" + newtonRaphsonConvEpsPerEq +
                 ", voltageInitModeOverride=" + voltageInitModeOverride +
+                ", transformerVoltageControlMode=" + transformerVoltageControlMode +
                 ')';
     }
 
@@ -302,6 +320,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         public static final String VOLTAGE_INIT_MODE_OVERRIDE_NAME = "voltageInitModeOverride";
 
+        public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME = "transformerVoltageControlMode";
+
         @Override
         public OpenLoadFlowParameters load(PlatformConfig platformConfig) {
             OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
@@ -324,6 +344,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                         .setMaxIteration(config.getIntProperty(MAX_ITERATION_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
                         .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                         .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
+                        .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 );
             return parameters;
         }
@@ -350,6 +371,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             parametersExt = OpenLoadFlowParameters.load();
         }
         return parametersExt;
+    }
+
+    private static OpenLoadFlowParameters create(LoadFlowParameters parameters, Supplier<OpenLoadFlowParameters> parametersExtSupplier) {
+        Objects.requireNonNull(parameters);
+        OpenLoadFlowParameters parametersExt = parametersExtSupplier.get();
+        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        return parametersExt;
+    }
+
+    public static OpenLoadFlowParameters create(LoadFlowParameters parameters) {
+        return create(parameters, OpenLoadFlowParameters::new);
+    }
+
+    public static OpenLoadFlowParameters load(LoadFlowParameters parameters) {
+        return create(parameters, OpenLoadFlowParameters::load);
     }
 
     public static void logDc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
@@ -498,7 +534,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         var networkParameters = new LfNetworkParameters(slackBusSelector,
                                                         false,
-                                                        false,
+                                                        parametersExt.getLowImpedanceBranchMode() == LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                                                         false,
                                                         false,
                                                         parametersExt.getPlausibleActivePowerLimit(),

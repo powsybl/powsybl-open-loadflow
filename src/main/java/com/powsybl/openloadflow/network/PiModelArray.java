@@ -179,10 +179,10 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean setMinZ(double minZ) {
+    public boolean setMinZ(double minZ, boolean dc) {
         boolean done = false;
         for (PiModel model : models) {
-            done |= model.setMinZ(minZ);
+            done |= model.setMinZ(minZ, dc);
         }
         return done;
     }

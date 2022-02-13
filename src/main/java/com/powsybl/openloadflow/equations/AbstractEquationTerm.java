@@ -21,6 +21,8 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     protected StateVector stateVector;
 
+    protected EquationTerm<V, E> self = this;
+
     @Override
     public void setStateVector(StateVector stateVector) {
         this.stateVector = Objects.requireNonNull(stateVector);
@@ -40,7 +42,7 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     public void setActive(boolean active) {
         if (this.active != active) {
             this.active = active;
-            equation.getEquationSystem().notifyEquationTermChange(this, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
+            equation.getEquationSystem().notifyEquationTermChange(self, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
                                                                                : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
     }
@@ -48,6 +50,11 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     @Override
     public boolean isActive() {
         return active;
+    }
+
+    @Override
+    public void setSelf(EquationTerm<V, E> self) {
+        this.self = Objects.requireNonNull(self);
     }
 
     @Override

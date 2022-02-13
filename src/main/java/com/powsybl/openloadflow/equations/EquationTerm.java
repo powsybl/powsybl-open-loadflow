@@ -36,6 +36,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         MultiplyByScalarEquationTerm(EquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
             this.term = Objects.requireNonNull(term);
             this.scalarSupplier = Objects.requireNonNull(scalarSupplier);
+            term.setSelf(this);
         }
 
         @Override
@@ -56,6 +57,11 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         @Override
         public boolean isActive() {
             return term.isActive();
+        }
+
+        @Override
+        public void setSelf(EquationTerm<V, E> self) {
+            term.setSelf(self);
         }
 
         @Override
@@ -174,6 +180,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
     boolean isActive();
 
     void setActive(boolean active);
+
+    void setSelf(EquationTerm<V, E> self);
 
     ElementType getElementType();
 
