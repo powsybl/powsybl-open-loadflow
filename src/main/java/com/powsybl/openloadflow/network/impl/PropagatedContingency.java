@@ -292,7 +292,7 @@ public class PropagatedContingency {
         // reset connectivity to discard triggered branches
         connectivity.reset();
 
-        for (String hvdcId : hvdcIdsToOpen) {
+        if (!hvdcIdsToOpen.isEmpty()) {
             throw new UnsupportedOperationException("HVDC line contingency not supported");
         }
 
