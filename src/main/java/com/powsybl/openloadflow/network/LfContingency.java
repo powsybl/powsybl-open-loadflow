@@ -86,11 +86,11 @@ public class LfContingency {
         for (LfBus bus : buses) {
             bus.setDisabled(true);
         }
-        for (Map.Entry<LfShunt, Double> e : shunts.entrySet()) {
+        for (var e : shunts.entrySet()) {
             LfShunt shunt = e.getKey();
             shunt.setB(shunt.getB() - e.getValue());
         }
-        for (Map.Entry<LfBus, PowerShift> e : loadBuses.entrySet()) {
+        for (var e : loadBuses.entrySet()) {
             LfBus bus = e.getKey();
             PowerShift shift = e.getValue();
             bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, shift.getActive(), shift.getVariableActive()));
