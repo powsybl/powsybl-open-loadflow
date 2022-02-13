@@ -11,10 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.iidm.network.HvdcLine;
-import com.powsybl.iidm.network.LccConverterStation;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.VscConverterStation;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
@@ -554,6 +551,21 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return connectivityAnalysisResults;
     }
 
+    private static void addConverterStation(LfNetwork lfNetwork, HvdcConverterStation<?> converterStation,
+                                            Set<Pair<LfBus, LccConverterStation>> lccs, Set<LfVscConverterStationImpl> vscs) {
+        if (converterStation instanceof VscConverterStation) {
+            LfVscConverterStationImpl vsc = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(converterStation.getId());
+            if (vsc != null) {
+                vscs.add(vsc);
+            }
+        } else {
+            LfBus bus = lfNetwork.getBusById(converterStation.getTerminal().getBusView().getBus().getId());
+            if (bus != null) {
+                lccs.add(Pair.of(bus, (LccConverterStation) converterStation));
+            }
+        }
+    }
+
     private void applyInjectionContingencies(Network network, LfNetwork lfNetwork, PropagatedContingency contingency,
                                              Set<LfGenerator> participatingGeneratorsToRemove, List<BusState> busStates,
                                              LoadFlowParameters lfParameters) {
@@ -563,36 +575,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // Buses state are stored.
 
         // DC lines.
-        Collection<Pair<LfBus, LccConverterStation>> lccs = new HashSet<>();
-        Collection<LfVscConverterStationImpl> vscs = new HashSet<>();
+        Set<Pair<LfBus, LccConverterStation>> lccs = new HashSet<>();
+        Set<LfVscConverterStationImpl> vscs = new HashSet<>();
         for (String hvdcId : contingency.getHvdcIdsToOpen()) {
             HvdcLine hvdcLine = network.getHvdcLine(hvdcId);
-            if (hvdcLine.getConverterStation1() instanceof VscConverterStation) {
-                LfVscConverterStationImpl vsc = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
-                if (vsc != null) {
-                    vscs.add(vsc);
-                }
-            } else {
-                LfBus bus = lfNetwork.getBusById(hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
-                if (bus != null) {
-                    lccs.add(Pair.of(bus, (LccConverterStation) hvdcLine.getConverterStation1()));
-                }
-            }
-            if (hvdcLine.getConverterStation2() instanceof VscConverterStation) {
-                LfVscConverterStationImpl vsc = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
-                if (vsc != null) {
-                    vscs.add((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId()));
-                }
-            } else {
-                LfBus bus = lfNetwork.getBusById(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
-                if (bus != null) {
-                    lccs.add(Pair.of(bus, (LccConverterStation) hvdcLine.getConverterStation2()));
-                }
-            }
+            addConverterStation(lfNetwork, hvdcLine.getConverterStation1(), lccs, vscs);
+            addConverterStation(lfNetwork, hvdcLine.getConverterStation2(), lccs, vscs);
         }
 
         // generators.
-        Collection<LfGeneratorImpl> generators = new HashSet<>();
+        Set<LfGeneratorImpl> generators = new HashSet<>();
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(generatorId));
         }
