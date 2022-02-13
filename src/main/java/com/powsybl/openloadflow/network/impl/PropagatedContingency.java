@@ -268,18 +268,9 @@ public class PropagatedContingency {
         Set<LfBranch> branches = new HashSet<>(1);
         for (String branchId : branchIdsToOpen) {
             LfBranch branch = network.getBranchById(branchId);
-            if (branch != null) {
+            if (branch != null) { // could be in another component
                 branches.add(branch);
             }
-        }
-
-        // check if contingency split this network into multiple components
-        if (branches.isEmpty()
-                && hvdcIdsToOpen.isEmpty()
-                && shuntIdsToShift.isEmpty()
-                && loadIdsToShift.isEmpty()
-                && generatorIdsToLose.isEmpty()) {
-            return Optional.empty();
         }
 
         // update connectivity with triggered branches
@@ -298,6 +289,9 @@ public class PropagatedContingency {
         }
         buses.forEach(b -> branches.addAll(b.getBranches()));
 
+        // reset connectivity to discard triggered branches
+        connectivity.reset();
+
         for (String hvdcId : hvdcIdsToOpen) {
             throw new UnsupportedOperationException("HVDC line contingency not supported");
         }
@@ -306,32 +300,37 @@ public class PropagatedContingency {
         for (var e : shuntIdsToShift.entrySet()) {
             // FIXME does not work when multiple shunts connected to a bus because IDs won't be found !!!!
             LfShunt shunt = network.getShuntById(e.getKey());
-            if (shunt == null) {
-                throw new IllegalStateException("Should not happen");
+            if (shunt != null) { // could be in another component
+                shunts.put(shunt, e.getValue());
             }
-            shunts.put(shunt, e.getValue());
         }
 
         Set<LfGenerator> generators = new HashSet<>(1);
         for (String generatorId : generatorIdsToLose) {
             LfGenerator generator = network.getGeneratorById(generatorId);
-            generators.add(generator);
+            if (generator != null) { // could be in another component
+                generators.add(generator);
+            }
         }
 
-        Map<LfBus, PowerShift> loadBuses = new HashMap<>(1);
+        Map<LfBus, PowerShift> busesLoadShift = new HashMap<>(1);
         for (var e : loadIdsToShift.entrySet()) {
             String busId = e.getKey();
             PowerShift shift = e.getValue();
             LfBus bus = network.getBusById(busId);
-            if (bus == null) {
-                throw new IllegalStateException("Should not happen");
+            if (bus != null) { // could be in another component
+                busesLoadShift.put(bus, shift);
             }
-            loadBuses.put(bus, shift);
         }
 
-        // reset connectivity to discard triggered branches
-        connectivity.reset();
+        if (branches.isEmpty()
+                && buses.isEmpty()
+                && shunts.isEmpty()
+                && busesLoadShift.isEmpty()
+                && generators.isEmpty()) {
+            return Optional.empty();
+        }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, loadBuses, generators));
+        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, busesLoadShift, generators));
     }
 }

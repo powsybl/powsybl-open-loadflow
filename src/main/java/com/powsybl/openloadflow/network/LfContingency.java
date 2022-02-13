@@ -33,25 +33,25 @@ public class LfContingency {
 
     private final Map<LfShunt, Double> shuntsShift;
 
-    private final Map<LfBus, PowerShift> loadBusesShift;
+    private final Map<LfBus, PowerShift> busesLoadShift;
 
     private final Set<LfGenerator> generators;
 
     private double activePowerLoss = 0;
 
     public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Map<LfShunt, Double> shuntsShift,
-                         Map<LfBus, PowerShift> loadBusesShift, Set<LfGenerator> generators) {
+                         Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> generators) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.buses = Objects.requireNonNull(buses);
         this.branches = Objects.requireNonNull(branches);
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
-        this.loadBusesShift = Objects.requireNonNull(loadBusesShift);
+        this.busesLoadShift = Objects.requireNonNull(busesLoadShift);
         this.generators = Objects.requireNonNull(generators);
         for (LfBus bus : buses) {
             activePowerLoss += bus.getGenerationTargetP() - bus.getLoadTargetP();
         }
-        for (Map.Entry<LfBus, PowerShift> e : loadBusesShift.entrySet()) {
+        for (Map.Entry<LfBus, PowerShift> e : busesLoadShift.entrySet()) {
             activePowerLoss -= e.getValue().getActive();
         }
         for (LfGenerator generator : generators) {
@@ -90,7 +90,7 @@ public class LfContingency {
             LfShunt shunt = e.getKey();
             shunt.setB(shunt.getB() - e.getValue());
         }
-        for (var e : loadBusesShift.entrySet()) {
+        for (var e : busesLoadShift.entrySet()) {
             LfBus bus = e.getKey();
             PowerShift shift = e.getValue();
             bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, shift.getActive(), shift.getVariableActive()));
