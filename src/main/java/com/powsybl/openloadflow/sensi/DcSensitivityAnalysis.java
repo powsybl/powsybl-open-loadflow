@@ -593,8 +593,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         // generators.
         Collection<LfGeneratorImpl> generators = new HashSet<>();
-        for (Map.Entry<String, Double> e : contingency.getGeneratorIdsToLose().entrySet()) {
-            generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(e.getKey()));
+        for (String generatorId : contingency.getGeneratorIdsToLose()) {
+            generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(generatorId));
         }
 
         for (Map.Entry<String, PowerShift> e : contingency.getLoadIdsToShift().entrySet()) {

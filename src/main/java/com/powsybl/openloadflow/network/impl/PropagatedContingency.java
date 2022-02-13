@@ -38,7 +38,7 @@ public class PropagatedContingency {
 
     private final Set<String> hvdcIdsToOpen;
 
-    private final Map<String, Double> generatorIdsToLose;
+    private final Set<String> generatorIdsToLose;
 
     private final Map<String, PowerShift> loadIdsToShift;
 
@@ -60,7 +60,7 @@ public class PropagatedContingency {
         return hvdcIdsToOpen;
     }
 
-    public Map<String, Double> getGeneratorIdsToLose() {
+    public Set<String> getGeneratorIdsToLose() {
         return generatorIdsToLose;
     }
 
@@ -73,7 +73,7 @@ public class PropagatedContingency {
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
-                                 Set<Switch> switchesToOpen, Map<String, Double> generatorIdsToLose,
+                                 Set<Switch> switchesToOpen, Set<String> generatorIdsToLose,
                                  Map<String, PowerShift> loadIdsToShift, Map<String, Double> shuntIdsToShift) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
@@ -229,11 +229,11 @@ public class PropagatedContingency {
         }
 
         // then process injection power shift
-        Map<String, Double> generatorIdsToLose = new HashMap<>();
+        Set<String> generatorIdsToLose = new HashSet<>();
         Map<String, PowerShift> loadIdsToShift = new HashMap<>();
         Map<String, Double> shuntIdsToShift = new HashMap<>();
         for (Generator generator : generatorsToLose) {
-            generatorIdsToLose.put(generator.getId(), generator.getTargetP());
+            generatorIdsToLose.add(generator.getId());
         }
         for (Load load : loadsToLose) {
             Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus()
@@ -308,8 +308,8 @@ public class PropagatedContingency {
         }
 
         Set<LfGenerator> generators = new HashSet<>(1);
-        for (var e : generatorIdsToLose.entrySet()) {
-            LfGenerator generator = network.getGeneratorById(e.getKey());
+        for (String generatorId : generatorIdsToLose) {
+            LfGenerator generator = network.getGeneratorById(generatorId);
             generators.add(generator);
         }
 
