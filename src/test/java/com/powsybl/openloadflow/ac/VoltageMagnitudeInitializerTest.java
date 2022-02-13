@@ -17,6 +17,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.junit.jupiter.api.Test;
@@ -172,5 +173,45 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "N_0", 0.97817, 0);
         assertBusVoltage(lfNetwork, initializer, "P_0", 0.982318, 0);
         assertBusVoltage(lfNetwork, initializer, "R_0", 0.982318, 0);
+    }
+
+    @Test
+    void testWithTransformerVoltageControl() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        var twt49 = network.getTwoWindingsTransformer("T4-9-1");
+        twt49.newRatioTapChanger()
+                .beginStep()
+                    .setR(0)
+                    .setX(0)
+                    .setG(0)
+                    .setB(0)
+                    .setRho(1)
+                .endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(true)
+                .setTargetV(1.1 * twt49.getTerminal2().getVoltageLevel().getNominalV())
+                .setTargetDeadband(0)
+                .setRegulationTerminal(twt49.getTerminal2())
+                .add();
+        LfNetworkParameters networkParameters = new LfNetworkParameters()
+                .setTransformerVoltageControl(true);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
+        VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(true, new DenseMatrixFactory());
+        initializer.prepare(lfNetwork);
+        assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.039348, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.038242, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.087979, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.1, 0); // this is tha transformer voltage control target!
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.094668, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.082549, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.07237, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.074222, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.088729, 0);
     }
 }
