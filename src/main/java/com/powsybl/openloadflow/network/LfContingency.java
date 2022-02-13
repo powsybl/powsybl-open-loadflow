@@ -10,12 +10,11 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -32,16 +31,16 @@ public class LfContingency {
 
     private final Set<LfBranch> branches;
 
-    private final Set<Pair<LfShunt, Double>> shunts;
+    private final Map<LfShunt, Double> shunts;
 
-    private final Set<Triple<LfBus, Pair<Double, Double>, Double>> loadBuses;
+    private final Map<LfBus, PowerShift> loadBuses;
 
     private final Set<LfGenerator> generators;
 
     private double activePowerLoss = 0;
 
-    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Set<Pair<LfShunt, Double>> shunts,
-                         Set<Triple<LfBus, Pair<Double, Double>, Double>> loadBuses, Set<LfGenerator> generators) {
+    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Map<LfShunt, Double> shunts,
+                         Map<LfBus, PowerShift> loadBuses, Set<LfGenerator> generators) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.buses = Objects.requireNonNull(buses);
@@ -52,8 +51,8 @@ public class LfContingency {
         for (LfBus bus : buses) {
             activePowerLoss += bus.getGenerationTargetP() - bus.getLoadTargetP();
         }
-        for (Triple<LfBus, Pair<Double, Double>, Double> loadBus : loadBuses) {
-            activePowerLoss -= loadBus.getMiddle().getKey();
+        for (Map.Entry<LfBus, PowerShift> e : loadBuses.entrySet()) {
+            activePowerLoss -= e.getValue().getActive();
         }
         for (LfGenerator generator : generators) {
             activePowerLoss += generator.getTargetP();
@@ -87,15 +86,16 @@ public class LfContingency {
         for (LfBus bus : buses) {
             bus.setDisabled(true);
         }
-        for (Pair<LfShunt, Double> shuntInfo : shunts) {
-            LfShunt shunt = shuntInfo.getKey();
-            shunt.setB(shunt.getB() - shuntInfo.getValue());
+        for (Map.Entry<LfShunt, Double> e : shunts.entrySet()) {
+            LfShunt shunt = e.getKey();
+            shunt.setB(shunt.getB() - e.getValue());
         }
-        for (Triple<LfBus, Pair<Double, Double>, Double> loadInfo : loadBuses) {
-            LfBus bus = loadInfo.getLeft();
-            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, loadInfo.getMiddle().getKey(), loadInfo.getMiddle().getValue()));
-            bus.setLoadTargetQ(bus.getLoadTargetQ() - loadInfo.getRight());
-            bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(loadInfo.getMiddle().getValue()) * PerUnit.SB);
+        for (Map.Entry<LfBus, PowerShift> e : loadBuses.entrySet()) {
+            LfBus bus = e.getKey();
+            PowerShift shift = e.getValue();
+            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, shift.getActive(), shift.getVariableActive()));
+            bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
+            bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
         }
         for (LfGenerator generator : generators) {
             generator.setTargetP(0);

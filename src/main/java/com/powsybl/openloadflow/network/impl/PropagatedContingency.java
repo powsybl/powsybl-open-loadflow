@@ -14,8 +14,6 @@ import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +38,11 @@ public class PropagatedContingency {
 
     private final Set<String> hvdcIdsToOpen;
 
-    private final Set<Pair<String, Double>> generatorIdsToLose;
+    private final Map<String, Double> generatorIdsToLose;
 
-    private final Set<Triple<String, Pair<Double, Double>, Double>> loadIdsToLose;
+    private final Map<String, PowerShift> loadIdsToShift;
 
-    private final Set<Pair<String, Double>> shuntIdsToLose;
+    private final Map<String, Double> shuntIdsToShift;
 
     public Contingency getContingency() {
         return contingency;
@@ -62,70 +60,47 @@ public class PropagatedContingency {
         return hvdcIdsToOpen;
     }
 
-    public Set<Pair<String, Double>> getGeneratorIdsToLose() {
+    public Map<String, Double> getGeneratorIdsToLose() {
         return generatorIdsToLose;
     }
 
-    public Set<Triple<String, Pair<Double, Double>, Double>> getLoadIdsToLose() {
-        return loadIdsToLose;
+    public Map<String, PowerShift> getLoadIdsToShift() {
+        return loadIdsToShift;
     }
 
-    public Set<Pair<String, Double>> getShuntIdsToLose() {
-        return shuntIdsToLose;
+    public Map<String, Double> getShuntIdsToShift() {
+        return shuntIdsToShift;
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
-                                 Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect, Set<Pair<String, Double>> generatorIdsToLose,
-                                 Set<Triple<String, Pair<Double, Double>, Double>> loadIdsToLose, Set<Pair<String, Double>> shuntIdsToLose, boolean withBreakers,
-                                 boolean slackDistributionOnConformLoad) {
+                                 Set<Switch> switchesToOpen, Map<String, Double> generatorIdsToLose,
+                                 Map<String, PowerShift> loadIdsToShift, Map<String, Double> shuntIdsToShift) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
         this.hvdcIdsToOpen = Objects.requireNonNull(hvdcIdsToOpen);
         this.switchesToOpen = Objects.requireNonNull(switchesToOpen);
         this.generatorIdsToLose = Objects.requireNonNull(generatorIdsToLose);
-        this.loadIdsToLose = Objects.requireNonNull(loadIdsToLose);
-        this.shuntIdsToLose = Objects.requireNonNull(shuntIdsToLose);
+        this.loadIdsToShift = Objects.requireNonNull(loadIdsToShift);
+        this.shuntIdsToShift = Objects.requireNonNull(shuntIdsToShift);
 
+        // WTF?????
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
         }
-
-        for (Terminal terminal : terminalsToDisconnect) {
-            if (terminal.getConnectable() instanceof Branch) {
-                branchIdsToOpen.add(terminal.getConnectable().getId());
-            }
-            if (terminal.getConnectable() instanceof Generator) {
-                Generator generator = (Generator) terminal.getConnectable();
-                generatorIdsToLose.add(getGeneratorInfo(generator));
-            }
-            if (terminal.getConnectable() instanceof Load) {
-                Load load = (Load) terminal.getConnectable();
-                loadIdsToLose.add(getLoadInfo(load, withBreakers, slackDistributionOnConformLoad));
-            }
-            if (terminal.getConnectable() instanceof ShuntCompensator) {
-                ShuntCompensator shuntCompensator = (ShuntCompensator) terminal.getConnectable();
-                shuntIdsToLose.add(getShuntCompensatorInfo(shuntCompensator));
-            }
-        }
     }
 
-    private static Pair<String, Double> getShuntCompensatorInfo(ShuntCompensator shuntCompensator) {
-        double nominalV = shuntCompensator.getTerminal().getVoltageLevel().getNominalV();
-        return Pair.of(shuntCompensator.getId(), shuntCompensator.getB() * nominalV * nominalV / PerUnit.SB);
-    }
-
-    private static Pair<String, Double> getGeneratorInfo(Generator generator) {
-        return Pair.of(generator.getId(), generator.getTargetP());
-    }
-
-    private static Triple<String, Pair<Double, Double>, Double> getLoadInfo(Load load, boolean withBreakers, boolean slackDistributionOnConformLoad) {
-        double variableActivePower = Math.abs(load.getP0());
+    private static PowerShift getLoadPowerShift(Load load, boolean slackDistributionOnConformLoad) {
+        double variableActivePower;
         if (slackDistributionOnConformLoad) {
-            variableActivePower = load.getExtension(LoadDetail.class) == null ? 0.0 : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
+            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+            variableActivePower = loadDetail == null ? 0.0 : Math.abs(loadDetail.getVariableActivePower());
+        } else {
+            variableActivePower = Math.abs(load.getP0());
         }
-        Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus() : load.getTerminal().getBusView().getBus();
-        return bus != null ? Triple.of(bus.getId(), Pair.of(load.getP0() / PerUnit.SB, variableActivePower / PerUnit.SB), load.getQ0() / PerUnit.SB) : null;
+        return new PowerShift(load.getP0() / PerUnit.SB,
+                              variableActivePower / PerUnit.SB,
+                              load.getQ0() / PerUnit.SB);
     }
 
     public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies,
@@ -166,9 +141,11 @@ public class PropagatedContingency {
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
-        Set<Pair<String, Double>> generatorIdsToLose = new HashSet<>();
-        Set<Triple<String, Pair<Double, Double>, Double>> loadIdsToLose = new HashSet<>();
-        Set<Pair<String, Double>> shuntIdsToLose = new HashSet<>();
+        Set<Load> loadsToLose = new HashSet<>();
+        Set<Generator> generatorsToLose = new HashSet<>();
+        Set<ShuntCompensator> shuntsToLose = new HashSet<>();
+
+        // process elements of the contingency
         for (ContingencyElement element : contingency.getElements()) {
             switch (element.getType()) {
                 case BRANCH:
@@ -177,7 +154,6 @@ public class PropagatedContingency {
                     // branch check is done inside tripping
                     ContingencyTripping.createBranchTripping(network, element.getId())
                         .traverse(switchesToOpen, terminalsToDisconnect);
-                    branchIdsToOpen.add(element.getId());
                     break;
                 case HVDC_LINE:
                     HvdcLine hvdcLine = network.getHvdcLine(element.getId());
@@ -190,21 +166,20 @@ public class PropagatedContingency {
                     // dangling line check is done inside tripping
                     ContingencyTripping.createDanglingLineTripping(network, element.getId())
                         .traverse(switchesToOpen, terminalsToDisconnect);
-                    branchIdsToOpen.add(element.getId());
                     break;
                 case GENERATOR:
                     Generator generator = network.getGenerator(element.getId());
                     if (generator == null) {
                         throw new PowsyblException("Generator '" + element.getId() + "' not found in the network");
                     }
-                    generatorIdsToLose.add(getGeneratorInfo(generator));
+                    generatorsToLose.add(generator);
                     break;
                 case LOAD:
                     Load load = network.getLoad(element.getId());
                     if (load == null) {
                         throw new PowsyblException("Load '" + element.getId() + "' not found in the network");
                     }
-                    loadIdsToLose.add(getLoadInfo(load, withBreakers, slackDistributionOnConformLoad));
+                    loadsToLose.add(load);
                     break;
                 case SHUNT_COMPENSATOR:
                     ShuntCompensator shuntCompensator = network.getShuntCompensator(element.getId());
@@ -214,16 +189,65 @@ public class PropagatedContingency {
                     if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
                     }
-                    shuntIdsToLose.add(getShuntCompensatorInfo(shuntCompensator));
+                    shuntsToLose.add(shuntCompensator);
                     break;
                 default:
-                    //TODO: support all kinds of contingencies
-                    throw new UnsupportedOperationException("TODO");
+                    throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
             }
         }
 
-        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen, terminalsToDisconnect,
-                generatorIdsToLose, loadIdsToLose, shuntIdsToLose, withBreakers, slackDistributionOnConformLoad);
+        // then process other elements resulting of propagation of initial elements
+        for (Terminal terminal : terminalsToDisconnect) {
+            Connectable<?> connectable = terminal.getConnectable();
+            switch (connectable.getType()) {
+                case LINE:
+                case TWO_WINDINGS_TRANSFORMER:
+                case DANGLING_LINE:
+                    branchIdsToOpen.add(connectable.getId());
+                    break;
+
+                case GENERATOR:
+                    generatorsToLose.add((Generator) connectable);
+                    break;
+
+                case LOAD:
+                    loadsToLose.add((Load) connectable);
+                    break;
+
+                case SHUNT_COMPENSATOR:
+                    shuntsToLose.add((ShuntCompensator) connectable);
+                    break;
+
+                case BUSBAR_SECTION:
+                    // we don't care
+                    break;
+
+                default:
+                    throw new UnsupportedOperationException("Unsupported by propagation contingency element type: "
+                            + connectable.getType());
+            }
+        }
+
+        // then process injection power shift
+        Map<String, Double> generatorIdsToLose = new HashMap<>();
+        Map<String, PowerShift> loadIdsToShift = new HashMap<>();
+        Map<String, Double> shuntIdsToShift = new HashMap<>();
+        for (Generator generator : generatorsToLose) {
+            generatorIdsToLose.put(generator.getId(), generator.getTargetP());
+        }
+        for (Load load : loadsToLose) {
+            Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus()
+                                   : load.getTerminal().getBusView().getBus();
+            loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
+                    .add(getLoadPowerShift(load, slackDistributionOnConformLoad));
+        }
+        for (ShuntCompensator shunt : shuntsToLose) {
+            double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
+            shuntIdsToShift.put(shunt.getId(), shunt.getB() * nominalV * nominalV / PerUnit.SB);
+        }
+
+        return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen,
+                                         generatorIdsToLose, loadIdsToShift, shuntIdsToShift);
     }
 
     private static boolean isCoupler(Switch s) {
@@ -251,8 +275,8 @@ public class PropagatedContingency {
 
         // check if contingency split this network into multiple components
         if (branches.isEmpty()
-                && shuntIdsToLose.isEmpty()
-                && loadIdsToLose.isEmpty()
+                && shuntIdsToShift.isEmpty()
+                && loadIdsToShift.isEmpty()
                 && generatorIdsToLose.isEmpty()) {
             return Optional.empty();
         }
@@ -273,26 +297,31 @@ public class PropagatedContingency {
         }
         buses.forEach(b -> branches.addAll(b.getBranches()));
 
-        Set<Pair<LfShunt, Double>> shunts = new HashSet<>(1);
-        for (Pair<String, Double> shuntAndB : shuntIdsToLose) {
-            LfShunt shunt = network.getShuntById(shuntAndB.getKey());
-            if (shunt != null) {
-                shunts.add(Pair.of(shunt, shuntAndB.getValue()));
+        Map<LfShunt, Double> shunts = new HashMap<>(1);
+        for (var e : shuntIdsToShift.entrySet()) {
+            // FIXME does not work when multiple shunts connected to a bus because IDs won't be found !!!!
+            LfShunt shunt = network.getShuntById(e.getKey());
+            if (shunt == null) {
+                throw new IllegalStateException("Should not happen");
             }
+            shunts.put(shunt, e.getValue());
         }
 
         Set<LfGenerator> generators = new HashSet<>(1);
-        for (Pair<String, Double> generatorInfo : generatorIdsToLose) {
-            LfGenerator generator = network.getGeneratorById(generatorInfo.getKey());
+        for (var e : generatorIdsToLose.entrySet()) {
+            LfGenerator generator = network.getGeneratorById(e.getKey());
             generators.add(generator);
         }
 
-        Set<Triple<LfBus, Pair<Double, Double>, Double>> loadBuses = new HashSet<>(1);
-        for (Triple<String, Pair<Double, Double>, Double> loadInfo : loadIdsToLose) {
-            LfBus bus = network.getBusById(loadInfo.getLeft());
-            if (bus != null) {
-                loadBuses.add(Triple.of(bus, loadInfo.getMiddle(), loadInfo.getRight()));
+        Map<LfBus, PowerShift> loadBuses = new HashMap<>(1);
+        for (var e : loadIdsToShift.entrySet()) {
+            String busId = e.getKey();
+            PowerShift shift = e.getValue();
+            LfBus bus = network.getBusById(busId);
+            if (bus == null) {
+                throw new IllegalStateException("Should not happen");
             }
+            loadBuses.put(bus, shift);
         }
 
         // reset connectivity to discard triggered branches
