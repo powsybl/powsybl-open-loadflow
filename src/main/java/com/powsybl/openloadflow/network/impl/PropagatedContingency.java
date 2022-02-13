@@ -275,6 +275,7 @@ public class PropagatedContingency {
 
         // check if contingency split this network into multiple components
         if (branches.isEmpty()
+                && hvdcIdsToOpen.isEmpty()
                 && shuntIdsToShift.isEmpty()
                 && loadIdsToShift.isEmpty()
                 && generatorIdsToLose.isEmpty()) {
@@ -296,6 +297,10 @@ public class PropagatedContingency {
             buses = network.getBuses().stream().filter(b -> connectivity.getComponentNumber(b) != slackBusComponent).collect(Collectors.toSet());
         }
         buses.forEach(b -> branches.addAll(b.getBranches()));
+
+        for (String hvdcId : hvdcIdsToOpen) {
+            throw new UnsupportedOperationException("HVDC line contingency not supported");
+        }
 
         Map<LfShunt, Double> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {

@@ -31,27 +31,27 @@ public class LfContingency {
 
     private final Set<LfBranch> branches;
 
-    private final Map<LfShunt, Double> shunts;
+    private final Map<LfShunt, Double> shuntsShift;
 
-    private final Map<LfBus, PowerShift> loadBuses;
+    private final Map<LfBus, PowerShift> loadBusesShift;
 
     private final Set<LfGenerator> generators;
 
     private double activePowerLoss = 0;
 
-    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Map<LfShunt, Double> shunts,
-                         Map<LfBus, PowerShift> loadBuses, Set<LfGenerator> generators) {
+    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Map<LfShunt, Double> shuntsShift,
+                         Map<LfBus, PowerShift> loadBusesShift, Set<LfGenerator> generators) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.buses = Objects.requireNonNull(buses);
         this.branches = Objects.requireNonNull(branches);
-        this.shunts = Objects.requireNonNull(shunts);
-        this.loadBuses = Objects.requireNonNull(loadBuses);
+        this.shuntsShift = Objects.requireNonNull(shuntsShift);
+        this.loadBusesShift = Objects.requireNonNull(loadBusesShift);
         this.generators = Objects.requireNonNull(generators);
         for (LfBus bus : buses) {
             activePowerLoss += bus.getGenerationTargetP() - bus.getLoadTargetP();
         }
-        for (Map.Entry<LfBus, PowerShift> e : loadBuses.entrySet()) {
+        for (Map.Entry<LfBus, PowerShift> e : loadBusesShift.entrySet()) {
             activePowerLoss -= e.getValue().getActive();
         }
         for (LfGenerator generator : generators) {
@@ -86,11 +86,11 @@ public class LfContingency {
         for (LfBus bus : buses) {
             bus.setDisabled(true);
         }
-        for (var e : shunts.entrySet()) {
+        for (var e : shuntsShift.entrySet()) {
             LfShunt shunt = e.getKey();
             shunt.setB(shunt.getB() - e.getValue());
         }
-        for (var e : loadBuses.entrySet()) {
+        for (var e : loadBusesShift.entrySet()) {
             LfBus bus = e.getKey();
             PowerShift shift = e.getValue();
             bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, shift.getActive(), shift.getVariableActive()));
