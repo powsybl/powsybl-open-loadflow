@@ -298,7 +298,6 @@ public class PropagatedContingency {
 
         Map<LfShunt, Double> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {
-            // FIXME does not work when multiple shunts connected to a bus because IDs won't be found !!!!
             LfShunt shunt = network.getShuntById(e.getKey());
             if (shunt != null) { // could be in another component
                 double oldB = shunts.getOrDefault(shunt, 0d);
