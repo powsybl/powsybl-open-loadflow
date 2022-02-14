@@ -41,7 +41,7 @@ public class LfNetworkParameters {
 
     private final boolean phaseControl;
 
-    private final boolean transformerVoltageControl;
+    private boolean transformerVoltageControl;
 
     private final boolean voltagePerReactivePowerControl;
 
@@ -138,6 +138,11 @@ public class LfNetworkParameters {
 
     public boolean isTransformerVoltageControl() {
         return transformerVoltageControl;
+    }
+
+    public LfNetworkParameters setTransformerVoltageControl(boolean transformerVoltageControl) {
+        this.transformerVoltageControl = transformerVoltageControl;
+        return this;
     }
 
     public boolean isVoltagePerReactivePowerControl() {
