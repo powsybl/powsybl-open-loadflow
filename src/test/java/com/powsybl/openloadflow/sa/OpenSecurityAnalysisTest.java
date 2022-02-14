@@ -834,6 +834,48 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
+    void testSaWithShuntContingency3() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getBusBreakerView().getBus("b2").getVoltageLevel().newShuntCompensator()
+                .setId("SHUNT4")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setSectionCount(0)
+                .newLinearModel()
+                .setMaximumSectionCount(50)
+                .setBPerSection(-1E-2)
+                .setGPerSection(0.0)
+                .add()
+                .add();
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            shuntCompensator.setSectionCount(10);
+        });
+        network.getGenerator("g1").setMaxP(1000);
+
+        List<Contingency> contingencies = List.of(new Contingency("SHUNT2", new ShuntCompensatorContingency("SHUNT2")),
+                new Contingency("SHUNTS", List.of(new ShuntCompensatorContingency("SHUNT2"), new ShuntCompensatorContingency("SHUNT4"))));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(82.342, preContingencyResult.getPreContingencyBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(41.495, preContingencyResult.getPreContingencyBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency tests
+        PostContingencyResult contingencyResult = getPostContingencyResult(result, "SHUNT2");
+        assertEquals(42.131, contingencyResult.getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(42.131, contingencyResult.getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency tests
+        PostContingencyResult contingencyResult2 = getPostContingencyResult(result, "SHUNTS");
+        assertEquals(-0.0027, contingencyResult2.getBranchResult("tr2").getQ2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(42.792, contingencyResult2.getBranchResult("tr3").getQ2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testDcSaWithLoadContingency() {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
 
