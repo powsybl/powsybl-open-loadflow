@@ -796,4 +796,22 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0., result.getSensitivityValue("glsk", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getFunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void nonImpedantBranchTest() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        network.getLine("L2").setX(0).setR(0);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true);
+        SensitivityFactorsProvider factorsProvider = n -> {
+            Branch branch = n.getBranch("L2");
+            return Collections.singletonList(new BranchFlowPerLinearGlsk(
+                    createBranchFlow(branch),
+                    new LinearGlsk("glsk", "glsk", Collections.singletonMap("LD2", 10f))
+            ));
+        };
+        SensitivityAnalysisResult sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
+                factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
+        assertEquals(-0.6666666, getValue(sensiResult, "glsk", "L2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(66.6666, getFunctionReference(sensiResult, "L2"), LoadFlowAssert.DELTA_POWER);
+    }
 }

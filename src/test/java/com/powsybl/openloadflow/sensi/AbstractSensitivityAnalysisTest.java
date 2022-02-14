@@ -56,12 +56,11 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     protected static SensitivityAnalysisParameters createParameters(boolean dc, List<String> slackBusesIds, boolean distributedSlack) {
         SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
-        lfParameters.setDc(dc);
-        lfParameters.setDistributedSlack(distributedSlack);
-        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
+        lfParameters.setDc(dc)
+                .setDistributedSlack(distributedSlack);
+        OpenLoadFlowParameters.create(lfParameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
                 .setSlackBusesIds(slackBusesIds);
-        lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         return sensiParameters;
     }
 
@@ -72,11 +71,10 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     protected static SensitivityAnalysisParameters createParameters(boolean dc) {
         SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
-        lfParameters.setDc(dc);
-        lfParameters.setDistributedSlack(true);
-        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters()
+        lfParameters.setDc(dc)
+                .setDistributedSlack(true);
+        OpenLoadFlowParameters.create(lfParameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         return sensiParameters;
     }
 

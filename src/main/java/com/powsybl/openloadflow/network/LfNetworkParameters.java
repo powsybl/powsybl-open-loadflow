@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.Country;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -18,7 +19,7 @@ public class LfNetworkParameters {
 
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
-    private final SlackBusSelector slackBusSelector;
+    private SlackBusSelector slackBusSelector;
 
     private final boolean generatorVoltageRemoteControl;
 
@@ -40,7 +41,7 @@ public class LfNetworkParameters {
 
     private final boolean phaseControl;
 
-    private final boolean transformerVoltageControl;
+    private boolean transformerVoltageControl;
 
     private final boolean voltagePerReactivePowerControl;
 
@@ -91,6 +92,10 @@ public class LfNetworkParameters {
         return slackBusSelector;
     }
 
+    public void setSlackBusSelector(SlackBusSelector slackBusSelector) {
+        this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+    }
+
     public boolean isGeneratorVoltageRemoteControl() {
         return generatorVoltageRemoteControl;
     }
@@ -133,6 +138,11 @@ public class LfNetworkParameters {
 
     public boolean isTransformerVoltageControl() {
         return transformerVoltageControl;
+    }
+
+    public LfNetworkParameters setTransformerVoltageControl(boolean transformerVoltageControl) {
+        this.transformerVoltageControl = transformerVoltageControl;
+        return this;
     }
 
     public boolean isVoltagePerReactivePowerControl() {

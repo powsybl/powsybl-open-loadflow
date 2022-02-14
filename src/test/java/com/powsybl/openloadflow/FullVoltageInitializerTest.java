@@ -34,7 +34,7 @@ class FullVoltageInitializerTest {
         SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector).get(0);
         MatrixFactory matrixFactory = new DenseMatrixFactory();
-        FullVoltageInitializer initializer = new FullVoltageInitializer(new VoltageMagnitudeInitializer(matrixFactory),
+        FullVoltageInitializer initializer = new FullVoltageInitializer(new VoltageMagnitudeInitializer(false, matrixFactory),
                                                                         new DcValueVoltageInitializer(new LfNetworkParameters(slackBusSelector),
                                                                                                       false,
                                                                                                       LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,

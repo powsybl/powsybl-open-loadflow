@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
 

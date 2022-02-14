@@ -13,7 +13,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
@@ -29,6 +28,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.util.sa.PropagatedContingency;
 import com.powsybl.openloadflow.util.PropagatedContingency;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
@@ -213,15 +213,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         validFactors.add(LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION);
         lfFactors = lfFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
 
-        Set<String> branchesWithMeasuredCurrent = lfFactors.stream()
-                .filter(lfFactor -> lfFactor.getFunctionType() == SensitivityFunctionType.BRANCH_CURRENT)
-                .map(lfFactor -> lfFactor.getFunctionElement().getId())
-                .collect(Collectors.toSet());
-
         // create AC engine
-        AcLoadFlowParameters acParameters = OpenLoadFlowProvider.createAcParameters(network, matrixFactory, lfParameters,
-                                                                                    lfParametersExt, false, true,
-                                                                                    branchesWithMeasuredCurrent, reporter);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, reporter, false, true);
+
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
             new AcloadFlowEngine(context)

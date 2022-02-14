@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import java.util.Set;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -15,30 +13,22 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean forceA1Var;
 
-    private final Set<String> branchesWithCurrent;
-
     public AcEquationSystemCreationParameters() {
-        this(false, null);
+        this(false);
     }
 
-    public AcEquationSystemCreationParameters(boolean forceA1Var, Set<String> branchesWithCurrent) {
+    public AcEquationSystemCreationParameters(boolean forceA1Var) {
         this.forceA1Var = forceA1Var;
-        this.branchesWithCurrent = branchesWithCurrent;
     }
 
     public boolean isForceA1Var() {
         return forceA1Var;
     }
 
-    public Set<String> getBranchesWithCurrent() {
-        return branchesWithCurrent;
-    }
-
     @Override
     public String toString() {
         return "AcEquationSystemCreationParameters(" +
                 "forceA1Var=" + forceA1Var +
-                ", branchesWithCurrent=" + branchesWithCurrent +
                 ')';
     }
 }
