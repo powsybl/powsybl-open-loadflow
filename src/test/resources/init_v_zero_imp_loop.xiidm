@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<iidm:network xmlns:iidm="http://www.powsybl.org/schema/iidm/1_6" id="test" caseDate="2020-02-12T09:30:00.000Z" forecastDistance="0" sourceFormat="XIIDM">
+<iidm:network xmlns:iidm="http://www.powsybl.org/schema/iidm/1_7" id="test" caseDate="2020-02-12T09:30:00.000Z" forecastDistance="0" sourceFormat="XIIDM" minimumValidationLevel="STEADY_STATE_HYPOTHESIS">
     <iidm:substation id="A">
         <iidm:voltageLevel id="B" nominalV="132.0" topologyKind="BUS_BREAKER">
             <iidm:busBreakerTopology>

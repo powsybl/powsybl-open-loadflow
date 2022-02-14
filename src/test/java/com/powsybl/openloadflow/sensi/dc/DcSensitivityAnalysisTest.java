@@ -24,7 +24,7 @@ import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.openloadflow.util.PropagatedContingency;
+import com.powsybl.openloadflow.util.sa.PropagatedContingency;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
@@ -801,17 +801,16 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void nonImpedantBranchTest() {
         Network network = PhaseShifterTestCaseFactory.create();
         network.getLine("L2").setX(0).setR(0);
+
         SensitivityAnalysisParameters sensiParameters = createParameters(true);
-        SensitivityFactorsProvider factorsProvider = n -> {
-            Branch branch = n.getBranch("L2");
-            return Collections.singletonList(new BranchFlowPerLinearGlsk(
-                    createBranchFlow(branch),
-                    new LinearGlsk("glsk", "glsk", Collections.singletonMap("LD2", 10f))
-            ));
-        };
-        SensitivityAnalysisResult sensiResult = sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID,
-                factorsProvider, Collections.emptyList(), sensiParameters, LocalComputationManager.getDefault()).join();
-        assertEquals(-0.6666666, getValue(sensiResult, "glsk", "L2"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(66.6666, getFunctionReference(sensiResult, "L2"), LoadFlowAssert.DELTA_POWER);
+
+        List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", List.of(new WeightedSensitivityVariable("LD2", 10f))));
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("L2", "glsk"));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
+
+        assertEquals(-0.6666666, result.getSensitivityValue("glsk", "L2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(66.6666, result.getFunctionReferenceValue("L2"), LoadFlowAssert.DELTA_POWER);
     }
 }
