@@ -301,7 +301,8 @@ public class PropagatedContingency {
             // FIXME does not work when multiple shunts connected to a bus because IDs won't be found !!!!
             LfShunt shunt = network.getShuntById(e.getKey());
             if (shunt != null) { // could be in another component
-                shunts.put(shunt, e.getValue());
+                double oldB = shunts.getOrDefault(shunt, 0d);
+                shunts.put(shunt, oldB + e.getValue());
             }
         }
 
