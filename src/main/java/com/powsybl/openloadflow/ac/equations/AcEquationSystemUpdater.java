@@ -73,7 +73,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
-                // set voltage target equation inactive, various voltage control will set next the the correct value
+                // set voltage target equation inactive, various voltage control will set next to the correct value
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
                         .setActive(false);
