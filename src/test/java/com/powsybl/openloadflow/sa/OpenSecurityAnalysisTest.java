@@ -1079,32 +1079,49 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void testWorsenedConstraintsFiltering() {
+    void testPostContingencyFiltering() {
         Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
         network.getLine("NHV1_NHV2_2").newCurrentLimits1()
                 .setPermanentLimit(300)
                 .add();
+        network.getVoltageLevel("VLHV1").setLowVoltageLimit(410);
 
         List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_1", new BranchContingency("NHV1_NHV2_1")));
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
         parameters.setIncreasedFlowViolationsThreshold(0.0);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), parameters);
 
-        List<LimitViolation> preContingencyLimitViolations = result.getPreContingencyResult().getLimitViolationsResult()
+        List<LimitViolation> preContingencyLimitViolationsOnLine = result.getPreContingencyResult().getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSide().equals(Branch.Side.ONE)).collect(Collectors.toList());
-        assertEquals(LimitViolationType.CURRENT, preContingencyLimitViolations.get(0).getLimitType());
-        assertEquals(459, preContingencyLimitViolations.get(0).getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(LimitViolationType.CURRENT, preContingencyLimitViolationsOnLine.get(0).getLimitType());
+        assertEquals(459, preContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
 
-        List<LimitViolation> postContingencyLimitViolations = result.getPostContingencyResults().get(0).getLimitViolationsResult()
+        List<LimitViolation> postContingencyLimitViolationsOnLine = result.getPostContingencyResults().get(0).getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSide().equals(Branch.Side.ONE)).collect(Collectors.toList());
-        assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolations.get(0).getLimitType());
-        assertEquals(1014.989, postContingencyLimitViolations.get(0).getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolationsOnLine.get(0).getLimitType());
+        assertEquals(1014.989, postContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
+
+        List<LimitViolation> preContingencyLimitViolationsOnVoltageLevel = result.getPreContingencyResult().getLimitViolationsResult()
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
+        assertEquals(LimitViolationType.LOW_VOLTAGE, preContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
+        assertEquals(400.63, preContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
+
+        List<LimitViolation> postContingencyLimitViolationsOnVoltageLevel = result.getPostContingencyResults().get(0).getLimitViolationsResult()
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
+        assertEquals(LimitViolationType.LOW_VOLTAGE, postContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
+        assertEquals(396.70, postContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
 
         parameters.setIncreasedFlowViolationsThreshold(1.5);
+        parameters.setIncreasedLowVoltageViolationsThreshold(0.1);
+        parameters.setIncreasedLowVoltageViolationsDelta(5);
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), parameters);
 
-        List<LimitViolation> postContingencyLimitViolations2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult()
+        List<LimitViolation> postContingencyLimitViolationsOnLine2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult()
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSide().equals(Branch.Side.ONE)).collect(Collectors.toList());
-        assertEquals(0, postContingencyLimitViolations2.size());
+        assertEquals(0, postContingencyLimitViolationsOnLine2.size());
+
+        List<LimitViolation> postContingencyLimitViolationsOnVoltageLevel2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult()
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
+        assertEquals(0, postContingencyLimitViolationsOnVoltageLevel2.size());
     }
 }

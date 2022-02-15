@@ -210,8 +210,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
             LimitViolation postContingencyViolation = postContingencyLimitViolations.get(subjectSideId);
             if (violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation, increasedFlowViolationsThreshold,
-                    increasedLowVoltageViolationsThreshold, increasedLowVoltageViolationsDelta,
-                    increasedHighVoltageViolationsThreshold, increasedHighVoltageViolationsDelta)) {
+                    increasedLowVoltageViolationsThreshold, increasedHighVoltageViolationsThreshold,
+                    increasedLowVoltageViolationsDelta, increasedHighVoltageViolationsDelta)) {
                 postContingencyLimitViolations.remove(subjectSideId);
             }
         });
