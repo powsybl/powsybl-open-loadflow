@@ -127,8 +127,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 LOGGER.info("Save pre-contingency state");
 
                 // save base state for later restoration after each contingency
-                List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
-                List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
+                NetworkState networkState = NetworkState.save(network);
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
@@ -148,8 +147,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                     LOGGER.info("Restore pre-contingency state");
 
                                     // restore base state
-                                    ElementState.restore(busStates);
-                                    ElementState.restore(branchStates);
+                                    networkState.restore();
                                 }
                             });
                 }
