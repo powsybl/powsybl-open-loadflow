@@ -80,20 +80,24 @@ class OpenSecurityAnalysisTest {
      */
     private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
                                                               LoadFlowParameters lfParameters) {
-        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
-        saParameters.setLoadFlowParameters(lfParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        return runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+    }
 
+    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
+                                                              SecurityAnalysisParameters saParameters) {
         ContingenciesProvider provider = n -> contingencies;
         var saProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
         SecurityAnalysisReport report = saProvider.run(network,
-                                                       network.getVariantManager().getWorkingVariantId(),
-                                                       new DefaultLimitViolationDetector(),
-                                                       new LimitViolationFilter(),
-                                                       null,
-                                                       saParameters,
-                                                       provider,
-                                                       Collections.emptyList(),
-                                                       monitors)
+                network.getVariantManager().getWorkingVariantId(),
+                new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(),
+                null,
+                saParameters,
+                provider,
+                Collections.emptyList(),
+                monitors)
                 .join();
         return report.getResult();
     }
@@ -901,5 +905,17 @@ class OpenSecurityAnalysisTest {
         assertEquals(-60.000, g2ContingencyResult.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(170.0, g2ContingencyResult.getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-50.0, g2ContingencyResult.getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testWorsenedConstraintsFiltering() {
+        Network network = EurostagTutorialExample1Factory.createWithFixedLimits();
+        network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
+        network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
+        // 2 N-1 on the 2 lines
+        List<Contingency> contingencies = List.of(new Contingency("LOAD", new LoadContingency("LOAD")));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), parameters);
+        System.out.println("toto");
     }
 }
