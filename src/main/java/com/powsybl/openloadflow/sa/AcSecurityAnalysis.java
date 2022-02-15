@@ -26,8 +26,8 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
-import com.powsybl.openloadflow.util.sa.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
@@ -62,7 +62,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen, lfParameters.isSimulShunt());
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen,
+                lfParameters.isSimulShunt(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, Reporter.NO_OP, true, false);
 
@@ -134,18 +135,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
                 while (contingencyIt.hasNext()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    LfContingency.create(propagatedContingency, network, connectivity, true)
+                    propagatedContingency.toLfContingency(network, connectivity, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                for (LfBranch branch : lfContingency.getBranches()) {
-                                    branch.setDisabled(true);
-                                }
-                                for (LfBus bus : lfContingency.getBuses()) {
-                                    bus.setDisabled(true);
-                                }
-                                for (Pair<LfShunt, Double> shuntAndB : lfContingency.getShunts()) {
-                                    LfShunt shunt = shuntAndB.getKey();
-                                    shunt.setB(shunt.getB() - shuntAndB.getValue());
-                                }
+                                lfContingency.apply(loadFlowParameters);
 
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
