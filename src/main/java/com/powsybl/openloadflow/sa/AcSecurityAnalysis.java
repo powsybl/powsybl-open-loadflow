@@ -165,8 +165,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
                                                                Map<String, BranchResult> preContingencyBranchResults) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getId());
-        LOGGER.debug("Remove buses {}, branches {}, shunts {}", lfContingency.getBuses(), lfContingency.getBranches(),
-                lfContingency.getShunts());
+        LOGGER.debug("Contingency '{}' impact: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
+                lfContingency.getId(), lfContingency.getBuses(), lfContingency.getBranches(), lfContingency.getGenerators(),
+                lfContingency.getShuntsShift(), lfContingency.getBusesLoadShift());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 

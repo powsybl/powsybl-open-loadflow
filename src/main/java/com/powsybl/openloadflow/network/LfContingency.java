@@ -75,6 +75,18 @@ public class LfContingency {
         return branches;
     }
 
+    public Map<LfShunt, Double> getShuntsShift() {
+        return shuntsShift;
+    }
+
+    public Map<LfBus, PowerShift> getBusesLoadShift() {
+        return busesLoadShift;
+    }
+
+    public Set<LfGenerator> getGenerators() {
+        return generators;
+    }
+
     public double getActivePowerLoss() {
         return activePowerLoss;
     }

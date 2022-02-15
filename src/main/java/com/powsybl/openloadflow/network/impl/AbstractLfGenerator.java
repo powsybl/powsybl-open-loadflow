@@ -313,4 +313,9 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         }
         return participating;
     }
+
+    @Override
+    public String toString() {
+        return getId();
+    }
 }
