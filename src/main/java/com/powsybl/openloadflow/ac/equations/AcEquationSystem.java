@@ -125,7 +125,6 @@ public final class AcEquationSystem {
     }
 
     public static void updateReactivePowerControlBranchEquations(ReactivePowerControl reactivePowerControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // FIXME no way to deactivate the control, use voltageControlEnabled of controller bus?
         equationSystem.getEquation(reactivePowerControl.getControlledBranch().getNum(), AcEquationType.BRANCH_TARGET_Q)
                 .orElseThrow()
                 .setActive(!reactivePowerControl.getControllerBus().isDisabled()
