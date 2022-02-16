@@ -63,9 +63,11 @@ public class LfNetwork {
 
     private int shuntCount = 0;
 
-    private List<LfShunt> shuntsByIndex = new ArrayList<>();
+    private final List<LfShunt> shuntsByIndex = new ArrayList<>();
 
-    private Map<String, LfShunt> shuntsById = new HashMap<>();
+    private final Map<String, LfShunt> shuntsById = new HashMap<>();
+
+    private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -137,13 +139,14 @@ public class LfNetwork {
         bus.getShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().stream().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getControllerShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().stream().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
         });
+        bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
     }
 
     public List<LfBus> getBuses() {
@@ -171,6 +174,11 @@ public class LfNetwork {
     public LfShunt getShuntById(String id) {
         Objects.requireNonNull(id);
         return shuntsById.get(id);
+    }
+
+    public LfGenerator getGeneratorById(String id) {
+        Objects.requireNonNull(id);
+        return generatorsById.get(id);
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,

@@ -29,7 +29,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.util.sa.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -131,7 +131,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
                         "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
 
-                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
+                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies,
+                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
 
                 LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
                 OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);

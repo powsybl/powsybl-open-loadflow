@@ -27,16 +27,12 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.AbstractLfBus;
-import com.powsybl.openloadflow.network.impl.LfGeneratorImpl;
-import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
-import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.sa.PropagatedContingency;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -554,29 +550,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return connectivityAnalysisResults;
     }
 
-    private void processConverterStation(LfNetwork lfNetwork, HvdcConverterStation<?> station,
-                                         Collection<Pair<LfBus, LccConverterStation>> lccs, Collection<LfVscConverterStationImpl> vscs) {
-        AbstractLfBus bus = (AbstractLfBus) lfNetwork.getBusById(station.getTerminal().getBusView().getBus().getId());
-        if (bus != null) {
-            if (station instanceof LccConverterStation) {
-                lccs.add(Pair.of(bus, (LccConverterStation) station));
-            } else if (station instanceof VscConverterStation) {
-                vscs.add(bus.getGenerators().stream().filter(LfVscConverterStationImpl.class::isInstance)
-                        .map(LfVscConverterStationImpl.class::cast)
-                        .filter(lfVscConverterStation -> lfVscConverterStation.getId().equals(station.getId()))
-                        .findFirst().orElseThrow());
+    private static void addConverterStation(LfNetwork lfNetwork, HvdcConverterStation<?> converterStation,
+                                            Set<Pair<LfBus, LccConverterStation>> lccs, Set<LfVscConverterStationImpl> vscs) {
+        if (converterStation instanceof VscConverterStation) {
+            LfVscConverterStationImpl vsc = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(converterStation.getId());
+            if (vsc != null) {
+                vscs.add(vsc);
             }
-        }
-    }
-
-    private void processGenerator(LfNetwork lfNetwork, Generator generator,
-                                  Collection<LfGeneratorImpl> generators) {
-        AbstractLfBus bus = (AbstractLfBus) lfNetwork.getBusById(generator.getTerminal().getBusView().getBus().getId());
-        if (bus != null) {
-            generators.add(bus.getGenerators().stream().filter(LfGeneratorImpl.class::isInstance)
-                    .map(LfGeneratorImpl.class::cast)
-                    .filter(lfGenerator -> lfGenerator.getId().equals(generator.getId()))
-                    .findFirst().orElseThrow());
+        } else {
+            LfBus bus = lfNetwork.getBusById(converterStation.getTerminal().getBusView().getBus().getId());
+            if (bus != null) {
+                lccs.add(Pair.of(bus, (LccConverterStation) converterStation));
+            }
         }
     }
 
@@ -589,28 +574,23 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // Buses state are stored.
 
         // DC lines.
-        Collection<Pair<LfBus, LccConverterStation>> lccs = new HashSet<>();
-        Collection<LfVscConverterStationImpl> vscs = new HashSet<>();
+        Set<Pair<LfBus, LccConverterStation>> lccs = new HashSet<>();
+        Set<LfVscConverterStationImpl> vscs = new HashSet<>();
         for (String hvdcId : contingency.getHvdcIdsToOpen()) {
             HvdcLine hvdcLine = network.getHvdcLine(hvdcId);
-            processConverterStation(lfNetwork, hvdcLine.getConverterStation1(), lccs, vscs);
-            processConverterStation(lfNetwork, hvdcLine.getConverterStation2(), lccs, vscs);
+            addConverterStation(lfNetwork, hvdcLine.getConverterStation1(), lccs, vscs);
+            addConverterStation(lfNetwork, hvdcLine.getConverterStation2(), lccs, vscs);
         }
 
         // generators.
-        Collection<LfGeneratorImpl> generators = new HashSet<>();
+        Set<LfGeneratorImpl> generators = new HashSet<>();
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
-            Generator generator = network.getGenerator(generatorId);
-            processGenerator(lfNetwork, generator, generators);
+            generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(generatorId));
         }
 
-        for (String loadId : contingency.getLoadIdsToLose()) {
-            Load load = network.getLoad(loadId);
-            Bus bus = load.getTerminal().getBusView().getBus();
-            if (bus != null) {
-                LfBus lfBus = lfNetwork.getBusById(bus.getId());
-                busStates.add(BusState.save(lfBus));
-            }
+        for (Map.Entry<String, PowerShift> e : contingency.getLoadIdsToShift().entrySet()) {
+            LfBus lfBus = lfNetwork.getBusById(e.getKey());
+            busStates.add(BusState.save(lfBus));
         }
 
         lccs.stream().map(Pair::getKey).forEach(b -> busStates.add(BusState.save(b)));
@@ -637,14 +617,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
-        for (String loadId : contingency.getLoadIdsToLose()) {
-            Load load = network.getLoad(loadId);
-            Bus bus = load.getTerminal().getBusView().getBus();
-            if (bus != null) {
-                LfBus lfBus = lfNetwork.getBusById(bus.getId());
-                lfBus.setLoadTargetP(lfBus.getLoadTargetP() - load.getP0() / PerUnit.SB);
-                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - load.getP0());
-            }
+        for (Map.Entry<String, PowerShift> e : contingency.getLoadIdsToShift().entrySet()) {
+            LfBus lfBus = lfNetwork.getBusById(e.getKey());
+            PowerShift shift = e.getValue();
+            double p0 = shift.getActive();
+            lfBus.setLoadTargetP(lfBus.getLoadTargetP() - LfContingency.getUpdatedLoadP0(lfBus, lfParameters, p0, shift.getVariableActive()));
+            lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
         }
     }
 
@@ -669,7 +647,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                       DcLoadFlowEngine dcLoadFlowEngine, SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder, List<ParticipatingElement> participatingElements,
                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
-        if (contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
+        if (contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency, valueWriter);
         } else {
@@ -684,7 +662,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             List<ParticipatingElement> newParticipatingElements = participatingElements;
             DenseMatrix newFactorStates = factorStates;
             boolean participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
-                    || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToLose().isEmpty());
+                    || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToShift().isEmpty());
             if (participatingElementsChanged) {
                 if (isDistributedSlackOnGenerators(lfParameters)) {
                     // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0

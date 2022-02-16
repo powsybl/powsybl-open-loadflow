@@ -19,13 +19,16 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.sa.PropagatedContingency;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
@@ -686,7 +689,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
-            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
+            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
