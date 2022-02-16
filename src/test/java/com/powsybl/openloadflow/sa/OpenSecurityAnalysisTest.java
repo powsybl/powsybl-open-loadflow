@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
@@ -22,9 +23,11 @@ import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -86,11 +89,13 @@ class OpenSecurityAnalysisTest {
 
         ContingenciesProvider provider = n -> contingencies;
         var saProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        var computationManager = Mockito.mock(ComputationManager.class);
+        Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
         SecurityAnalysisReport report = saProvider.run(network,
                                                        network.getVariantManager().getWorkingVariantId(),
                                                        new DefaultLimitViolationDetector(),
                                                        new LimitViolationFilter(),
-                                                       null,
+                                                       computationManager,
                                                        saParameters,
                                                        provider,
                                                        Collections.emptyList(),
