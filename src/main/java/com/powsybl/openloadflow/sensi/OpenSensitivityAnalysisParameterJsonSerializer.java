@@ -14,15 +14,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.json.JsonUtil;
-import com.powsybl.sensitivity.json.JsonSensitivityAnalysisParameters;
+import com.powsybl.sensitivity.json.SensitivityJson;
 
 import java.io.IOException;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-@AutoService(JsonSensitivityAnalysisParameters.ExtensionSerializer.class)
-public class OpenSensitivityAnalysisParameterJsonSerializer implements JsonSensitivityAnalysisParameters.ExtensionSerializer<OpenSensitivityAnalysisParameters> {
+@AutoService(SensitivityJson.ExtensionSerializer.class)
+public class OpenSensitivityAnalysisParameterJsonSerializer implements SensitivityJson.ExtensionSerializer<OpenSensitivityAnalysisParameters> {
 
     @Override
     public String getExtensionName() {

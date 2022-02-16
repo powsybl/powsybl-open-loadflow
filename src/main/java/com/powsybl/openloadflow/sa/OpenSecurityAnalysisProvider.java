@@ -55,7 +55,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
             securityAnalysis = new AcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityProvider, stateMonitors);
         }
         interceptors.forEach(securityAnalysis::addInterceptor);
-        return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider);
+        return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
     }
 
     @Override

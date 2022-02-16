@@ -41,7 +41,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
                 throw new IllegalStateException("Unknown transformer voltage control mode: " + parametersExt.getTransformerVoltageControlMode());
             }
         }
-        if (parameters.isSimulShunt()) {
+        if (parameters.isShuntCompensatorVoltageControlOn()) {
             outerLoops.add(new ShuntVoltageControlOuterLoop());
         }
         return outerLoops;
