@@ -151,8 +151,8 @@ class OpenSecurityAnalysisGraphTest {
         // try to find all switches impacted by at least one contingency
         long start = System.currentTimeMillis();
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen, lfParameters.isSimulShunt(),
-                lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen,
+                lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,

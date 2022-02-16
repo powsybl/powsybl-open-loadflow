@@ -33,6 +33,7 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -249,8 +250,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             sensiValue = 0d;
         }
 
-        valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null, contingency != null ? contingency.getIndex() : -1,
-                          unscaleSensitivity(factor, sensiValue), unscaleFunction(factor, flowValue));
+        valueWriter.write(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, unscaleSensitivity(factor, sensiValue), unscaleFunction(factor, flowValue));
     }
 
     protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups, DenseMatrix factorsState) {
@@ -268,8 +268,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             return;
         }
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO)
-                .forEach(factor -> valueWriter.write(factor.getContext(), contingency != null ? contingency.getContingency().getId() : null,
-                                                     contingency != null ? contingency.getIndex() : -1, 0, Double.NaN));
+                .forEach(factor -> valueWriter.write(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, 0, Double.NaN));
 
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
 

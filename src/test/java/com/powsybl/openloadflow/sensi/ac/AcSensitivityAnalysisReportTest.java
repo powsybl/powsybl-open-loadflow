@@ -16,7 +16,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
-import com.powsybl.sensitivity.SensitivityFactorsProvider;
+import com.powsybl.sensitivity.SensitivityFactor;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,11 +46,10 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
         sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
-        SensitivityFactorsProvider factorsProvider = n -> createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
             network.getLineStream().collect(Collectors.toList()));
-        sensiProvider.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factorsProvider, Collections.emptyList(),
-            sensiParameters, LocalComputationManager.getDefault(), reporter)
-            .join();
+        sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
+            sensiParameters, LocalComputationManager.getDefault(), reporter);
 
         StringWriter sw = new StringWriter();
         reporter.export(sw);
