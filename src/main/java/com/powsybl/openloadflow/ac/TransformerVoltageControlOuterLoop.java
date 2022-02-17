@@ -66,11 +66,9 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             }
             for (LfBranch branch : context.getNetwork().getBranches()) {
                 TransformerVoltageControl voltageControl = branch.getVoltageControl().orElse(null);
-                if (voltageControl != null) {
-                    if (Math.abs(voltageControl.getControlled().getV() - voltageControl.getTargetValue()) > voltageControl.getTargetDeadband() / 2) {
-                        branch.setVoltageControlEnabled(true);
-                        status = OuterLoopStatus.UNSTABLE;
-                    }
+                if (voltageControl != null && (Math.abs(voltageControl.getControlled().getV() - voltageControl.getTargetValue()) > voltageControl.getTargetDeadband() / 2)) {
+                    branch.setVoltageControlEnabled(true);
+                    status = OuterLoopStatus.UNSTABLE;
                 }
             }
         }
