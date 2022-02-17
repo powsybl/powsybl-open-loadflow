@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.LimitType;
@@ -74,20 +75,23 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     public CompletableFuture<SecurityAnalysisReport> run(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters,
-                                                         ContingenciesProvider contingenciesProvider) {
+                                                         ContingenciesProvider contingenciesProvider, ComputationManager computationManager) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
         return CompletableFuture.supplyAsync(() -> {
             String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            SecurityAnalysisReport result = runSync(securityAnalysisParameters, contingenciesProvider);
-            network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
-            return result;
+            try {
+                return runSync(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
+            } finally {
+                network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
+            }
         });
     }
 
-    abstract SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider);
+    abstract SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
+                                            ComputationManager computationManager);
 
     /**
      * Detect violations on branches and on buses
@@ -213,9 +217,8 @@ public abstract class AbstractSecurityAnalysis {
      * @param violation2 second limit violation
      * @return true if violation2 is weaker than or equivalent to violation1, otherwise false
      */
-    protected static boolean violationWeakenedOrEquivalent(LimitViolation violation1, LimitViolation violation2, double  increasedFlowViolationsThreshold,
-                                                           double increasedLowVoltageViolationsThreshold, double  increasedHighVoltageViolationsThreshold,
-                                                           double increasedLowVoltageViolationsDelta, double  increasedHighVoltageViolationsDelta) {
+    protected static boolean violationWeakenedOrEquivalent(LimitViolation violation1, LimitViolation violation2,
+                                                           SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters) {
         if (violation2 != null && violation1.getLimitType() == violation2.getLimitType()) {
             if (violation2.getLimit() < violation1.getLimit()) {
                 // the limit violated is smaller hence the violation is weaker, for flow violations only.
@@ -225,11 +228,11 @@ public abstract class AbstractSecurityAnalysis {
             if (violation2.getLimit() == violation1.getLimit()) {
                 // the limit violated is the same: we consider the violations equivalent if the new value is close to previous one.
                 if (isFlowViolation(violation2)) {
-                    return Math.abs(violation2.getValue()) <= Math.abs(violation1.getValue()) * (1 + increasedFlowViolationsThreshold);
+                    return Math.abs(violation2.getValue()) <= Math.abs(violation1.getValue()) * (1 + violationsParameters.getFlowProportionalThreshold());
                 } else if (violation2.getLimitType() == LimitViolationType.HIGH_VOLTAGE) {
-                    return violation2.getValue() <= violation1.getValue() + Math.min(increasedHighVoltageViolationsDelta, violation1.getValue() * increasedHighVoltageViolationsThreshold);
+                    return violation2.getValue() <= violation1.getValue() + Math.min(violationsParameters.getHighVoltageAbsoluteThreshold(), violation1.getValue() * violationsParameters.getHighVoltageProportionalThreshold());
                 } else if (violation2.getLimitType() == LimitViolationType.LOW_VOLTAGE) {
-                    return violation2.getValue() >= violation1.getValue() - Math.min(increasedLowVoltageViolationsDelta, violation1.getValue() * increasedLowVoltageViolationsThreshold);
+                    return violation2.getValue() >= violation1.getValue() - Math.min(violationsParameters.getLowVoltageAbsoluteThreshold(), violation1.getValue() * violationsParameters.getLowVoltageProportionalThreshold());
                 } else {
                     return false;
                 }

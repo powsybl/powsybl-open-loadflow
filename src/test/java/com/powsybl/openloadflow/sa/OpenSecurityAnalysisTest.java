@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
@@ -22,9 +23,11 @@ import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -90,11 +93,13 @@ class OpenSecurityAnalysisTest {
                                                               SecurityAnalysisParameters saParameters) {
         ContingenciesProvider provider = n -> contingencies;
         var saProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        var computationManager = Mockito.mock(ComputationManager.class);
+        Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
         SecurityAnalysisReport report = saProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
                 new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(),
-                null,
+                computationManager,
                 saParameters,
                 provider,
                 Collections.emptyList(),
@@ -1088,7 +1093,7 @@ class OpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_1", new BranchContingency("NHV1_NHV2_1")));
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
-        parameters.setIncreasedFlowViolationsThreshold(0.0);
+        parameters.getIncreasedViolationsParameters().setFlowProportionalThreshold(0.0);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), parameters);
 
         List<LimitViolation> preContingencyLimitViolationsOnLine = result.getPreContingencyResult().getLimitViolationsResult()
@@ -1111,9 +1116,9 @@ class OpenSecurityAnalysisTest {
         assertEquals(LimitViolationType.LOW_VOLTAGE, postContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
         assertEquals(396.70, postContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
 
-        parameters.setIncreasedFlowViolationsThreshold(1.5);
-        parameters.setIncreasedLowVoltageViolationsThreshold(0.1);
-        parameters.setIncreasedLowVoltageViolationsDelta(5);
+        parameters.getIncreasedViolationsParameters().setFlowProportionalThreshold(1.5);
+        parameters.getIncreasedViolationsParameters().setLowVoltageProportionalThreshold(0.1);
+        parameters.getIncreasedViolationsParameters().setLowVoltageAbsoluteThreshold(5);
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), parameters);
 
         List<LimitViolation> postContingencyLimitViolationsOnLine2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult()

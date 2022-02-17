@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Branch;
@@ -53,7 +54,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     @Override
-    SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider) {
+    SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
+                                   ComputationManager computationManager) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
@@ -68,7 +70,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen,
-                lfParameters.isSimulShunt(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+                lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, Reporter.NO_OP, true, false);
 
@@ -149,9 +151,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
                                 PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, propagatedContingency.getContingency(), lfContingency,
-                                        preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedFlowViolationsThreshold(),
-                                        securityAnalysisParameters.getIncreasedLowVoltageViolationsThreshold(), securityAnalysisParameters.getIncreasedLowVoltageViolationsDelta(),
-                                        securityAnalysisParameters.getIncreasedHighVoltageViolationsThreshold(), securityAnalysisParameters.getIncreasedHighVoltageViolationsDelta());
+                                        preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters());
                                 postContingencyResults.add(postContingencyResult);
 
                                 if (contingencyIt.hasNext()) {
@@ -173,9 +173,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcLoadFlowContext context, Contingency contingency, LfContingency lfContingency,
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
-                                                               Map<String, BranchResult> preContingencyBranchResults, double increasedFlowViolationsThreshold,
-                                                               double increasedLowVoltageViolationsThreshold, double increasedLowVoltageViolationsDelta,
-                                                               double increasedHighVoltageViolationsThreshold, double increasedHighVoltageViolationsDelta) {
+                                                               Map<String, BranchResult> preContingencyBranchResults, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getId());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -209,9 +207,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
             LimitViolation postContingencyViolation = postContingencyLimitViolations.get(subjectSideId);
-            if (violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation, increasedFlowViolationsThreshold,
-                    increasedLowVoltageViolationsThreshold, increasedHighVoltageViolationsThreshold,
-                    increasedLowVoltageViolationsDelta, increasedHighVoltageViolationsDelta)) {
+            if (violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation, violationsParameters)) {
                 postContingencyLimitViolations.remove(subjectSideId);
             }
         });
