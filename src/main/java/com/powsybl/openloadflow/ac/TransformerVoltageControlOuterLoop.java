@@ -14,12 +14,17 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.TransformerVoltageControl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
     private double maxControlledNominalVoltage = Double.MIN_VALUE;
+
+    private List<LfBus> disabledControllerBuses = new ArrayList<>();
 
     @Override
     public void initialize(LfNetwork network) {
@@ -49,8 +54,11 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                 if (bus.isVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
                     bus.getVoltageControl().ifPresent(voltageControl -> {
                         voltageControl.getControllerBuses().forEach(controllerBus -> {
-                            controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                            controllerBus.setVoltageControlEnabled(false);
+                            if (controllerBus.isVoltageControlEnabled()) {
+                                controllerBus.setGenerationTargetQ(controllerBus.getCalculatedQ());
+                                controllerBus.setVoltageControlEnabled(false);
+                                disabledControllerBuses.add(controllerBus);
+                            }
                         });
                     });
                     status = OuterLoopStatus.UNSTABLE;
@@ -59,8 +67,10 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             for (LfBranch branch : context.getNetwork().getBranches()) {
                 TransformerVoltageControl voltageControl = branch.getVoltageControl().orElse(null);
                 if (voltageControl != null) {
-                    branch.setVoltageControlEnabled(true);
-                    status = OuterLoopStatus.UNSTABLE;
+                    if (Math.abs(voltageControl.getControlled().getV() - voltageControl.getTargetValue()) > voltageControl.getTargetDeadband() / 2) {
+                        branch.setVoltageControlEnabled(true);
+                        status = OuterLoopStatus.UNSTABLE;
+                    }
                 }
             }
         }
@@ -69,12 +79,10 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         // disabled previously are enabled.
         if (context.getIteration() == 1) {
             status = roundVoltageRatios(context.getNetwork());
-            for (LfBus bus : context.getNetwork().getBuses()) {
-                if (bus.hasVoltageControllerCapability() && bus.getNominalV() <= maxControlledNominalVoltage) {
-                    bus.setGenerationTargetQ(0);
-                    bus.setVoltageControlEnabled(true);
-                    status = OuterLoopStatus.UNSTABLE;
-                }
+            for (LfBus bus : disabledControllerBuses) {
+                bus.setGenerationTargetQ(0);
+                bus.setVoltageControlEnabled(true);
+                status = OuterLoopStatus.UNSTABLE;
             }
         }
 

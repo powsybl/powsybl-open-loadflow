@@ -14,4 +14,6 @@ public interface DiscreteVoltageControl {
     double getTargetValue();
 
     LfBus getControlled();
+
+    double getTargetDeadband();
 }

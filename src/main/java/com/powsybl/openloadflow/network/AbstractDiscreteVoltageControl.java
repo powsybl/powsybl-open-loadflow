@@ -18,9 +18,12 @@ abstract class AbstractDiscreteVoltageControl implements DiscreteVoltageControl 
 
     private final double targetValue;
 
-    protected AbstractDiscreteVoltageControl(LfBus controlled, double targetValue) {
+    private final double targetDeadband;
+
+    protected AbstractDiscreteVoltageControl(LfBus controlled, double targetValue, double targetDeadband) {
         this.controlled = Objects.requireNonNull(controlled);
         this.targetValue = targetValue;
+        this.targetDeadband = targetDeadband;
     }
 
     @Override
@@ -31,5 +34,10 @@ abstract class AbstractDiscreteVoltageControl implements DiscreteVoltageControl 
     @Override
     public LfBus getControlled() {
         return controlled;
+    }
+
+    @Override
+    public double getTargetDeadband() {
+        return targetDeadband;
     }
 }

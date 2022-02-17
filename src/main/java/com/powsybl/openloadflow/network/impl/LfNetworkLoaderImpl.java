@@ -588,6 +588,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
+        double targetDeadband = rtc.getTargetDeadband() / regulatingTerminalNominalV;
 
         controllerBranch.setVoltageControlEnabled(true);
 
@@ -600,7 +601,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             vc.addController(controllerBranch);
             controllerBranch.setVoltageControl(vc);
         }, () -> {
-                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue);
+                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue, targetDeadband);
                 voltageControl.addController(controllerBranch);
                 controllerBranch.setVoltageControl(voltageControl);
                 controlledBus.setTransformerVoltageControl(voltageControl);

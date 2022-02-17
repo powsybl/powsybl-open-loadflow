@@ -18,8 +18,8 @@ public class TransformerVoltageControl extends AbstractDiscreteVoltageControl {
 
     protected final List<LfBranch> controllers = new ArrayList<>();
 
-    public TransformerVoltageControl(LfBus controlled, double targetValue) {
-        super(controlled, targetValue);
+    public TransformerVoltageControl(LfBus controlled, double targetValue, double targetDeadband) {
+        super(controlled, targetValue, targetDeadband);
     }
 
     public List<LfBranch> getControllers() {
