@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -250,12 +251,9 @@ public class LfBranchImpl extends AbstractLfBranch {
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
         branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
 
-        if (phaseShifterRegulationOn && isPhaseController()  && discretePhaseControl.getMode() != DiscretePhaseControl.Mode.CONTROLLER) {
+        if (phaseShifterRegulationOn && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
-        }
-
-        if (phaseShifterRegulationOn && isPhaseControlled() && discretePhaseControl.getMode() != DiscretePhaseControl.Mode.LIMITER) {
             // check if the target value deadband is respected
             checkTargetDeadband(discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
         }

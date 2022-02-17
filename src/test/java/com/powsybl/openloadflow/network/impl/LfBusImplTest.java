@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -131,9 +131,9 @@ class LfBusImplTest {
 
         LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, true);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
-        lfBus.addStaticVarCompensator(svc1, false, true, lfNetworkLoadingReport);
-        lfBus.addStaticVarCompensator(svc2, false, true, lfNetworkLoadingReport);
-        lfBus.addStaticVarCompensator(svc3, false, true, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc1, false, true, true, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc2, false, true, true, lfNetworkLoadingReport);
+        lfBus.addStaticVarCompensator(svc3, false, true, true, lfNetworkLoadingReport);
         double generationQ = -6.412103131789854;
         lfBus.updateGeneratorsState(generationQ * PerUnit.SB, true);
         double sumQ = 0;

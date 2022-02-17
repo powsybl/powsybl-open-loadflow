@@ -43,8 +43,8 @@ class DcLoadFlowTest {
     void setUp() {
         parameters = new LoadFlowParameters()
                 .setDc(true);
-        parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST));
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
@@ -166,5 +166,20 @@ class DcLoadFlowTest {
         assertEquals(-81.5, l2.getTerminal2().getP(), 0.01);
         assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
         assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
+    }
+
+    @Test
+    void nonImpedantBranchTest() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        network.getLine("L2").setX(0).setR(0);
+        parameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE);
+        loadFlowRunner.run(network, parameters);
+        assertEquals(66.6666, network.getLine("L2").getTerminal1().getP(), 0.01);
+        assertEquals(33.3333, network.getLine("L1").getTerminal1().getP(), 0.01);
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+        loadFlowRunner.run(network, parameters);
+        assertEquals(Double.NaN, network.getLine("L2").getTerminal1().getP());
+        assertEquals(33.3333, network.getLine("L1").getTerminal1().getP(), 0.01);
     }
 }

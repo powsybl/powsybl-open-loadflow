@@ -4,12 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.*;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopConfig;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 
 import java.util.ArrayList;
@@ -22,7 +21,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
 
     @Override
     public List<OuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        List<OuterLoop> outerLoops = new ArrayList<>(4);
+        List<OuterLoop> outerLoops = new ArrayList<>(5);
         if (parameters.isDistributedSlack()) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
             outerLoops.add(new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch()));
@@ -34,7 +33,16 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
             outerLoops.add(new ReactiveLimitsOuterLoop());
         }
         if (parameters.isTransformerVoltageControlOn()) {
-            outerLoops.add(new TransformerVoltageControlOuterLoop());
+            if (parametersExt.getTransformerVoltageControlMode() == OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL) {
+                outerLoops.add(new SimpleTransformerVoltageControlOuterLoop());
+            } else if (parametersExt.getTransformerVoltageControlMode() == OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL) {
+                outerLoops.add(new TransformerVoltageControlOuterLoop());
+            } else {
+                throw new IllegalStateException("Unknown transformer voltage control mode: " + parametersExt.getTransformerVoltageControlMode());
+            }
+        }
+        if (parameters.isShuntCompensatorVoltageControlOn()) {
+            outerLoops.add(new ShuntVoltageControlOuterLoop());
         }
         return outerLoops;
     }

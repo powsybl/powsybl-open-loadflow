@@ -17,7 +17,9 @@ class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
 
-    int generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThenMaxP = 0;
+    int generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP = 0;
+
+    int generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible = 0;
 
@@ -29,5 +31,5 @@ class LfNetworkLoadingReport {
 
     int nonImpedantBranches = 0;
 
-    int voltageControllerCount = 0;
+    int generatorsWithInconsistentTargetVoltage = 0;
 }

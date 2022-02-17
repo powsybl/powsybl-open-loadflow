@@ -137,11 +137,18 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public boolean setMinZ(double minZ) {
-        double z = getZ();
-        if (z < minZ) {
-            rescaleZ(minZ);
-            return true;
+    public boolean setMinZ(double minZ, boolean dc) {
+        if (dc) {
+            if (this.x < minZ) {
+                this.x = minZ;
+                return true;
+            }
+        } else {
+            double z = getZ();
+            if (z < minZ) {
+                rescaleZ(minZ);
+                return true;
+            }
         }
         return false;
     }

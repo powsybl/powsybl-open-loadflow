@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,17 +23,21 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
 
     private final Variable<AcVariableType> vVar;
 
+    private Variable<AcVariableType> bVar = null;
+
     private final List<Variable<AcVariableType>> variables;
 
-    private final double b;
-
-    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet) {
+    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet, boolean deriveB) {
         this.shunt = Objects.requireNonNull(shunt);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
-        variables = Collections.singletonList(vVar);
-        b = shunt.getB();
+        if (deriveB) {
+            bVar = variableSet.getVariable(shunt.getNum(), AcVariableType.SHUNT_B);
+            variables = List.of(vVar, bVar);
+        } else {
+            variables = List.of(vVar);
+        }
     }
 
     @Override
@@ -56,12 +59,20 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         return stateVector.get(vVar.getRow());
     }
 
+    private double b() {
+        return bVar != null ? stateVector.get(bVar.getRow()) : shunt.getB();
+    }
+
     private double q() {
-        return  -b * v() * v();
+        return  -b() * v() * v();
     }
 
     private double dqdv() {
-        return -2 * b * v();
+        return -2 * b() * v();
+    }
+
+    private double dqdb() {
+        return -v() * v();
     }
 
     @Override
@@ -74,6 +85,8 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
             return dqdv();
+        } else if (variable.equals(bVar)) {
+            return dqdb();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

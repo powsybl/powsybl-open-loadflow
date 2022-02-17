@@ -18,7 +18,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.AfterEach;
@@ -90,7 +89,7 @@ class LfNetworkTest extends AbstractConverterTest {
         LfNetworkParameters parameters = new LfNetworkParameters(new MostMeshedSlackBusSelector(), false,
                 false, false, false, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
                 false, true, Collections.emptySet(), false,
-                true, false, false, false, false);
+                true, false, false, false, false, false, true);
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(1, lfNetworks.size());
@@ -140,8 +139,6 @@ class LfNetworkTest extends AbstractConverterTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isOk());
@@ -171,8 +168,6 @@ class LfNetworkTest extends AbstractConverterTest {
         parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         parameters.setDc(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isOk());

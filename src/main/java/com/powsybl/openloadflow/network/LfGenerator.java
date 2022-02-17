@@ -13,6 +13,10 @@ import java.util.OptionalDouble;
  */
 public interface LfGenerator {
 
+    enum GeneratorControlType {
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
+    }
+
     String getId();
 
     LfBus getBus();
@@ -21,7 +25,11 @@ public interface LfGenerator {
 
     boolean hasVoltageControl();
 
-    boolean hasReactivePowerControl();
+    boolean hasRemoteReactivePowerControl();
+
+    GeneratorControlType getGeneratorControlType();
+
+    void setGeneratorControlType(GeneratorControlType generatorControlType);
 
     double getTargetV();
 
@@ -46,6 +54,8 @@ public interface LfGenerator {
     default boolean isParticipating() {
         return false;
     }
+
+    void setParticipating(boolean participating);
 
     default double getDroop() {
         return 0;

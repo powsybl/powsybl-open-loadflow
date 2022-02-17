@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.Country;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -18,7 +19,7 @@ public class LfNetworkParameters {
 
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
-    private final SlackBusSelector slackBusSelector;
+    private SlackBusSelector slackBusSelector;
 
     private final boolean generatorVoltageRemoteControl;
 
@@ -40,13 +41,17 @@ public class LfNetworkParameters {
 
     private final boolean phaseControl;
 
-    private final boolean transformerVoltageControl;
+    private boolean transformerVoltageControl;
 
     private final boolean voltagePerReactivePowerControl;
 
     private final boolean reactivePowerRemoteControl;
 
     private final boolean isDc;
+
+    private final boolean shuntVoltageControl;
+
+    private final boolean reactiveLimits;
 
     public LfNetworkParameters() {
         this(new FirstSlackBusSelector());
@@ -55,7 +60,7 @@ public class LfNetworkParameters {
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
         this(slackBusSelector, false, false, false, false,
                 PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false, false);
+                true, Collections.emptySet(), false, false, false, false, false, false, false, true);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
@@ -63,7 +68,7 @@ public class LfNetworkParameters {
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
                                boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl,
-                               boolean isDc) {
+                               boolean isDc, boolean shuntVoltageControl, boolean reactiveLimits) {
         this.slackBusSelector = slackBusSelector;
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
@@ -79,10 +84,16 @@ public class LfNetworkParameters {
         this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
         this.reactivePowerRemoteControl = reactivePowerRemoteControl;
         this.isDc = isDc;
+        this.shuntVoltageControl = shuntVoltageControl;
+        this.reactiveLimits = reactiveLimits;
     }
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
+    }
+
+    public void setSlackBusSelector(SlackBusSelector slackBusSelector) {
+        this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
     }
 
     public boolean isGeneratorVoltageRemoteControl() {
@@ -129,6 +140,11 @@ public class LfNetworkParameters {
         return transformerVoltageControl;
     }
 
+    public LfNetworkParameters setTransformerVoltageControl(boolean transformerVoltageControl) {
+        this.transformerVoltageControl = transformerVoltageControl;
+        return this;
+    }
+
     public boolean isVoltagePerReactivePowerControl() {
         return voltagePerReactivePowerControl;
     }
@@ -139,6 +155,14 @@ public class LfNetworkParameters {
 
     public boolean isDc() {
         return isDc;
+    }
+
+    public boolean isShuntVoltageControl() {
+        return shuntVoltageControl;
+    }
+
+    public boolean isReactiveLimits() {
+        return reactiveLimits;
     }
 
     @Override
@@ -159,6 +183,7 @@ public class LfNetworkParameters {
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
                 ", isDc=" + isDc +
+                ", reactiveLimits=" + reactiveLimits +
                 ')';
     }
 }

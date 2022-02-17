@@ -124,9 +124,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    private void clear() {
-        matrix = null;
-        partialDerivatives = null;
+    private void clearLu() {
         if (lu != null) {
             lu.close();
         }
@@ -161,8 +159,19 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             }
         }
 
-        stopwatch.stop();
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+
+        clearLu();
+    }
+
+    private void updateLu() {
+        if (lu != null) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
+            lu.update();
+
+            LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        }
     }
 
     private void updateValues() {
@@ -177,19 +186,15 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             matrix.addAtIndex(elementIndex, value);
         }
 
-        if (lu != null) {
-            lu.update();
-        }
-
-        stopwatch.stop();
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+
+        updateLu();
     }
 
     public Matrix getMatrix() {
         if (status != Status.VALID) {
             switch (status) {
                 case MATRIX_INVALID:
-                    clear();
                     initMatrix();
                     break;
 
@@ -208,7 +213,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private LUDecomposition getLUDecomposition() {
         Matrix m = getMatrix();
         if (lu == null) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
             lu = m.decomposeLU();
+
+            LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition done in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         }
         return lu;
     }
@@ -233,6 +242,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public void close() {
         equationSystem.removeListener(this);
         equationSystem.getStateVector().removeListener(this);
-        clear();
+        matrix = null;
+        partialDerivatives = null;
+        clearLu();
     }
 }

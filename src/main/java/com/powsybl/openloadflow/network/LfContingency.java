@@ -8,17 +8,15 @@ package com.powsybl.openloadflow.network;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.util.PropagatedContingency;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -33,18 +31,32 @@ public class LfContingency {
 
     private final Set<LfBranch> branches;
 
-    private double activePowerLoss;
+    private final Map<LfShunt, Double> shuntsShift;
 
-    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches) {
+    private final Map<LfBus, PowerShift> busesLoadShift;
+
+    private final Set<LfGenerator> generators;
+
+    private double activePowerLoss = 0;
+
+    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Map<LfShunt, Double> shuntsShift,
+                         Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> generators) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.buses = Objects.requireNonNull(buses);
         this.branches = Objects.requireNonNull(branches);
-        double lose = 0;
+        this.shuntsShift = Objects.requireNonNull(shuntsShift);
+        this.busesLoadShift = Objects.requireNonNull(busesLoadShift);
+        this.generators = Objects.requireNonNull(generators);
         for (LfBus bus : buses) {
-            lose += bus.getGenerationTargetP() - bus.getLoadTargetP();
+            activePowerLoss += bus.getGenerationTargetP() - bus.getLoadTargetP();
         }
-        this.activePowerLoss = lose;
+        for (Map.Entry<LfBus, PowerShift> e : busesLoadShift.entrySet()) {
+            activePowerLoss -= e.getValue().getActive();
+        }
+        for (LfGenerator generator : generators) {
+            activePowerLoss += generator.getTargetP();
+        }
     }
 
     public String getId() {
@@ -67,42 +79,44 @@ public class LfContingency {
         return activePowerLoss;
     }
 
-    public static Optional<LfContingency> create(PropagatedContingency propagatedContingency, LfNetwork network,
-                                                 GraphDecrementalConnectivity<LfBus> connectivity, boolean useSmallComponents) {
-        // find contingency branches that are part of this network
-        Set<LfBranch> branches = new HashSet<>(1);
-        for (String branchId : propagatedContingency.getBranchIdsToOpen()) {
-            LfBranch branch = network.getBranchById(branchId);
-            if (branch != null) {
-                branches.add(branch);
+    public void apply(LoadFlowParameters parameters) {
+        for (LfBranch branch : branches) {
+            branch.setDisabled(true);
+        }
+        for (LfBus bus : buses) {
+            bus.setDisabled(true);
+        }
+        for (var e : shuntsShift.entrySet()) {
+            LfShunt shunt = e.getKey();
+            shunt.setB(shunt.getB() - e.getValue());
+        }
+        for (var e : busesLoadShift.entrySet()) {
+            LfBus bus = e.getKey();
+            PowerShift shift = e.getValue();
+            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, shift.getActive(), shift.getVariableActive()));
+            bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
+            bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+        }
+        for (LfGenerator generator : generators) {
+            generator.setTargetP(0);
+            LfBus bus = generator.getBus();
+            generator.setParticipating(false);
+            if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
+                generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+            } else {
+                bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
         }
+    }
 
-        // check if contingency split this network into multiple components
-        if (branches.isEmpty()) {
-            return Optional.empty();
+    public static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters parameters, double initialP0, double initialVariableActivePower) {
+        double factor = 0.0;
+        if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
+            factor = Math.abs(initialP0) / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+        } else if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+            factor = initialVariableActivePower / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
         }
-
-        // update connectivity with triggered branches
-        for (LfBranch branch : branches) {
-            connectivity.cut(branch.getBus1(), branch.getBus2());
-        }
-
-        // add to contingency description buses and branches that won't be part of the main connected
-        // component in post contingency state
-        Set<LfBus> buses;
-        if (useSmallComponents) {
-            buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
-        } else {
-            int slackBusComponent = connectivity.getComponentNumber(network.getSlackBus());
-            buses = network.getBuses().stream().filter(b -> connectivity.getComponentNumber(b) != slackBusComponent).collect(Collectors.toSet());
-        }
-        buses.forEach(b -> branches.addAll(b.getBranches()));
-
-        // reset connectivity to discard triggered branches
-        connectivity.reset();
-
-        return Optional.of(new LfContingency(propagatedContingency.getContingency().getId(), propagatedContingency.getIndex(), buses, branches));
+        return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
     }
 
     public void writeJson(Writer writer) {

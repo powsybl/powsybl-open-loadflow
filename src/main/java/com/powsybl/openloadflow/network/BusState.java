@@ -6,40 +6,61 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 public class BusState extends BusDcState {
 
     private final double angle;
+    private final double voltage;
     private final double loadTargetQ;
     private final double generationTargetQ;
-    private final boolean isVoltageControllerEnabled;
-    private final DiscreteVoltageControl.Mode discreteVoltageControlMode;
+    private final boolean voltageControlEnabled;
+    private final Boolean shuntVoltageControlEnabled;
     private final boolean disabled;
+    private final double shuntB;
+    private final double controllerShuntB;
+    private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
 
     public BusState(LfBus bus) {
         super(bus);
         this.angle = bus.getAngle();
+        this.voltage = bus.getV();
         this.loadTargetQ = bus.getLoadTargetQ();
         this.generationTargetQ = bus.getGenerationTargetQ();
-        this.isVoltageControllerEnabled = bus.isVoltageControllerEnabled();
-        discreteVoltageControlMode = bus.getDiscreteVoltageControl().map(DiscreteVoltageControl::getMode).orElse(null);
+        this.voltageControlEnabled = bus.isVoltageControlEnabled();
+        LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
+        shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
+        controllerShuntB = controllerShunt != null ? controllerShunt.getB() : Double.NaN;
+        LfShunt shunt = bus.getShunt().orElse(null);
+        shuntB = shunt != null ? shunt.getB() : Double.NaN;
         this.disabled = bus.isDisabled();
+        this.generatorsControlType = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getGeneratorControlType));
     }
 
     @Override
     public void restore() {
         super.restore();
         element.setAngle(angle);
+        element.setV(voltage);
         element.setLoadTargetQ(loadTargetQ);
         element.setGenerationTargetQ(generationTargetQ);
-        element.setVoltageControllerEnabled(isVoltageControllerEnabled);
+        element.setVoltageControlEnabled(voltageControlEnabled);
         element.setVoltageControlSwitchOffCount(0);
-        if (discreteVoltageControlMode != null) {
-            element.getDiscreteVoltageControl().ifPresent(control -> control.setMode(discreteVoltageControlMode));
+        if (shuntVoltageControlEnabled != null) {
+            element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
+        }
+        if (!Double.isNaN(controllerShuntB)) {
+            element.getControllerShunt().orElseThrow().setB(controllerShuntB);
+        }
+        if (!Double.isNaN(shuntB)) {
+            element.getShunt().orElseThrow().setB(shuntB);
         }
         element.setDisabled(disabled);
+        element.getGenerators().forEach(g -> g.setGeneratorControlType(generatorsControlType.get(g.getId())));
     }
 
     public static BusState save(LfBus bus) {

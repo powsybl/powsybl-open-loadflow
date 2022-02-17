@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
@@ -39,16 +40,18 @@ class NonImpedantBranchWithBreakerIssueTest {
         boolean breakers = true;
         LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector, false, false, false, breakers,
                                                                         LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                                                                        true, Collections.emptySet(), false, false, false, false, false, false);
-        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
+                                                                        true, Collections.emptySet(), false, false, false, false, false, false, false, true);
+        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(new UniformValueVoltageInitializer());
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),
                                                                              new DenseMatrixFactory());
-        new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
-                .run();
+        try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
+            new AcloadFlowEngine(context)
+                    .run();
+        }
         lfNetwork.updateState(false, false, false, false, false, false);
         for (Bus bus : network.getBusView().getBuses()) {
             assertEquals(400, bus.getV(), 0);
@@ -65,16 +68,18 @@ class NonImpedantBranchWithBreakerIssueTest {
         boolean breakers = false;
         LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector, false, false, false, breakers,
                 LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false, false);
+                true, Collections.emptySet(), false, false, false, false, false, false, false, true);
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
-        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, Collections.emptySet());
+        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setVoltageInitializer(new UniformValueVoltageInitializer());
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),
                                                                              new DenseMatrixFactory());
-        new AcloadFlowEngine(lfNetwork, acLoadFlowParameters)
-                .run();
+        try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
+            new AcloadFlowEngine(context)
+                    .run();
+        }
         lfNetwork.updateState(false, false, false, false, false, false);
         assertEquals(-100, network.getGenerator("G1").getTerminal().getQ(), 0);
         assertEquals(-100, network.getGenerator("G2").getTerminal().getQ(), 0);

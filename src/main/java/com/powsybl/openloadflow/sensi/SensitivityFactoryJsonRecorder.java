@@ -7,6 +7,8 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.json.JsonUtil;
+import com.powsybl.sensitivity.SensitivityFactor;
+import com.powsybl.sensitivity.SensitivityFactorReader;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -34,9 +36,9 @@ public class SensitivityFactoryJsonRecorder implements SensitivityFactorReader {
             try {
                 jsonGenerator.writeStartArray();
 
-                delegate.read((factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
-                    SensitivityFactor2.writeJson(jsonGenerator, functionType, functionId, variableType, variableId, variableSet, contingencyContext);
-                    handler.onFactor(factorContext, functionType, functionId, variableType, variableId, variableSet, contingencyContext);
+                delegate.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+                    SensitivityFactor.writeJson(jsonGenerator, functionType, functionId, variableType, variableId, variableSet, contingencyContext);
+                    handler.onFactor(functionType, functionId, variableType, variableId, variableSet, contingencyContext);
                 });
 
                 jsonGenerator.writeEndArray();
