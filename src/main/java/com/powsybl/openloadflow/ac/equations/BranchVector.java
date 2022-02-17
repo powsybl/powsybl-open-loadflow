@@ -39,8 +39,8 @@ public class BranchVector {
 
     private final LfNetworkListener networkListener = new AbstractLfNetworkListener() {
         @Override
-        public void onDiscretePhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
-         //   a1[branch.getNum()] = branch.getPiModel().getA1();
+        public void onDiscretePhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
+            a1[controllerBranch.getNum()] = controllerBranch.getPiModel().getA1();
         }
 
         @Override
