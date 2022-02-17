@@ -38,15 +38,14 @@ public class BranchVector {
     private final int[] r1Row;
 
     private final LfNetworkListener networkListener = new AbstractLfNetworkListener() {
-
         @Override
-        public void onDiscretePhaseControlTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
-            a1[branch.getNum()] = branch.getPiModel().getA1();
+        public void onDiscretePhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
+         //   a1[branch.getNum()] = branch.getPiModel().getA1();
         }
 
         @Override
-        public void onDiscreteVoltageControlModeChange(DiscreteVoltageControl voltageControl, DiscreteVoltageControl.Mode oldMode, DiscreteVoltageControl.Mode newMode) {
-            for (LfBranch branch : voltageControl.getControllers()) {
+        public void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled) {
+            for (LfBranch branch : controllerBranch.getVoltageControl().orElseThrow().getControllers()) {
                 r1[branch.getNum()] = branch.getPiModel().getR1();
             }
         }

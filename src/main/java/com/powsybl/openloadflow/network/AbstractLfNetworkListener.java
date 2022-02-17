@@ -52,7 +52,7 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onDiscretePhaseControlTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+    public void onDiscretePhaseControlTapPositionChange(PiModel piModel, int oldPosition, int newPosition) {
         // empty
     }
 

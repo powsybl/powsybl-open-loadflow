@@ -69,7 +69,7 @@ public final class AcEquationSystem {
             if (voltageControl.isVoltageControlLocal()) {
                 createLocalVoltageControlEquation(branchVec, bus, networkParameters, equationSystem, creationParameters);
             } else if (bus.isVoltageControlled()) {
-                createRemoteVoltageControlEquations(voltageControl, networkParameters, equationSystem, creationParameters);
+                createRemoteVoltageControlEquations(branchVec, voltageControl, networkParameters, equationSystem, creationParameters);
             }
 
             if (bus.isVoltageControlEnabled()) {
@@ -96,13 +96,13 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    private static void createReactivePowerControlBranchEquation(BranchVector branchVec, LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                  boolean deriveA1, boolean deriveR1) {
         if (bus1 != null && bus2 != null) {
             branch.getReactivePowerControl().ifPresent(rpc -> {
                 EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == ReactivePowerControl.ControlledSide.ONE
-                        ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
-                        : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+                        ? new ClosedBranchSide1ReactiveFlowEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
+                        : new ClosedBranchSide2ReactiveFlowEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_TARGET_Q)
                         .addTerm(q);
             });
@@ -120,7 +120,7 @@ public final class AcEquationSystem {
         });
     }
 
-    private static void createRemoteVoltageControlEquations(VoltageControl voltageControl, LfNetworkParameters networkParameters,
+    private static void createRemoteVoltageControlEquations(BranchVector branchVec, VoltageControl voltageControl, LfNetworkParameters networkParameters,
                                                             EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                             AcEquationSystemCreationParameters creationParameters) {
         LfBus controlledBus = voltageControl.getControlledBus();
@@ -132,7 +132,7 @@ public final class AcEquationSystem {
         controlledBus.setCalculatedV(vTerm);
 
         // create reactive power distribution equations at voltage controller buses
-        createReactivePowerDistributionEquations(voltageControl.getControllerBuses(), networkParameters, equationSystem, creationParameters);
+        createReactivePowerDistributionEquations(branchVec, voltageControl.getControllerBuses(), networkParameters, equationSystem, creationParameters);
 
         updateRemoteVoltageControlEquations(voltageControl, equationSystem);
     }
@@ -224,7 +224,7 @@ public final class AcEquationSystem {
         return terms;
     }
 
-    private static void createReactivePowerDistributionEquations(Collection<LfBus> controllerBuses, LfNetworkParameters networkParameters,
+    private static void createReactivePowerDistributionEquations(BranchVector branchVec, Collection<LfBus> controllerBuses, LfNetworkParameters networkParameters,
                                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                  AcEquationSystemCreationParameters creationParameters) {
         for (LfBus controllerBus : controllerBuses) {
@@ -234,12 +234,12 @@ public final class AcEquationSystem {
             // which can be rewritten in a more simple way
             // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus.getNum(), AcEquationType.DISTR_Q)
-                    .addTerms(createReactiveTerms(controllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
+                    .addTerms(createReactiveTerms(branchVec, controllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
                                 .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
                                 .collect(Collectors.toList()));
             for (LfBus otherControllerBus : controllerBuses) {
                 if (otherControllerBus != controllerBus) {
-                    zero.addTerms(createReactiveTerms(otherControllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
+                    zero.addTerms(createReactiveTerms(branchVec, otherControllerBus, networkParameters, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(controllerBus::getRemoteVoltageControlReactivePercent))
                             .collect(Collectors.toList()));
                 }
@@ -247,7 +247,7 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createBusWithSlopeEquation(LfBus bus, double slope, LfNetworkParameters networkParameters,
+    private static void createBusWithSlopeEquation(BranchVector branchVec, LfBus bus, double slope, LfNetworkParameters networkParameters,
                                                    EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                    EquationTerm<AcVariableType, AcEquationType> vTerm, AcEquationSystemCreationParameters creationParameters) {
         // we only support one generator controlling voltage with a non zero slope at a bus.
@@ -255,7 +255,7 @@ public final class AcEquationSystem {
         // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
         equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
                 .addTerm(vTerm)
-                .addTerms(createReactiveTerms(bus, networkParameters, equationSystem.getVariableSet(), creationParameters)
+                .addTerms(createReactiveTerms(branchVec, bus, networkParameters, equationSystem.getVariableSet(), creationParameters)
                         .stream()
                         .map(term -> term.multiply(slope))
                         .collect(Collectors.toList()));
@@ -328,7 +328,7 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createBranchActivePowerTargetEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    private static void createBranchActivePowerTargetEquation(BranchVector branchVec, LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                               boolean deriveA1, boolean deriveR1) {
         if (bus1 != null && bus2 != null) {
             branch.getDiscretePhaseControl()
@@ -339,8 +339,8 @@ public final class AcEquationSystem {
                         }
 
                         EquationTerm<AcVariableType, AcEquationType> p = dpc.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
-                                ? new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
-                                : new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+                                ? new ClosedBranchSide1ActiveFlowEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
+                                : new ClosedBranchSide2ActiveFlowEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                         equationSystem.createEquation(branch.getNum(), AcEquationType.BRANCH_TARGET_P)
                                 .addTerm(p);
 
@@ -580,20 +580,20 @@ public final class AcEquationSystem {
         boolean deriveA1 = isDeriveA1(branch, networkParameters, creationParameters);
         boolean deriveR1 = isDeriveR1(branch, networkParameters);
         if (bus1 != null && bus2 != null) {
-            p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branchVec, branch.getNum(), bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
         } else if (bus1 != null) {
-            p1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            i1 = new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            p1 = new OpenBranchSide2ActiveFlowEquationTerm(branchVec, branch.getNum(), bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branchVec, branch.getNum(), bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            i1 = new OpenBranchSide2CurrentMagnitudeEquationTerm(branchVec, branch.getNum(), bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
         } else if (bus2 != null) {
-            p2 = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            q2 = new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            i2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            p2 = new OpenBranchSide1ActiveFlowEquationTerm(branchVec, branch.getNum(), bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            q2 = new OpenBranchSide1ReactiveFlowEquationTerm(branchVec, branch.getNum(), bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            i2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branchVec, branch.getNum(), bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
         }
 
         if (p1 != null) {
@@ -648,10 +648,10 @@ public final class AcEquationSystem {
             branch.setI2(i2);
         }
 
-        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+        createReactivePowerControlBranchEquation(branchVec, branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
         if (networkParameters.isPhaseControl()) {
-            createBranchActivePowerTargetEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+            createBranchActivePowerTargetEquation(branchVec, branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
         }
     }
 

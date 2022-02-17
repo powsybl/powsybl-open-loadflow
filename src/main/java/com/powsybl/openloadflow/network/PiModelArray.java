@@ -171,7 +171,7 @@ public class PiModelArray implements PiModel {
         }
         if (hasChange) {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
+                listener.onDiscretePhaseControlTapPositionChange(branch.getPiModel(), oldTapPosition, tapPosition);
             }
         }
         return hasChange;
