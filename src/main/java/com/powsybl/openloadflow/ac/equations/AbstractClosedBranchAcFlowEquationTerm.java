@@ -34,9 +34,9 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractAcB
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    protected AbstractClosedBranchAcFlowEquationTerm(BranchVector branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    protected AbstractClosedBranchAcFlowEquationTerm(BranchVector branchVec, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
-        super(branches, num);
+        super(branchVec, num);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);

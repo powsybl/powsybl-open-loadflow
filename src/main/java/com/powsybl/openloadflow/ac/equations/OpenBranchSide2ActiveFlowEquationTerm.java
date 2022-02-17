@@ -20,9 +20,9 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
 
     private final Variable<AcVariableType> v1Var;
 
-    public OpenBranchSide2ActiveFlowEquationTerm(BranchVector branches, int num, LfBus bus1, VariableSet<AcVariableType> variableSet,
+    public OpenBranchSide2ActiveFlowEquationTerm(BranchVector branchVec, int num, LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                  boolean deriveA1, boolean deriveR1) {
-        super(branches, num, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
+        super(branchVec, num, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 

@@ -149,12 +149,12 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             Equation<V, E> eq = e.getKey();
             int column = eq.getColumn();
             for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e2 : e.getValue().entrySet()) {
-                Variable<V> variable = e2.getKey();
-                int row = variable.getRow();
+                Variable<V> var = e2.getKey();
+                int row = var.getRow();
                 for (EquationTerm<V, E> equationTerm : e2.getValue()) {
-                    double value = equationTerm.der(variable);
+                    double value = equationTerm.der(var);
                     int elementIndex = matrix.addAndGetIndex(row, column, value);
-                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, elementIndex, variable));
+                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, elementIndex, var));
                 }
             }
         }
@@ -181,8 +181,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
             EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
             int elementIndex = partialDerivative.getElementIndex();
-            Variable<V> variable = partialDerivative.getVariable();
-            double value = equationTerm.der(variable);
+            Variable<V> var = partialDerivative.getVariable();
+            double value = equationTerm.der(var);
             matrix.addAtIndex(elementIndex, value);
         }
 

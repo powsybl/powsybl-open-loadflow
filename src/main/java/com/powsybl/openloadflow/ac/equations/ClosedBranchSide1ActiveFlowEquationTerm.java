@@ -21,9 +21,9 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    public ClosedBranchSide1ActiveFlowEquationTerm(BranchVector branches, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+    public ClosedBranchSide1ActiveFlowEquationTerm(BranchVector branchVec, int num, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
-        super(branches, num, bus1, bus2, variableSet, deriveA1, deriveR1);
+        super(branchVec, num, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {

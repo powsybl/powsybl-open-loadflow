@@ -20,13 +20,13 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractAcBranc
 
     protected final List<Variable<AcVariableType>> variables;
 
-    protected AbstractOpenSide2BranchAcFlowEquationTerm(BranchVector branches, int num, AcVariableType variableType,
+    protected AbstractOpenSide2BranchAcFlowEquationTerm(BranchVector branchVec, int num, AcVariableType variableType,
                                                         LfBus bus, VariableSet<AcVariableType> variableSet,
                                                         boolean deriveA1, boolean deriveR1) {
-        super(branches, num);
+        super(branchVec, num);
         variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
         if (deriveA1 || deriveR1) {
-            throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branches.get(num).getId());
+            throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branchVec.get(num).getId());
         }
     }
 
