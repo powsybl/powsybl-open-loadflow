@@ -152,4 +152,9 @@ public class SimplePiModel implements PiModel {
         }
         return false;
     }
+
+    @Override
+    public void setBranch(LfBranch branch) {
+        // nothing to set
+    }
 }
