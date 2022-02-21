@@ -26,11 +26,16 @@ public final class AcEquationSystem {
     private static void createBusEquation(LfBus bus, LfNetworkParameters networkParameters,
                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                           AcEquationSystemCreationParameters creationParameters) {
+        var p = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_P);
+        bus.setP(p);
+        var q = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q);
+        bus.setQ(q);
+
         if (bus.isSlack()) {
             equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_PHI)
                     .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_PHI)
                                            .createTerm());
-            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).setActive(false);
+            p.setActive(false);
         }
 
         createGeneratorControlEquations(bus, networkParameters, equationSystem, creationParameters);
@@ -282,17 +287,13 @@ public final class AcEquationSystem {
             bus1.setCalculatedV(vTerm);
             // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
-            Equation<AcVariableType, AcEquationType> sq1 = equationSystem.createEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q);
-            if (sq1.getTerms().isEmpty()) {
-                bus1.setQ(sq1);
-            }
-            sq1.addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm());
+            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
+                    .orElseThrow()
+                    .addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm());
 
-            Equation<AcVariableType, AcEquationType> sq2 = equationSystem.createEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q);
-            if (sq2.getTerms().isEmpty()) {
-                bus2.setQ(sq2);
-            }
-            sq2.addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).<AcEquationType>createTerm()
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
+                    .orElseThrow()
+                    .addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).<AcEquationType>createTerm()
                                     .minus());
         } else {
             // nothing to do in case of v1 and v2 are found, we just have to ensure
@@ -311,17 +312,13 @@ public final class AcEquationSystem {
 
             // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
-            Equation<AcVariableType, AcEquationType> sp1 = equationSystem.createEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P);
-            if (sp1.getTerms().isEmpty()) {
-                bus1.setP(sp1);
-            }
-            sp1.addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm());
+            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm());
 
-            Equation<AcVariableType, AcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P);
-            if (sp2.getTerms().isEmpty()) {
-                bus2.setP(sp2);
-            }
-            sp2.addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).<AcEquationType>createTerm()
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).<AcEquationType>createTerm()
                                     .minus());
         } else {
             throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
@@ -597,35 +594,27 @@ public final class AcEquationSystem {
         }
 
         if (p1 != null) {
-            Equation<AcVariableType, AcEquationType> sp1 = equationSystem.createEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P);
-            if (sp1.getTerms().isEmpty()) {
-                bus1.setP(sp1);
-            }
-            sp1.addTerm(p1);
+            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(p1);
             branch.setP1(p1);
         }
         if (q1 != null) {
-            Equation<AcVariableType, AcEquationType> sq1 = equationSystem.createEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q);
-            if (sq1.getTerms().isEmpty()) {
-                bus1.setQ(sq1);
-            }
-            sq1.addTerm(q1);
+            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
+                    .orElseThrow()
+                    .addTerm(q1);
             branch.setQ1(q1);
         }
         if (p2 != null) {
-            Equation<AcVariableType, AcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P);
-            if (sp2.getTerms().isEmpty()) {
-                bus2.setP(sp2);
-            }
-            sp2.addTerm(p2);
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(p2);
             branch.setP2(p2);
         }
         if (q2 != null) {
-            Equation<AcVariableType, AcEquationType> sq2 = equationSystem.createEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q);
-            if (sq2.getTerms().isEmpty()) {
-                bus2.setQ(sq2);
-            }
-            sq2.addTerm(q2);
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
+                    .orElseThrow()
+                    .addTerm(q2);
             branch.setQ2(q2);
         }
 

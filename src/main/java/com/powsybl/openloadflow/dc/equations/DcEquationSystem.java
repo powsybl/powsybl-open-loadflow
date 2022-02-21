@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -36,10 +35,12 @@ public final class DcEquationSystem {
 
     private static void createBuses(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         for (LfBus bus : network.getBuses()) {
+            var p = equationSystem.createEquation(bus.getNum(), DcEquationType.BUS_TARGET_P);
+            bus.setP(p);
             if (bus.isSlack()) {
                 equationSystem.createEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI)
                         .addTerm(equationSystem.getVariable(bus.getNum(), DcVariableType.BUS_PHI).createTerm());
-                equationSystem.createEquation(bus.getNum(), DcEquationType.BUS_TARGET_P).setActive(false);
+                p.setActive(false);
             }
         }
     }
@@ -58,19 +59,15 @@ public final class DcEquationSystem {
 
             // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
-            Equation<DcVariableType, DcEquationType> sp1 = equationSystem.createEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P);
-            if (sp1.getTerms().isEmpty()) {
-                bus1.setP(sp1);
-            }
-            sp1.addTerm(equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P)
-                    .createTerm());
+            equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P)
+                            .createTerm());
 
-            Equation<DcVariableType, DcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P);
-            if (sp2.getTerms().isEmpty()) {
-                bus2.setP(sp2);
-            }
-            sp2.addTerm(equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P).<DcEquationType>createTerm()
-                                    .minus());
+            equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P).<DcEquationType>createTerm()
+                            .minus());
         } else {
             throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
         }
@@ -83,16 +80,12 @@ public final class DcEquationSystem {
             boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControlCapability(); //TODO: phase control outer loop
             ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
             ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
-            Equation<DcVariableType, DcEquationType> sp1 = equationSystem.createEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P);
-            if (sp1.getTerms().isEmpty()) {
-                bus1.setP(sp1);
-            }
-            sp1.addTerm(p1);
-            Equation<DcVariableType, DcEquationType> sp2 = equationSystem.createEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P);
-            if (sp2.getTerms().isEmpty()) {
-                bus2.setP(sp2);
-            }
-            sp2.addTerm(p2);
+            equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(p1);
+            equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(p2);
             if (deriveA1) {
                 if (creationParameters.isForcePhaseControlOffAndAddAngle1Var()) {
                     // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
