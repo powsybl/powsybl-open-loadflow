@@ -54,11 +54,9 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                 if (bus.isVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
                     bus.getVoltageControl().ifPresent(voltageControl -> {
                         voltageControl.getControllerBuses().forEach(controllerBus -> {
-                            if (controllerBus.isVoltageControlEnabled()) {
-                                controllerBus.setGenerationTargetQ(controllerBus.getCalculatedQ());
-                                controllerBus.setVoltageControlEnabled(false);
-                                disabledControllerBuses.add(controllerBus);
-                            }
+                            controllerBus.setGenerationTargetQ(bus.getQ().eval());
+                            controllerBus.setVoltageControlEnabled(false);
+                            disabledControllerBuses.add(controllerBus);
                         });
                     });
                     status = OuterLoopStatus.UNSTABLE;
