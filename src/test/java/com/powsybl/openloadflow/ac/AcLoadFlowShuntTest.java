@@ -185,7 +185,7 @@ class AcLoadFlowShuntTest {
 
     @Test
     void testVoltageControl() {
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         shunt.setSectionCount(0);
         shunt.setVoltageRegulatorOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -200,7 +200,7 @@ class AcLoadFlowShuntTest {
         ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
         shuntCompensator2.setVoltageRegulatorOn(false);
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(399.602, network.getBusBreakerView().getBus("b4"));
@@ -233,7 +233,7 @@ class AcLoadFlowShuntTest {
                 .add()
                 .add();
 
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(393.308, bus3);
@@ -267,7 +267,7 @@ class AcLoadFlowShuntTest {
                 .add()
                 .add();
 
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(391.640, bus3);
@@ -301,7 +301,7 @@ class AcLoadFlowShuntTest {
                 .add()
                 .add();
 
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(393.308, bus3);
@@ -330,7 +330,7 @@ class AcLoadFlowShuntTest {
                 .add()
                 .add();
 
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(400.600, bus3);
@@ -340,7 +340,7 @@ class AcLoadFlowShuntTest {
     @Test
     void testSharedRemoteVoltageControl() {
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -352,7 +352,7 @@ class AcLoadFlowShuntTest {
 
     @Test
     void testNoShuntVoltageControl() {
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         shunt.setRegulatingTerminal(network.getGenerator("g1").getTerminal());
         shunt.setSectionCount(0);
         shunt.setVoltageRegulatorOn(true);
@@ -364,7 +364,7 @@ class AcLoadFlowShuntTest {
 
     @Test
     void testNoShuntVoltageControl2() {
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         shunt.setSectionCount(0);
         shunt.setVoltageRegulatorOn(true);
         shunt.setRegulatingTerminal(network.getLoad("ld1").getTerminal());
@@ -408,7 +408,7 @@ class AcLoadFlowShuntTest {
                 .setB(0.09090909090909092)
                 .endStep()
                 .add();
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         parameters.setTransformerVoltageControlOn(true);
         ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
@@ -445,7 +445,7 @@ class AcLoadFlowShuntTest {
                 .add()
                 .add();
 
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(391.640, bus3);
