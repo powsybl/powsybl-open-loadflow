@@ -341,6 +341,8 @@ public final class AcEquationSystem {
                     .addTerm(dummyQ.<AcEquationType>createTerm()
                                     .minus());
 
+            // create an inactive dummy reactive power target equation set to zero that could be activated
+            // on case of switch opening
             equationSystem.createEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_Q)
                     .addTerm(dummyQ.createTerm())
                     .setActive(false);
@@ -371,6 +373,8 @@ public final class AcEquationSystem {
                     .addTerm(dummyP.<AcEquationType>createTerm()
                                     .minus());
 
+            // create an inactive dummy active power target equation set to zero that could be activated
+            // on case of switch opening
             equationSystem.createEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_P)
                     .addTerm(dummyP.createTerm())
                     .setActive(false);

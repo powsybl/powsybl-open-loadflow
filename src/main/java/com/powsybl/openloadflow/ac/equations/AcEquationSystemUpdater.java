@@ -47,6 +47,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private void updateElementEquations(LfElement element, boolean enable) {
         if (element instanceof LfSwitch) {
+            // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
+            // or equations that set dummy p and q variable to zero
             equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_PHI)
                     .orElseThrow()
                     .setActive(enable);
