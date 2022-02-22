@@ -53,7 +53,7 @@ class NonImpedantBranchDisablingTest {
             lfNetwork.getBranchById("C").setDisabled(true);
 
             engine.run();
-            assertEquals(6, context.getEquationSystem().getSortedVariablesToFind().size());
+            assertEquals(8, context.getEquationSystem().getSortedVariablesToFind().size()); // we have kept same variables!!!
             assertEquals(0, l1.getP1().eval(), 10e-5);
             assertEquals(6.07782, l2.getP1().eval(), 10e-5);
         }
