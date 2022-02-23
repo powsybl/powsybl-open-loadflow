@@ -706,7 +706,7 @@ class OpenSecurityAnalysisTest {
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
 
         LoadFlowParameters lfParameters = new LoadFlowParameters()
-                .setSimulShunt(true);
+                .setShuntCompensatorVoltageControlOn(true);
 
         List<Contingency> contingencies = allBranches(network);
 
@@ -831,7 +831,7 @@ class OpenSecurityAnalysisTest {
         });
 
         LoadFlowParameters lfParameters = new LoadFlowParameters()
-                .setSimulShunt(true);
+                .setShuntCompensatorVoltageControlOn(true);
 
         List<Contingency> contingencies = List.of(new Contingency("SHUNT2", new ShuntCompensatorContingency("SHUNT2")),
                                                   new Contingency("tr3", new BranchContingency("tr3")));

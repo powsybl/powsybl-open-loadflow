@@ -29,6 +29,7 @@ public class BusDcState extends ElementState<LfBus> {
 
     @Override
     public void restore() {
+        super.restore();
         element.setLoadTargetP(loadTargetP);
         element.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
         element.getGenerators().forEach(g -> g.setParticipating(participatingGenerators.get(g.getId())));

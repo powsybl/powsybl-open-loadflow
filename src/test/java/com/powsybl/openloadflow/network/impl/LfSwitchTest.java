@@ -32,13 +32,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  */
 class LfSwitchTest {
 
-    Network network;
+    private Network network;
 
-    LfNetwork lfNetwork;
+    private LfNetwork lfNetwork;
 
-    LfSwitch lfSwitch;
+    private LfSwitch lfSwitch;
 
-    AcLoadFlowParameters acLoadFlowParameters;
+    private AcLoadFlowParameters acLoadFlowParameters;
 
     @BeforeEach
     void setUp() {
