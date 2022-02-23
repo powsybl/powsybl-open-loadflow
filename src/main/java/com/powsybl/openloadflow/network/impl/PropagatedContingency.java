@@ -238,8 +238,10 @@ public class PropagatedContingency {
         for (Load load : loadsToLose) {
             Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus()
                                    : load.getTerminal().getBusView().getBus();
-            loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
-                    .add(getLoadPowerShift(load, slackDistributionOnConformLoad));
+            if (bus != null) {
+                loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
+                        .add(getLoadPowerShift(load, slackDistributionOnConformLoad));
+            }
         }
         for (ShuntCompensator shunt : shuntsToLose) {
             double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
