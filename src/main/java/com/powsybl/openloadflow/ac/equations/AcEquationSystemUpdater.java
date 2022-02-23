@@ -80,6 +80,7 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 bus.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateGeneratorVoltageControl(voltageControl, equationSystem));
                 bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
                 bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
+                bus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystem.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case BRANCH:
                 LfBranch branch = (LfBranch) element;
