@@ -1129,4 +1129,30 @@ class OpenSecurityAnalysisTest {
                 .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
         assertEquals(0, postContingencyLimitViolationsOnVoltageLevel2.size());
     }
+
+    @Test
+    void testViolationsWeakenedOrEquivalent() {
+        LimitViolation violation1 = new LimitViolation("voltageLevel1", LimitViolationType.HIGH_VOLTAGE, 420, 1, 421);
+        LimitViolation violation2 =  new LimitViolation("voltageLevel1", LimitViolationType.HIGH_VOLTAGE, 420, 1, 425.20);
+        SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters = new SecurityAnalysisParameters.IncreasedViolationsParameters();
+        violationsParameters.setFlowProportionalThreshold(1.5);
+        violationsParameters.setHighVoltageProportionalThreshold(0.1);
+        violationsParameters.setHighVoltageAbsoluteThreshold(3);
+        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
+        violationsParameters.setHighVoltageProportionalThreshold(0.01); // 4.21 kV
+        violationsParameters.setHighVoltageAbsoluteThreshold(5);
+        assertTrue(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
+
+        LimitViolation violation3 = new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 375);
+        LimitViolation violation4 =  new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 371.26);
+        violationsParameters.setFlowProportionalThreshold(1.5);
+        violationsParameters.setLowVoltageProportionalThreshold(0.1);
+        violationsParameters.setLowVoltageAbsoluteThreshold(3);
+        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
+        violationsParameters.setLowVoltageProportionalThreshold(0.01); // 3.75 kV
+        violationsParameters.setLowVoltageAbsoluteThreshold(5);
+        assertTrue(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
+
+        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation4, violationsParameters));
+    }
 }
