@@ -421,7 +421,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
         LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
-        LOGGER.info("Shunt voltage control: {}", parameters.isSimulShunt());
+        LOGGER.info("Shunt voltage control: {}", parameters.isShuntCompensatorVoltageControlOn());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
@@ -477,7 +477,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                        parametersExt.isVoltagePerReactivePowerControl(),
                                        parametersExt.hasReactivePowerRemoteControl(),
                                        parameters.isDc(),
-                                       parameters.isSimulShunt(),
+                                       parameters.isShuntCompensatorVoltageControlOn(),
                                        !parameters.isNoGeneratorReactiveLimits());
     }
 
