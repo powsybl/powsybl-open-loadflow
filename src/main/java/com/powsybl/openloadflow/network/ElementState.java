@@ -19,12 +19,15 @@ public class ElementState<T extends LfElement> {
 
     protected final T element;
 
+    protected final boolean disabled;
+
     public ElementState(T element) {
         this.element = Objects.requireNonNull(element);
+        disabled = element.isDisabled();
     }
 
     public void restore() {
-        // nothing to restore
+        element.setDisabled(disabled);
     }
 
     public static <T extends LfElement, U extends ElementState<T>> List<U> save(Collection<T> elements, Function<T, U> save) {
