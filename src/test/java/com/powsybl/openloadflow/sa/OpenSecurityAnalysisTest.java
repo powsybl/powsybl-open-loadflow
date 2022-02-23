@@ -986,6 +986,33 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
+    void testSaWithLoadContingency2() {
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        network.getLoad("l2").getTerminal().disconnect();
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<Contingency> contingencies = List.of(new Contingency("l2", new LoadContingency("l2")),
+                new Contingency("l34", new BranchContingency("l34")),
+                new Contingency("l4", new LoadContingency("l4")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(200.00, preContingencyResult.getPreContingencyBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-57.142, preContingencyResult.getPreContingencyBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(71.429, preContingencyResult.getPreContingencyBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency tests
+        NoSuchElementException exception = assertThrows(NoSuchElementException.class, () -> getPostContingencyResult(result, "l2"));
+        assertEquals("No value present", exception.getMessage());
+    }
+
+    @Test
     void testSaWithLoadDetailContingency() {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
         network.getLoad("l2").newExtension(LoadDetailAdder.class).withVariableActivePower(40).withFixedActivePower(20).withVariableReactivePower(40).withFixedActivePower(0).add();
