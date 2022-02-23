@@ -19,16 +19,11 @@ import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.EquationUtil;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -134,8 +129,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 LOGGER.info("Save pre-contingency state");
 
                 // save base state for later restoration after each contingency
-                List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
-                List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
+                NetworkState networkState = NetworkState.save(network);
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
@@ -155,8 +149,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                     LOGGER.info("Restore pre-contingency state");
 
                                     // restore base state
-                                    ElementState.restore(busStates);
-                                    ElementState.restore(branchStates);
+                                    networkState.restore();
                                 }
                             });
                 }
@@ -172,15 +165,15 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
                                                                Map<String, BranchResult> preContingencyBranchResults) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getId());
+        LOGGER.debug("Contingency '{}' impact: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
+                lfContingency.getId(), lfContingency.getBuses(), lfContingency.getBranches(), lfContingency.getGenerators(),
+                lfContingency.getShuntsShift(), lfContingency.getBusesLoadShift());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        List<Equation<AcVariableType, AcEquationType>> deactivatedEquations = new ArrayList<>();
-        List<EquationTerm<AcVariableType, AcEquationType>> deactivatedEquationTerms = new ArrayList<>();
         List<BranchResult> branchResults = new ArrayList<>();
         List<BusResults> busResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
-        EquationUtil.deactivateEquations(lfContingency.getBranches(), lfContingency.getBuses(), context.getEquationSystem(), deactivatedEquations, deactivatedEquationTerms);
 
         // restart LF on post contingency equation system
         context.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
@@ -208,8 +201,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 postContingencyLimitViolations.remove(subjectSideId);
             }
         });
-
-        EquationUtil.reactivateEquations(deactivatedEquations, deactivatedEquationTerms);
 
         stopwatch.stop();
         LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getId(),
