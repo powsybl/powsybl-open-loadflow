@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
@@ -47,6 +48,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         private final Set<ThreeWindingsTransformer> t3wtSet = new LinkedHashSet<>();
 
         private final Set<ShuntCompensator> shuntSet = new LinkedHashSet<>();
+
+        private final Set<HvdcLine> hvdcLineSet = new LinkedHashSet<>();
     }
 
     private static void createBuses(List<Bus> buses, LfNetworkParameters parameters, LfNetwork lfNetwork, List<LfBus> lfBuses,
@@ -276,9 +279,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     case VSC:
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
                         lfBus.addVscConverterStation(vscConverterStation, parameters.isBreakers(), parameters.isReactiveLimits(), report);
+                        loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
                         break;
                     case LCC:
                         lfBus.addLccConverterStation((LccConverterStation) converterStation);
+                        loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
                         break;
                     default:
                         throw new IllegalStateException("Unknown HVDC converter station type: " + converterStation.getHvdcType());
@@ -367,6 +372,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     PhaseTapChanger ptc = legs.get(legNumber).getPhaseTapChanger();
                     createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + (legNumber + 1), parameters.isBreakers());
                 }
+            }
+        }
+
+        for (HvdcLine hvdcLine : loadingContext.hvdcLineSet) {
+            HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
+            if (control != null && control.isEnabled()) {
+                LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
+                LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
+                LfHvdc lfHvdc = new LfHvdcImpl(control, lfBus1, lfBus2, lfNetwork, hvdcLine.getId());
+                lfHvdc.setConverterStation1((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId()));
+                lfHvdc.setConverterStation2((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId()));
             }
         }
     }

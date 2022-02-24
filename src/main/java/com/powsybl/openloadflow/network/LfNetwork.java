@@ -69,6 +69,8 @@ public class LfNetwork {
 
     private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
+    private final List<LfHvdc> hvdcs = new ArrayList<>();
+
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
     private boolean valid = true;
@@ -179,6 +181,28 @@ public class LfNetwork {
     public LfGenerator getGeneratorById(String id) {
         Objects.requireNonNull(id);
         return generatorsById.get(id);
+    }
+
+    public void addHvdc(LfHvdc hvdc) {
+        Objects.requireNonNull(hvdc);
+        hvdc.setNum(hvdcs.size());
+        hvdcs.add(hvdc);
+
+        // create bus -> branches link
+        if (hvdc.getBus1() != null) {
+            hvdc.getBus1().addHvdc(hvdc);
+        }
+        if (hvdc.getBus2() != null) {
+            hvdc.getBus2().addHvdc(hvdc);
+        }
+    }
+
+    public List<LfHvdc> getHvdcs() {
+        return hvdcs;
+    }
+
+    public LfHvdc getHvdc(int num) {
+        return hvdcs.get(num);
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,

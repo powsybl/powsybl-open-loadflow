@@ -128,6 +128,8 @@ public interface LfBus extends LfElement {
 
     void addBranch(LfBranch branch);
 
+    void addHvdc(LfHvdc hvdc);
+
     void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
 
     Optional<TransformerVoltageControl> getTransformerVoltageControl();
