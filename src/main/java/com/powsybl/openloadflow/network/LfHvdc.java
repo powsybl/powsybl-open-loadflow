@@ -37,4 +37,6 @@ public interface LfHvdc extends LfElement {
     void setConverterStation1(LfVscConverterStationImpl converterStation1);
 
     void setConverterStation2(LfVscConverterStationImpl converterStation2);
+
+    void updateState();
 }

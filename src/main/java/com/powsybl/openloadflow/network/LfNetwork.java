@@ -209,6 +209,9 @@ public class LfNetwork {
                             boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
+        for (LfHvdc hvdc : hvdcs) {
+            hvdc.updateState();
+        }
         for (LfBus bus : busesById.values()) {
             bus.updateState(reactiveLimits, writeSlackBus, distributedOnConformLoad, loadPowerFactorConstant);
             for (LfGenerator generator : bus.getGenerators()) {

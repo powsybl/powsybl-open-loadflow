@@ -118,4 +118,11 @@ public final class LfHvdcImpl extends AbstractElement implements LfHvdc {
     public String getId() {
         return id;
     }
+
+    @Override
+    public void updateState() {
+        // Should be done before updating state of generators.
+        vsc1.setTargetP(p1.eval());
+        vsc2.setTargetP(p2.eval());
+    }
 }
