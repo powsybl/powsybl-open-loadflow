@@ -227,6 +227,19 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 ShuntCompensator sc = shuntCompensators.get(i);
                 sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / zb);
                 sc.setSectionCount(controllers.get(i).getPosition());
+                checkTargetDeadband(sc);
+            }
+        }
+    }
+
+    protected void checkTargetDeadband(ShuntCompensator shuntCompensator) {
+        if (shuntCompensator.getTargetDeadband() != 0 && shuntCompensator.isVoltageRegulatorOn()) {
+            double nominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
+            double v = voltageControl.getControlled().getV();
+            double distance = Math.abs(v - voltageControl.getTargetValue()); // in per unit system
+            if (distance > shuntCompensator.getTargetDeadband() / 2) {
+                LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
+                        voltageControl.getControlled().getId(), v * nominalV, shuntCompensator.getTargetV(), shuntCompensator.getTargetDeadband() / 2);
             }
         }
     }
