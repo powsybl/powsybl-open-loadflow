@@ -137,10 +137,14 @@ class OpenSecurityAnalysisTest {
                 .setSlackBusId(slackBusId);
     }
 
-    private static PostContingencyResult getPostContingencyResult(SecurityAnalysisResult result, String contingencyId) {
+    private static Optional<PostContingencyResult> getOptionalPostContingencyResult(SecurityAnalysisResult result, String contingencyId) {
         return result.getPostContingencyResults().stream()
                 .filter(r -> r.getContingency().getId().equals(contingencyId))
-                .findFirst()
+                .findFirst();
+    }
+
+    private static PostContingencyResult getPostContingencyResult(SecurityAnalysisResult result, String contingencyId) {
+        return getOptionalPostContingencyResult(result, contingencyId)
                 .orElseThrow();
     }
 
@@ -983,6 +987,19 @@ class OpenSecurityAnalysisTest {
         assertEquals(80.003, l4ContingencyResult.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-40.002, l4ContingencyResult.getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(99.997, l4ContingencyResult.getBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSaWithDisconnectedLoadContingency() {
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        network.getLoad("l2").getTerminal().disconnect();
+
+        List<Contingency> contingencies = List.of(new Contingency("l2", new LoadContingency("l2")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
+
+        // load is disconnected, contingency is skipped
+        assertFalse(getOptionalPostContingencyResult(result, "l2").isPresent());
     }
 
     @Test
