@@ -8,6 +8,8 @@ package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.config.PlatformConfig;
+import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
@@ -19,6 +21,8 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.loadflow.resultscompletion.z0flows.Z0FlowsCompletion;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
@@ -30,24 +34,23 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.Markers;
-import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
+import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
 /**
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
  */
@@ -63,6 +66,35 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
 
     private boolean forcePhaseControlOffAndAddAngle1Var = false; // just for unit testing
+    public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
+
+    public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
+
+    public static final String THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME = "throwsExceptionInCaseOfSlackDistributionFailure";
+
+    public static final String VOLTAGE_REMOTE_CONTROL_PARAM_NAME = "voltageRemoteControl";
+
+    public static final String REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME = "reactivePowerRemoteControl";
+
+    public static final String LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME = "lowImpedanceBranchMode";
+
+    public static final String LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME = "loadPowerFactorConstant";
+
+    public static final String PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME = "plausibleActivePowerLimit";
+
+    public static final String ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME = "addRatioToLinesWithDifferentNominalVoltageAtBothEnds";
+
+    public static final String SLACK_BUS_P_MAX_MISMATCH_NAME = "slackBusPMaxMismatch";
+
+    public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME = "voltagePerReactivePowerControl";
+
+    public static final String MAX_ITERATION_NAME = "maxIteration";
+
+    public static final String NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME = "newtonRaphsonConvEpsPerEq";
+
+    public static final String VOLTAGE_INIT_MODE_OVERRIDE_NAME = "voltageInitModeOverride";
+
+    public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME = "transformerVoltageControlMode";
 
     public OpenLoadFlowProvider() {
         this(new SparseMatrixFactory());
@@ -116,12 +148,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             // update network state
             if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
                 result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(),
-                                                parameters.isWriteSlackBus(),
-                                                parameters.isPhaseShifterRegulationOn(),
-                                                parameters.isTransformerVoltageControlOn(),
-                                                parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                                parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
-                                                    parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant());
+                        parameters.isWriteSlackBus(),
+                        parameters.isPhaseShifterRegulationOn(),
+                        parameters.isTransformerVoltageControlOn(),
+                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                        parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
+                                parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant());
             }
 
             LoadFlowResult.ComponentResult.Status status;
@@ -140,11 +172,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     break;
             }
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
-                                                                            result.getNetwork().getNumSC(),
-                                                                            status,
-                                                                            result.getNewtonRaphsonIterations(),
-                                                                            result.getNetwork().getSlackBus().getId(),
-                                                                            result.getSlackBusActivePowerMismatch() * PerUnit.SB));
+                    result.getNetwork().getNumSC(),
+                    status,
+                    result.getNewtonRaphsonIterations(),
+                    result.getNetwork().getSlackBus().getId(),
+                    result.getSlackBusActivePowerMismatch() * PerUnit.SB));
         }
 
         // zero or low impedance branch flows computation
@@ -213,7 +245,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
         Reporter lfReporter = reporter.createSubReporter("loadFlow", "Load flow on network ${networkId}",
-            "networkId", network.getId());
+                "networkId", network.getId());
 
         return CompletableFuture.supplyAsync(() -> {
 
@@ -222,12 +254,45 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             Stopwatch stopwatch = Stopwatch.createStarted();
 
             LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, lfReporter)
-                                                      : runAc(network, parameters, lfReporter);
+                    : runAc(network, parameters, lfReporter);
 
             stopwatch.stop();
             LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             return result;
         });
+    }
+
+    @Override
+    public Optional<ExtensionJsonSerializer> getSpecificParametersSerializer() {
+        return Optional.of(new OpenLoadFlowParameterJsonSerializer());
+    }
+
+    @Override
+    public Optional<OpenLoadFlowParameters> loadSpecificParameters(PlatformConfig platformConfig) {
+
+        OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
+
+        platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
+                .ifPresent(config -> parameters
+                        .setSlackBusSelectionMode(config.getEnumProperty(SLACK_BUS_SELECTION_PARAM_NAME, SlackBusSelectionMode.class, SLACK_BUS_SELECTION_DEFAULT_VALUE))
+                        .setSlackBusesIds(config.getStringListProperty(SLACK_BUSES_IDS_PARAM_NAME, Collections.emptyList()))
+                        .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, OpenLoadFlowParameters.LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
+                        .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE))
+                        .setThrowsExceptionInCaseOfSlackDistributionFailure(
+                                config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
+                        )
+                        .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
+                        .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
+                        .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(config.getBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE))
+                        .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
+                        .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
+                        .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
+                        .setMaxIteration(config.getIntProperty(MAX_ITERATION_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
+                        .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
+                        .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, OpenLoadFlowParameters.VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
+                        .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, OpenLoadFlowParameters.TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
+            );
+        return Optional.of(parameters);
     }
 }
