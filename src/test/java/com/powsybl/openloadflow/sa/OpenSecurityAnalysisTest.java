@@ -548,10 +548,11 @@ class OpenSecurityAnalysisTest {
     @Test
     void testSaDcMode() {
         Network fourBusNetwork = FourBusNetworkFactory.create();
-
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDc(true);
         setSlackBusId(lfParameters, "b1_vl_0");
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
         List<Contingency> contingencies = allBranches(fourBusNetwork);
 
@@ -563,13 +564,74 @@ class OpenSecurityAnalysisTest {
 
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
 
-        SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, lfParameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
 
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
         assertEquals(5, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(5, result.getPostContingencyResults().size());
-        assertEquals(4, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(4, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
+
+        //Branch result for first contingency
+        assertEquals(5, result.getPostContingencyResults().get(0).getBranchResults().size());
+
+        //Check branch results for flowTransfer computation for contingency on l14
+        PostContingencyResult postContl14 = getPostContingencyResult(result, "l14");
+        assertEquals("l14", postContl14.getContingency().getId());
+
+        BranchResult brl14l12 = postContl14.getBranchResult("l12");
+        assertEquals(0.333, brl14l12.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.333, brl14l12.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+
+        BranchResult brl14l14 = postContl14.getBranchResult("l14");
+        assertEquals(0.0, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.0, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+
+        BranchResult brl14l23 = postContl14.getBranchResult("l23");
+        assertEquals(1.333, brl14l23.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.333, brl14l23.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+
+        BranchResult brl14l34 = postContl14.getBranchResult("l34");
+        assertEquals(-1.0, brl14l34.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.0, brl14l34.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+
+        BranchResult brl14l13 = postContl14.getBranchResult("l13");
+        assertEquals(1.666, brl14l13.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.666, brl14l13.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSaDcModeWithIncreasedParameters() {
+        Network fourBusNetwork = FourBusNetworkFactory.create();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setDc(true);
+        setSlackBusId(lfParameters, "b1_vl_0");
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        SecurityAnalysisParameters.IncreasedViolationsParameters increasedViolationsParameters = new SecurityAnalysisParameters.IncreasedViolationsParameters();
+        increasedViolationsParameters.setFlowProportionalThreshold(0);
+        securityAnalysisParameters.setIncreasedViolationsParameters(increasedViolationsParameters);
+
+        List<Contingency> contingencies = allBranches(fourBusNetwork);
+
+        fourBusNetwork.getLine("l14").newActivePowerLimits1().setPermanentLimit(0.1).add();
+        fourBusNetwork.getLine("l12").newActivePowerLimits1().setPermanentLimit(0.2).add();
+        fourBusNetwork.getLine("l23").newActivePowerLimits1().setPermanentLimit(0.25).add();
+        fourBusNetwork.getLine("l34").newActivePowerLimits1().setPermanentLimit(0.15).add();
+        fourBusNetwork.getLine("l13").newActivePowerLimits1().setPermanentLimit(0.1).add();
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
+
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(5, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(5, result.getPostContingencyResults().size());
+        assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
