@@ -157,4 +157,6 @@ public interface LfBranch extends LfElement {
     void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 
     boolean isConnectedAtBothSides();
+
+    void setMinZ(boolean dc);
 }

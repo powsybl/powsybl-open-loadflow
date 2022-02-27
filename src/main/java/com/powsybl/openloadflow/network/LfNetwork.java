@@ -413,10 +413,7 @@ public class LfNetwork {
     public void fix(boolean minImpedance, boolean dc) {
         if (minImpedance) {
             for (LfBranch branch : branches) {
-                PiModel piModel = branch.getPiModel();
-                if (piModel.setMinZ(LfBranch.LOW_IMPEDANCE_THRESHOLD, dc)) {
-                    LOGGER.trace("Branch {} has a low impedance, set to min {}", branch.getId(), LfBranch.LOW_IMPEDANCE_THRESHOLD);
-                }
+                branch.setMinZ(dc);
             }
         }
     }

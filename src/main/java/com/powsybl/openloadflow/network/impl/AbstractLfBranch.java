@@ -273,4 +273,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     public boolean isConnectedAtBothSides() {
         return bus1 != null && bus2 != null;
     }
+
+    @Override
+    public void setMinZ(boolean dc) {
+        if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD, dc)) {
+            LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), LOW_IMPEDANCE_THRESHOLD);
+        }
+    }
 }
