@@ -232,6 +232,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
+    public boolean isZeroImpedanceBranch(boolean dc) {
+        if (dc) {
+            return FastMath.abs(piModel.getX()) < LOW_IMPEDANCE_THRESHOLD;
+        } else {
+            return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
+        }
+    }
+
+    @Override
     public void setSpanningTreeEdge(boolean spanningTreeEdge) {
         this.spanningTreeEdge = spanningTreeEdge;
     }

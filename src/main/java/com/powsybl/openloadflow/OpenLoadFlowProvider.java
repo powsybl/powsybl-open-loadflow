@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -43,8 +44,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
 
 /**
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
@@ -145,7 +144,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
                 double zb = nominalV * nominalV / PerUnit.SB;
                 double z = FastMath.hypot(line.getR(), line.getX());
-                return z / zb <= LOW_IMPEDANCE_THRESHOLD;
+                return z / zb <= LfBranch.LOW_IMPEDANCE_THRESHOLD;
             }).complete();
         }
 
