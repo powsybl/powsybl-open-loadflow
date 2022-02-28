@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Evaluable;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -69,20 +70,20 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
+    public Evaluable der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp1dv1();
+            return this::dp1dv1;
         } else if (variable.equals(v2Var)) {
-            return dp1dv2();
+            return this::dp1dv2;
         } else if (variable.equals(ph1Var)) {
-            return dp1dph1();
+            return this::dp1dph1;
         } else if (variable.equals(ph2Var)) {
-            return dp1dph2();
+            return this::dp1dph2;
         } else if (variable.equals(a1Var)) {
-            return dp1da1();
+            return this::dp1da1;
         } else if (variable.equals(r1Var)) {
-            return dp1dr1();
+            return this::dp1dr1;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

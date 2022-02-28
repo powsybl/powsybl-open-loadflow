@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Evaluable;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -114,18 +115,18 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
+    public Evaluable der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return di2dv1();
+            return this::di2dv1;
         } else if (variable.equals(v2Var)) {
-            return di2dv2();
+            return this::di2dv2;
         } else if (variable.equals(ph1Var)) {
-            return di2dph1();
+            return this::di2dph1;
         } else if (variable.equals(ph2Var)) {
-            return di2dph2();
+            return this::di2dph2;
         } else if (variable.equals(a1Var)) {
-            return di2da1();
+            return this::di2da1;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

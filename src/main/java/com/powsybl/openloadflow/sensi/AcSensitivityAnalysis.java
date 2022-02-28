@@ -81,7 +81,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 .filter(var -> var.getElementNum() == factor.getFunctionElement().getNum() && var.getType().equals(AcVariableType.BRANCH_ALPHA1))
                                 .findAny()
                                 .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
-                        sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var));
+                        sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var).eval());
                     }
                 }
                 if (factor.getFunctionPredefinedResult() != null) {

@@ -215,14 +215,14 @@ class EquationSystemTest {
         Variable<AcVariableType> v2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_PHI);
         Variable<AcVariableType> ph2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_PHI);
-        assertEquals(-43.120215, i1.der(v1var), 10E-6);
-        assertEquals(43.398907, i1.der(v2var), 10E-6);
-        assertEquals(3.945355, i1.der(ph1var), 10E-6);
-        assertEquals(-3.945355, i1.der(ph2var), 10E-6);
-        assertEquals(43.398907, i2.der(v1var), 10E-6);
-        assertEquals(-43.120215, i2.der(v2var), 10E-6);
-        assertEquals(-3.945355, i2.der(ph1var), 10E-6);
-        assertEquals(3.945355, i2.der(ph2var), 10E-6);
+        assertEquals(-43.120215, i1.der(v1var).eval(), 10E-6);
+        assertEquals(43.398907, i1.der(v2var).eval(), 10E-6);
+        assertEquals(3.945355, i1.der(ph1var).eval(), 10E-6);
+        assertEquals(-3.945355, i1.der(ph2var).eval(), 10E-6);
+        assertEquals(43.398907, i2.der(v1var).eval(), 10E-6);
+        assertEquals(-43.120215, i2.der(v2var).eval(), 10E-6);
+        assertEquals(-3.945355, i2.der(ph1var).eval(), 10E-6);
+        assertEquals(3.945355, i2.der(ph2var).eval(), 10E-6);
     }
 
     @Test
@@ -240,7 +240,7 @@ class EquationSystemTest {
         EquationTerm<AcVariableType, AcEquationType> i1 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI1();
         Variable<AcVariableType> v1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_PHI);
-        assertEquals(0.559170, i1.der(v1var), 10E-6);
+        assertEquals(0.559170, i1.der(v1var).eval(), 10E-6);
         assertThrows(IllegalStateException.class, () -> i1.der(ph1var));
     }
 
@@ -258,7 +258,7 @@ class EquationSystemTest {
         EquationTerm<AcVariableType, AcEquationType> i2 = (EquationTerm<AcVariableType, AcEquationType>) branch.getI2();
         Variable<AcVariableType> v2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_PHI);
-        assertEquals(0.55917, i2.der(v2var), 10E-6);
+        assertEquals(0.55917, i2.der(v2var).eval(), 10E-6);
         assertThrows(IllegalStateException.class, () -> i2.der(ph2var));
     }
 }

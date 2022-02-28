@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.Objects;
 
@@ -45,14 +46,14 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable<DcVariableType> variable) {
+    public Evaluable der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
-            return power;
+            return () -> power;
         } else if (variable.equals(ph2Var)) {
-            return -power;
+            return () -> -power;
         } else if (variable.equals(a1Var)) {
-            return power;
+            return () -> power;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.List;
 import java.util.Objects;
@@ -81,12 +82,12 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
+    public Evaluable der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
-            return dqdv();
+            return this::dqdv;
         } else if (variable.equals(bVar)) {
-            return dqdb();
+            return this::dqdb;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

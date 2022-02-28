@@ -90,8 +90,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double der(Variable<V> variable) {
-            return scalarSupplier.getAsDouble() * term.der(variable);
+        public Evaluable der(Variable<V> variable) {
+            return () -> scalarSupplier.getAsDouble() * term.der(variable).eval();
         }
 
         @Override
@@ -158,8 +158,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double der(Variable<V> variable) {
-            return 1;
+        public Evaluable der(Variable<V> variable) {
+            return () -> 1;
         }
 
         @Override
@@ -211,7 +211,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * @param variable the variable the partial derivative is with respect to
      * @return value of the partial derivative
      */
-    double der(Variable<V> variable);
+    Evaluable der(Variable<V> variable);
 
     /**
      * Check {@link #rhs()} can return a value different from zero.

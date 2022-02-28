@@ -12,6 +12,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Evaluable;
 import gnu.trove.list.array.TDoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,12 +140,12 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         @Override
-        public double der(Variable<InitVmVariableType> variable) {
+        public Evaluable der(Variable<InitVmVariableType> variable) {
             int i = variables.indexOf(variable);
             if (i == -1) {
                 throw new IllegalStateException("Unknown variable: " + variable);
             }
-            return der.getQuick(i);
+            return () -> der.getQuick(i);
         }
 
         @Override
