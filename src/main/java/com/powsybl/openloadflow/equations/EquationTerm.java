@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -159,7 +160,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public Evaluable der(Variable<V> variable) {
-            return () -> 1;
+            return EvaluableConstants.ONE;
         }
 
         @Override

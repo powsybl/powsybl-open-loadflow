@@ -15,6 +15,8 @@ public final class EvaluableConstants {
 
     public static final Evaluable ZERO = () -> 0;
 
+    public static final Evaluable ONE = () -> 1;
+
     private EvaluableConstants() {
     }
 }
