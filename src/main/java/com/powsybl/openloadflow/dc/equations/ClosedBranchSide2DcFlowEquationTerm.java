@@ -50,11 +50,11 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     public Evaluable der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
-            return () -> -power;
+            return this::getMinusPower;
         } else if (variable.equals(ph2Var)) {
-            return () -> power;
+            return this::getPower;
         } else if (variable.equals(a1Var)) {
-            return () -> -power;
+            return this::getMinusPower;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

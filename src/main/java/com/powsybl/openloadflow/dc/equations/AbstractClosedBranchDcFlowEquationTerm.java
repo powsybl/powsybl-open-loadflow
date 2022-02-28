@@ -52,6 +52,14 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
         }
     }
 
+    protected double getPower() {
+        return power;
+    }
+
+    protected double getMinusPower() {
+        return -power;
+    }
+
     @Override
     public double calculateSensi(DenseMatrix x, int column) {
         Objects.requireNonNull(x);
