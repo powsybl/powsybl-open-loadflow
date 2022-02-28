@@ -11,7 +11,13 @@ package com.powsybl.openloadflow.equations;
  */
 public interface EquationSystemIndexListener {
 
+    /**
+     * Called when a new variable has been added to the system.
+     */
     void onVariablesIndexUpdate();
 
+    /**
+     * Called when a new equation has been added to the system.
+     */
     void onEquationsIndexUpdate();
 }
