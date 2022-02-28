@@ -84,7 +84,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         GraphDecrementalConnectivity<LfBus> connectivity = largestNetwork.createDecrementalConnectivity(connectivityProvider);
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
-                .flatMap(propagatedContingency -> LfContingency.create(propagatedContingency, largestNetwork, connectivity, true).stream())
+                .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(largestNetwork, connectivity, true).stream())
                 // move contingencies that break connectivity at the end to minimize to number of Jacobian matrix
                 // initialization
                 .sorted(Comparator.comparingInt(c -> c.getBuses().size()))
@@ -143,26 +143,18 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 NetworkState networkState = NetworkState.save(network);
 
                 // start a simulation for each of the contingency
-                Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
-                GraphDecrementalConnectivity<LfBus> connectivity = network.createDecrementalConnectivity(connectivityProvider);
-                while (contingencyIt.hasNext()) {
-                    PropagatedContingency propagatedContingency = contingencyIt.next();
-                    propagatedContingency.toLfContingency(network, connectivity, true)
-                            .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                lfContingency.apply(loadFlowParameters);
+                for (LfContingency lfContingency : lfContingencies) {
+                    lfContingency.apply(loadFlowParameters);
 
                     distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                    Contingency contingency = contingencies.get(lfContingency.getIndex());
-                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, contingency, lfContingency, preContingencyLimitViolations, results);
+                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, contingencies.get(lfContingency.getIndex()), lfContingency, preContingencyLimitViolations, results);
                     postContingencyResults.add(postContingencyResult);
 
                     LOGGER.info("Restore pre-contingency state");
 
-                                    // restore base state
-                                    networkState.restore();
-                                }
-                            });
+                    // restore base state
+                    networkState.restore();
                 }
             }
 
