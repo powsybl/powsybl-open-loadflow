@@ -7,8 +7,11 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.AbstractConverterTest;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.GeneratorContingency;
+import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -19,7 +22,7 @@ import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.util.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.AfterEach;
@@ -39,6 +42,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -71,10 +75,10 @@ class LfContingencyTest extends AbstractConverterTest {
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
         List<PropagatedContingency> propagatedContingencies =
-            PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false);
+            PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false);
 
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
-                .flatMap(propagatedContingency -> LfContingency.create(propagatedContingency, mainNetwork, mainNetwork.createDecrementalConnectivity(connectivityProvider), true).stream())
+                .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(mainNetwork, mainNetwork.createDecrementalConnectivity(connectivityProvider), true).stream())
                 .collect(Collectors.toList());
         assertEquals(1, lfContingencies.size());
 
@@ -88,4 +92,39 @@ class LfContingencyTest extends AbstractConverterTest {
         }
     }
 
+    @Test
+    void testGeneratorNotFound() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertEquals(2, lfNetworks.size());
+
+        Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider = EvenShiloachGraphDecrementalConnectivity::new;
+        new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider, Collections.emptyList());
+
+        String generatorId = "GEN";
+        Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
+        assertThrows(PowsyblException.class, () ->
+                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false),
+                "Generator 'GEN' not found in the network");
+    }
+
+    @Test
+    void testLoadNotFound() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+        assertEquals(2, lfNetworks.size());
+
+        Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider = EvenShiloachGraphDecrementalConnectivity::new;
+        new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider, Collections.emptyList());
+
+        String loadId = "LOAD";
+        Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
+        assertThrows(PowsyblException.class, () ->
+                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false),
+                "Load 'LOAD' not found in the network");
+    }
 }

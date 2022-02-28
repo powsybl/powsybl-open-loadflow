@@ -14,6 +14,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -62,9 +63,11 @@ public class LfNetwork {
 
     private int shuntCount = 0;
 
-    private List<LfShunt> shuntsByIndex = new ArrayList<>();
+    private final List<LfShunt> shuntsByIndex = new ArrayList<>();
 
-    private Map<String, LfShunt> shuntsById = new HashMap<>();
+    private final Map<String, LfShunt> shuntsById = new HashMap<>();
+
+    private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
@@ -136,13 +139,14 @@ public class LfNetwork {
         bus.getShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().stream().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getControllerShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().stream().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
         });
+        bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
     }
 
     public List<LfBus> getBuses() {
@@ -170,6 +174,11 @@ public class LfNetwork {
     public LfShunt getShuntById(String id) {
         Objects.requireNonNull(id);
         return shuntsById.get(id);
+    }
+
+    public LfGenerator getGeneratorById(String id) {
+        Objects.requireNonNull(id);
+        return generatorsById.get(id);
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
@@ -402,11 +411,11 @@ public class LfNetwork {
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    public void fix(boolean minImpedance) {
+    public void fix(boolean minImpedance, boolean dc) {
         if (minImpedance) {
             for (LfBranch branch : branches) {
                 PiModel piModel = branch.getPiModel();
-                if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD)) {
+                if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD, dc)) {
                     LOGGER.trace("Branch {} has a low impedance, set to min {}", branch.getId(), LOW_IMPEDANCE_THRESHOLD);
                 }
             }
@@ -486,7 +495,7 @@ public class LfNetwork {
             Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
                 Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
                     "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
-            lfNetwork.fix(parameters.isMinImpedance());
+            lfNetwork.fix(parameters.isMinImpedance(), parameters.isDc());
             lfNetwork.validate(parameters.isMinImpedance(), parameters.isDc(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);

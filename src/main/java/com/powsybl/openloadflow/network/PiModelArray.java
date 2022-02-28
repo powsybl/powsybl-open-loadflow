@@ -24,13 +24,12 @@ public class PiModelArray implements PiModel {
 
     private double r1 = Double.NaN;
 
-    private final LfNetwork network;
+    private LfBranch branch;
 
-    public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition, LfNetwork network) {
+    public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition) {
         this.models = Objects.requireNonNull(models);
         this.lowTapPosition = lowTapPosition;
         this.tapPosition = tapPosition;
-        this.network = network;
     }
 
     private PiModel getModel() {
@@ -171,19 +170,24 @@ public class PiModelArray implements PiModel {
             hasChange = true;
         }
         if (hasChange) {
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onDiscretePhaseControlTapPositionChange(this, oldTapPosition, tapPosition);
+            for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
+                listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
             }
         }
         return hasChange;
     }
 
     @Override
-    public boolean setMinZ(double minZ) {
+    public boolean setMinZ(double minZ, boolean dc) {
         boolean done = false;
         for (PiModel model : models) {
-            done |= model.setMinZ(minZ);
+            done |= model.setMinZ(minZ, dc);
         }
         return done;
+    }
+
+    @Override
+    public void setBranch(LfBranch branch) {
+        this.branch = Objects.requireNonNull(branch);
     }
 }

@@ -12,6 +12,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
@@ -633,6 +634,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             controllerShunt.setVoltageControlCapability(false);
             return;
         }
+        if (controllerShunt.isVoltageControlEnabled()) {
+            // if a controller shunt is already in a shunt voltage control, the number of equations will not equal the
+            // number of variables. We have only one B variable for more than one bus target V equations.
+            LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
+            return;
+        }
 
         controllerShunt.setVoltageControlEnabled(true);
 
@@ -769,6 +776,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     public List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
+
+        if (!network.getValidationLevel().equals(ValidationLevel.STEADY_STATE_HYPOTHESIS)) {
+            throw new PowsyblException("Only STEADY STATE HYPOTHESIS validation level of the network is supported");
+        }
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 

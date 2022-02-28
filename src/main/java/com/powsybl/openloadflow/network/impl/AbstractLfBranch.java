@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.math3.util.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
+        this.piModel.setBranch(this);
     }
 
     protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {

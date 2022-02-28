@@ -153,16 +153,24 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
     }
 
+    private final boolean transformerVoltageControlOn;
+
     private final MatrixFactory matrixFactory;
 
-    public VoltageMagnitudeInitializer(MatrixFactory matrixFactory) {
+    public VoltageMagnitudeInitializer(boolean transformerVoltageControlOn, MatrixFactory matrixFactory) {
+        this.transformerVoltageControlOn = transformerVoltageControlOn;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
     }
 
     private static void initTarget(Equation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_V:
-                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getVoltageControl().orElseThrow().getTargetValue();
+                LfBus bus = network.getBus(equation.getElementNum());
+                targets[equation.getColumn()] = bus.getVoltageControl()
+                        .map(VoltageControl::getTargetValue)
+                        .orElseGet(() -> bus.getTransformerVoltageControl()
+                                .map(DiscreteVoltageControl::getTargetValue)
+                                .orElseThrow());
                 break;
             case BUS_ZERO:
                 targets[equation.getColumn()] = 0;
@@ -189,7 +197,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         for (LfBus bus : network.getBuses()) {
             EquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
                     .createTerm();
-            if (bus.isVoltageControlled()) {
+            if (bus.isVoltageControlled() || (transformerVoltageControlOn && bus.isTransformerVoltageControlled())) {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
                         .addTerm(v);
             } else {

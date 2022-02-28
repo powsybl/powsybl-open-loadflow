@@ -14,14 +14,12 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.ac.DefaultOuterLoopConfig;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopConfig;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -423,7 +421,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
         LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
-        LOGGER.info("Shunt voltage control: {}", parameters.isSimulShunt());
+        LOGGER.info("Shunt voltage control: {}", parameters.isShuntCompensatorVoltageControlOn());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
@@ -446,10 +444,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 return getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
 
             case VOLTAGE_MAGNITUDE:
-                return new VoltageMagnitudeInitializer(matrixFactory);
+                return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory);
 
             case FULL_VOLTAGE:
-                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(matrixFactory),
+                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory),
                         new DcValueVoltageInitializer(networkParameters,
                                                       parameters.isDistributedSlack(),
                                                       parameters.getBalanceType(),
@@ -479,7 +477,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                        parametersExt.isVoltagePerReactivePowerControl(),
                                        parametersExt.hasReactivePowerRemoteControl(),
                                        parameters.isDc(),
-                                       parameters.isSimulShunt(),
+                                       parameters.isShuntCompensatorVoltageControlOn(),
                                        !parameters.isNoGeneratorReactiveLimits());
     }
 
@@ -536,7 +534,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         var networkParameters = new LfNetworkParameters(slackBusSelector,
                                                         false,
-                                                        false,
+                                                        parametersExt.getLowImpedanceBranchMode() == LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                                                         false,
                                                         false,
                                                         parametersExt.getPlausibleActivePowerLimit(),

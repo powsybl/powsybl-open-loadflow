@@ -4,12 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.*;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopConfig;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 
 import java.util.ArrayList;
@@ -42,7 +41,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
                 throw new IllegalStateException("Unknown transformer voltage control mode: " + parametersExt.getTransformerVoltageControlMode());
             }
         }
-        if (parameters.isSimulShunt()) {
+        if (parameters.isShuntCompensatorVoltageControlOn()) {
             outerLoops.add(new ShuntVoltageControlOuterLoop());
         }
         return outerLoops;

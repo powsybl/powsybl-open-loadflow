@@ -11,7 +11,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
 import java.util.Optional;

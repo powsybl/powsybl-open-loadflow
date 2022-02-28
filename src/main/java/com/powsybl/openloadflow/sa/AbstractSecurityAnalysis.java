@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.LimitType;
@@ -17,6 +18,7 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
@@ -75,20 +77,23 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     public CompletableFuture<SecurityAnalysisReport> run(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters,
-                                                         ContingenciesProvider contingenciesProvider) {
+                                                         ContingenciesProvider contingenciesProvider, ComputationManager computationManager) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
         return CompletableFuture.supplyAsync(() -> {
             String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            SecurityAnalysisReport result = runSync(securityAnalysisParameters, contingenciesProvider);
-            network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
-            return result;
+            try {
+                return runSync(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
+            } finally {
+                network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
+            }
         });
     }
 
-    abstract SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider);
+    abstract SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
+                                            ComputationManager computationManager);
 
     /**
      * Detect violations on branches and on buses

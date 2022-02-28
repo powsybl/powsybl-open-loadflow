@@ -13,9 +13,13 @@ import com.google.auto.service.AutoService;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyList;
+import com.powsybl.contingency.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.xml.NetworkXml;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
@@ -25,10 +29,9 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.util.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.sensitivity.*;
-import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
-import com.powsybl.sensitivity.json.SensitivityAnalysisParametersJsonModule;
+import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.joda.time.DateTime;
 
@@ -39,10 +42,10 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -97,106 +100,22 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return lfParametersExt;
     }
 
-    @Override
-    public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
-                                                            SensitivityFactorsProvider sensitivityFactorsProvider,
-                                                            List<Contingency> contingencies,
-                                                            SensitivityAnalysisParameters sensitivityAnalysisParameters,
-                                                            ComputationManager computationManager) {
-        return run(network, workingStateId, sensitivityFactorsProvider, contingencies, sensitivityAnalysisParameters, computationManager, Reporter.NO_OP);
-    }
-
-    private static void addVariableSet(SensitivityFactor factor, Map<String, SensitivityVariableSet> variableSetsById) {
-        if (factor instanceof BranchFlowPerLinearGlsk) {
-            BranchFlowPerLinearGlsk glskFactor = (BranchFlowPerLinearGlsk) factor;
-            List<WeightedSensitivityVariable> weightedVariables = glskFactor.getVariable().getGLSKs()
-                    .entrySet().stream()
-                    .map(e -> new WeightedSensitivityVariable(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList());
-            if (!variableSetsById.containsKey(glskFactor.getVariable().getId())) {
-                variableSetsById.put(glskFactor.getVariable().getId(), new SensitivityVariableSet(glskFactor.getVariable().getId(), weightedVariables));
-            }
-        }
-    }
-
-    private static List<SensitivityVariableSet> getVariableSets(Network network, SensitivityFactorsProvider sensitivityFactorsProvider,
-                                                                List<Contingency> contingencies) {
-        Map<String, SensitivityVariableSet> variableSetsById = new HashMap<>();
-        for (SensitivityFactor factor : sensitivityFactorsProvider.getCommonFactors(network)) {
-            addVariableSet(factor, variableSetsById);
-        }
-        for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network)) {
-            addVariableSet(factor, variableSetsById);
-        }
-        for (Contingency contingency : contingencies) {
-            for (SensitivityFactor factor : sensitivityFactorsProvider.getAdditionalFactors(network, contingency.getId())) {
-                addVariableSet(factor, variableSetsById);
-            }
-        }
-        return new ArrayList<>(variableSetsById.values());
-    }
-
-    @Override
-    public CompletableFuture<SensitivityAnalysisResult> run(Network network, String workingStateId,
-                                                            SensitivityFactorsProvider sensitivityFactorsProvider,
-                                                            List<Contingency> contingencies,
-                                                            SensitivityAnalysisParameters sensitivityAnalysisParameters,
-                                                            ComputationManager computationManager,
-                                                            Reporter reporter) {
-
-        Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
-                "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
-        return CompletableFuture.supplyAsync(() -> {
-            network.getVariantManager().setWorkingVariant(workingStateId);
-
-            List<SensitivityVariableSet> variableSets = getVariableSets(network, sensitivityFactorsProvider, contingencies);
-            SensitivityFactorReader factorReader = new SensitivityFactorReaderAdapter(network, sensitivityFactorsProvider, contingencies, variableSets);
-            SensitivityValueWriterAdapter valueWriter = new SensitivityValueWriterAdapter();
-            run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, sensiReporter);
-
-            boolean ok = true;
-            Map<String, String> metrics = new HashMap<>();
-            String logs = "";
-            return new SensitivityAnalysisResult(ok, metrics, logs, valueWriter.getSensitivityValues(), valueWriter.getSensitivityValuesByContingency());
-        });
-    }
-
-    public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityFactorReader factorReader,
-                    SensitivityValueWriter valueWriter) {
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, factorReader, valueWriter, Reporter.NO_OP);
-    }
-
-    public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor2> factors,
-                    SensitivityValueWriter valueWriter, Reporter reporter) {
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors), valueWriter, reporter);
-    }
-
-    public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor2> factors,
-                    SensitivityValueWriter valueWriter) {
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
-    }
-
-    public SensitivityAnalysisResult2 run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                                       SensitivityAnalysisParameters sensitivityAnalysisParameters, List<SensitivityFactor2> factors) {
-        SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, factors, valueWriter, Reporter.NO_OP);
-        return new SensitivityAnalysisResult2(valueWriter.getValues());
-    }
-
     private static ObjectMapper createObjectMapper() {
         return new ObjectMapper()
                 .registerModule(new ContingencyJsonModule())
                 .registerModule(new LoadFlowParametersJsonModule())
-                .registerModule(new SensitivityAnalysisParametersJsonModule())
                 .registerModule(new SensitivityJsonModule());
     }
 
-    public void run(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                    SensitivityAnalysisParameters sensitivityAnalysisParameters, SensitivityFactorReader factorReader,
-                    SensitivityValueWriter valueWriter, Reporter reporter) {
+    public CompletableFuture<Void> run(Network network,
+                                       String workingVariantId,
+                                       SensitivityFactorReader factorReader,
+                                       SensitivityValueWriter valueWriter,
+                                       List<Contingency> contingencies,
+                                       List<SensitivityVariableSet> variableSets,
+                                       SensitivityAnalysisParameters sensitivityAnalysisParameters,
+                                       ComputationManager computationManager,
+                                       Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);
@@ -205,50 +124,63 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies);
-
-        LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
-        OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
-        OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
-
-        SensitivityFactorReader decoratedFactorReader = factorReader;
-
-        // debugging
-        if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
-            Path debugDir = PlatformConfig.defaultConfig().getConfigDir().getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir());
-            String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
-
-            NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
-
-            ObjectWriter objectWriter = createObjectMapper()
-                    .writerWithDefaultPrettyPrinter();
+        return CompletableFuture.runAsync(() -> {
+            String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
+            network.getVariantManager().setWorkingVariant(workingVariantId);
             try {
-                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                    objectWriter.writeValue(writer, contingencies);
+                Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
+                        "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
+
+                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies,
+                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+
+                LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+                OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
+                OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
+
+                SensitivityFactorReader decoratedFactorReader = factorReader;
+
+                // debugging
+                if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
+                    Path debugDir = PlatformConfig.defaultConfig().getConfigDir().getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir());
+                    String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
+
+                    NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
+
+                    ObjectWriter objectWriter = createObjectMapper()
+                            .writerWithDefaultPrettyPrinter();
+                    try {
+                        try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                            ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
+                            objectWriter.writeValue(writer, contingencyList);
+                        }
+
+                        try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                            objectWriter.writeValue(writer, variableSets);
+                        }
+
+                        try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                            objectWriter.writeValue(writer, sensitivityAnalysisParameters);
+                        }
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+
+                    decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
                 }
 
-                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                    objectWriter.writeValue(writer, variableSets);
+                if (lfParameters.isDc()) {
+                    dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, sensiReporter);
+                } else {
+                    acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, sensiReporter);
                 }
-
-                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                    objectWriter.writeValue(writer, sensitivityAnalysisParameters);
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
+            } finally {
+                network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
             }
-
-            decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
-        }
-
-        if (lfParameters.isDc()) {
-            dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, reporter);
-        } else {
-            acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, reporter);
-        }
+        }, computationManager.getExecutor());
     }
 
-    public void replay(DateTime date, Path debugDir, SensitivityValueWriter valueWriter, Reporter reporter) {
+    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, T valueWriter, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(valueWriter);
@@ -256,16 +188,21 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
 
-        List<SensitivityFactor2> factors = SensitivityFactor2.parseJson(debugDir.resolve("factors-" + dateStr + ".json"));
+        Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
 
         ObjectMapper objectMapper = createObjectMapper();
+        List<SensitivityFactor> factors;
         List<Contingency> contingencies;
         List<SensitivityVariableSet> variableSets;
         SensitivityAnalysisParameters sensitivityAnalysisParameters;
         try {
-            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                contingencies = objectMapper.readValue(reader, new TypeReference<>() {
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("factors-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                factors = objectMapper.readValue(reader, new TypeReference<>() {
                 });
+            }
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                ContingencyList contingencyList = objectMapper.readValue(reader, DefaultContingencyList.class);
+                contingencies = contingencyList.getContingencies(network);
             }
             try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
                 variableSets = objectMapper.readValue(reader, new TypeReference<>() {
@@ -285,18 +222,19 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             sensiParametersExt.setDebugDir(null);
         }
 
-        Network network = NetworkXml.read(debugDir.resolve("network-" + dateStr + ".xiidm"));
+        run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), valueWriter,
+                contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter)
+                .join();
 
-        run(network, contingencies, variableSets, sensitivityAnalysisParameters, new SensitivityFactorModelReader(factors), valueWriter, reporter);
+        return valueWriter;
     }
 
-    public void replay(DateTime date, Path debugDir, SensitivityValueWriter valueWriter) {
-        replay(date, debugDir, valueWriter, Reporter.NO_OP);
+    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, T valueWriter) {
+        return replay(date, debugDir, valueWriter, Reporter.NO_OP);
     }
 
-    public List<SensitivityValue2> replay(DateTime date, Path debugDir) {
-        SensitivityValueModelWriter valueWriter = new SensitivityValueModelWriter();
-        replay(date, debugDir, valueWriter);
+    public List<SensitivityValue> replay(DateTime date, Path debugDir) {
+        SensitivityValueModelWriter valueWriter = replay(date, debugDir, new SensitivityValueModelWriter());
         return valueWriter.getValues();
     }
 }

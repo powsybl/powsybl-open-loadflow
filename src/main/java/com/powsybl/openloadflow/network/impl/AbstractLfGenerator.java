@@ -8,9 +8,11 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
@@ -84,6 +86,16 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public boolean hasVoltageControl() {
         return generatorControlType == GeneratorControlType.VOLTAGE;
+    }
+
+    @Override
+    public GeneratorControlType getGeneratorControlType() {
+        return generatorControlType;
+    }
+
+    @Override
+    public void setGeneratorControlType(GeneratorControlType generatorControlType) {
+        this.generatorControlType = Objects.requireNonNull(generatorControlType);
     }
 
     @Override
@@ -251,10 +263,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         return remoteTargetQ;
     }
 
-    protected enum GeneratorControlType {
-        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
-    }
-
     @Override
     public Object getUserObject() {
         return userObject;
@@ -304,5 +312,10 @@ public abstract class AbstractLfGenerator implements LfGenerator {
             participating = false;
         }
         return participating;
+    }
+
+    @Override
+    public String toString() {
+        return getId();
     }
 }
