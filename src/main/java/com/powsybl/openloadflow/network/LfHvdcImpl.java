@@ -43,7 +43,7 @@ public final class LfHvdcImpl extends AbstractElement implements LfHvdc {
         this.id = hvdcId;
         this.bus1 = bus1;
         this.bus2 = bus2;
-        droop = control.getDroop(); // should be in per unit? In degree/MW?
+        droop = control.getDroop();
         p0 = control.getP0();
     }
 
@@ -79,7 +79,7 @@ public final class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public double getDroop() {
-        return droop;
+        return droop / PerUnit.SB;
     }
 
     @Override
@@ -122,7 +122,7 @@ public final class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public void updateState() {
         // Should be done before updating state of generators.
-        vsc1.setTargetP(p1.eval());
-        vsc2.setTargetP(p2.eval());
+        vsc1.setTargetP(-p1.eval());
+        vsc2.setTargetP(-p2.eval());
     }
 }

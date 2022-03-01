@@ -383,6 +383,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfHvdc lfHvdc = new LfHvdcImpl(control, lfBus1, lfBus2, lfNetwork, hvdcLine.getId());
                 lfHvdc.setConverterStation1((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId()));
                 lfHvdc.setConverterStation2((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId()));
+                lfNetwork.addHvdc(lfHvdc);
             }
         }
     }

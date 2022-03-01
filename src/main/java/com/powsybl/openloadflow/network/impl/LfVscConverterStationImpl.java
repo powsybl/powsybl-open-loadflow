@@ -19,9 +19,15 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private final VscConverterStation station;
 
+    private boolean isRectifier;
+
+    private double lossFactor;
+
     private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         super(getHvdcLineTargetP(station));
         this.station = station;
+        this.isRectifier = HvdcConverterStations.isRectifier(station);
+        this.lossFactor = station.getLossFactor();
 
         // local control only
         if (station.isVoltageRegulatorOn()) {
@@ -42,6 +48,14 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
         // If the converter station is at side 2 and is inverter, targetP should be positive.
         HvdcLine line = vscCs.getHvdcLine();
         return line.getActivePowerSetpoint() * HvdcConverterStations.getActivePowerSetpointMultiplier(vscCs);
+    }
+
+    public boolean isRectifier() {
+        return isRectifier;
+    }
+
+    public double getLossFactor() {
+        return lossFactor;
     }
 
     @Override
