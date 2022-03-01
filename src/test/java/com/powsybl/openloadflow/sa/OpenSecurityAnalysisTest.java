@@ -85,22 +85,26 @@ class OpenSecurityAnalysisTest {
      */
     private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
                                                               LoadFlowParameters lfParameters) {
-        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
-        saParameters.setLoadFlowParameters(lfParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        return runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+    }
 
+    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
+                                                              SecurityAnalysisParameters saParameters) {
         ContingenciesProvider provider = n -> contingencies;
         var saProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
         var computationManager = Mockito.mock(ComputationManager.class);
         Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
         SecurityAnalysisReport report = saProvider.run(network,
-                                                       network.getVariantManager().getWorkingVariantId(),
-                                                       new DefaultLimitViolationDetector(),
-                                                       new LimitViolationFilter(),
-                                                       computationManager,
-                                                       saParameters,
-                                                       provider,
-                                                       Collections.emptyList(),
-                                                       monitors)
+                network.getVariantManager().getWorkingVariantId(),
+                new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(),
+                computationManager,
+                saParameters,
+                provider,
+                Collections.emptyList(),
+                monitors)
                 .join();
         return report.getResult();
     }
@@ -545,10 +549,11 @@ class OpenSecurityAnalysisTest {
     @Test
     void testSaDcMode() {
         Network fourBusNetwork = FourBusNetworkFactory.create();
-
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDc(true);
         setSlackBusId(lfParameters, "b1_vl_0");
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
         List<Contingency> contingencies = allBranches(fourBusNetwork);
 
@@ -560,13 +565,74 @@ class OpenSecurityAnalysisTest {
 
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
 
-        SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, lfParameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
 
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
         assertEquals(5, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(5, result.getPostContingencyResults().size());
-        assertEquals(4, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(4, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
+
+        //Branch result for first contingency
+        assertEquals(5, result.getPostContingencyResults().get(0).getBranchResults().size());
+
+        //Check branch results for flowTransfer computation for contingency on l14
+        PostContingencyResult postContl14 = getPostContingencyResult(result, "l14");
+        assertEquals("l14", postContl14.getContingency().getId());
+
+        BranchResult brl14l12 = postContl14.getBranchResult("l12");
+        assertEquals(0.333, brl14l12.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.333, brl14l12.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+
+        BranchResult brl14l14 = postContl14.getBranchResult("l14");
+        assertEquals(0.0, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.0, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+
+        BranchResult brl14l23 = postContl14.getBranchResult("l23");
+        assertEquals(1.333, brl14l23.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.333, brl14l23.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+
+        BranchResult brl14l34 = postContl14.getBranchResult("l34");
+        assertEquals(-1.0, brl14l34.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.0, brl14l34.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+
+        BranchResult brl14l13 = postContl14.getBranchResult("l13");
+        assertEquals(1.666, brl14l13.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.666, brl14l13.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSaDcModeWithIncreasedParameters() {
+        Network fourBusNetwork = FourBusNetworkFactory.create();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setDc(true);
+        setSlackBusId(lfParameters, "b1_vl_0");
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        SecurityAnalysisParameters.IncreasedViolationsParameters increasedViolationsParameters = new SecurityAnalysisParameters.IncreasedViolationsParameters();
+        increasedViolationsParameters.setFlowProportionalThreshold(0);
+        securityAnalysisParameters.setIncreasedViolationsParameters(increasedViolationsParameters);
+
+        List<Contingency> contingencies = allBranches(fourBusNetwork);
+
+        fourBusNetwork.getLine("l14").newActivePowerLimits1().setPermanentLimit(0.1).add();
+        fourBusNetwork.getLine("l12").newActivePowerLimits1().setPermanentLimit(0.2).add();
+        fourBusNetwork.getLine("l23").newActivePowerLimits1().setPermanentLimit(0.25).add();
+        fourBusNetwork.getLine("l34").newActivePowerLimits1().setPermanentLimit(0.15).add();
+        fourBusNetwork.getLine("l13").newActivePowerLimits1().setPermanentLimit(0.1).add();
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
+
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertEquals(5, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(5, result.getPostContingencyResults().size());
+        assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
@@ -1095,6 +1161,79 @@ class OpenSecurityAnalysisTest {
         // post-contingency tests
         PostContingencyResult contingencyResult = getPostContingencyResult(result, "T2wT");
         assertEquals(11.228, contingencyResult.getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testPostContingencyFiltering() {
+        Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
+        network.getLine("NHV1_NHV2_2").newCurrentLimits1()
+                .setPermanentLimit(300)
+                .add();
+        network.getVoltageLevel("VLHV1").setLowVoltageLimit(410);
+
+        List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_1", new BranchContingency("NHV1_NHV2_1")));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        parameters.getIncreasedViolationsParameters().setFlowProportionalThreshold(0.0);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), parameters);
+
+        List<LimitViolation> preContingencyLimitViolationsOnLine = result.getPreContingencyResult().getLimitViolationsResult()
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSide().equals(Branch.Side.ONE)).collect(Collectors.toList());
+        assertEquals(LimitViolationType.CURRENT, preContingencyLimitViolationsOnLine.get(0).getLimitType());
+        assertEquals(459, preContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
+
+        List<LimitViolation> postContingencyLimitViolationsOnLine = result.getPostContingencyResults().get(0).getLimitViolationsResult()
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSide().equals(Branch.Side.ONE)).collect(Collectors.toList());
+        assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolationsOnLine.get(0).getLimitType());
+        assertEquals(1014.989, postContingencyLimitViolationsOnLine.get(0).getValue(), LoadFlowAssert.DELTA_I);
+
+        List<LimitViolation> preContingencyLimitViolationsOnVoltageLevel = result.getPreContingencyResult().getLimitViolationsResult()
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
+        assertEquals(LimitViolationType.LOW_VOLTAGE, preContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
+        assertEquals(400.63, preContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
+
+        List<LimitViolation> postContingencyLimitViolationsOnVoltageLevel = result.getPostContingencyResults().get(0).getLimitViolationsResult()
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
+        assertEquals(LimitViolationType.LOW_VOLTAGE, postContingencyLimitViolationsOnVoltageLevel.get(0).getLimitType());
+        assertEquals(396.70, postContingencyLimitViolationsOnVoltageLevel.get(0).getValue(), LoadFlowAssert.DELTA_V);
+
+        parameters.getIncreasedViolationsParameters().setFlowProportionalThreshold(1.5);
+        parameters.getIncreasedViolationsParameters().setLowVoltageProportionalThreshold(0.1);
+        parameters.getIncreasedViolationsParameters().setLowVoltageAbsoluteThreshold(5);
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, Collections.emptyList(), parameters);
+
+        List<LimitViolation> postContingencyLimitViolationsOnLine2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult()
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("NHV1_NHV2_2") && violation.getSide().equals(Branch.Side.ONE)).collect(Collectors.toList());
+        assertEquals(0, postContingencyLimitViolationsOnLine2.size());
+
+        List<LimitViolation> postContingencyLimitViolationsOnVoltageLevel2 = result2.getPostContingencyResults().get(0).getLimitViolationsResult()
+                .getLimitViolations().stream().filter(violation -> violation.getSubjectId().equals("VLHV1")).collect(Collectors.toList());
+        assertEquals(0, postContingencyLimitViolationsOnVoltageLevel2.size());
+    }
+
+    @Test
+    void testViolationsWeakenedOrEquivalent() {
+        LimitViolation violation1 = new LimitViolation("voltageLevel1", LimitViolationType.HIGH_VOLTAGE, 420, 1, 421);
+        LimitViolation violation2 =  new LimitViolation("voltageLevel1", LimitViolationType.HIGH_VOLTAGE, 420, 1, 425.20);
+        SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters = new SecurityAnalysisParameters.IncreasedViolationsParameters();
+        violationsParameters.setFlowProportionalThreshold(1.5);
+        violationsParameters.setHighVoltageProportionalThreshold(0.1);
+        violationsParameters.setHighVoltageAbsoluteThreshold(3);
+        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
+        violationsParameters.setHighVoltageProportionalThreshold(0.01); // 4.21 kV
+        violationsParameters.setHighVoltageAbsoluteThreshold(5);
+        assertTrue(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
+
+        LimitViolation violation3 = new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 375);
+        LimitViolation violation4 =  new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 371.26);
+        violationsParameters.setFlowProportionalThreshold(1.5);
+        violationsParameters.setLowVoltageProportionalThreshold(0.1);
+        violationsParameters.setLowVoltageAbsoluteThreshold(3);
+        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
+        violationsParameters.setLowVoltageProportionalThreshold(0.01); // 3.75 kV
+        violationsParameters.setLowVoltageAbsoluteThreshold(5);
+        assertTrue(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
+
+        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation4, violationsParameters));
     }
 
     @Test
