@@ -246,7 +246,7 @@ public final class AcEquationSystem {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
-            if (LfNetwork.isZeroImpedanceBranch(branch)) {
+            if (branch.isZeroImpedanceBranch(false)) {
                 if (!branch.isSpanningTreeEdge()) {
                     continue;
                 }
@@ -733,7 +733,7 @@ public final class AcEquationSystem {
                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                 AcEquationSystemCreationParameters creationParameters) {
         // create zero and non zero impedance branch equations
-        if (LfNetwork.isZeroImpedanceBranch(branch)) {
+        if (branch.isZeroImpedanceBranch(false)) {
             if (branch.isSpanningTreeEdge()) {
                 createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem);
             }

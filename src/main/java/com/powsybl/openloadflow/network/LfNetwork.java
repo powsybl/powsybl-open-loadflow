@@ -42,7 +42,6 @@ public class LfNetwork {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
-    public static final double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
     private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
 
     private final int numCC;
@@ -441,10 +440,7 @@ public class LfNetwork {
     public void fix(boolean minImpedance, boolean dc) {
         if (minImpedance) {
             for (LfBranch branch : branches) {
-                PiModel piModel = branch.getPiModel();
-                if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD, dc)) {
-                    LOGGER.trace("Branch {} has a low impedance, set to min {}", branch.getId(), LOW_IMPEDANCE_THRESHOLD);
-                }
+                branch.setMinZ(dc);
             }
         }
     }
@@ -471,13 +467,13 @@ public class LfNetwork {
         }
     }
 
-    private void validateBranches(boolean minImpedance) {
+    private void validateBranches(boolean minImpedance, boolean dc) {
         if (minImpedance) {
             return;
         }
         for (LfBranch branch : branches) {
-            PiModel piModel = branch.getPiModel();
-            if (Math.abs(piModel.getZ()) < LOW_IMPEDANCE_THRESHOLD) { // will be transformed to non impedant branch
+            if (branch.isZeroImpedanceBranch(dc)) { // will be transformed to non impedant branch
+                PiModel piModel = branch.getPiModel();
                 LfBus bus1 = branch.getBus1();
                 LfBus bus2 = branch.getBus2();
                 // ensure target voltages are consistent
@@ -498,7 +494,7 @@ public class LfNetwork {
     public void validate(boolean minImpedance, boolean dc, Reporter reporter) {
         valid = true;
         validateBuses(dc, reporter);
-        validateBranches(minImpedance);
+        validateBranches(minImpedance, dc);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
@@ -537,8 +533,8 @@ public class LfNetwork {
      * The graph is intentionally not cached as a parameter so far, to avoid the complexity of invalidating it if changes occur
      * @return the zero-impedance subgraph
      */
-    public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph() {
-        return createSubGraph(branch -> LfNetwork.isZeroImpedanceBranch(branch)
+    public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(boolean dc) {
+        return createSubGraph(branch -> branch.isZeroImpedanceBranch(dc)
                 && branch.getBus1() != null && branch.getBus2() != null);
     }
 
@@ -557,11 +553,6 @@ public class LfNetwork {
         }
 
         return subGraph;
-    }
-
-    public static boolean isZeroImpedanceBranch(LfBranch branch) {
-        PiModel piModel = branch.getPiModel();
-        return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
     }
 
     public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity(Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
