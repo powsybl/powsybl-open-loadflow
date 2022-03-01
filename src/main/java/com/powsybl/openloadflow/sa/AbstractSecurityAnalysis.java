@@ -56,8 +56,6 @@ public abstract class AbstractSecurityAnalysis {
 
     protected final StateMonitorIndex monitorIndex;
 
-    private static final double POST_CONTINGENCY_INCREASING_FACTOR = 1.1;
-
     protected AbstractSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
                                 MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider, List<StateMonitor> stateMonitors) {
         this.network = Objects.requireNonNull(network);
@@ -219,17 +217,33 @@ public abstract class AbstractSecurityAnalysis {
      * @param violation2 second limit violation
      * @return true if violation2 is weaker than or equivalent to violation1, otherwise false
      */
-    protected static boolean violationWeakenedOrEquivalent(LimitViolation violation1, LimitViolation violation2) {
-        if (violation2 != null) {
+    protected static boolean violationWeakenedOrEquivalent(LimitViolation violation1, LimitViolation violation2,
+                                                           SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters) {
+        if (violation2 != null && violation1.getLimitType() == violation2.getLimitType()) {
             if (violation2.getLimit() < violation1.getLimit()) {
-                return true; // the limit violated is smaller hence the violation is weaker
+                // the limit violated is smaller hence the violation is weaker, for flow violations only.
+                // for voltage limits, we have only one limit by limit type.
+                return true;
             }
             if (violation2.getLimit() == violation1.getLimit()) {
-                // the limit violated is the same: we consider the violations equivalent if the new value is close to previous one
-                return violation2.getValue() <= violation1.getValue() * POST_CONTINGENCY_INCREASING_FACTOR;
+                // the limit violated is the same: we consider the violations equivalent if the new value is close to previous one.
+                if (isFlowViolation(violation2)) {
+                    return Math.abs(violation2.getValue()) <= Math.abs(violation1.getValue()) * (1 + violationsParameters.getFlowProportionalThreshold());
+                } else if (violation2.getLimitType() == LimitViolationType.HIGH_VOLTAGE) {
+                    double value = Math.min(violationsParameters.getHighVoltageAbsoluteThreshold(), violation1.getValue() * violationsParameters.getHighVoltageProportionalThreshold());
+                    return violation2.getValue() <= violation1.getValue() + value;
+                } else if (violation2.getLimitType() == LimitViolationType.LOW_VOLTAGE) {
+                    return violation2.getValue() >= violation1.getValue() - Math.min(violationsParameters.getLowVoltageAbsoluteThreshold(), violation1.getValue() * violationsParameters.getLowVoltageProportionalThreshold());
+                } else {
+                    return false;
+                }
             }
         }
         return false;
+    }
+
+    protected static boolean isFlowViolation(LimitViolation limit) {
+        return limit.getLimitType() == LimitViolationType.CURRENT || limit.getLimitType() == LimitViolationType.ACTIVE_POWER || limit.getLimitType() == LimitViolationType.APPARENT_POWER;
     }
 
     protected void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
