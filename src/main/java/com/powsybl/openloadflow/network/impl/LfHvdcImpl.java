@@ -4,10 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.network;
+package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
-import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -100,7 +100,7 @@ public final class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public void setConverterStation1(LfVscConverterStationImpl converterStation1) {
         this.vsc1 = converterStation1;
-        converterStation1.setTargetP(0.);
+        converterStation1.setTargetP(0);
     }
 
     @Override

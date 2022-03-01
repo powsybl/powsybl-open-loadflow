@@ -43,7 +43,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
         variables = List.of(ph1Var, ph2Var);
         this.hvdc = hvdc;
-        k = hvdc.getDroop();
+        k = hvdc.getDroop() * 180 / Math.PI;
         p0 = hvdc.getP0();
     }
 

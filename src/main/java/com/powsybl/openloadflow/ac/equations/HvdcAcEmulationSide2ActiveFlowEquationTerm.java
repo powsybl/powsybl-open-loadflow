@@ -25,11 +25,11 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     public HvdcAcEmulationSide2ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc, bus1, bus2, variableSet);
         sign = hvdc.getConverterStation2().isRectifier() ? 1 : -1;
-        multiplier = sign * (1 + sign * hvdc.getConverterStation2().getLossFactor() / 100);
+        multiplier = 1 + sign * hvdc.getConverterStation2().getLossFactor() / 100;
     }
 
     private double p2() {
-        return multiplier * (p0 - k * (ph1() - ph2()));
+        return multiplier * (-p0 - k * (ph1() - ph2()));
     }
 
     private double dp1dv1() {
