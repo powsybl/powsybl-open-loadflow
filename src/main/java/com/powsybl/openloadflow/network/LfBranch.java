@@ -21,6 +21,8 @@ import java.util.Optional;
  */
 public interface LfBranch extends LfElement {
 
+    double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
+
     class LfLimit {
 
         private int acceptableDuration;
@@ -121,6 +123,8 @@ public interface LfBranch extends LfElement {
 
     double computeApparentPower2();
 
+    boolean isZeroImpedanceBranch(boolean dc);
+
     void setSpanningTreeEdge(boolean spanningTreeEdge);
 
     boolean isSpanningTreeEdge();
@@ -153,4 +157,6 @@ public interface LfBranch extends LfElement {
     void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 
     boolean isConnectedAtBothSides();
+
+    void setMinZ(boolean dc);
 }
