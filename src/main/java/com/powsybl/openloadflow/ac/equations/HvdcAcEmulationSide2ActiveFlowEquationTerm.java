@@ -29,7 +29,7 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double p2() {
-        return multiplier * (-p0 - k * (ph1() - ph2()));
+        return -multiplier * (p0 + k * (ph1() - ph2()));
     }
 
     private double dp1dv1() {

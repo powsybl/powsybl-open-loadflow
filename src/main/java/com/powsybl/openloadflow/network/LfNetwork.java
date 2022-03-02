@@ -201,10 +201,6 @@ public class LfNetwork {
         return hvdcs;
     }
 
-    public LfHvdc getHvdc(int num) {
-        return hvdcs.get(num);
-    }
-
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
                             boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Stopwatch stopwatch = Stopwatch.createStarted();
