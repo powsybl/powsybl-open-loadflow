@@ -108,7 +108,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 double r = 0;
                 for (LfBranch neighborBranch : neighborBranches) {
                     PiModel piModel = neighborBranch.getPiModel();
-                    double x = Math.max(Math.abs(piModel.getX()), LfNetwork.LOW_IMPEDANCE_THRESHOLD); // to void issue with negative reactances
+                    double x = Math.max(Math.abs(piModel.getX()), LfBranch.LOW_IMPEDANCE_THRESHOLD); // to void issue with negative reactances
                     b += 1 / x;
                     r += neighborBranch.getBus1() == bus ? 1 / piModel.getR1() : piModel.getR1();
                 }

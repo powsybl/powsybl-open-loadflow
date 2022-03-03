@@ -90,7 +90,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 .sorted(Comparator.comparingInt(c -> c.getBuses().size()))
                 .collect(Collectors.toList());
 
-        SecurityAnalysisResult result = runSimulations(largestNetwork, contingencies, lfContingencies, acParameters, lfParameters, lfParametersExt);
+        SecurityAnalysisResult result = runSimulations(largestNetwork, contingencies, lfContingencies, acParameters, securityAnalysisParameters);
 
         stopwatch.stop();
         LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -113,9 +113,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         return lfNetworks;
     }
 
-    private SecurityAnalysisResult runSimulations(LfNetwork network, List<Contingency> contingencies, List<LfContingency> lfContingencies,
-                                                  AcLoadFlowParameters acParameters, LoadFlowParameters loadFlowParameters,
-                                                  OpenLoadFlowParameters openLoadFlowParameters) {
+    private SecurityAnalysisResult runSimulations(LfNetwork network, List<Contingency> contingencies, List<LfContingency> lfContingencies, AcLoadFlowParameters acParameters,
+                                                  SecurityAnalysisParameters securityAnalysisParameters) {
+        LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
         List<BusResults> preContingencyBusResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
@@ -148,8 +149,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                     distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, contingencies.get(lfContingency.getIndex()), lfContingency, preContingencyLimitViolations, results);
-                    postContingencyResults.add(postContingencyResult);
+                                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, contingencies.get(lfContingency.getIndex()), lfContingency,
+                                        preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters());
+                                postContingencyResults.add(postContingencyResult);
 
                     LOGGER.info("Restore pre-contingency state");
 
@@ -166,7 +168,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcLoadFlowContext context, Contingency contingency, LfContingency lfContingency,
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
-                                                               Map<String, BranchResult> preContingencyBranchResults) {
+                                                               Map<String, BranchResult> preContingencyBranchResults, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters) {
         LOGGER.info("Start post contingency '{}' simulation", lfContingency.getId());
         LOGGER.debug("Contingency '{}' impact: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
                 lfContingency.getId(), lfContingency.getBuses(), lfContingency.getBranches(), lfContingency.getGenerators(),
@@ -200,7 +202,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         preContingencyLimitViolations.forEach((subjectSideId, preContingencyViolation) -> {
             LimitViolation postContingencyViolation = postContingencyLimitViolations.get(subjectSideId);
-            if (violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation)) {
+            if (violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation, violationsParameters)) {
                 postContingencyLimitViolations.remove(subjectSideId);
             }
         });
