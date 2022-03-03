@@ -149,9 +149,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                     distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, contingencies.get(lfContingency.getIndex()), lfContingency,
-                                        preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters());
-                                postContingencyResults.add(postContingencyResult);
+                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, contingencies.get(lfContingency.getIndex()), lfContingency,
+                            preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters());
+                    postContingencyResults.add(postContingencyResult);
 
                     LOGGER.info("Restore pre-contingency state");
 
