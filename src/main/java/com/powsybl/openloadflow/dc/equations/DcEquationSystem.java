@@ -12,9 +12,7 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.util.EvaluableConstants;
-import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
@@ -22,8 +20,6 @@ import org.jgrapht.graph.Pseudograph;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -116,8 +112,7 @@ public final class DcEquationSystem {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            PiModel piModel = branch.getPiModel();
-            if (FastMath.abs(piModel.getX()) < LOW_IMPEDANCE_THRESHOLD) {
+            if (branch.isZeroImpedanceBranch(true)) {
                 if (bus1 != null && bus2 != null) {
                     nonImpedantBranches.add(branch);
                 }

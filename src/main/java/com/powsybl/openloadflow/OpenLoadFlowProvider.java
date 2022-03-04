@@ -47,8 +47,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.network.LfNetwork.LOW_IMPEDANCE_THRESHOLD;
-
 /**
  * @author Sylvain Leclerc <sylvain.leclerc at rte-france.com>
  */
@@ -155,7 +153,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
                 double zb = nominalV * nominalV / PerUnit.SB;
                 double z = FastMath.hypot(line.getR(), line.getX());
-                return z / zb <= LOW_IMPEDANCE_THRESHOLD;
+                return z / zb <= LfBranch.LOW_IMPEDANCE_THRESHOLD;
             }).complete();
         }
 
