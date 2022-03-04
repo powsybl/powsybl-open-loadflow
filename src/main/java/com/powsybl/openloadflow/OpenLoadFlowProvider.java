@@ -26,10 +26,13 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
-import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.Markers;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.tools.PowsyblCoreVersion;
 import net.jafama.FastMath;
@@ -58,6 +61,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private final MatrixFactory matrixFactory;
 
+    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+
     private boolean forcePhaseControlOffAndAddAngle1Var = false; // just for unit testing
 
     public OpenLoadFlowProvider() {
@@ -65,7 +70,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     public OpenLoadFlowProvider(MatrixFactory matrixFactory) {
+        this(matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>());
+    }
+
+    public OpenLoadFlowProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
 
     public void setForcePhaseControlOffAndAddAngle1Var(boolean forcePhaseControlOffAndAddAngle1Var) {
@@ -86,7 +96,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         OpenLoadFlowParameters.logAc(parameters, parametersExt);
 
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, reporter);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, reporter);
 
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getType).collect(Collectors.toList()));
@@ -156,7 +166,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         OpenLoadFlowParameters.logDc(parameters, parametersExt);
 
-        var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, forcePhaseControlOffAndAddAngle1Var);
+        var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
 
         List<DcLoadFlowResult> results = new DcLoadFlowEngine(network, new LfNetworkLoaderImpl(), dcParameters, reporter)
                 .run(reporter);

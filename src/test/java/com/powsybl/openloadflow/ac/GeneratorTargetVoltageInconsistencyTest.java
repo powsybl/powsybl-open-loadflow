@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
@@ -200,9 +201,24 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
-                LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false, false, false, true);
+        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector,
+                new EvenShiloachGraphDecrementalConnectivityFactory<>(),
+                true,
+                false,
+                false,
+                false,
+                LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
+                false,
+                true,
+                Collections.emptySet(),
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true);
 
         Generator g = network.getGenerator("g2");
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
@@ -311,9 +327,24 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .add();
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector, true, false, false, false,
-                LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false, false, false, true);
+        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector,
+                                                                 new EvenShiloachGraphDecrementalConnectivityFactory<>(),
+                                                                 true,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
+                                                                 false,
+                                                                 true,
+                                                                 Collections.emptySet(),
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 true);
 
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());

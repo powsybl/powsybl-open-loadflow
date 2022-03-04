@@ -23,10 +23,8 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.NetworkSlackBusSelector;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -461,8 +459,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                    SlackBusSelector slackBusSelector, boolean breakers) {
+                                                    SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory,
+                                                    boolean breakers) {
         return new LfNetworkParameters(slackBusSelector,
+                                       connectivityFactory,
                                        parametersExt.hasVoltageRemoteControl(),
                                        parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                                        parameters.isTwtSplitShuntAdmittance(),
@@ -482,13 +482,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, Reporter reporter) {
-        return createAcParameters(network, parameters, parametersExt, matrixFactory, reporter, false, false);
+                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory,
+                                                          Reporter reporter) {
+        return createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, reporter, false, false);
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, Reporter reporter, boolean breakers, boolean forceA1Var) {
-        AcLoadFlowParameters acParameters = createAcParameters(parameters, parametersExt, matrixFactory, reporter, breakers, forceA1Var);
+                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory,
+                                                          Reporter reporter, boolean breakers, boolean forceA1Var) {
+        AcLoadFlowParameters acParameters = createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, reporter, breakers, forceA1Var);
         if (parameters.isReadSlackBus()) {
             acParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, acParameters.getNetworkParameters().getSlackBusSelector()));
         }
@@ -496,10 +498,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, Reporter reporter, boolean breakers, boolean forceA1Var) {
+                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory,
+                                                          Reporter reporter, boolean breakers, boolean forceA1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds());
 
-        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, breakers);
+        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var);
 
@@ -520,8 +523,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, boolean forcePhaseControlOffAndAddAngle1Var) {
-        var dcParameters = createDcParameters(parameters, parametersExt, matrixFactory, forcePhaseControlOffAndAddAngle1Var);
+                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory,
+                                                          boolean forcePhaseControlOffAndAddAngle1Var) {
+        var dcParameters = createDcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
         if (parameters.isReadSlackBus()) {
             dcParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, dcParameters.getNetworkParameters().getSlackBusSelector()));
         }
@@ -529,10 +533,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static DcLoadFlowParameters createDcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, boolean forcePhaseControlOffAndAddAngle1Var) {
+                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory,
+                                                          boolean forcePhaseControlOffAndAddAngle1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds());
 
         var networkParameters = new LfNetworkParameters(slackBusSelector,
+                                                        connectivityFactory,
                                                         false,
                                                         parametersExt.getLowImpedanceBranchMode() == LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
                                                         false,
