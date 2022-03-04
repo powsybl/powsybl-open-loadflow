@@ -456,9 +456,9 @@ class AcLoadFlowPhaseShifterTest {
         // switch PS1 to active power control
         t2wt.getPhaseTapChanger()
                 .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
                 .setRegulating(true)
-                .setRegulationValue(83)
-                .setTargetDeadband(1);
+                .setRegulationValue(83);
 
         parameters.setPhaseShifterRegulationOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
