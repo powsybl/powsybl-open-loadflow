@@ -18,7 +18,6 @@ import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.PhaseControlFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -445,7 +444,6 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    @Disabled
     void phaseShifterNecessaryForConnectivity() {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
 

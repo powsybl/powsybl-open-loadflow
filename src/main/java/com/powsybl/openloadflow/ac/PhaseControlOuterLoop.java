@@ -13,8 +13,11 @@ import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEq
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.network.DiscretePhaseControl;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +35,26 @@ public class PhaseControlOuterLoop implements OuterLoop {
     @Override
     public String getType() {
         return "Phase control";
+    }
+
+    @Override
+    public void initialize(LfNetwork network) {
+        for (LfBranch branch : network.getBranches()) {
+            if (branch.isPhaseController() && branch.isPhaseControlEnabled()) {
+                branch.getDiscretePhaseControl().ifPresent(phaseControl -> {
+                    var controlledBranch = phaseControl.getControlled();
+                    var connectivity = network.getConnectivity();
+                    connectivity.cut(controlledBranch.getBus1(), controlledBranch.getBus2());
+                    if (!connectivity.getSmallComponents().isEmpty()) {
+                        // phase shifter controlled branch necessary for connectivity, we switch off control
+                        LOGGER.warn("Phase shifter '{}' control branch '{}' phase but is necessary for connectivity: switch off phase control",
+                                branch.getId(), controlledBranch.getId());
+                        branch.setPhaseControlEnabled(false);
+                    }
+                    connectivity.reset();
+                });
+            }
+        }
     }
 
     @Override
