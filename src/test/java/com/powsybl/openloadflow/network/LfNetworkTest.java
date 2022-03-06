@@ -19,6 +19,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,10 +87,24 @@ class LfNetworkTest extends AbstractConverterTest {
                 .setRegulationTerminal(ps1.getTerminal1())
                 .setRegulationValue(83);
 
-        LfNetworkParameters parameters = new LfNetworkParameters(new MostMeshedSlackBusSelector(), false,
-                false, false, false, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
-                false, true, Collections.emptySet(), false,
-                true, false, false, false, false, false, true);
+        LfNetworkParameters parameters = new LfNetworkParameters(new MostMeshedSlackBusSelector(),
+                                                                 new EvenShiloachGraphDecrementalConnectivityFactory<>(),
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
+                                                                 false,
+                                                                 true,
+                                                                 Collections.emptySet(),
+                                                                 false,
+                                                                 true,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 true);
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(1, lfNetworks.size());

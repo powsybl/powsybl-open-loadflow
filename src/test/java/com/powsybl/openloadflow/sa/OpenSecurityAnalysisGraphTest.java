@@ -16,10 +16,10 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.LimitViolationFilter;
@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,7 +66,7 @@ class OpenSecurityAnalysisGraphTest {
     @Test
     void testEvenShiloach() {
         LOGGER.info("Test Even-Shiloach on test network containing {} branches", network.getBranchCount());
-        List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(EvenShiloachGraphDecrementalConnectivity::new);
+        List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>());
         printResult(lfContingencies);
         checkResult(lfContingencies, computeReference());
     }
@@ -75,13 +74,13 @@ class OpenSecurityAnalysisGraphTest {
     @Test
     void testMst() {
         LOGGER.info("Test Minimum Spanning Tree on test network containing {} branches", network.getBranchCount());
-        List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(MinimumSpanningTreeGraphDecrementalConnectivity::new);
+        List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(new MinimumSpanningTreeGraphDecrementalConnectivityFactory<>());
         printResult(lfContingencies);
         checkResult(lfContingencies, computeReference());
     }
 
     private List<List<LfContingency>> computeReference() {
-        List<List<LfContingency>> result = getLoadFlowContingencies(() -> new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        List<List<LfContingency>> result = getLoadFlowContingencies(new NaiveGraphDecrementalConnectivityFactory<>(LfBus::getNum));
         LOGGER.info("Reference established (naive connectivity calculation) on test network containing {} branches", network.getBranchCount());
         return result;
     }
@@ -92,16 +91,16 @@ class OpenSecurityAnalysisGraphTest {
         contingenciesProvider = n -> Collections.singletonList(
             new Contingency("L1", new BranchContingency("L1")));
         List<List<LfContingency>> reference = computeReference();
-        checkResult(getLoadFlowContingencies(MinimumSpanningTreeGraphDecrementalConnectivity::new), reference);
-        checkResult(getLoadFlowContingencies(EvenShiloachGraphDecrementalConnectivity::new), reference);
+        checkResult(getLoadFlowContingencies(new MinimumSpanningTreeGraphDecrementalConnectivityFactory<>()), reference);
+        checkResult(getLoadFlowContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>()), reference);
 
         contingenciesProvider = n -> Collections.singletonList(
             new Contingency("L2", new BranchContingency("L2")));
         network.getSwitch("B3").setOpen(false);
         network.getSwitch("B1").setOpen(true);
         reference = computeReference();
-        checkResult(getLoadFlowContingencies(MinimumSpanningTreeGraphDecrementalConnectivity::new), reference);
-        checkResult(getLoadFlowContingencies(EvenShiloachGraphDecrementalConnectivity::new), reference);
+        checkResult(getLoadFlowContingencies(new MinimumSpanningTreeGraphDecrementalConnectivityFactory<>()), reference);
+        checkResult(getLoadFlowContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>()), reference);
     }
 
     private static void checkResult(List<List<LfContingency>> result, List<List<LfContingency>> reference) {
@@ -137,10 +136,11 @@ class OpenSecurityAnalysisGraphTest {
         }
     }
 
-    List<List<LfContingency>> getLoadFlowContingencies(Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+    List<List<LfContingency>> getLoadFlowContingencies(GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
 
+        var matrixFactory = new DenseMatrixFactory();
         AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new DenseMatrixFactory(), connectivityProvider, Collections.emptyList());
+            new LimitViolationFilter(), matrixFactory, connectivityFactory, Collections.emptyList());
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
@@ -156,7 +156,7 @@ class OpenSecurityAnalysisGraphTest {
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-            lfParameters, lfParametersExt, new DenseMatrixFactory(), Reporter.NO_OP, true, false);
+            lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
 
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());
@@ -166,7 +166,7 @@ class OpenSecurityAnalysisGraphTest {
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();
         for (LfNetwork lfNetwork : lfNetworks) {
             listLfContingencies.add(propagatedContingencies.stream()
-                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork, lfNetwork.createDecrementalConnectivity(connectivityProvider), true).stream())
+                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork, lfNetwork.getConnectivity(), true).stream())
                     .collect(Collectors.toList()));
         }
         LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);
