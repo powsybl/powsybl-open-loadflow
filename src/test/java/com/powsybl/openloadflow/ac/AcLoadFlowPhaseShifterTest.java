@@ -444,7 +444,7 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    void phaseShifterNecessaryForConnectivity() {
+    void testPhaseShifterNecessaryForConnectivity() {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
 
         // remove L1 so that PS1 loss would break connectivity
@@ -461,5 +461,7 @@ class AcLoadFlowPhaseShifterTest {
         parameters.setPhaseShifterRegulationOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+        assertActivePowerEquals(100.3689, t2wt.getTerminal1());
+        assertActivePowerEquals(-100.1844, t2wt.getTerminal2());
     }
 }
