@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
@@ -35,6 +36,7 @@ class NonImpedantBranchDisablingTest {
         AcLoadFlowParameters parameters = OpenLoadFlowParameters.createAcParameters(new LoadFlowParameters(),
                                                                                     new OpenLoadFlowParameters(),
                                                                                     new DenseMatrixFactory(),
+                                                                                    new EvenShiloachGraphDecrementalConnectivityFactory<>(),
                                                                                     Reporter.NO_OP,
                                                                                     true,
                                                                                     false);
