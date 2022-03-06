@@ -202,23 +202,23 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector,
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(),
-                true,
-                false,
-                false,
-                false,
-                LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
-                false,
-                true,
-                Collections.emptySet(),
-                false,
-                false,
-                false,
-                false,
-                false,
-                false,
-                false,
-                true);
+                                                                 new EvenShiloachGraphDecrementalConnectivityFactory<>(),
+                                                                 true,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
+                                                                 false,
+                                                                 true,
+                                                                 Collections.emptySet(),
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 false,
+                                                                 true);
 
         Generator g = network.getGenerator("g2");
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
