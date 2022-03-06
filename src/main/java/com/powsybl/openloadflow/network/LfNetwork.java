@@ -538,11 +538,6 @@ public class LfNetwork {
         return subGraph;
     }
 
-    public static boolean isZeroImpedanceBranch(LfBranch branch) {
-        PiModel piModel = branch.getPiModel();
-        return piModel.getZ() < LfBranch.LOW_IMPEDANCE_THRESHOLD;
-    }
-
     public GraphDecrementalConnectivity<LfBus> getConnectivity() {
         if (connectivity == null) {
             connectivity = Objects.requireNonNull(connectivityFactory.create());
