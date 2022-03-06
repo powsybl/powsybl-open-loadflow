@@ -14,6 +14,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
@@ -30,7 +31,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -74,10 +74,16 @@ public class LfNetwork {
 
     private Object userObject;
 
-    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector) {
+    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+
+    private GraphDecrementalConnectivity<LfBus> connectivity;
+
+    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
+                     GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+        this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
 
     public int getNumCC() {
@@ -106,6 +112,8 @@ public class LfNetwork {
         branch.setNum(branches.size());
         branches.add(branch);
         branchesById.put(branch.getId(), branch);
+        invalidateSlack();
+        connectivity = null;
 
         // create bus -> branches link
         if (branch.getBus1() != null) {
@@ -135,6 +143,8 @@ public class LfNetwork {
         busesByIndex.add(bus);
         busesById.put(bus.getId(), bus);
         invalidateSlack();
+        connectivity = null;
+
         bus.getShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
@@ -528,10 +538,17 @@ public class LfNetwork {
         return subGraph;
     }
 
-    public GraphDecrementalConnectivity<LfBus> createDecrementalConnectivity(Supplier<GraphDecrementalConnectivity<LfBus>> connectivitySupplier) {
-        GraphDecrementalConnectivity<LfBus> connectivity = connectivitySupplier.get();
-        getBuses().forEach(connectivity::addVertex);
-        getBranches().forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2()));
+    public static boolean isZeroImpedanceBranch(LfBranch branch) {
+        PiModel piModel = branch.getPiModel();
+        return piModel.getZ() < LfBranch.LOW_IMPEDANCE_THRESHOLD;
+    }
+
+    public GraphDecrementalConnectivity<LfBus> getConnectivity() {
+        if (connectivity == null) {
+            connectivity = Objects.requireNonNull(connectivityFactory.create());
+            getBuses().forEach(connectivity::addVertex);
+            getBranches().forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2()));
+        }
         return connectivity;
     }
 

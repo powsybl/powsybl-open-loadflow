@@ -12,8 +12,8 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.security.*;
@@ -22,7 +22,6 @@ import com.powsybl.security.monitor.StateMonitor;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -32,15 +31,15 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     private final MatrixFactory matrixFactory;
 
-    private final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
+    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
 
-    public OpenSecurityAnalysisProvider(MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+    public OpenSecurityAnalysisProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
         this.matrixFactory = matrixFactory;
-        this.connectivityProvider = connectivityProvider;
+        this.connectivityFactory = connectivityFactory;
     }
 
     public OpenSecurityAnalysisProvider() {
-        this(new SparseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        this(new SparseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
     }
 
     @Override
@@ -50,9 +49,9 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
                                                          List<SecurityAnalysisInterceptor> interceptors, List<StateMonitor> stateMonitors) {
         AbstractSecurityAnalysis securityAnalysis;
         if (securityAnalysisParameters.getLoadFlowParameters().isDc()) {
-            securityAnalysis = new DcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityProvider, stateMonitors);
+            securityAnalysis = new DcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityFactory, stateMonitors);
         } else {
-            securityAnalysis = new AcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityProvider, stateMonitors);
+            securityAnalysis = new AcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityFactory, stateMonitors);
         }
         interceptors.forEach(securityAnalysis::addInterceptor);
         return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
