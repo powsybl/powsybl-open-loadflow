@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
@@ -37,7 +38,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -51,11 +51,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected final MatrixFactory matrixFactory;
 
-    protected final Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider;
+    protected final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
 
-    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
+    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.connectivityProvider = Objects.requireNonNull(connectivityProvider);
+        this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
 
     protected static Terminal getEquipmentRegulatingTerminal(Network network, String equipmentId) {
