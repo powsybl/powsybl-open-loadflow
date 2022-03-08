@@ -41,13 +41,13 @@ public class PhaseControlOuterLoop implements OuterLoop {
     @Override
     public void initialize(LfNetwork network) {
         List<LfBranch> controllerBranches = new ArrayList<>(1);
-        List<LfBranch> disableBranches = new ArrayList<>(1);
+        List<LfBranch> disabledBranches = new ArrayList<>(1);
         for (LfBranch branch : network.getBranches()) {
             if (branch.isPhaseController() && branch.isPhaseControlEnabled()) {
                 controllerBranches.add(branch);
             }
             if (branch.isDisabled()) {
-                disableBranches.add(branch);
+                disabledBranches.add(branch);
             }
         }
         if (!controllerBranches.isEmpty()) {
@@ -57,7 +57,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 var connectivity = network.getConnectivity();
 
                 // apply contingency (in case we are inside a security analysis)
-                for (LfBranch disableBranch : disableBranches) {
+                for (LfBranch disableBranch : disabledBranches) {
                     connectivity.cut(disableBranch.getBus1(), disableBranch.getBus2());
                 }
                 int smallComponentsCountBeforePhaseShifterLoss = connectivity.getSmallComponents().size();
