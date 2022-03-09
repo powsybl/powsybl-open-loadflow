@@ -86,17 +86,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     private static OpenSensitivityAnalysisParameters getSensitivityAnalysisParametersExtension(SensitivityAnalysisParameters sensitivityAnalysisParameters) {
         OpenSensitivityAnalysisParameters sensiParametersExt = sensitivityAnalysisParameters.getExtension(OpenSensitivityAnalysisParameters.class);
         if (sensiParametersExt == null) {
-            sensiParametersExt = OpenSensitivityAnalysisParameters.load();
+            sensiParametersExt = new OpenSensitivityAnalysisParameters();
         }
         return sensiParametersExt;
-    }
-
-    private static OpenLoadFlowParameters getLoadFlowParametersExtension(LoadFlowParameters lfParameters) {
-        OpenLoadFlowParameters lfParametersExt = lfParameters.getExtension(OpenLoadFlowParameters.class);
-        if (lfParametersExt == null) {
-            lfParametersExt = OpenLoadFlowParameters.load();
-        }
-        return lfParametersExt;
     }
 
     private static ObjectMapper createObjectMapper() {
@@ -134,7 +126,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                         sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
 
                 LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
-                OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
+                OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
                 SensitivityFactorReader decoratedFactorReader = factorReader;
