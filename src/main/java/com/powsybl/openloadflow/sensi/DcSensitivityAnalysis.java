@@ -588,14 +588,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Set<LfGeneratorImpl> generators = new HashSet<>();
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
             LfGenerator generator = lfNetwork.getGeneratorById(generatorId);
-            if (generator != null) {
+            if (generator != null) { // because could not be in main compoment
                 generators.add((LfGeneratorImpl) generator);
             }
         }
 
         for (Map.Entry<String, PowerShift> e : contingency.getLoadIdsToShift().entrySet()) {
             LfBus lfBus = lfNetwork.getBusById(e.getKey());
-            if (lfBus != null) {
+            if (lfBus != null) { // because could not be in main compoment
                 busStates.add(BusState.save(lfBus));
             }
         }
@@ -626,7 +626,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         for (Map.Entry<String, PowerShift> e : contingency.getLoadIdsToShift().entrySet()) {
             LfBus lfBus = lfNetwork.getBusById(e.getKey());
-            if (lfBus != null) {
+            if (lfBus != null) { // because could not be in main compoment
                 PowerShift shift = e.getValue();
                 double p0 = shift.getActive();
                 lfBus.setLoadTargetP(lfBus.getLoadTargetP() - LfContingency.getUpdatedLoadP0(lfBus, lfParameters, p0, shift.getVariableActive()));

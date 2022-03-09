@@ -1789,7 +1789,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testLoadContingencyNotInMainCc() {
+    void testLoadContingencyNotInMainComponent() {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 
@@ -1810,7 +1810,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testGeneratorContingencyNotInMainCc() {
+    void testGeneratorContingencyNotInMainComponent() {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         network.getVoltageLevel("VL_3").newGenerator()
                 .setId("GEN_3")
@@ -1840,7 +1840,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testGeneratorContingencyNotInMainCcAndMonitoredBranchNotInMainCc() {
+    void testGeneratorContingencyNotInMainComponentAndMonitoredBranchNotInMainComponent() {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         network.getVoltageLevel("VL_3").newGenerator()
                 .setId("GEN_3")
