@@ -587,8 +587,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // generators.
         Set<LfGeneratorImpl> generators = new HashSet<>();
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
-            if (lfNetwork.getGeneratorById(generatorId) != null) {
-                generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(generatorId));
+            LfGenerator generator = lfNetwork.getGeneratorById(generatorId);
+            if (generator != null) {
+                generators.add((LfGeneratorImpl) generator);
             }
         }
 
