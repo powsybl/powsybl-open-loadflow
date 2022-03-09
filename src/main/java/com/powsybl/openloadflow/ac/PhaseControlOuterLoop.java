@@ -43,7 +43,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         List<LfBranch> controllerBranches = new ArrayList<>(1);
         List<LfBranch> disabledBranches = new ArrayList<>(1);
         for (LfBranch branch : network.getBranches()) {
-            if (branch.isPhaseController() && branch.isPhaseControlEnabled()) {
+            if (!branch.isDisabled() && branch.isPhaseController() && branch.isPhaseControlEnabled()) {
                 controllerBranches.add(branch);
             }
             if (branch.isDisabled()) {
@@ -63,9 +63,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 int smallComponentsCountBeforePhaseShifterLoss = connectivity.getSmallComponents().size();
 
                 // then the phase shifter controlled branch
-                if (!disabledBranches.contains(controlledBranch)) {
-                    connectivity.cut(controlledBranch.getBus1(), controlledBranch.getBus2());
-                }
+                connectivity.cut(controlledBranch.getBus1(), controlledBranch.getBus2());
 
                 if (connectivity.getSmallComponents().size() != smallComponentsCountBeforePhaseShifterLoss) {
                     // phase shifter controlled branch necessary for connectivity, we switch off control
