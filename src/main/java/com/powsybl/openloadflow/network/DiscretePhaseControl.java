@@ -25,7 +25,7 @@ public class DiscretePhaseControl {
 
     public enum Unit {
         MW,
-        A;
+        A
     }
 
     private final LfBranch controller;
