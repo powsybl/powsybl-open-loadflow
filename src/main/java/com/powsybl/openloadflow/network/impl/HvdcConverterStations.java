@@ -41,4 +41,44 @@ public final class HvdcConverterStations {
         }
         return sign * (1 + (isConverterStationRectifier ? 1 : -1) * station.getLossFactor() / 100);
     }
+
+    /**
+     * Gets active power for an LCC station in per-unit.
+     */
+    public static double getLccConverterStationLoadTargetP(LccConverterStation lccCs, HvdcLine line) {
+        // The active power setpoint is always positive.
+        // If the converter station is at side 1 and is rectifier, p should be positive.
+        // If the converter station is at side 1 and is inverter, p should be negative.
+        // If the converter station is at side 2 and is rectifier, p should be positive.
+        // If the converter station is at side 2 and is inverter, p should be negative.
+        return line.getActivePowerSetpoint() * HvdcConverterStations.getActivePowerSetpointMultiplier(lccCs); // A LCC station has active losses.
+    }
+
+    /**
+     * Gets reactive power for an LCC station in per-unit.
+     */
+    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs, HvdcLine line) {
+        // The active power setpoint is always positive.
+        // If the converter station is at side 1 and is rectifier, p should be positive.
+        // If the converter station is at side 1 and is inverter, p should be negative.
+        // If the converter station is at side 2 and is rectifier, p should be positive.
+        // If the converter station is at side 2 and is inverter, p should be negative.
+        double pCs = getLccConverterStationLoadTargetP(lccCs, line);
+        return Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+    }
+
+    public static double getHvdcLineTargetP(VscConverterStation vscCs) {
+        // The active power setpoint is always positive.
+        // If the converter station is at side 1 and is rectifier, targetP should be negative.
+        // If the converter station is at side 1 and is inverter, targetP should be positive.
+        // If the converter station is at side 2 and is rectifier, targetP should be negative.
+        // If the converter station is at side 2 and is inverter, targetP should be positive.
+        HvdcLine line = vscCs.getHvdcLine();
+        return line.getActivePowerSetpoint() * HvdcConverterStations.getActivePowerSetpointMultiplier(vscCs);
+    }
+
+    public static HvdcConverterStation<?> getOtherConversionStation(HvdcConverterStation<?> station) {
+        HvdcLine line = station.getHvdcLine();
+        return line.getConverterStation1() == station ? line.getConverterStation2() : line.getConverterStation1();
+    }
 }
