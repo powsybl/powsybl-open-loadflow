@@ -43,7 +43,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         List<LfBranch> controllerBranches = new ArrayList<>(1);
         List<LfBranch> disabledBranches = new ArrayList<>(1);
         for (LfBranch branch : network.getBranches()) {
-            if (branch.isPhaseController() && branch.isPhaseControlEnabled()) {
+            if (!branch.isDisabled() && branch.isPhaseController() && branch.isPhaseControlEnabled()) {
                 controllerBranches.add(branch);
             }
             if (branch.isDisabled()) {
@@ -54,27 +54,25 @@ public class PhaseControlOuterLoop implements OuterLoop {
             for (LfBranch controllerBranch : controllerBranches) {
                 var phaseControl = controllerBranch.getDiscretePhaseControl().orElseThrow();
                 var controlledBranch = phaseControl.getControlled();
-                if (!disabledBranches.contains(controlledBranch)) {
-                    var connectivity = network.getConnectivity();
+                var connectivity = network.getConnectivity();
 
-                    // apply contingency (in case we are inside a security analysis)
-                    for (LfBranch disabledBranch : disabledBranches) {
-                        connectivity.cut(disabledBranch.getBus1(), disabledBranch.getBus2());
-                    }
-                    int smallComponentsCountBeforePhaseShifterLoss = connectivity.getSmallComponents().size();
-
-                    // then the phase shifter controlled branch
-                    connectivity.cut(controlledBranch.getBus1(), controlledBranch.getBus2());
-
-                    if (connectivity.getSmallComponents().size() != smallComponentsCountBeforePhaseShifterLoss) {
-                        // phase shifter controlled branch necessary for connectivity, we switch off control
-                        LOGGER.warn("Phase shifter '{}' control branch '{}' phase but is necessary for connectivity: switch off phase control",
-                                controllerBranch.getId(), controlledBranch.getId());
-                        controllerBranch.setPhaseControlEnabled(false);
-                    }
-
-                    connectivity.reset();
+                // apply contingency (in case we are inside a security analysis)
+                for (LfBranch disabledBranch : disabledBranches) {
+                    connectivity.cut(disabledBranch.getBus1(), disabledBranch.getBus2());
                 }
+                int smallComponentsCountBeforePhaseShifterLoss = connectivity.getSmallComponents().size();
+
+                // then the phase shifter controlled branch
+                connectivity.cut(controlledBranch.getBus1(), controlledBranch.getBus2());
+
+                if (connectivity.getSmallComponents().size() != smallComponentsCountBeforePhaseShifterLoss) {
+                    // phase shifter controlled branch necessary for connectivity, we switch off control
+                    LOGGER.warn("Phase shifter '{}' control branch '{}' phase but is necessary for connectivity: switch off phase control",
+                            controllerBranch.getId(), controlledBranch.getId());
+                    controllerBranch.setPhaseControlEnabled(false);
+                }
+
+                connectivity.reset();
             }
         }
     }
