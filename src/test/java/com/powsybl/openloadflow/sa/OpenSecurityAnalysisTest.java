@@ -1234,4 +1234,31 @@ class OpenSecurityAnalysisTest {
 
         assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation4, violationsParameters));
     }
+
+    @Test
+    void testPhaseShifterNecessaryForConnectivity() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+
+        // switch PS1 to active power control
+        var ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setRegulationValue(83);
+
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setPhaseShifterRegulationOn(true);
+
+        List<Contingency> contingencies = List.of(Contingency.line("L2"), Contingency.twoWindingsTransformer("PS1"), Contingency.line("L1")); // I added L2 and PS1 before to assert there is no impact on L1 contingency
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+        assertEquals(3, result.getPostContingencyResults().size());
+        PostContingencyResult l1ContingencyResult = getPostContingencyResult(result, "L1");
+        assertTrue(l1ContingencyResult.getLimitViolationsResult().isComputationOk());
+        assertEquals(100.3689, l1ContingencyResult.getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-100.1844, l1ContingencyResult.getBranchResult("PS1").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
 }
