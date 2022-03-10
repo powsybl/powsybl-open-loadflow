@@ -20,7 +20,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     private final VscConverterStation station;
 
     private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
-        super(HvdcConverterStations.getHvdcLineTargetP(station));
+        super(HvdcConverterStations.getConverterStationTargetP(station));
         this.station = station;
 
         // local control only
