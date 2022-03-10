@@ -89,7 +89,7 @@ public final class HvdcConverterStations {
         // The active power value on rectifier DC side is known as the HVDC active power set point minus the losses related
         // to AC/DC conversion (rectifier conversion), the voltage is approximated to the nominal voltage as attribute of the HVDC line.
         // In an HVDC, as a branch with two sides, the difference between pDc1 and pDc2 can be computed with the assumptions:
-        // I = (V1 - V2) / R and pDc1 = I * V1 and pDc2 = I * V2
+        // I = (V1 - V2) / R and pDc1 = I * V1 and pDc2 = I * V2 and V1 = nominalV
         // we simply obtain that the absolute value of the difference is equal to R * pDc1 * pDc1 / (V1 * V1) if side 1 is rectifier side.
         return r * rectifierPDc * rectifierPDc / (nominalV * nominalV);
     }
