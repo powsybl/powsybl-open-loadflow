@@ -44,15 +44,20 @@ public final class HvdcConverterStations {
     }
 
     /**
-     * Gets active power for an LCC station.
+     * Gets targetP of an VSC converter station or load target P for a LCC converter station.
      */
-    public static double getLccConverterStationLoadTargetP(LccConverterStation lccCs) {
-        // Load convention.
+    public static double getConverterStationTargetP(HvdcConverterStation<?> station) {
+        // For a VSC converter station, we are in generator convention.
+        // If the converter station is at side 1 and is rectifier, targetP should be negative.
+        // If the converter station is at side 1 and is inverter, targetP should be positive.
+        // If the converter station is at side 2 and is rectifier, targetP should be negative.
+        // If the converter station is at side 2 and is inverter, targetP should be positive.
+        // for a LCC converter station, we are in load convention.
         // If the converter station is at side 1 and is rectifier, p should be positive.
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
-        return getSign(lccCs) * getAbsoluteValuePAc(lccCs);
+        return getSign(station) * getAbsoluteValuePAc(station);
     }
 
     /**
@@ -64,20 +69,8 @@ public final class HvdcConverterStations {
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
-        double pCs = getLccConverterStationLoadTargetP(lccCs);
+        double pCs = getConverterStationTargetP(lccCs);
         return Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
-    }
-
-    /**
-     * Gets targetP of an VSC converter station.
-     */
-    public static double getConverterStationTargetP(VscConverterStation vscCs) {
-        // Generator convention.
-        // If the converter station is at side 1 and is rectifier, targetP should be negative.
-        // If the converter station is at side 1 and is inverter, targetP should be positive.
-        // If the converter station is at side 2 and is rectifier, targetP should be negative.
-        // If the converter station is at side 2 and is inverter, targetP should be positive.
-        return getSign(vscCs) * getAbsoluteValuePAc(vscCs);
     }
 
     private static double getAbsoluteValuePAc(HvdcConverterStation<?> station) {
