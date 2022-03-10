@@ -187,7 +187,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches, reporter);
 
         for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
-            factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
+            if (factor.getStatus() != LfSensitivityFactor.Status.ZERO) {
+                factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
+            }
         }
 
         if (lfParameters.isDistributedSlack()) {
@@ -585,12 +587,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // generators.
         Set<LfGeneratorImpl> generators = new HashSet<>();
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
-            generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(generatorId));
+            LfGenerator generator = lfNetwork.getGeneratorById(generatorId);
+            if (generator != null) { // because could not be in main compoment
+                generators.add((LfGeneratorImpl) generator);
+            }
         }
 
         for (Map.Entry<String, PowerShift> e : contingency.getLoadIdsToShift().entrySet()) {
             LfBus lfBus = lfNetwork.getBusById(e.getKey());
-            busStates.add(BusState.save(lfBus));
+            if (lfBus != null) { // because could not be in main compoment
+                busStates.add(BusState.save(lfBus));
+            }
         }
 
         lccs.stream().map(Pair::getKey).forEach(b -> busStates.add(BusState.save(b)));
@@ -619,10 +626,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         for (Map.Entry<String, PowerShift> e : contingency.getLoadIdsToShift().entrySet()) {
             LfBus lfBus = lfNetwork.getBusById(e.getKey());
-            PowerShift shift = e.getValue();
-            double p0 = shift.getActive();
-            lfBus.setLoadTargetP(lfBus.getLoadTargetP() - LfContingency.getUpdatedLoadP0(lfBus, lfParameters, p0, shift.getVariableActive()));
-            lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+            if (lfBus != null) { // because could not be in main compoment
+                PowerShift shift = e.getValue();
+                double p0 = shift.getActive();
+                lfBus.setLoadTargetP(lfBus.getLoadTargetP() - LfContingency.getUpdatedLoadP0(lfBus, lfParameters, p0, shift.getVariableActive()));
+                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+            }
         }
     }
 
