@@ -45,17 +45,38 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     private void updateElementEquations(LfElement element, boolean enable) {
-        // update all equations related to the element
-        for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
-            if (equation.isActive() != enable) {
-                equation.setActive(enable);
-            }
-        }
+        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranch(false)) {
+            LfBranch branch = (LfBranch) element;
+            if (branch.isSpanningTreeEdge()) {
+                // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
+                // or equations that set dummy p and q variable to zero
+                equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_PHI)
+                        .orElseThrow()
+                        .setActive(enable);
+                equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_P)
+                        .orElseThrow()
+                        .setActive(!enable);
 
-        // update all equation terms related to the element
-        for (var equationTerm : equationSystem.getEquationTerms(element.getType(), element.getNum())) {
-            if (equationTerm.isActive() != enable) {
-                equationTerm.setActive(enable);
+                equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_V)
+                        .orElseThrow()
+                        .setActive(enable);
+                equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_Q)
+                        .orElseThrow()
+                        .setActive(!enable);
+            }
+        } else {
+            // update all equations related to the element
+            for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
+                if (equation.isActive() != enable) {
+                    equation.setActive(enable);
+                }
+            }
+
+            // update all equation terms related to the element
+            for (var equationTerm : equationSystem.getEquationTerms(element.getType(), element.getNum())) {
+                if (equationTerm.isActive() != enable) {
+                    equationTerm.setActive(enable);
+                }
             }
         }
     }

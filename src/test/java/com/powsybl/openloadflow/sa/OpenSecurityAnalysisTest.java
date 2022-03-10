@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -1260,5 +1261,19 @@ class OpenSecurityAnalysisTest {
         assertTrue(l1ContingencyResult.getLimitViolationsResult().isComputationOk());
         assertEquals(100.3689, l1ContingencyResult.getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-100.1844, l1ContingencyResult.getBranchResult("PS1").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testWithNonImpedantLineConnectedToSlackBus() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L1-2-1").setR(0).setX(0);
+        network.getLine("L4-5-1").setR(0).setX(0);
+
+        List<Contingency> contingencies = allBranches(network);
+
+        List<StateMonitor> monitors = Collections.emptyList();
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+        assertEquals(20, result.getPostContingencyResults().size()); // assert there is no contingency simulation failure
     }
 }
