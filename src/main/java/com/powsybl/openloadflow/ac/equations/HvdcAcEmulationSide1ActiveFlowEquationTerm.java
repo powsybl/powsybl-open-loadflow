@@ -18,18 +18,16 @@ import java.util.Objects;
  */
 public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEmulationFlowEquationTerm {
 
-    private double sign;
-
-    private double multiplier;
-
     public HvdcAcEmulationSide1ActiveFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         super(hvdc, bus1, bus2, variableSet);
-        sign = hvdc.getConverterStation1().isRectifier() ? 1 : -1;
-        multiplier = 1 + sign * hvdc.getConverterStation1().getLossFactor() / 100;
     }
 
     private double p1() {
-        return  multiplier * (p0 + k * (ph1() - ph2()));
+        return  (isController() ? 1 :  getLossMultiplier()) * (p0 + k * (ph1() - ph2()));
+    }
+
+    private boolean isController() {
+        return (ph1() - ph2()) >= 0 ? true : false;
     }
 
     private double dp1dv1() {
@@ -41,7 +39,7 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private double dp1dph1() {
-        return multiplier * k;
+        return (isController() ? 1 :  getLossMultiplier()) * k;
     }
 
     private double dp1dph2() {
