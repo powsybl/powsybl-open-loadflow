@@ -105,6 +105,11 @@ public final class HvdcConverterStations {
         return inverterPDc * (1 - inverterLossFactor / 100); // always positive.
     }
 
+    private static HvdcConverterStation<?> getOtherConversionStation(HvdcConverterStation<?> station) {
+        HvdcLine line = station.getHvdcLine();
+        return line.getConverterStation1() == station ? line.getConverterStation2() : line.getConverterStation1();
+    }
+
     public static double getActivePowerSetpointMultiplier(HvdcConverterStation<?> station) {
         // For sensitivity analysis, we need the multiplier by converter station for an increase of 1MW
         // of the HVDC active power setpoint.
@@ -116,10 +121,5 @@ public final class HvdcConverterStations {
         } else {
             return sign * (1 - (station.getLossFactor() + getOtherConversionStation(station).getLossFactor()) / 100);
         }
-    }
-
-    private static HvdcConverterStation<?> getOtherConversionStation(HvdcConverterStation<?> station) {
-        HvdcLine line = station.getHvdcLine();
-        return line.getConverterStation1() == station ? line.getConverterStation2() : line.getConverterStation1();
     }
 }

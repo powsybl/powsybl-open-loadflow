@@ -73,6 +73,14 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 
+    protected double dp1dv1() {
+        return 0.0;
+    }
+
+    protected double dp1dv2() {
+        return 0.0;
+    }
+
     @Override
     public List<Variable<AcVariableType>> getVariables() {
         return variables;

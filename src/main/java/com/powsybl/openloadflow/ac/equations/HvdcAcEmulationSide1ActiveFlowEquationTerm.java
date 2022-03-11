@@ -27,15 +27,7 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private boolean isController() {
-        return (ph1() - ph2()) >= 0 ? true : false;
-    }
-
-    private double dp1dv1() {
-        return 0.0;
-    }
-
-    private double dp1dv2() {
-        return 0.0;
+        return (ph1() - ph2()) >= 0;
     }
 
     private double dp1dph1() {
