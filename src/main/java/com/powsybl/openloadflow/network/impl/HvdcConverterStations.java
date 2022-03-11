@@ -29,7 +29,8 @@ public final class HvdcConverterStations {
                 || (line.getConverterStation2() == station && line.getConvertersMode() == HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
     }
 
-    public static double getActivePowerSetpointMultiplier(HvdcConverterStation<?> station) {
+    public static double getSign(HvdcConverterStation<?> station) {
+        // This method gives the sign of PAc.
         boolean isConverterStationRectifier = isRectifier(station);
         double sign;
         if (station instanceof LccConverterStation) { // load convention.
@@ -39,45 +40,85 @@ public final class HvdcConverterStations {
         } else {
             throw new PowsyblException("Unknown HVDC converter station type: " + station.getClass().getSimpleName());
         }
-        return sign * (1 + (isConverterStationRectifier ? 1 : -1) * station.getLossFactor() / 100);
+        return sign;
     }
 
     /**
-     * Gets active power for an LCC station in per-unit.
+     * Gets targetP of an VSC converter station or load target P for a LCC converter station.
      */
-    public static double getLccConverterStationLoadTargetP(LccConverterStation lccCs, HvdcLine line) {
-        // The active power setpoint is always positive.
-        // If the converter station is at side 1 and is rectifier, p should be positive.
-        // If the converter station is at side 1 and is inverter, p should be negative.
-        // If the converter station is at side 2 and is rectifier, p should be positive.
-        // If the converter station is at side 2 and is inverter, p should be negative.
-        return line.getActivePowerSetpoint() * HvdcConverterStations.getActivePowerSetpointMultiplier(lccCs); // A LCC station has active losses.
-    }
-
-    /**
-     * Gets reactive power for an LCC station in per-unit.
-     */
-    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs, HvdcLine line) {
-        // The active power setpoint is always positive.
-        // If the converter station is at side 1 and is rectifier, p should be positive.
-        // If the converter station is at side 1 and is inverter, p should be negative.
-        // If the converter station is at side 2 and is rectifier, p should be positive.
-        // If the converter station is at side 2 and is inverter, p should be negative.
-        double pCs = getLccConverterStationLoadTargetP(lccCs, line);
-        return Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
-    }
-
-    public static double getHvdcLineTargetP(VscConverterStation vscCs) {
-        // The active power setpoint is always positive.
+    public static double getConverterStationTargetP(HvdcConverterStation<?> station) {
+        // For a VSC converter station, we are in generator convention.
         // If the converter station is at side 1 and is rectifier, targetP should be negative.
         // If the converter station is at side 1 and is inverter, targetP should be positive.
         // If the converter station is at side 2 and is rectifier, targetP should be negative.
         // If the converter station is at side 2 and is inverter, targetP should be positive.
-        HvdcLine line = vscCs.getHvdcLine();
-        return line.getActivePowerSetpoint() * HvdcConverterStations.getActivePowerSetpointMultiplier(vscCs);
+        // for a LCC converter station, we are in load convention.
+        // If the converter station is at side 1 and is rectifier, p should be positive.
+        // If the converter station is at side 1 and is inverter, p should be negative.
+        // If the converter station is at side 2 and is rectifier, p should be positive.
+        // If the converter station is at side 2 and is inverter, p should be negative.
+        return getSign(station) * getAbsoluteValuePAc(station);
     }
 
-    public static HvdcConverterStation<?> getOtherConversionStation(HvdcConverterStation<?> station) {
+    /**
+     * Gets reactive power for an LCC converter station.
+     */
+    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs) {
+        // Load convention.
+        // If the converter station is at side 1 and is rectifier, p should be positive.
+        // If the converter station is at side 1 and is inverter, p should be negative.
+        // If the converter station is at side 2 and is rectifier, p should be positive.
+        // If the converter station is at side 2 and is inverter, p should be negative.
+        double pCs = getConverterStationTargetP(lccCs);
+        return Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
+    }
+
+    private static double getAbsoluteValuePAc(HvdcConverterStation<?> station) {
+        boolean isConverterStationRectifier = isRectifier(station);
+        if (isConverterStationRectifier) {
+            return station.getHvdcLine().getActivePowerSetpoint();
+        } else {
+            // the converter station is inverter.
+            HvdcConverterStation<?> otherStation = getOtherConversionStation(station);
+            return getAbsoluteValueInverterPAc(otherStation.getLossFactor(), station.getLossFactor(), station.getHvdcLine());
+        }
+    }
+
+    private static double getHvdcLineLosses(double rectifierPDc, double nominalV, double r) {
+        // This method computes the losses due to the HVDC line.
+        // The active power value on rectifier DC side is known as the HVDC active power set point minus the losses related
+        // to AC/DC conversion (rectifier conversion), the voltage is approximated to the nominal voltage as attribute of the HVDC line.
+        // In an HVDC, as a branch with two sides, the difference between pDc1 and pDc2 can be computed with the assumptions:
+        // I = (V1 - V2) / R and pDc1 = I * V1 and pDc2 = I * V2 and V1 = nominalV
+        // we simply obtain that the absolute value of the difference is equal to R * pDc1 * pDc1 / (V1 * V1) if side 1 is rectifier side.
+        return r * rectifierPDc * rectifierPDc / (nominalV * nominalV);
+    }
+
+    private static double getAbsoluteValueInverterPAc(double rectifierLossFactor, double inverterLossFactor,
+                                                      HvdcLine hvdcLine) {
+        // On inverter side, absolute value of PAc of a VSC converter station should be computed in three step:
+        // 1) compute the losses related to the rectifier conversion.
+        // 2) compute the losses related to the HVDC line itself (R i^2).
+        // 3) compute the losses related to the inverter conversion.
+        double rectifierPDc = hvdcLine.getActivePowerSetpoint() * (1 - rectifierLossFactor / 100); // rectifierPDc positive.
+        double inverterPDc = rectifierPDc - getHvdcLineLosses(rectifierPDc, hvdcLine.getNominalV(), hvdcLine.getR());
+        return inverterPDc * (1 - inverterLossFactor / 100); // always positive.
+    }
+
+    public static double getActivePowerSetpointMultiplier(HvdcConverterStation<?> station) {
+        // For sensitivity analysis, we need the multiplier by converter station for an increase of 1MW
+        // of the HVDC active power setpoint.
+        // As a first approximation, we don't take into account the losses due to HVDC line itself.
+        boolean isConverterStationRectifier = isRectifier(station);
+        double sign = getSign(station);
+        if (isConverterStationRectifier) {
+            return sign;
+        } else {
+            return sign * (1 - (station.getLossFactor() + getOtherConversionStation(station).getLossFactor()) / 100);
+        }
+    }
+
+    private static HvdcConverterStation<?> getOtherConversionStation(HvdcConverterStation<?> station) {
         HvdcLine line = station.getHvdcLine();
         return line.getConverterStation1() == station ? line.getConverterStation2() : line.getConverterStation1();
     }

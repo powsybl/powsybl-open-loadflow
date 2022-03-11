@@ -39,18 +39,18 @@ class AcLoadFlowLccTest {
 
         Bus bus2 = network.getBusView().getBus("vl2_0");
         assertVoltageEquals(389.3763, bus2);
-        assertAngleEquals(-0.095311, bus2);
+        assertAngleEquals(-0.095268, bus2);
 
         Bus bus3 = network.getBusView().getBus("vl3_0");
         assertVoltageEquals(380, bus3);
         assertAngleEquals(0, bus3);
 
         LccConverterStation cs2 = network.getLccConverterStation("cs2");
-        assertActivePowerEquals(50.05, cs2.getTerminal());
-        assertReactivePowerEquals(37.538, cs2.getTerminal());
+        assertActivePowerEquals(50.00, cs2.getTerminal());
+        assertReactivePowerEquals(37.499, cs2.getTerminal());
 
         LccConverterStation cs3 = network.getLccConverterStation("cs3");
-        assertActivePowerEquals(-49.45, cs3.getTerminal());
-        assertReactivePowerEquals(37.087, cs3.getTerminal());
+        assertActivePowerEquals(-49.399, cs3.getTerminal());
+        assertReactivePowerEquals(37.049, cs3.getTerminal());
     }
 }

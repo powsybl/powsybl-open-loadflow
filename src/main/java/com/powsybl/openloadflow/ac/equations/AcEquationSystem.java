@@ -331,14 +331,21 @@ public final class AcEquationSystem {
             bus1.setCalculatedV(vTerm);
             // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
+            var dummyQ = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q);
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
                     .orElseThrow()
-                    .addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).createTerm());
+                    .addTerm(dummyQ.createTerm());
 
             equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
                     .orElseThrow()
-                    .addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q).<AcEquationType>createTerm()
+                    .addTerm(dummyQ.<AcEquationType>createTerm()
                                     .minus());
+
+            // create an inactive dummy reactive power target equation set to zero that could be activated
+            // on case of switch opening
+            equationSystem.createEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_Q)
+                    .addTerm(dummyQ.createTerm())
+                    .setActive(false);
         } else {
             // nothing to do in case of v1 and v2 are found, we just have to ensure
             // target v are equals.
@@ -356,14 +363,21 @@ public final class AcEquationSystem {
 
             // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
+            var dummyP = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P);
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
                     .orElseThrow()
-                    .addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm());
+                    .addTerm(dummyP.createTerm());
 
             equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
                     .orElseThrow()
-                    .addTerm(equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P).<AcEquationType>createTerm()
+                    .addTerm(dummyP.<AcEquationType>createTerm()
                                     .minus());
+
+            // create an inactive dummy active power target equation set to zero that could be activated
+            // on case of switch opening
+            equationSystem.createEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_P)
+                    .addTerm(dummyP.createTerm())
+                    .setActive(false);
         } else {
             throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
         }

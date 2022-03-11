@@ -213,11 +213,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     void addLccConverterStation(LccConverterStation lccCs) {
         // note that LCC converter station are out of the slack distribution.
         lccCss.add(lccCs);
-        HvdcLine line = lccCs.getHvdcLine();
-        double targetP = HvdcConverterStations.getLccConverterStationLoadTargetP(lccCs, line);
+        double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs);
         loadTargetP += targetP;
         initialLoadTargetP += targetP;
-        loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, line);
+        loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs);
     }
 
     protected void add(LfGenerator generator) {
@@ -479,9 +478,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
         // update lcc converter station power
         for (LccConverterStation lccCs : lccCss) {
-            HvdcLine line = lccCs.getHvdcLine();
-            double pCs = HvdcConverterStations.getLccConverterStationLoadTargetP(lccCs, line); // A LCC station has active losses.
-            double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, line); // A LCC station always consumes reactive power.
+            double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs); // A LCC station has active losses.
+            double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs); // A LCC station always consumes reactive power.
             lccCs.getTerminal()
                     .setP(pCs)
                     .setQ(qCs);

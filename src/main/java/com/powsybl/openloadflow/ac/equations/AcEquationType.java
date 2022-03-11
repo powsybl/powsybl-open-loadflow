@@ -27,7 +27,9 @@ public enum AcEquationType implements Quantity {
     ZERO_V("zero_v", ElementType.BRANCH), // zero impedance branch, voltage magnitude equality
     ZERO_PHI("zero_\u03C6", ElementType.BRANCH), // zero impedance branch, voltage angle equality
     DISTR_RHO("distr_\u03C1", ElementType.BRANCH), // remote transformer voltage control ratio distribution
-    DISTR_SHUNT_B("distr_b", ElementType.SHUNT_COMPENSATOR); // shunt remote voltage control susceptance distribution
+    DISTR_SHUNT_B("distr_b", ElementType.SHUNT_COMPENSATOR), // shunt remote voltage control susceptance distribution
+    DUMMY_TARGET_P("dummy_target_p", ElementType.BRANCH),
+    DUMMY_TARGET_Q("dummy_target_q", ElementType.BRANCH);
 
     private final String symbol;
 

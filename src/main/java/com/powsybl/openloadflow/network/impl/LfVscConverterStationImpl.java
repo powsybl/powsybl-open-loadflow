@@ -24,7 +24,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     private double lossFactor;
 
     private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
-        super(HvdcConverterStations.getHvdcLineTargetP(station));
+        super(HvdcConverterStations.getConverterStationTargetP(station));
         this.station = station;
         this.isRectifier = HvdcConverterStations.isRectifier(station);
         this.lossFactor = station.getLossFactor();
