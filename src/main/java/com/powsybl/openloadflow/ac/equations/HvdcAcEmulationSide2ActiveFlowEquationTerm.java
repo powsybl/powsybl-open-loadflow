@@ -30,12 +30,12 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
         return (ph1() - ph2()) < 0;
     }
 
-    private double dp1dph1() {
+    private double dp2dph1() {
         return -(isController() ? 1 :  getLossMultiplier()) * k;
     }
 
-    private double dp1dph2() {
-        return -dp1dph1();
+    private double dp2dph2() {
+        return -dp2dph1();
     }
 
     @Override
@@ -47,13 +47,13 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp1dv1();
+            return 0.0;
         } else if (variable.equals(v2Var)) {
-            return dp1dv2();
+            return 0.0;
         } else if (variable.equals(ph1Var)) {
-            return dp1dph1();
+            return dp2dph1();
         } else if (variable.equals(ph2Var)) {
-            return dp1dph2();
+            return dp2dph2();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

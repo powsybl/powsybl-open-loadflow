@@ -47,9 +47,9 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp1dv1();
+            return 0.0;
         } else if (variable.equals(v2Var)) {
-            return dp1dv2();
+            return 0.0;
         } else if (variable.equals(ph1Var)) {
             return dp1dph1();
         } else if (variable.equals(ph2Var)) {
