@@ -20,7 +20,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     private final VscConverterStation station;
 
     private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
-        super(getHvdcLineTargetP(station));
+        super(HvdcConverterStations.getConverterStationTargetP(station));
         this.station = station;
 
         // local control only
@@ -32,16 +32,6 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     public static LfVscConverterStationImpl create(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         Objects.requireNonNull(station);
         return new LfVscConverterStationImpl(station, breakers, reactiveLimits, report);
-    }
-
-    private static double getHvdcLineTargetP(VscConverterStation vscCs) {
-        // The active power setpoint is always positive.
-        // If the converter station is at side 1 and is rectifier, targetP should be negative.
-        // If the converter station is at side 1 and is inverter, targetP should be positive.
-        // If the converter station is at side 2 and is rectifier, targetP should be negative.
-        // If the converter station is at side 2 and is inverter, targetP should be positive.
-        HvdcLine line = vscCs.getHvdcLine();
-        return line.getActivePowerSetpoint() * HvdcConverterStations.getActivePowerSetpointMultiplier(vscCs);
     }
 
     @Override

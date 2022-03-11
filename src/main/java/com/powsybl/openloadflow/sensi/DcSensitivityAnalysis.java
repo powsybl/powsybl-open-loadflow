@@ -607,8 +607,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (Pair<LfBus, LccConverterStation> busAndlcc : lccs) {
             LfBus bus = busAndlcc.getKey();
             LccConverterStation lcc = busAndlcc.getValue();
-            HvdcLine line = lcc.getHvdcLine();
-            bus.setLoadTargetP(bus.getLoadTargetP() - AbstractLfBus.getLccConverterStationLoadTargetP(lcc, line));
+            bus.setLoadTargetP(bus.getLoadTargetP() - HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB);
         }
 
         for (LfVscConverterStationImpl vsc : vscs) {

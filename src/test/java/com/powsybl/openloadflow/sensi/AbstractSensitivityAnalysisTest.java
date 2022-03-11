@@ -318,9 +318,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         assertEquals(1, result.getValues().size());
         assertEquals(0d, result.getSensitivityValue("l45", "l12"), LoadFlowAssert.DELTA_POWER);
         if (dc) {
-            assertEquals(100.050, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.00, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
-            assertEquals(100.131, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.08, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         }
     }
 
@@ -339,9 +339,9 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         assertEquals(1, result.getValues().size());
         assertEquals(0, result.getSensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
         if (dc) {
-            assertEquals(100.050, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.000, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
-            assertEquals(100.131, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.080, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         }
     }
 

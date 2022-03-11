@@ -644,9 +644,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
-        assertEquals(-0.346002, result.getSensitivityValue("hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.346002, result.getSensitivityValue("hvdc34", "l13"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.642998, result.getSensitivityValue("hvdc34", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.341889, result.getSensitivityValue("hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.341889, result.getSensitivityValue("hvdc34", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.63611, result.getSensitivityValue("hvdc34", "l23"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
