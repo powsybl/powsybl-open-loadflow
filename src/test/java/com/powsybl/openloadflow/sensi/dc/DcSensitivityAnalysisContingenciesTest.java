@@ -13,10 +13,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.network.BoundaryFactory;
-import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisParameters;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
@@ -1721,8 +1718,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(2, result.getValues().size());
         assertEquals(0, result.getSensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(100.050, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(100.050, result.getFunctionReferenceValue("additionnalline_0", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(100.000, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(100.000, result.getFunctionReferenceValue("additionnalline_0", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1743,7 +1740,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(2, result.getValues().size());
         assertEquals(0, result.getSensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
 
-        assertEquals(100.050, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(100.0, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0, result.getFunctionReferenceValue("l12", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
@@ -1789,5 +1786,86 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         assertEquals(0, result.getFunctionReferenceValue("additionnalline_10"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getFunctionReferenceValue("additionnalline_0", "additionnalline_10"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLoadContingencyNotInMainComponent() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL_1_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("LINE_12", "GEN_1"));
+
+        List<Contingency> contingencies = List.of(new Contingency("LOAD_3", new LoadContingency("LOAD_3")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(1, result.getPreContingencyValues().size());
+        assertEquals(1.0, result.getSensitivityValue("GEN_1", "LINE_12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(25.0, result.getFunctionReferenceValue("LINE_12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.0, result.getSensitivityValue("LOAD_3", "GEN_1", "LINE_12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(25.0, result.getFunctionReferenceValue("LOAD_3", "LINE_12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGeneratorContingencyNotInMainComponent() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        network.getVoltageLevel("VL_3").newGenerator()
+                .setId("GEN_3")
+                .setBus("BUS_3")
+                .setMinP(0.0)
+                .setMaxP(10)
+                .setTargetP(5)
+                .setTargetV(30)
+                .setVoltageRegulatorOn(true)
+                .add();
+        network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL_1_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("LINE_12", "GEN_1"));
+
+        List<Contingency> contingencies = List.of(new Contingency("GEN_3", new GeneratorContingency("GEN_3")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(1, result.getPreContingencyValues().size());
+        assertEquals(1.0, result.getSensitivityValue("GEN_1", "LINE_12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(25.0, result.getFunctionReferenceValue("LINE_12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.0, result.getSensitivityValue("GEN_3", "GEN_1", "LINE_12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(25.0, result.getFunctionReferenceValue("GEN_3", "LINE_12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGeneratorContingencyNotInMainComponentAndMonitoredBranchNotInMainComponent() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        network.getVoltageLevel("VL_3").newGenerator()
+                .setId("GEN_3")
+                .setBus("BUS_3")
+                .setMinP(0.0)
+                .setMaxP(10)
+                .setTargetP(5)
+                .setTargetV(30)
+                .setVoltageRegulatorOn(true)
+                .add();
+        network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL_1_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("T2wT", "GEN_1"));
+
+        List<Contingency> contingencies = List.of(new Contingency("GEN_3", new GeneratorContingency("GEN_3")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(1, result.getPreContingencyValues().size());
+        assertEquals(0.0, result.getSensitivityValue("GEN_1", "T2wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getFunctionReferenceValue("T2wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getSensitivityValue("GEN_3", "GEN_1", "T2wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getFunctionReferenceValue("GEN_3", "T2wT"), LoadFlowAssert.DELTA_POWER);
     }
 }

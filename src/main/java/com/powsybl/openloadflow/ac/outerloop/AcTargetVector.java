@@ -120,6 +120,8 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
             case DISTR_RHO:
             case DISTR_SHUNT_B:
+            case DUMMY_TARGET_P:
+            case DUMMY_TARGET_Q:
                 targets[equation.getColumn()] = 0;
                 break;
 

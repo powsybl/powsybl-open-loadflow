@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -40,7 +41,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.ObjDoubleConsumer;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
@@ -166,8 +166,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    public DcSensitivityAnalysis(MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
-        super(matrixFactory, connectivityProvider);
+    public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+        super(matrixFactory, connectivityFactory);
     }
 
     protected DenseMatrix setReferenceActivePowerFlows(DcLoadFlowEngine dcLoadFlowEngine, EquationSystem<DcVariableType, DcEquationType> equationSystem, JacobianMatrix<DcVariableType, DcEquationType> j,
@@ -187,7 +187,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches, reporter);
 
         for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
-            factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
+            if (factor.getStatus() != LfSensitivityFactor.Status.ZERO) {
+                factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
+            }
         }
 
         if (lfParameters.isDistributedSlack()) {
@@ -520,7 +522,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             return connectivityAnalysisResults;
         }
 
-        GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.createDecrementalConnectivity(connectivityProvider);
+        GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.getConnectivity();
         for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> groupOfElementPotentiallyBreakingConnectivity : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
             Set<ComputedContingencyElement> breakingConnectivityCandidates = groupOfElementPotentiallyBreakingConnectivity.getKey();
             List<PropagatedContingency> contingencyList = groupOfElementPotentiallyBreakingConnectivity.getValue();
@@ -585,12 +587,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // generators.
         Set<LfGeneratorImpl> generators = new HashSet<>();
         for (String generatorId : contingency.getGeneratorIdsToLose()) {
-            generators.add((LfGeneratorImpl) lfNetwork.getGeneratorById(generatorId));
+            LfGenerator generator = lfNetwork.getGeneratorById(generatorId);
+            if (generator != null) { // because could not be in main compoment
+                generators.add((LfGeneratorImpl) generator);
+            }
         }
 
         for (Map.Entry<String, PowerShift> e : contingency.getLoadIdsToShift().entrySet()) {
             LfBus lfBus = lfNetwork.getBusById(e.getKey());
-            busStates.add(BusState.save(lfBus));
+            if (lfBus != null) { // because could not be in main compoment
+                busStates.add(BusState.save(lfBus));
+            }
         }
 
         lccs.stream().map(Pair::getKey).forEach(b -> busStates.add(BusState.save(b)));
@@ -600,8 +607,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (Pair<LfBus, LccConverterStation> busAndlcc : lccs) {
             LfBus bus = busAndlcc.getKey();
             LccConverterStation lcc = busAndlcc.getValue();
-            HvdcLine line = lcc.getHvdcLine();
-            bus.setLoadTargetP(bus.getLoadTargetP() - AbstractLfBus.getLccConverterStationLoadTargetP(lcc, line));
+            bus.setLoadTargetP(bus.getLoadTargetP() - HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB);
         }
 
         for (LfVscConverterStationImpl vsc : vscs) {
@@ -619,10 +625,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         for (Map.Entry<String, PowerShift> e : contingency.getLoadIdsToShift().entrySet()) {
             LfBus lfBus = lfNetwork.getBusById(e.getKey());
-            PowerShift shift = e.getValue();
-            double p0 = shift.getActive();
-            lfBus.setLoadTargetP(lfBus.getLoadTargetP() - LfContingency.getUpdatedLoadP0(lfBus, lfParameters, p0, shift.getVariableActive()));
-            lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+            if (lfBus != null) { // because could not be in main compoment
+                PowerShift shift = e.getValue();
+                double p0 = shift.getActive();
+                lfBus.setLoadTargetP(lfBus.getLoadTargetP() - LfContingency.getUpdatedLoadP0(lfBus, lfParameters, p0, shift.getVariableActive()));
+                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+            }
         }
     }
 
@@ -724,10 +732,24 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         // create the network (we only manage main connected component)
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds());
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector, false, true, lfParameters.isTwtSplitShuntAdmittance(),
-                false, lfParametersExt.getPlausibleActivePowerLimit(), false, true, lfParameters.getCountriesToBalance(),
-                lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                false, false, false, false, true, false, false);
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector,
+                                                                          connectivityFactory,
+                                                                          false,
+                                                                          true,
+                                                                          lfParameters.isTwtSplitShuntAdmittance(),
+                                                                          false,
+                                                                          lfParametersExt.getPlausibleActivePowerLimit(),
+                                                                          false,
+                                                                          true,
+                                                                          lfParameters.getCountriesToBalance(),
+                                                                          lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                                          false,
+                                                                          false,
+                                                                          false,
+                                                                          false,
+                                                                          true,
+                                                                          false,
+                                                                          false);
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);

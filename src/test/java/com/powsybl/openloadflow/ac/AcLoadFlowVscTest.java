@@ -40,7 +40,7 @@ class AcLoadFlowVscTest {
 
         Bus bus2 = network.getBusView().getBus("vl2_0");
         assertVoltageEquals(385, bus2);
-        assertAngleEquals(0.116917, bus2);
+        assertAngleEquals(0.117616, bus2);
 
         Bus bus3 = network.getBusView().getBus("vl3_0");
         assertVoltageEquals(383, bus3);
@@ -48,21 +48,21 @@ class AcLoadFlowVscTest {
 
         Generator g1 = network.getGenerator("g1");
         assertActivePowerEquals(-102.56, g1.getTerminal());
-        assertReactivePowerEquals(-615.733, g1.getTerminal());
+        assertReactivePowerEquals(-615.918, g1.getTerminal());
 
         VscConverterStation cs2 = network.getVscConverterStation("cs2");
-        assertActivePowerEquals(50.55, cs2.getTerminal());
-        assertReactivePowerEquals(598.046, cs2.getTerminal());
+        assertActivePowerEquals(50.00, cs2.getTerminal());
+        assertReactivePowerEquals(598.228, cs2.getTerminal());
 
         VscConverterStation cs3 = network.getVscConverterStation("cs3");
-        assertActivePowerEquals(-49.90, cs3.getTerminal());
+        assertActivePowerEquals(-49.35, cs3.getTerminal());
         assertReactivePowerEquals(-10.0, cs3.getTerminal());
 
         Line l12 = network.getLine("l12");
-        assertActivePowerEquals(103.112, l12.getTerminal1());
-        assertReactivePowerEquals(615.733, l12.getTerminal1());
-        assertActivePowerEquals(-100.55, l12.getTerminal2());
-        assertReactivePowerEquals(-608.046, l12.getTerminal2());
+        assertActivePowerEquals(102.563, l12.getTerminal1());
+        assertReactivePowerEquals(615.918, l12.getTerminal1());
+        assertActivePowerEquals(-99.999, l12.getTerminal2());
+        assertReactivePowerEquals(-608.228, l12.getTerminal2());
     }
 
     @Test

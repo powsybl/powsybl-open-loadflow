@@ -26,8 +26,8 @@ import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.sensitivity.*;
@@ -45,7 +45,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -66,12 +65,12 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory) {
-        this(matrixFactory, EvenShiloachGraphDecrementalConnectivity::new);
+        this(matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>());
     }
 
-    public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory, Supplier<GraphDecrementalConnectivity<LfBus>> connectivityProvider) {
-        dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory, connectivityProvider);
-        acSensitivityAnalysis = new AcSensitivityAnalysis(matrixFactory, connectivityProvider);
+    public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+        dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory, connectivityFactory);
+        acSensitivityAnalysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory);
     }
 
     @Override
@@ -87,17 +86,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     private static OpenSensitivityAnalysisParameters getSensitivityAnalysisParametersExtension(SensitivityAnalysisParameters sensitivityAnalysisParameters) {
         OpenSensitivityAnalysisParameters sensiParametersExt = sensitivityAnalysisParameters.getExtension(OpenSensitivityAnalysisParameters.class);
         if (sensiParametersExt == null) {
-            sensiParametersExt = OpenSensitivityAnalysisParameters.load();
+            sensiParametersExt = new OpenSensitivityAnalysisParameters();
         }
         return sensiParametersExt;
-    }
-
-    private static OpenLoadFlowParameters getLoadFlowParametersExtension(LoadFlowParameters lfParameters) {
-        OpenLoadFlowParameters lfParametersExt = lfParameters.getExtension(OpenLoadFlowParameters.class);
-        if (lfParametersExt == null) {
-            lfParametersExt = OpenLoadFlowParameters.load();
-        }
-        return lfParametersExt;
     }
 
     private static ObjectMapper createObjectMapper() {
@@ -135,7 +126,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                         sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
 
                 LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
-                OpenLoadFlowParameters lfParametersExt = getLoadFlowParametersExtension(lfParameters);
+                OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
                 SensitivityFactorReader decoratedFactorReader = factorReader;

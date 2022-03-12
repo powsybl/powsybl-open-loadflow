@@ -7,6 +7,8 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 
 import java.util.Collections;
 import java.util.Objects;
@@ -20,6 +22,8 @@ public class LfNetworkParameters {
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
     private SlackBusSelector slackBusSelector;
+
+    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
 
     private final boolean generatorVoltageRemoteControl;
 
@@ -58,18 +62,23 @@ public class LfNetworkParameters {
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector) {
-        this(slackBusSelector, false, false, false, false,
+        this(slackBusSelector, new EvenShiloachGraphDecrementalConnectivityFactory<>());
+    }
+
+    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+        this(slackBusSelector, connectivityFactory, false, false, false, false,
                 PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                 true, Collections.emptySet(), false, false, false, false, false, false, false, true);
     }
 
-    public LfNetworkParameters(SlackBusSelector slackBusSelector, boolean generatorVoltageRemoteControl,
-                               boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
+    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory,
+                               boolean generatorVoltageRemoteControl, boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
                                boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl,
                                boolean isDc, boolean shuntVoltageControl, boolean reactiveLimits) {
-        this.slackBusSelector = slackBusSelector;
+        this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+        this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
         this.minImpedance = minImpedance;
         this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
@@ -94,6 +103,10 @@ public class LfNetworkParameters {
 
     public void setSlackBusSelector(SlackBusSelector slackBusSelector) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+    }
+
+    public GraphDecrementalConnectivityFactory<LfBus> getConnectivityFactory() {
+        return connectivityFactory;
     }
 
     public boolean isGeneratorVoltageRemoteControl() {
@@ -169,6 +182,7 @@ public class LfNetworkParameters {
     public String toString() {
         return "LfNetworkParameters(" +
                 "slackBusSelector=" + slackBusSelector.getClass().getSimpleName() +
+                ", connectivityFactory=" + connectivityFactory.getClass().getSimpleName() +
                 ", generatorVoltageRemoteControl=" + generatorVoltageRemoteControl +
                 ", minImpedance=" + minImpedance +
                 ", twtSplitShuntAdmittance=" + twtSplitShuntAdmittance +

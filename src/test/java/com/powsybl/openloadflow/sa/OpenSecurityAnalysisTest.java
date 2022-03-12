@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -15,7 +16,7 @@ import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
@@ -92,7 +93,7 @@ class OpenSecurityAnalysisTest {
     private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
                                                               SecurityAnalysisParameters saParameters) {
         ContingenciesProvider provider = n -> contingencies;
-        var saProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), EvenShiloachGraphDecrementalConnectivity::new);
+        var saProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
         var computationManager = Mockito.mock(ComputationManager.class);
         Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
         SecurityAnalysisReport report = saProvider.run(network,
@@ -1233,5 +1234,46 @@ class OpenSecurityAnalysisTest {
         assertTrue(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
 
         assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation4, violationsParameters));
+    }
+
+    @Test
+    void testPhaseShifterNecessaryForConnectivity() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+
+        // switch PS1 to active power control
+        var ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setRegulationValue(83);
+
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setPhaseShifterRegulationOn(true);
+
+        List<Contingency> contingencies = List.of(Contingency.line("L2"), Contingency.twoWindingsTransformer("PS1"), Contingency.line("L1")); // I added L2 and PS1 before to assert there is no impact on L1 contingency
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+        assertEquals(3, result.getPostContingencyResults().size());
+        PostContingencyResult l1ContingencyResult = getPostContingencyResult(result, "L1");
+        assertTrue(l1ContingencyResult.getLimitViolationsResult().isComputationOk());
+        assertEquals(100.3689, l1ContingencyResult.getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-100.1844, l1ContingencyResult.getBranchResult("PS1").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testWithNonImpedantLineConnectedToSlackBus() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L1-2-1").setR(0).setX(0);
+        network.getLine("L4-5-1").setR(0).setX(0);
+
+        List<Contingency> contingencies = allBranches(network);
+
+        List<StateMonitor> monitors = Collections.emptyList();
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+        assertEquals(20, result.getPostContingencyResults().size()); // assert there is no contingency simulation failure
     }
 }

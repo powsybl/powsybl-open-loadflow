@@ -410,7 +410,7 @@ class AcLoadFlowPhaseShifterTest {
                 .setRegulating(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(100.1307, network.getLine("l12").getTerminal1());
+        assertActivePowerEquals(100.0805, network.getLine("l12").getTerminal1());
     }
 
     @Test
@@ -441,5 +441,27 @@ class AcLoadFlowPhaseShifterTest {
         line2 = network.getLine("L2");
         t2wt = network.getTwoWindingsTransformer("PS1");
         t3wt = network.getThreeWindingsTransformer("PS1");
+    }
+
+    @Test
+    void testPhaseShifterNecessaryForConnectivity() {
+        selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
+
+        // remove L1 so that PS1 loss would break connectivity
+        line1.getTerminal1().disconnect();
+        line1.getTerminal2().disconnect();
+
+        // switch PS1 to active power control
+        t2wt.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setRegulationValue(83);
+
+        parameters.setPhaseShifterRegulationOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(100.3689, t2wt.getTerminal1());
+        assertActivePowerEquals(-100.1844, t2wt.getTerminal2());
     }
 }
