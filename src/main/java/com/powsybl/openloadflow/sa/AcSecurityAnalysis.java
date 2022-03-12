@@ -40,7 +40,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
@@ -83,7 +82,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             throw new PowsyblException("Largest network is invalid");
         }
 
-        GraphDecrementalConnectivity<LfBus> connectivity = largestNetwork.createDecrementalConnectivity(connectivityProvider);
+        GraphDecrementalConnectivity<LfBus> connectivity = largestNetwork.getConnectivity();
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
                 .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(largestNetwork, connectivity, true).stream())
                 // move contingencies that break connectivity at the end to minimize to number of Jacobian matrix
