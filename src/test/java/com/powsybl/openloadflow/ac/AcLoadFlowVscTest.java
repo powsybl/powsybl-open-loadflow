@@ -146,6 +146,32 @@ class AcLoadFlowVscTest {
     }
 
     @Test
+    void testHvdcAcEmulation2() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        VscConverterStation cs3 = network.getVscConverterStation("cs3");
+        assertActivePowerEquals(-0.114, cs3.getTerminal());
+        assertReactivePowerEquals(-4.226, cs3.getTerminal());
+
+        VscConverterStation cs4 = network.getVscConverterStation("cs4");
+        assertActivePowerEquals(0.1166, cs4.getTerminal());
+        assertReactivePowerEquals(-3.600, cs4.getTerminal());
+    }
+
+    @Test
     void testHvdcAcEmulationNonSupported() {
         Network network = HvdcNetworkFactory.createVsc();
         network.getHvdcLine("hvdc23").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
