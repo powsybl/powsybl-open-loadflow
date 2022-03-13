@@ -26,11 +26,11 @@ public abstract class AbstractEquationSystemIndex<V extends Enum<V> & Quantity, 
         listeners.remove(Objects.requireNonNull(listener));
     }
 
-    protected void notifyEquationsIndexUpdate() {
-        listeners.forEach(EquationSystemIndexListener::onEquationsIndexUpdate);
+    protected void notifyEquationChange() {
+        listeners.forEach(EquationSystemIndexListener::onEquationChange);
     }
 
-    protected void notifyVariablesIndexUpdate() {
-        listeners.forEach(EquationSystemIndexListener::onVariablesIndexUpdate);
+    protected void notifyVariableChange() {
+        listeners.forEach(EquationSystemIndexListener::onVariableChange);
     }
 }

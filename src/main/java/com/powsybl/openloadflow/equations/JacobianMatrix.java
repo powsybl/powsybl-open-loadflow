@@ -82,12 +82,12 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public void onEquationsIndexUpdate() {
+    public void onEquationChange() {
         status = Status.MATRIX_INVALID;
     }
 
     @Override
-    public void onVariablesIndexUpdate() {
+    public void onVariableChange() {
         status = Status.MATRIX_INVALID;
     }
 

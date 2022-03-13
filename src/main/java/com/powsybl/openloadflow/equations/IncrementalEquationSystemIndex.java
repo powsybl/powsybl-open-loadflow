@@ -41,7 +41,6 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
             }
             equationsIndexValid = true;
             LOGGER.debug("Equations index updated ({} columns)", columnCount);
-            notifyEquationsIndexUpdate();
         }
 
         if (!variablesIndexValid) {
@@ -51,16 +50,20 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
             }
             variablesIndexValid = true;
             LOGGER.debug("Variables index updated ({} rows)", rowCount);
-            notifyVariablesIndexUpdate();
         }
     }
 
     private void addTerm(EquationTerm<V, E> term) {
         for (Variable<V> variable : term.getVariables()) {
-            sortedVariablesToFindRefCount.computeIfAbsent(variable, k -> {
+            MutableInt variableRefCount = sortedVariablesToFindRefCount.get(variable);
+            if (variableRefCount == null) {
+                variableRefCount = new MutableInt(1);
+                sortedVariablesToFindRefCount.put(variable, variableRefCount);
                 variablesIndexValid = false;
-                return new MutableInt();
-            }).increment();
+                notifyVariableChange();
+            } else {
+                variableRefCount.increment();
+            }
         }
     }
 
@@ -72,6 +75,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                 addTerm(term);
             }
         }
+        notifyEquationChange();
     }
 
     private void removeTerm(EquationTerm<V, E> term) {
@@ -83,6 +87,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                     variable.setRow(-1);
                     sortedVariablesToFindRefCount.remove(variable);
                     variablesIndexValid = false;
+                    notifyVariableChange();
                 }
             }
         }
@@ -97,6 +102,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                 removeTerm(term);
             }
         }
+        notifyEquationChange();
     }
 
     @Override
