@@ -17,7 +17,7 @@ public interface EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
 
     NavigableSet<Variable<V>> getSortedVariablesToFind();
 
-    void addListener(EquationSystemIndexListener listener);
+    void addListener(EquationSystemIndexListener<V, E> listener);
 
-    void removeListener(EquationSystemIndexListener listener);
+    void removeListener(EquationSystemIndexListener<V, E> listener);
 }

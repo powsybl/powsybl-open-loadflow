@@ -14,23 +14,23 @@ import java.util.*;
 public abstract class AbstractEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
         implements EquationSystemIndex<V, E> {
 
-    protected final List<EquationSystemIndexListener> listeners = new ArrayList<>();
+    protected final List<EquationSystemIndexListener<V, E>> listeners = new ArrayList<>();
 
     @Override
-    public void addListener(EquationSystemIndexListener listener) {
+    public void addListener(EquationSystemIndexListener<V, E> listener) {
         listeners.add(Objects.requireNonNull(listener));
     }
 
     @Override
-    public void removeListener(EquationSystemIndexListener listener) {
+    public void removeListener(EquationSystemIndexListener<V, E> listener) {
         listeners.remove(Objects.requireNonNull(listener));
     }
 
-    protected void notifyEquationChange() {
-        listeners.forEach(EquationSystemIndexListener::onEquationChange);
+    protected void notifyEquationChange(Equation<V, E> equation, EquationSystemIndexListener.ChangeType changeType) {
+        listeners.forEach(listener -> listener.onEquationChange(equation, changeType));
     }
 
-    protected void notifyVariableChange() {
-        listeners.forEach(EquationSystemIndexListener::onVariableChange);
+    protected void notifyVariableChange(Variable<V> variable, EquationSystemIndexListener.ChangeType changeType) {
+        listeners.forEach(listener -> listener.onVariableChange(variable, changeType));
     }
 }
