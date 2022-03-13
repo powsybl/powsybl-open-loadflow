@@ -20,7 +20,6 @@ import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -53,13 +52,13 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     public EquationSystem(boolean indexTerms) {
-        this(new VariableSet<>(), indexTerms, IncrementalEquationSystemIndex::new);
+        this(new VariableSet<>(), indexTerms);
     }
 
-    public EquationSystem(VariableSet<V> variableSet, boolean indexTerms, Function<EquationSystem<V, E>, EquationSystemIndex<V, E>> indexFactory) {
+    public EquationSystem(VariableSet<V> variableSet, boolean indexTerms) {
         this.variableSet = Objects.requireNonNull(variableSet);
         this.indexTerms = indexTerms;
-        index = Objects.requireNonNull(indexFactory).apply(this);
+        index = new EquationSystemIndex<>(this);
     }
 
     public VariableSet<V> getVariableSet() {
