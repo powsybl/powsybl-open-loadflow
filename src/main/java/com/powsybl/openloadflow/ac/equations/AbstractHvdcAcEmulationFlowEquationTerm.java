@@ -24,10 +24,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
 
     protected final Variable<AcVariableType> ph2Var;
 
-    protected final Variable<AcVariableType> v1Var;
-
-    protected final Variable<AcVariableType> v2Var;
-
     protected final List<Variable<AcVariableType>> variables;
 
     protected final double k;
@@ -43,8 +39,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
-        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
-        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
         variables = List.of(ph1Var, ph2Var);
         this.hvdc = hvdc;
         k = hvdc.getDroop() * 180 / Math.PI;
@@ -59,14 +53,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
 
     protected double ph2() {
         return stateVector.get(ph2Var.getRow());
-    }
-
-    protected double v1() {
-        return stateVector.get(v1Var.getRow());
-    }
-
-    protected double v2() {
-        return stateVector.get(v2Var.getRow());
     }
 
     protected double getLossMultiplier() {
