@@ -79,12 +79,12 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     }
 
     @Override
-    public void onEquationsIndexUpdate() {
+    public void onEquationChange() {
         status = Status.VECTOR_INVALID;
     }
 
     @Override
-    public void onVariablesIndexUpdate() {
+    public void onVariableChange() {
         // nothing to do
     }
 

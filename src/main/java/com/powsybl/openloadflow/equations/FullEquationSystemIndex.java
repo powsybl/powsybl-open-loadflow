@@ -57,9 +57,7 @@ class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & 
                 if (!term.isActive()) {
                     continue;
                 }
-                for (var v : term.getVariables()) {
-                    sortedVariablesToFind.add(v);
-                }
+                sortedVariablesToFind.addAll(term.getVariables());
             }
         }
 
@@ -76,19 +74,22 @@ class FullEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E> & 
         LOGGER.debug("Variables index updated ({} rows)", rowCount);
 
         valid = true;
+    }
 
-        notifyEquationsIndexUpdate();
-        notifyVariablesIndexUpdate();
+    private void invalidate() {
+        valid = false;
+        notifyEquationChange();
+        notifyVariableChange();
     }
 
     @Override
     public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
-        valid = false;
+        invalidate();
     }
 
     @Override
     public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
-        valid = false;
+        invalidate();
     }
 
     public NavigableSet<Equation<V, E>> getSortedEquationsToSolve() {
