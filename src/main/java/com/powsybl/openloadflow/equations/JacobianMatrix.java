@@ -24,7 +24,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
-        implements EquationSystemListener<V, E>, EquationSystemIndexListener, StateVectorListener, AutoCloseable {
+        implements EquationSystemListener<V, E>, EquationSystemIndexListener<V, E>, StateVectorListener, AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
@@ -82,12 +82,12 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public void onEquationChange() {
+    public void onEquationChange(Equation<V, E> equation, ChangeType changeType) {
         status = Status.MATRIX_INVALID;
     }
 
     @Override
-    public void onVariableChange() {
+    public void onVariableChange(Variable<V> variable, ChangeType changeType) {
         status = Status.MATRIX_INVALID;
     }
 

@@ -60,7 +60,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                 variableRefCount = new MutableInt(1);
                 sortedVariablesToFindRefCount.put(variable, variableRefCount);
                 variablesIndexValid = false;
-                notifyVariableChange();
+                notifyVariableChange(variable, EquationSystemIndexListener.ChangeType.ADDED);
             } else {
                 variableRefCount.increment();
             }
@@ -75,7 +75,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                 addTerm(term);
             }
         }
-        notifyEquationChange();
+        notifyEquationChange(equation, EquationSystemIndexListener.ChangeType.ADDED);
     }
 
     private void removeTerm(EquationTerm<V, E> term) {
@@ -87,7 +87,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                     variable.setRow(-1);
                     sortedVariablesToFindRefCount.remove(variable);
                     variablesIndexValid = false;
-                    notifyVariableChange();
+                    notifyVariableChange(variable, EquationSystemIndexListener.ChangeType.REMOVED);
                 }
             }
         }
@@ -102,7 +102,7 @@ class IncrementalEquationSystemIndex<V extends Enum<V> & Quantity, E extends Enu
                 removeTerm(term);
             }
         }
-        notifyEquationChange();
+        notifyEquationChange(equation, EquationSystemIndexListener.ChangeType.REMOVED);
     }
 
     @Override

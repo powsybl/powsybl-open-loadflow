@@ -9,15 +9,20 @@ package com.powsybl.openloadflow.equations;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface EquationSystemIndexListener {
+public interface EquationSystemIndexListener<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+
+    enum ChangeType {
+        ADDED,
+        REMOVED
+    }
 
     /**
      * Called when a new variable has been added or removed to the system.
      */
-    void onVariableChange();
+    void onVariableChange(Variable<V> variable, ChangeType changeType);
 
     /**
      * Called when a new equation has been added or removed to the system.
      */
-    void onEquationChange();
+    void onEquationChange(Equation<V, E> equation, ChangeType changeType);
 }

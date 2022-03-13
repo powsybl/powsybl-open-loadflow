@@ -121,11 +121,6 @@ class EquationSystemTest {
     }
 
     @Test
-    void testFullIndex() {
-        test(FullEquationSystemIndex::new);
-    }
-
-    @Test
     void testIncrementalIndex() {
         test(IncrementalEquationSystemIndex::new);
     }
