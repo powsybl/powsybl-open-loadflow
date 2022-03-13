@@ -169,6 +169,16 @@ class AcLoadFlowVscTest {
         VscConverterStation cs4 = network.getVscConverterStation("cs4");
         assertActivePowerEquals(0.1166, cs4.getTerminal());
         assertReactivePowerEquals(-3.600, cs4.getTerminal());
+
+        network.getVscConverterStation("cs3").setVoltageRegulatorOn(false);
+        network.getVscConverterStation("cs4").setVoltageRegulatorOn(false);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+
+        assertActivePowerEquals(-0.089, cs3.getTerminal());
+        assertReactivePowerEquals(0.0, cs3.getTerminal());
+        assertActivePowerEquals(0.0914, cs4.getTerminal());
+        assertReactivePowerEquals(0.0, cs4.getTerminal());
     }
 
     @Test
