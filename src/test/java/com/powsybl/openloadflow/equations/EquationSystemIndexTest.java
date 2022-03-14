@@ -72,7 +72,8 @@ class EquationSystemIndexTest {
         }
     }
 
-    private final List<Pair<Quantity, ChangeType>> events = new ArrayList<>();
+    private final List<Pair<Quantity, ChangeType>> quantityAdded = new ArrayList<>();
+    private final List<Pair<Equation<TestVariableType, TestEquationType>, Variable<TestVariableType>>> elementAdded = new ArrayList<>();
 
     @Test
     void test() {
@@ -80,14 +81,22 @@ class EquationSystemIndexTest {
         equationSystem.getIndex().addListener(new EquationSystemIndexListener<>() {
             @Override
             public void onVariableChange(Variable<TestVariableType> variable, ChangeType changeType) {
-                events.add(Pair.of(variable.getType(), changeType));
+                quantityAdded.add(Pair.of(variable.getType(), changeType));
             }
 
             @Override
             public void onEquationChange(Equation<TestVariableType, TestEquationType> equation, ChangeType changeType) {
-                events.add(Pair.of(equation.getType(), changeType));
+                quantityAdded.add(Pair.of(equation.getType(), changeType));
+            }
+
+            @Override
+            public void onElementAddedButNoVariableOrEquationAdded(Equation<TestVariableType, TestEquationType> equation, Variable<TestVariableType> variable) {
+                elementAdded.add(Pair.of(equation, variable));
             }
         });
+
+        // x = a + b
+        // y = a + c
         var a = equationSystem.getVariableSet().getVariable(0, TestVariableType.A);
         var b = equationSystem.getVariableSet().getVariable(0, TestVariableType.B);
         var c = equationSystem.getVariableSet().getVariable(0, TestVariableType.C);
@@ -106,53 +115,87 @@ class EquationSystemIndexTest {
                              Pair.of(TestVariableType.B, ChangeType.ADDED),
                              Pair.of(TestEquationType.Y, ChangeType.ADDED),
                              Pair.of(TestVariableType.C, ChangeType.ADDED)),
-                     events);
-        events.clear();
+                      quantityAdded);
+        assertEquals(List.of(Pair.of(y, a)), elementAdded);
+        quantityAdded.clear();
+        elementAdded.clear();
         assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate y
+        // x = a + b
         y.setActive(false);
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.REMOVED),
                              Pair.of(TestEquationType.Y, ChangeType.REMOVED)),
-                     events);
-        events.clear();
+                     quantityAdded);
+        assertTrue(elementAdded.isEmpty());
+        quantityAdded.clear();
         assertEquals(Set.of(x), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate y
+        // x = a + b
+        // y = a + c
         y.setActive(true);
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.ADDED),
                              Pair.of(TestEquationType.Y, ChangeType.ADDED)),
-                     events);
-        events.clear();
+                     quantityAdded);
+        assertEquals(List.of(Pair.of(y, a)), elementAdded);
+        quantityAdded.clear();
+        elementAdded.clear();
         assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate c term
+        // x = a + b
+        // y = a
         cTerm.setActive(false);
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.REMOVED)),
-                events);
-        events.clear();
+                     quantityAdded);
+        quantityAdded.clear();
         assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate c term
+        // x = a + b
+        // y = a + c
         cTerm.setActive(true);
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.ADDED)),
-                     events);
-        events.clear();
+                     quantityAdded);
+        quantityAdded.clear();
         assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
-        // deactivate a term
+        // deactivate all a term
+        // x = b
+        // y = c
         aTerm.setActive(false);
-        assertTrue(events.isEmpty());
+        assertTrue(quantityAdded.isEmpty());
         aTerm2.setActive(false);
         assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.REMOVED)),
-                     events);
-        events.clear();
+                     quantityAdded);
+        quantityAdded.clear();
         assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(b, c), equationSystem.getIndex().getSortedVariablesToFind());
+
+        // reactivate one 'a' term
+        // x = a + b
+        // y = c
+        aTerm.setActive(true);
+        assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.ADDED)),
+                     quantityAdded);
+        quantityAdded.clear();
+        assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
+
+        // reactovate other 'a' term
+        // x = a + b
+        // y = a + c
+        aTerm2.setActive(true);
+        assertTrue(quantityAdded.isEmpty());
+        assertEquals(List.of(Pair.of(y, a)), elementAdded);
+        elementAdded.clear();
+        assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
     }
 }

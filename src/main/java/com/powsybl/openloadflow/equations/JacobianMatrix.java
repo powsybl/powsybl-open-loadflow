@@ -92,6 +92,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
+    public void onElementAddedButNoVariableOrEquationAdded(Equation<V, E> equation, Variable<V> variable) {
+        // TODO
+    }
+
+    @Override
     public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
         // nothing to do because alreadu invalidated by equations index update event
     }
