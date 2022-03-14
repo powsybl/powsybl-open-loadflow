@@ -25,4 +25,10 @@ public interface EquationSystemIndexListener<V extends Enum<V> & Quantity, E ext
      * Called when a new equation has been added or removed to the system.
      */
     void onEquationChange(Equation<V, E> equation, ChangeType changeType);
+
+    /**
+     * Called when a new non zero element is added to the system, but without resulting of a new
+     * equation or a new variable.
+     */
+    void onElementAddedButNoVariableOrEquationAdded(Equation<V, E> equation, Variable<V> variable);
 }
