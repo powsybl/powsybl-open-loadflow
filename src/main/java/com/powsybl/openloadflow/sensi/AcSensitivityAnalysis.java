@@ -197,7 +197,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParametersExt.hasReactivePowerRemoteControl(),
                                                                           lfParameters.isDc(),
                                                                           lfParameters.isShuntCompensatorVoltageControlOn(),
-                                                                          !lfParameters.isNoGeneratorReactiveLimits());
+                                                                          !lfParameters.isNoGeneratorReactiveLimits(),
+                                                            false);
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);

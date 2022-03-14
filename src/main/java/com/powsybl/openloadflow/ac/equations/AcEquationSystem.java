@@ -717,9 +717,7 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createHvdcAcEmulationEquations(LfHvdc hvdc, LfNetworkParameters networkParameters,
-                                                       EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                       AcEquationSystemCreationParameters creationParameters) {
+    private static void createHvdcAcEmulationEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
         if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
@@ -783,7 +781,7 @@ public final class AcEquationSystem {
         createBranchesEquations(network, networkParameters, equationSystem, creationParameters);
 
         for (LfHvdc hvdc : network.getHvdcs()) {
-            createHvdcAcEmulationEquations(hvdc, networkParameters, equationSystem, creationParameters);
+            createHvdcAcEmulationEquations(hvdc, equationSystem);
         }
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));

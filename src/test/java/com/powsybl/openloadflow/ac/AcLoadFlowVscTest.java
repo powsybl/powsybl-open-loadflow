@@ -132,7 +132,8 @@ class AcLoadFlowVscTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setHvdcAcEmulation(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -158,7 +159,8 @@ class AcLoadFlowVscTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setHvdcAcEmulation(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -193,7 +195,8 @@ class AcLoadFlowVscTest {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setHvdcAcEmulation(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
