@@ -24,7 +24,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
-        implements EquationSystemListener<V, E>, EquationSystemIndexListener<V, E>, StateVectorListener, AutoCloseable {
+        implements EquationSystemIndexListener<V, E>, StateVectorListener, AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
@@ -76,7 +76,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        equationSystem.addListener(this);
         equationSystem.getIndex().addListener(this);
         equationSystem.getStateVector().addListener(this);
     }
@@ -93,16 +92,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     @Override
     public void onElementAddedButNoVariableOrEquationAdded(Equation<V, E> equation, Variable<V> variable) {
-        // TODO
-    }
-
-    @Override
-    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
-        // nothing to do because alreadu invalidated by equations index update event
-    }
-
-    @Override
-    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
         // TODO to improve later
         status = Status.MATRIX_INVALID;
     }
@@ -242,7 +231,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     @Override
     public void close() {
-        equationSystem.removeListener(this);
         equationSystem.getIndex().removeListener(this);
         equationSystem.getStateVector().removeListener(this);
         matrix = null;
