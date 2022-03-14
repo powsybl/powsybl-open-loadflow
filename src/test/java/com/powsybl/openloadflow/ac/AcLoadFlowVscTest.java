@@ -208,4 +208,31 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(-49.35, cs3.getTerminal());
         assertReactivePowerEquals(-10.0, cs3.getTerminal());
     }
+
+    @Test
+    void testHvdcAcEmulationNonSupported2() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+                .setDc(true);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setHvdcAcEmulation(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        VscConverterStation cs3 = network.getVscConverterStation("cs3");
+        assertActivePowerEquals(-1.956, cs3.getTerminal());
+
+        VscConverterStation cs4 = network.getVscConverterStation("cs4");
+        assertActivePowerEquals(2.0, cs4.getTerminal());
+
+    }
 }
