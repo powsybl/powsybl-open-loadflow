@@ -34,9 +34,9 @@ public final class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private double p0;
 
-    private LfVscConverterStationImpl vsc1 = null;
+    private LfVscConverterStationImpl vsc1;
 
-    private LfVscConverterStationImpl vsc2 = null;
+    private LfVscConverterStationImpl vsc2;
 
     public LfHvdcImpl(HvdcAngleDroopActivePowerControl control, LfBus bus1, LfBus bus2, LfNetwork network, String hvdcId) {
         super(network);

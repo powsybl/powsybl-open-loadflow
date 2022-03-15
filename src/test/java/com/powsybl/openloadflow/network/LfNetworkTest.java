@@ -105,7 +105,7 @@ class LfNetworkTest extends AbstractConverterTest {
                                                                  false,
                                                                  false,
                                                                  true,
-                                                   false);
+                                                                 false);
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(1, lfNetworks.size());
