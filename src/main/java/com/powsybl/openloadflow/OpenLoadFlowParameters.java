@@ -573,7 +573,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                         true,
                                                         false,
                                                         false,
-                                                        false);
+                                                        false); // FIXME
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,
