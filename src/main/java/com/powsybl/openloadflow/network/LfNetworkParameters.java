@@ -57,6 +57,8 @@ public class LfNetworkParameters {
 
     private final boolean reactiveLimits;
 
+    private final boolean hvdcAcEmulation;
+
     public LfNetworkParameters() {
         this(new FirstSlackBusSelector());
     }
@@ -68,7 +70,7 @@ public class LfNetworkParameters {
     public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
         this(slackBusSelector, connectivityFactory, false, false, false, false,
                 PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false, false, false, true);
+                true, Collections.emptySet(), false, false, false, false, false, false, false, true, false);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory,
@@ -76,7 +78,7 @@ public class LfNetworkParameters {
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
                                boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl,
-                               boolean isDc, boolean shuntVoltageControl, boolean reactiveLimits) {
+                               boolean isDc, boolean shuntVoltageControl, boolean reactiveLimits, boolean hvdcAcEmulation) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
@@ -95,6 +97,7 @@ public class LfNetworkParameters {
         this.isDc = isDc;
         this.shuntVoltageControl = shuntVoltageControl;
         this.reactiveLimits = reactiveLimits;
+        this.hvdcAcEmulation = hvdcAcEmulation;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -178,6 +181,10 @@ public class LfNetworkParameters {
         return reactiveLimits;
     }
 
+    public boolean isHvdcAcEmulation() {
+        return hvdcAcEmulation;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -198,6 +205,7 @@ public class LfNetworkParameters {
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
                 ", isDc=" + isDc +
                 ", reactiveLimits=" + reactiveLimits +
+                ", hvdcAcEmulation=" + hvdcAcEmulation +
                 ')';
     }
 }
