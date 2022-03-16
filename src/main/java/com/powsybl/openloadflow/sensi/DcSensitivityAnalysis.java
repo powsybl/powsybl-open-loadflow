@@ -269,12 +269,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         if (lfFactors.isEmpty()) {
             return;
         }
-        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.ZERO)
-                .forEach(factor -> valueWriter.write(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, 0, Double.NaN));
-
-        if (contingency != null) {
-            lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP)
-                    .forEach(factor -> valueWriter.write(factor.getIndex(), contingency.getIndex(), Double.NaN, Double.NaN));
+        for (LfSensitivityFactor<DcVariableType, DcEquationType> lfFactor : lfFactors) {
+            if (lfFactor.getStatus() == LfSensitivityFactor.Status.ZERO) {
+                valueWriter.write(lfFactor.getIndex(), contingency != null ? contingency.getIndex() : -1, 0, Double.NaN);
+            } else if (contingency != null && lfFactor.getStatus() == LfSensitivityFactor.Status.SKIP) {
+                valueWriter.write(lfFactor.getIndex(), contingency.getIndex(), Double.NaN, Double.NaN);
+            }
         }
 
         setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
