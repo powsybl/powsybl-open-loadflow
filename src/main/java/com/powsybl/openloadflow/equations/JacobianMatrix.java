@@ -68,7 +68,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private enum Status {
         VALID,
         VALUES_INVALID, // same structure but values have to be updated
-        NON_ZERO_PATTERN_INVALID, // same structure but values zero pattern has changed
+        NON_ZERO_PATTERN_INVALID, // same structure but values non zero pattern has changed
         MATRIX_INVALID, // structure has changed
     }
 
