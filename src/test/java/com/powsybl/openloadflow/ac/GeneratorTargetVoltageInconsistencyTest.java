@@ -218,7 +218,8 @@ class GeneratorTargetVoltageInconsistencyTest {
                                                                  false,
                                                                  false,
                                                                  false,
-                                                                 true);
+                                                                 true,
+                                                                 false);
 
         Generator g = network.getGenerator("g2");
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
@@ -344,7 +345,8 @@ class GeneratorTargetVoltageInconsistencyTest {
                                                                  false,
                                                                  false,
                                                                  false,
-                                                                 true);
+                                                                 true,
+                                                                 false);
 
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());

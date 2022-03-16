@@ -13,4 +13,5 @@ public enum ElementType {
     BUS,
     BRANCH,
     SHUNT_COMPENSATOR,
+    HVDC
 }

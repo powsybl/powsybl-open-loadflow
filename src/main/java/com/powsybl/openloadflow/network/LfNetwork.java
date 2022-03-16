@@ -68,6 +68,8 @@ public class LfNetwork {
 
     private final Map<String, LfGenerator> generatorsById = new HashMap<>();
 
+    private final List<LfHvdc> hvdcs = new ArrayList<>();
+
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
     private boolean valid = true;
@@ -190,10 +192,31 @@ public class LfNetwork {
         return generatorsById.get(id);
     }
 
+    public void addHvdc(LfHvdc hvdc) {
+        Objects.requireNonNull(hvdc);
+        hvdc.setNum(hvdcs.size());
+        hvdcs.add(hvdc);
+
+        // create bus -> branches link
+        if (hvdc.getBus1() != null) {
+            hvdc.getBus1().addHvdc(hvdc);
+        }
+        if (hvdc.getBus2() != null) {
+            hvdc.getBus2().addHvdc(hvdc);
+        }
+    }
+
+    public List<LfHvdc> getHvdcs() {
+        return hvdcs;
+    }
+
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
                             boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
+        for (LfHvdc hvdc : hvdcs) {
+            hvdc.updateState();
+        }
         for (LfBus bus : busesById.values()) {
             bus.updateState(reactiveLimits, writeSlackBus, distributedOnConformLoad, loadPowerFactorConstant);
             for (LfGenerator generator : bus.getGenerators()) {

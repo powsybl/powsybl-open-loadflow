@@ -68,6 +68,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
+    protected final List<LfHvdc> hvdcs = new ArrayList<>();
+
     private VoltageControl voltageControl;
 
     private ReactivePowerControl reactivePowerControl;
@@ -419,6 +421,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void addBranch(LfBranch branch) {
         branches.add(Objects.requireNonNull(branch));
+    }
+
+    @Override
+    public void addHvdc(LfHvdc hvdc) {
+        hvdcs.add(Objects.requireNonNull(hvdc));
     }
 
     private static double dispatchQ(List<LfGenerator> generatorsThatControlVoltage, boolean reactiveLimits, double qToDispatch) {
