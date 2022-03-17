@@ -81,7 +81,7 @@ public class AcloadFlowEngine {
 
         RunningContext runningContext = new RunningContext();
         NewtonRaphson newtonRaphson = new NewtonRaphson(context.getNetwork(), context.getParameters().getNewtonRaphsonParameters(),
-                context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector());
+                context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector(), context.getEquationVector());
 
         // outer loops initialization
         for (OuterLoop outerLoop : context.getParameters().getOuterLoops()) {

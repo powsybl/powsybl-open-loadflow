@@ -37,8 +37,8 @@ public class StateVector {
         notifyStateUpdate();
     }
 
-    public void minus(double[] b) {
-        Vectors.minus(array, b);
+    public void minus(Vector other) {
+        Vectors.minus(array, other.getArray());
         notifyStateUpdate();
     }
 

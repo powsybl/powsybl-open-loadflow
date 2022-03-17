@@ -226,6 +226,10 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         getLUDecomposition().solveTransposed(b);
     }
 
+    public void solveTransposed(Vector vector) {
+        solveTransposed(vector.getArray());
+    }
+
     public void solve(DenseMatrix b) {
         getLUDecomposition().solve(b);
     }

@@ -14,8 +14,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener
-        implements EquationSystemIndexListener<V, E> {
+public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractVector<V, E> {
 
     @FunctionalInterface
     public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
@@ -25,89 +24,47 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
     private final LfNetwork network;
 
-    private final EquationSystem<V, E> equationSystem;
-
     private final Initializer<V, E> initializer;
 
-    private double[] array;
+    private final LfNetworkListener networkListener = new AbstractLfNetworkListener() {
 
-    private enum Status {
-        VALID,
-        VECTOR_INVALID, // structure has changed
-        VALUES_INVALID // same structure but values have to be updated
-    }
+        @Override
+        public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
+            invalidateValues();
+        }
 
-    private Status status = Status.VECTOR_INVALID;
+        @Override
+        public void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ) {
+            invalidateValues();
+        }
+
+        @Override
+        public void onGenerationActivePowerTargetChange(LfGenerator generator, double oldGenerationTargetP, double newGenerationTargetP) {
+            invalidateValues();
+        }
+
+        @Override
+        public void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ) {
+            invalidateValues();
+        }
+
+        @Override
+        public void onDiscretePhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
+            invalidateValues();
+        }
+    };
 
     public TargetVector(LfNetwork network, EquationSystem<V, E> equationSystem, Initializer<V, E> initializer) {
+        super(equationSystem);
         this.network = Objects.requireNonNull(network);
-        this.equationSystem = Objects.requireNonNull(equationSystem);
         this.initializer = Objects.requireNonNull(initializer);
-        network.addListener(this);
+        network.addListener(networkListener);
         equationSystem.getIndex().addListener(this);
-    }
-
-    private void invalidateValues() {
-        if (status == Status.VALID) {
-            status = Status.VALUES_INVALID;
-        }
-    }
-
-    @Override
-    public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
-        invalidateValues();
-    }
-
-    @Override
-    public void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ) {
-        invalidateValues();
-    }
-
-    @Override
-    public void onGenerationActivePowerTargetChange(LfGenerator generator, double oldGenerationTargetP, double newGenerationTargetP) {
-        invalidateValues();
-    }
-
-    @Override
-    public void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ) {
-        invalidateValues();
-    }
-
-    @Override
-    public void onDiscretePhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-        invalidateValues();
     }
 
     @Override
     public void onEquationChange(Equation<V, E> equation, ChangeType changeType) {
-        status = Status.VECTOR_INVALID;
-    }
-
-    @Override
-    public void onVariableChange(Variable<V> variable, ChangeType changeType) {
-        // nothing to do
-    }
-
-    @Override
-    public void onElementAddedButNoVariableOrEquationAdded(Equation<V, E> equation, Variable<V> variable) {
-        // nothing to do
-    }
-
-    public double[] toArray() {
-        switch (status) {
-            case VECTOR_INVALID:
-                createArray();
-                break;
-
-            case VALUES_INVALID:
-                updateArray();
-                break;
-
-            default:
-                // nothing to do
-                break;
-        }
-        return array;
+        invalidateVector();
     }
 
     public static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] createArray(LfNetwork network, EquationSystem<V, E> equationSystem, Initializer<V, E> initializer) {
@@ -122,16 +79,16 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         return array;
     }
 
-    private void createArray() {
-        array = createArray(network, equationSystem, initializer);
-        status = Status.VALID;
+    @Override
+    protected double[] createArray() {
+        return createArray(network, equationSystem, initializer);
     }
 
-    private void updateArray() {
+    @Override
+    protected void updateArray(double[] array) {
         NavigableSet<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
         for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
-        status = Status.VALID;
     }
 }
