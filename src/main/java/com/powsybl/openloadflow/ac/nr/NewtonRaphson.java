@@ -93,8 +93,8 @@ public class NewtonRaphson {
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
-        double[] x = new double[equationSystem.getSortedVariablesToFind().size()];
-        for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
+        double[] x = new double[equationSystem.getIndex().getSortedVariablesToFind().size()];
+        for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
                     x[v.getRow()] = initializer.getMagnitude(network.getBus(v.getElementNum()));
@@ -131,7 +131,7 @@ public class NewtonRaphson {
     public void updateNetwork() {
         // update state variable
         StateVector stateVector = equationSystem.getStateVector();
-        for (Variable<AcVariableType> v : equationSystem.getSortedVariablesToFind()) {
+        for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
                     network.getBus(v.getElementNum()).setV(stateVector.get(v.getRow()));

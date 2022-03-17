@@ -258,7 +258,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
 
             // otherwise, defining the rhs matrix will result in integer overflow
-            if (factorGroups.size() >= Integer.MAX_VALUE / (context.getEquationSystem().getSortedEquationsToSolve().size() * Double.BYTES)) {
+            if (factorGroups.size() >= Integer.MAX_VALUE / (context.getEquationSystem().getIndex().getSortedEquationsToSolve().size() * Double.BYTES)) {
                 throw new PowsyblException("Too many factors!");
             }
 

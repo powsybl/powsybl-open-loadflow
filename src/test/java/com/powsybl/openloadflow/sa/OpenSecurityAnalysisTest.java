@@ -242,7 +242,7 @@ class OpenSecurityAnalysisTest {
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
 
-        List<LimitViolation> limitViolations = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
+        List<LimitViolation> limitViolations = result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations();
         Optional<LimitViolation> limitViolationL21 = limitViolations.stream().filter(limitViolation -> limitViolation.getSubjectId().equals("L2") && limitViolation.getSide() == Branch.Side.ONE).findFirst();
         assertTrue(limitViolationL21.isPresent());
         assertEquals(0, limitViolationL21.get().getAcceptableDuration());
@@ -252,10 +252,10 @@ class OpenSecurityAnalysisTest {
         assertEquals(0, limitViolationL22.get().getAcceptableDuration());
         assertEquals(970, limitViolationL22.get().getLimit());
 
-        assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
-        assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+        assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
 
-        List<LimitViolation> limitViolations1 = result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations();
+        List<LimitViolation> limitViolations1 = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
         LimitViolation lowViolation = limitViolations1.get(2);
         assertEquals(LimitViolationType.LOW_VOLTAGE, lowViolation.getLimitType());
         assertEquals(370, lowViolation.getLimit());
@@ -310,7 +310,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(2, result.getPostContingencyResults().size());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 
-        LimitViolation limitViolation0 = result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().get(0);
+        LimitViolation limitViolation0 = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
         assertEquals("L1", limitViolation0.getSubjectId());
         assertEquals(LimitViolationType.ACTIVE_POWER, limitViolation0.getLimitType());
         assertEquals(608.334, limitViolation0.getValue(), 10E-3);
@@ -351,7 +351,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(2, result.getPostContingencyResults().size());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 
-        LimitViolation limitViolation0 = result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().get(0);
+        LimitViolation limitViolation0 = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().get(0);
         assertEquals("L1", limitViolation0.getSubjectId());
         assertEquals(LimitViolationType.APPARENT_POWER, limitViolation0.getLimitType());
         assertEquals(651.796, limitViolation0.getValue(), 10E-3);
@@ -1125,14 +1125,14 @@ class OpenSecurityAnalysisTest {
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(109.999, preContingencyResult.getPreContingencyBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-39.999, preContingencyResult.getPreContingencyBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(110, preContingencyResult.getPreContingencyBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-40, preContingencyResult.getPreContingencyBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(50.0, preContingencyResult.getPreContingencyBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests
         PostContingencyResult g1ContingencyResult = getPostContingencyResult(result, "g1");
-        assertEquals(179.999, g1ContingencyResult.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(29.999, g1ContingencyResult.getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(180, g1ContingencyResult.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(30, g1ContingencyResult.getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(50.0, g1ContingencyResult.getBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests
