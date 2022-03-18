@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -50,26 +52,38 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
     }
 
     protected void checkControl(LfNetwork network) {
-        var connectivity = network.getConnectivity();
+        List<LfBranch> controllerBranches = new ArrayList<>(1);
+        List<LfBranch> disabledBranches = new ArrayList<>(1);
         for (LfBranch branch : network.getBranches()) {
-            if (branch.isVoltageController()) {
-                TransformerVoltageControl voltageControl = branch.getVoltageControl().orElse(null);
-                LfBus controlledBus = voltageControl.getControlled();
-                connectivity.cut(branch.getBus1(), branch.getBus2());
-                Set<LfBus> componentOnNotControlledSide = null;
-                if (controlledBus.equals(branch.getBus1())) {
-                    componentOnNotControlledSide = connectivity.getConnectedComponent(branch.getBus2());
-                } else if (controlledBus.equals(branch.getBus2())) {
-                    componentOnNotControlledSide = connectivity.getConnectedComponent(branch.getBus1());
-                } else {
-                    // I don't know.
-                }
-                if (componentOnNotControlledSide != null) {
-                    Optional<LfBus> generatorControlledBus = componentOnNotControlledSide.stream().filter(LfBus::isVoltageControlled).findAny();
-                    if (!generatorControlledBus.isPresent()) {
-                        branch.setVoltageControlEnabled(false);
-                        LOGGER.error("Transformer {} with voltage control on is disabled", branch.getId());
-                    }
+            if (!branch.isDisabled() && branch.isVoltageController() && branch.isVoltageControlEnabled()) {
+                controllerBranches.add(branch);
+            }
+            if (branch.isDisabled()) {
+                disabledBranches.add(branch);
+            }
+        }
+        for (LfBranch branch : controllerBranches) {
+            var connectivity = network.getConnectivity();
+            var voltageControl = branch.getVoltageControl().orElseThrow();
+            var controlledBus = voltageControl.getControlled();
+            // apply contingency (in case we are inside a security analysis)
+            for (LfBranch disabledBranch : disabledBranches) {
+                connectivity.cut(disabledBranch.getBus1(), disabledBranch.getBus2());
+            }
+            connectivity.cut(branch.getBus1(), branch.getBus2());
+            Set<LfBus> componentOnNotControlledSide = null;
+            if (controlledBus.equals(branch.getBus1())) {
+                componentOnNotControlledSide = connectivity.getConnectedComponent(branch.getBus2());
+            } else if (controlledBus.equals(branch.getBus2())) {
+                componentOnNotControlledSide = connectivity.getConnectedComponent(branch.getBus1());
+            } else {
+                // I don't know.
+            }
+            if (componentOnNotControlledSide != null) {
+                Optional<LfBus> generatorControlledBus = componentOnNotControlledSide.stream().filter(LfBus::isVoltageControlled).findAny();
+                if (!generatorControlledBus.isPresent()) {
+                    branch.setVoltageControlEnabled(false);
+                    LOGGER.error("Transformer {} with voltage control on is disabled", branch.getId());
                 }
             }
             connectivity.reset();
