@@ -274,7 +274,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static OpenLoadFlowParameters load() {
-        return new OpenLoadFlowProvider().loadSpecificParameters(PlatformConfig.defaultConfig()).orElseThrow(IllegalStateException::new);
+        return new OpenLoadFlowProvider().loadSpecificParameters(PlatformConfig.defaultConfig())
+                .filter(OpenLoadFlowParameters.class::isInstance)
+                .map(OpenLoadFlowParameters.class::cast)
+                .orElseThrow(IllegalStateException::new);
     }
 
     @Override
