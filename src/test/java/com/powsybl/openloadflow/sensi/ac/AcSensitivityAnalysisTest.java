@@ -428,6 +428,22 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0.035205d,  result.getSensitivityValue("T2wT", "BUS_2"), LoadFlowAssert.DELTA_V);
         assertEquals(1d,  result.getSensitivityValue("T2wT", "BUS_3"), LoadFlowAssert.DELTA_V);
         assertEquals(1.055117d,  result.getSensitivityValue("T2wT", "BUS_4"), LoadFlowAssert.DELTA_V);
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal1()) // control will be disabled.
+                .setTargetV(135.0);
+
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        // FIXME, should be zero.
+        assertEquals(4, result2.getValues().size());
+        assertEquals(0d, result2.getSensitivityValue("T2wT", "BUS_1"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d,  result2.getSensitivityValue("T2wT", "BUS_2"), LoadFlowAssert.DELTA_V);
+        assertEquals(-22.29,  result2.getSensitivityValue("T2wT", "BUS_3"), LoadFlowAssert.DELTA_V);
+        assertEquals(-23.50,  result2.getSensitivityValue("T2wT", "BUS_4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
