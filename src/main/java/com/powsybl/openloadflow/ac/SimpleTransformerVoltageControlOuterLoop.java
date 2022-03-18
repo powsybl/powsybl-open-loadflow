@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -18,6 +19,11 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
     @Override
     public String getType() {
         return "Simple transformer voltage control";
+    }
+
+    @Override
+    public void initialize(LfNetwork network) {
+        checkControl(network);
     }
 
     @Override
