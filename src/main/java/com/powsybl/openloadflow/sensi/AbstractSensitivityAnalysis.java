@@ -556,9 +556,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         Map<Pair<SensitivityVariableType, String>, SensitivityFactorGroup<V, E>> groupIndexedById = new LinkedHashMap<>(factors.size());
         // index factors by variable config
         for (LfSensitivityFactor<V, E> factor : factors) {
-            if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
-                continue;
-            }
             Pair<SensitivityVariableType, String> id = Pair.of(factor.getVariableType(), factor.getVariableId());
             if (factor instanceof SingleVariableLfSensitivityFactor) {
                 SingleVariableLfSensitivityFactor<V, E> singleVarFactor = (SingleVariableLfSensitivityFactor<V, E>) factor;
@@ -662,6 +659,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         for (var factor : factorHolder.getAllFactors()) {
             // directly write output for zero and invalid factors
             if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
+                // ZERO status is for factors where variable element is in the main connected component and reference element is not.
+                // Therefore, the sensitivity is known to value 0, but the reference cannot be known and is set to NaN.
                 valueWriter.write(factor.getIndex(), -1, 0, Double.NaN);
             } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
                 valueWriter.write(factor.getIndex(), -1, Double.NaN, Double.NaN);
