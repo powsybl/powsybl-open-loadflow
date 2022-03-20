@@ -749,7 +749,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                           false);
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
-        Map<String, PropagatedContingency> contingenciesById = checkContingencies(lfNetwork, contingencies);
+        checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
 
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
@@ -776,7 +776,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(lfNetwork, dcLoadFlowParameters.getEquationSystemCreationParameters());
 
         // next we only work with valid factors
-        factorHolder = writeInvalidFactors(factorHolder, contingenciesById, valueWriter);
+        factorHolder = writeInvalidFactors(factorHolder, valueWriter);
         lfFactors = factorHolder.getAllFactors();
 
         // index factors by variable group to compute the minimal number of states

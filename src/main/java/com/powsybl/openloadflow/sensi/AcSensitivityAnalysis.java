@@ -149,16 +149,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     @Override
-    public Map<String, PropagatedContingency> checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
-        var contingenciesById = super.checkContingencies(lfNetwork, contingencies);
+    public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        super.checkContingencies(lfNetwork, contingencies);
 
         for (PropagatedContingency contingency : contingencies) {
             if (!contingency.getHvdcIdsToOpen().isEmpty()) {
                 throw new NotImplementedException("Contingencies on a DC line are not yet supported in AC mode.");
             }
         }
-
-        return contingenciesById;
     }
 
     /**
@@ -203,7 +201,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParametersExt.isHvdcAcEmulation());
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
-        var contingenciesById = checkContingencies(lfNetwork, contingencies);
+        checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
         Map<String, Collection<String>> propagatedContingencyMap = contingencies.stream().collect(
             Collectors.toMap(contingency -> contingency.getContingency().getId(), contingency -> new HashSet<>(contingency.getBranchIdsToOpen()))
@@ -215,7 +213,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
 
         // next we only work with valid and valid only for function factors
-        factorHolder = writeInvalidFactors(factorHolder, contingenciesById, valueWriter);
+        factorHolder = writeInvalidFactors(factorHolder, valueWriter);
         lfFactors = factorHolder.getAllFactors();
 
         // create AC engine

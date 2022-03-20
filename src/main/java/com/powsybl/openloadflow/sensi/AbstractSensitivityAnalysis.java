@@ -656,8 +656,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
      * IMPORTANT: this is only a base case test (factor status only deal with base case). We do not output anything
      * on post contingency if factor is already invalid (skip o zero) on base case.
      */
-    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, Map<String, PropagatedContingency> contingenciesById,
-                                                                SensitivityValueWriter valueWriter) {
+    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, SensitivityValueWriter valueWriter) {
         Set<String> skippedVariables = new LinkedHashSet<>();
         SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
         for (var factor : factorHolder.getAllFactors()) {
@@ -678,15 +677,15 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return validFactorHolder;
     }
 
-    public Map<String, PropagatedContingency> checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
-        Map<String, PropagatedContingency> contingenciesById = new HashMap<>(contingencies.size());
+    public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
             // check ID are unique because, later contingency are indexed by their IDs
             String contingencyId = contingency.getContingency().getId();
-            if (contingenciesById.containsKey(contingencyId)) {
+            if (contingenciesIds.contains(contingencyId)) {
                 throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
             }
-            contingenciesById.put(contingencyId, contingency);
+            contingenciesIds.add(contingencyId);
 
             // Elements have already been checked and found in PropagatedContingency, so there is no need to
             // check them again
@@ -706,7 +705,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
-        return contingenciesById;
     }
 
     public void checkLoadFlowParameters(LoadFlowParameters lfParameters) {
@@ -799,18 +797,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             allFactors.addAll(additionalFactorsNoContingency);
             allFactors.addAll(additionalFactorsPerContingency.values().stream().flatMap(List::stream).collect(Collectors.toCollection(LinkedHashSet::new)));
             return allFactors;
-        }
-
-        public List<LfSensitivityFactor<V, E>> getCommonFactors() {
-            return commonFactors;
-        }
-
-        public List<LfSensitivityFactor<V, E>> getAdditionalFactorsNoContingency() {
-            return additionalFactorsNoContingency;
-        }
-
-        public Map<String, List<LfSensitivityFactor<V, E>>> getAdditionalFactorsPerContingency() {
-            return additionalFactorsPerContingency;
         }
 
         public List<LfSensitivityFactor<V, E>> getFactorsForContingency(String contingencyId) {
