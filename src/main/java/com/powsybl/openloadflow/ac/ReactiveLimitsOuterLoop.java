@@ -176,7 +176,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     private void checkPvBus(LfBus controllerBus, List<PvToPqBus> pvToPqBuses, MutableInt remainingPvBusCount) {
         double minQ = controllerBus.getMinQ();
         double maxQ = controllerBus.getMaxQ();
-        double q = controllerBus.getCalculatedQ() + controllerBus.getLoadTargetQ();
+        double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
         if (q < minQ) {
             pvToPqBuses.add(new PvToPqBus(controllerBus, q, minQ, ReactiveLimitDirection.MIN));
         } else if (q > maxQ) {

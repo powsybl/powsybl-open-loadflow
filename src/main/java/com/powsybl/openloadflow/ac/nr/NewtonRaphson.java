@@ -10,7 +10,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
@@ -91,15 +90,6 @@ public class NewtonRaphson {
         } finally {
             iteration++;
         }
-    }
-
-    private double computeSlackBusActivePowerMismatch(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // search equation corresponding to slack bus active power injection
-        LfBus slackBus = network.getSlackBus();
-        Equation<AcVariableType, AcEquationType> slackBusActivePowerEquation = equationSystem.createEquation(slackBus.getNum(), AcEquationType.BUS_TARGET_P);
-
-        return slackBusActivePowerEquation.eval()
-                - slackBus.getTargetP(); // slack bus can also have real injection connected
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
@@ -204,13 +194,11 @@ public class NewtonRaphson {
             status = NewtonRaphsonStatus.MAX_ITERATION_REACHED;
         }
 
-        double slackBusActivePowerMismatch = computeSlackBusActivePowerMismatch(equationSystem);
-
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
             updateNetwork();
         }
 
-        return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);
+        return new NewtonRaphsonResult(status, iteration, network.getSlackBus().getMismatchP());
     }
 }

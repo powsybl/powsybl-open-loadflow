@@ -38,8 +38,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double angle;
 
-    protected double calculatedQ = Double.NaN;
-
     private boolean hasGeneratorsWithSlope;
 
     protected boolean voltageControlEnabled = false;
@@ -384,16 +382,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public double getCalculatedQ() {
-        return calculatedQ / PerUnit.SB;
-    }
-
-    @Override
-    public void setCalculatedQ(double calculatedQ) {
-        this.calculatedQ = calculatedQ * PerUnit.SB;
-    }
-
-    @Override
     public Optional<LfShunt> getShunt() {
         return Optional.ofNullable(shunt);
     }
@@ -471,7 +459,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         // update generator reactive power
-        updateGeneratorsState(voltageControlEnabled ? calculatedQ + loadTargetQ : generationTargetQ, reactiveLimits);
+        updateGeneratorsState(voltageControlEnabled ? q.eval()  * PerUnit.SB + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
         lfLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
@@ -573,5 +561,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent) {
         this.remoteVoltageControlReactivePercent = remoteVoltageControlReactivePercent;
+    }
+
+    @Override
+    public double getMismatchP() {
+        return p.eval() - getTargetP(); // slack bus can also have real injection connected
     }
 }
