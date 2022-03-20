@@ -20,10 +20,7 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -651,29 +648,66 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return rescaled;
     }
 
-    protected void writeSkippedFactors(Collection<LfSensitivityFactor<V, E>> lfFactors, SensitivityValueWriter valueWriter) {
-        List<LfSensitivityFactor<V, E>> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP).collect(Collectors.toList());
+    private boolean writeZeroOrSkipFactor(LfSensitivityFactor<V, E> factor, PropagatedContingency contingency,
+                                          SensitivityValueWriter valueWriter, Set<String> skippedVariables) {
+        int contingencyIndex = contingency != null ? contingency.getIndex() : -1;
+        // directly write output for zero and invalid factors
+        if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
+            valueWriter.write(factor.getIndex(), contingencyIndex, 0, Double.NaN);
+            return true;
+        } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
+            valueWriter.write(factor.getIndex(), contingencyIndex, Double.NaN, Double.NaN);
+            skippedVariables.add(factor.getVariableId());
+            return true;
+        }
+        return false;
+    }
 
-        // SKIP factors are for factors where both variable and function elements are not in the main connected componant.
-        // Therefore, their sensitivity and reference values are set to NaN.
-        skippedFactors.forEach(factor -> valueWriter.write(factor.getIndex(), -1, Double.NaN, Double.NaN));
-
-        Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
+    /**
+     * Write zero or skip factors to output and send a new factor holder containing only other valid ones.
+     */
+    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, Map<String, PropagatedContingency> contingenciesById,
+                                                                SensitivityValueWriter valueWriter) {
+        Set<String> skippedVariables = new LinkedHashSet<>();
+        SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
+        for (var factor : factorHolder.getCommonFactors()) {
+            if (!writeZeroOrSkipFactor(factor, null, valueWriter, skippedVariables)) {
+                validFactorHolder.addFactor(factor);
+            }
+        }
+        for (var factor : factorHolder.getAdditionalFactorsNoContingency()) {
+            if (!writeZeroOrSkipFactor(factor, null, valueWriter, skippedVariables)) {
+                validFactorHolder.addFactor(factor);
+            }
+        }
+        for (var e : factorHolder.getAdditionalFactorsPerContingency().entrySet()) {
+            String contingencyId = e.getKey();
+            var contingency = contingenciesById.get(contingencyId);
+//            if (contingency == null) {
+//                throw new PowsyblException("Contingency '" + contingencyId + "' not found");
+//            }
+            for (var factor : e.getValue()) {
+                if (!writeZeroOrSkipFactor(factor, null, valueWriter, skippedVariables)) {
+                    validFactorHolder.addFactor(factor);
+                }
+            }
+        }
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
             LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network",
                     String.join(", ", skippedVariables));
         }
+        return validFactorHolder;
     }
 
-    public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
-        Set<String> contingenciesIds = new HashSet<>();
+    public Map<String, PropagatedContingency> checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        Map<String, PropagatedContingency> contingenciesById = new HashMap<>(contingencies.size());
         for (PropagatedContingency contingency : contingencies) {
             // check ID are unique because, later contingency are indexed by their IDs
             String contingencyId = contingency.getContingency().getId();
-            if (contingenciesIds.contains(contingencyId)) {
+            if (contingenciesById.containsKey(contingencyId)) {
                 throw new PowsyblException("Contingency '" + contingencyId + "' already exists");
             }
-            contingenciesIds.add(contingencyId);
+            contingenciesById.put(contingencyId, contingency);
 
             // Elements have already been checked and found in PropagatedContingency, so there is no need to
             // check them again
@@ -693,6 +727,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
+        return contingenciesById;
     }
 
     public void checkLoadFlowParameters(LoadFlowParameters lfParameters) {
@@ -785,6 +820,18 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             allFactors.addAll(additionalFactorsNoContingency);
             allFactors.addAll(additionalFactorsPerContingency.values().stream().flatMap(List::stream).collect(Collectors.toCollection(LinkedHashSet::new)));
             return allFactors;
+        }
+
+        public List<LfSensitivityFactor<V, E>> getCommonFactors() {
+            return commonFactors;
+        }
+
+        public List<LfSensitivityFactor<V, E>> getAdditionalFactorsNoContingency() {
+            return additionalFactorsNoContingency;
+        }
+
+        public Map<String, List<LfSensitivityFactor<V, E>>> getAdditionalFactorsPerContingency() {
+            return additionalFactorsPerContingency;
         }
 
         public List<LfSensitivityFactor<V, E>> getFactorsForContingency(String contingencyId) {

@@ -149,14 +149,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     @Override
-    public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
-        super.checkContingencies(lfNetwork, contingencies);
+    public Map<String, PropagatedContingency> checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        var contingenciesById = super.checkContingencies(lfNetwork, contingencies);
 
         for (PropagatedContingency contingency : contingencies) {
             if (!contingency.getHvdcIdsToOpen().isEmpty()) {
                 throw new NotImplementedException("Contingencies on a DC line are not yet supported in AC mode.");
             }
         }
+
+        return contingenciesById;
     }
 
     /**
@@ -201,7 +203,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParametersExt.isHvdcAcEmulation());
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
-        checkContingencies(lfNetwork, contingencies);
+        var contingenciesById = checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
         Map<String, Collection<String>> propagatedContingencyMap = contingencies.stream().collect(
             Collectors.toMap(contingency -> contingency.getContingency().getId(), contingency -> new HashSet<>(contingency.getBranchIdsToOpen()))
@@ -212,12 +214,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors = factorHolder.getAllFactors();
         LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies",  lfFactors.size(), contingencies.size());
 
-        writeSkippedFactors(lfFactors, valueWriter);
         // next we only work with valid and valid only for function factors
-        List<LfSensitivityFactor.Status> validFactors = new ArrayList<>();
-        validFactors.add(LfSensitivityFactor.Status.VALID);
-        validFactors.add(LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION);
-        lfFactors = lfFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
+        factorHolder = writeInvalidFactors(factorHolder, contingenciesById, valueWriter);
+        lfFactors = factorHolder.getAllFactors();
 
         // create AC engine
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, reporter, false, true);
@@ -283,7 +282,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // Contingency not breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = factorHolder.getFactorsForContingency(lfContingency.getId());
-                contingencyFactors = contingencyFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
                 contingencyFactors.forEach(lfFactor -> {
                     lfFactor.setSensitivityValuePredefinedResult(null);
                     lfFactor.setFunctionPredefinedResult(null);
@@ -304,7 +302,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // Contingency breaking connectivity
             for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> !lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = factorHolder.getFactorsForContingency(lfContingency.getId());
-                contingencyFactors = contingencyFactors.stream().filter(factor -> validFactors.contains(factor.getStatus())).collect(Collectors.toList());
                 contingencyFactors.forEach(lfFactor -> {
                     lfFactor.setSensitivityValuePredefinedResult(null);
                     lfFactor.setFunctionPredefinedResult(null); });

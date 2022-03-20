@@ -1865,8 +1865,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1, result.getPreContingencyValues().size());
         assertEquals(0.0, result.getSensitivityValue("GEN_1", "T2wT"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getFunctionReferenceValue("T2wT"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.0, result.getSensitivityValue("GEN_3", "GEN_1", "T2wT"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getFunctionReferenceValue("GEN_3", "T2wT"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1895,7 +1893,5 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1, result.getPreContingencyValues().size());
         assertEquals(Double.NaN, result.getSensitivityValue("LOAD_3", "T2wT"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getFunctionReferenceValue("T2wT"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getSensitivityValue("GEN_3", "LOAD_3", "T2wT"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getFunctionReferenceValue("GEN_3", "T2wT"), LoadFlowAssert.DELTA_POWER);
     }
 }
