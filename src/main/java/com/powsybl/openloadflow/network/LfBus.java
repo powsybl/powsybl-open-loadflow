@@ -98,10 +98,6 @@ public interface LfBus extends LfElement {
 
     void setAngle(double angle);
 
-    double getCalculatedQ();
-
-    void setCalculatedQ(double calculatedQ);
-
     /**
      * Get nominal voltage in Kv.
      * @return nominal voltage in Kv
@@ -166,4 +162,10 @@ public interface LfBus extends LfElement {
     double getRemoteVoltageControlReactivePercent();
 
     void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
+
+    /**
+     * Get active power mismatch.
+     * Only make sens for slack bus.
+     */
+    double getMismatchP();
 }

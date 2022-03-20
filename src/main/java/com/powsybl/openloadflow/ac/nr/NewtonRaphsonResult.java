@@ -13,11 +13,11 @@ import java.util.Objects;
  */
 public class NewtonRaphsonResult {
 
-    private int iteration;
+    private final int iteration;
 
-    private NewtonRaphsonStatus status;
+    private final NewtonRaphsonStatus status;
 
-    private double slackBusActivePowerMismatch;
+    private final double slackBusActivePowerMismatch;
 
     public NewtonRaphsonResult(NewtonRaphsonStatus status, int iteration, double slackBusActivePowerMismatch) {
         if (iteration < 0) {
