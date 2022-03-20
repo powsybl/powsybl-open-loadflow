@@ -20,7 +20,10 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -648,48 +651,24 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return rescaled;
     }
 
-    private boolean writeZeroOrSkipFactor(LfSensitivityFactor<V, E> factor, PropagatedContingency contingency,
-                                          SensitivityValueWriter valueWriter, Set<String> skippedVariables) {
-        int contingencyIndex = contingency != null ? contingency.getIndex() : -1;
-        // directly write output for zero and invalid factors
-        if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
-            valueWriter.write(factor.getIndex(), contingencyIndex, 0, Double.NaN);
-            return true;
-        } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
-            valueWriter.write(factor.getIndex(), contingencyIndex, Double.NaN, Double.NaN);
-            skippedVariables.add(factor.getVariableId());
-            return true;
-        }
-        return false;
-    }
-
     /**
      * Write zero or skip factors to output and send a new factor holder containing only other valid ones.
+     * IMPORTANT: this is only a base case test (factor status only deal with base case). We do not output anything
+     * on post contingency if factor is already invalid (skip o zero) on base case.
      */
     protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, Map<String, PropagatedContingency> contingenciesById,
                                                                 SensitivityValueWriter valueWriter) {
         Set<String> skippedVariables = new LinkedHashSet<>();
         SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
-        for (var factor : factorHolder.getCommonFactors()) {
-            if (!writeZeroOrSkipFactor(factor, null, valueWriter, skippedVariables)) {
+        for (var factor : factorHolder.getAllFactors()) {
+            // directly write output for zero and invalid factors
+            if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
+                valueWriter.write(factor.getIndex(), -1, 0, Double.NaN);
+            } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
+                valueWriter.write(factor.getIndex(), -1, Double.NaN, Double.NaN);
+                skippedVariables.add(factor.getVariableId());
+            } else {
                 validFactorHolder.addFactor(factor);
-            }
-        }
-        for (var factor : factorHolder.getAdditionalFactorsNoContingency()) {
-            if (!writeZeroOrSkipFactor(factor, null, valueWriter, skippedVariables)) {
-                validFactorHolder.addFactor(factor);
-            }
-        }
-        for (var e : factorHolder.getAdditionalFactorsPerContingency().entrySet()) {
-            String contingencyId = e.getKey();
-            var contingency = contingenciesById.get(contingencyId);
-//            if (contingency == null) {
-//                throw new PowsyblException("Contingency '" + contingencyId + "' not found");
-//            }
-            for (var factor : e.getValue()) {
-                if (!writeZeroOrSkipFactor(factor, null, valueWriter, skippedVariables)) {
-                    validFactorHolder.addFactor(factor);
-                }
             }
         }
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {

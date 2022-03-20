@@ -187,7 +187,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         dcLoadFlowEngine.run(equationSystem, j, disabledBuses, disabledBranches, reporter);
 
         for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
-            System.out.println(factor.getStatus());
             factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
         }
 
