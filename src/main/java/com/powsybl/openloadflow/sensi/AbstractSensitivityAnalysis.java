@@ -632,6 +632,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 if (!factor.isFunctionConnectedToSlackComponent(connectedComponent)) {
                     factor.setFunctionPredefinedResult(Double.NaN);
                 }
+            } else {
+                throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
             }
         }
     }

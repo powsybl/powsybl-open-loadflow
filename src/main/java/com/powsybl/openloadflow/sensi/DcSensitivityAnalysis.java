@@ -399,17 +399,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     static class ConnectivityAnalysisResult {
 
-        private Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsSensi;
+        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsSensi;
 
-        private Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsRef;
+        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsRef;
 
-        private Collection<PropagatedContingency> contingencies = new HashSet<>();
+        private final Collection<PropagatedContingency> contingencies = new HashSet<>();
 
-        private Set<String> elementsToReconnect;
+        private final Set<String> elementsToReconnect;
 
-        private Set<LfBus> disabledBuses;
+        private final Set<LfBus> disabledBuses;
 
-        private Set<LfBus> slackConnectedComponent;
+        private final Set<LfBus> slackConnectedComponent;
 
         ConnectivityAnalysisResult(Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, Set<ComputedContingencyElement> elementsBreakingConnectivity,
                                    GraphDecrementalConnectivity<LfBus> connectivity, LfNetwork lfNetwork) {
@@ -446,6 +446,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         // Therefore, its value cannot be computed.
                         predefinedResultsRef.put(factor, Double.NaN);
                     }
+                } else {
+                    throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
                 }
             }
         }
@@ -536,9 +538,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 // only compute for factors that have to be computed for this contingency lost
                 List<String> contingenciesIds = contingencyList.stream().map(contingency -> contingency.getContingency().getId()).collect(Collectors.toList());
 
-                List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds).stream()
-                        .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID || factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
-                        .collect(Collectors.toList());
+                List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds);
                 if (!lfFactors.isEmpty()) {
                     connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork)).getContingencies().addAll(contingencyList);
                 }
