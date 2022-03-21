@@ -52,25 +52,23 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
     }
 
     protected void checkControl(LfNetwork network) {
+        var connectivity = network.getConnectivity();
         List<LfBranch> controllerBranches = new ArrayList<>(1);
-        List<LfBranch> disabledBranches = new ArrayList<>(1);
         for (LfBranch branch : network.getBranches()) {
             if (!branch.isDisabled() && branch.isVoltageController() && branch.isVoltageControlEnabled()) {
                 controllerBranches.add(branch);
             }
             if (branch.isDisabled()) {
-                disabledBranches.add(branch);
+                // apply contingency (in case we are inside a security analysis)
+                connectivity.cut(branch.getBus1(), branch.getBus2());
             }
         }
         for (LfBranch branch : controllerBranches) {
-            var connectivity = network.getConnectivity();
+            connectivity.cut(branch.getBus1(), branch.getBus2());
+        }
+        for (LfBranch branch : controllerBranches) {
             var voltageControl = branch.getVoltageControl().orElseThrow();
             var controlledBus = voltageControl.getControlled();
-            // apply contingency (in case we are inside a security analysis)
-            for (LfBranch disabledBranch : disabledBranches) {
-                connectivity.cut(disabledBranch.getBus1(), disabledBranch.getBus2());
-            }
-            connectivity.cut(branch.getBus1(), branch.getBus2());
             Set<LfBus> componentOnNotControlledSide = null;
             if (controlledBus.equals(branch.getBus1())) {
                 componentOnNotControlledSide = connectivity.getConnectedComponent(branch.getBus2());
@@ -86,7 +84,7 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
                     LOGGER.error("Transformer {} with voltage control on is disabled", branch.getId());
                 }
             }
-            connectivity.reset();
         }
+        connectivity.reset();
     }
 }
