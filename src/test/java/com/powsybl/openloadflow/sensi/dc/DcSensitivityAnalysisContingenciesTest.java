@@ -1865,7 +1865,33 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1, result.getPreContingencyValues().size());
         assertEquals(0.0, result.getSensitivityValue("GEN_1", "T2wT"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getFunctionReferenceValue("T2wT"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.0, result.getSensitivityValue("GEN_3", "GEN_1", "T2wT"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getFunctionReferenceValue("GEN_3", "T2wT"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testVariableNotInMainComponentAndMonitoredBranchNotInMainComponent() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        network.getVoltageLevel("VL_3").newGenerator()
+                .setId("GEN_3")
+                .setBus("BUS_3")
+                .setMinP(0.0)
+                .setMaxP(10)
+                .setTargetP(5)
+                .setTargetV(30)
+                .setVoltageRegulatorOn(true)
+                .add();
+        network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL_1_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("T2wT", "LOAD_3"));
+
+        List<Contingency> contingencies = List.of(new Contingency("GEN_3", new GeneratorContingency("GEN_3")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(1, result.getPreContingencyValues().size());
+        assertEquals(Double.NaN, result.getSensitivityValue("LOAD_3", "T2wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getFunctionReferenceValue("T2wT"), LoadFlowAssert.DELTA_POWER);
     }
 }
