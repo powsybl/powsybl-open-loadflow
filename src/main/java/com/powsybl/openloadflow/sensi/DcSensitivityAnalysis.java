@@ -763,7 +763,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER))
                 .findFirst()
                 .ifPresent(ignored -> {
-                    throw new PowsyblException("Only variables of type TRANSFORMER_PHASE or INJECTION_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER are yet supported in DC");
+                    throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER are yet supported in DC");
                 });
 
         LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies",  allLfFactors.size(), contingencies.size());
@@ -886,6 +886,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // we need to reset predefined values for factor that need to be calculated for this set of contingency
                 // predefined may have be set by a previous set of contingency with loss of connectivity
+                // note that if a factor changes its status after contingency, we rely on predefined results only and we
+                // will output a factor that becomes ZERO or SKIP through its predefined results.
                 lfFactorsForContingencies.forEach(factor -> factor.setSensitivityValuePredefinedResult(null));
                 lfFactorsForContingencies.forEach(factor -> factor.setFunctionPredefinedResult(null));
                 connectivityAnalysisResult.setSensitivityValuePredefinedResults();
