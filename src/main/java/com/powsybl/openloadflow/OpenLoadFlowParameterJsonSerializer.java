@@ -12,17 +12,16 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.google.auto.service.AutoService;
+import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.json.JsonUtil;
-import com.powsybl.loadflow.json.JsonLoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowParameters;
 
 import java.io.IOException;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-@AutoService(JsonLoadFlowParameters.ExtensionSerializer.class)
-public class OpenLoadFlowParameterJsonSerializer implements JsonLoadFlowParameters.ExtensionSerializer<OpenLoadFlowParameters> {
+public class OpenLoadFlowParameterJsonSerializer implements ExtensionJsonSerializer<LoadFlowParameters, OpenLoadFlowParameters> {
 
     @Override
     public String getExtensionName() {
