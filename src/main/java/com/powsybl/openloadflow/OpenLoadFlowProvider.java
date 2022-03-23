@@ -240,4 +240,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     public Optional<Extension<LoadFlowParameters>> loadSpecificParameters(PlatformConfig platformConfig) {
         return Optional.of(OpenLoadFlowParameters.load(platformConfig));
     }
+
+    @Override
+    public Optional<Extension<LoadFlowParameters>> loadSpecificParameters(Map<String, String> properties) {
+        return Optional.of(OpenLoadFlowParameters.load(properties));
+    }
+
+    @Override
+    public List<String> getSpecificParametersNames() {
+        return OpenLoadFlowParameters.getSpecificParametersNames();
+    }
 }
