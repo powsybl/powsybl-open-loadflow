@@ -556,9 +556,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         Map<Pair<SensitivityVariableType, String>, SensitivityFactorGroup<V, E>> groupIndexedById = new LinkedHashMap<>(factors.size());
         // index factors by variable config
         for (LfSensitivityFactor<V, E> factor : factors) {
-            if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
-                continue;
-            }
             Pair<SensitivityVariableType, String> id = Pair.of(factor.getVariableType(), factor.getVariableId());
             if (factor instanceof SingleVariableLfSensitivityFactor) {
                 SingleVariableLfSensitivityFactor<V, E> singleVarFactor = (SingleVariableLfSensitivityFactor<V, E>) factor;
@@ -635,6 +632,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 if (!factor.isFunctionConnectedToSlackComponent(connectedComponent)) {
                     factor.setFunctionPredefinedResult(Double.NaN);
                 }
+            } else {
+                throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
             }
         }
     }
@@ -651,18 +650,32 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return rescaled;
     }
 
-    protected void writeSkippedFactors(Collection<LfSensitivityFactor<V, E>> lfFactors, SensitivityValueWriter valueWriter) {
-        List<LfSensitivityFactor<V, E>> skippedFactors = lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.SKIP).collect(Collectors.toList());
-
-        // SKIP factors are for factors where both variable and function elements are not in the main connected componant.
-        // Therefore, their sensitivity and reference values are set to NaN.
-        skippedFactors.forEach(factor -> valueWriter.write(factor.getIndex(), -1, Double.NaN, Double.NaN));
-
-        Set<String> skippedVariables = skippedFactors.stream().map(LfSensitivityFactor::getVariableId).collect(Collectors.toSet());
+    /**
+     * Write zero or skip factors to output and send a new factor holder containing only other valid ones.
+     * IMPORTANT: this is only a base case test (factor status only deal with base case). We do not output anything
+     * on post contingency if factor is already invalid (skip o zero) on base case.
+     */
+    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, SensitivityValueWriter valueWriter) {
+        Set<String> skippedVariables = new LinkedHashSet<>();
+        SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
+        for (var factor : factorHolder.getAllFactors()) {
+            // directly write output for zero and invalid factors
+            if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
+                // ZERO status is for factors where variable element is in the main connected component and reference element is not.
+                // Therefore, the sensitivity is known to value 0, but the reference cannot be known and is set to NaN.
+                valueWriter.write(factor.getIndex(), -1, 0, Double.NaN);
+            } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
+                valueWriter.write(factor.getIndex(), -1, Double.NaN, Double.NaN);
+                skippedVariables.add(factor.getVariableId());
+            } else {
+                validFactorHolder.addFactor(factor);
+            }
+        }
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
             LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network",
                     String.join(", ", skippedVariables));
         }
+        return validFactorHolder;
     }
 
     public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
