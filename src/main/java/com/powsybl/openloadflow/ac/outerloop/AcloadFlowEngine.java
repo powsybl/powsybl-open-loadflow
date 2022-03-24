@@ -7,14 +7,9 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -44,19 +39,6 @@ public class AcloadFlowEngine {
         return context;
     }
 
-    private void updatePvBusesReactivePower(NewtonRaphsonResult lastNrResult, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        if (lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
-            for (LfBus bus : network.getBuses()) {
-                if (bus.isVoltageControlEnabled()) {
-                    Equation<AcVariableType, AcEquationType> q = equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q);
-                    bus.setCalculatedQ(q.eval());
-                } else {
-                    bus.setCalculatedQ(Double.NaN);
-                }
-            }
-        }
-    }
-
     private static class RunningContext {
 
         private NewtonRaphsonResult lastNrResult;
@@ -64,8 +46,8 @@ public class AcloadFlowEngine {
         private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
     }
 
-    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                              NewtonRaphson newtonRaphson, RunningContext runningContext, Reporter reporter) {
+    private void runOuterLoop(OuterLoop outerLoop, LfNetwork network, NewtonRaphson newtonRaphson, RunningContext runningContext,
+                              Reporter reporter) {
         Reporter olReporter = reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoop.getType());
 
         // for each outer loop re-run Newton-Raphson until stabilization
@@ -84,9 +66,6 @@ public class AcloadFlowEngine {
                 if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
                     return;
                 }
-
-                // update PV buses reactive power some outer loops might need this information
-                updatePvBusesReactivePower(runningContext.lastNrResult, network, equationSystem);
 
                 outerLoopIteration.increment();
             }
@@ -114,7 +93,6 @@ public class AcloadFlowEngine {
 
         // continue with outer loops only if initial Newton-Raphson succeed
         if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
-            updatePvBusesReactivePower(runningContext.lastNrResult, context.getNetwork(), context.getEquationSystem());
 
             // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
             int oldIterationCount;
@@ -123,7 +101,7 @@ public class AcloadFlowEngine {
 
                 // outer loops are nested: inner most loop first in the list, outer most loop last
                 for (OuterLoop outerLoop : context.getParameters().getOuterLoops()) {
-                    runOuterLoop(outerLoop, context.getNetwork(), context.getEquationSystem(), newtonRaphson, runningContext, reporter);
+                    runOuterLoop(outerLoop, context.getNetwork(), newtonRaphson, runningContext, reporter);
 
                     // continue with next outer loop only if last Newton-Raphson succeed
                     if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
