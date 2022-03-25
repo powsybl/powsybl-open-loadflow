@@ -1884,7 +1884,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL_1_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("T2wT", "LOAD_3"));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("T2wT", "LOAD_3", Branch.Side.ONE));
 
         List<Contingency> contingencies = List.of(new Contingency("GEN_3", new GeneratorContingency("GEN_3")));
 
