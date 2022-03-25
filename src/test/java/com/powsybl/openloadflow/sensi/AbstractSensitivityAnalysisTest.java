@@ -133,7 +133,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     }
 
     protected static SensitivityFactor createHvdcInjection(String functionId, String variableId, Branch.Side side) {
-        SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+        SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
