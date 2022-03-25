@@ -242,7 +242,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         runLf(network, sensiParameters.getLoadFlowParameters());
 
-        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23", Branch.Side.ONE)).collect(Collectors.toList());
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerPSTAngle(branch.getId(), "l23")).collect(Collectors.toList());
 
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l34", new BranchContingency("l34")));
 
@@ -293,12 +293,12 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
         runLf(network, sensiParameters.getLoadFlowParameters());
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l14", "g2", Branch.Side.ONE),
-                                                  createBranchFlowPerInjectionIncrease("l23", "g2", "l23", Branch.Side.ONE),
-                                                  createBranchFlowPerInjectionIncrease("l12", "g2", "l23", Branch.Side.ONE),
-                                                  createBranchFlowPerInjectionIncrease("l23", "g2", "l34", Branch.Side.ONE),
-                                                  createBranchFlowPerInjectionIncrease("l34", "g2", "l34", Branch.Side.ONE),
-                                                  createBranchFlowPerInjectionIncrease("l12", "g2", "l34", Branch.Side.ONE));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l14", "g2"),
+                                                  createBranchFlowPerInjectionIncrease("l23", "g2", "l23"),
+                                                  createBranchFlowPerInjectionIncrease("l12", "g2", "l23"),
+                                                  createBranchFlowPerInjectionIncrease("l23", "g2", "l34"),
+                                                  createBranchFlowPerInjectionIncrease("l34", "g2", "l34"),
+                                                  createBranchFlowPerInjectionIncrease("l12", "g2", "l34"));
 
         List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")),
                                                   new Contingency("l34", new BranchContingency("l34")));
@@ -638,7 +638,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl3_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "g1", Branch.Side.ONE));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "g1"));
 
         List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
 
@@ -676,7 +676,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "load3", Branch.Side.ONE));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "load3"));
 
         List<Contingency> contingencies = List.of(new Contingency("dl1", new DanglingLineContingency("dl1")));
 
@@ -739,7 +739,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0");
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("l12", "glsk", Branch.Side.ONE));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("l12", "glsk"));
 
         List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", List.of(new WeightedSensitivityVariable("g6", 1f),
                                                                                                        new WeightedSensitivityVariable("g3", 2f))));
