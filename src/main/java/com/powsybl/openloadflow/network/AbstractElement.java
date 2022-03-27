@@ -55,7 +55,7 @@ public abstract class AbstractElement implements LfElement {
     public Object getUserObject(String name) {
         Objects.requireNonNull(name);
         if (userObjects == null) {
-            userObjects = new HashMap<>();
+            return null;
         }
         return userObjects.get(name);
     }
