@@ -74,7 +74,7 @@ public class LfNetwork {
 
     private boolean valid = true;
 
-    private Object userObject;
+    private final Map<String, Object> userObjects = new HashMap<>();
 
     private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
 
@@ -586,12 +586,14 @@ public class LfNetwork {
         return valid;
     }
 
-    public Object getUserObject() {
-        return userObject;
+    public Object getUserObject(String name) {
+        Objects.requireNonNull(name);
+        return userObjects.get(name);
     }
 
-    public void setUserObject(Object userObject) {
-        this.userObject = userObject;
+    public void setUserObject(String name, Object userObject) {
+        Objects.requireNonNull(name);
+        this.userObjects.put(name, userObject);
     }
 
     @Override

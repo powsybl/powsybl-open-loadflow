@@ -24,12 +24,12 @@ class UserObjectTest {
     void test() {
         Network network = EurostagTutorialExample1Factory.create();
         LfNetwork lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
-        assertNull(lfNetwork.getUserObject());
-        lfNetwork.setUserObject("test");
-        assertEquals("test", lfNetwork.getUserObject());
+        assertNull(lfNetwork.getUserObject("a"));
+        lfNetwork.setUserObject("a", "test");
+        assertEquals("test", lfNetwork.getUserObject("a"));
         LfBus lfBus = lfNetwork.getBus(0);
-        assertNull(lfBus.getUserObject());
-        lfBus.setUserObject("hello");
-        assertEquals("hello", lfBus.getUserObject());
+        assertNull(lfBus.getUserObject("b"));
+        lfBus.setUserObject("b", "hello");
+        assertEquals("hello", lfBus.getUserObject("b"));
     }
 }
