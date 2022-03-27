@@ -593,7 +593,7 @@ public class LfNetwork {
 
     public void setUserObject(String name, Object userObject) {
         Objects.requireNonNull(name);
-        this.userObjects.put(name, userObject);
+        userObjects.put(name, userObject);
     }
 
     @Override
