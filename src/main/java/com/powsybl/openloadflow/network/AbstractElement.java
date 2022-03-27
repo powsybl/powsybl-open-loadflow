@@ -65,7 +65,7 @@ public abstract class AbstractElement implements LfElement {
         if (userObjects == null) {
             userObjects = new HashMap<>();
         }
-        this.userObjects.put(name, userObject);
+        userObjects.put(name, userObject);
     }
 
     @Override
