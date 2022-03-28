@@ -340,7 +340,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(0f, result.getSensitivityValue("g3", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0f, result.getBranchFlow1SensitivityValue("g3", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testPhaseShifterOutsideMainComponent(boolean dc) {
@@ -353,11 +353,11 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(0d, result.getSensitivityValue("l45", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("l45", "l12"), LoadFlowAssert.DELTA_POWER);
         if (dc) {
-            assertEquals(100.00, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.00, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
-            assertEquals(100.08, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.08, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         }
     }
 
@@ -374,11 +374,11 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(0, result.getSensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
         if (dc) {
-            assertEquals(100.000, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.000, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
-            assertEquals(100.080, result.getFunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.080, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         }
     }
 
@@ -395,8 +395,8 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(Double.NaN, result.getSensitivityValue("glsk", "l56"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(Double.NaN, result.getFunctionReferenceValue("l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("glsk", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l56"), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testGlskPartiallyOutsideMainComponent(boolean dc) {
