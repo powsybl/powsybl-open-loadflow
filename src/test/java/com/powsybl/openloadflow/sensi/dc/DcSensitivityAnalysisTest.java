@@ -25,10 +25,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -68,12 +65,21 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
 
-        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                                                             network.getBranchStream().collect(Collectors.toList()));
+        List<SensitivityFactor> factorsSide1 = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()), Branch.Side.ONE);
+
+        List<SensitivityFactor> factorsSide2 = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()), Branch.Side.TWO);
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.addAll(factorsSide1);
+        factors.addAll(factorsSide2);
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
-        assertEquals(15, result.getValues().size());
+        assertEquals(30, result.getValues().size());
+
+        //Check sensitivity values for side one
         assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g1", "l14"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g1", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g1", "l23"), LoadFlowAssert.DELTA_POWER);
@@ -91,6 +97,25 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0.125d, result.getBranchFlow1SensitivityValue("g4", "l23"), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.625d, result.getBranchFlow1SensitivityValue("g4", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g4", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        //Check sensitivity values for side two
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g1", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow2SensitivityValue("g1", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.5d, result.getBranchFlow2SensitivityValue("g1", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.125d, result.getBranchFlow2SensitivityValue("g2", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.375d, result.getBranchFlow2SensitivityValue("g2", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.625d, result.getBranchFlow2SensitivityValue("g2", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.125d, result.getBranchFlow2SensitivityValue("g2", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g2", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.375d, result.getBranchFlow2SensitivityValue("g4", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, result.getBranchFlow2SensitivityValue("g4", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, result.getBranchFlow2SensitivityValue("g4", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.625d, result.getBranchFlow2SensitivityValue("g4", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g4", "l13"), LoadFlowAssert.DELTA_POWER);
 
         for (Line line : network.getLines()) {
             assertEquals(functionReferenceByLine.get(line.getId()), result.getBranchFlow1FunctionReferenceValue(line.getId()), LoadFlowAssert.DELTA_POWER);

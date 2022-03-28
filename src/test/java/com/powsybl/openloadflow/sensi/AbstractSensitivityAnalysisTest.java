@@ -78,14 +78,22 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return sensiParameters;
     }
 
-    protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches, String contingencyId) {
+    protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches, String contingencyId, Branch.Side side) {
         Objects.requireNonNull(injections);
         Objects.requireNonNull(branches);
-        return injections.stream().flatMap(injection -> branches.stream().map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), injection.getId(), contingencyId, Branch.Side.ONE))).collect(Collectors.toList());
+        return injections.stream().flatMap(injection -> branches.stream().map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), injection.getId(), contingencyId, side))).collect(Collectors.toList());
+    }
+
+    protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches, Branch.Side side) {
+        return createFactorMatrix(injections, branches, null, side);
     }
 
     protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches) {
-        return createFactorMatrix(injections, branches, null);
+        return createFactorMatrix(injections, branches, null, Branch.Side.ONE);
+    }
+
+    protected static <T extends Injection<T>> List<SensitivityFactor> createFactorMatrix(List<T> injections, List<Branch> branches, String contingencyId) {
+        return createFactorMatrix(injections, branches, contingencyId, Branch.Side.ONE);
     }
 
     protected static SensitivityFactor createBranchFlowPerInjectionIncrease(String functionId, String variableId, String contingencyId) {

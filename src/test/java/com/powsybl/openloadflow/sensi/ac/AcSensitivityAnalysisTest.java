@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -297,17 +298,30 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23")).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.ONE)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.TWO)).collect(Collectors.toList());
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.addAll(factorsSide1);
+        factors.addAll(factorsSide2);
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
-        assertEquals(5, result.getValues().size());
+        assertEquals(10, result.getValues().size());
 
-        assertEquals(37.6799d, result.getBranchCurrent1SensitivityValue("l23", "l23"), LoadFlowAssert.DELTA_I);
+        //Check values for side 1 using generic and function type specific api
+        assertEquals(37.6799d, result.getSensitivityValue("l23", "l23", SensitivityFunctionType.BRANCH_CURRENT_1), LoadFlowAssert.DELTA_I);
         assertEquals(-12.5507d, result.getBranchCurrent1SensitivityValue("l23", "l14"), LoadFlowAssert.DELTA_I);
         assertEquals(37.3710d, result.getBranchCurrent1SensitivityValue("l23", "l12"), LoadFlowAssert.DELTA_I);
         assertEquals(-12.6565d, result.getBranchCurrent1SensitivityValue("l23", "l34"), LoadFlowAssert.DELTA_I);
         assertEquals(-25.0905d, result.getBranchCurrent1SensitivityValue("l23", "l13"), LoadFlowAssert.DELTA_I);
+
+        //Check values for side 2 using generic and function type specific api
+        assertEquals(-161.8233d, result.getSensitivityValue("l23", "l23", SensitivityFunctionType.BRANCH_CURRENT_2), LoadFlowAssert.DELTA_I);
+        assertEquals(-12.5509d, result.getBranchCurrent2SensitivityValue("l23", "l14"), LoadFlowAssert.DELTA_I);
+        assertEquals(37.3727d, result.getBranchCurrent2SensitivityValue("l23", "l12"), LoadFlowAssert.DELTA_I);
+        assertEquals(-12.6567d, result.getBranchCurrent2SensitivityValue("l23", "l34"), LoadFlowAssert.DELTA_I);
+        assertEquals(-25.0917d, result.getBranchCurrent2SensitivityValue("l23", "l13"), LoadFlowAssert.DELTA_I);
     }
 
     @Test
