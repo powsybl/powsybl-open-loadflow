@@ -115,11 +115,10 @@ public final class HvdcConverterStations {
         // of the HVDC active power setpoint.
         // As a first approximation, we don't take into account the losses due to HVDC line itself.
         boolean isConverterStationRectifier = isRectifier(station);
-        double sign = getSign(station);
         if (isConverterStationRectifier) {
-            return sign;
+            return (station instanceof VscConverterStation) ? 1 : -1;
         } else {
-            return sign * (1 - (station.getLossFactor() + getOtherConversionStation(station).getLossFactor()) / 100);
+            return ((station instanceof VscConverterStation) ? -1 : 1) * (1 - (station.getLossFactor() + getOtherConversionStation(station).getLossFactor()) / 100);
         }
     }
 }
