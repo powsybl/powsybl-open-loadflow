@@ -113,12 +113,13 @@ public final class HvdcConverterStations {
     public static double getActivePowerSetpointMultiplier(HvdcConverterStation<?> station) {
         // For sensitivity analysis, we need the multiplier by converter station for an increase of 1MW
         // of the HVDC active power setpoint.
+        // VSC injection follow here a load sign convention as LCC injection.
         // As a first approximation, we don't take into account the losses due to HVDC line itself.
         boolean isConverterStationRectifier = isRectifier(station);
         if (isConverterStationRectifier) {
-            return (station instanceof VscConverterStation) ? 1 : -1;
+            return -1;
         } else {
-            return ((station instanceof VscConverterStation) ? -1 : 1) * (1 - (station.getLossFactor() + getOtherConversionStation(station).getLossFactor()) / 100);
+            return 1 - (station.getLossFactor() + getOtherConversionStation(station).getLossFactor()) / 100;
         }
     }
 }

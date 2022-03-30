@@ -901,16 +901,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     // => we create a multi (bi) variables factor
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
                     if (bus1 != null) {
-                        // VSC injection follow here a load sign convention as LCC injection.
                         // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1)
-                                * HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
+                        injectionLfBuses.put(bus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
                     }
                     if (bus2 != null) {
-                        // VSC injection follow here a load sign convention as LCC injection.
                         // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1)
-                                * HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
+                        injectionLfBuses.put(bus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
                     }
 
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
