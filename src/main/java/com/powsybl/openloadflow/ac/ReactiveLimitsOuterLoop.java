@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
@@ -112,7 +112,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             .withDefaultMessage("${pvToPqBuses} buses switched PV -> PQ ({remainingPvBuses} bus remains PV}")
             .withValue("pvToPqBuses", pvToPqBuses.size())
             .withValue("remainingPvBuses", modifiedRemainingPvBusCount)
-            .withSeverity(OpenLoadFlowReportConstants.INFO_SEVERITY)
+            .withSeverity(TypedValue.INFO_SEVERITY)
             .build());
         LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV}", pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
@@ -160,7 +160,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             .withDefaultMessage("${pqToPvBuses} buses switched PQ -> PV ({blockedPqBuses} buses blocked PQ because have reach max number of switch)")
             .withValue("pqToPvBuses", pqPvSwitchCount)
             .withValue("blockedPqBuses", pqToPvBuses.size() - pqPvSwitchCount)
-            .withSeverity(OpenLoadFlowReportConstants.INFO_SEVERITY)
+            .withSeverity(TypedValue.INFO_SEVERITY)
             .build());
         LOGGER.info("{} buses switched PQ -> PV ({} buses blocked PQ because have reach max number of switch)",
                 pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
