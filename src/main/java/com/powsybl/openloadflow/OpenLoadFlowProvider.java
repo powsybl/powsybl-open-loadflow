@@ -121,7 +121,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                 parameters.isTransformerVoltageControlOn(),
                                                 parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                                                 parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
-                                                    parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant());
+                                                    parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(), parameters.isDc());
             }
 
             LoadFlowResult.ComponentResult.Status status;
@@ -188,7 +188,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     parameters.isPhaseShifterRegulationOn(),
                     parameters.isTransformerVoltageControlOn(),
                     parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                    false);
+                    false, true);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(
