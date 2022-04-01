@@ -25,7 +25,7 @@ public interface LfElement {
 
     LfNetwork getNetwork();
 
-    Object getUserObject();
+    Object getUserObject(String name);
 
-    void setUserObject(Object userObject);
+    void setUserObject(String name, Object userObject);
 }
