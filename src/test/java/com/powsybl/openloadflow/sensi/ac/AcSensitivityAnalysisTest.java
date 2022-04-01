@@ -113,6 +113,41 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void test4busesDistributedSide2() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        // this network has no G or B, so we should be very close to DC results
+        Network network = FourBusNetworkFactory.create();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()), null, Branch.Side.TWO);
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(15, result.getValues().size());
+
+        assertEquals(0.45328d, result.getBranchFlow2SensitivityValue("g4", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1518d, result.getBranchFlow2SensitivityValue("g4", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.24819d, result.getBranchFlow2SensitivityValue("g4", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.3467d, result.getBranchFlow2SensitivityValue("g4", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0986d, result.getBranchFlow2SensitivityValue("g4", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.1757d, result.getBranchFlow2SensitivityValue("g1", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.2765, result.getBranchFlow2SensitivityValue("g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.1235d, result.getBranchFlow2SensitivityValue("g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.02434d, result.getBranchFlow2SensitivityValue("g1", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1478d, result.getBranchFlow2SensitivityValue("g1", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.25116d, result.getBranchFlow2FunctionReferenceValue("l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25116d, result.getBranchFlow2FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.2510d, result.getBranchFlow2FunctionReferenceValue("l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.2510d, result.getBranchFlow2FunctionReferenceValue("l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.4975d, result.getBranchFlow2FunctionReferenceValue("l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void test4busesGlsk() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
