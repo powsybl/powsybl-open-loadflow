@@ -248,6 +248,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     @Override
     public List<String> getSpecificParametersNames() {
-        return OpenLoadFlowParameters.getSpecificParametersNames();
+        return OpenLoadFlowParameters.SPECIFIC_PARAMETERS_NAMES;
     }
 }

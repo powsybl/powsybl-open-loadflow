@@ -95,6 +95,23 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String HVDC_AC_EMULATION_PARAM_NAME = "hvdcAcEmulation";
 
+    public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
+                                                                         SLACK_BUSES_IDS_PARAM_NAME,
+                                                                         LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
+                                                                         VOLTAGE_REMOTE_CONTROL_PARAM_NAME,
+                                                                         THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME,
+                                                                         LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME,
+                                                                         PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME,
+                                                                         ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME,
+                                                                         SLACK_BUS_P_MAX_MISMATCH_NAME,
+                                                                         VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME,
+                                                                         REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME,
+                                                                         MAX_ITERATION_NAME,
+                                                                         NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME,
+                                                                         VOLTAGE_INIT_MODE_OVERRIDE_NAME,
+                                                                         TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME,
+                                                                         HVDC_AC_EMULATION_PARAM_NAME);
+
     public enum VoltageInitModeOverride {
         NONE,
         VOLTAGE_MAGNITUDE,
@@ -308,105 +325,65 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static OpenLoadFlowParameters load(PlatformConfig platformConfig) {
-        Map<String, String> properties = new HashMap<>();
+        OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
         platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
-            .ifPresent(config -> {
-                config.getOptionalEnumProperty(SLACK_BUS_SELECTION_PARAM_NAME, SlackBusSelectionMode.class)
-                        .ifPresent(value -> properties.put(SLACK_BUS_SELECTION_PARAM_NAME, value.toString()));
-                config.getOptionalStringListProperty(SLACK_BUSES_IDS_PARAM_NAME)
-                        .ifPresent(value -> properties.put(SLACK_BUSES_IDS_PARAM_NAME, value.toString().replaceAll("[\\[\\]]", "")));
-                config.getOptionalEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class)
-                        .ifPresent(value -> properties.put(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, value.toString()));
-                config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME)
-                        .ifPresent(value -> properties.put(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, value.toString()));
-                config.getOptionalBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME)
-                        .ifPresent(value -> properties.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, value.toString()));
-                config.getOptionalBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME)
-                        .ifPresent(value -> properties.put(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, value.toString()));
-                config.getOptionalDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME)
-                        .ifPresent(value -> properties.put(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, String.valueOf(value)));
-                config.getOptionalBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME)
-                        .ifPresent(value -> properties.put(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, value.toString()));
-                config.getOptionalDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME)
-                        .ifPresent(value -> properties.put(SLACK_BUS_P_MAX_MISMATCH_NAME, String.valueOf(value)));
-                config.getOptionalBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME)
-                        .ifPresent(value -> properties.put(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, value.toString()));
-                config.getOptionalBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME)
-                        .ifPresent(value -> properties.put(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, value.toString()));
-                config.getOptionalIntProperty(MAX_ITERATION_NAME)
-                        .ifPresent(value -> properties.put(MAX_ITERATION_NAME, String.valueOf(value)));
-                config.getOptionalDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME)
-                        .ifPresent(value -> properties.put(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, String.valueOf(value)));
-                config.getOptionalEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class)
-                        .ifPresent(value -> properties.put(VOLTAGE_INIT_MODE_OVERRIDE_NAME, value.toString()));
-                config.getOptionalEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class)
-                        .ifPresent(value -> properties.put(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, value.toString()));
-                config.getOptionalBooleanProperty(HVDC_AC_EMULATION_PARAM_NAME)
-                        .ifPresent(value -> properties.put(HVDC_AC_EMULATION_PARAM_NAME, value.toString()));
-            });
-        return load(properties);
+            .ifPresent(config -> parameters
+                .setSlackBusSelectionMode(config.getEnumProperty(SLACK_BUS_SELECTION_PARAM_NAME, SlackBusSelectionMode.class, SLACK_BUS_SELECTION_DEFAULT_VALUE))
+                .setSlackBusesIds(config.getStringListProperty(SLACK_BUSES_IDS_PARAM_NAME, Collections.emptyList()))
+                .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
+                .setVoltageRemoteControl(config.getBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE))
+                .setThrowsExceptionInCaseOfSlackDistributionFailure(
+                        config.getBooleanProperty(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE)
+                )
+                .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
+                .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
+                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(config.getBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE))
+                .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
+                .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
+                .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
+                .setMaxIteration(config.getIntProperty(MAX_ITERATION_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
+                .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
+                .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
+                .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
+                .setHvdcAcEmulation(config.getBooleanProperty(HVDC_AC_EMULATION_PARAM_NAME, HVDC_AC_EMULATION_DEFAULT_VALUE)));
+        return parameters;
     }
 
     public static OpenLoadFlowParameters load(Map<String, String> properties) {
         OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
         Optional.ofNullable(properties.get(SLACK_BUS_SELECTION_PARAM_NAME))
-                .ifPresent(prop ->  parameters.setSlackBusSelectionMode(SlackBusSelectionMode
-                        .valueOf(properties.get(SLACK_BUS_SELECTION_PARAM_NAME))));
+                .ifPresent(prop -> parameters.setSlackBusSelectionMode(SlackBusSelectionMode.valueOf(prop)));
         Optional.ofNullable(properties.get(SLACK_BUSES_IDS_PARAM_NAME))
-                .ifPresent(prop ->  parameters.setSlackBusesIds(Arrays.asList(properties.get(SLACK_BUSES_IDS_PARAM_NAME).split("[:,]"))));
+                .ifPresent(prop -> parameters.setSlackBusesIds(Arrays.asList(prop.split("[:,]"))));
         Optional.ofNullable(properties.get(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME))
-                .ifPresent(prop ->  parameters.setLowImpedanceBranchMode(LowImpedanceBranchMode
-                        .valueOf(properties.get(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME))));
+                .ifPresent(prop -> parameters.setLowImpedanceBranchMode(LowImpedanceBranchMode.valueOf(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_REMOTE_CONTROL_PARAM_NAME))
-                .ifPresent(prop ->  parameters.setVoltageRemoteControl(Boolean
-                        .parseBoolean(properties.get(VOLTAGE_REMOTE_CONTROL_PARAM_NAME))));
+                .ifPresent(prop -> parameters.setVoltageRemoteControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME))
-                .ifPresent(prop ->  parameters.setThrowsExceptionInCaseOfSlackDistributionFailure(Boolean
-                        .parseBoolean(properties.get(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME))));
+                .ifPresent(prop -> parameters.setThrowsExceptionInCaseOfSlackDistributionFailure(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME))
-                .ifPresent(prop ->  parameters.setLoadPowerFactorConstant(Boolean
-                        .parseBoolean(properties.get(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME))));
+                .ifPresent(prop -> parameters.setLoadPowerFactorConstant(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME))
-                .ifPresent(prop ->  parameters.setPlausibleActivePowerLimit(Double
-                        .parseDouble(properties.get(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME))));
+                .ifPresent(prop -> parameters.setPlausibleActivePowerLimit(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME))
-                .ifPresent(prop ->  parameters.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(Boolean
-                        .parseBoolean(properties.get(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME))));
+                .ifPresent(prop -> parameters.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(SLACK_BUS_P_MAX_MISMATCH_NAME))
-                .ifPresent(prop ->  parameters.setSlackBusPMaxMismatch(Double
-                        .parseDouble(properties.get(SLACK_BUS_P_MAX_MISMATCH_NAME))));
+                .ifPresent(prop -> parameters.setSlackBusPMaxMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME))
-                .ifPresent(prop ->  parameters.setVoltagePerReactivePowerControl(Boolean
-                        .parseBoolean(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME))));
+                .ifPresent(prop -> parameters.setVoltagePerReactivePowerControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME))
-                .ifPresent(prop ->  parameters.setReactivePowerRemoteControl(Boolean
-                        .parseBoolean(properties.get(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME))));
+                .ifPresent(prop -> parameters.setReactivePowerRemoteControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(MAX_ITERATION_NAME))
-                .ifPresent(prop ->  parameters.setMaxIteration(Integer.parseInt(properties.get(MAX_ITERATION_NAME))));
+                .ifPresent(prop -> parameters.setMaxIteration(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME))
-                .ifPresent(prop ->  parameters.setNewtonRaphsonConvEpsPerEq(Double
-                        .parseDouble(properties.get(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME))));
+                .ifPresent(prop -> parameters.setNewtonRaphsonConvEpsPerEq(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_INIT_MODE_OVERRIDE_NAME))
-                .ifPresent(prop ->  parameters.setVoltageInitModeOverride(VoltageInitModeOverride
-                        .valueOf(properties.get(VOLTAGE_INIT_MODE_OVERRIDE_NAME))));
+                .ifPresent(prop -> parameters.setVoltageInitModeOverride(VoltageInitModeOverride.valueOf(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME))
-                .ifPresent(prop ->  parameters.setTransformerVoltageControlMode(TransformerVoltageControlMode
-                        .valueOf(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME))));
+                .ifPresent(prop -> parameters.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(HVDC_AC_EMULATION_PARAM_NAME))
-                .ifPresent(prop ->  parameters.setHvdcAcEmulation(Boolean
-                        .parseBoolean(properties.get(HVDC_AC_EMULATION_PARAM_NAME))));
+                .ifPresent(prop -> parameters.setHvdcAcEmulation(Boolean.parseBoolean(prop)));
         return parameters;
-    }
-
-    public static List<String> getSpecificParametersNames() {
-        return Arrays.asList(SLACK_BUS_SELECTION_PARAM_NAME, SLACK_BUSES_IDS_PARAM_NAME,
-            LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, VOLTAGE_REMOTE_CONTROL_PARAM_NAME,
-            THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME,
-            LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME,
-            ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, SLACK_BUS_P_MAX_MISMATCH_NAME,
-            VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME,
-            MAX_ITERATION_NAME, NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, VOLTAGE_INIT_MODE_OVERRIDE_NAME,
-            TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, HVDC_AC_EMULATION_PARAM_NAME);
     }
 
     @Override
