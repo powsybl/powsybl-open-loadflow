@@ -157,17 +157,17 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         clearLu();
     }
 
-    private void updateLu() {
+    private void updateLu(boolean allowIncrementalUpdate) {
         if (lu != null) {
             Stopwatch stopwatch = Stopwatch.createStarted();
 
-            lu.update();
+            lu.update(allowIncrementalUpdate);
 
             LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         }
     }
 
-    private void updateValues() {
+    private void updateValues(boolean allowIncrementalUpdate) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
@@ -183,7 +183,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
 
-        updateLu();
+        updateLu(allowIncrementalUpdate);
     }
 
     public Matrix getMatrix() {
@@ -194,8 +194,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     break;
 
                 case VALUES_INVALID:
+                    updateValues(true);
+                    break;
+
                 case NON_ZERO_PATTERN_INVALID:
-                    updateValues();
+                    updateValues(false);
                     break;
 
                 default:
