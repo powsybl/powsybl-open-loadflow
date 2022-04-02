@@ -8,8 +8,8 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
@@ -203,7 +203,7 @@ public class DcLoadFlowEngine {
                 .withKey("loadFlowFailure")
                 .withDefaultMessage("Failed to solve linear system for DC load flow: ${errorMessage}")
                 .withValue("errorMessage", e.getMessage())
-                .withSeverity(OpenLoadFlowReportConstants.ERROR_SEVERITY)
+                .withSeverity(TypedValue.ERROR_SEVERITY)
                 .build());
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
@@ -222,7 +222,7 @@ public class DcLoadFlowEngine {
             .withKey("loadFlowCompleted")
             .withDefaultMessage("DC load flow completed (status=${lfStatus})")
             .withValue("lfStatus", status.toString())
-            .withSeverity(OpenLoadFlowReportConstants.INFO_SEVERITY)
+            .withSeverity(TypedValue.INFO_SEVERITY)
             .build());
         LOGGER.info("DC load flow completed (status={})", status);
         return status;
