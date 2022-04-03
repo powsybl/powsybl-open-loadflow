@@ -83,7 +83,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         SecurityAnalysisResult result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters);
 
         stopwatch.stop();
-        LOGGER.info("Security analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        LOGGER.info("Security analysis {} in {} ms", Thread.currentThread().isInterrupted() ? "cancelled" : "done",
+                stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new SecurityAnalysisReport(result);
     }
@@ -136,7 +137,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 GraphDecrementalConnectivity<LfBus> connectivity = network.getConnectivity();
-                while (contingencyIt.hasNext()) {
+                while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
                     propagatedContingency.toLfContingency(network, connectivity, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
