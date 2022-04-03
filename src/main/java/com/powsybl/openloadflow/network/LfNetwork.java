@@ -211,7 +211,8 @@ public class LfNetwork {
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
-                            boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+                            boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant,
+                            boolean dc) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfHvdc hvdc : hvdcs) {
@@ -226,7 +227,7 @@ public class LfNetwork {
             bus.getControllerShunt().ifPresent(LfShunt::updateState);
         }
         for (LfBranch branch : branches) {
-            branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn);
+            branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn, dc);
         }
 
         stopwatch.stop();
