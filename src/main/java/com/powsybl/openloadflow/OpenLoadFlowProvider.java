@@ -207,8 +207,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     @Override
     public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, Reporter reporter) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(computationManager);
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(parameters);
+        Objects.requireNonNull(reporter);
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
@@ -228,7 +231,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             return result;
-        });
+        }, computationManager.getExecutor());
     }
 
     @Override

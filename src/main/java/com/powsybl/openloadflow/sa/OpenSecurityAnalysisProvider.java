@@ -21,6 +21,7 @@ import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -47,13 +48,25 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
                                                          LimitViolationFilter limitViolationFilter, ComputationManager computationManager,
                                                          SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                                          List<SecurityAnalysisInterceptor> interceptors, List<StateMonitor> stateMonitors) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(workingVariantId);
+        Objects.requireNonNull(limitViolationDetector);
+        Objects.requireNonNull(limitViolationFilter);
+        Objects.requireNonNull(computationManager);
+        Objects.requireNonNull(securityAnalysisParameters);
+        Objects.requireNonNull(contingenciesProvider);
+        Objects.requireNonNull(interceptors);
+        Objects.requireNonNull(stateMonitors);
+
         AbstractSecurityAnalysis securityAnalysis;
         if (securityAnalysisParameters.getLoadFlowParameters().isDc()) {
             securityAnalysis = new DcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityFactory, stateMonitors);
         } else {
             securityAnalysis = new AcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityFactory, stateMonitors);
         }
+
         interceptors.forEach(securityAnalysis::addInterceptor);
+
         return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
     }
 
