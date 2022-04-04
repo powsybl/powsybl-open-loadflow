@@ -130,7 +130,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 

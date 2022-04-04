@@ -19,12 +19,16 @@ import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.util.Collections;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -76,5 +80,20 @@ class OpenLoadFlowProviderTest {
         assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof VoltageMagnitudeInitializer);
         parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE);
         assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof FullVoltageInitializer);
+    }
+
+    @Test
+    void specificParametersTest() {
+        var provider = new OpenLoadFlowProvider();
+        assertEquals(16, provider.getSpecificParametersNames().size());
+        LoadFlowParameters parameters = new LoadFlowParameters();
+
+        provider.loadSpecificParameters(Collections.emptyMap())
+                .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
+        assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getExtension(OpenLoadFlowParameters.class).getSlackBusSelectionMode());
+
+        provider.loadSpecificParameters(Map.of(OpenLoadFlowParameters.SLACK_BUS_SELECTION_PARAM_NAME, SlackBusSelectionMode.FIRST.name()))
+                .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
+        assertEquals(SlackBusSelectionMode.FIRST, parameters.getExtension(OpenLoadFlowParameters.class).getSlackBusSelectionMode());
     }
 }

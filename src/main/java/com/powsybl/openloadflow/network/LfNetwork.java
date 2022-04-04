@@ -74,7 +74,7 @@ public class LfNetwork {
 
     private boolean valid = true;
 
-    private Object userObject;
+    private final Map<String, Object> userObjects = new HashMap<>();
 
     private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
 
@@ -211,7 +211,8 @@ public class LfNetwork {
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
-                            boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+                            boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant,
+                            boolean dc) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfHvdc hvdc : hvdcs) {
@@ -226,7 +227,7 @@ public class LfNetwork {
             bus.getControllerShunt().ifPresent(LfShunt::updateState);
         }
         for (LfBranch branch : branches) {
-            branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn);
+            branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn, dc);
         }
 
         stopwatch.stop();
@@ -586,12 +587,14 @@ public class LfNetwork {
         return valid;
     }
 
-    public Object getUserObject() {
-        return userObject;
+    public Object getUserObject(String name) {
+        Objects.requireNonNull(name);
+        return userObjects.get(name);
     }
 
-    public void setUserObject(Object userObject) {
-        this.userObject = userObject;
+    public void setUserObject(String name, Object userObject) {
+        Objects.requireNonNull(name);
+        userObjects.put(name, userObject);
     }
 
     @Override

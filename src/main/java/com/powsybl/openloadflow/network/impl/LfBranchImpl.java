@@ -245,7 +245,7 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
         branch.getTerminal1().setP(p1.eval() * PerUnit.SB);
         branch.getTerminal1().setQ(q1.eval() * PerUnit.SB);
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);

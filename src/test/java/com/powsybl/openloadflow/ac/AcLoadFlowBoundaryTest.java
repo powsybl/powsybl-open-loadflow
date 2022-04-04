@@ -71,6 +71,7 @@ class AcLoadFlowBoundaryTest {
     void testWithVoltageRegulationOn() {
         g1.setTargetQ(0);
         g1.setVoltageRegulatorOn(false);
+        // FIXME: no targetV here?
         dl1.getGeneration().setVoltageRegulationOn(true);
         dl1.getGeneration().setMinP(0);
         dl1.getGeneration().setMaxP(10);
@@ -175,5 +176,33 @@ class AcLoadFlowBoundaryTest {
         assertVoltageEquals(135.0, network.getBusBreakerView().getBus("BUS_1"));
         assertVoltageEquals(121.62, network.getBusBreakerView().getBus("BUS_2"));
         assertVoltageEquals(0.04, network.getBusBreakerView().getBus("BUS_3"));
+    }
+
+    @Test
+    void testWithNonImpedantDanglingLine() {
+        dl1.setR(0.0).setX(0.0);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(101.0, dl1.getTerminal());
+        assertReactivePowerEquals(150.0, dl1.getTerminal());
+
+        dl1.getGeneration().setVoltageRegulationOn(true);
+        dl1.getGeneration().setTargetV(390.0);
+        dl1.getGeneration().setMinP(0);
+        dl1.getGeneration().setMaxP(10);
+        dl1.getGeneration().newMinMaxReactiveLimits()
+                .setMinQ(-100)
+                .setMaxQ(100)
+                .add();
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertActivePowerEquals(101.0, dl1.getTerminal());
+        assertReactivePowerEquals(-33.888, dl1.getTerminal());
+
+        parameters.setDc(true);
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isOk());
+        assertActivePowerEquals(101.0, dl1.getTerminal());
+        assertReactivePowerEquals(Double.NaN, dl1.getTerminal());
     }
 }
