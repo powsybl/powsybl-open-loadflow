@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
@@ -18,10 +19,13 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.usefultoys.slf4j.LoggerFactory;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -181,5 +185,23 @@ class DcLoadFlowTest {
         loadFlowRunner.run(network, parameters);
         assertEquals(Double.NaN, network.getLine("L2").getTerminal1().getP());
         assertEquals(33.3333, network.getLine("L1").getTerminal1().getP(), 0.01);
+    }
+
+    @Test
+    void multiCcTest() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        for (Line l : List.of(network.getLine("L13-14-1"),
+                              network.getLine("L6-13-1"),
+                              network.getLine("L6-12-1"))) {
+            l.getTerminal1().disconnect();
+            l.getTerminal2().disconnect();
+        }
+        // bus 12 and 13 are out of main connected component
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL);
+        loadFlowRunner.run(network, parameters);
+
+        // check angle is zero for the 2 slack buses
+        LoadFlowAssert.assertAngleEquals(0, network.getBusView().getBus("VL1_0"));
+        LoadFlowAssert.assertAngleEquals(0, network.getBusView().getBus("VL12_0"));
     }
 }

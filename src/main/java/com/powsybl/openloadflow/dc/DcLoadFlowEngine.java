@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
@@ -18,6 +19,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,8 +37,6 @@ public class DcLoadFlowEngine {
 
     private final DcLoadFlowParameters parameters;
 
-    private double[] targetVector;
-
     public <T> DcLoadFlowEngine(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {
         this.networks = LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter);
         this.parameters = Objects.requireNonNull(parameters);
@@ -47,9 +47,9 @@ public class DcLoadFlowEngine {
         this.parameters = Objects.requireNonNull(parameters);
     }
 
-    private void distributeSlack(Collection<LfBus> buses) {
+    private static void distributeSlack(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType) {
         double mismatch = getActivePowerMismatch(buses);
-        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), false);
+        ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false);
         activePowerDistribution.run(buses, mismatch);
     }
 
@@ -65,17 +65,17 @@ public class DcLoadFlowEngine {
         return networks.stream().map(n -> run(reporter, n)).collect(Collectors.toList());
     }
 
-    public DcLoadFlowResult run(Reporter reporter, LfNetwork pNetwork) {
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(pNetwork, parameters.getEquationSystemCreationParameters());
+    private DcLoadFlowResult run(Reporter reporter, LfNetwork network) {
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(network, parameters.getEquationSystemCreationParameters());
 
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix<DcVariableType, DcEquationType> j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory())) {
 
-            status = run(equationSystem, j, Collections.emptyList(), Collections.emptyList(), reporter);
+            status = run(network, parameters, equationSystem, j, Collections.emptyList(), Collections.emptyList(), reporter).getLeft();
         } catch (Exception e) {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
-        return new DcLoadFlowResult(pNetwork, getActivePowerMismatch(pNetwork.getBuses()), status);
+        return new DcLoadFlowResult(network, getActivePowerMismatch(network.getBuses()), status);
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
@@ -156,22 +156,20 @@ public class DcLoadFlowEngine {
         }
     }
 
-    public LoadFlowResult.ComponentResult.Status run(EquationSystem<DcVariableType, DcEquationType> equationSystem, JacobianMatrix<DcVariableType, DcEquationType> j,
-                                                     Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
-                                                     Reporter reporter) {
-        // only process main (largest) connected component
-        LfNetwork network = networks.get(0);
-
+    public static Pair<LoadFlowResult.ComponentResult.Status, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
+                                                                            EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                            JacobianMatrix<DcVariableType, DcEquationType> j,
+                                                                            Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());
         remainingBuses.removeAll(disabledBuses);
 
         if (parameters.isDistributedSlack()) {
-            distributeSlack(remainingBuses);
+            distributeSlack(remainingBuses, parameters.getBalanceType());
         }
 
-        this.targetVector = TargetVector.createArray(network, equationSystem, DcLoadFlowEngine::initTarget);
+        var targetVector = TargetVector.createArray(network, equationSystem, DcLoadFlowEngine::initTarget);
 
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0
@@ -225,10 +223,7 @@ public class DcLoadFlowEngine {
             .withSeverity(TypedValue.INFO_SEVERITY)
             .build());
         LOGGER.info("DC load flow completed (status={})", status);
-        return status;
-    }
 
-    public double[] getTargetVector() {
-        return targetVector;
+        return Pair.of(status, targetVector);
     }
 }
