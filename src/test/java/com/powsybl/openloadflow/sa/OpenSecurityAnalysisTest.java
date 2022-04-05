@@ -1317,4 +1317,13 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network);
         assertFalse(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
     }
+
+    @Test
+    void testDivergenceStatus() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getLine("NHV1_NHV2_1").setR(100).setX(-999);
+        network.getLine("NHV1_NHV2_2").setR(100).setX(-999);
+        SecurityAnalysisResult result = runSecurityAnalysis(network);
+        assertFalse(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+    }
 }
