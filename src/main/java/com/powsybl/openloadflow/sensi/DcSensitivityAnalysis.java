@@ -667,6 +667,25 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             DenseMatrix newFactorStates = factorStates;
             boolean participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
                     || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToShift().isEmpty());
+            boolean hasMultiVariables = factorGroups.stream().anyMatch(MultiVariablesFactorGroup.class::isInstance);
+            boolean rhsChanged = false;
+            if (hasMultiVariables) {
+                Set<LfBus> affectedBuses = new HashSet<>();
+                for (var e : contingency.getLoadIdsToShift().entrySet()) {
+                    String busId = e.getKey();
+                    LfBus bus = lfNetwork.getBusById(busId);
+                    if (bus != null) {
+                        affectedBuses.add(bus);
+                    }
+                }
+                for (String id : contingency.getGeneratorIdsToLose()) {
+                    LfBus bus = lfNetwork.getGeneratorById(id).getBus();
+                    if (bus != null) {
+                        affectedBuses.add(bus);
+                    }
+                }
+                rhsChanged = rescaleGlsk(factorGroups, affectedBuses);
+            }
             if (participatingElementsChanged) {
                 if (isDistributedSlackOnGenerators(lfParameters)) {
                     // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
@@ -678,6 +697,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 } else { // slack distribution on loads
                     newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
                 }
+            }
+            if (participatingElementsChanged || rhsChanged) {
                 newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
             }
 
