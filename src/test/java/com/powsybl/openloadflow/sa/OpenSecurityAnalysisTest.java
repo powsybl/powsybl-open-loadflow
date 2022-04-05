@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -1297,6 +1298,7 @@ class OpenSecurityAnalysisTest {
         contingencies.add(Contingency.line("l12"));
         contingencies.add(Contingency.line("l46"));
         contingencies.add(Contingency.generator("g1"));
+        // contingencies.add(Contingency.hvdcLine("hvdc34"));
         // FIXME: note that the HVDC line contingency is not supported yet.
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
@@ -1309,5 +1311,86 @@ class OpenSecurityAnalysisTest {
         // post-contingency tests
         PostContingencyResult g1ContingencyResult = getPostContingencyResult(result, "g1");
         assertEquals(-0.696, g1ContingencyResult.getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcLcc() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setSlackBusPMaxMismatch(0.0001);
+        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(1.360, preContingencyResult.getPreContingencyBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.360, preContingencyResult.getPreContingencyBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.596, preContingencyResult.getPreContingencyBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "hvdc34");
+        assertEquals(0.666, postContingencyResult.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.022, postContingencyResult.getBranchResult("l12").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.333, postContingencyResult.getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.011, postContingencyResult.getBranchResult("l13").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.333, postContingencyResult.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.011, postContingencyResult.getBranchResult("l23").getQ1(), LoadFlowAssert.DELTA_POWER);
+
+        network.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
+        network.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
+        LoadFlow.run(network, parameters);
+        assertEquals(0.666, network.getLine("l12").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.022, network.getLine("l12").getTerminal1().getQ(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.333, network.getLine("l13").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.011, network.getLine("l13").getTerminal1().getQ(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.333, network.getLine("l23").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.011, network.getLine("l23").getTerminal1().getQ(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcVsc() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setSlackBusPMaxMismatch(0.0001);
+        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(1.25, preContingencyResult.getPreContingencyBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.228, preContingencyResult.getPreContingencyBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.727, preContingencyResult.getPreContingencyBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "hvdc34");
+        assertEquals(1.333, postContingencyResult.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.089, postContingencyResult.getBranchResult("l12").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.666, postContingencyResult.getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.044, postContingencyResult.getBranchResult("l13").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.666, postContingencyResult.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.045, postContingencyResult.getBranchResult("l23").getQ1(), LoadFlowAssert.DELTA_POWER);
+
+        network.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
+        network.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
+        LoadFlow.run(network, parameters);
+        assertEquals(1.333, network.getLine("l12").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.089, network.getLine("l12").getTerminal1().getQ(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.666, network.getLine("l13").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.044, network.getLine("l13").getTerminal1().getQ(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.666, network.getLine("l23").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.045, network.getLine("l23").getTerminal1().getQ(), LoadFlowAssert.DELTA_POWER);
     }
 }

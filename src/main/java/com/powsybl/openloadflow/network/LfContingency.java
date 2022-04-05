@@ -124,10 +124,12 @@ public class LfContingency {
 
     public static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
         double factor = 0.0;
-        if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-            factor = Math.abs(initialP0) / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
-        } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-            factor = initialVariableActivePower / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+        if (bus.getLfLoads().getLoadCount() > 0) {
+            if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
+                factor = Math.abs(initialP0) / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+            } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+                factor = initialVariableActivePower / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+            }
         }
         return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
     }
