@@ -106,7 +106,13 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
 
     @Override
     public BranchType getBranchType() {
-        return BranchType.TRANSFO_3_LEG;
+        if (leg == twt.getLeg1()) {
+            return BranchType.TRANSFO_3_LEG_1;
+        } else if (leg == twt.getLeg2()) {
+            return BranchType.TRANSFO_3_LEG_2;
+        } else {
+            return BranchType.TRANSFO_3_LEG_3;
+        }
     }
 
     @Override
