@@ -24,7 +24,8 @@ public interface LfBranch extends LfElement {
     double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
 
     enum BranchType {
-        LINE_OR_TRANSFO_2,
+        LINE,
+        TRANSFO_2,
         TRANSFO_3_LEG,
         DANGLING_LINE,
         SWITCH

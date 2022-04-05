@@ -138,7 +138,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public BranchType getBranchType() {
-        return BranchType.LINE_OR_TRANSFO_2;
+        return branch instanceof Line ? BranchType.LINE : BranchType.TRANSFO_2;
     }
 
     @Override
