@@ -165,28 +165,16 @@ public class PropagatedContingency {
                     hvdcIdsToOpen.add(element.getId());
                     if (hvdcLine.getConverterStation1() instanceof VscConverterStation) {
                         VscConverterStation vsc1 = (VscConverterStation) hvdcLine.getConverterStation1();
-                        if (vsc1 == null) {
-                            throw new PowsyblException("VSC '" + element.getId() + "' not found in the network");
-                        }
                         vscsToLose.add(vsc1);
                     } else {
                         LccConverterStation lcc1 = (LccConverterStation) hvdcLine.getConverterStation1();
-                        if (lcc1 == null) {
-                            throw new PowsyblException("LCC '" + element.getId() + "' not found in the network");
-                        }
                         lccsToLose.add(lcc1);
                     }
                     if (hvdcLine.getConverterStation2() instanceof VscConverterStation) {
                         VscConverterStation vsc2 = (VscConverterStation) hvdcLine.getConverterStation2();
-                        if (vsc2 == null) {
-                            throw new PowsyblException("VSC '" + element.getId() + "' not found in the network");
-                        }
                         vscsToLose.add(vsc2);
                     } else {
                         LccConverterStation lcc2 = (LccConverterStation) hvdcLine.getConverterStation2();
-                        if (lcc2 == null) {
-                            throw new PowsyblException("LCC '" + element.getId() + "' not found in the network");
-                        }
                         lccsToLose.add(lcc2);
                     }
                     break;
