@@ -572,16 +572,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency, valueWriter);
         } else {
-            // if we have a contingency including the loss of a DC line or a generator
-            // if we have a contingency including the loss of a generator
             // if we have a contingency including the loss of a DC line or a generator or a load
-            GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.getConnectivity(); // needed?
-            Optional<LfContingency> lfContingency = contingency.toLfContingency(lfNetwork, connectivity, true);
-            List<BusState> busStates = new ArrayList<>();
+            // save base state for later restoration after each contingency
+            NetworkState networkState = NetworkState.save(lfNetwork);
+            Optional<LfContingency> lfContingency = contingency.toLfContingency(lfNetwork, lfNetwork.getConnectivity(), true);
             Set<LfGenerator> participatingGeneratorsToRemove = new HashSet<>();
             if (lfContingency.isPresent()) {
-                lfContingency.get().apply(lfParameters.getBalanceType(), true);
-                busStates = lfContingency.get().getBusStates();
+                lfContingency.get().apply(lfParameters.getBalanceType());
                 participatingGeneratorsToRemove = lfContingency.get().getParticipatingGeneratorsToBeRemoved();
             }
             List<ParticipatingElement> newParticipatingElements = participatingElements;
@@ -608,7 +605,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
 
-            ElementState.restore(busStates);
+            networkState.restore();
             if (participatingElementsChanged) {
                 setBaseCaseSensitivityValues(factorGroups, factorStates);
             }

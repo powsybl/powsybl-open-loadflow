@@ -37,8 +37,6 @@ public class LfContingency {
 
     private final Set<LfGenerator> participatingGeneratorsToBeRemoved = new HashSet<>();
 
-    private List<BusState> busStates = new ArrayList<>();
-
     private double activePowerLoss = 0;
 
     public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Map<LfShunt, Double> shuntsShift,
@@ -94,19 +92,11 @@ public class LfContingency {
     }
 
     public void apply(LoadFlowParameters.BalanceType balanceType) {
-        apply(balanceType, false);
-    }
-
-    public void apply(LoadFlowParameters.BalanceType balanceType, boolean withBusStates) {
-        if (!withBusStates) {
-            // for DC sensitivity analysis, we don't rely on the disabled status of branches and buses.
-            // FIXME?
-            for (LfBranch branch : branches) {
-                branch.setDisabled(true);
-            }
-            for (LfBus bus : buses) {
-                bus.setDisabled(true);
-            }
+        for (LfBranch branch : branches) {
+            branch.setDisabled(true);
+        }
+        for (LfBus bus : buses) {
+            bus.setDisabled(true);
         }
         for (var e : shuntsShift.entrySet()) {
             LfShunt shunt = e.getKey();
@@ -114,9 +104,6 @@ public class LfContingency {
         }
         for (var e : busesLoadShift.entrySet()) {
             LfBus bus = e.getKey();
-            if (withBusStates) {
-                busStates.add(BusState.save(bus));
-            }
             PowerShift shift = e.getValue();
             bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, balanceType, shift.getActive(), shift.getVariableActive()));
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
@@ -124,9 +111,6 @@ public class LfContingency {
         }
         for (LfGenerator generator : generators) {
             LfBus bus = generator.getBus();
-            if (withBusStates) {
-                busStates.add(BusState.save(bus));
-            }
             generator.setTargetP(0);
             generator.setParticipating(false);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
@@ -150,10 +134,6 @@ public class LfContingency {
 
     public Set<LfGenerator> getParticipatingGeneratorsToBeRemoved() {
         return participatingGeneratorsToBeRemoved;
-    }
-
-    public List<BusState> getBusStates() {
-        return busStates;
     }
 
     public void writeJson(Writer writer) {
