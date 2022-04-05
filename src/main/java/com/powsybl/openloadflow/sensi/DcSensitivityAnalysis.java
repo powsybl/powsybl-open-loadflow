@@ -568,7 +568,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                       SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder, List<ParticipatingElement> participatingElements,
                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
-        if (contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
+        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency, valueWriter);
         } else {

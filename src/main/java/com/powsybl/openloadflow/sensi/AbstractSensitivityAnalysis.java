@@ -709,7 +709,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
             }
             contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
-            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
+            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }

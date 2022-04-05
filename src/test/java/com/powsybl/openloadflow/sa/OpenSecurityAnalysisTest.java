@@ -1298,7 +1298,6 @@ class OpenSecurityAnalysisTest {
         contingencies.add(Contingency.line("l12"));
         contingencies.add(Contingency.line("l46"));
         contingencies.add(Contingency.generator("g1"));
-        // contingencies.add(Contingency.hvdcLine("hvdc34")); not supported yet.
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1310,6 +1309,11 @@ class OpenSecurityAnalysisTest {
         // post-contingency tests
         PostContingencyResult g1ContingencyResult = getPostContingencyResult(result, "g1");
         assertEquals(-0.696, g1ContingencyResult.getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        List<Contingency> contingencies2 = new ArrayList<>();
+        contingencies2.add(Contingency.hvdcLine("hvdc34"));
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies2, monitors, parameters));
+        assertEquals("Contingency on HVDC line 'hvdc34' operated in AC emulation: not supported yet.", exception.getCause().getMessage());
     }
 
     @Test
