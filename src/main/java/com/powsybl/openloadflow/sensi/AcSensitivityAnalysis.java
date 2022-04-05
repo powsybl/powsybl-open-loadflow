@@ -110,12 +110,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                            int contingencyIndex, SensitivityValueWriter valueWriter,
                                                            Reporter reporter, boolean hasTransformerBusTargetVoltage) {
-        for (LfBranch branch : lfContingency.getBranches()) {
-            branch.setDisabled(true);
-        }
-        for (LfBus bus : lfContingency.getBuses()) {
-            bus.setDisabled(true);
-        }
+        lfContingency.apply(lfParameters.getBalanceType());
 
         if (lfParameters.isDistributedSlack() && Math.abs(lfContingency.getActivePowerLoss()) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant());
@@ -152,6 +147,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         for (PropagatedContingency contingency : contingencies) {
             if (!contingency.getHvdcIdsToOpen().isEmpty()) {
                 throw new NotImplementedException("Contingencies on a DC line are not yet supported in AC mode.");
+            }
+            if (!contingency.getGeneratorIdsToLose().isEmpty()) {
+                throw new NotImplementedException("Generator Contingencies are not yet supported in AC mode.");
+            }
+            if (!contingency.getLoadIdsToShift().isEmpty()) {
+                throw new NotImplementedException("Load Contingencies are not yet supported in AC mode.");
+            }
+            if (!contingency.getShuntIdsToShift().isEmpty()) {
+                throw new NotImplementedException("Shunt Contingencies are not yet supported in AC mode.");
             }
         }
     }

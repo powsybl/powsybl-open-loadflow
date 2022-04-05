@@ -754,4 +754,40 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(100.080, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(100.080, result.getBranchFlow1FunctionReferenceValue("additionnalline_0", "l12"), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testTrivialContingencyOnGenerator() {
+        Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1", true);
+        sensiParameters.setLoadFlowParameters(new LoadFlowParameters()
+                .setDc(false)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX));
+
+        List<SensitivityFactor> factors = createFactorMatrix(Stream.of("g2").map(network::getGenerator).collect(Collectors.toList()),
+                Stream.of("l12", "l13", "l23").map(network::getBranch).collect(Collectors.toList()));
+
+        List<Contingency> contingencies = List.of(new Contingency("g6", new GeneratorContingency("g6")));
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters));
+        assertEquals("Generator Contingencies are not yet supported in AC mode.", exception.getCause().getMessage());
+    }
+
+    @Test
+    void testContingencyOnLoad() {
+        Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1", true);
+        sensiParameters.setLoadFlowParameters(new LoadFlowParameters()
+                .setDc(false)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD));
+
+        List<SensitivityFactor> factors = createFactorMatrix(Stream.of("g2").map(network::getGenerator).collect(Collectors.toList()),
+                Stream.of("l12", "l13", "l23").map(network::getBranch).collect(Collectors.toList()));
+
+        List<Contingency> contingencies = List.of(new Contingency("d5", new LoadContingency("d5")));
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters));
+        assertEquals("Load Contingencies are not yet supported in AC mode.", exception.getCause().getMessage());
+    }
 }
