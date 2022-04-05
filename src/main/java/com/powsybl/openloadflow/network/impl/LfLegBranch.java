@@ -105,6 +105,16 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
+    public BranchType getBranchType() {
+        return BranchType.TRANSFO_3_LEG;
+    }
+
+    @Override
+    public List<String> getOriginalIds() {
+        return List.of(twt.getId());
+    }
+
+    @Override
     public boolean hasPhaseControlCapability() {
         return leg.getPhaseTapChanger() != null;
     }

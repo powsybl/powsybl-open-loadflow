@@ -141,6 +141,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
+    public List<String> getOriginalIds() {
+        return getIds();
+    }
+
+    @Override
     public double getB() {
         return b;
     }
