@@ -110,8 +110,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                            int contingencyIndex, SensitivityValueWriter valueWriter,
                                                            Reporter reporter, boolean hasTransformerBusTargetVoltage) {
-        lfContingency.apply(lfParameters.getBalanceType());
-
         if (lfParameters.isDistributedSlack() && Math.abs(lfContingency.getActivePowerLoss()) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant());
             activePowerDistribution.run(lfNetwork, lfContingency.getActivePowerLoss());
@@ -147,12 +145,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         for (PropagatedContingency contingency : contingencies) {
             if (!contingency.getHvdcIdsToOpen().isEmpty()) {
                 throw new NotImplementedException("Contingencies on a DC line are not yet supported in AC mode.");
-            }
-            if (!contingency.getGeneratorIdsToLose().isEmpty()) {
-                throw new NotImplementedException("Generator Contingencies are not yet supported in AC mode.");
-            }
-            if (!contingency.getLoadIdsToShift().isEmpty()) {
-                throw new NotImplementedException("Load Contingencies are not yet supported in AC mode.");
             }
             if (!contingency.getShuntIdsToShift().isEmpty()) {
                 throw new NotImplementedException("Shunt Contingencies are not yet supported in AC mode.");
@@ -278,8 +270,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             NetworkState networkState = NetworkState.save(lfNetwork);
 
-            // Contingency not breaking connectivity
-            for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
+            // Contingency not breaking connectivity, or without any generation or load loss.
+            for (LfContingency lfContingency : lfContingencies.stream()
+                    .filter(lfContingency -> lfContingency.getBuses().isEmpty() && lfContingency.getGenerators().isEmpty() && lfContingency.getBusesLoadShift().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfContingency.getId());
                 contingencyFactors.forEach(lfFactor -> {
                     lfFactor.setSensitivityValuePredefinedResult(null);
@@ -292,14 +285,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             lfFactor.setSensitivityValuePredefinedResult(0d);
                             lfFactor.setFunctionPredefinedResult(0d);
                         });
+                lfContingency.apply(lfParameters.getBalanceType());
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, slackParticipationByBus, lfParameters,
                         lfParametersExt, lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
 
                 networkState.restore();
             }
 
-            // Contingency breaking connectivity
-            for (LfContingency lfContingency : lfContingencies.stream().filter(lfContingency -> !lfContingency.getBuses().isEmpty()).collect(Collectors.toSet())) {
+            // Contingency breaking connectivity, or with generation or load loss.
+            for (LfContingency lfContingency : lfContingencies.stream()
+                    .filter(lfContingency -> !lfContingency.getBuses().isEmpty() || !lfContingency.getGenerators().isEmpty() || !lfContingency.getBusesLoadShift().isEmpty()).collect(Collectors.toSet())) {
                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfContingency.getId());
                 contingencyFactors.forEach(lfFactor -> {
                     lfFactor.setSensitivityValuePredefinedResult(null);
@@ -311,12 +306,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 slackConnectedComponent.removeAll(nonConnectedBuses);
                 setPredefinedResults(contingencyFactors, slackConnectedComponent, propagatedContingencyMap.get(lfContingency.getId())); // check if factors are still in the main component
 
-                rescaleGlsk(factorGroups, nonConnectedBuses);
+                rescaleGlsk(factorGroups, nonConnectedBuses); // FIXME in case of load or generator contingency.
+
+                lfContingency.apply(lfParameters.getBalanceType());
 
                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                 // buses that contain elements participating to slack distribution
                 Map<LfBus, Double> slackParticipationByBusForThisConnectivity;
-
                 if (lfParameters.isDistributedSlack()) {
                     List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
                         slackConnectedComponent, lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the loadflow
