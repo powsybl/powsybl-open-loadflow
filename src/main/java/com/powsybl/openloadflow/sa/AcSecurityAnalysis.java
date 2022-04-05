@@ -141,7 +141,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
                     propagatedContingency.toLfContingency(network, connectivity, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                lfContingency.apply(loadFlowParameters);
+                                lfContingency.apply(loadFlowParameters.getBalanceType());
 
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 

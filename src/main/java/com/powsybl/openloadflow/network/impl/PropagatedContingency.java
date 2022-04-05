@@ -141,6 +141,8 @@ public class PropagatedContingency {
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new HashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
+        Set<VscConverterStation> vscsToLose = new HashSet<>();
+        Set<LccConverterStation> lccsToLose = new HashSet<>();
         Set<Load> loadsToLose = new HashSet<>();
         Set<Generator> generatorsToLose = new HashSet<>();
         Set<ShuntCompensator> shuntsToLose = new HashSet<>();
@@ -161,6 +163,32 @@ public class PropagatedContingency {
                         throw new PowsyblException("HVDC line '" + element.getId() + "' not found in the network");
                     }
                     hvdcIdsToOpen.add(element.getId());
+                    if (hvdcLine.getConverterStation1() instanceof VscConverterStation) {
+                        VscConverterStation vsc1 = (VscConverterStation) hvdcLine.getConverterStation1();
+                        if (vsc1 == null) {
+                            throw new PowsyblException("VSC '" + element.getId() + "' not found in the network");
+                        }
+                        vscsToLose.add(vsc1);
+                    } else {
+                        LccConverterStation lcc1 = (LccConverterStation) hvdcLine.getConverterStation1();
+                        if (lcc1 == null) {
+                            throw new PowsyblException("LCC '" + element.getId() + "' not found in the network");
+                        }
+                        lccsToLose.add(lcc1);
+                    }
+                    if (hvdcLine.getConverterStation2() instanceof VscConverterStation) {
+                        VscConverterStation vsc2 = (VscConverterStation) hvdcLine.getConverterStation2();
+                        if (vsc2 == null) {
+                            throw new PowsyblException("VSC '" + element.getId() + "' not found in the network");
+                        }
+                        vscsToLose.add(vsc2);
+                    } else {
+                        LccConverterStation lcc2 = (LccConverterStation) hvdcLine.getConverterStation2();
+                        if (lcc2 == null) {
+                            throw new PowsyblException("LCC '" + element.getId() + "' not found in the network");
+                        }
+                        lccsToLose.add(lcc2);
+                    }
                     break;
                 case DANGLING_LINE:
                     // dangling line check is done inside tripping
@@ -218,6 +246,14 @@ public class PropagatedContingency {
                     shuntsToLose.add((ShuntCompensator) connectable);
                     break;
 
+                case HVDC_CONVERTER_STATION:
+                    if (connectable instanceof VscConverterStation) {
+                        vscsToLose.add((VscConverterStation) connectable);
+                    } else {
+                        lccsToLose.add((LccConverterStation) connectable);
+                    }
+                    break;
+
                 case BUSBAR_SECTION:
                     // we don't care
                     break;
@@ -235,12 +271,25 @@ public class PropagatedContingency {
         for (Generator generator : generatorsToLose) {
             generatorIdsToLose.add(generator.getId());
         }
+        for (VscConverterStation vsc : vscsToLose) {
+            generatorIdsToLose.add(vsc.getId());
+        }
         for (Load load : loadsToLose) {
             Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus()
                                    : load.getTerminal().getBusView().getBus();
             if (bus != null) {
                 loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
                         .add(getLoadPowerShift(load, slackDistributionOnConformLoad));
+            }
+        }
+        for (LccConverterStation lcc : lccsToLose) {
+            Bus bus = withBreakers ? lcc.getTerminal().getBusBreakerView().getBus()
+                    : lcc.getTerminal().getBusView().getBus();
+            if (bus != null) {
+                // No variable active part for a LCC.
+                loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
+                        .add(new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
+                                HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB));
             }
         }
         for (ShuntCompensator shunt : shuntsToLose) {
@@ -293,10 +342,6 @@ public class PropagatedContingency {
 
         // reset connectivity to discard triggered branches
         connectivity.reset();
-
-        if (!hvdcIdsToOpen.isEmpty()) {
-            throw new UnsupportedOperationException("HVDC line contingency not supported");
-        }
 
         Map<LfShunt, Double> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {

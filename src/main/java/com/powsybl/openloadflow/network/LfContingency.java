@@ -14,9 +14,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -36,6 +34,10 @@ public class LfContingency {
     private final Map<LfBus, PowerShift> busesLoadShift;
 
     private final Set<LfGenerator> generators;
+
+    private final Set<LfGenerator> participatingGeneratorsToBeRemoved = new HashSet<>();
+
+    private List<BusState> busStates = new ArrayList<>();
 
     private double activePowerLoss = 0;
 
@@ -91,12 +93,20 @@ public class LfContingency {
         return activePowerLoss;
     }
 
-    public void apply(LoadFlowParameters parameters) {
-        for (LfBranch branch : branches) {
-            branch.setDisabled(true);
-        }
-        for (LfBus bus : buses) {
-            bus.setDisabled(true);
+    public void apply(LoadFlowParameters.BalanceType balanceType) {
+        apply(balanceType, false);
+    }
+
+    public void apply(LoadFlowParameters.BalanceType balanceType, boolean withBusStates) {
+        if (!withBusStates) {
+            // for DC sensitivity analysis, we don't rely on the disabled status of branches and buses.
+            // FIXME?
+            for (LfBranch branch : branches) {
+                branch.setDisabled(true);
+            }
+            for (LfBus bus : buses) {
+                bus.setDisabled(true);
+            }
         }
         for (var e : shuntsShift.entrySet()) {
             LfShunt shunt = e.getKey();
@@ -104,17 +114,24 @@ public class LfContingency {
         }
         for (var e : busesLoadShift.entrySet()) {
             LfBus bus = e.getKey();
+            if (withBusStates) {
+                busStates.add(BusState.save(bus));
+            }
             PowerShift shift = e.getValue();
-            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters.getBalanceType(), shift.getActive(), shift.getVariableActive()));
+            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, balanceType, shift.getActive(), shift.getVariableActive()));
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
             bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
         }
         for (LfGenerator generator : generators) {
-            generator.setTargetP(0);
             LfBus bus = generator.getBus();
+            if (withBusStates) {
+                busStates.add(BusState.save(bus));
+            }
+            generator.setTargetP(0);
             generator.setParticipating(false);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                participatingGeneratorsToBeRemoved.add(generator);
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
@@ -129,6 +146,14 @@ public class LfContingency {
             factor = initialVariableActivePower / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
         }
         return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
+    }
+
+    public Set<LfGenerator> getParticipatingGeneratorsToBeRemoved() {
+        return participatingGeneratorsToBeRemoved;
+    }
+
+    public List<BusState> getBusStates() {
+        return busStates;
     }
 
     public void writeJson(Writer writer) {
