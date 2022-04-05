@@ -381,4 +381,11 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertReactivePowerEquals(0, network.getShuntCompensator("SC").getTerminal());
         assertReactivePowerEquals(0, network.getShuntCompensator("SC2").getTerminal());
     }
+
+    @Test
+    void testEmptyNetwork() {
+        Network network = Network.create("empty", "");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.getComponentResults().isEmpty());
+    }
 }
