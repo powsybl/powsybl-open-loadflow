@@ -11,6 +11,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
@@ -195,7 +196,7 @@ public class DcLoadFlowEngine {
         try {
             j.solveTransposed(targetVector);
             status = LoadFlowResult.ComponentResult.Status.CONVERGED;
-        } catch (Exception e) {
+        } catch (MatrixException e) {
             status = LoadFlowResult.ComponentResult.Status.FAILED;
             reporter.report(Report.builder()
                 .withKey("loadFlowFailure")
