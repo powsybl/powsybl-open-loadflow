@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
@@ -57,7 +58,7 @@ public class DistributedSlackOuterLoop implements OuterLoop {
                     .withDefaultMessage("Iteration ${iteration}: failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
                     .withValue("iteration", context.getIteration())
                     .withTypedValue("mismatch", result.getRemainingMismatch() * PerUnit.SB, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                    .withSeverity(OpenLoadFlowReportConstants.ERROR_SEVERITY)
+                    .withSeverity(TypedValue.ERROR_SEVERITY)
                     .build());
 
                 if (throwsExceptionInCaseOfFailure) {
@@ -75,7 +76,7 @@ public class DistributedSlackOuterLoop implements OuterLoop {
                     .withValue("iteration", context.getIteration())
                     .withTypedValue("initialMismatch", slackBusActivePowerMismatch * PerUnit.SB, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                     .withValue("nbIterations", result.getIteration())
-                    .withSeverity(OpenLoadFlowReportConstants.INFO_SEVERITY)
+                    .withSeverity(TypedValue.INFO_SEVERITY)
                     .build());
                 LOGGER.info("Slack bus active power ({} MW) distributed in {} iterations",
                         slackBusActivePowerMismatch * PerUnit.SB, result.getIteration());
@@ -88,7 +89,7 @@ public class DistributedSlackOuterLoop implements OuterLoop {
             .withKey("NoMismatchDistribution")
             .withDefaultMessage("Iteration ${iteration}: already balanced")
             .withValue("iteration", context.getIteration())
-            .withSeverity(OpenLoadFlowReportConstants.INFO_SEVERITY)
+            .withSeverity(TypedValue.INFO_SEVERITY)
             .build());
         LOGGER.debug("Already balanced");
 

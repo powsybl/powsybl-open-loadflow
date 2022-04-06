@@ -113,6 +113,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(sensitivityAnalysisParameters);
         Objects.requireNonNull(factorReader);
         Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(computationManager);
         Objects.requireNonNull(reporter);
 
         return CompletableFuture.runAsync(() -> {

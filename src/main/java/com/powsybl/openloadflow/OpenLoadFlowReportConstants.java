@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.commons.reporter.TypedValue;
-
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
@@ -18,7 +16,4 @@ public final class OpenLoadFlowReportConstants {
 
     public static final String MISMATCH_TYPED_VALUE = "Mismatch";
 
-    public static final TypedValue INFO_SEVERITY = new TypedValue("OLF_INFO", TypedValue.INFO_LOGLEVEL);
-    public static final TypedValue WARN_SEVERITY = new TypedValue("OLF_WARN", TypedValue.WARN_LOGLEVEL);
-    public static final TypedValue ERROR_SEVERITY = new TypedValue("OLF_ERROR", TypedValue.ERROR_LOGLEVEL);
 }

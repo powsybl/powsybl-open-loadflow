@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
@@ -273,7 +274,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         network.getGenerator("GEN").getTerminal().disconnect();
 
         ReporterModel reporter = new ReporterModel("unitTest", "");
-        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, null, parameters, reporter);
+        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reporter);
         assertFalse(result.isOk());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
@@ -379,5 +380,12 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertTrue(result.isOk());
         assertReactivePowerEquals(0, network.getShuntCompensator("SC").getTerminal());
         assertReactivePowerEquals(0, network.getShuntCompensator("SC2").getTerminal());
+    }
+
+    @Test
+    void testEmptyNetwork() {
+        Network network = Network.create("empty", "");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.getComponentResults().isEmpty());
     }
 }
