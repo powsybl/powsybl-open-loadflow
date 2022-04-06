@@ -19,15 +19,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class OriginalIdsTest {
 
     @Test
-    void test() {
+    void testWith3wtNetwork() {
         var network = T3wtFactory.create();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
         assertEquals(List.of("3wt"), lfNetwork.getBranchById("3wt_leg_1").getOriginalIds());
         assertEquals(LfBranch.BranchType.TRANSFO_3_LEG_1, lfNetwork.getBranchById("3wt_leg_1").getBranchType());
         assertEquals(LfBranch.BranchType.TRANSFO_3_LEG_2, lfNetwork.getBranchById("3wt_leg_2").getBranchType());
         assertEquals(LfBranch.BranchType.TRANSFO_3_LEG_3, lfNetwork.getBranchById("3wt_leg_3").getBranchType());
+        assertEquals(List.of("3wt"), lfNetwork.getBusById("3wt_BUS0").getOriginalIds());
         assertEquals(List.of("vl1_0"), lfNetwork.getBusById("vl1_0").getOriginalIds());
         assertEquals("g1", lfNetwork.getGeneratorById("g1").getOriginalId());
         assertEquals(List.of("ld2"), lfNetwork.getBusById("vl2_0").getLoads().getOriginalIds());
+    }
+
+    @Test
+    void testWithBoundaryNetwork() {
+        var network = BoundaryFactory.create();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        assertEquals(List.of("l1"), lfNetwork.getBranchById("l1").getOriginalIds());
+        assertEquals(LfBranch.BranchType.LINE, lfNetwork.getBranchById("l1").getBranchType());
+        assertEquals(List.of("dl1"), lfNetwork.getBranchById("dl1").getOriginalIds());
+        assertEquals(LfBranch.BranchType.DANGLING_LINE, lfNetwork.getBranchById("dl1").getBranchType());
+        assertEquals(List.of("dl1"), lfNetwork.getBusById("dl1_BUS").getOriginalIds());
     }
 }
