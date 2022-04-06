@@ -180,19 +180,21 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
             V vertex2 = cutEdge.getRight();
             graph.removeEdge(vertex1, vertex2);
 
-            GraphProcess processA = new GraphProcessA(vertex1, vertex2);
-            GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
-            while (!processA.isHalted() && !processB.isHalted()) {
-                processA.next();
-                if (!processA.isHalted()) {
-                    processB.next();
+            if (graph.getAllEdges(vertex1, vertex2).isEmpty()) {
+                GraphProcess processA = new GraphProcessA(vertex1, vertex2);
+                GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
+                while (!processA.isHalted() && !processB.isHalted()) {
+                    processA.next();
+                    if (!processA.isHalted()) {
+                        processB.next();
+                    }
                 }
-            }
 
-            if (processA.isHalted()) {
-                processB.undoChanges();
-            } else { // processB halted
-                allSavedChangedLevels.add(processB.savedChangedLevels);
+                if (processA.isHalted()) {
+                    processB.undoChanges();
+                } else { // processB halted
+                    allSavedChangedLevels.add(processB.savedChangedLevels);
+                }
             }
         }
         unprocessedCutEdges.clear();
@@ -332,7 +334,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V> implements GraphDecreme
 
                 nLowLevel.upperLevel.remove(vertexBigLevel);
                 nBigLevel.lowerLevel.remove(vertexLowLevel);
-                if (nBigLevel.lowerLevel.isEmpty() && graph.getAllEdges(vertex1, vertex2).isEmpty()) {
+                if (nBigLevel.lowerLevel.isEmpty()) {
                     this.verticesToUpdate.add(vertexBigLevel);
                 }
             }
