@@ -918,14 +918,15 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        parameters.setHvdcAcEmulation(true);
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
-                .setHvdcAcEmulation(true);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false);
+        sensiParameters.setLoadFlowParameters(parameters);
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l25", "d2"));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-        assertEquals(0.499, result.getBranchFlow1SensitivityValue("d2", "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.442, result.getBranchFlow1SensitivityValue("d2", "l25"), LoadFlowAssert.DELTA_POWER);
     }
 }
