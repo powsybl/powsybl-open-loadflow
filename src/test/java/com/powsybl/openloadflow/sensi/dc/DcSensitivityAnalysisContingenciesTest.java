@@ -1070,7 +1070,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         Map<String, Double> loadFlowDiff = network.getLineStream()
                 .map(Identifiable::getId)
-                .collect(Collectors.toMap(Function.identity(), line -> (network1.getLine(line).getTerminal1().getP() - network2.getLine(line).getTerminal1().getP()) / SENSI_CHANGE));
+                .collect(Collectors.toMap(Function.identity(), line -> (network2.getLine(line).getTerminal1().getP() - network1.getLine(line).getTerminal1().getP()) / SENSI_CHANGE));
 
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
                                                                          SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
