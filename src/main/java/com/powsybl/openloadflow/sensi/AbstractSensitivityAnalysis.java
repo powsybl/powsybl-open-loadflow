@@ -557,6 +557,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             return mainComponentWeights.size() != variableElements.size();
         }
+
+        void restoreWeights() {
+            mainComponentWeights = variableElements;
+        }
     }
 
     protected List<SensitivityFactorGroup<V, E>> createFactorGroups(List<LfSensitivityFactor<V, E>> factors) {

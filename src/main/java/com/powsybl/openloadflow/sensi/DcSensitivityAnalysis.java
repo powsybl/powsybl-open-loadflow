@@ -710,6 +710,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             if (participatingElementsChanged) {
                 setBaseCaseSensitivityValues(factorGroups, factorStates);
             }
+            if (rhsChanged) {
+                for (SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup : factorGroups) {
+                    if (factorGroup instanceof MultiVariablesFactorGroup) {
+                        ((MultiVariablesFactorGroup<DcVariableType, DcEquationType>) factorGroup).restoreWeights();
+                    }
+                }
+            }
         }
     }
 
@@ -982,6 +989,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 if (rhsChanged) {
                     setBaseCaseSensitivityValues(factorGroups, factorsStates); // we modified the rhs, we need to restore previous state
+                    for (SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup : factorGroups) {
+                        if (factorGroup instanceof MultiVariablesFactorGroup) {
+                            ((MultiVariablesFactorGroup<DcVariableType, DcEquationType>) factorGroup).restoreWeights();
+                        }
+                    }
                 }
             }
         }
