@@ -856,7 +856,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             // connectivity analysis by contingency
             // we have to compute sensitivities and reference functions in a different way depending on either or not the contingency breaks connectivity
-            // so, we will index contingencies by a list of branch that may breaks connectivity
+            // so, we will index contingencies by a list of branch that may break connectivity
             // for example, if in the network, loosing line L1 breaks connectivity, and loosing L2 and L3 together breaks connectivity,
             // the index would be: {L1, L2, L3}
             // a contingency involving a phase tap changer loss has to be treated separately
@@ -907,7 +907,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 // we need to reset predefined values for factor that need to be calculated for this set of contingency
                 // predefined may have be set by a previous set of contingency with loss of connectivity
-                // note that if a factor changes its status after contingency, we rely on predefined results only and we
+                // note that if a factor changes its status after contingency, we rely on predefined results only, and we
                 // will output a factor that becomes ZERO or SKIP through its predefined results.
                 lfFactorsForContingencies.forEach(factor -> factor.setSensitivityValuePredefinedResult(null));
                 lfFactorsForContingencies.forEach(factor -> factor.setFunctionPredefinedResult(null));
@@ -916,9 +916,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
-                // null and unused if slack is not distributed
+                // null and unused if slack bus is not distributed
                 List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
-                boolean rhsChanged = false; // true if there if the disabled buses changes the slack distribution, or the GLSK
+                boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
                 DenseMatrix factorStateForThisConnectivity = factorsStates;
                 if (lfParameters.isDistributedSlack()) {
                     rhsChanged = participatingElements.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));
