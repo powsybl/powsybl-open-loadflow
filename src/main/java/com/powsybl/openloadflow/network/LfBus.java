@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.network.impl.LfLoads;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BusResults;
 
