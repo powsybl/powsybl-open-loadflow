@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -55,7 +56,7 @@ public class NewtonRaphson {
             // solve f(x) = j * dx
             try {
                 j.solveTransposed(fx);
-            } catch (Exception e) {
+            } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
                 return NewtonRaphsonStatus.SOLVER_FAILED;
             }
