@@ -625,7 +625,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 PowerShift shift = e.getValue();
                 double p0 = shift.getActive();
                 lfBus.setLoadTargetP(lfBus.getLoadTargetP() - LfContingency.getUpdatedLoadP0(lfBus, lfParameters.getBalanceType(), p0, shift.getVariableActive()));
-                lfBus.getLfLoads().setAbsVariableLoadTargetP(lfBus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+                lfBus.getLoads().setAbsVariableLoadTargetP(lfBus.getLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
             }
         }
     }

@@ -397,7 +397,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public LfLoads getLfLoads() {
+    public LfLoads getLoads() {
         return lfLoads;
     }
 
