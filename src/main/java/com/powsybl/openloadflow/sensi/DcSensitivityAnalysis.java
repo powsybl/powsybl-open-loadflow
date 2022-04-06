@@ -697,6 +697,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 } else { // slack distribution on loads
                     newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
                 }
+            } else {
+                newParticipatingElements = participatingElements;
             }
             if (participatingElementsChanged || rhsChanged) {
                 newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
