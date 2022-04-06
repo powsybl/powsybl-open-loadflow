@@ -391,8 +391,8 @@ class OpenSecurityAnalysisTest {
         Network network = EurostagTutorialExample1Factory.create();
         network.getGenerator("GEN").getTerminal().disconnect();
 
-        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network));
-        assertEquals("Largest network is invalid", exception.getCause().getMessage());
+        SecurityAnalysisResult result = runSecurityAnalysis(network);
+        assertFalse(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
     }
 
     @Test
@@ -1309,5 +1309,21 @@ class OpenSecurityAnalysisTest {
         // post-contingency tests
         PostContingencyResult g1ContingencyResult = getPostContingencyResult(result, "g1");
         assertEquals(-0.696, g1ContingencyResult.getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testEmptyNetwork() {
+        Network network = Network.create("empty", "");
+        SecurityAnalysisResult result = runSecurityAnalysis(network);
+        assertFalse(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+    }
+
+    @Test
+    void testDivergenceStatus() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getLine("NHV1_NHV2_1").setR(100).setX(-999);
+        network.getLine("NHV1_NHV2_2").setR(100).setX(-999);
+        SecurityAnalysisResult result = runSecurityAnalysis(network);
+        assertFalse(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
     }
 }
