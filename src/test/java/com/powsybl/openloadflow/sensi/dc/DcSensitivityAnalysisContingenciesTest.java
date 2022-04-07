@@ -1898,6 +1898,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testGLSK() {
         Network network = FourBusNetworkFactory.create();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
 
@@ -1909,7 +1910,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
 
-        List<Contingency> contingencies = List.of(new Contingency("g1", new GeneratorContingency("g1")));
+        List<Contingency> contingencies = List.of(new Contingency("g1", new GeneratorContingency("g1")), new Contingency("g4", new GeneratorContingency("g4")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
 
@@ -1932,6 +1933,12 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l34"), result.getBranchFlow1FunctionReferenceValue("g1", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l34"), result.getBranchFlow1FunctionReferenceValue("g1", "l34"), LoadFlowAssert.DELTA_POWER);
         assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l13"), result.getBranchFlow1FunctionReferenceValue("g1", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        network.getGenerator("g1").getTerminal().connect();
+        network.getGenerator("g4").getTerminal().disconnect();
+        SensitivityAnalysisResult result3 = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
+
+        assertEquals(result3.getBranchFlow1SensitivityValue("glsk", "l12"), result.getBranchFlow1SensitivityValue("g4", "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
