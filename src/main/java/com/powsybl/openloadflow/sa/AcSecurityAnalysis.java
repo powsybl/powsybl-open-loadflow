@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
@@ -32,10 +31,7 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
-import com.powsybl.security.results.BranchResult;
-import com.powsybl.security.results.BusResults;
-import com.powsybl.security.results.PostContingencyResult;
-import com.powsybl.security.results.ThreeWindingsTransformerResult;
+import com.powsybl.security.results.*;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -46,6 +42,14 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     protected AcSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
                                  MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory, List<StateMonitor> stateMonitors) {
         super(network, detector, filter, matrixFactory, connectivityFactory, stateMonitors);
+    }
+
+    private static SecurityAnalysisResult createNoResult() {
+        return new SecurityAnalysisResult(new PreContingencyResult(new LimitViolationsResult(false, Collections.emptyList()),
+                                                                   Collections.emptyList(),
+                                                                   Collections.emptyList(),
+                                                                   Collections.emptyList()),
+                                          Collections.emptyList());
     }
 
     @Override
@@ -74,14 +78,17 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());
 
         // run simulation on largest network
+        SecurityAnalysisResult result;
         if (lfNetworks.isEmpty()) {
-            throw new PowsyblException("Empty network list");
+            result = createNoResult();
+        } else {
+            LfNetwork largestNetwork = lfNetworks.get(0);
+            if (largestNetwork.isValid()) {
+                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters);
+            } else {
+                result = createNoResult();
+            }
         }
-        LfNetwork largestNetwork = lfNetworks.get(0);
-        if (!largestNetwork.isValid()) {
-            throw new PowsyblException("Largest network is invalid");
-        }
-        SecurityAnalysisResult result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters);
 
         stopwatch.stop();
         LOGGER.info("Security analysis {} in {} ms", Thread.currentThread().isInterrupted() ? "cancelled" : "done",
