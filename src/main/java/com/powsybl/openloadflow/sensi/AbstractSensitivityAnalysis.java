@@ -549,7 +549,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         boolean updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
-            // FIXME: in case of a load or generator contingency, without any bus loss, the weights are not recomputed.
             mainComponentWeights = variableElements.entrySet().stream()
                     .filter(entry -> !nonConnectedBuses.contains((LfBus) entry.getKey()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
