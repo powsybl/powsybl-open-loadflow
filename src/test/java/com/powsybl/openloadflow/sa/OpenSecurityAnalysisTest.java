@@ -1298,10 +1298,10 @@ class OpenSecurityAnalysisTest {
                 .add();
 
         LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
                 .setHvdcAcEmulation(true);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
 
         List<Contingency> contingencies = new ArrayList<>();
         contingencies.add(Contingency.line("l12"));
