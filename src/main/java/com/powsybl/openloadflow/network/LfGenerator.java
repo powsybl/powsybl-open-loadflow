@@ -25,8 +25,6 @@ public interface LfGenerator {
 
     void setBus(LfBus bus);
 
-    boolean hasVoltageControl();
-
     boolean hasRemoteReactivePowerControl();
 
     GeneratorControlType getGeneratorControlType();
