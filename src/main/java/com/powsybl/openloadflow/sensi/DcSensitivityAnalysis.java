@@ -587,8 +587,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToShift().isEmpty());
             boolean rhsChanged = false;
             if (hasMultiVariables) {
-                Set<LfBus> affectedBuses = lfContingency.get().getAffectedBuses();
-                rhsChanged = rescaleGlsk(factorGroups, affectedBuses);
+                if (lfContingency.isPresent()) {
+                    Set<LfBus> affectedBuses = lfContingency.get().getAffectedBuses();
+                    rhsChanged = rescaleGlsk(factorGroups, affectedBuses);
+                }
             }
             if (participatingElementsChanged) {
                 if (isDistributedSlackOnGenerators(lfParameters)) {
