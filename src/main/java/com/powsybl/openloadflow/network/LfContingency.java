@@ -138,6 +138,24 @@ public class LfContingency {
         return participatingGeneratorsToBeRemoved;
     }
 
+    public Set<LfBus> getAffectedBuses() {
+        // FIXME: should be renamed.
+        Set<LfBus> affectedBuses = new HashSet<>();
+        for (var e : busesLoadShift.entrySet()) {
+            LfBus bus = e.getKey();
+            if (bus != null) {
+                affectedBuses.add(bus);
+            }
+        }
+        for (LfGenerator generator : generators) {
+            LfBus bus = generator.getBus();
+            if (bus != null) {
+                affectedBuses.add(bus);
+            }
+        }
+        return affectedBuses;
+    }
+
     public void writeJson(Writer writer) {
         Objects.requireNonNull(writer);
         try (JsonGenerator jsonGenerator = new JsonFactory()
