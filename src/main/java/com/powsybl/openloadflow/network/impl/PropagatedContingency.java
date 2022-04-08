@@ -191,6 +191,13 @@ public class PropagatedContingency {
                     }
                     shuntsToLose.add(shuntCompensator);
                     break;
+                case SWITCH:
+                    Switch aSwitch = network.getSwitch(element.getId());
+                    if (aSwitch == null) {
+                        throw new PowsyblException("Switch '" + element.getId() + "' not found in the network");
+                    }
+                    switchesToOpen.add(aSwitch);
+                    break;
                 default:
                     throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
             }
