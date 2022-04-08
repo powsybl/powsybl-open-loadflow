@@ -150,12 +150,12 @@ public class LfNetwork {
         bus.getShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getControllerShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
     }

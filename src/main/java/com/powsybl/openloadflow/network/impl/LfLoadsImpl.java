@@ -6,17 +6,20 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
+import com.powsybl.openloadflow.network.LfLoads;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class LfLoads {
+public class LfLoadsImpl implements LfLoads {
 
     private final List<Load> loads = new ArrayList<>();
 
@@ -28,16 +31,23 @@ public class LfLoads {
 
     private boolean isInitialized;
 
-    public void add(Load load, boolean distributedOnConformLoad) {
+    @Override
+    public List<String> getOriginalIds() {
+        return loads.stream().map(Identifiable::getId).collect(Collectors.toList());
+    }
+
+    void add(Load load, boolean distributedOnConformLoad) {
         loads.add(load);
         this.distributedOnConformLoad = distributedOnConformLoad; // TODO: put in constructor instead
     }
 
+    @Override
     public double getAbsVariableLoadTargetP() {
         init();
         return absVariableLoadTargetP;
     }
 
+    @Override
     public void setAbsVariableLoadTargetP(double absVariableLoadTargetP) {
         this.absVariableLoadTargetP = absVariableLoadTargetP;
     }
@@ -69,11 +79,12 @@ public class LfLoads {
         isInitialized = true;
     }
 
+    @Override
     public double getLoadCount() {
         return loads.size();
     }
 
-    public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
+    void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
         init();
         for (int i = 0; i < loads.size(); i++) {
             Load load = loads.get(i);
@@ -84,6 +95,7 @@ public class LfLoads {
         }
     }
 
+    @Override
     public double getLoadTargetQ(double diffLoadTargetP) {
         init();
         double newLoadTargetQ = 0;

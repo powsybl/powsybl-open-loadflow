@@ -50,6 +50,11 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
+    public BranchType getBranchType() {
+        return BranchType.DANGLING_LINE;
+    }
+
+    @Override
     public boolean hasPhaseControlCapability() {
         return false;
     }

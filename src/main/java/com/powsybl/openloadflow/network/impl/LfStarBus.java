@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -27,6 +29,11 @@ public class LfStarBus extends AbstractLfBus {
     @Override
     public String getId() {
         return t3wt.getId() + "_BUS0";
+    }
+
+    @Override
+    public List<String> getOriginalIds() {
+        return List.of(t3wt.getId());
     }
 
     @Override

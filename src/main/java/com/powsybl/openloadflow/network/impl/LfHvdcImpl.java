@@ -18,33 +18,44 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public final class LfHvdcImpl extends AbstractElement implements LfHvdc {
+public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
-    private String id;
+    private final String id;
 
-    private LfBus bus1;
+    private final LfBus bus1;
 
-    private LfBus bus2;
+    private final LfBus bus2;
 
     private Evaluable p1 = NAN;
 
     private Evaluable p2 = NAN;
 
-    private double droop;
+    private final double droop;
 
-    private double p0;
+    private final double p0;
 
     private LfVscConverterStationImpl vsc1;
 
     private LfVscConverterStationImpl vsc2;
 
-    public LfHvdcImpl(HvdcAngleDroopActivePowerControl control, LfBus bus1, LfBus bus2, LfNetwork network, String hvdcId) {
+    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcAngleDroopActivePowerControl control) {
         super(network);
-        this.id = hvdcId;
+        this.id = Objects.requireNonNull(id);
         this.bus1 = bus1;
         this.bus2 = bus2;
+        Objects.requireNonNull(control);
         droop = control.getDroop();
         p0 = control.getP0();
+    }
+
+    @Override
+    public ElementType getType() {
+        return ElementType.HVDC;
+    }
+
+    @Override
+    public String getId() {
+        return id;
     }
 
     @Override
@@ -107,16 +118,6 @@ public final class LfHvdcImpl extends AbstractElement implements LfHvdc {
     public void setConverterStation2(LfVscConverterStationImpl converterStation2) {
         this.vsc2 = converterStation2;
         converterStation2.setTargetP(0);
-    }
-
-    @Override
-    public ElementType getType() {
-        return ElementType.HVDC;
-    }
-
-    @Override
-    public String getId() {
-        return id;
     }
 
     @Override

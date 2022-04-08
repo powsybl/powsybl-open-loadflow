@@ -1894,4 +1894,127 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("LOAD_3", "T2wT"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("T2wT"), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testGLSK() {
+        Network network = FourBusNetworkFactory.create();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+
+        List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("d2", 30f),
+                new WeightedSensitivityVariable("g2", 10f),
+                new WeightedSensitivityVariable("d3", 50f),
+                new WeightedSensitivityVariable("g1", 10f));
+        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
+
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
+
+        List<Contingency> contingencies = List.of(new Contingency("g1", new GeneratorContingency("g1")), new Contingency("g4", new GeneratorContingency("g4")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
+
+        network.getGenerator("g1").getTerminal().disconnect();
+        List<WeightedSensitivityVariable> variables2 = List.of(new WeightedSensitivityVariable("d2", 30f),
+                new WeightedSensitivityVariable("g2", 10f),
+                new WeightedSensitivityVariable("d3", 50f));
+        List<SensitivityVariableSet> variableSets2 = Collections.singletonList(new SensitivityVariableSet("glsk", variables2));
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), variableSets2, sensiParameters);
+
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l14"), result.getBranchFlow1SensitivityValue("g1", "glsk", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l12"), result.getBranchFlow1SensitivityValue("g1", "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l23"), result.getBranchFlow1SensitivityValue("g1", "glsk", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l34"), result.getBranchFlow1SensitivityValue("g1", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l34"), result.getBranchFlow1SensitivityValue("g1", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l13"), result.getBranchFlow1SensitivityValue("g1", "glsk", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l14"), result.getBranchFlow1FunctionReferenceValue("g1", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l12"), result.getBranchFlow1FunctionReferenceValue("g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l23"), result.getBranchFlow1FunctionReferenceValue("g1", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l34"), result.getBranchFlow1FunctionReferenceValue("g1", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l34"), result.getBranchFlow1FunctionReferenceValue("g1", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l13"), result.getBranchFlow1FunctionReferenceValue("g1", "l13"), LoadFlowAssert.DELTA_POWER);
+
+        network.getGenerator("g1").getTerminal().connect();
+        network.getGenerator("g4").getTerminal().disconnect();
+        SensitivityAnalysisResult result3 = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
+
+        assertEquals(result3.getBranchFlow1SensitivityValue("glsk", "l12"), result.getBranchFlow1SensitivityValue("g4", "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGLSK2() {
+        Network network = FourBusNetworkFactory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("d2", 30f),
+                new WeightedSensitivityVariable("g2", 10f),
+                new WeightedSensitivityVariable("d3", 50f),
+                new WeightedSensitivityVariable("g1", 10f));
+        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
+
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
+
+        List<Contingency> contingencies = List.of(new Contingency("d3", new LoadContingency("d3")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
+
+        network.getLoad("d3").getTerminal().disconnect();
+        List<WeightedSensitivityVariable> variables2 = List.of(new WeightedSensitivityVariable("d2", 30f),
+                new WeightedSensitivityVariable("g2", 10f),
+                new WeightedSensitivityVariable("g1", 10f));
+        List<SensitivityVariableSet> variableSets2 = Collections.singletonList(new SensitivityVariableSet("glsk", variables2));
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), variableSets2, sensiParameters);
+
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l14"), result.getBranchFlow1SensitivityValue("d3", "glsk", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l12"), result.getBranchFlow1SensitivityValue("d3", "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l23"), result.getBranchFlow1SensitivityValue("d3", "glsk", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l34"), result.getBranchFlow1SensitivityValue("d3", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l34"), result.getBranchFlow1SensitivityValue("d3", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("glsk", "l13"), result.getBranchFlow1SensitivityValue("d3", "glsk", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l14"), result.getBranchFlow1FunctionReferenceValue("d3", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l12"), result.getBranchFlow1FunctionReferenceValue("d3", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l23"), result.getBranchFlow1FunctionReferenceValue("d3", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l34"), result.getBranchFlow1FunctionReferenceValue("d3", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l34"), result.getBranchFlow1FunctionReferenceValue("d3", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l13"), result.getBranchFlow1FunctionReferenceValue("d3", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGLSK3() {
+        // FIXME
+        // In case of a contingency that involves a generator or a load. The GLSK should contains
+        // this contingency element and an other one connected to the same bus.
+        Network network = FourBusNetworkFactory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("d2", 30f),
+                new WeightedSensitivityVariable("g2", 10f),
+                new WeightedSensitivityVariable("d3", 50f),
+                new WeightedSensitivityVariable("g1", 10f));
+        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
+
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
+
+        List<Contingency> contingencies = List.of(new Contingency("d2", new LoadContingency("d2")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
+
+        network.getLoad("d2").getTerminal().disconnect();
+        List<WeightedSensitivityVariable> variables2 = List.of(new WeightedSensitivityVariable("g2", 10f),
+                new WeightedSensitivityVariable("d3", 50f),
+                new WeightedSensitivityVariable("g1", 10f));
+        List<SensitivityVariableSet> variableSets2 = Collections.singletonList(new SensitivityVariableSet("glsk", variables2));
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), variableSets2, sensiParameters);
+
+        assertNotEquals(result2.getBranchFlow1SensitivityValue("glsk", "l14"), result.getBranchFlow1SensitivityValue("d2", "glsk", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertNotEquals(result2.getBranchFlow1SensitivityValue("glsk", "l12"), result.getBranchFlow1SensitivityValue("d2", "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertNotEquals(result2.getBranchFlow1SensitivityValue("glsk", "l23"), result.getBranchFlow1SensitivityValue("d2", "glsk", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertNotEquals(result2.getBranchFlow1SensitivityValue("glsk", "l34"), result.getBranchFlow1SensitivityValue("d2", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertNotEquals(result2.getBranchFlow1SensitivityValue("glsk", "l34"), result.getBranchFlow1SensitivityValue("d2", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertNotEquals(result2.getBranchFlow1SensitivityValue("glsk", "l13"), result.getBranchFlow1SensitivityValue("d2", "glsk", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
 }
