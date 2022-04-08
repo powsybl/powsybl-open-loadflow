@@ -123,7 +123,7 @@ public class LfContingency {
             }
         }
         for (LfBus bus : generatorBuses) {
-            if (bus.getGenerators().stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).findAny().isEmpty()) {
+            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
                 bus.setVoltageControlEnabled(false);
             }
         }
