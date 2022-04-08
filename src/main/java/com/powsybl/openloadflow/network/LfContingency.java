@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -109,14 +110,21 @@ public class LfContingency {
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
             bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
         }
+        Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : generators) {
             generator.setTargetP(0);
             LfBus bus = generator.getBus();
+            generatorBuses.add(bus);
             generator.setParticipating(false);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
+            }
+        }
+        for (LfBus bus : generatorBuses) {
+            if (bus.getGenerators().stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).findAny().isEmpty()) {
+                bus.setVoltageControlEnabled(false);
             }
         }
     }

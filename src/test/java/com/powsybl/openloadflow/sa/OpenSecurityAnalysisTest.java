@@ -131,6 +131,12 @@ class OpenSecurityAnalysisTest {
         return List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
     }
 
+    private static List<StateMonitor> createNetworkMonitors(Network network) {
+        Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
+        Set<String> allVoltageLevelIds = network.getVoltageLevelStream().map(Identifiable::getId).collect(Collectors.toSet());
+        return List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, allVoltageLevelIds, Collections.emptySet()));
+    }
+
     private static List<Contingency> allBranches(Network network) {
         return network.getBranchStream()
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
@@ -1119,7 +1125,7 @@ class OpenSecurityAnalysisTest {
                 new Contingency("l34", new BranchContingency("l34")),
                 new Contingency("g2", new GeneratorContingency("g2")));
 
-        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<StateMonitor> monitors = createNetworkMonitors(network);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
 
@@ -1134,12 +1140,16 @@ class OpenSecurityAnalysisTest {
         assertEquals(179.999, g1ContingencyResult.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(29.999, g1ContingencyResult.getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(50.0, g1ContingencyResult.getBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(399.855, g1ContingencyResult.getBusResult("b1").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals(400, g1ContingencyResult.getBusResult("b2").getV(), LoadFlowAssert.DELTA_V);
 
         // post-contingency tests
         PostContingencyResult g2ContingencyResult = getPostContingencyResult(result, "g2");
         assertEquals(-60.000, g2ContingencyResult.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-210.000, g2ContingencyResult.getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(50.0, g2ContingencyResult.getBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(400.0, g2ContingencyResult.getBusResult("b1").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals(399.891, g2ContingencyResult.getBusResult("b2").getV(), LoadFlowAssert.DELTA_V);
     }
 
     @Test
