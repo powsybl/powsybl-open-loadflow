@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -25,6 +26,11 @@ public abstract class AbstractElement implements LfElement {
 
     protected AbstractElement(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
+    }
+
+    @Override
+    public List<String> getOriginalIds() {
+        return List.of(getId());
     }
 
     public int getNum() {

@@ -23,6 +23,16 @@ public interface LfBranch extends LfElement {
 
     double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
 
+    enum BranchType {
+        LINE,
+        TRANSFO_2,
+        TRANSFO_3_LEG_1,
+        TRANSFO_3_LEG_2,
+        TRANSFO_3_LEG_3,
+        DANGLING_LINE,
+        SWITCH
+    }
+
     class LfLimit {
 
         private int acceptableDuration;
@@ -54,6 +64,8 @@ public interface LfBranch extends LfElement {
             this.acceptableDuration = acceptableDuration;
         }
     }
+
+    BranchType getBranchType();
 
     LfBus getBus1();
 
