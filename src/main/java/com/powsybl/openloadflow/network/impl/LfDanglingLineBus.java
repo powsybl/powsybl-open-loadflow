@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -34,6 +35,11 @@ public class LfDanglingLineBus extends AbstractLfBus {
 
     public static String getId(DanglingLine danglingLine) {
         return danglingLine.getId() + "_BUS";
+    }
+
+    @Override
+    public List<String> getOriginalIds() {
+        return List.of(danglingLine.getId());
     }
 
     @Override

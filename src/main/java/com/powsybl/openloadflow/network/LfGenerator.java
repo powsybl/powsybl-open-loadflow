@@ -19,6 +19,8 @@ public interface LfGenerator {
 
     String getId();
 
+    String getOriginalId();
+
     LfBus getBus();
 
     void setBus(LfBus bus);

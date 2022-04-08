@@ -53,6 +53,11 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         this.targetP = targetP;
     }
 
+    @Override
+    public String getOriginalId() {
+        return getId();
+    }
+
     public LfBus getBus() {
         return bus;
     }

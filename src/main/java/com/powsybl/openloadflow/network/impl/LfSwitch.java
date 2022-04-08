@@ -37,6 +37,11 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public BranchType getBranchType() {
+        return BranchType.SWITCH;
+    }
+
+    @Override
     public boolean hasPhaseControlCapability() {
         return false;
     }
