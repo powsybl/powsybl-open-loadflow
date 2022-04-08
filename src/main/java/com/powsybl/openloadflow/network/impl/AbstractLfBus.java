@@ -58,7 +58,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt controllerShunt;
 
-    protected final LfLoads lfLoads = new LfLoads();
+    protected final LfLoadsImpl lfLoads = new LfLoadsImpl();
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -396,7 +396,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public LfLoads getLfLoads() {
+    public LfLoads getLoads() {
         return lfLoads;
     }
 

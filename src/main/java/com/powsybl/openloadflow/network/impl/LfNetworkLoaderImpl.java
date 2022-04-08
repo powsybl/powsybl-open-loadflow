@@ -381,7 +381,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 if (control != null && control.isEnabled()) {
                     LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfHvdc lfHvdc = new LfHvdcImpl(control, lfBus1, lfBus2, lfNetwork, hvdcLine.getId());
+                    LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, control);
                     LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
                     LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
                     if (cs1 != null && cs2 != null) {
