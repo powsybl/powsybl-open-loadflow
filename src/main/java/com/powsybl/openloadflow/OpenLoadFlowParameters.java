@@ -61,8 +61,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
-    public static final boolean HVDC_AC_EMULATION_DEFAULT_VALUE = false;
-
     public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -93,8 +91,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME = "transformerVoltageControlMode";
 
-    public static final String HVDC_AC_EMULATION_PARAM_NAME = "hvdcAcEmulation";
-
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -109,8 +105,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MAX_ITERATION_NAME,
                                                                          NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME,
                                                                          VOLTAGE_INIT_MODE_OVERRIDE_NAME,
-                                                                         TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME,
-                                                                         HVDC_AC_EMULATION_PARAM_NAME);
+                                                                         TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -161,8 +156,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private VoltageInitModeOverride voltageInitModeOverride = VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE;
 
     private TransformerVoltageControlMode transformerVoltageControlMode = TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
-
-    private boolean hvdcAcEmulation = HVDC_AC_EMULATION_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -312,14 +305,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isHvdcAcEmulation() {
-        return hvdcAcEmulation; }
-
-    public OpenLoadFlowParameters setHvdcAcEmulation(boolean hvdcAcEmulation) {
-        this.hvdcAcEmulation = hvdcAcEmulation;
-        return this;
-    }
-
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -344,8 +329,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxIteration(config.getIntProperty(MAX_ITERATION_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
                 .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
-                .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
-                .setHvdcAcEmulation(config.getBooleanProperty(HVDC_AC_EMULATION_PARAM_NAME, HVDC_AC_EMULATION_DEFAULT_VALUE)));
+                .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -381,8 +365,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> parameters.setVoltageInitModeOverride(VoltageInitModeOverride.valueOf(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME))
                 .ifPresent(prop -> parameters.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(HVDC_AC_EMULATION_PARAM_NAME))
-                .ifPresent(prop -> parameters.setHvdcAcEmulation(Boolean.parseBoolean(prop)));
         return parameters;
     }
 
@@ -404,7 +386,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", newtonRaphsonConvEpsPerEq=" + newtonRaphsonConvEpsPerEq +
                 ", voltageInitModeOverride=" + voltageInitModeOverride +
                 ", transformerVoltageControlMode=" + transformerVoltageControlMode +
-                ", hvdcAcEmulation=" + hvdcAcEmulation +
                 ')';
     }
 
@@ -465,7 +446,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
         LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
         LOGGER.info("Shunt voltage control: {}", parameters.isShuntCompensatorVoltageControlOn());
-        LOGGER.info("Hvdc Ac emulation: {}", parametersExt.isHvdcAcEmulation());
+        LOGGER.info("Hvdc Ac emulation: {}", parameters.isHvdcAcEmulation());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
@@ -525,7 +506,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                        parameters.isDc(),
                                        parameters.isShuntCompensatorVoltageControlOn(),
                                        !parameters.isNoGeneratorReactiveLimits(),
-                                       parametersExt.isHvdcAcEmulation());
+                                       parameters.isHvdcAcEmulation());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

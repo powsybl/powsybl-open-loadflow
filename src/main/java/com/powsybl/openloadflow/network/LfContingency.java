@@ -109,15 +109,22 @@ public class LfContingency {
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
             bus.getLoads().setAbsVariableLoadTargetP(bus.getLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
         }
+        Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : generators) {
             generator.setTargetP(0);
             LfBus bus = generator.getBus();
+            generatorBuses.add(bus);
             generator.setParticipating(false);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                 participatingGeneratorsToBeRemoved.add(generator);
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
+            }
+        }
+        for (LfBus bus : generatorBuses) {
+            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                bus.setVoltageControlEnabled(false);
             }
         }
     }
