@@ -275,24 +275,20 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     lfFactor.setFunctionPredefinedResult(null);
                 });
 
-                Map<LfBus, Double> slackParticipationByBusForThisConnectivity;
+                Set<String> branchIdsToOpen = propagatedContingencyMap.get(lfContingency.getId());
+                contingencyFactors.stream()
+                        .filter(lfFactor -> branchIdsToOpen.contains(lfFactor.getFunctionElement().getId()))
+                        .forEach(lfFactor -> {
+                            lfFactor.setSensitivityValuePredefinedResult(0d);
+                            lfFactor.setFunctionPredefinedResult(0d);
+                        });
 
-                if (lfContingency.getBuses().isEmpty()) {
+                Map<LfBus, Double> slackParticipationByBusForThisConnectivity = slackParticipationByBus;
 
-                    // Contingency not breaking connectivity
-                    slackParticipationByBusForThisConnectivity = slackParticipationByBus;
-                    contingencyFactors.stream()
-                            .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
-                            .filter(lfFactor ->  lfContingency.getBranches().contains(lfFactor.getFunctionElement()))
-                            .forEach(lfFactor ->  {
-                                lfFactor.setSensitivityValuePredefinedResult(0d);
-                                lfFactor.setFunctionPredefinedResult(0d);
-                            });
+                // Contingency breaking connectivity
+                if (!lfContingency.getBuses().isEmpty()) {
 
-                } else {
-
-                    // Contingency breaking connectivity
-                    setPredefinedResults(contingencyFactors, lfContingency.getBuses(), propagatedContingencyMap.get(lfContingency.getId())); // check if factors are still in the main component
+                    setPredefinedResults(contingencyFactors, lfContingency.getBuses(), branchIdsToOpen); // check if factors are still in the main component
 
                     rescaleGlsk(factorGroups, lfContingency.getBuses());
 

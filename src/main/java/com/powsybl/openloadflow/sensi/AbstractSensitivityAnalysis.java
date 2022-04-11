@@ -611,10 +611,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> nonSlackConnectedBuses, Set<String> branchIdsToOpen) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            String functionBranchId = factor.getFunctionElement().getId();
-            if (branchIdsToOpen.contains(functionBranchId)) {
-                factor.setSensitivityValuePredefinedResult(0d);
-                factor.setFunctionPredefinedResult(0d);
+            if (branchIdsToOpen.contains(factor.getFunctionElement().getId())) {
                 continue;
             }
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
