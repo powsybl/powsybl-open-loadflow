@@ -139,9 +139,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         void setStatus(Status status);
 
-        boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent);
+        boolean isVariableConnectedToSlackComponent(Set<LfBus> nonSlackConnectedBuses);
 
-        boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent);
+        boolean isFunctionConnectedToSlackComponent(Set<LfBus> nonSlackConnectedBuses);
 
         SensitivityFactorGroup<V, E> getGroup();
 
@@ -296,11 +296,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             this.status = status;
         }
 
-        protected boolean isElementConnectedToComponent(LfElement element, Set<LfBus> component) {
+        protected boolean isElementConnectedToBuses(LfElement element, Set<LfBus> buses) {
             if (element instanceof LfBus) {
-                return component.contains(element);
+                return buses.contains(element);
             } else if (element instanceof LfBranch) {
-                return component.contains(((LfBranch) element).getBus1()) && component.contains(((LfBranch) element).getBus2());
+                return buses.contains(((LfBranch) element).getBus1()) || buses.contains(((LfBranch) element).getBus2());
             }
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
         }
@@ -349,13 +349,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent) {
-            return isElementConnectedToComponent(variableElement, connectedComponent);
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> nonSlackConnectedBuses) {
+            return !isElementConnectedToBuses(variableElement, nonSlackConnectedBuses);
         }
 
         @Override
-        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent) {
-            return isElementConnectedToComponent(functionElement, connectedComponent);
+        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> nonSlackConnectedBuses) {
+            return !isElementConnectedToBuses(functionElement, nonSlackConnectedBuses);
         }
     }
 
@@ -383,12 +383,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> connectedComponent) {
-            if (!isElementConnectedToComponent(functionElement, connectedComponent)) {
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> nonSlackConnectedBuses) {
+            if (isElementConnectedToBuses(functionElement, nonSlackConnectedBuses)) {
                 return false;
             }
             for (LfElement lfElement : getVariableElements()) {
-                if (isElementConnectedToComponent(lfElement, connectedComponent)) {
+                if (!isElementConnectedToBuses(lfElement, nonSlackConnectedBuses)) {
                     return true;
                 }
             }
@@ -396,8 +396,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> connectedComponent) {
-            return isElementConnectedToComponent(functionElement, connectedComponent);
+        public boolean isFunctionConnectedToSlackComponent(Set<LfBus> nonSlackConnectedBuses) {
+            return !isElementConnectedToBuses(functionElement, nonSlackConnectedBuses);
         }
     }
 
@@ -550,9 +550,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             }
         }
 
-        boolean updateConnectivityWeights(Set<LfBus> slackConnectedComponent) {
+        boolean updateConnectivityWeights(Set<LfBus> nonSlackConnectedBuses) {
             mainComponentWeights = variableElements.entrySet().stream()
-                .filter(entry -> slackConnectedComponent.contains((LfBus) entry.getKey()))
+                .filter(entry -> !nonSlackConnectedBuses.contains((LfBus) entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             return mainComponentWeights.size() != variableElements.size();
         }
@@ -609,7 +609,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Collection<String> branchIdsToOpen) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> nonSlackConnectedBuses, Collection<String> branchIdsToOpen) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             String functionBranchId = factor.getFunctionElement().getId();
             if (branchIdsToOpen.stream().anyMatch(id -> id.equals(functionBranchId))) {
@@ -619,8 +619,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             }
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                 // after a contingency, we check if the factor function and the variable are in different connected components
-                boolean variableConnected = factor.isVariableConnectedToSlackComponent(connectedComponent);
-                boolean functionConnected = factor.isFunctionConnectedToSlackComponent(connectedComponent);
+                boolean variableConnected = factor.isVariableConnectedToSlackComponent(nonSlackConnectedBuses);
+                boolean functionConnected = factor.isFunctionConnectedToSlackComponent(nonSlackConnectedBuses);
                 if (!variableConnected && functionConnected) {
                     // VALID_ONLY_FOR_FUNCTION status
                     factor.setSensitivityValuePredefinedResult(0d);
@@ -635,7 +635,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
             } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
                 factor.setSensitivityValuePredefinedResult(0d);
-                if (!factor.isFunctionConnectedToSlackComponent(connectedComponent)) {
+                if (!factor.isFunctionConnectedToSlackComponent(nonSlackConnectedBuses)) {
                     factor.setFunctionPredefinedResult(Double.NaN);
                 }
             } else {
@@ -644,13 +644,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    protected boolean rescaleGlsk(List<SensitivityFactorGroup<V, E>> factorGroups, Set<LfBus> slackConnectedComponent) {
+    protected boolean rescaleGlsk(List<SensitivityFactorGroup<V, E>> factorGroups, Set<LfBus> nonSlackConnectedBuses) {
         boolean rescaled = false;
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup<V, E> factorGroup : factorGroups) {
             if (factorGroup instanceof MultiVariablesFactorGroup) {
                 MultiVariablesFactorGroup<V, E> multiVariablesFactorGroup = (MultiVariablesFactorGroup<V, E>) factorGroup;
-                rescaled |= multiVariablesFactorGroup.updateConnectivityWeights(slackConnectedComponent);
+                rescaled |= multiVariablesFactorGroup.updateConnectivityWeights(nonSlackConnectedBuses);
             }
         }
         return rescaled;

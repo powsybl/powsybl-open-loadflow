@@ -34,6 +34,7 @@ import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -302,17 +303,18 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     lfFactor.setFunctionPredefinedResult(null); });
 
                 cutConnectivity(lfNetwork, connectivity, propagatedContingencyMap.get(lfContingency.getId()));
-                Set<LfBus> slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
+                Set<LfBus> nonSlackConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
 
-                setPredefinedResults(contingencyFactors, slackConnectedComponent, propagatedContingencyMap.get(lfContingency.getId())); // check if factors are still in the main component
+                setPredefinedResults(contingencyFactors, nonSlackConnectedBuses, propagatedContingencyMap.get(lfContingency.getId())); // check if factors are still in the main component
 
-                rescaleGlsk(factorGroups, slackConnectedComponent);
+                rescaleGlsk(factorGroups, nonSlackConnectedBuses);
 
                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                 // buses that contain elements participating to slack distribution
                 Map<LfBus, Double> slackParticipationByBusForThisConnectivity;
 
                 if (lfParameters.isDistributedSlack()) {
+                    Set<LfBus> slackConnectedComponent = lfNetwork.getBuses().stream().filter(Predicate.not(nonSlackConnectedBuses::contains)).collect(Collectors.toSet());
                     List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
                         slackConnectedComponent, lfParameters, lfParametersExt); // will also be used to recompute the loadflow
                     slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(

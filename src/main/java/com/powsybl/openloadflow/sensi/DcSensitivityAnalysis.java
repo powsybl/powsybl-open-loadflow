@@ -41,6 +41,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.ObjDoubleConsumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
@@ -409,21 +410,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         private final Set<LfBus> disabledBuses;
 
-        private final Set<LfBus> slackConnectedComponent;
-
         ConnectivityAnalysisResult(Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, Set<ComputedContingencyElement> elementsBreakingConnectivity,
                                    GraphDecrementalConnectivity<LfBus> connectivity, LfNetwork lfNetwork) {
             elementsToReconnect = computeElementsToReconnect(connectivity, elementsBreakingConnectivity);
             disabledBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
-            slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
-            slackConnectedComponent.removeAll(disabledBuses);
             predefinedResultsSensi = new HashMap<>();
             predefinedResultsRef = new HashMap<>();
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
                 if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                     // after a contingency, we check if the factor function and the variable are in different connected components
-                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(slackConnectedComponent);
-                    boolean functionConnected = factor.isFunctionConnectedToSlackComponent(slackConnectedComponent);
+                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses);
+                    boolean functionConnected = factor.isFunctionConnectedToSlackComponent(disabledBuses);
                     if (!variableConnected && functionConnected) {
                         // VALID_ONLY_FOR_FUNCTION status
                         predefinedResultsSensi.put(factor, 0d);
@@ -441,7 +438,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
                     // Sensitivity equals 0 for VALID_REFERENCE factors
                     predefinedResultsSensi.put(factor, 0d);
-                    if (!factor.isFunctionConnectedToSlackComponent(slackConnectedComponent)) {
+                    if (!factor.isFunctionConnectedToSlackComponent(disabledBuses)) {
                         // The reference is not in the main componant of the post contingency network.
                         // Therefore, its value cannot be computed.
                         predefinedResultsRef.put(factor, Double.NaN);
@@ -470,10 +467,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         public Set<LfBus> getDisabledBuses() {
             return disabledBuses;
-        }
-
-        public Set<LfBus> getSlackConnectedComponent() {
-            return slackConnectedComponent;
         }
 
         private static Set<String> computeElementsToReconnect(GraphDecrementalConnectivity<LfBus> connectivity, Set<ComputedContingencyElement> breakingConnectivityCandidates) {
@@ -906,7 +899,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 }
                 if (hasMultiVariables) {
                     // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                    rhsChanged |= rescaleGlsk(factorGroups, connectivityAnalysisResult.slackConnectedComponent);
+                    rhsChanged |= rescaleGlsk(factorGroups, disabledBuses);
                 }
 
                 // we need to recompute the factor states because the connectivity changed
@@ -914,7 +907,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     Map<LfBus, Double> slackParticipationByBusForThisConnectivity;
 
                     if (lfParameters.isDistributedSlack()) {
-                        participatingElementsForThisConnectivity = getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters, lfParametersExt); // will also be used to recompute the loadflow
+                        Set<LfBus> slackConnectedComponent = lfNetwork.getBuses().stream().filter(Predicate.not(connectivityAnalysisResult.disabledBuses::contains)).collect(Collectors.toSet());
+                        participatingElementsForThisConnectivity = getParticipatingElements(slackConnectedComponent, lfParameters, lfParametersExt); // will also be used to recompute the loadflow
                         slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
                             element -> lfNetwork.getBusById(element.getLfBus().getId()),
                             element -> -element.getFactor(),
