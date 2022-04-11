@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -39,6 +41,18 @@ public final class Networks {
             b.getTerminal1().setQ(Double.NaN);
             b.getTerminal2().setP(Double.NaN);
             b.getTerminal2().setQ(Double.NaN);
+        }
+        List<Injection> injections = new ArrayList<>();
+        injections.addAll((Collection<? extends Injection>) network.getGenerators());
+        injections.addAll((Collection<? extends Injection>) network.getStaticVarCompensators());
+        injections.addAll((Collection<? extends Injection>) network.getVscConverterStations());
+        injections.addAll((Collection<? extends Injection>) network.getLoads());
+        injections.addAll((Collection<? extends Injection>) network.getLccConverterStations());
+        injections.addAll((Collection<? extends Injection>) network.getBatteries());
+        injections.addAll((Collection<? extends Injection>) network.getDanglingLines());
+        for (Injection injection : injections) {
+            injection.getTerminal().setP(Double.NaN);
+            injection.getTerminal().setQ(Double.NaN);
         }
     }
 
