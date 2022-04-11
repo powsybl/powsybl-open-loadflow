@@ -906,7 +906,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 }
                 if (hasMultiVariables) {
                     // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
-                    rhsChanged |= rescaleGlsk(factorGroups, disabledBuses);
+                    rhsChanged |= rescaleGlsk(factorGroups, connectivityAnalysisResult.slackConnectedComponent);
                 }
 
                 // we need to recompute the factor states because the connectivity changed

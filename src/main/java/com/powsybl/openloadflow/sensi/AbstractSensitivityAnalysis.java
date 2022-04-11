@@ -550,9 +550,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             }
         }
 
-        boolean updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
+        boolean updateConnectivityWeights(Set<LfBus> slackConnectedComponent) {
             mainComponentWeights = variableElements.entrySet().stream()
-                .filter(entry -> !nonConnectedBuses.contains((LfBus) entry.getKey()))
+                .filter(entry -> slackConnectedComponent.contains((LfBus) entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             return mainComponentWeights.size() != variableElements.size();
         }
@@ -644,13 +644,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    protected boolean rescaleGlsk(List<SensitivityFactorGroup<V, E>> factorGroups, Set<LfBus> nonConnectedBuses) {
+    protected boolean rescaleGlsk(List<SensitivityFactorGroup<V, E>> factorGroups, Set<LfBus> slackConnectedComponent) {
         boolean rescaled = false;
         // compute the corresponding injection (with participation) for each factor
         for (SensitivityFactorGroup<V, E> factorGroup : factorGroups) {
             if (factorGroup instanceof MultiVariablesFactorGroup) {
                 MultiVariablesFactorGroup<V, E> multiVariablesFactorGroup = (MultiVariablesFactorGroup<V, E>) factorGroup;
-                rescaled |= multiVariablesFactorGroup.updateConnectivityWeights(nonConnectedBuses);
+                rescaled |= multiVariablesFactorGroup.updateConnectivityWeights(slackConnectedComponent);
             }
         }
         return rescaled;
