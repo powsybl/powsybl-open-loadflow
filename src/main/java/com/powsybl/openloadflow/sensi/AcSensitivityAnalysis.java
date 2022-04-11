@@ -303,9 +303,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
                                 slackConnectedComponent, lfParameters, lfParametersExt); // will also be used to recompute the loadflow
                         slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
-                                ParticipatingElement::getLfBus,
-                                element -> -element.getFactor(),
-                                Double::sum
+                            ParticipatingElement::getLfBus,
+                            element -> -element.getFactor(),
+                            Double::sum
                         ));
                     } else {
                         slackParticipationByBusForThisConnectivity = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
