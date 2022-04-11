@@ -402,12 +402,16 @@ public final class AcEquationSystem {
                         // we also create an equation that will be used later to maintain A1 variable constant
                         // this equation is now inactive
                         LfBranch controller = dpc.getController();
-                        EquationTerm<AcVariableType, AcEquationType> a1 = equationSystem.getVariable(controller.getNum(), AcVariableType.BRANCH_ALPHA1)
-                                .createTerm();
-                        branch.setA1(a1);
-                        equationSystem.createEquation(controller.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
-                                .addTerm(a1)
-                                .setActive(false);
+                        if (equationSystem.getEquation(controller.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1).isPresent()) {
+                            equationSystem.getEquation(controller.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1).get().setActive(false);
+                        } else {
+                            EquationTerm<AcVariableType, AcEquationType> a1 = equationSystem.getVariable(controller.getNum(), AcVariableType.BRANCH_ALPHA1)
+                                    .createTerm();
+                            branch.setA1(a1);
+                            equationSystem.createEquation(controller.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
+                                    .addTerm(a1)
+                                    .setActive(false);
+                        }
                     });
         }
     }

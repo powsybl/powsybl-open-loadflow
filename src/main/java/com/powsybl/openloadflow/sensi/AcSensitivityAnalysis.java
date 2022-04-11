@@ -240,15 +240,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
             }
 
-            // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
-            // system obtained just before the transformer steps rounding.
-            if (hasTransformerBusTargetVoltage) {
-                // switch on regulating transformers
-                for (LfBranch branch : lfNetwork.getBranches()) {
-                    branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
-                }
-            }
-
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
 
             // otherwise, defining the rhs matrix will result in integer overflow
