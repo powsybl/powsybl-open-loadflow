@@ -112,13 +112,13 @@ class OpenSecurityAnalysisGraphTest {
                 LfContingency contingencyResult = result.get(iNetwork).get(iContingency);
                 assertEquals(contingencyReference.getId(), contingencyResult.getId());
 
-                Set<LfBranch> branchesReference = contingencyReference.getBranches();
-                Set<LfBranch> branchesResult = contingencyResult.getBranches();
+                Set<LfBranch> branchesReference = contingencyReference.getDisabledBranches();
+                Set<LfBranch> branchesResult = contingencyResult.getDisabledBranches();
                 assertEquals(branchesReference.size(), branchesResult.size());
                 branchesReference.forEach(b -> assertTrue(branchesResult.stream().anyMatch(b1 -> b1.getId().equals(b.getId()))));
 
-                Set<LfBus> busesReference = contingencyReference.getBuses();
-                Set<LfBus> busesResult = contingencyResult.getBuses();
+                Set<LfBus> busesReference = contingencyReference.getDisabledBuses();
+                Set<LfBus> busesResult = contingencyResult.getDisabledBuses();
                 assertEquals(busesReference.size(), busesResult.size());
                 busesReference.forEach(b -> assertTrue(busesResult.stream().anyMatch(b1 -> b1.getId().equals(b.getId()))));
             }
@@ -129,9 +129,9 @@ class OpenSecurityAnalysisGraphTest {
         for (List<LfContingency> networkResult : result) {
             for (LfContingency contingency : networkResult) {
                 LOGGER.info("Contingency {} containing {} branches - {} buses (branches: {}, buses: {})",
-                    contingency.getId(), contingency.getBranches().size(), contingency.getBuses().size(),
-                    contingency.getBranches().stream().map(LfBranch::getId).collect(Collectors.joining(",")),
-                    contingency.getBuses().stream().map(LfBus::getId).collect(Collectors.joining(",")));
+                    contingency.getId(), contingency.getDisabledBranches().size(), contingency.getDisabledBuses().size(),
+                    contingency.getDisabledBranches().stream().map(LfBranch::getId).collect(Collectors.joining(",")),
+                    contingency.getDisabledBuses().stream().map(LfBus::getId).collect(Collectors.joining(",")));
             }
         }
     }
