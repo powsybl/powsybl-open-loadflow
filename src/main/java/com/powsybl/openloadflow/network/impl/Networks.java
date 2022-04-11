@@ -12,8 +12,6 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.SlackBusSelector;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -28,32 +26,42 @@ public final class Networks {
     private Networks() {
     }
 
+    private static <T extends Injection<T>> void resetInjectionsState(Iterable<T> injections) {
+        for (T injection : injections) {
+            injection.getTerminal().setP(Double.NaN)
+                    .setQ(Double.NaN);
+        }
+    }
+
     public static void resetState(Network network) {
         for (Bus b : network.getBusView().getBuses()) {
-            b.setV(Double.NaN);
-            b.setAngle(Double.NaN);
+            b.setV(Double.NaN)
+                    .setAngle(Double.NaN);
+        }
+        for (Branch<?> b : network.getBranches()) {
+            b.getTerminal1().setP(Double.NaN)
+                    .setQ(Double.NaN);
+            b.getTerminal2().setP(Double.NaN)
+                    .setQ(Double.NaN);
+        }
+        for (ThreeWindingsTransformer twt : network.getThreeWindingsTransformers()) {
+            twt.getLeg1().getTerminal().setP(Double.NaN)
+                    .setQ(Double.NaN);
+            twt.getLeg2().getTerminal().setP(Double.NaN)
+                    .setQ(Double.NaN);
+            twt.getLeg3().getTerminal().setP(Double.NaN)
+                    .setQ(Double.NaN);
         }
         for (ShuntCompensator sc : network.getShuntCompensators()) {
             sc.getTerminal().setQ(Double.NaN);
         }
-        for (Branch<?> b : network.getBranches()) {
-            b.getTerminal1().setP(Double.NaN);
-            b.getTerminal1().setQ(Double.NaN);
-            b.getTerminal2().setP(Double.NaN);
-            b.getTerminal2().setQ(Double.NaN);
-        }
-        List<Injection> injections = new ArrayList<>();
-        injections.addAll((Collection<? extends Injection>) network.getGenerators());
-        injections.addAll((Collection<? extends Injection>) network.getStaticVarCompensators());
-        injections.addAll((Collection<? extends Injection>) network.getVscConverterStations());
-        injections.addAll((Collection<? extends Injection>) network.getLoads());
-        injections.addAll((Collection<? extends Injection>) network.getLccConverterStations());
-        injections.addAll((Collection<? extends Injection>) network.getBatteries());
-        injections.addAll((Collection<? extends Injection>) network.getDanglingLines());
-        for (Injection injection : injections) {
-            injection.getTerminal().setP(Double.NaN);
-            injection.getTerminal().setQ(Double.NaN);
-        }
+        resetInjectionsState(network.getGenerators());
+        resetInjectionsState(network.getStaticVarCompensators());
+        resetInjectionsState(network.getVscConverterStations());
+        resetInjectionsState(network.getLoads());
+        resetInjectionsState(network.getLccConverterStations());
+        resetInjectionsState(network.getBatteries());
+        resetInjectionsState(network.getDanglingLines());
     }
 
     private static double getDoubleProperty(Identifiable<?> identifiable, String name) {
