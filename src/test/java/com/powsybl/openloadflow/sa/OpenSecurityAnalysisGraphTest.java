@@ -166,7 +166,7 @@ class OpenSecurityAnalysisGraphTest {
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();
         for (LfNetwork lfNetwork : lfNetworks) {
             listLfContingencies.add(propagatedContingencies.stream()
-                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork, lfNetwork.getConnectivity(), true).stream())
+                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork, true).stream())
                     .collect(Collectors.toList()));
         }
         LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);

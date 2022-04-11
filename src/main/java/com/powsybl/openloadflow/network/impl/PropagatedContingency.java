@@ -264,8 +264,7 @@ public class PropagatedContingency {
         return c1 != c2 && c1.getType() == IdentifiableType.BUSBAR_SECTION && c2.getType() == IdentifiableType.BUSBAR_SECTION;
     }
 
-    public Optional<LfContingency> toLfContingency(LfNetwork network, GraphDecrementalConnectivity<LfBus> connectivity,
-                                                   boolean useSmallComponents) {
+    public Optional<LfContingency> toLfContingency(LfNetwork network, boolean useSmallComponents) {
         // find contingency branches that are part of this network
         Set<LfBranch> branches = new HashSet<>(1);
         for (String branchId : branchIdsToOpen) {
@@ -276,6 +275,7 @@ public class PropagatedContingency {
         }
 
         // update connectivity with triggered branches
+        GraphDecrementalConnectivity<LfBus> connectivity = network.getConnectivity();
         for (LfBranch branch : branches) {
             connectivity.cut(branch.getBus1(), branch.getBus2());
         }

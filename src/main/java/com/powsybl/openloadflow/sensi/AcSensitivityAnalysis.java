@@ -267,10 +267,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             setFunctionReferences(validLfFactors);
             calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, valueWriter);
 
-            GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.getConnectivity();
-
             List<LfContingency> lfContingencies = contingencies.stream()
-                    .flatMap(contingency -> contingency.toLfContingency(lfNetwork, connectivity, false).stream())
+                    .flatMap(contingency -> contingency.toLfContingency(lfNetwork, false).stream())
                     .collect(Collectors.toList());
 
             NetworkState networkState = NetworkState.save(lfNetwork);
@@ -302,19 +300,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     lfFactor.setSensitivityValuePredefinedResult(null);
                     lfFactor.setFunctionPredefinedResult(null); });
 
-                cutConnectivity(lfNetwork, connectivity, propagatedContingencyMap.get(lfContingency.getId()));
-                Set<LfBus> nonSlackConnectedBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
+                setPredefinedResults(contingencyFactors, lfContingency.getBuses(), propagatedContingencyMap.get(lfContingency.getId())); // check if factors are still in the main component
 
-                setPredefinedResults(contingencyFactors, nonSlackConnectedBuses, propagatedContingencyMap.get(lfContingency.getId())); // check if factors are still in the main component
-
-                rescaleGlsk(factorGroups, nonSlackConnectedBuses);
+                rescaleGlsk(factorGroups, lfContingency.getBuses());
 
                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                 // buses that contain elements participating to slack distribution
                 Map<LfBus, Double> slackParticipationByBusForThisConnectivity;
 
                 if (lfParameters.isDistributedSlack()) {
-                    Set<LfBus> slackConnectedComponent = lfNetwork.getBuses().stream().filter(Predicate.not(nonSlackConnectedBuses::contains)).collect(Collectors.toSet());
+                    Set<LfBus> slackConnectedComponent = lfNetwork.getBuses().stream().filter(Predicate.not(lfContingency.getBuses()::contains)).collect(Collectors.toSet());
                     List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
                         slackConnectedComponent, lfParameters, lfParametersExt); // will also be used to recompute the loadflow
                     slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
@@ -330,8 +325,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
 
                 networkState.restore();
-
-                connectivity.reset();
             }
         }
     }
