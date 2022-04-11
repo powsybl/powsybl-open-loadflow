@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -553,7 +554,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         boolean updateConnectivityWeights(Set<LfBus> nonSlackConnectedBuses) {
             mainComponentWeights = variableElements.entrySet().stream()
-                .filter(entry -> !nonSlackConnectedBuses.contains((LfBus) entry.getKey()))
+                .filter(entry -> !(entry.getKey() instanceof LfBus) || !nonSlackConnectedBuses.contains(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             return mainComponentWeights.size() != variableElements.size();
         }
@@ -585,9 +586,14 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return new ArrayList<>(groupIndexedById.values());
     }
 
-    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
+    protected List<ParticipatingElement> getParticipatingElements(LfNetwork network, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
+        return getParticipatingElements(network, Collections.emptySet(), balanceType, openLoadFlowParameters);
+    }
+
+    protected List<ParticipatingElement> getParticipatingElements(LfNetwork network, Set<LfBus> disabledBuses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant());
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
+        Stream<LfBus> nonDisabledBuses = network.getBuses().stream().filter(Predicate.not(disabledBuses::contains));
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(nonDisabledBuses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
         return participatingElements;
     }

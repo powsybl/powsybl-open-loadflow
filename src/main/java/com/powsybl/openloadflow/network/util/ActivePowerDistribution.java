@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -28,7 +29,7 @@ public final class ActivePowerDistribution {
 
         String getElementType();
 
-        List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses);
+        List<ParticipatingElement> getParticipatingElements(Stream<LfBus> buses);
 
         double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
     }
@@ -68,7 +69,7 @@ public final class ActivePowerDistribution {
     }
 
     public Result run(Collection<LfBus> buses, double activePowerMismatch) {
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses.stream());
 
         int iteration = 0;
         double remainingMismatch = activePowerMismatch;

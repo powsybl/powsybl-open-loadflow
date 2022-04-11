@@ -33,7 +33,6 @@ import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -230,7 +229,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             Map<LfBus, Double> slackParticipationByBus;
             if (lfParameters.isDistributedSlack()) {
-                List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+                List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork, lfParameters.getBalanceType(), lfParametersExt);
                 slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                     ParticipatingElement::getLfBus,
                     element -> -element.getFactor(),
@@ -308,9 +307,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 Map<LfBus, Double> slackParticipationByBusForThisConnectivity;
 
                 if (lfParameters.isDistributedSlack()) {
-                    Set<LfBus> slackConnectedComponent = lfNetwork.getBuses().stream().filter(Predicate.not(lfContingency.getBuses()::contains)).collect(Collectors.toSet());
                     List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
-                        slackConnectedComponent, lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the loadflow
+                            lfNetwork, lfContingency.getBuses(), lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the loadflow
                     slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
                         ParticipatingElement::getLfBus,
                         element -> -element.getFactor(),

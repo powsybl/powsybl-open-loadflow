@@ -41,7 +41,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.ObjDoubleConsumer;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
@@ -687,7 +686,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             .collect(Collectors.toList());
                     normalizeParticipationFactors(newParticipatingElements, "LfGenerators");
                 } else { // slack distribution on loads
-                    newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+                    newParticipatingElements = getParticipatingElements(lfNetwork, lfParameters.getBalanceType(), lfParametersExt);
                 }
             }
             if (participatingElementsChanged || rhsChanged) {
@@ -802,7 +801,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         List<ParticipatingElement> participatingElements;
         Map<LfBus, Double> slackParticipationByBus;
         if (lfParameters.isDistributedSlack()) {
-            participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+            participatingElements = getParticipatingElements(lfNetwork, lfParameters.getBalanceType(), lfParametersExt);
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                 ParticipatingElement::getLfBus,
                 element -> -element.getFactor(),
@@ -925,8 +924,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     Map<LfBus, Double> slackParticipationByBusForThisConnectivity;
 
                     if (lfParameters.isDistributedSlack()) {
-                        Set<LfBus> slackConnectedComponent = lfNetwork.getBuses().stream().filter(Predicate.not(connectivityAnalysisResult.disabledBuses::contains)).collect(Collectors.toSet());
-                        participatingElementsForThisConnectivity = getParticipatingElements(slackConnectedComponent, lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the loadflow
+                        participatingElementsForThisConnectivity = getParticipatingElements(
+                                lfNetwork, connectivityAnalysisResult.disabledBuses, lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the loadflow
                         slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
                             element -> lfNetwork.getBusById(element.getLfBus().getId()),
                             element -> -element.getFactor(),
