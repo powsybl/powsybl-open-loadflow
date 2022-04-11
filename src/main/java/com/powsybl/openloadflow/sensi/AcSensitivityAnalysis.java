@@ -200,7 +200,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
-        Map<String, Collection<String>> propagatedContingencyMap = contingencies.stream().collect(
+        Map<String, Set<String>> propagatedContingencyMap = contingencies.stream().collect(
             Collectors.toMap(contingency -> contingency.getContingency().getId(), contingency -> new HashSet<>(contingency.getBranchIdsToOpen()))
         );
 

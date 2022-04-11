@@ -609,10 +609,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> nonSlackConnectedBuses, Collection<String> branchIdsToOpen) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> nonSlackConnectedBuses, Set<String> branchIdsToOpen) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             String functionBranchId = factor.getFunctionElement().getId();
-            if (branchIdsToOpen.stream().anyMatch(id -> id.equals(functionBranchId))) {
+            if (branchIdsToOpen.contains(functionBranchId)) {
                 factor.setSensitivityValuePredefinedResult(0d);
                 factor.setFunctionPredefinedResult(0d);
                 continue;
