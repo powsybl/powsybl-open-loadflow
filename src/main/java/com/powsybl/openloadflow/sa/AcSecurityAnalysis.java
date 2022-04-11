@@ -136,7 +136,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 while (contingencyIt.hasNext()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    propagatedContingency.toLfContingency(network, true)
+                    propagatedContingency.toLfContingencyForSecurityAnalysis(network)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
                                 lfContingency.apply(loadFlowParameters);
 

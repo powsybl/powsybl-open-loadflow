@@ -264,7 +264,15 @@ public class PropagatedContingency {
         return c1 != c2 && c1.getType() == IdentifiableType.BUSBAR_SECTION && c2.getType() == IdentifiableType.BUSBAR_SECTION;
     }
 
-    public Optional<LfContingency> toLfContingency(LfNetwork network, boolean useSmallComponents) {
+    public Optional<LfContingency> toLfContingencyForSensitivityAnalysis(LfNetwork network) {
+        return toLfContingency(network, false);
+    }
+
+    public Optional<LfContingency> toLfContingencyForSecurityAnalysis(LfNetwork network) {
+        return toLfContingency(network, true);
+    }
+
+    private Optional<LfContingency> toLfContingency(LfNetwork network, boolean useSmallComponents) {
         // find contingency branches that are part of this network
         Set<LfBranch> branches = new HashSet<>(1);
         for (String branchId : branchIdsToOpen) {

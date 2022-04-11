@@ -267,7 +267,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, valueWriter);
 
             List<LfContingency> lfContingencies = contingencies.stream()
-                    .flatMap(contingency -> contingency.toLfContingency(lfNetwork, false).stream())
+                    .flatMap(contingency -> contingency.toLfContingencyForSensitivityAnalysis(lfNetwork).stream())
                     .collect(Collectors.toList());
 
             NetworkState networkState = NetworkState.save(lfNetwork);
