@@ -126,7 +126,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         if (hasMultiVariables && (!lfContingency.getBusesLoadShift().isEmpty() || !lfContingency.getGenerators().isEmpty())) {
             // FIXME. It does not work with a contingency that breaks connectivity and loose an isolate injection.
-            Set<LfBus> affectedBuses = lfContingency.getAffectedBuses();
+            Set<LfBus> affectedBuses = lfContingency.getLoadAndGeneratorBuses();
             rescaleGlsk(factorGroups, affectedBuses);
         }
 
@@ -158,9 +158,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         super.checkContingencies(lfNetwork, contingencies);
 
         for (PropagatedContingency contingency : contingencies) {
-            if (!contingency.getHvdcIdsToOpen().isEmpty()) {
-                throw new NotImplementedException("Contingencies on a DC line are not yet supported in AC mode.");
-            }
             if (!contingency.getShuntIdsToShift().isEmpty()) {
                 throw new NotImplementedException("Shunt Contingencies are not yet supported in AC mode.");
             }

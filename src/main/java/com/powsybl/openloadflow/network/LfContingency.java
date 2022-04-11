@@ -145,8 +145,7 @@ public class LfContingency {
         return participatingGeneratorsToBeRemoved;
     }
 
-    public Set<LfBus> getAffectedBuses() {
-        // FIXME: should be renamed.
+    public Set<LfBus> getLoadAndGeneratorBuses() {
         Set<LfBus> affectedBuses = new HashSet<>();
         for (var e : busesLoadShift.entrySet()) {
             LfBus bus = e.getKey();

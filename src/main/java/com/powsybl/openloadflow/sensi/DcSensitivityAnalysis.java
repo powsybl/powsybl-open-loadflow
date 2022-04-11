@@ -588,7 +588,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             boolean rhsChanged = false;
             if (hasMultiVariables) {
                 if (lfContingency.isPresent()) {
-                    Set<LfBus> affectedBuses = lfContingency.get().getAffectedBuses();
+                    Set<LfBus> affectedBuses = lfContingency.get().getLoadAndGeneratorBuses();
                     rhsChanged = rescaleGlsk(factorGroups, affectedBuses);
                 }
             }

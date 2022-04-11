@@ -105,11 +105,11 @@ public class PropagatedContingency {
     }
 
     public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies,
-                                                                               boolean slackDistributionOnConformLoad) {
+                                                                               boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false, slackDistributionOnConformLoad, false);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false, slackDistributionOnConformLoad, hvdcAcEmulation);
             Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
             if (coupler.isEmpty()) {
                 propagatedContingencies.add(propagatedContingency);
@@ -165,9 +165,10 @@ public class PropagatedContingency {
                     }
                     HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
                     if (control != null && control.isEnabled() && hvdcAcEmulation) {
-                        throw new PowsyblException("Contingency on HVDC line '" + element.getId() + "' operated in AC emulation: not supported yet.");
+                        // Not depending on AC or DC computation.
+                        throw new PowsyblException("Contingency on HVDC line '" + element.getId() + "' with AC emulation control: not supported yet.");
                     }
-                    hvdcIdsToOpen.add(element.getId());
+                    hvdcIdsToOpen.add(element.getId()); // FIXME: try to use it only for HVDC in AC emulation.
                     if (hvdcLine.getConverterStation1() instanceof VscConverterStation) {
                         VscConverterStation vsc1 = (VscConverterStation) hvdcLine.getConverterStation1();
                         vscsToLose.add(vsc1);

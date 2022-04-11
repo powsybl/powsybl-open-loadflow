@@ -1323,7 +1323,7 @@ class OpenSecurityAnalysisTest {
         List<Contingency> contingencies2 = new ArrayList<>();
         contingencies2.add(Contingency.hvdcLine("hvdc34"));
         CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies2, monitors, parameters));
-        assertEquals("Contingency on HVDC line 'hvdc34' operated in AC emulation: not supported yet.", exception.getCause().getMessage());
+        assertEquals("Contingency on HVDC line 'hvdc34' with AC emulation control: not supported yet.", exception.getCause().getMessage());
     }
 
     @Test
