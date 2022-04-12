@@ -63,7 +63,8 @@ public class VoltageControl {
      * @return true if the voltage control is shared, false otherwise
      */
     public boolean isSharedControl() {
-        return controllers.stream().flatMap(lfBus -> lfBus.getGenerators().stream()).filter(LfGenerator::hasVoltageControl).count() > 1;
+        return controllers.stream().flatMap(lfBus -> lfBus.getGenerators().stream())
+                .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).count() > 1;
     }
 
     public void updateReactiveKeys() {
@@ -91,7 +92,8 @@ public class VoltageControl {
         double[] qKeys = new double[controllerBuses.size()];
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
-            qKeys[i] = controllerBus.getGenerators().stream().filter(LfGenerator::hasVoltageControl).count();
+            qKeys[i] = controllerBus.getGenerators().stream()
+                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).count();
         }
         return qKeys;
     }

@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -105,13 +106,15 @@ public class LfContingency {
         for (var e : busesLoadShift.entrySet()) {
             LfBus bus = e.getKey();
             PowerShift shift = e.getValue();
-            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters, shift.getActive(), shift.getVariableActive()));
+            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters.getBalanceType(), shift.getActive(), shift.getVariableActive()));
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
-            bus.getLfLoads().setAbsVariableLoadTargetP(bus.getLfLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+            bus.getLoads().setAbsVariableLoadTargetP(bus.getLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
         }
+        Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : generators) {
             generator.setTargetP(0);
             LfBus bus = generator.getBus();
+            generatorBuses.add(bus);
             generator.setParticipating(false);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
@@ -119,14 +122,19 @@ public class LfContingency {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
         }
+        for (LfBus bus : generatorBuses) {
+            if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                bus.setVoltageControlEnabled(false);
+            }
+        }
     }
 
-    public static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters parameters, double initialP0, double initialVariableActivePower) {
+    public static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
         double factor = 0.0;
-        if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-            factor = Math.abs(initialP0) / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
-        } else if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-            factor = initialVariableActivePower / (bus.getLfLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+        if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
+            factor = Math.abs(initialP0) / (bus.getLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+        } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+            factor = initialVariableActivePower / (bus.getLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
         }
         return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
     }

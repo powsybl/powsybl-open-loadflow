@@ -150,12 +150,12 @@ public class LfNetwork {
         bus.getShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getControllerShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
     }
@@ -335,7 +335,7 @@ public class LfNetwork {
         if (!Double.isNaN(generator.getTargetQ())) {
             jsonGenerator.writeNumberField("targetQ", generator.getTargetQ());
         }
-        jsonGenerator.writeBooleanField("voltageControl", generator.hasVoltageControl());
+        jsonGenerator.writeBooleanField("voltageControl", generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE);
         jsonGenerator.writeNumberField("minP", generator.getMinP());
         jsonGenerator.writeNumberField("maxP", generator.getMaxP());
     }
