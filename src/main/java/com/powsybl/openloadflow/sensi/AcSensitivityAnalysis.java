@@ -13,6 +13,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AbstractTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
@@ -126,14 +127,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         new AcloadFlowEngine(context)
                 .run(reporter);
 
-        // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
-        // system obtained just before the transformer steps rounding.
-        if (hasTransformerBusTargetVoltage) {
-            for (LfBranch branch : lfNetwork.getBranches()) {
-                branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
-            }
-        }
-
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
 
         // solve system
@@ -198,6 +191,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParameters.isHvdcAcEmulation());
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
+        if (hasTransformerBusTargetVoltage) {
+            AbstractTransformerVoltageControlOuterLoop.checkControl(lfNetwork);
+        }
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
         Map<String, Collection<String>> propagatedContingencyMap = contingencies.stream().collect(
@@ -238,15 +234,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 ));
             } else {
                 slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
-            }
-
-            // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
-            // system obtained just before the transformer steps rounding.
-            if (hasTransformerBusTargetVoltage) {
-                // switch on regulating transformers
-                for (LfBranch branch : lfNetwork.getBranches()) {
-                    branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
-                }
             }
 
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one

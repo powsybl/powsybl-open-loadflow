@@ -51,7 +51,7 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
         }
     }
 
-    protected void checkControl(LfNetwork network) {
+    public static void checkControl(LfNetwork network) {
         var connectivity = network.getConnectivity();
         List<LfBranch> controllerBranches = new ArrayList<>(1);
         for (LfBranch branch : network.getBranches()) {

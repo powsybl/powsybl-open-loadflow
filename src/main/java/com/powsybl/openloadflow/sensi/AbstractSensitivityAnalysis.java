@@ -21,10 +21,7 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -329,6 +326,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             this.variableElement = variableElement;
             if (variableElement == null) {
                 status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
+            } else {
+                if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                    LfBus controlledBus = (LfBus) variableElement;
+                    if (!isEffectivelyVoltageControlled(controlledBus)) {
+                        status = functionElement == null ? Status.ZERO : Status.VALID_ONLY_FOR_FUNCTION;
+                    }
+                }
             }
         }
 
@@ -1058,5 +1062,32 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
      */
     protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double unscaleFunction(LfSensitivityFactor<V, E> factor, double value) {
         return value * getFunctionBaseValue(factor);
+    }
+
+    protected static boolean isEffectivelyVoltageControlled(LfBus bus) {
+        boolean controlled = false;
+        if (bus.isVoltageControlled()) {
+            Optional<VoltageControl> voltageControl = bus.getVoltageControl();
+            if (voltageControl.isPresent()) {
+                if (voltageControl.get().getControllerBuses().stream().anyMatch(LfBus::isVoltageControlEnabled)) {
+                    controlled = true;
+                }
+            }
+        } else if (bus.isTransformerVoltageControlled()) {
+            Optional<TransformerVoltageControl> voltageControl = bus.getTransformerVoltageControl();
+            if (voltageControl.isPresent()) {
+                if (voltageControl.get().getControllers().stream().anyMatch(LfBranch::isVoltageControlEnabled)) {
+                    controlled = true;
+                }
+            }
+        } else if (bus.isShuntVoltageControlled()) {
+            Optional<ShuntVoltageControl> voltageControl = bus.getShuntVoltageControl();
+            if (voltageControl.isPresent()) {
+                if (voltageControl.get().getControllers().stream().anyMatch(LfShunt::isVoltageControlEnabled)) {
+                    controlled = true;
+                }
+            }
+        }
+        return controlled;
     }
 }
