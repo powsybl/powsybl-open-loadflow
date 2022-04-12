@@ -953,7 +953,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testSensiPhaseControlOn() {
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL2_0", false);;
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL2_0", false);
         sensiParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
 
         Network network = PhaseControlFactory.createNetworkWithT2wt();
