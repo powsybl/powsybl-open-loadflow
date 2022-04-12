@@ -944,10 +944,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false);
         sensiParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
         LoadFlow.run(network, sensiParameters.getLoadFlowParameters());
-        assertEquals(83.688, network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
                 List.of("L1", "L2", "PS1"), SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("G1"), false, ContingencyContext.none());
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-        assertEquals(83.688, result.getBranchFlow1FunctionReferenceValue(null, "PS1"), LoadFlowAssert.DELTA_POWER); // FIXED_TAP because of isForceA1Var()
+        assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), result.getBranchFlow1FunctionReferenceValue(null, "PS1"), LoadFlowAssert.DELTA_POWER);
     }
 }
