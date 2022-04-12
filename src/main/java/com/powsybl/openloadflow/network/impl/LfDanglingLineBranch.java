@@ -50,6 +50,11 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
+    public BranchType getBranchType() {
+        return BranchType.DANGLING_LINE;
+    }
+
+    @Override
     public boolean hasPhaseControlCapability() {
         return false;
     }
@@ -75,8 +80,13 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
-        danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
-        danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+        if (this.isZeroImpedanceBranch(dc)) {
+            danglingLine.getTerminal().setP(-getBus2().getP().eval() * PerUnit.SB);
+            danglingLine.getTerminal().setQ(-getBus2().getQ().eval() * PerUnit.SB);
+        } else {
+            danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
+            danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
+        }
     }
 }

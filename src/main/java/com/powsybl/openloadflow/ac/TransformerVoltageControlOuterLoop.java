@@ -19,17 +19,20 @@ import com.powsybl.openloadflow.network.TransformerVoltageControl;
  */
 public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
-    private double maxControlledNominalVoltage = Double.MIN_VALUE;
+    public static final String MAX_CONTROLLED_NOMINAL_VOLTAGE = "maxControlledNominalVoltage";
 
     @Override
     public void initialize(LfNetwork network) {
         // All transformer voltage control are disabled for the first equation system resolution.
+        double[] maxControlledNominalVoltage = new double[1];
+        maxControlledNominalVoltage[0] = Double.MIN_VALUE;
         for (LfBranch branch : network.getBranches()) {
             branch.getVoltageControl().ifPresent(voltageControl -> {
                 branch.setVoltageControlEnabled(false);
-                maxControlledNominalVoltage = Math.max(maxControlledNominalVoltage, voltageControl.getControlled().getNominalV());
+                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], voltageControl.getControlled().getNominalV());
             });
         }
+        network.setUserObject(MAX_CONTROLLED_NOMINAL_VOLTAGE, maxControlledNominalVoltage[0]);
     }
 
     @Override
@@ -40,6 +43,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
+
+        double maxControlledNominalVoltage = (Double) context.getNetwork().getUserObject(MAX_CONTROLLED_NOMINAL_VOLTAGE);
 
         // At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
         // the set controlledNominalVoltages are disabled.

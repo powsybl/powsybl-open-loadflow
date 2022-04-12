@@ -195,7 +195,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParameters.isDc(),
                                                                           lfParameters.isShuntCompensatorVoltageControlOn(),
                                                                           !lfParameters.isNoGeneratorReactiveLimits(),
-                                                                          lfParametersExt.isHvdcAcEmulation());
+                                                                          lfParameters.isHvdcAcEmulation());
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
@@ -230,7 +230,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             Map<LfBus, Double> slackParticipationByBus;
             if (lfParameters.isDistributedSlack()) {
-                List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters, lfParametersExt);
+                List<ParticipatingElement> participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
                 slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                     ParticipatingElement::getLfBus,
                     element -> -element.getFactor(),
@@ -315,7 +315,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 if (lfParameters.isDistributedSlack()) {
                     List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
-                        slackConnectedComponent, lfParameters, lfParametersExt); // will also be used to recompute the loadflow
+                        slackConnectedComponent, lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the loadflow
                     slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
                         ParticipatingElement::getLfBus,
                         element -> -element.getFactor(),

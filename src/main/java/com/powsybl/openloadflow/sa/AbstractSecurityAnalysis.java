@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Branch;
@@ -80,7 +81,7 @@ public abstract class AbstractSecurityAnalysis {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
-        return CompletableFuture.supplyAsync(() -> {
+        return CompletableFutureTask.runAsync(() -> {
             String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().setWorkingVariant(workingVariantId);
             try {
@@ -88,7 +89,7 @@ public abstract class AbstractSecurityAnalysis {
             } finally {
                 network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
             }
-        });
+        }, computationManager.getExecutor());
     }
 
     abstract SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,

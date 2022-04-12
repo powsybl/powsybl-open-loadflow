@@ -137,6 +137,11 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
+    public BranchType getBranchType() {
+        return branch instanceof Line ? BranchType.LINE : BranchType.TRANSFO_2;
+    }
+
+    @Override
     public boolean hasPhaseControlCapability() {
         return branch.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER
                 && ((TwoWindingsTransformer) branch).getPhaseTapChanger() != null;
@@ -245,7 +250,7 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
         branch.getTerminal1().setP(p1.eval() * PerUnit.SB);
         branch.getTerminal1().setQ(q1.eval() * PerUnit.SB);
         branch.getTerminal2().setP(p2.eval() * PerUnit.SB);

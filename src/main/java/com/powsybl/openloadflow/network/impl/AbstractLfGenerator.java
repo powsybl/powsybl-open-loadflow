@@ -53,6 +53,11 @@ public abstract class AbstractLfGenerator implements LfGenerator {
         this.targetP = targetP;
     }
 
+    @Override
+    public String getOriginalId() {
+        return getId();
+    }
+
     public LfBus getBus() {
         return bus;
     }
@@ -81,11 +86,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public double getTargetV() {
         return targetV;
-    }
-
-    @Override
-    public boolean hasVoltageControl() {
-        return generatorControlType == GeneratorControlType.VOLTAGE;
     }
 
     @Override

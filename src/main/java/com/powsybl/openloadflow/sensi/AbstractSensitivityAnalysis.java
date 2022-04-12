@@ -14,6 +14,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -230,9 +231,15 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         public EquationTerm<V, E> getFunctionEquationTerm() {
             switch (functionType) {
                 case BRANCH_ACTIVE_POWER:
+                case BRANCH_ACTIVE_POWER_1:
                     return (EquationTerm<V, E>) ((LfBranch) functionElement).getP1();
+                case BRANCH_ACTIVE_POWER_2:
+                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getP2();
                 case BRANCH_CURRENT:
+                case BRANCH_CURRENT_1:
                     return (EquationTerm<V, E>) ((LfBranch) functionElement).getI1();
+                case BRANCH_CURRENT_2:
+                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getI2();
                 case BUS_VOLTAGE:
                     return (EquationTerm<V, E>) ((LfBus) functionElement).getCalculatedV();
                 default:
@@ -578,8 +585,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return new ArrayList<>(groupIndexedById.values());
     }
 
-    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
+    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
+        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant());
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
         return participatingElements;
@@ -848,7 +855,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         int[] factorIndex = new int[1];
         factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
-                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
+                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
+                    || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                    || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2) {
                     checkBranch(network, functionId);
                     LfBranch branch = lfNetwork.getBranchById(functionId);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -885,7 +894,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     throw createFunctionTypeNotSupportedException(functionType);
                 }
             } else {
-                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
+                if ((functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER ||
+                      functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 ||
+                      functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2)
+                     && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch branch = lfNetwork.getBranchById(functionId);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -901,16 +913,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     // => we create a multi (bi) variables factor
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
                     if (bus1 != null) {
-                        // VSC injection follow here a load sign convention as LCC injection.
                         // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1)
-                                * HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
+                        injectionLfBuses.put(bus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
                     }
                     if (bus2 != null) {
-                        // VSC injection follow here a load sign convention as LCC injection.
                         // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1)
-                                * HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
+                        injectionLfBuses.put(bus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
                     }
 
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
@@ -918,7 +926,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 } else {
                     LfElement functionElement;
                     LfElement variableElement;
-                    if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER) {
+                    if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
+                        || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                        || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2) {
                         checkBranch(network, functionId);
                         LfBranch branch = lfNetwork.getBranchById(functionId);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -932,7 +942,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
-                    } else if (functionType == SensitivityFunctionType.BRANCH_CURRENT) {
+                    } else if (functionType == SensitivityFunctionType.BRANCH_CURRENT
+                               || functionType == SensitivityFunctionType.BRANCH_CURRENT_1
+                               || functionType == SensitivityFunctionType.BRANCH_CURRENT_2) {
                         checkBranch(network, functionId);
                         LfBranch branch = lfNetwork.getBranchById(functionId);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -980,13 +992,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return hasTransformerBusTargetVoltage.get();
     }
 
-    public boolean isDistributedSlackOnGenerators(LoadFlowParameters lfParameters) {
+    public static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
                 && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
     }
 
-    public boolean isDistributedSlackOnLoads(LoadFlowParameters lfParameters) {
+    public static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
                 &&  (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
@@ -998,10 +1010,16 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
         switch (factor.getFunctionType()) {
             case BRANCH_ACTIVE_POWER:
+            case BRANCH_ACTIVE_POWER_1:
+            case BRANCH_ACTIVE_POWER_2:
                 return PerUnit.SB;
             case BRANCH_CURRENT:
+            case BRANCH_CURRENT_1:
                 LfBranch branch = (LfBranch) factor.getFunctionElement();
                 return PerUnit.ib(branch.getBus1().getNominalV());
+            case BRANCH_CURRENT_2:
+                LfBranch branch2 = (LfBranch) factor.getFunctionElement();
+                return PerUnit.ib(branch2.getBus2().getNominalV());
             case BUS_VOLTAGE:
                 LfBus bus = (LfBus) factor.getFunctionElement();
                 return bus.getNominalV();

@@ -105,6 +105,22 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
+    public BranchType getBranchType() {
+        if (leg == twt.getLeg1()) {
+            return BranchType.TRANSFO_3_LEG_1;
+        } else if (leg == twt.getLeg2()) {
+            return BranchType.TRANSFO_3_LEG_2;
+        } else {
+            return BranchType.TRANSFO_3_LEG_3;
+        }
+    }
+
+    @Override
+    public List<String> getOriginalIds() {
+        return List.of(twt.getId());
+    }
+
+    @Override
     public boolean hasPhaseControlCapability() {
         return leg.getPhaseTapChanger() != null;
     }
@@ -130,7 +146,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
         leg.getTerminal().setP(p.eval() * PerUnit.SB);
         leg.getTerminal().setQ(q.eval() * PerUnit.SB);
 

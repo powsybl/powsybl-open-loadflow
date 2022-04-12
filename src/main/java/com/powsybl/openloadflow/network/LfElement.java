@@ -6,12 +6,16 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface LfElement {
 
     String getId();
+
+    List<String> getOriginalIds();
 
     ElementType getType();
 
@@ -25,7 +29,7 @@ public interface LfElement {
 
     LfNetwork getNetwork();
 
-    Object getUserObject();
+    Object getUserObject(String name);
 
-    void setUserObject(Object userObject);
+    void setUserObject(String name, Object userObject);
 }

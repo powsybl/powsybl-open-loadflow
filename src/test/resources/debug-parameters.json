@@ -1,7 +1,7 @@
 {
   "version" : "1.0",
   "load-flow-parameters" : {
-    "version" : "1.6",
+    "version" : "1.7",
     "voltageInitMode" : "UNIFORM_VALUES",
     "transformerVoltageControlOn" : false,
     "phaseShifterRegulationOn" : false,
@@ -16,6 +16,7 @@
     "dcUseTransformerRatio" : true,
     "countriesToBalance" : [ ],
     "connectedComponentMode" : "MAIN",
+    "hvdcAcEmulation" : true,
     "extensions" : {
       "open-load-flow-parameters" : {
         "slackBusSelectionMode" : "NAME",
@@ -30,8 +31,7 @@
         "maxIteration" : 30,
         "newtonRaphsonConvEpsPerEq" : 1.0E-4,
         "voltageInitModeOverride" : "NONE",
-        "transformerVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
-        "hvdcAcEmulation" : false
+        "transformerVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL"
       }
     }
   },

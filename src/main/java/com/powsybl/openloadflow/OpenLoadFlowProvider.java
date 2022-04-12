@@ -8,6 +8,9 @@ package com.powsybl.openloadflow;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.config.PlatformConfig;
+import com.powsybl.commons.extensions.Extension;
+import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
@@ -40,10 +43,7 @@ import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -121,7 +121,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                 parameters.isTransformerVoltageControlOn(),
                                                 parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                                                 parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
-                                                    parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant());
+                                                    parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(), parameters.isDc());
             }
 
             LoadFlowResult.ComponentResult.Status status;
@@ -188,7 +188,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     parameters.isPhaseShifterRegulationOn(),
                     parameters.isTransformerVoltageControlOn(),
                     parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                    false);
+                    false, true);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(
@@ -207,8 +207,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     @Override
     public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, Reporter reporter) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(computationManager);
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(parameters);
+        Objects.requireNonNull(reporter);
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
@@ -228,6 +231,26 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             return result;
-        });
+        }, computationManager.getExecutor());
+    }
+
+    @Override
+    public Optional<ExtensionJsonSerializer> getSpecificParametersSerializer() {
+        return Optional.of(new OpenLoadFlowParameterJsonSerializer());
+    }
+
+    @Override
+    public Optional<Extension<LoadFlowParameters>> loadSpecificParameters(PlatformConfig platformConfig) {
+        return Optional.of(OpenLoadFlowParameters.load(platformConfig));
+    }
+
+    @Override
+    public Optional<Extension<LoadFlowParameters>> loadSpecificParameters(Map<String, String> properties) {
+        return Optional.of(OpenLoadFlowParameters.load(properties));
+    }
+
+    @Override
+    public List<String> getSpecificParametersNames() {
+        return OpenLoadFlowParameters.SPECIFIC_PARAMETERS_NAMES;
     }
 }

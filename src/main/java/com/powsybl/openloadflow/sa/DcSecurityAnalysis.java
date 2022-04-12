@@ -51,7 +51,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         List<SensitivityFactor> factors = new ArrayList<>();
         for (Branch<?> b : network.getBranches()) {
-            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
+            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
                     variableId, false, contingencyContext));
         }
         SensitivityAnalysisResult res = new SensitivityAnalysis.Runner(sensitivityAnalysisProvider)

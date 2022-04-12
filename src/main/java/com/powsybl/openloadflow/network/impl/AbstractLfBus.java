@@ -58,7 +58,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt controllerShunt;
 
-    protected final LfLoads lfLoads = new LfLoads();
+    protected final LfLoadsImpl lfLoads = new LfLoadsImpl();
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -155,7 +155,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public List<LfGenerator> getGeneratorsControllingVoltageWithSlope() {
-        return generators.stream().filter(gen -> gen.hasVoltageControl() && gen.getSlope() != 0).collect(Collectors.toList());
+        return generators.stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE && gen.getSlope() != 0).collect(Collectors.toList());
     }
 
     @Override
@@ -220,7 +220,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected void add(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
-        if (!generator.hasVoltageControl() && !Double.isNaN(generator.getTargetQ())) {
+        if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !Double.isNaN(generator.getTargetQ())) {
             generationTargetQ += generator.getTargetQ() * PerUnit.SB;
         }
     }
@@ -336,9 +336,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private double getLimitQ(ToDoubleFunction<LfGenerator> limitQ) {
         return generators.stream()
-                .mapToDouble(generator -> generator.hasVoltageControl() ? limitQ.applyAsDouble(generator)
-                                                                        : generator.getTargetQ())
-                .sum();
+                .mapToDouble(generator -> generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ?
+                        limitQ.applyAsDouble(generator) : generator.getTargetQ()).sum();
     }
 
     @Override
@@ -397,7 +396,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public LfLoads getLfLoads() {
+    public LfLoads getLoads() {
         return lfLoads;
     }
 
@@ -441,7 +440,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         double qToDispatch = generationQ / PerUnit.SB;
         List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
         for (LfGenerator generator : generators) {
-            if (generator.hasVoltageControl()) {
+            if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
                 generatorsThatControlVoltage.add(generator);
             } else {
                 qToDispatch -= generator.getTargetQ();
