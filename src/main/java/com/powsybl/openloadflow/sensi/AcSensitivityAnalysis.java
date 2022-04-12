@@ -110,7 +110,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            Map<LfBus, Double> participationByBus,
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                            int contingencyIndex, SensitivityValueWriter valueWriter,
-                                                           Reporter reporter, boolean hasTransformerBusTargetVoltage) {
+                                                           Reporter reporter) {
         for (LfBranch branch : lfContingency.getBranches()) {
             branch.setDisabled(true);
         }
@@ -276,7 +276,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             lfFactor.setFunctionPredefinedResult(0d);
                         });
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, slackParticipationByBus, lfParameters,
-                        lfParametersExt, lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
+                        lfParametersExt, lfContingency.getIndex(), valueWriter, reporter);
 
                 networkState.restore();
             }
@@ -313,7 +313,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 }
 
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, slackParticipationByBusForThisConnectivity,
-                    lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage);
+                    lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, reporter);
 
                 networkState.restore();
 
