@@ -178,24 +178,24 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector,
-                connectivityFactory,
-                lfParametersExt.hasVoltageRemoteControl(),
-                true,
-                lfParameters.isTwtSplitShuntAdmittance(),
-                false,
-                lfParametersExt.getPlausibleActivePowerLimit(),
-                false,
-                true,
-                lfParameters.getCountriesToBalance(),
-                lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isPhaseShifterRegulationOn(),
-                lfParameters.isTransformerVoltageControlOn(),
-                lfParametersExt.isVoltagePerReactivePowerControl(),
-                lfParametersExt.hasReactivePowerRemoteControl(),
-                lfParameters.isDc(),
-                lfParameters.isShuntCompensatorVoltageControlOn(),
-                !lfParameters.isNoGeneratorReactiveLimits(),
-                lfParameters.isHvdcAcEmulation());
+                                                                          connectivityFactory,
+                                                                          lfParametersExt.hasVoltageRemoteControl(),
+                                                                          true,
+                                                                          lfParameters.isTwtSplitShuntAdmittance(),
+                                                                          false,
+                                                                          lfParametersExt.getPlausibleActivePowerLimit(),
+                                                                          false,
+                                                                          true,
+                                                                          lfParameters.getCountriesToBalance(),
+                                                                          lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                                          lfParameters.isPhaseShifterRegulationOn(),
+                                                                          lfParameters.isTransformerVoltageControlOn(),
+                                                                          lfParametersExt.isVoltagePerReactivePowerControl(),
+                                                                          lfParametersExt.hasReactivePowerRemoteControl(),
+                                                                          lfParameters.isDc(),
+                                                                          lfParameters.isShuntCompensatorVoltageControlOn(),
+                                                                          !lfParameters.isNoGeneratorReactiveLimits(),
+                                                                          lfParameters.isHvdcAcEmulation());
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
