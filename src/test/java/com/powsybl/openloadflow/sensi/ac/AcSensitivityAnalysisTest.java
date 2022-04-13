@@ -13,6 +13,7 @@ import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
@@ -928,5 +929,24 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(0.442, result.getBranchFlow1SensitivityValue("d2", "l25"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testWithPhaseControlOn() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83);
+        SensitivityAnalysisParameters sensiParameters = createParameters(false);
+        sensiParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
+        LoadFlow.run(network, sensiParameters.getLoadFlowParameters());
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                List.of("L1", "L2", "PS1"), SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("G1"), false, ContingencyContext.none());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), result.getBranchFlow1FunctionReferenceValue(null, "PS1"), LoadFlowAssert.DELTA_POWER);
     }
 }
