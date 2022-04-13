@@ -26,20 +26,42 @@ public final class Networks {
     private Networks() {
     }
 
+    private static <T extends Injection<T>> void resetInjectionsState(Iterable<T> injections) {
+        for (T injection : injections) {
+            injection.getTerminal().setP(Double.NaN)
+                    .setQ(Double.NaN);
+        }
+    }
+
     public static void resetState(Network network) {
         for (Bus b : network.getBusView().getBuses()) {
-            b.setV(Double.NaN);
-            b.setAngle(Double.NaN);
+            b.setV(Double.NaN)
+                    .setAngle(Double.NaN);
+        }
+        for (Branch<?> b : network.getBranches()) {
+            b.getTerminal1().setP(Double.NaN)
+                    .setQ(Double.NaN);
+            b.getTerminal2().setP(Double.NaN)
+                    .setQ(Double.NaN);
+        }
+        for (ThreeWindingsTransformer twt : network.getThreeWindingsTransformers()) {
+            twt.getLeg1().getTerminal().setP(Double.NaN)
+                    .setQ(Double.NaN);
+            twt.getLeg2().getTerminal().setP(Double.NaN)
+                    .setQ(Double.NaN);
+            twt.getLeg3().getTerminal().setP(Double.NaN)
+                    .setQ(Double.NaN);
         }
         for (ShuntCompensator sc : network.getShuntCompensators()) {
             sc.getTerminal().setQ(Double.NaN);
         }
-        for (Branch<?> b : network.getBranches()) {
-            b.getTerminal1().setP(Double.NaN);
-            b.getTerminal1().setQ(Double.NaN);
-            b.getTerminal2().setP(Double.NaN);
-            b.getTerminal2().setQ(Double.NaN);
-        }
+        resetInjectionsState(network.getGenerators());
+        resetInjectionsState(network.getStaticVarCompensators());
+        resetInjectionsState(network.getVscConverterStations());
+        resetInjectionsState(network.getLoads());
+        resetInjectionsState(network.getLccConverterStations());
+        resetInjectionsState(network.getBatteries());
+        resetInjectionsState(network.getDanglingLines());
     }
 
     private static double getDoubleProperty(Identifiable<?> identifiable, String name) {
