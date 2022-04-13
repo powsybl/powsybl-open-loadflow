@@ -25,9 +25,9 @@ public class LfContingency {
 
     private final int index;
 
-    private final Set<LfBus> buses;
+    private final Set<LfBus> disabledBuses;
 
-    private final Set<LfBranch> branches;
+    private final Set<LfBranch> disabledBranches;
 
     private final Map<LfShunt, Double> shuntsShift;
 
@@ -39,16 +39,16 @@ public class LfContingency {
 
     private double activePowerLoss = 0;
 
-    public LfContingency(String id, int index, Set<LfBus> buses, Set<LfBranch> branches, Map<LfShunt, Double> shuntsShift,
+    public LfContingency(String id, int index, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Map<LfShunt, Double> shuntsShift,
                          Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> generators) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
-        this.buses = Objects.requireNonNull(buses);
-        this.branches = Objects.requireNonNull(branches);
+        this.disabledBuses = Objects.requireNonNull(disabledBuses);
+        this.disabledBranches = Objects.requireNonNull(disabledBranches);
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
         this.busesLoadShift = Objects.requireNonNull(busesLoadShift);
         this.generators = Objects.requireNonNull(generators);
-        for (LfBus bus : buses) {
+        for (LfBus bus : disabledBuses) {
             activePowerLoss += bus.getGenerationTargetP() - bus.getLoadTargetP();
         }
         for (Map.Entry<LfBus, PowerShift> e : busesLoadShift.entrySet()) {
@@ -67,12 +67,12 @@ public class LfContingency {
         return index;
     }
 
-    public Set<LfBus> getBuses() {
-        return buses;
+    public Set<LfBus> getDisabledBuses() {
+        return disabledBuses;
     }
 
-    public Set<LfBranch> getBranches() {
-        return branches;
+    public Set<LfBranch> getDisabledBranches() {
+        return disabledBranches;
     }
 
     public Map<LfShunt, Double> getShuntsShift() {
@@ -92,10 +92,10 @@ public class LfContingency {
     }
 
     public void apply(LoadFlowParameters.BalanceType balanceType) {
-        for (LfBranch branch : branches) {
+        for (LfBranch branch : disabledBranches) {
             branch.setDisabled(true);
         }
-        for (LfBus bus : buses) {
+        for (LfBus bus : disabledBuses) {
             bus.setDisabled(true);
         }
         for (var e : shuntsShift.entrySet()) {
@@ -172,11 +172,11 @@ public class LfContingency {
             jsonGenerator.writeStringField("id", id);
 
             jsonGenerator.writeFieldName("buses");
-            int[] sortedBuses = buses.stream().mapToInt(LfBus::getNum).sorted().toArray();
+            int[] sortedBuses = disabledBuses.stream().mapToInt(LfBus::getNum).sorted().toArray();
             jsonGenerator.writeArray(sortedBuses, 0, sortedBuses.length);
 
             jsonGenerator.writeFieldName("branches");
-            int[] sortedBranches = branches.stream().mapToInt(LfBranch::getNum).sorted().toArray();
+            int[] sortedBranches = disabledBranches.stream().mapToInt(LfBranch::getNum).sorted().toArray();
             jsonGenerator.writeArray(sortedBranches, 0, sortedBranches.length);
 
             jsonGenerator.writeEndObject();

@@ -575,7 +575,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
             NetworkState networkState = NetworkState.save(lfNetwork);
-            Optional<LfContingency> lfContingency = contingency.toLfContingency(lfNetwork, lfNetwork.getConnectivity(), true);
+            Optional<LfContingency> lfContingency = contingency.toLfContingency(lfNetwork, true);
             Set<LfGenerator> participatingGeneratorsToRemove = new HashSet<>();
             if (lfContingency.isPresent()) {
                 lfContingency.get().apply(lfParameters.getBalanceType());
