@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +64,7 @@ public class AcloadFlowEngine {
                 LOGGER.debug("Start outer loop iteration {} (name='{}')", outerLoopIteration, outerLoop.getType());
 
                 // if not yet stable, restart Newton-Raphson
-                runningContext.lastNrResult = newtonRaphson.run(reporter);
+                runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer(), reporter);
                 if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
                     return;
                 }
@@ -79,6 +81,12 @@ public class AcloadFlowEngine {
     public AcLoadFlowResult run(Reporter reporter) {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
+        VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
+        // in case of a DC voltage initializer, an DC equation system in created and equations are attached
+        // to the network. It is important that DC init is done before AC equation system is created by
+        // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
+        voltageInitializer.prepare(context.getNetwork());
+
         RunningContext runningContext = new RunningContext();
         NewtonRaphson newtonRaphson = new NewtonRaphson(context.getNetwork(), context.getParameters().getNewtonRaphsonParameters(),
                 context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector());
@@ -89,7 +97,7 @@ public class AcloadFlowEngine {
         }
 
         // run initial Newton-Raphson
-        runningContext.lastNrResult = newtonRaphson.run(reporter);
+        runningContext.lastNrResult = newtonRaphson.run(voltageInitializer, reporter);
 
         // continue with outer loops only if initial Newton-Raphson succeed
         if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {

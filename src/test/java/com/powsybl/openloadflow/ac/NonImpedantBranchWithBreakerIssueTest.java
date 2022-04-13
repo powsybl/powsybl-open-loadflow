@@ -59,12 +59,11 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                         true,
                                                                         false);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
-        NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
-                .setVoltageInitializer(new UniformValueVoltageInitializer());
+        NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),
-                                                                             new DenseMatrixFactory());
+                                                                             new DenseMatrixFactory(), new UniformValueVoltageInitializer());
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -104,11 +103,10 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                         false);
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
-        NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters()
-                .setVoltageInitializer(new UniformValueVoltageInitializer());
+        NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),
-                                                                             new DenseMatrixFactory());
+                                                                             new DenseMatrixFactory(), new UniformValueVoltageInitializer());
         try (var context = new AcLoadFlowContext(lfNetwork, acLoadFlowParameters)) {
             new AcloadFlowEngine(context)
                     .run();

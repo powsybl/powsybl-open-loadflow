@@ -537,7 +537,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory, reporter);
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
-                .setVoltageInitializer(voltageInitializer)
                 .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
                 .setMaxIteration(parametersExt.getMaxIteration());
 
@@ -547,7 +546,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return new AcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,
                                         newtonRaphsonParameters,
-                                        outerLoops, matrixFactory);
+                                        outerLoops,
+                                        matrixFactory,
+                                        voltageInitializer);
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
