@@ -576,10 +576,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // save base state for later restoration after each contingency
             NetworkState networkState = NetworkState.save(lfNetwork);
             Optional<LfContingency> lfContingency = contingency.toLfContingency(lfNetwork, true);
-            Set<LfGenerator> participatingGeneratorsToRemove = new HashSet<>();
             if (lfContingency.isPresent()) {
                 lfContingency.get().apply(lfParameters.getBalanceType());
-                participatingGeneratorsToRemove = lfContingency.get().getParticipatingGeneratorsToBeRemoved();
             }
             List<ParticipatingElement> newParticipatingElements = participatingElements;
             DenseMatrix newFactorStates = factorStates;
@@ -594,6 +592,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
             if (participatingElementsChanged) {
                 if (isDistributedSlackOnGenerators(lfParameters)) {
+                    Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.get().getParticipatingGeneratorsToBeRemoved();
                     // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
                     Set<LfGenerator> finalParticipatingGeneratorsToRemove = participatingGeneratorsToRemove;
                     newParticipatingElements = participatingElements.stream()
