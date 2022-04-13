@@ -11,10 +11,10 @@ import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -35,8 +35,8 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     }
 
     @Override
-    public List<ParticipatingElement> getParticipatingElements(Stream<LfBus> buses) {
-        return buses
+    public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
+        return buses.stream()
                 .filter(bus -> bus.getLoads().getLoadCount() > 0 && bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .map(bus -> new ParticipatingElement(bus, getParticipationFactor(bus)))
                 .collect(Collectors.toList());

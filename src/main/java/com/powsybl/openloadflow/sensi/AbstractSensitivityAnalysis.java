@@ -592,7 +592,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected List<ParticipatingElement> getParticipatingElements(LfNetwork network, Set<LfBus> disabledBuses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
         ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant());
-        Stream<LfBus> nonDisabledBuses = network.getBuses().stream().filter(Predicate.not(disabledBuses::contains));
+        List<LfBus> nonDisabledBuses = network.getBuses().stream().filter(Predicate.not(disabledBuses::contains)).collect(Collectors.toList());
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(nonDisabledBuses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
         return participatingElements;

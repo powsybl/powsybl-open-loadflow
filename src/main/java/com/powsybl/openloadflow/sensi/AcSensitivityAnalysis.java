@@ -298,9 +298,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     lfFactor.setSensitivityValuePredefinedResult(null);
                     lfFactor.setFunctionPredefinedResult(null); });
 
-                setPredefinedResults(contingencyFactors, lfContingency.getBuses(), propagatedContingencyMap.get(lfContingency.getId())); // check if factors are still in the main component
+                setPredefinedResults(contingencyFactors, lfContingency.getDisabledBuses(), propagatedContingencyMap.get(lfContingency.getId())); // check if factors are still in the main component
 
-                rescaleGlsk(factorGroups, lfContingency.getBuses());
+                rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
 
                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
                 // buses that contain elements participating to slack distribution
@@ -308,7 +308,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 if (lfParameters.isDistributedSlack()) {
                     List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
-                            lfNetwork, lfContingency.getBuses(), lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the loadflow
+                            lfNetwork, lfContingency.getDisabledBuses(), lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the loadflow
                     slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
                         ParticipatingElement::getLfBus,
                         element -> -element.getFactor(),
