@@ -576,40 +576,39 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // save base state for later restoration after each contingency
             NetworkState networkState = NetworkState.save(lfNetwork);
             Optional<LfContingency> lfContingency = contingency.toLfContingency(lfNetwork, true);
+            DenseMatrix newFactorStates = factorStates;
+            List<ParticipatingElement> newParticipatingElements = participatingElements;
+            boolean participatingElementsChanged = false;
+            boolean rhsChanged = false;
             if (lfContingency.isPresent()) {
                 lfContingency.get().apply(lfParameters.getBalanceType());
-            }
-            List<ParticipatingElement> newParticipatingElements = participatingElements;
-            DenseMatrix newFactorStates = factorStates;
-            boolean participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
-                    || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToShift().isEmpty());
-            boolean rhsChanged = false;
-            if (hasMultiVariables) {
-                if (lfContingency.isPresent()) {
+                participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
+                        || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToShift().isEmpty());
+                if (hasMultiVariables) {
                     Set<LfBus> affectedBuses = lfContingency.get().getLoadAndGeneratorBuses();
                     rhsChanged = rescaleGlsk(factorGroups, affectedBuses);
                 }
-            }
-            if (participatingElementsChanged) {
-                if (isDistributedSlackOnGenerators(lfParameters)) {
-                    Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.get().getParticipatingGeneratorsToBeRemoved();
-                    // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
-                    Set<LfGenerator> finalParticipatingGeneratorsToRemove = participatingGeneratorsToRemove;
-                    newParticipatingElements = participatingElements.stream()
-                            .filter(participatingElement -> !finalParticipatingGeneratorsToRemove.contains(participatingElement.getElement()))
-                            .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
-                            .collect(Collectors.toList());
-                    normalizeParticipationFactors(newParticipatingElements, "LfGenerators");
-                } else { // slack distribution on loads
-                    newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+                if (participatingElementsChanged) {
+                    if (isDistributedSlackOnGenerators(lfParameters)) {
+                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.get().getParticipatingGeneratorsToBeRemoved();
+                        // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
+                        Set<LfGenerator> finalParticipatingGeneratorsToRemove = participatingGeneratorsToRemove;
+                        newParticipatingElements = participatingElements.stream()
+                                .filter(participatingElement -> !finalParticipatingGeneratorsToRemove.contains(participatingElement.getElement()))
+                                .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
+                                .collect(Collectors.toList());
+                        normalizeParticipationFactors(newParticipatingElements, "LfGenerators");
+                    } else { // slack distribution on loads
+                        newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+                    }
                 }
-            }
-            if (participatingElementsChanged || rhsChanged) {
-                newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
+                if (participatingElementsChanged || rhsChanged) {
+                    newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
+                }
             }
 
             DenseMatrix newFlowStates = setReferenceActivePowerFlows(lfNetwork, lfParameters, equationSystem, j, factors,
-                newParticipatingElements, disabledBuses, disabledBranches, reporter);
+                    newParticipatingElements, disabledBuses, disabledBranches, reporter);
 
             calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
 
