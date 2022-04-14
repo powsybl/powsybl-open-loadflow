@@ -10,6 +10,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 import java.util.List;
 import java.util.Objects;
@@ -30,13 +31,17 @@ public class AcLoadFlowParameters {
 
     private final MatrixFactory matrixFactory;
 
+    private VoltageInitializer voltageInitializer;
+
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
-                                NewtonRaphsonParameters newtonRaphsonParameters, List<OuterLoop> outerLoops, MatrixFactory matrixFactory) {
+                                NewtonRaphsonParameters newtonRaphsonParameters, List<OuterLoop> outerLoops, MatrixFactory matrixFactory,
+                                VoltageInitializer voltageInitializer) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
     }
 
     public LfNetworkParameters getNetworkParameters() {
@@ -59,6 +64,14 @@ public class AcLoadFlowParameters {
         return matrixFactory;
     }
 
+    public VoltageInitializer getVoltageInitializer() {
+        return voltageInitializer;
+    }
+
+    public void setVoltageInitializer(VoltageInitializer voltageInitializer) {
+        this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -67,6 +80,7 @@ public class AcLoadFlowParameters {
                 ", newtonRaphsonParameters=" + newtonRaphsonParameters +
                 ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).collect(Collectors.toList()) +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
+                ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
                 ')';
     }
 }
