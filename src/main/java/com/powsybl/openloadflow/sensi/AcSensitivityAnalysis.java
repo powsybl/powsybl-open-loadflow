@@ -122,7 +122,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             activePowerDistribution.run(lfNetwork, lfContingency.getActivePowerLoss());
         }
 
-        context.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         new AcloadFlowEngine(context)
                 .run(reporter);
 

@@ -13,7 +13,6 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -165,15 +164,10 @@ public class NewtonRaphson {
         }
     }
 
-    public NewtonRaphsonResult run(Reporter reporter) {
+    public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
         Objects.requireNonNull(reporter);
 
         // initialize state vector
-        VoltageInitializer voltageInitializer = iteration == 0 ? parameters.getVoltageInitializer()
-                                                               : new PreviousValueVoltageInitializer();
-
-        voltageInitializer.prepare(network);
-
         initStateVector(network, equationSystem, voltageInitializer);
 
         // initialize mismatch vector (difference between equation values and targets)
