@@ -139,7 +139,7 @@ public class PropagatedContingency {
                                                 boolean withBreakers, boolean slackDistributionOnConformLoad) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
-        Set<String> branchIdsToOpen = new HashSet<>();
+        Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<Load> loadsToLose = new HashSet<>();
         Set<Generator> generatorsToLose = new HashSet<>();
