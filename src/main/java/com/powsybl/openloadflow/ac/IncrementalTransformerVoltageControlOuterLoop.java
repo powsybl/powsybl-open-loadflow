@@ -70,10 +70,10 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 PiModel piModel = controllerBranch.getPiModel();
                 if (difference > 0) {
                     // we need to increase the voltage at controlled bus.
-                    success = sensitivity > 0 ? piModel.updateTapPosition(PiModel.Direction.INCREASE) : piModel.updateTapPosition(PiModel.Direction.DECREASE);
+                    success = sensitivity > 0 ? piModel.increaseTapPosition() : piModel.decreaseTapPosition();
                 } else if (difference < 0) {
                     // we need to decrease the voltage at controlled bus.
-                    success = sensitivity > 0 ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
+                    success = sensitivity > 0 ? piModel.decreaseTapPosition() : piModel.increaseTapPosition();
                 }
             }
         }
@@ -87,7 +87,9 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             Variable var = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1);
             for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getSortedEquationsToSolve().keySet()) {
                 equation.getTerms().stream().filter(term -> term.getVariables().stream().filter(v -> v.equals(var)).findAny().isPresent()).forEach(t -> {
-                    rhs.set(equation.getColumn(), controllerBranches.indexOf(branch), t.der(var));
+                    if (equation.getType().equals(AcEquationType.BRANCH_TARGET_RHO1)) {
+                        rhs.set(equation.getColumn(), controllerBranches.indexOf(branch), t.der(var));
+                    }
                 });
             }
         }

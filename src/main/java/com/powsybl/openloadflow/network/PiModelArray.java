@@ -191,6 +191,38 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
+    public boolean increaseTapPosition() {
+        boolean hasChange = false;
+        int oldTapPosition = tapPosition;
+        if (tapPosition < lowTapPosition + models.size() - 1) {
+            tapPosition = tapPosition + 1;
+            hasChange = true;
+        }
+        if (hasChange) {
+            for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
+                listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
+            }
+        }
+        return hasChange;
+    }
+
+    @Override
+    public boolean decreaseTapPosition() {
+        boolean hasChange = false;
+        int oldTapPosition = tapPosition;
+        if (tapPosition > lowTapPosition) {
+            tapPosition = tapPosition - 1;
+            hasChange = true;
+        }
+        if (hasChange) {
+            for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
+                listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
+            }
+        }
+        return hasChange;
+    }
+
+    @Override
     public boolean setMinZ(double minZ, boolean dc) {
         boolean done = false;
         for (PiModel model : models) {

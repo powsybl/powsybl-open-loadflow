@@ -140,6 +140,16 @@ public class SimplePiModel implements PiModel {
         throw new IllegalStateException("No tap position change in simple Pi model implementation");
     }
 
+    @Override
+    public boolean increaseTapPosition() {
+        throw new IllegalStateException("No tap position change in simple Pi model implementation");
+    }
+
+    @Override
+    public boolean decreaseTapPosition() {
+        throw new IllegalStateException("No tap position change in simple Pi model implementation");
+    }
+
     private void rescaleZ(double z) {
         double ksi = getKsi();
         r = z * FastMath.cos(ksi);
