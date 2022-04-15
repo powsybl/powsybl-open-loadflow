@@ -272,10 +272,10 @@ public class PropagatedContingency {
                 .collect(Collectors.toSet());
 
         // update connectivity with triggered branches
-        GraphDecrementalConnectivity<LfBus> connectivity = network.getConnectivity();
-        for (LfBranch branch : branches) {
-            connectivity.cut(branch.getBus1(), branch.getBus2());
-        }
+        GraphDecrementalConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        branches.stream()
+                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .forEach(connectivity::cut);
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state

@@ -9,10 +9,10 @@ package com.powsybl.openloadflow.graph;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class MinimumSpanningTreeGraphDecrementalConnectivityFactory<V> implements GraphDecrementalConnectivityFactory<V> {
+public class MinimumSpanningTreeGraphDecrementalConnectivityFactory<V, E> implements GraphDecrementalConnectivityFactory<V, E> {
 
     @Override
-    public GraphDecrementalConnectivity<V> create() {
+    public GraphDecrementalConnectivity<V, E> create() {
         return new MinimumSpanningTreeGraphDecrementalConnectivity<>();
     }
 }

@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
  */
 public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariableType, AcEquationType> {
 
-    public AcSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    public AcSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         super(matrixFactory, connectivityFactory);
     }
 

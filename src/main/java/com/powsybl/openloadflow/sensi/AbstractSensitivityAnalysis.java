@@ -52,9 +52,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected final MatrixFactory matrixFactory;
 
-    protected final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    protected final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
@@ -604,10 +604,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> breakingConnectivityCandidates) {
+    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, Collection<String> breakingConnectivityCandidates) {
         breakingConnectivityCandidates.stream()
             .map(lfNetwork::getBranchById)
-            .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
+            .filter(b -> b.getBus1() != null && b.getBus2() != null)
+            .forEach(connectivity::cut);
     }
 
     protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Set<String> branchIdsToOpen) {

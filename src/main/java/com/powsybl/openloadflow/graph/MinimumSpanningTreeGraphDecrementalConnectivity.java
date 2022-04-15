@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.commons.PowsyblException;
 import org.apache.commons.lang3.tuple.Triple;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements GraphDecrementalConnectivity<V> {
+public class MinimumSpanningTreeGraphDecrementalConnectivity<V, E> implements GraphDecrementalConnectivity<V, E> {
 
     private SpanningTrees mstOrigin;
     private SpanningTrees mst;
@@ -40,32 +41,30 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
     }
 
     @Override
-    public void addEdge(V vertex1, V vertex2) {
-        if (vertex1 == null || vertex2 == null) {
-            return;
-        }
-        graph.addEdge(vertex1, vertex2, new Object());
+    public void addEdge(V vertex1, V vertex2, E edge) {
+        Objects.requireNonNull(vertex1);
+        Objects.requireNonNull(vertex2);
+        graph.addEdge(vertex1, vertex2, edge);
     }
 
     @Override
-    public void cut(V vertex1, V vertex2) {
-        if (vertex1 == null || vertex2 == null) {
-            return;
+    public void cut(E edge) {
+        if (!graph.containsEdge(edge)) {
+            throw new PowsyblException("No such edge in graph: " + edge);
         }
-
         if (this.mstOrigin == null) {
             this.mstOrigin = new KruskalMinimumSpanningTrees().getSpanningTree();
             resetMst();
         }
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
-        Object e = graph.removeEdge(vertex1, vertex2);
 
-        if (mst != null && mst.getEdges().contains(e)) {
+        if (mst != null && mst.getEdges().contains(edge)) {
             invalidateMst();
         }
 
-        cutEdges.add(Triple.of(vertex1, vertex2, e));
+        V vertex1 = graph.getEdgeSource(edge);
+        V vertex2 = graph.getEdgeTarget(edge);
+        graph.removeEdge(edge);
+        cutEdges.add(Triple.of(vertex1, vertex2, edge));
     }
 
     @Override

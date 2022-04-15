@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     protected AcSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
-                                 MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory, List<StateMonitor> stateMonitors) {
+                                 MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory, List<StateMonitor> stateMonitors) {
         super(network, detector, filter, matrixFactory, connectivityFactory, stateMonitors);
     }
 

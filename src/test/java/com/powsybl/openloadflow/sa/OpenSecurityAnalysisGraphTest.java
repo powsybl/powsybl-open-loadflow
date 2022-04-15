@@ -136,7 +136,7 @@ class OpenSecurityAnalysisGraphTest {
         }
     }
 
-    List<List<LfContingency>> getLoadFlowContingencies(GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    List<List<LfContingency>> getLoadFlowContingencies(GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
 
         var matrixFactory = new DenseMatrixFactory();
         AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
