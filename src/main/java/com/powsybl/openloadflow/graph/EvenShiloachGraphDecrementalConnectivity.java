@@ -38,7 +38,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
     private final Map<V, LevelNeighbours> levelNeighboursMap;
 
     private final List<Triple<V, E, V>> cutEdges;
-    private final List<Triple<V, E, V>> unprocessedCutEdges;
+    private final List<E> edgesToCut;
     private final Set<V> vertices;
 
     private final LinkedList<Map<V, LevelNeighbours>> allSavedChangedLevels;
@@ -48,7 +48,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
 
     public EvenShiloachGraphDecrementalConnectivity() {
         this.cutEdges = new ArrayList<>();
-        this.unprocessedCutEdges = new ArrayList<>();
+        this.edgesToCut = new ArrayList<>();
         this.newConnectedComponents = new ArrayList<>();
         this.vertexToConnectedComponent = new HashMap<>();
         this.levelNeighboursMap = new HashMap<>();
@@ -78,9 +78,10 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
     }
 
     private void invalidateInit() {
+        edgesToCut.forEach(graph::removeEdge);
         init = false;
         cutEdges.clear();
-        unprocessedCutEdges.clear();
+        edgesToCut.clear();
         newConnectedComponents.clear();
         invalidateVertexMapCache();
     }
@@ -90,14 +91,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
         if (!graph.containsEdge(edge)) {
             throw new PowsyblException("No such edge in graph: " + edge);
         }
-        Triple<V, E, V> edgeCut = Triple.of(graph.getEdgeSource(edge), edge, graph.getEdgeTarget(edge));
-        if (unprocessedCutEdges.contains(edgeCut)) {
+        if (edgesToCut.contains(edge)) {
             throw new PowsyblException("Edge already cut: " + edge);
         }
         invalidateVertexMapCache();
 
-        cutEdges.add(edgeCut);
-        unprocessedCutEdges.add(edgeCut);
+        edgesToCut.add(edge);
     }
 
     private void invalidateVertexMapCache() {
@@ -172,15 +171,16 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
     }
 
     private void lazyComputeConnectivity() {
-        if (init && unprocessedCutEdges.isEmpty()) {
+        if (init && edgesToCut.isEmpty()) {
             return;
         }
 
         init();
-        for (Triple<V, E, V> cutEdge : unprocessedCutEdges) {
-            V vertex1 = cutEdge.getLeft();
-            V vertex2 = cutEdge.getRight();
-            graph.removeEdge(vertex1, vertex2);
+        for (E edgeToCut : edgesToCut) {
+            V vertex1 = graph.getEdgeSource(edgeToCut);
+            V vertex2 = graph.getEdgeTarget(edgeToCut);
+            cutEdges.add(Triple.of(vertex1, edgeToCut, vertex2));
+            graph.removeEdge(edgeToCut);
 
             GraphProcess processA = new GraphProcessA(vertex1, vertex2);
             GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
@@ -197,7 +197,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
                 allSavedChangedLevels.add(processB.savedChangedLevels);
             }
         }
-        unprocessedCutEdges.clear();
+        edgesToCut.clear();
 
         sortComponents();
     }
