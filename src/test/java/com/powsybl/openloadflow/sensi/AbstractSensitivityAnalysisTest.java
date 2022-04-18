@@ -441,7 +441,10 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         List<Contingency> contingencies = List.of(new Contingency("C", new SwitchContingency("C")));
 
-        var e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters));
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+
+        var e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Switch opening not supported in sensitivity analysis", e.getCause().getMessage());
     }
 }

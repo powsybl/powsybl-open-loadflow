@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -1363,5 +1364,18 @@ class OpenSecurityAnalysisTest {
         assertEquals(-3.895, postContingencyResult.getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(603.769, postContingencyResult.getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-596.104, postContingencyResult.getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSwitchContingencyNotFound() {
+        Network network = createNodeBreakerNetwork();
+
+        List<Contingency> contingencies = List.of(new Contingency("X", new SwitchContingency("X")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        var e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Switch 'X' not found in the network", e.getCause().getMessage());
     }
 }
