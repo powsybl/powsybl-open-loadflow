@@ -185,7 +185,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
 
         // restart LF on post contingency equation system
-        context.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         AcLoadFlowResult postContingencyLoadFlowResult = new AcloadFlowEngine(context)
                 .run(Reporter.NO_OP);
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;

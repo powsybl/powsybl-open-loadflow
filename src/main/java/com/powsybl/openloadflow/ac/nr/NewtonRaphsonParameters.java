@@ -6,9 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
-import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
-import com.powsybl.openloadflow.network.util.VoltageInitializer;
-
 import java.util.Objects;
 
 /**
@@ -19,8 +16,6 @@ public class NewtonRaphsonParameters {
     public static final int DEFAULT_MAX_ITERATION = 30;
 
     private int maxIteration = DEFAULT_MAX_ITERATION;
-
-    private VoltageInitializer voltageInitializer = new UniformValueVoltageInitializer();
 
     public int getMaxIteration() {
         return maxIteration;
@@ -40,15 +35,6 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
-    public VoltageInitializer getVoltageInitializer() {
-        return voltageInitializer;
-    }
-
-    public NewtonRaphsonParameters setVoltageInitializer(VoltageInitializer voltageInitializer) {
-        this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
-        return this;
-    }
-
     public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
         return stoppingCriteria;
     }
@@ -62,7 +48,6 @@ public class NewtonRaphsonParameters {
     public String toString() {
         return "NewtonRaphsonParameters(" +
                 "maxIteration=" + maxIteration +
-                ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ')';
     }
