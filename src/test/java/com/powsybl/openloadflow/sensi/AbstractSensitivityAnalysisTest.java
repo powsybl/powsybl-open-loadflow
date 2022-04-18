@@ -13,6 +13,7 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.SwitchContingency;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
@@ -24,9 +25,11 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
@@ -426,5 +429,19 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult resultInjection = sensiRunner.run(network, factorsInjection, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
         assertEquals(resultInjection.getValues().iterator().next().getValue(), result.getValues().iterator().next().getValue(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSwitchContingency() {
+        Network network = NodeBreakerNetworkFactory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL1_0");
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("L1", "LD"));
+
+        List<Contingency> contingencies = List.of(new Contingency("C", new SwitchContingency("C")));
+
+        var e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters));
+        assertEquals("Switch opening not supported in sensitivity analysis", e.getCause().getMessage());
     }
 }

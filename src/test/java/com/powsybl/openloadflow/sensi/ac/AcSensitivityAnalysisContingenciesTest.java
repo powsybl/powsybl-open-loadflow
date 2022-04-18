@@ -754,18 +754,4 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(100.080, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(100.080, result.getBranchFlow1FunctionReferenceValue("additionnalline_0", "l12"), LoadFlowAssert.DELTA_POWER);
     }
-
-    @Test
-    void testSwitchContingency() {
-        Network network = NodeBreakerNetworkFactory.create();
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL1_0");
-
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("L1", "LD"),
-                createBranchFlowPerInjectionIncrease("L2", "LD"));
-
-        List<Contingency> contingencies = List.of(new Contingency("C", new SwitchContingency("C")));
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
-    }
 }

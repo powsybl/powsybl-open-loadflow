@@ -688,6 +688,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
+            if (!contingency.getSwitchesToOpen().isEmpty()) {
+                throw new PowsyblException("Switch opening not supported in sensitivity analysis");
+            }
+
             // check ID are unique because, later contingency are indexed by their IDs
             String contingencyId = contingency.getContingency().getId();
             if (contingenciesIds.contains(contingencyId)) {

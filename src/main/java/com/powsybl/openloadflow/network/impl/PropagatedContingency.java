@@ -56,6 +56,10 @@ public class PropagatedContingency {
         return branchIdsToOpen;
     }
 
+    public Set<Switch> getSwitchesToOpen() {
+        return switchesToOpen;
+    }
+
     public Set<String> getHvdcIdsToOpen() {
         return hvdcIdsToOpen;
     }
