@@ -56,6 +56,10 @@ public class PropagatedContingency {
         return branchIdsToOpen;
     }
 
+    public Set<Switch> getSwitchesToOpen() {
+        return switchesToOpen;
+    }
+
     public Set<String> getHvdcIdsToOpen() {
         return hvdcIdsToOpen;
     }
@@ -190,6 +194,13 @@ public class PropagatedContingency {
                         throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
                     }
                     shuntsToLose.add(shuntCompensator);
+                    break;
+                case SWITCH:
+                    Switch aSwitch = network.getSwitch(element.getId());
+                    if (aSwitch == null) {
+                        throw new PowsyblException("Switch '" + element.getId() + "' not found in the network");
+                    }
+                    switchesToOpen.add(aSwitch);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
