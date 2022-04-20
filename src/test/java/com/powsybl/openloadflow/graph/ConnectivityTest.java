@@ -58,6 +58,14 @@ class ConnectivityTest {
     }
 
     @Test
+    void testDoubleCut() {
+        // Testing cutting twice an edge
+        testDoubleCut(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum), "No such edge in graph: l34");
+        testDoubleCut(new EvenShiloachGraphDecrementalConnectivity<>(), "Edge already cut: l34");
+        testDoubleCut(new MinimumSpanningTreeGraphDecrementalConnectivity<>(), "No such edge in graph: l34");
+    }
+
+    @Test
     void testNonConnected() {
         // Testing with a non-connected graph
         GraphDecrementalConnectivity<LfBus, LfBranch> connectivity = new EvenShiloachGraphDecrementalConnectivity<>();
@@ -130,6 +138,13 @@ class ConnectivityTest {
         assertEquals(1, connectivity.getSmallComponents().size());
         assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
         assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+    }
+
+    private void testDoubleCut(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, String expectedErrorMessage) {
+        updateConnectivity(connectivity);
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> cutBranches(connectivity, "l34", "l48", "l34"));
+        assertEquals(expectedErrorMessage, e.getMessage());
     }
 
     private void testNonConnectedComponents(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
