@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -13,6 +16,8 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class NetworkState {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(NetworkState.class);
 
     private final List<BusState> busStates;
 
@@ -25,12 +30,14 @@ public class NetworkState {
 
     public static NetworkState save(LfNetwork network) {
         Objects.requireNonNull(network);
+        LOGGER.trace("Saving network state");
         List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
         List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
         return new NetworkState(busStates, branchStates);
     }
 
     public void restore() {
+        LOGGER.trace("Restoring network state");
         ElementState.restore(busStates);
         ElementState.restore(branchStates);
     }

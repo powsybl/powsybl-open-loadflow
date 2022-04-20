@@ -135,8 +135,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             if (preContingencyComputationOk) {
                 detectViolations(network.getBranches().stream(), network.getBuses().stream(), preContingencyLimitViolations);
 
-                LOGGER.info("Save pre-contingency state");
-
                 // save base state for later restoration after each contingency
                 NetworkState networkState = NetworkState.save(network);
 
@@ -155,8 +153,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                 postContingencyResults.add(postContingencyResult);
 
                                 if (contingencyIt.hasNext()) {
-                                    LOGGER.info("Restore pre-contingency state");
-
                                     // restore base state
                                     networkState.restore();
                                 }
@@ -173,9 +169,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcLoadFlowContext context, Contingency contingency, LfContingency lfContingency,
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
                                                                Map<String, BranchResult> preContingencyBranchResults, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters) {
-        LOGGER.info("Start post contingency '{}' simulation", lfContingency.getId());
-        LOGGER.debug("Contingency '{}' impact: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
-                lfContingency.getId(), lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches(), lfContingency.getGenerators(),
+        LOGGER.info("Start post contingency '{}' simulation on network {}", lfContingency.getId(), network);
+        LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
+                lfContingency.getId(), network, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches(), lfContingency.getGenerators(),
                 lfContingency.getShuntsShift(), lfContingency.getBusesLoadShift());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -212,8 +208,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         });
 
         stopwatch.stop();
-        LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getId(),
-                stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        LOGGER.info("Post contingency '{}' simulation done on network {} in {} ms", lfContingency.getId(),
+                network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new PostContingencyResult(contingency, new LimitViolationsResult(postContingencyComputationOk,
                 new ArrayList<>(postContingencyLimitViolations.values())), branchResults, busResults, threeWindingsTransformerResults);
