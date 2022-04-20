@@ -23,14 +23,14 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V, E> implements Gr
 
     private SpanningTrees mstOrigin;
     private SpanningTrees mst;
-    private final Graph<V, Object> graph;
+    private final Graph<V, E> graph;
 
-    private final List<Triple<V, V, Object>> cutEdges;
+    private final List<Triple<V, E, V>> cutEdges;
     private List<V> sortedRoots;
     private Map<V, V> parentMap;
 
     public MinimumSpanningTreeGraphDecrementalConnectivity() {
-        this.graph = new Pseudograph<>(Object.class);
+        this.graph = new Pseudograph<>(null, null, false);
         this.cutEdges = new ArrayList<>();
     }
 
@@ -67,13 +67,13 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V, E> implements Gr
         V vertex1 = graph.getEdgeSource(edge);
         V vertex2 = graph.getEdgeTarget(edge);
         graph.removeEdge(edge);
-        cutEdges.add(Triple.of(vertex1, vertex2, edge));
+        cutEdges.add(Triple.of(vertex1, edge, vertex2));
     }
 
     @Override
     public void reset() {
-        for (Triple<V, V, Object> cutEdge : cutEdges) {
-            graph.addEdge(cutEdge.getLeft(), cutEdge.getMiddle(), cutEdge.getRight());
+        for (Triple<V, E, V> cutEdge : cutEdges) {
+            graph.addEdge(cutEdge.getLeft(), cutEdge.getRight(), cutEdge.getMiddle());
         }
         cutEdges.clear();
         resetMst();
@@ -152,7 +152,7 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V, E> implements Gr
             MyUnionFind forest = new MyUnionFind(graph.vertexSet());
 
             Set<Object> edgeList = new HashSet<>();
-            for (Object edge : graph.edgeSet()) {
+            for (E edge : graph.edgeSet()) {
                 V source = graph.getEdgeSource(edge);
                 V target = graph.getEdgeTarget(edge);
                 if (forest.find(source).equals(forest.find(target))) {
