@@ -49,6 +49,9 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V, E> implements Gr
 
     @Override
     public void cut(E edge) {
+        if (cutEdges.stream().anyMatch(t -> t.getMiddle().equals(edge))) {
+            throw new PowsyblException("Edge already cut: " + edge);
+        }
         if (!graph.containsEdge(edge)) {
             throw new PowsyblException("No such edge in graph: " + edge);
         }
