@@ -76,12 +76,12 @@ public class LfNetwork {
 
     private final Map<String, Object> userObjects = new HashMap<>();
 
-    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    private GraphDecrementalConnectivity<LfBus> connectivity;
+    private GraphDecrementalConnectivity<LfBus, LfBranch> connectivity;
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
-                     GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -562,11 +562,13 @@ public class LfNetwork {
         return subGraph;
     }
 
-    public GraphDecrementalConnectivity<LfBus> getConnectivity() {
+    public GraphDecrementalConnectivity<LfBus, LfBranch> getConnectivity() {
         if (connectivity == null) {
             connectivity = Objects.requireNonNull(connectivityFactory.create());
             getBuses().forEach(connectivity::addVertex);
-            getBranches().forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2()));
+            getBranches().stream()
+                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                    .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
         }
         return connectivity;
     }

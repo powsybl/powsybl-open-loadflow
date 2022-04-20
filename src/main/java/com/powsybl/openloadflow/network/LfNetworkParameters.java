@@ -23,7 +23,7 @@ public class LfNetworkParameters {
 
     private SlackBusSelector slackBusSelector;
 
-    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private final boolean generatorVoltageRemoteControl;
 
@@ -67,13 +67,13 @@ public class LfNetworkParameters {
         this(slackBusSelector, new EvenShiloachGraphDecrementalConnectivityFactory<>());
     }
 
-    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this(slackBusSelector, connectivityFactory, false, false, false, false,
                 PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                 true, Collections.emptySet(), false, false, false, false, false, false, false, true, false);
     }
 
-    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory,
+    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                boolean generatorVoltageRemoteControl, boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
@@ -108,7 +108,7 @@ public class LfNetworkParameters {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
     }
 
-    public GraphDecrementalConnectivityFactory<LfBus> getConnectivityFactory() {
+    public GraphDecrementalConnectivityFactory<LfBus, LfBranch> getConnectivityFactory() {
         return connectivityFactory;
     }
 

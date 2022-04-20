@@ -61,7 +61,7 @@ class LfContingencyTest extends AbstractConverterTest {
     void test() throws IOException {
         Network network = FourSubstationsNodeBreakerFactory.create();
 
-        GraphDecrementalConnectivityFactory<LfBus> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
         List<LfNetwork> lfNetworks = Networks.load(network, new LfNetworkParameters(new MostMeshedSlackBusSelector(), connectivityFactory));
         LfNetwork mainNetwork = lfNetworks.get(0);
@@ -97,7 +97,7 @@ class LfContingencyTest extends AbstractConverterTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
-        GraphDecrementalConnectivityFactory<LfBus> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
         new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(), new DenseMatrixFactory(), connectivityFactory, Collections.emptyList());
 
@@ -115,7 +115,7 @@ class LfContingencyTest extends AbstractConverterTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
-        GraphDecrementalConnectivityFactory<LfBus> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
         new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(), new DenseMatrixFactory(), connectivityFactory, Collections.emptyList());
 
