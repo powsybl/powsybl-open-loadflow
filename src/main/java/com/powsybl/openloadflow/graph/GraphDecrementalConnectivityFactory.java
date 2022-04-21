@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.graph;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface GraphDecrementalConnectivityFactory<V> {
+public interface GraphDecrementalConnectivityFactory<V, E> {
 
-    GraphDecrementalConnectivity<V> create();
+    GraphDecrementalConnectivity<V, E> create();
 }

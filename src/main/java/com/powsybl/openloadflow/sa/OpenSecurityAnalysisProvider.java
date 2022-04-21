@@ -14,6 +14,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.security.*;
@@ -32,9 +33,9 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     private final MatrixFactory matrixFactory;
 
-    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    public OpenSecurityAnalysisProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    public OpenSecurityAnalysisProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = matrixFactory;
         this.connectivityFactory = connectivityFactory;
     }

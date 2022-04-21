@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
 import com.powsybl.security.*;
@@ -29,7 +30,7 @@ import java.util.*;
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     protected DcSecurityAnalysis(final Network network, final LimitViolationDetector detector, final LimitViolationFilter filter,
-                                 final MatrixFactory matrixFactory, final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory, List<StateMonitor> stateMonitors) {
+                                 final MatrixFactory matrixFactory, final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory, List<StateMonitor> stateMonitors) {
         super(network, detector, filter, matrixFactory, connectivityFactory, stateMonitors);
     }
 

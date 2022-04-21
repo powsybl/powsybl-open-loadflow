@@ -57,6 +57,10 @@ public class PropagatedContingency {
         return branchIdsToOpen;
     }
 
+    public Set<Switch> getSwitchesToOpen() {
+        return switchesToOpen;
+    }
+
     public Set<String> getHvdcIdsToOpen() {
         return hvdcIdsToOpen;
     }
@@ -140,7 +144,7 @@ public class PropagatedContingency {
                                                 boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
-        Set<String> branchIdsToOpen = new HashSet<>();
+        Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<VscConverterStation> vscsToLose = new HashSet<>();
         Set<LccConverterStation> lccsToLose = new HashSet<>();
@@ -212,6 +216,13 @@ public class PropagatedContingency {
                         throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
                     }
                     shuntsToLose.add(shuntCompensator);
+                    break;
+                case SWITCH:
+                    Switch aSwitch = network.getSwitch(element.getId());
+                    if (aSwitch == null) {
+                        throw new PowsyblException("Switch '" + element.getId() + "' not found in the network");
+                    }
+                    switchesToOpen.add(aSwitch);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
@@ -315,10 +326,10 @@ public class PropagatedContingency {
                 .collect(Collectors.toSet());
 
         // update connectivity with triggered branches
-        GraphDecrementalConnectivity<LfBus> connectivity = network.getConnectivity();
-        for (LfBranch branch : branches) {
-            connectivity.cut(branch.getBus1(), branch.getBus2());
-        }
+        GraphDecrementalConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        branches.stream()
+                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .forEach(connectivity::cut);
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state

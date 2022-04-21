@@ -49,9 +49,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected final MatrixFactory matrixFactory;
 
-    protected final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    protected final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
@@ -550,8 +550,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         boolean updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
             mainComponentWeights = variableElements.entrySet().stream()
-                    .filter(entry -> !nonConnectedBuses.contains((LfBus) entry.getKey()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .filter(entry -> !nonConnectedBuses.contains((LfBus) entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             return mainComponentWeights.size() != variableElements.size();
         }
     }
@@ -601,16 +601,17 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> breakingConnectivityCandidates) {
+    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, Collection<String> breakingConnectivityCandidates) {
         breakingConnectivityCandidates.stream()
             .map(lfNetwork::getBranchById)
-            .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
+            .filter(b -> b.getBus1() != null && b.getBus2() != null)
+            .forEach(connectivity::cut);
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Collection<String> branchIdsToOpen) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Set<String> branchIdsToOpen) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             String functionBranchId = factor.getFunctionElement().getId();
-            if (branchIdsToOpen.stream().anyMatch(id -> id.equals(functionBranchId))) {
+            if (branchIdsToOpen.contains(functionBranchId)) {
                 factor.setSensitivityValuePredefinedResult(0d);
                 factor.setFunctionPredefinedResult(0d);
                 continue;
@@ -682,9 +683,30 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return validFactorHolder;
     }
 
+    private static void cleanBranchIdsToOpen(LfNetwork lfNetwork, PropagatedContingency contingency) {
+        // Elements have already been checked and found in PropagatedContingency, so there is no need to
+        // check them again
+        Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+        for (String branchId : contingency.getBranchIdsToOpen()) {
+            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+            if (lfBranch == null) {
+                branchesToRemove.add(branchId); // disconnected branch
+                continue;
+            }
+            if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
+                branchesToRemove.add(branchId); // branch connected only on one side
+            }
+        }
+        contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+    }
+
     public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
+            if (!contingency.getSwitchesToOpen().isEmpty()) {
+                throw new PowsyblException("Switch opening not supported in sensitivity analysis");
+            }
+
             // check ID are unique because, later contingency are indexed by their IDs
             String contingencyId = contingency.getContingency().getId();
             if (contingenciesIds.contains(contingencyId)) {
@@ -692,21 +714,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             }
             contingenciesIds.add(contingencyId);
 
-            // Elements have already been checked and found in PropagatedContingency, so there is no need to
-            // check them again
-            Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
-            for (String branchId : contingency.getBranchIdsToOpen()) {
-                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-                if (lfBranch == null) {
-                    branchesToRemove.add(branchId); // disconnected branch
-                    continue;
-                }
-                if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
-                    branchesToRemove.add(branchId); // branch connected only on one side
-                }
-            }
-            contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
-            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
+            cleanBranchIdsToOpen(lfNetwork, contingency);
+
+            if (contingency.getBranchIdsToOpen().isEmpty()
+                    && contingency.getHvdcIdsToOpen().isEmpty()
+                    && contingency.getGeneratorIdsToLose().isEmpty()
+                    && contingency.getLoadIdsToShift().isEmpty()) {
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
