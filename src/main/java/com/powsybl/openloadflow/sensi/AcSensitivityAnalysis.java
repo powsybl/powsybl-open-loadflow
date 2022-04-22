@@ -286,7 +286,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfFactor.getFunctionElement()))
                             .forEach(lfFactor ->  {
                                 lfFactor.setSensitivityValuePredefinedResult(0d);
-                                lfFactor.setFunctionPredefinedResult(0d);
+                                lfFactor.setFunctionPredefinedResult(Double.NaN);
                             });
                     contingencyFactors.stream()
                             .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
