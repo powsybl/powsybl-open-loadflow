@@ -29,6 +29,7 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.sensitivity.SensitivityFactorReader;
 import com.powsybl.sensitivity.SensitivityValueWriter;
 import com.powsybl.sensitivity.SensitivityVariableSet;
+import com.powsybl.sensitivity.SensitivityVariableType;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
@@ -286,6 +287,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             .forEach(lfFactor ->  {
                                 lfFactor.setSensitivityValuePredefinedResult(0d);
                                 lfFactor.setFunctionPredefinedResult(0d);
+                            });
+                    contingencyFactors.stream()
+                            .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
+                            .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
+                            .forEach(lfFactor ->  {
+                                lfFactor.setSensitivityValuePredefinedResult(0d);
                             });
                 } else {
                     // contingency breaking connectivity

@@ -613,12 +613,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Set<String> branchIdsToOpen) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            String functionBranchId = factor.getFunctionElement().getId();
-            if (branchIdsToOpen.contains(functionBranchId)) {
-                factor.setSensitivityValuePredefinedResult(0d);
-                factor.setFunctionPredefinedResult(0d);
-                continue;
-            }
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                 // after a contingency, we check if the factor function and the variable are in different connected components
                 boolean variableConnected = factor.isVariableConnectedToSlackComponent(connectedComponent);
