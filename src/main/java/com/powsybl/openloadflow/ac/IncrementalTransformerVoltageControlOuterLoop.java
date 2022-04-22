@@ -29,6 +29,10 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     public static final double EPS = Math.pow(10, -2);
 
+    public boolean hasIncreased = false;
+
+    public boolean hasDecreased = false;
+
     List<LfBranch> controllerBranches = new ArrayList<>();
 
     @Override
@@ -56,7 +60,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     private OuterLoopStatus changeTapPositions(List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                JacobianMatrix<AcVariableType, AcEquationType> j) {
         DenseMatrix sensitivities = getSensitivityValues(controllerBranches, equationSystem, j);
-        sensitivities.print(System.out);
         boolean success = false;
         for (LfBranch controllerBranch : controllerBranches) {
             Optional<TransformerVoltageControl> transformerVoltageControl = controllerBranch.getVoltageControl();
@@ -66,14 +69,33 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 double difference = targetV - voltage;
                 double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) transformerVoltageControl.get().getControlled().getCalculatedV())
                         .calculateSensi(sensitivities, controllerBranches.indexOf(controllerBranch));
-                System.out.println(sensitivity);
                 PiModel piModel = controllerBranch.getPiModel();
                 if (difference > 0) {
                     // we need to increase the voltage at controlled bus.
-                    success = sensitivity > 0 ? piModel.increaseTapPosition() : piModel.decreaseTapPosition();
+                    if (sensitivity > 0 && !this.hasDecreased) {
+                        success = piModel.updateTapPositionR(PiModel.Direction.INCREASE);
+                        if (success) {
+                            this.hasIncreased = true;
+                        }
+                    } else if (sensitivity < 0 && !this.hasIncreased) {
+                        success = piModel.updateTapPositionR(PiModel.Direction.DECREASE);
+                        if (success) {
+                            this.hasDecreased = true;
+                        }
+                    }
                 } else if (difference < 0) {
                     // we need to decrease the voltage at controlled bus.
-                    success = sensitivity > 0 ? piModel.decreaseTapPosition() : piModel.increaseTapPosition();
+                    if (sensitivity > 0 && !this.hasIncreased) {
+                        success = piModel.updateTapPositionR(PiModel.Direction.DECREASE);
+                        if (success) {
+                            this.hasDecreased = true;
+                        }
+                    } else if (sensitivity < 0 && !this.hasDecreased) {
+                        success = piModel.updateTapPositionR(PiModel.Direction.INCREASE);
+                        if (success) {
+                            this.hasIncreased = true;
+                        }
+                    }
                 }
             }
         }
