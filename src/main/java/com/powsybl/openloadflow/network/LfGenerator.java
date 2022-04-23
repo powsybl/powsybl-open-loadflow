@@ -11,7 +11,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfGenerator {
+public interface LfGenerator extends PropertyBag {
 
     enum GeneratorControlType {
         OFF, REMOTE_REACTIVE_POWER, VOLTAGE
@@ -83,7 +83,7 @@ public interface LfGenerator {
 
     double getRemoteTargetQ();
 
-    Object getUserObject();
+    Object getProperty(String name);
 
-    void setUserObject(Object userObject);
+    void setProperty(String name, Object value);
 }
