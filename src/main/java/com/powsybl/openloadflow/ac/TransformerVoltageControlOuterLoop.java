@@ -32,7 +32,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                 maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], voltageControl.getControlled().getNominalV());
             });
         }
-        network.setUserObject(MAX_CONTROLLED_NOMINAL_VOLTAGE, maxControlledNominalVoltage[0]);
+        network.setProperty(MAX_CONTROLLED_NOMINAL_VOLTAGE, maxControlledNominalVoltage[0]);
     }
 
     @Override
@@ -44,7 +44,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        double maxControlledNominalVoltage = (Double) context.getNetwork().getUserObject(MAX_CONTROLLED_NOMINAL_VOLTAGE);
+        double maxControlledNominalVoltage = (Double) context.getNetwork().getProperty(MAX_CONTROLLED_NOMINAL_VOLTAGE);
 
         // At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
         // the set controlledNominalVoltages are disabled.

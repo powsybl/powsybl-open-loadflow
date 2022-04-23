@@ -18,18 +18,18 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-class UserObjectTest {
+class PropertyTest {
 
     @Test
     void test() {
         Network network = EurostagTutorialExample1Factory.create();
         LfNetwork lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
-        assertNull(lfNetwork.getUserObject("a"));
-        lfNetwork.setUserObject("a", "test");
-        assertEquals("test", lfNetwork.getUserObject("a"));
+        assertNull(lfNetwork.getProperty("a"));
+        lfNetwork.setProperty("a", "test");
+        assertEquals("test", lfNetwork.getProperty("a"));
         LfBus lfBus = lfNetwork.getBus(0);
-        assertNull(lfBus.getUserObject("b"));
-        lfBus.setUserObject("b", "hello");
-        assertEquals("hello", lfBus.getUserObject("b"));
+        assertNull(lfBus.getProperty("b"));
+        lfBus.setProperty("b", "hello");
+        assertEquals("hello", lfBus.getProperty("b"));
     }
 }
