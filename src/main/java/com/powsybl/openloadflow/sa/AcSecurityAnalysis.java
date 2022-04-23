@@ -83,7 +83,13 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         } else {
             LfNetwork largestNetwork = lfNetworks.get(0);
             if (largestNetwork.isValid()) {
-                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters);
+                List<LfContingency> lfContingencies = propagatedContingencies.stream()
+                        .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(largestNetwork, true).stream())
+                        // move contingencies that break connectivity at the end to minimize to number of Jacobian matrix
+                        // initialization
+                        .sorted(Comparator.comparingInt(c -> c.getDisabledBuses().size()))
+                        .collect(Collectors.toList());
+                result = runSimulations(largestNetwork, contingencies, lfContingencies, acParameters, securityAnalysisParameters);
             } else {
                 result = createNoResult();
             }
@@ -140,24 +146,21 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 NetworkState networkState = NetworkState.save(network);
 
                 // start a simulation for each of the contingency
-                Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
+                Iterator<LfContingency> contingencyIt = lfContingencies.iterator();
                 while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
-                    PropagatedContingency propagatedContingency = contingencyIt.next();
-                    propagatedContingency.toLfContingency(network, true)
-                            .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                lfContingency.apply(loadFlowParameters);
+                    LfContingency lfContingency = contingencyIt.next();
+                    lfContingency.apply(loadFlowParameters);
 
-                                distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                    distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, propagatedContingency.getContingency(), lfContingency,
-                                        preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters());
-                                postContingencyResults.add(postContingencyResult);
+                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, contingencies.get(lfContingency.getIndex()), lfContingency,
+                            preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters());
+                    postContingencyResults.add(postContingencyResult);
 
-                                if (contingencyIt.hasNext()) {
-                                    // restore base state
-                                    networkState.restore();
-                                }
-                            });
+                    if (contingencyIt.hasNext()) {
+                        // restore base state
+                        networkState.restore();
+                    }
                 }
             }
 
