@@ -65,11 +65,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void setSelf(EquationTerm<V, E> self) {
-            term.setSelf(self);
-        }
-
-        @Override
         public ElementType getElementType() {
             return term.getElementType();
         }

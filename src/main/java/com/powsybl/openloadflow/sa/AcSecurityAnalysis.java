@@ -117,8 +117,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         return lfNetworks;
     }
 
-    private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
-                                                  SecurityAnalysisParameters securityAnalysisParameters) {
+    private SecurityAnalysisResult runSimulations(LfNetwork network, List<Contingency> contingencies, List<LfContingency> lfContingencies,
+                                                  AcLoadFlowParameters acParameters, SecurityAnalysisParameters securityAnalysisParameters) {
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
