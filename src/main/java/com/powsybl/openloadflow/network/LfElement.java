@@ -28,8 +28,4 @@ public interface LfElement extends PropertyBag {
     void setDisabled(boolean disabled);
 
     LfNetwork getNetwork();
-
-    Object getProperty(String name);
-
-    void setProperty(String name, Object value);
 }

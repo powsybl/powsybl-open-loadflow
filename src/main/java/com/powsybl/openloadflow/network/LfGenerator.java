@@ -82,8 +82,4 @@ public interface LfGenerator extends PropertyBag {
     ReactivePowerControl.ControlledSide getControlledBranchSide();
 
     double getRemoteTargetQ();
-
-    Object getProperty(String name);
-
-    void setProperty(String name, Object value);
 }
