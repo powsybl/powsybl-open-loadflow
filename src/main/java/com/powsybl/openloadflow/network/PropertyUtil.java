@@ -22,7 +22,7 @@ public final class PropertyUtil {
         Objects.requireNonNull(propertyName);
         Objects.requireNonNull(element);
         Objects.requireNonNull(getter);
-        if (element.getProperty(propertyName) == null) {
+        if (element.getProperty(propertyName) != null) {
             Object value = getter.apply(element);
             element.setProperty(propertyName, value);
             return true;

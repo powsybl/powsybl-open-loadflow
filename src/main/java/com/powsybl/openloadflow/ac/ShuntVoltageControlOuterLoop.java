@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
