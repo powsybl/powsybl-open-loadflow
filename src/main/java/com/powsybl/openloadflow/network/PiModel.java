@@ -58,7 +58,7 @@ public interface PiModel {
 
     boolean updateTapPosition(Direction direction);
 
-    boolean updateTapPositionR(Direction direction);
+    boolean updateTapPositionR(double deltaR);
 
     boolean setMinZ(double minZ, boolean dc);
 

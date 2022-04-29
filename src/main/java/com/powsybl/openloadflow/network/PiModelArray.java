@@ -141,7 +141,7 @@ public class PiModelArray implements PiModel {
     @Override
     public void roundR1ToClosestTap() {
         if (Double.isNaN(r1)) {
-            return; // nothing to do because a1 has not been modified
+            return; // nothing to do because r1 has not been modified
         }
 
         // find tap position with the closest r1 value
@@ -191,30 +191,16 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean updateTapPositionR(Direction direction) {
-        this.r1 = getR1();
-        double previousR1 = Double.NaN;
-        double nextR1 = Double.NaN;
+    public boolean updateTapPositionR(double deltaR) {
+        this.r1 = getR1() + deltaR;
         boolean hasChange = false;
         int oldTapPosition = tapPosition;
-        if (tapPosition < lowTapPosition + models.size() - 1) {
-            nextR1 = models.get(tapPosition - lowTapPosition + 1).getR1();
-        }
-        if (tapPosition > lowTapPosition) {
-            previousR1 = models.get(tapPosition - lowTapPosition - 1).getR1();
-        }
-        if (!Double.isNaN(previousR1) &&
-                ((direction == Direction.INCREASE && previousR1 > r1) || (direction == Direction.DECREASE && previousR1 < r1))) {
-            tapPosition = tapPosition - 1;
-            r1 = Double.NaN;
+        this.roundR1ToClosestTap();
+
+        if (oldTapPosition != tapPosition) {
             hasChange = true;
         }
-        if (!Double.isNaN(nextR1) &&
-                ((direction == Direction.INCREASE && nextR1 > r1) || (direction == Direction.DECREASE && nextR1 < r1))) {
-            tapPosition = tapPosition + 1;
-            r1 = Double.NaN;
-            hasChange = true;
-        }
+
         if (hasChange) {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
                 listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);

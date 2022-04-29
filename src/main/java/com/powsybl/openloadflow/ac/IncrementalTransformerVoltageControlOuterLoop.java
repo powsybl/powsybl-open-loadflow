@@ -29,10 +29,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     public static final double EPS = Math.pow(10, -2);
 
-    public boolean hasIncreased = false;
-
-    public boolean hasDecreased = false;
-
     List<LfBranch> controllerBranches = new ArrayList<>();
 
     @Override
@@ -70,33 +66,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) transformerVoltageControl.get().getControlled().getCalculatedV())
                         .calculateSensi(sensitivities, controllerBranches.indexOf(controllerBranch));
                 PiModel piModel = controllerBranch.getPiModel();
-                if (difference > 0) {
-                    // we need to increase the voltage at controlled bus.
-                    if (sensitivity > 0 && !this.hasDecreased) {
-                        success = piModel.updateTapPositionR(PiModel.Direction.INCREASE);
-                        if (success) {
-                            this.hasIncreased = true;
-                        }
-                    } else if (sensitivity < 0 && !this.hasIncreased) {
-                        success = piModel.updateTapPositionR(PiModel.Direction.DECREASE);
-                        if (success) {
-                            this.hasDecreased = true;
-                        }
-                    }
-                } else if (difference < 0) {
-                    // we need to decrease the voltage at controlled bus.
-                    if (sensitivity > 0 && !this.hasIncreased) {
-                        success = piModel.updateTapPositionR(PiModel.Direction.DECREASE);
-                        if (success) {
-                            this.hasDecreased = true;
-                        }
-                    } else if (sensitivity < 0 && !this.hasDecreased) {
-                        success = piModel.updateTapPositionR(PiModel.Direction.INCREASE);
-                        if (success) {
-                            this.hasIncreased = true;
-                        }
-                    }
-                }
+                double deltaR = difference / sensitivity;
+                success = piModel.updateTapPositionR(deltaR);
             }
         }
         return success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
