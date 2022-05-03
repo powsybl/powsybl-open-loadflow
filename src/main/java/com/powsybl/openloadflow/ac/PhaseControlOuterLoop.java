@@ -94,9 +94,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     private OuterLoopStatus firstIteration(OuterLoopContext context) {
-
         List<DiscretePhaseControl> phaseControlsOn = context.getNetwork().getBranches().stream()
-            .filter(LfBranch::isPhaseControlEnabled)
+            .filter(LfBranch::isPhaseControlled)
             .flatMap(branch -> branch.getDiscretePhaseControl().stream())
             .collect(Collectors.toList());
 
