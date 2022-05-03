@@ -96,7 +96,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
     private OuterLoopStatus firstIteration(OuterLoopContext context) {
 
         List<DiscretePhaseControl> phaseControlsOn = context.getNetwork().getBranches().stream()
-            .filter(branch -> branch.isPhaseControlEnabled())
+            .filter(LfBranch::isPhaseControlEnabled)
             .flatMap(branch -> branch.getDiscretePhaseControl().stream())
             .collect(Collectors.toList());
 
@@ -114,7 +114,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         // and a current greater than the limit
         // phase control consists in increasing or decreasing tap position to limit the current
         List<DiscretePhaseControl> unstablePhaseControls = context.getNetwork().getBranches().stream()
-                .filter(branch -> branch.isPhaseControlled())
+                .filter(LfBranch::isPhaseControlled)
                 .flatMap(branch -> branch.getDiscretePhaseControl().stream())
                 .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.LIMITER)
                 .filter(this::changeTapPositions)
