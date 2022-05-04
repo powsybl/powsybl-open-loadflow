@@ -32,6 +32,15 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PhaseControlOuterLoop.class);
 
+    private static final class ContextData {
+
+        private final List<LfBranch> controllerBranchesWithPhaseControlDisabled = new ArrayList<>();
+
+        private List<LfBranch> getControllerBranchesWithPhaseControlDisabled() {
+            return controllerBranchesWithPhaseControlDisabled;
+        }
+    }
+
     @Override
     public String getType() {
         return "Phase control";
@@ -77,6 +86,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 connectivity.reset();
             }
         }
+        context.setData(new ContextData());
     }
 
     @Override
@@ -96,14 +106,14 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     private OuterLoopStatus firstIteration(OuterLoopContext context) {
         List<DiscretePhaseControl> phaseControlsOn = context.getNetwork().getBranches().stream()
-            .filter(LfBranch::isPhaseControlled)
+            .filter(branch -> branch.isPhaseController() && branch.isPhaseControlEnabled())
             .flatMap(branch -> branch.getDiscretePhaseControl().stream())
             .collect(Collectors.toList());
 
         // all branches with active power control are switched off
         phaseControlsOn.stream()
-                .filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER)
-                .forEach(this::switchOffPhaseControl);
+                .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.CONTROLLER)
+                .forEach(phaseControl -> switchOffPhaseControl(phaseControl, context));
 
         // if at least one phase shifter has been switched off we need to continue
         return phaseControlsOn.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
@@ -114,7 +124,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         // and a current greater than the limit
         // phase control consists in increasing or decreasing tap position to limit the current
         List<DiscretePhaseControl> unstablePhaseControls = context.getNetwork().getBranches().stream()
-                .filter(LfBranch::isPhaseControlled)
+                .filter(branch -> branch.isPhaseController() && branch.isPhaseControlEnabled())
                 .flatMap(branch -> branch.getDiscretePhaseControl().stream())
                 .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.LIMITER)
                 .filter(this::changeTapPositions)
@@ -123,12 +133,13 @@ public class PhaseControlOuterLoop implements OuterLoop {
         return unstablePhaseControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
     }
 
-    private void switchOffPhaseControl(DiscretePhaseControl phaseControl) {
+    private void switchOffPhaseControl(DiscretePhaseControl phaseControl, OuterLoopContext context) {
         // switch off phase control
-        phaseControl.getController().setPhaseControlEnabled(false);
+        LfBranch controllerBranch = phaseControl.getController();
+        controllerBranch.setPhaseControlEnabled(false);
+        ((ContextData) context.getData()).getControllerBranchesWithPhaseControlDisabled().add(controllerBranch);
 
         // round the phase shift to the closest tap
-        LfBranch controllerBranch = phaseControl.getController();
         PiModel piModel = controllerBranch.getPiModel();
         double a1Value = piModel.getA1();
         piModel.roundA1ToClosestTap();
@@ -165,10 +176,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (LfBranch branch : context.getNetwork().getBranches()) {
-            if (branch.isPhaseController()) {
-                branch.setPhaseControlEnabled(true);
-            }
+        for (var controllerBranch : ((ContextData) context.getData()).getControllerBranchesWithPhaseControlDisabled()) {
+            controllerBranch.setPhaseControlEnabled(true);
         }
     }
 }

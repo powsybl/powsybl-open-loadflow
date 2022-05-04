@@ -10,11 +10,12 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
-import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -23,12 +24,21 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTransformerVoltageControlOuterLoop.class);
 
-    protected OuterLoopStatus roundVoltageRatios(LfNetwork network) {
+    protected static class ContextData {
+
+        private final List<LfBranch> controllerBranchesWithVoltageControlDisabledBecauseRounding = new ArrayList<>();
+
+        private List<LfBranch> getControllerBranchesWithVoltageControlDisabledBecauseRounding() {
+            return controllerBranchesWithVoltageControlDisabledBecauseRounding;
+        }
+    }
+
+    protected OuterLoopStatus roundVoltageRatios(OuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
-        for (LfBranch branch : network.getBranches()) {
-            TransformerVoltageControl voltageControl = branch.getVoltageControl().orElse(null);
-            if (voltageControl != null) {
+        for (LfBranch branch : context.getNetwork().getBranches()) {
+            if (branch.isVoltageController() && branch.isVoltageControlEnabled()) {
                 branch.setVoltageControlEnabled(false);
+                ((ContextData) context.getData()).getControllerBranchesWithVoltageControlDisabledBecauseRounding().add(branch);
 
                 // round the rho shift to the closest tap
                 PiModel piModel = branch.getPiModel();
@@ -45,8 +55,8 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (LfBranch branch : context.getNetwork().getBranches()) {
-            branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(true));
+        for (LfBranch controllerBranch : ((ContextData) context.getData()).getControllerBranchesWithVoltageControlDisabledBecauseRounding()) {
+            controllerBranch.setVoltageControlEnabled(true);
         }
     }
 }

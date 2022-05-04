@@ -15,6 +15,9 @@ import com.powsybl.openloadflow.network.LfShunt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
@@ -22,9 +25,23 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShuntVoltageControlOuterLoop.class);
 
+    private static final class ContextData {
+
+        private final List<LfShunt> controllerShuntsWithVoltageControlDisabled = new ArrayList<>();
+
+        private List<LfShunt> getControllerShuntsWithVoltageControlDisabled() {
+            return controllerShuntsWithVoltageControlDisabled;
+        }
+    }
+
     @Override
     public String getType() {
         return "Shunt voltage control";
+    }
+
+    @Override
+    public void initialize(OuterLoopContext context) {
+        context.setData(new ContextData());
     }
 
     @Override
@@ -36,6 +53,7 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
                 LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
                 if (controllerShunt != null && controllerShunt.isVoltageControlEnabled()) {
                     controllerShunt.setVoltageControlEnabled(false);
+                    ((ContextData) context.getData()).getControllerShuntsWithVoltageControlDisabled().add(controllerShunt);
 
                     // round the susceptance to the closest section
                     double b = controllerShunt.getB();
@@ -51,8 +69,8 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            bus.getShuntVoltageControl().ifPresent(b -> b.getControllers().forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true)));
+        for (LfShunt controllerShunt : ((ContextData) context.getData()).getControllerShuntsWithVoltageControlDisabled()) {
+            controllerShunt.setVoltageControlEnabled(true);
         }
     }
 }

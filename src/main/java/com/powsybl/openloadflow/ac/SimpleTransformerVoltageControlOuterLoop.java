@@ -21,10 +21,15 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
     }
 
     @Override
+    public void initialize(OuterLoopContext context) {
+        context.setData(new ContextData());
+    }
+
+    @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         if (context.getIteration() == 0) {
-            status = roundVoltageRatios(context.getNetwork());
+            status = roundVoltageRatios(context);
         }
         return status;
     }
