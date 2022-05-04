@@ -14,4 +14,6 @@ public interface PropertyBag {
     Object getProperty(String name);
 
     void setProperty(String name, Object value);
+
+    void removeProperty(String name);
 }

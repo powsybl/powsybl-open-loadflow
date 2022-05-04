@@ -31,5 +31,7 @@ class PropertyTest {
         assertNull(lfBus.getProperty("b"));
         lfBus.setProperty("b", "hello");
         assertEquals("hello", lfBus.getProperty("b"));
+        lfBus.removeProperty("b");
+        assertNull(lfBus.getProperty("b"));
     }
 }
