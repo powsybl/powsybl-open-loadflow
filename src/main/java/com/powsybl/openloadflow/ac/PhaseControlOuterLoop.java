@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -95,16 +94,15 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     private OuterLoopStatus firstIteration(OuterLoopContext context) {
-
         List<DiscretePhaseControl> phaseControlsOn = context.getNetwork().getBranches().stream()
-            .map(branch -> branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled()))
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER || dpc.getMode() == DiscretePhaseControl.Mode.LIMITER)
+            .filter(LfBranch::isPhaseControlled)
+            .flatMap(branch -> branch.getDiscretePhaseControl().stream())
             .collect(Collectors.toList());
 
         // all branches with active power control are switched off
-        phaseControlsOn.stream().filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER).forEach(this::switchOffPhaseControl);
+        phaseControlsOn.stream()
+                .filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.CONTROLLER)
+                .forEach(this::switchOffPhaseControl);
 
         // if at least one phase shifter has been switched off we need to continue
         return phaseControlsOn.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
@@ -115,11 +113,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
         // and a current greater than the limit
         // phase control consists in increasing or decreasing tap position to limit the current
         List<DiscretePhaseControl> unstablePhaseControls = context.getNetwork().getBranches().stream()
-                .map(branch -> branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .filter(dpc -> dpc.getMode() == DiscretePhaseControl.Mode.LIMITER)
-                .filter(dpc -> changeTapPositions(dpc) == OuterLoopStatus.UNSTABLE)
+                .filter(LfBranch::isPhaseControlled)
+                .flatMap(branch -> branch.getDiscretePhaseControl().stream())
+                .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.LIMITER)
+                .filter(this::changeTapPositions)
                 .collect(Collectors.toList());
 
         return unstablePhaseControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
@@ -138,21 +135,19 @@ public class PhaseControlOuterLoop implements OuterLoop {
         LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
     }
 
-    private OuterLoopStatus changeTapPositions(DiscretePhaseControl phaseControl) {
+    private boolean changeTapPositions(DiscretePhaseControl phaseControl) {
         // only local control supported: controlled branch is controller branch.
         double currentLimit = phaseControl.getTargetValue();
         LfBranch controllerBranch = phaseControl.getController();
         PiModel piModel = controllerBranch.getPiModel();
-        boolean isSensibilityPositive;
-        boolean success = false;
         if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
-            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
-            success = isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
+            return isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
         } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
-            isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
-            success = isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
+            return isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
         }
-        return success ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
+        return false;
     }
 
     boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, DiscretePhaseControl.ControlledSide controlledSide) {
