@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.DiscretePhaseControl;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,10 +37,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     @Override
-    public void initialize(LfNetwork network) {
+    public void initialize(OuterLoopContext context) {
         List<LfBranch> controllerBranches = new ArrayList<>(1);
         List<LfBranch> disabledBranches = new ArrayList<>(1);
-        for (LfBranch branch : network.getBranches()) {
+        for (LfBranch branch : context.getNetwork().getBranches()) {
             if (!branch.isDisabled() && branch.isPhaseController() && branch.isPhaseControlEnabled()) {
                 controllerBranches.add(branch);
             }
@@ -53,7 +52,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
             for (LfBranch controllerBranch : controllerBranches) {
                 var phaseControl = controllerBranch.getDiscretePhaseControl().orElseThrow();
                 var controlledBranch = phaseControl.getControlled();
-                var connectivity = network.getConnectivity();
+                var connectivity = context.getNetwork().getConnectivity();
 
                 // apply contingency (in case we are inside a security analysis)
                 disabledBranches.stream()
@@ -163,8 +162,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     @Override
-    public void cleanup(LfNetwork network) {
-        for (LfBranch branch : network.getBranches()) {
+    public void cleanup(OuterLoopContext context) {
+        for (LfBranch branch : context.getNetwork().getBranches()) {
             if (branch.isPhaseController()) {
                 branch.setPhaseControlEnabled(true);
             }

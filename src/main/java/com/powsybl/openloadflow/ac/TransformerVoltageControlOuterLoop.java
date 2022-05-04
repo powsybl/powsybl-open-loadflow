@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.TransformerVoltageControl;
 
 /**
@@ -19,20 +18,32 @@ import com.powsybl.openloadflow.network.TransformerVoltageControl;
  */
 public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
-    public static final String MAX_CONTROLLED_NOMINAL_VOLTAGE = "maxControlledNominalVoltage";
+    private static final class ContextData {
+
+        private final double maxControlledNominalVoltage;
+
+        private ContextData(double maxControlledNominalVoltage) {
+            this.maxControlledNominalVoltage = maxControlledNominalVoltage;
+        }
+
+        private double getMaxControlledNominalVoltage() {
+            return maxControlledNominalVoltage;
+        }
+    }
 
     @Override
-    public void initialize(LfNetwork network) {
+    public void initialize(OuterLoopContext context) {
         // All transformer voltage control are disabled for the first equation system resolution.
         double[] maxControlledNominalVoltage = new double[1];
         maxControlledNominalVoltage[0] = Double.MIN_VALUE;
-        for (LfBranch branch : network.getBranches()) {
+        for (LfBranch branch : context.getNetwork().getBranches()) {
             branch.getVoltageControl().ifPresent(voltageControl -> {
                 branch.setVoltageControlEnabled(false);
                 maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], voltageControl.getControlled().getNominalV());
             });
         }
-        network.setProperty(MAX_CONTROLLED_NOMINAL_VOLTAGE, maxControlledNominalVoltage[0]);
+
+        context.setData(new ContextData(maxControlledNominalVoltage[0]));
     }
 
     @Override
@@ -44,7 +55,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        double maxControlledNominalVoltage = (Double) context.getNetwork().getProperty(MAX_CONTROLLED_NOMINAL_VOLTAGE);
+        double maxControlledNominalVoltage = context.<ContextData>getData().getMaxControlledNominalVoltage();
 
         // At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
         // the set controlledNominalVoltages are disabled.
