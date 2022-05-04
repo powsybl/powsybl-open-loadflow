@@ -33,5 +33,9 @@ class PropertyTest {
         assertEquals("hello", lfBus.getProperty("b"));
         lfBus.removeProperty("b");
         assertNull(lfBus.getProperty("b"));
+        // also try to remove a not defined property
+        assertNull(lfBus.getProperty("x"));
+        lfBus.removeProperty("x");
+        assertNull(lfBus.getProperty("x"));
     }
 }
