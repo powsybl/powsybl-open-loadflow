@@ -23,7 +23,6 @@ public class BusState extends BusDcState {
     private final double shuntB;
     private final double controllerShuntB;
     private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
-    private final int voltageControlSwitchOffCount;
 
     public BusState(LfBus bus) {
         super(bus);
@@ -38,7 +37,6 @@ public class BusState extends BusDcState {
         LfShunt shunt = bus.getShunt().orElse(null);
         shuntB = shunt != null ? shunt.getB() : Double.NaN;
         this.generatorsControlType = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getGeneratorControlType));
-        voltageControlSwitchOffCount = bus.getVoltageControlSwitchOffCount();
     }
 
     @Override
@@ -60,7 +58,6 @@ public class BusState extends BusDcState {
             element.getShunt().orElseThrow().setB(shuntB);
         }
         element.getGenerators().forEach(g -> g.setGeneratorControlType(generatorsControlType.get(g.getId())));
-        element.setVoltageControlSwitchOffCount(voltageControlSwitchOffCount);
     }
 
     public static BusState save(LfBus bus) {

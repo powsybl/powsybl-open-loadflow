@@ -244,11 +244,4 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
         return status;
     }
-
-    @Override
-    public void cleanup(OuterLoopContext context) {
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            bus.setVoltageControlSwitchOffCount(0);
-        }
-    }
 }
