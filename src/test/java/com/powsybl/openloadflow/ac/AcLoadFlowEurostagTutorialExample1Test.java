@@ -409,4 +409,28 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertActivePowerEquals(Double.NaN, gen.getTerminal());
         assertReactivePowerEquals(Double.NaN, gen.getTerminal());
     }
+
+    @Test
+    void testGeneratorReactiveLimits() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(120).add();
+        network.getVoltageLevel("VLGEN").newGenerator().setId("GEN1")
+                .setBus("NGEN").setConnectableBus("NGEN")
+                .setMinP(-9999.99D).setMaxP(9999.99D)
+                .setVoltageRegulatorOn(true).setTargetV(24.5D)
+                .setTargetP(607.0D).setTargetQ(301.0D).add();
+        network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(160).add();
+        LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
+                .setDistributedSlack(false)
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        loadFlowRunner.run(network, parameters);
+        network.getGenerators().forEach(gen -> {
+            if (gen.getReactiveLimits() instanceof MinMaxReactiveLimits) {
+                assertTrue(-gen.getTerminal().getQ() <= ((MinMaxReactiveLimits) gen.getReactiveLimits()).getMaxQ());
+                assertTrue(-gen.getTerminal().getQ() >= ((MinMaxReactiveLimits) gen.getReactiveLimits()).getMinQ());
+            }
+        });
+        assertEquals(-120, network.getGenerator("GEN").getTerminal().getQ());
+        assertEquals(-160, network.getGenerator("GEN1").getTerminal().getQ(), 0.01);
+    }
 }
