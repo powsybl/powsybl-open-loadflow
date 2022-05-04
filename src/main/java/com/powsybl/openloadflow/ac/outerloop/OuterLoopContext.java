@@ -20,7 +20,7 @@ public interface OuterLoopContext {
 
     NewtonRaphsonResult getLastNewtonRaphsonResult();
 
-    <T> T getData();
+    Object getData();
 
-    <T> void setData(T data);
+    void setData(Object data);
 }

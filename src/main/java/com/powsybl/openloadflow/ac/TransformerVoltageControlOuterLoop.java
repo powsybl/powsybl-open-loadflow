@@ -55,7 +55,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        double maxControlledNominalVoltage = context.<ContextData>getData().getMaxControlledNominalVoltage();
+        double maxControlledNominalVoltage = ((ContextData) context.getData()).getMaxControlledNominalVoltage();
 
         // At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
         // the set controlledNominalVoltages are disabled.

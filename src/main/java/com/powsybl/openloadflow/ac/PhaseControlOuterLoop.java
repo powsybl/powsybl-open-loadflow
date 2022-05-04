@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.DiscretePhaseControl;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +41,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
     public void initialize(OuterLoopContext context) {
         List<LfBranch> controllerBranches = new ArrayList<>(1);
         List<LfBranch> disabledBranches = new ArrayList<>(1);
-        for (LfBranch branch : context.getNetwork().getBranches()) {
+        LfNetwork network = context.getNetwork();
+        for (LfBranch branch : network.getBranches()) {
             if (!branch.isDisabled() && branch.isPhaseController() && branch.isPhaseControlEnabled()) {
                 controllerBranches.add(branch);
             }
@@ -52,7 +54,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
             for (LfBranch controllerBranch : controllerBranches) {
                 var phaseControl = controllerBranch.getDiscretePhaseControl().orElseThrow();
                 var controlledBranch = phaseControl.getControlled();
-                var connectivity = context.getNetwork().getConnectivity();
+                var connectivity = network.getConnectivity();
 
                 // apply contingency (in case we are inside a security analysis)
                 disabledBranches.stream()

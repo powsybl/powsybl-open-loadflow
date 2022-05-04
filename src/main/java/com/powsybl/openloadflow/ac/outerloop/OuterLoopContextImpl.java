@@ -52,13 +52,12 @@ public class OuterLoopContextImpl implements OuterLoopContext {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public <T> T getData() {
-        return (T) data;
+    public Object getData() {
+        return data;
     }
 
     @Override
-    public <T> void setData(T data) {
+    public void setData(Object data) {
         this.data = data;
     }
 }
