@@ -32,4 +32,11 @@ public abstract class AbstractPropertyBag {
         }
         properties.put(name, value);
     }
+
+    public void removeProperty(String name) {
+        Objects.requireNonNull(name);
+        if (properties != null) {
+            properties.remove(name);
+        }
+    }
 }
