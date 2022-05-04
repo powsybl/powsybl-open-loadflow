@@ -130,6 +130,13 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
+    @Override
+    public void initialize(OuterLoopContext context) {
+        for (LfBus bus : context.getNetwork().getBuses()) {
+            bus.setVoltageControlSwitchOffCount(0);
+        }
+    }
+
     private boolean switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
         int pqPvSwitchCount = 0;
 
