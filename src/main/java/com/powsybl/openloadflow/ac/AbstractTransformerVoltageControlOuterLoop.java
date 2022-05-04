@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -43,8 +44,8 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
     }
 
     @Override
-    public void cleanup(LfNetwork network) {
-        for (LfBranch branch : network.getBranches()) {
+    public void cleanup(OuterLoopContext context) {
+        for (LfBranch branch : context.getNetwork().getBranches()) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(true));
         }
     }
