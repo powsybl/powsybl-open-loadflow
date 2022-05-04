@@ -34,10 +34,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     private static final class ContextData {
 
-        private final List<LfBranch> controllerBranchesWithPhaseControlDisabled = new ArrayList<>();
+        private final List<LfBranch> branchesWithPhaseControlDisabled = new ArrayList<>();
 
-        private List<LfBranch> getControllerBranchesWithPhaseControlDisabled() {
-            return controllerBranchesWithPhaseControlDisabled;
+        private List<LfBranch> getBranchesWithPhaseControlDisabled() {
+            return branchesWithPhaseControlDisabled;
         }
     }
 
@@ -137,7 +137,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         // switch off phase control
         LfBranch controllerBranch = phaseControl.getController();
         controllerBranch.setPhaseControlEnabled(false);
-        ((ContextData) context.getData()).getControllerBranchesWithPhaseControlDisabled().add(controllerBranch);
+        ((ContextData) context.getData()).getBranchesWithPhaseControlDisabled().add(controllerBranch);
 
         // round the phase shift to the closest tap
         PiModel piModel = controllerBranch.getPiModel();
@@ -176,7 +176,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (var controllerBranch : ((ContextData) context.getData()).getControllerBranchesWithPhaseControlDisabled()) {
+        for (var controllerBranch : ((ContextData) context.getData()).getBranchesWithPhaseControlDisabled()) {
             controllerBranch.setPhaseControlEnabled(true);
         }
     }

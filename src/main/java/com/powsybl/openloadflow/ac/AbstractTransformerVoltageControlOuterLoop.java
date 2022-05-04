@@ -26,10 +26,10 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
 
     protected static class ContextData {
 
-        private final List<LfBranch> controllerBranchesWithVoltageControlDisabledBecauseRounding = new ArrayList<>();
+        private final List<LfBranch> branchesWithVoltageControlDisabledBecauseOfRounding = new ArrayList<>();
 
-        private List<LfBranch> getControllerBranchesWithVoltageControlDisabledBecauseRounding() {
-            return controllerBranchesWithVoltageControlDisabledBecauseRounding;
+        private List<LfBranch> getBranchesWithVoltageControlDisabledBecauseOfRounding() {
+            return branchesWithVoltageControlDisabledBecauseOfRounding;
         }
     }
 
@@ -38,7 +38,7 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
         for (LfBranch branch : context.getNetwork().getBranches()) {
             if (branch.isVoltageController() && branch.isVoltageControlEnabled()) {
                 branch.setVoltageControlEnabled(false);
-                ((ContextData) context.getData()).getControllerBranchesWithVoltageControlDisabledBecauseRounding().add(branch);
+                ((ContextData) context.getData()).getBranchesWithVoltageControlDisabledBecauseOfRounding().add(branch);
 
                 // round the rho shift to the closest tap
                 PiModel piModel = branch.getPiModel();
@@ -55,7 +55,7 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (LfBranch controllerBranch : ((ContextData) context.getData()).getControllerBranchesWithVoltageControlDisabledBecauseRounding()) {
+        for (LfBranch controllerBranch : ((ContextData) context.getData()).getBranchesWithVoltageControlDisabledBecauseOfRounding()) {
             controllerBranch.setVoltageControlEnabled(true);
         }
     }

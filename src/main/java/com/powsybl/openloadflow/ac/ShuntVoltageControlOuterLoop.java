@@ -27,10 +27,10 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
 
     private static final class ContextData {
 
-        private final List<LfShunt> controllerShuntsWithVoltageControlDisabled = new ArrayList<>();
+        private final List<LfShunt> shuntsWithVoltageControlDisabled = new ArrayList<>();
 
-        private List<LfShunt> getControllerShuntsWithVoltageControlDisabled() {
-            return controllerShuntsWithVoltageControlDisabled;
+        private List<LfShunt> getShuntsWithVoltageControlDisabled() {
+            return shuntsWithVoltageControlDisabled;
         }
     }
 
@@ -53,7 +53,7 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
                 LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
                 if (controllerShunt != null && controllerShunt.isVoltageControlEnabled()) {
                     controllerShunt.setVoltageControlEnabled(false);
-                    ((ContextData) context.getData()).getControllerShuntsWithVoltageControlDisabled().add(controllerShunt);
+                    ((ContextData) context.getData()).getShuntsWithVoltageControlDisabled().add(controllerShunt);
 
                     // round the susceptance to the closest section
                     double b = controllerShunt.getB();
@@ -69,7 +69,7 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (LfShunt controllerShunt : ((ContextData) context.getData()).getControllerShuntsWithVoltageControlDisabled()) {
+        for (LfShunt controllerShunt : ((ContextData) context.getData()).getShuntsWithVoltageControlDisabled()) {
             controllerShunt.setVoltageControlEnabled(true);
         }
     }
