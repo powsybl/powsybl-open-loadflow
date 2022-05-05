@@ -38,9 +38,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     @Override
-    public void initialize(LfNetwork network) {
+    public void initialize(OuterLoopContext context) {
         List<LfBranch> controllerBranches = new ArrayList<>(1);
         List<LfBranch> disabledBranches = new ArrayList<>(1);
+        LfNetwork network = context.getNetwork();
         for (LfBranch branch : network.getBranches()) {
             if (!branch.isDisabled() && branch.isPhaseController() && branch.isPhaseControlEnabled()) {
                 controllerBranches.add(branch);
@@ -163,8 +164,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     @Override
-    public void cleanup(LfNetwork network) {
-        for (LfBranch branch : network.getBranches()) {
+    public void cleanup(OuterLoopContext context) {
+        for (LfBranch branch : context.getNetwork().getBranches()) {
             if (branch.isPhaseController()) {
                 branch.setPhaseControlEnabled(true);
             }

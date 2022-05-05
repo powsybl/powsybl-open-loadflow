@@ -13,9 +13,8 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -240,8 +239,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     @Override
-    public void cleanup(LfNetwork network) {
-        for (LfBus bus : network.getBuses()) {
+    public void cleanup(OuterLoopContext context) {
+        for (LfBus bus : context.getNetwork().getBuses()) {
             bus.setVoltageControlSwitchOffCount(0);
         }
     }
