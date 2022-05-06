@@ -220,8 +220,7 @@ public class PiModelArray implements PiModel {
                 listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
             }
         }
-        Pair<Boolean, Double> result = Pair.of(hasChange, getModel().getR1() - models.get(oldTapPosition - lowTapPosition).getR1());
-        return result;
+        return Pair.of(hasChange, getModel().getR1() - models.get(oldTapPosition - lowTapPosition).getR1());
     }
 
     @Override
