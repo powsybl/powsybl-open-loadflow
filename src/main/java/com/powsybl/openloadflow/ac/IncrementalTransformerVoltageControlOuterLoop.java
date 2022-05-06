@@ -26,16 +26,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerVoltageControlOuterLoop.class);
 
-    public static final double EPS = Math.pow(10, -2);
-
-    private static final int MAXSWITCH = 100;
-
-    // Wether the outer loop is stable or not.
-    // It is unstable if the tap position of at least one transfomer has changed
-    private boolean unstable = false;
-
-    // In case of several transformers controling the same bus voltage, indicates if one of this transformer has changed tap position in current iteration of the do-while loop.
-    private boolean haschanged = false;
+    private static final int MAX_INCREMENT = 100;
 
     List<LfBranch> controllerBranches = new ArrayList<>();
 
@@ -57,68 +48,58 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        unstable = false;
-        OuterLoopStatus status =  changeTapPositions(controllerBranches, context.getAcLoadFlowContext().getEquationSystem(), context.getAcLoadFlowContext().getJacobianMatrix());
+        OuterLoopStatus status =  changeTapPositions(context.getNetwork(), context.getAcLoadFlowContext().getEquationSystem(), context.getAcLoadFlowContext().getJacobianMatrix());
         return status;
     }
 
-    private OuterLoopStatus changeTapPositions(List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    private OuterLoopStatus changeTapPositions(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                JacobianMatrix<AcVariableType, AcEquationType> j) {
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+
         DenseMatrix sensitivities = getSensitivityValues(controllerBranches, equationSystem, j);
 
-        // fill map of controlled buses
-        LinkedHashMap<LfBus, List<LfBranch>> controlledBuses = new LinkedHashMap<LfBus, List<LfBranch>>();
-        for (LfBranch controllerBranch : controllerBranches) {
-            Optional<TransformerVoltageControl> transformerVoltageControl = controllerBranch.getVoltageControl();
-            if (transformerVoltageControl.isPresent()) {
-                LfBus controlledBus = transformerVoltageControl.get().getControlled();
-                if (controlledBuses.containsKey(controlledBus)) {
-                    controlledBuses.get(controlledBus).add(controllerBranch);
-                } else {
-                    List<LfBranch> controllerBrchs = new ArrayList<LfBranch>();
-                    controllerBrchs.add(controllerBranch);
-                    controlledBuses.put(transformerVoltageControl.get().getControlled(), controllerBrchs);
+        for (LfBus bus : network.getBuses()) {
+            if (bus.isTransformerVoltageControlled()) {
+                if (bus.getTransformerVoltageControl().isPresent()) {
+                    TransformerVoltageControl voltageControl = bus.getTransformerVoltageControl().get();
+                    double targetV = voltageControl.getTargetValue();
+                    double voltage = voltageControl.getControlled().getV();
+                    double difference = targetV - voltage;
+                    List<LfBranch> controllers = voltageControl.getControllers();
+                    if (controllers.size() == 1) {
+                        double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
+                                .calculateSensi(sensitivities, controllers.indexOf(controllers.get(0)));
+                        PiModel piModel = controllers.get(0).getPiModel();
+                        double deltaR = difference / sensitivity;
+                        Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, MAX_INCREMENT);
+                        if (result.getLeft()) {
+                            status = OuterLoopStatus.UNSTABLE;
+                        }
+                    } else {
+                        // several transformers control the same bus.
+                        boolean hasChanged = true;
+                        while (hasChanged) {
+                            for (LfBranch controller : controllers) {
+                                double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) voltageControl.getControlled().getCalculatedV())
+                                        .calculateSensi(sensitivities, controllerBranches.indexOf(controller));
+                                PiModel piModel = controller.getPiModel();
+                                double deltaR = difference / sensitivity;
+                                Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, 1);
+                                difference = difference - result.getRight() * sensitivity;
+                                if (result.getLeft()) {
+                                    hasChanged = true;
+                                    status = OuterLoopStatus.UNSTABLE;
+                                } else {
+                                    hasChanged = false;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        controlledBuses.forEach((controlledBus, controllerBrchs) -> {
-            LfBranch controllerBranch0 = controllerBrchs.get(0);
-            Optional<TransformerVoltageControl> transformerVoltageControl = controllerBranch0.getVoltageControl();
-            double targetV = transformerVoltageControl.get().getTargetValue();
-            double voltage = transformerVoltageControl.get().getControlled().getV();
-            double difference = targetV - voltage;
-            if (controllerBrchs.size() == 1) {
-                // One Transformer controls the bus voltage
-                double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) transformerVoltageControl.get().getControlled().getCalculatedV())
-                        .calculateSensi(sensitivities, controllerBranches.indexOf(controllerBranch0));
-                PiModel piModel = controllerBranch0.getPiModel();
-                double deltaR = difference / sensitivity;
-                Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, MAXSWITCH);
-                if (result.getLeft()) {
-                    unstable = true;
-                }
-            } else {
-                // Several transformers control the same bus voltage
-                do {
-                    haschanged = false;
-                    for (LfBranch lfBranch : controllerBrchs) {
-                        double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) transformerVoltageControl.get().getControlled().getCalculatedV())
-                                .calculateSensi(sensitivities, controllerBranches.indexOf(lfBranch));
-                        PiModel piModel = lfBranch.getPiModel();
-                        double deltaR = difference / sensitivity;
-                        Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, 1);
-                        difference = difference - result.getRight() * sensitivity;
-                        if (result.getLeft()) {
-                            haschanged = true;
-                            unstable = true;
-                        }
-                    }
-                } while (haschanged);
-            }
-        });
-
-        return unstable ? OuterLoopStatus.UNSTABLE : OuterLoopStatus.STABLE;
+        return status;
     }
 
     DenseMatrix getSensitivityValues(List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem,
