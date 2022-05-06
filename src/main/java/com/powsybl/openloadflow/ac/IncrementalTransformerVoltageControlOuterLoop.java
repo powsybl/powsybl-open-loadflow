@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -53,13 +54,14 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private OuterLoopStatus changeTapPositions(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                JacobianMatrix<AcVariableType, AcEquationType> j) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
+        AtomicReference<OuterLoopStatus> status = new AtomicReference<>();
+        status.set(OuterLoopStatus.STABLE);
 
         DenseMatrix sensitivities = getSensitivityValues(controllerBranches, equationSystem, j);
 
-        for (LfBus bus : network.getBuses()) {
-            if (bus.isTransformerVoltageControlled()) {
-                if (bus.getTransformerVoltageControl().isPresent()) {
+        network.getBuses().stream().filter(LfBus::isTransformerVoltageControlled)
+                .filter(bus -> bus.getTransformerVoltageControl().isPresent())
+                .forEach(bus -> {
                     TransformerVoltageControl voltageControl = bus.getTransformerVoltageControl().get();
                     double targetV = voltageControl.getTargetValue();
                     double voltage = voltageControl.getControlled().getV();
@@ -72,7 +74,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                         double deltaR = difference / sensitivity;
                         Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, MAX_INCREMENT);
                         if (result.getLeft()) {
-                            status = OuterLoopStatus.UNSTABLE;
+                            status.set(OuterLoopStatus.UNSTABLE);
                         }
                     } else {
                         // several transformers control the same bus.
@@ -87,18 +89,15 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                                 difference = difference - result.getRight() * sensitivity;
                                 if (result.getLeft()) {
                                     hasChanged = true;
-                                    status = OuterLoopStatus.UNSTABLE;
+                                    status.set(OuterLoopStatus.UNSTABLE);
                                 } else {
                                     hasChanged = false;
                                 }
                             }
                         }
                     }
-                }
-            }
-        }
-
-        return status;
+                });
+        return status.get();
     }
 
     DenseMatrix getSensitivityValues(List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem,
