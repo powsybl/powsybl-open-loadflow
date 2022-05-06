@@ -181,11 +181,9 @@ class AcLoadFlowTransformerControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(134.281, bus2);
-        assertVoltageEquals(34.427, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
-        assertVoltageEquals(134.281, bus4);
-        assertVoltageEquals(34.427, t2wt2.getTerminal2().getBusView().getBus());
-        assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt2.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -722,7 +720,6 @@ class AcLoadFlowTransformerControlTest {
         bus1 = network.getBusBreakerView().getBus("BUS_1");
         bus2 = network.getBusBreakerView().getBus("BUS_2");
         bus3 = network.getBusBreakerView().getBus("BUS_3");
-        bus4 = network.getBusBreakerView().getBus("BUS_4");
 
         t2wt = network.getTwoWindingsTransformer("T2wT1");
         t2wt2 = network.getTwoWindingsTransformer("T2wT2");

@@ -211,6 +211,7 @@ public class PiModelArray implements PiModel {
         }
 
         if (oldTapPosition != tapPosition) {
+            r1 = Double.NaN;
             hasChange = true;
         }
 

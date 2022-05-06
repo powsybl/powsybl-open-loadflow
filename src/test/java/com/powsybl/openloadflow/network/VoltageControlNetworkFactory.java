@@ -375,106 +375,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         return network;
     }
 
-    public static Network create2TransformersBaseNetwork(String id) {
-
-        Network network = Network.create(id, "test");
-
-        Substation substation1 = network.newSubstation()
-                .setId("SUBSTATION1")
-                .setCountry(Country.FR)
-                .add();
-        VoltageLevel vl1 = substation1.newVoltageLevel()
-                .setId("VL_1")
-                .setNominalV(132.0)
-                .setLowVoltageLimit(118.8)
-                .setHighVoltageLimit(145.2)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("BUS_1")
-                .add();
-        vl1.newGenerator()
-                .setId("GEN_1")
-                .setBus("BUS_1")
-                .setMinP(0.0)
-                .setMaxP(140)
-                .setTargetP(25)
-                .setTargetV(135)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation substation = network.newSubstation()
-                .setId("SUBSTATION")
-                .setCountry(Country.FR)
-                .add();
-        VoltageLevel vl2 = substation.newVoltageLevel()
-                .setId("VL_2")
-                .setNominalV(132.0)
-                .setLowVoltageLimit(118.8)
-                .setHighVoltageLimit(145.2)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("BUS_2")
-                .add();
-        vl2.newLoad()
-                .setId("LOAD_2")
-                .setBus("BUS_2")
-                .setP0(11.2)
-                .setQ0(7.5)
-                .add();
-
-        VoltageLevel vl3 = substation.newVoltageLevel()
-                .setId("VL_3")
-                .setNominalV(33.0)
-                .setLowVoltageLimit(0)
-                .setHighVoltageLimit(100)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl3.getBusBreakerView().newBus()
-                .setId("BUS_3")
-                .add();
-        vl3.newLoad()
-                .setId("LOAD_3")
-                .setBus("BUS_3")
-                .setQ0(0)
-                .setP0(5)
-                .add();
-
-        VoltageLevel vl4 = substation.newVoltageLevel()
-                .setId("VL_4")
-                .setNominalV(132.0)
-                .setLowVoltageLimit(118.8)
-                .setHighVoltageLimit(145.2)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl4.getBusBreakerView().newBus()
-                .setId("BUS_4")
-                .add();
-        vl4.newLoad()
-                .setId("LOAD_4")
-                .setBus("BUS_4")
-                .setP0(1.2)
-                .setQ0(0.5)
-                .add();
-
-        network.newLine()
-                .setId("LINE_12")
-                .setVoltageLevel1("VL_1")
-                .setVoltageLevel2("VL_2")
-                .setBus1("BUS_1")
-                .setBus2("BUS_2")
-                .setR(1.05)
-                .setX(10.0)
-                .setG1(0.0000005)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
-                .add();
-
-        return network;
-    }
-
     /**
      * A very small network to test with a T2wt.
      *
@@ -543,18 +443,18 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
     }
 
     /**
-     * A very small network to test with a T2wt.
+     * A very small network to test with two T2wt.
      *
-     *     G1        LD2      LD3     LD4
-     *     |    L12   |        |       |
-     *     |  ------- |        |       |
-     *     B1         B2      B3      B4
-     *                 \     /  \     /
-     *                  T2WT1    T2WT2
+     *     G1        LD2         LD3
+     *     |    L12   |  T2WT2    |
+     *     |  ------- | /     \  |
+     *     B1         B2       B3
+     *                 \      /
+     *                  T2WT1
      */
     public static Network createNetworkWith2T2wt() {
 
-        Network network = VoltageControlNetworkFactory.create2TransformersBaseNetwork("two-windings-transformer-control");
+        Network network = VoltageControlNetworkFactory.createTransformerBaseNetwork("two-windings-transformer-control");
 
         TwoWindingsTransformer t2wt1 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT1")
@@ -608,7 +508,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         TwoWindingsTransformer t2wt2 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT2")
-                .setVoltageLevel1("VL_4")
+                .setVoltageLevel1("VL_2")
                 .setVoltageLevel2("VL_3")
                 .setRatedU1(132.0)
                 .setRatedU2(33.0)
@@ -616,7 +516,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setX(10.0)
                 .setG(0.00573921028466483)
                 .setB(0.000573921028466483)
-                .setBus1("BUS_4")
+                .setBus1("BUS_2")
                 .setBus2("BUS_3")
                 .add();
 

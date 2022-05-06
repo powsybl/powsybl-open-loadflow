@@ -104,8 +104,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     haschanged = false;
                     for (LfBranch lfBranch : controllerBrchs) {
                         double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) transformerVoltageControl.get().getControlled().getCalculatedV())
-                                .calculateSensi(sensitivities, controllerBranches.indexOf(controllerBranch0));
-                        PiModel piModel = controllerBranch0.getPiModel();
+                                .calculateSensi(sensitivities, controllerBranches.indexOf(lfBranch));
+                        PiModel piModel = lfBranch.getPiModel();
                         double deltaR = difference / sensitivity;
                         Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, 1);
                         difference = difference - result.getRight() * sensitivity;
