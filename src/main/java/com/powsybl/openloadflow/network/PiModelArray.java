@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -191,11 +193,22 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean updateTapPositionR(double deltaR) {
-        this.r1 = getR1() + deltaR;
+    public Pair<Boolean, Double> updateTapPositionR(double deltaR, int maxSwitch) {
+        double newR1 = getR1() + deltaR;
         boolean hasChange = false;
         int oldTapPosition = tapPosition;
-        this.roundR1ToClosestTap();
+
+        // find tap position with the closest r1 value without exceeding maxSwitch position switches
+        double smallestDistance = Math.abs(newR1 - getModel().getR1());
+        for (int p = 0; p < models.size(); p++) {
+            if (Math.abs(lowTapPosition + p - oldTapPosition) <= maxSwitch) {
+                double distance = Math.abs(newR1 - models.get(p).getR1());
+                if (distance < smallestDistance) {
+                    tapPosition = lowTapPosition + p;
+                    smallestDistance = distance;
+                }
+            }
+        }
 
         if (oldTapPosition != tapPosition) {
             hasChange = true;
@@ -206,7 +219,8 @@ public class PiModelArray implements PiModel {
                 listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
             }
         }
-        return hasChange;
+        Pair<Boolean, Double> result = Pair.of(hasChange, getModel().getR1() - models.get(oldTapPosition - lowTapPosition).getR1());
+        return result;
     }
 
     @Override

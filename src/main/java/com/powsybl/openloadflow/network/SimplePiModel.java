@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import net.jafama.FastMath;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -141,7 +142,7 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public boolean updateTapPositionR(double deltaR) {
+    public Pair<Boolean, Double> updateTapPositionR(double deltaR, int maxSwitch) {
         throw new IllegalStateException("No tap position change in simple Pi model implementation");
     }
 

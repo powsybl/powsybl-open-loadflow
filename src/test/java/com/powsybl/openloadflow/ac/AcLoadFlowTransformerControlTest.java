@@ -160,6 +160,35 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
+    void voltageControlT2wtTest5() {
+        selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt2.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.427, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertVoltageEquals(134.281, bus4);
+        assertVoltageEquals(34.427, t2wt2.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
     void remoteVoltageControlT2wtTest() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
@@ -685,5 +714,17 @@ class AcLoadFlowTransformerControlTest {
 
         t2wt = network.getTwoWindingsTransformer("T2wT");
         t3wt = network.getThreeWindingsTransformer("T3wT");
+    }
+
+    private void selectNetwork2(Network network) {
+        this.network = network;
+
+        bus1 = network.getBusBreakerView().getBus("BUS_1");
+        bus2 = network.getBusBreakerView().getBus("BUS_2");
+        bus3 = network.getBusBreakerView().getBus("BUS_3");
+        bus4 = network.getBusBreakerView().getBus("BUS_4");
+
+        t2wt = network.getTwoWindingsTransformer("T2wT1");
+        t2wt2 = network.getTwoWindingsTransformer("T2wT2");
     }
 }

@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -58,7 +60,7 @@ public interface PiModel {
 
     boolean updateTapPosition(Direction direction);
 
-    boolean updateTapPositionR(double deltaR);
+    Pair<Boolean, Double> updateTapPositionR(double deltaR, int maxSwitch);
 
     boolean setMinZ(double minZ, boolean dc);
 
