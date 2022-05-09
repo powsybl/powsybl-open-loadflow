@@ -38,7 +38,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfNetwork {
+public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
@@ -73,8 +73,6 @@ public class LfNetwork {
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
     private boolean valid = true;
-
-    private final Map<String, Object> userObjects = new HashMap<>();
 
     private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
@@ -587,16 +585,6 @@ public class LfNetwork {
 
     public boolean isValid() {
         return valid;
-    }
-
-    public Object getUserObject(String name) {
-        Objects.requireNonNull(name);
-        return userObjects.get(name);
-    }
-
-    public void setUserObject(String name, Object userObject) {
-        Objects.requireNonNull(name);
-        userObjects.put(name, userObject);
     }
 
     @Override
