@@ -15,24 +15,12 @@ import com.powsybl.openloadflow.network.LfShunt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public class ShuntVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShuntVoltageControlOuterLoop.class);
-
-    private static final class ContextData {
-
-        private final List<LfShunt> shuntsWithVoltageControlDisabled = new ArrayList<>();
-
-        private List<LfShunt> getShuntsWithVoltageControlDisabled() {
-            return shuntsWithVoltageControlDisabled;
-        }
-    }
 
     @Override
     public String getType() {
@@ -41,7 +29,11 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
 
     @Override
     public void initialize(OuterLoopContext context) {
-        context.setData(new ContextData());
+        for (LfBus bus : context.getNetwork().getBuses()) {
+            bus.getControllerShunt()
+                    .filter(controllerShunt -> !controllerShunt.isDisabled() && controllerShunt.hasVoltageControlCapability())
+                    .ifPresent(controllerShunt -> controllerShunt.setVoltageControlEnabled(true));
+        }
     }
 
     @Override
@@ -53,7 +45,6 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
                 LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
                 if (controllerShunt != null && controllerShunt.isVoltageControlEnabled()) {
                     controllerShunt.setVoltageControlEnabled(false);
-                    ((ContextData) context.getData()).getShuntsWithVoltageControlDisabled().add(controllerShunt);
 
                     // round the susceptance to the closest section
                     double b = controllerShunt.getB();
@@ -69,8 +60,8 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (LfShunt controllerShunt : ((ContextData) context.getData()).getShuntsWithVoltageControlDisabled()) {
-            controllerShunt.setVoltageControlEnabled(true);
+        for (LfBus bus : context.getNetwork().getBuses()) {
+            bus.getControllerShunt().ifPresent(controllerShunt -> controllerShunt.setVoltageControlEnabled(false));
         }
     }
 }

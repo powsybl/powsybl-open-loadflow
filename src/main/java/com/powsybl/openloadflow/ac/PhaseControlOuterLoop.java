@@ -168,9 +168,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
     @Override
     public void cleanup(OuterLoopContext context) {
         for (LfBranch branch : context.getNetwork().getBranches()) {
-            if (!branch.isDisabled() && branch.isPhaseController()) {
-                branch.setPhaseControlEnabled(false);
-            }
+            branch.setPhaseControlEnabled(false);
         }
     }
 }

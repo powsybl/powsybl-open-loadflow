@@ -226,11 +226,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     branch.setVoltageControlEnabled(false);
                 }
             }
-            if (lfParameters.isSimulShunt()) {
-                for (LfShunt shunt : lfNetwork.getShunts()) {
-                    shunt.setVoltageControlEnabled(false);
-                }
-            }
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups = createFactorGroups(validLfFactors.stream()
