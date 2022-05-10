@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfElement {
+public interface LfElement extends PropertyBag {
 
     String getId();
 
@@ -28,8 +28,4 @@ public interface LfElement {
     void setDisabled(boolean disabled);
 
     LfNetwork getNetwork();
-
-    Object getUserObject(String name);
-
-    void setUserObject(String name, Object userObject);
 }

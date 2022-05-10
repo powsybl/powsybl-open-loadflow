@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -16,11 +15,11 @@ public interface OuterLoop {
 
     String getType();
 
-    default void initialize(LfNetwork network) {
+    default void initialize(OuterLoopContext context) {
     }
 
     OuterLoopStatus check(OuterLoopContext context, Reporter reporter);
 
-    default void cleanup(LfNetwork network) {
+    default void cleanup(OuterLoopContext context) {
     }
 }

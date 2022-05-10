@@ -19,7 +19,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfGenerator implements LfGenerator {
+public abstract class AbstractLfGenerator extends AbstractPropertyBag implements LfGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
 
@@ -46,8 +46,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     protected ReactivePowerControl.ControlledSide controlledBranchSide;
 
     protected double remoteTargetQ = Double.NaN;
-
-    private Object userObject;
 
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
@@ -261,16 +259,6 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public double getRemoteTargetQ() {
         return remoteTargetQ;
-    }
-
-    @Override
-    public Object getUserObject() {
-        return userObject;
-    }
-
-    @Override
-    public void setUserObject(Object userObject) {
-        this.userObject = userObject;
     }
 
     @Override
