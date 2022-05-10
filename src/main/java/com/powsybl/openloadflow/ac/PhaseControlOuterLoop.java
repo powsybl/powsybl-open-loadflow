@@ -32,15 +32,6 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PhaseControlOuterLoop.class);
 
-    private static final class ContextData {
-
-        private final List<LfBranch> branchesWithPhaseControlDisabled = new ArrayList<>();
-
-        private List<LfBranch> getBranchesWithPhaseControlDisabled() {
-            return branchesWithPhaseControlDisabled;
-        }
-    }
-
     @Override
     public String getType() {
         return "Phase control";
@@ -52,7 +43,9 @@ public class PhaseControlOuterLoop implements OuterLoop {
         List<LfBranch> disabledBranches = new ArrayList<>(1);
         LfNetwork network = context.getNetwork();
         for (LfBranch branch : network.getBranches()) {
-            if (!branch.isDisabled() && branch.isPhaseController() && branch.isPhaseControlEnabled()) {
+            if (!branch.isDisabled() && branch.isPhaseController()) {
+                // enable phase control of all enabled branches
+                branch.setPhaseControlEnabled(true);
                 controllerBranches.add(branch);
             }
             if (branch.isDisabled()) {
@@ -86,7 +79,6 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 connectivity.reset();
             }
         }
-        context.setData(new ContextData());
     }
 
     @Override
@@ -113,7 +105,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
         // all branches with active power control are switched off
         phaseControlsOn.stream()
                 .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.CONTROLLER)
-                .forEach(phaseControl -> switchOffPhaseControl(phaseControl, context));
+                .forEach(this::switchOffPhaseControl);
 
         // if at least one phase shifter has been switched off we need to continue
         return phaseControlsOn.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
@@ -133,11 +125,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
         return unstablePhaseControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
     }
 
-    private void switchOffPhaseControl(DiscretePhaseControl phaseControl, OuterLoopContext context) {
+    private void switchOffPhaseControl(DiscretePhaseControl phaseControl) {
         // switch off phase control
         LfBranch controllerBranch = phaseControl.getController();
         controllerBranch.setPhaseControlEnabled(false);
-        ((ContextData) context.getData()).getBranchesWithPhaseControlDisabled().add(controllerBranch);
 
         // round the phase shift to the closest tap
         PiModel piModel = controllerBranch.getPiModel();
@@ -176,8 +167,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (var controllerBranch : ((ContextData) context.getData()).getBranchesWithPhaseControlDisabled()) {
-            controllerBranch.setPhaseControlEnabled(true);
+        for (LfBranch branch : context.getNetwork().getBranches()) {
+            if (!branch.isDisabled() && branch.isPhaseController()) {
+                branch.setPhaseControlEnabled(false);
+            }
         }
     }
 }

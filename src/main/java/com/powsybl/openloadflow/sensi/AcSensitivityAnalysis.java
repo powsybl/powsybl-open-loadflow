@@ -231,11 +231,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     shunt.setVoltageControlEnabled(false);
                 }
             }
-            if (lfParameters.isPhaseShifterRegulationOn()) {
-                for (LfBranch branch : lfNetwork.getBranches()) {
-                    branch.setPhaseControlEnabled(false);
-                }
-            }
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups = createFactorGroups(validLfFactors.stream()
