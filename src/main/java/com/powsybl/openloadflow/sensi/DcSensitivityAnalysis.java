@@ -232,12 +232,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (!predefSensiValue) {
                     sensiValue += contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
                 }
-                if (contingencyElement.getElement().getId().equals(functionBranchId)) {
-                    // the monitored branch is in contingency, sensitivity equals 0 and post-contingency flow equals NaN in any case.
-                    flowValue = Double.NaN;
-                    sensiValue = 0d;
-                    break;
-                }
                 if (contingencyElement.getElement().getId().equals(factor.getVariableId())) {
                     // the equipment responsible for the variable is indeed in contingency, the sensitivity value equals zero.
                     // No assumption about the reference flow on the monitored branch.

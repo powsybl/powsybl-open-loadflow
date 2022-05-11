@@ -291,9 +291,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     contingencyFactors.stream()
                             .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
                             .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
-                            .forEach(lfFactor ->  {
-                                lfFactor.setSensitivityValuePredefinedResult(0d);
-                            });
+                            .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
                 } else {
                     // contingency breaking connectivity
                     // we check if factors are still in the main component
