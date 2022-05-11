@@ -14,14 +14,10 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.Variable;
-import com.powsybl.openloadflow.network.DiscretePhaseControl;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,26 +33,26 @@ public class PhaseControlOuterLoop implements OuterLoop {
         return "Phase control";
     }
 
+    private static List<LfBranch> getControllerBranches(LfNetwork network) {
+        return network.getBranches().stream()
+                .filter(branch -> !branch.isDisabled() && branch.isPhaseController())
+                .collect(Collectors.toList());
+    }
+
     @Override
     public void initialize(OuterLoopContext context) {
-        List<LfBranch> controllerBranches = new ArrayList<>(1);
-        List<LfBranch> disabledBranches = new ArrayList<>(1);
-        LfNetwork network = context.getNetwork();
-        for (LfBranch branch : network.getBranches()) {
-            if (!branch.isDisabled() && branch.isPhaseController()) {
-                // enable phase control of all enabled branches
-                branch.setPhaseControlEnabled(true);
-                controllerBranches.add(branch);
-            }
-            if (branch.isDisabled()) {
-                disabledBranches.add(branch);
-            }
+        List<LfBranch> controllerBranches = getControllerBranches(context.getNetwork());
+        for (LfBranch controllerBranch : controllerBranches) {
+            controllerBranch.setPhaseControlEnabled(true);
         }
         if (!controllerBranches.isEmpty()) {
+            List<LfBranch> disabledBranches = context.getNetwork().getBranches().stream()
+                    .filter(LfElement::isDisabled)
+                    .collect(Collectors.toList());
             for (LfBranch controllerBranch : controllerBranches) {
                 var phaseControl = controllerBranch.getDiscretePhaseControl().orElseThrow();
                 var controlledBranch = phaseControl.getControlled();
-                var connectivity = network.getConnectivity();
+                var connectivity = context.getNetwork().getConnectivity();
 
                 // apply contingency (in case we are inside a security analysis)
                 disabledBranches.stream()
@@ -97,26 +93,22 @@ public class PhaseControlOuterLoop implements OuterLoop {
     }
 
     private OuterLoopStatus firstIteration(OuterLoopContext context) {
-        List<DiscretePhaseControl> phaseControlsOn = context.getNetwork().getBranches().stream()
-            .filter(branch -> branch.isPhaseController() && branch.isPhaseControlEnabled())
-            .flatMap(branch -> branch.getDiscretePhaseControl().stream())
-            .collect(Collectors.toList());
-
         // all branches with active power control are switched off
-        phaseControlsOn.stream()
+        List<LfBranch> controllerBranches = getControllerBranches(context.getNetwork());
+        controllerBranches.stream()
+                .flatMap(controllerBranch -> controllerBranch.getDiscretePhaseControl().stream())
                 .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.CONTROLLER)
                 .forEach(this::switchOffPhaseControl);
 
         // if at least one phase shifter has been switched off we need to continue
-        return phaseControlsOn.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
+        return controllerBranches.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
     }
 
     private OuterLoopStatus nextIteration(OuterLoopContext context) {
         // at second outer loop iteration we switch on phase control for branches that are in limiter mode
         // and a current greater than the limit
         // phase control consists in increasing or decreasing tap position to limit the current
-        List<DiscretePhaseControl> unstablePhaseControls = context.getNetwork().getBranches().stream()
-                .filter(branch -> branch.isPhaseController() && branch.isPhaseControlEnabled())
+        List<DiscretePhaseControl> unstablePhaseControls = getControllerBranches(context.getNetwork()).stream()
                 .flatMap(branch -> branch.getDiscretePhaseControl().stream())
                 .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.LIMITER)
                 .filter(this::changeTapPositions)
@@ -167,7 +159,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (LfBranch branch : context.getNetwork().getBranches()) {
+        for (LfBranch branch : getControllerBranches(context.getNetwork())) {
             branch.setPhaseControlEnabled(false);
         }
     }

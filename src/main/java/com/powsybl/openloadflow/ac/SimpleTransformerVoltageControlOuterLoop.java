@@ -23,10 +23,8 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
 
     @Override
     public void initialize(OuterLoopContext context) {
-        for (LfBranch branch : context.getNetwork().getBranches()) {
-            if (branch.isVoltageController()) {
-                branch.setVoltageControlEnabled(true);
-            }
+        for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
+            controllerBranch.setVoltageControlEnabled(true);
         }
     }
 

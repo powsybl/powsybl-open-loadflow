@@ -43,18 +43,18 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
     public void initialize(OuterLoopContext context) {
         context.setData(new ContextData());
 
+        for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
+            controllerBranch.setVoltageControlEnabled(false);
+        }
+
         // All transformer voltage control are disabled for the first equation system resolution.
         double[] maxControlledNominalVoltage = new double[1];
         maxControlledNominalVoltage[0] = Double.MIN_VALUE;
-        for (LfBranch branch : context.getNetwork().getBranches()) {
-            if (branch.isVoltageController()) {
-                branch.setVoltageControlEnabled(false);
+        for (LfBus bus : context.getNetwork().getBuses()) {
+            if (!bus.isDisabled() && bus.isTransformerVoltageControlled()) {
+                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], bus.getNominalV());
             }
-            branch.getVoltageControl().ifPresent(voltageControl -> {
-                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], voltageControl.getControlled().getNominalV());
-            });
         }
-
         ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxControlledNominalVoltage[0]);
     }
 
@@ -76,7 +76,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         // The transformer voltage controls are enabled.
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
-                if (bus.isVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
+                if (!bus.isDisabled() && bus.isVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
                     var voltageControl = bus.getVoltageControl().orElseThrow();
                     voltageControl.getControllerBuses().forEach(controllerBus -> {
                         if (controllerBus.isVoltageControlEnabled()) {
@@ -88,11 +88,9 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     status = OuterLoopStatus.UNSTABLE;
                 }
             }
-            for (LfBranch branch : context.getNetwork().getBranches()) {
-                if (branch.isVoltageController()) {
-                    branch.setVoltageControlEnabled(true);
-                    status = OuterLoopStatus.UNSTABLE;
-                }
+            for (LfBranch branch : getControllerBranches(context.getNetwork())) {
+                branch.setVoltageControlEnabled(true);
+                status = OuterLoopStatus.UNSTABLE;
             }
         }
 

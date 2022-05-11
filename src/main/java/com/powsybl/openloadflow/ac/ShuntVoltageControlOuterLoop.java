@@ -10,10 +10,13 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -27,13 +30,16 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
         return "Shunt voltage control";
     }
 
+    private static List<LfShunt> getControllerShunts(LfNetwork network) {
+        return network.getBuses().stream()
+                .flatMap(bus -> bus.getControllerShunt().stream())
+                .filter(controllerShunt -> !controllerShunt.isDisabled() && controllerShunt.hasVoltageControlCapability())
+                .collect(Collectors.toList());
+    }
+
     @Override
     public void initialize(OuterLoopContext context) {
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            bus.getControllerShunt()
-                    .filter(controllerShunt -> !controllerShunt.isDisabled() && controllerShunt.hasVoltageControlCapability())
-                    .ifPresent(controllerShunt -> controllerShunt.setVoltageControlEnabled(true));
-        }
+        getControllerShunts(context.getNetwork()).forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true));
     }
 
     @Override
@@ -41,18 +47,15 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (context.getIteration() == 0) {
-            for (LfBus bus : context.getNetwork().getBuses()) {
-                LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
-                if (controllerShunt != null && controllerShunt.isVoltageControlEnabled()) {
-                    controllerShunt.setVoltageControlEnabled(false);
+            for (LfShunt controllerShunt : getControllerShunts(context.getNetwork())) {
+                controllerShunt.setVoltageControlEnabled(false);
 
-                    // round the susceptance to the closest section
-                    double b = controllerShunt.getB();
-                    controllerShunt.dispatchB();
-                    LOGGER.trace("Round susceptance of '{}': {} -> {}", controllerShunt.getId(), b, controllerShunt.getB());
+                // round the susceptance to the closest section
+                double b = controllerShunt.getB();
+                controllerShunt.dispatchB();
+                LOGGER.trace("Round susceptance of '{}': {} -> {}", controllerShunt.getId(), b, controllerShunt.getB());
 
-                    status = OuterLoopStatus.UNSTABLE;
-                }
+                status = OuterLoopStatus.UNSTABLE;
             }
         }
         return status;
@@ -60,8 +63,6 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            bus.getControllerShunt().ifPresent(controllerShunt -> controllerShunt.setVoltageControlEnabled(false));
-        }
+        getControllerShunts(context.getNetwork()).forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(false));
     }
 }
