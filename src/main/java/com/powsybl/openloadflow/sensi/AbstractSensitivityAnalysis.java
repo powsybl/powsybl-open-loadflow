@@ -611,7 +611,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             .forEach(connectivity::cut);
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Set<String> branchIdsToOpen) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                 // after a contingency, we check if the factor function and the variable are in different connected components
