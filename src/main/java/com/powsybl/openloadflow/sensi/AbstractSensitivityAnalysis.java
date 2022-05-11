@@ -330,7 +330,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
                     LfBus controlledBus = (LfBus) variableElement;
                     if (!isEffectivelyVoltageControlled(controlledBus)) {
-                        status = functionElement == null ? Status.ZERO : Status.VALID_ONLY_FOR_FUNCTION;
+                        status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
                     }
                 }
             }
