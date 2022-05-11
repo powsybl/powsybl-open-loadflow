@@ -201,9 +201,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
-        Map<String, Set<String>> propagatedContingencyMap = contingencies.stream().collect(
-                Collectors.toMap(contingency -> contingency.getContingency().getId(), contingency -> new LinkedHashSet<>(contingency.getBranchIdsToOpen()))
-        );
 
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
         SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork);
