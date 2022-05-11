@@ -20,11 +20,9 @@ import java.util.List;
  */
 public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
-    private static final class ContextData extends AbstractTransformerVoltageControlOuterLoop.ContextData {
+    private static final class ContextData {
 
         private double maxControlledNominalVoltage = Double.MIN_VALUE;
-
-        private final List<LfBranch> branchesWithVoltageControlDisabled = new ArrayList<>();
 
         private final List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
 
@@ -34,10 +32,6 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
         private void setMaxControlledNominalVoltage(double maxControlledNominalVoltage) {
             this.maxControlledNominalVoltage = maxControlledNominalVoltage;
-        }
-
-        private List<LfBranch> getBranchesWithVoltageControlDisabled() {
-            return branchesWithVoltageControlDisabled;
         }
 
         private List<LfBus> getBusesWithVoltageControlDisabled() {
@@ -53,9 +47,10 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         double[] maxControlledNominalVoltage = new double[1];
         maxControlledNominalVoltage[0] = Double.MIN_VALUE;
         for (LfBranch branch : context.getNetwork().getBranches()) {
-            branch.getVoltageControl().ifPresent(voltageControl -> {
+            if (branch.isVoltageController()) {
                 branch.setVoltageControlEnabled(false);
-                ((ContextData) context.getData()).getBranchesWithVoltageControlDisabled().add(branch);
+            }
+            branch.getVoltageControl().ifPresent(voltageControl -> {
                 maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], voltageControl.getControlled().getNominalV());
             });
         }
@@ -93,9 +88,11 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     status = OuterLoopStatus.UNSTABLE;
                 }
             }
-            for (LfBranch controllerBranch : contextData.getBranchesWithVoltageControlDisabled()) {
-                controllerBranch.setVoltageControlEnabled(true);
-                status = OuterLoopStatus.UNSTABLE;
+            for (LfBranch branch : context.getNetwork().getBranches()) {
+                if (branch.isVoltageController()) {
+                    branch.setVoltageControlEnabled(true);
+                    status = OuterLoopStatus.UNSTABLE;
+                }
             }
         }
 

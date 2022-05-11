@@ -14,9 +14,6 @@ import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
@@ -24,21 +21,11 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTransformerVoltageControlOuterLoop.class);
 
-    protected static class ContextData {
-
-        private final List<LfBranch> branchesWithVoltageControlDisabledBecauseOfRounding = new ArrayList<>();
-
-        private List<LfBranch> getBranchesWithVoltageControlDisabledBecauseOfRounding() {
-            return branchesWithVoltageControlDisabledBecauseOfRounding;
-        }
-    }
-
     protected OuterLoopStatus roundVoltageRatios(OuterLoopContext context) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         for (LfBranch branch : context.getNetwork().getBranches()) {
             if (branch.isVoltageController() && branch.isVoltageControlEnabled()) {
                 branch.setVoltageControlEnabled(false);
-                ((ContextData) context.getData()).getBranchesWithVoltageControlDisabledBecauseOfRounding().add(branch);
 
                 // round the rho shift to the closest tap
                 PiModel piModel = branch.getPiModel();
@@ -55,8 +42,10 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
 
     @Override
     public void cleanup(OuterLoopContext context) {
-        for (LfBranch controllerBranch : ((ContextData) context.getData()).getBranchesWithVoltageControlDisabledBecauseOfRounding()) {
-            controllerBranch.setVoltageControlEnabled(true);
+        for (LfBranch branch : context.getNetwork().getBranches()) {
+            if (branch.isVoltageController()) {
+                branch.setVoltageControlEnabled(false);
+            }
         }
     }
 }

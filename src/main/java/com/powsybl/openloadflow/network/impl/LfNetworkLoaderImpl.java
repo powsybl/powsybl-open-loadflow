@@ -614,8 +614,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
 
-        controllerBranch.setVoltageControlEnabled(true);
-
         controlledBus.getTransformerVoltageControl().ifPresentOrElse(vc -> {
             LOGGER.trace("Controlled bus '{}' already has a transformer voltage control: a shared control is created", controlledBus.getId());
             if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {

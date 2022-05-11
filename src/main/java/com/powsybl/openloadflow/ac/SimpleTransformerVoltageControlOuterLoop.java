@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.network.LfBranch;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -22,7 +23,11 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
 
     @Override
     public void initialize(OuterLoopContext context) {
-        context.setData(new ContextData());
+        for (LfBranch branch : context.getNetwork().getBranches()) {
+            if (branch.isVoltageController()) {
+                branch.setVoltageControlEnabled(true);
+            }
+        }
     }
 
     @Override

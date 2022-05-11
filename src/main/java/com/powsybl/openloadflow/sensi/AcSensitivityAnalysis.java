@@ -219,12 +219,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             new AcloadFlowEngine(context)
                     .run(reporter);
 
-            if (lfParameters.isTransformerVoltageControlOn()) {
-                for (LfBranch branch : lfNetwork.getBranches()) {
-                    branch.setVoltageControlEnabled(false);
-                }
-            }
-
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups = createFactorGroups(validLfFactors.stream()
                     .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
