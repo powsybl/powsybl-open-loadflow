@@ -11,7 +11,7 @@ import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
 
-public class NodeBreakerNetworkFactory extends AbstractLoadFlowNetworkFactory {
+public class NodeBreakerNetworkFactory {
     /**
      * <pre>
      *                   G
