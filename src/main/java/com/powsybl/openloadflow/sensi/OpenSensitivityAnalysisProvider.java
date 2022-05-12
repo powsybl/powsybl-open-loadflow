@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
@@ -135,7 +136,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
                 // debugging
                 if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
-                    Path debugDir = PlatformConfig.defaultConfig().getConfigDir().getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir());
+                    Path debugDir = PlatformConfig.defaultConfig().getConfigDir()
+                            .map(dir -> dir.getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir()))
+                            .orElseThrow(() -> new PowsyblException("Cannot write to debug directory as no configuration directory has been defined"));
                     String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
 
                     NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
