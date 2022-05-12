@@ -47,11 +47,4 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
         }
         return status;
     }
-
-    @Override
-    public void cleanup(OuterLoopContext context) {
-        for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
-            controllerBranch.setVoltageControlEnabled(false);
-        }
-    }
 }

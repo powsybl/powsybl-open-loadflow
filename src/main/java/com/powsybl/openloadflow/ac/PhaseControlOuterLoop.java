@@ -42,7 +42,9 @@ public class PhaseControlOuterLoop implements OuterLoop {
     @Override
     public void initialize(OuterLoopContext context) {
         List<LfBranch> controllerBranches = getControllerBranches(context.getNetwork());
-        for (LfBranch controllerBranch : controllerBranches) {
+        for (LfBranch controllerBranch : controllerBranches.stream()
+                .filter(controllerBranch -> controllerBranch.getDiscretePhaseControl().orElseThrow().getMode() == DiscretePhaseControl.Mode.CONTROLLER)
+                .collect(Collectors.toList())) {
             controllerBranch.setPhaseControlEnabled(true);
         }
         if (!controllerBranches.isEmpty()) {
@@ -154,13 +156,6 @@ public class PhaseControlOuterLoop implements OuterLoop {
             ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = (ClosedBranchSide2CurrentMagnitudeEquationTerm) controllerBranch.getI2();
             Variable<AcVariableType> a1Var = i2.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
             return i2.der(a1Var) > 0;
-        }
-    }
-
-    @Override
-    public void cleanup(OuterLoopContext context) {
-        for (LfBranch branch : getControllerBranches(context.getNetwork())) {
-            branch.setPhaseControlEnabled(false);
         }
     }
 }

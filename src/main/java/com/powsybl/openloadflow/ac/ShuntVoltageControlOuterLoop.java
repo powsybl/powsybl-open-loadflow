@@ -60,9 +60,4 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
         }
         return status;
     }
-
-    @Override
-    public void cleanup(OuterLoopContext context) {
-        getControllerShunts(context.getNetwork()).forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(false));
-    }
 }
