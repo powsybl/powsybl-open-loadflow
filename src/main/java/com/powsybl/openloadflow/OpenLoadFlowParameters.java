@@ -334,38 +334,41 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static OpenLoadFlowParameters load(Map<String, String> properties) {
-        OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
+        return new OpenLoadFlowParameters().update(properties);
+    }
+
+    public OpenLoadFlowParameters update(Map<String, String> properties) {
         Optional.ofNullable(properties.get(SLACK_BUS_SELECTION_PARAM_NAME))
-                .ifPresent(prop -> parameters.setSlackBusSelectionMode(SlackBusSelectionMode.valueOf(prop)));
+                .ifPresent(prop -> this.setSlackBusSelectionMode(SlackBusSelectionMode.valueOf(prop)));
         Optional.ofNullable(properties.get(SLACK_BUSES_IDS_PARAM_NAME))
-                .ifPresent(prop -> parameters.setSlackBusesIds(Arrays.asList(prop.split("[:,]"))));
+                .ifPresent(prop -> this.setSlackBusesIds(Arrays.asList(prop.split("[:,]"))));
         Optional.ofNullable(properties.get(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME))
-                .ifPresent(prop -> parameters.setLowImpedanceBranchMode(LowImpedanceBranchMode.valueOf(prop)));
+                .ifPresent(prop -> this.setLowImpedanceBranchMode(LowImpedanceBranchMode.valueOf(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_REMOTE_CONTROL_PARAM_NAME))
-                .ifPresent(prop -> parameters.setVoltageRemoteControl(Boolean.parseBoolean(prop)));
+                .ifPresent(prop -> this.setVoltageRemoteControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME))
-                .ifPresent(prop -> parameters.setThrowsExceptionInCaseOfSlackDistributionFailure(Boolean.parseBoolean(prop)));
+                .ifPresent(prop -> this.setThrowsExceptionInCaseOfSlackDistributionFailure(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME))
-                .ifPresent(prop -> parameters.setLoadPowerFactorConstant(Boolean.parseBoolean(prop)));
+                .ifPresent(prop -> this.setLoadPowerFactorConstant(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME))
-                .ifPresent(prop -> parameters.setPlausibleActivePowerLimit(Double.parseDouble(prop)));
+                .ifPresent(prop -> this.setPlausibleActivePowerLimit(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME))
-                .ifPresent(prop -> parameters.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(Boolean.parseBoolean(prop)));
+                .ifPresent(prop -> this.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(SLACK_BUS_P_MAX_MISMATCH_NAME))
-                .ifPresent(prop -> parameters.setSlackBusPMaxMismatch(Double.parseDouble(prop)));
+                .ifPresent(prop -> this.setSlackBusPMaxMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME))
-                .ifPresent(prop -> parameters.setVoltagePerReactivePowerControl(Boolean.parseBoolean(prop)));
+                .ifPresent(prop -> this.setVoltagePerReactivePowerControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME))
-                .ifPresent(prop -> parameters.setReactivePowerRemoteControl(Boolean.parseBoolean(prop)));
+                .ifPresent(prop -> this.setReactivePowerRemoteControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(MAX_ITERATION_NAME))
-                .ifPresent(prop -> parameters.setMaxIteration(Integer.parseInt(prop)));
+                .ifPresent(prop -> this.setMaxIteration(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME))
-                .ifPresent(prop -> parameters.setNewtonRaphsonConvEpsPerEq(Double.parseDouble(prop)));
+                .ifPresent(prop -> this.setNewtonRaphsonConvEpsPerEq(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_INIT_MODE_OVERRIDE_NAME))
-                .ifPresent(prop -> parameters.setVoltageInitModeOverride(VoltageInitModeOverride.valueOf(prop)));
+                .ifPresent(prop -> this.setVoltageInitModeOverride(VoltageInitModeOverride.valueOf(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME))
-                .ifPresent(prop -> parameters.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
-        return parameters;
+                .ifPresent(prop -> this.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
+        return this;
     }
 
     @Override

@@ -253,4 +253,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     public List<String> getSpecificParametersNames() {
         return OpenLoadFlowParameters.SPECIFIC_PARAMETERS_NAMES;
     }
+
+    @Override
+    public void updateSpecificParameters(Extension<LoadFlowParameters> extension, Map<String, String> properties) {
+        ((OpenLoadFlowParameters) extension).update(properties);
+    }
 }
