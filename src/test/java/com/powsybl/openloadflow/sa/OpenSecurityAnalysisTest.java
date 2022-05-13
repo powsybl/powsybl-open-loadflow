@@ -597,8 +597,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(0.333, brl14l12.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
 
         BranchResult brl14l14 = postContl14.getBranchResult("l14");
-        assertEquals(0.0, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-1.0, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(NaN, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(NaN, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
 
         BranchResult brl14l23 = postContl14.getBranchResult("l23");
         assertEquals(1.333, brl14l23.getP1(), LoadFlowAssert.DELTA_POWER);
@@ -658,8 +658,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(0.333, brl14l12.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
 
         BranchResult brl14l14 = postContl14.getBranchResult("l14");
-        assertEquals(0.0, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-1.0, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(NaN, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(NaN, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
 
         BranchResult brl14l23 = postContl14.getBranchResult("l23");
         assertEquals(1.333, brl14l23.getP1(), LoadFlowAssert.DELTA_POWER);

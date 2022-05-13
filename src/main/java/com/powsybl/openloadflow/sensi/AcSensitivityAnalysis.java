@@ -29,6 +29,7 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.sensitivity.SensitivityFactorReader;
 import com.powsybl.sensitivity.SensitivityValueWriter;
 import com.powsybl.sensitivity.SensitivityVariableSet;
+import com.powsybl.sensitivity.SensitivityVariableType;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
@@ -209,9 +210,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
-        Map<String, Set<String>> propagatedContingencyMap = contingencies.stream().collect(
-                Collectors.toMap(contingency -> contingency.getContingency().getId(), contingency -> new LinkedHashSet<>(contingency.getBranchIdsToOpen()))
-        );
 
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
         SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork);
@@ -299,14 +297,18 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfFactor.getFunctionElement()))
                             .forEach(lfFactor ->  {
                                 lfFactor.setSensitivityValuePredefinedResult(0d);
-                                lfFactor.setFunctionPredefinedResult(0d);
+                                lfFactor.setFunctionPredefinedResult(Double.NaN);
                             });
+                    contingencyFactors.stream()
+                            .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
+                            .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
+                            .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
                 } else {
                     // contingency breaking connectivity
                     LOGGER.info("Contingency {} with loss of connectivity", lfContingency.getId());
                     // we check if factors are still in the main component
                     Set<LfBus> slackConnectedComponent = lfNetwork.getBuses().stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
-                    setPredefinedResults(contingencyFactors, slackConnectedComponent, propagatedContingencyMap.get(lfContingency.getId()));
+                    setPredefinedResults(contingencyFactors, slackConnectedComponent);
 
                     // we recompute GLSK weights if needed
                     rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
