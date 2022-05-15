@@ -7,9 +7,6 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.sld.SingleLineDiagram;
-
-import java.nio.file.Paths;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -148,7 +145,6 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setG2(0.0)
                 .setB2(386E-6 / 2)
                 .add();
-        SingleLineDiagram.draw(network, "VL2", Paths.get("/Users/geo/toto.svg"));
         return network;
     }
 }
