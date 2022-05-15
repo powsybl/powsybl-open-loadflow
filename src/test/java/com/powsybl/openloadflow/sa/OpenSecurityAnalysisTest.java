@@ -25,6 +25,7 @@ import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -1377,5 +1378,17 @@ class OpenSecurityAnalysisTest {
         var e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Switch 'X' not found in the network", e.getCause().getMessage());
+    }
+
+    @Test
+    @Disabled
+    void testSwitchLoopIssue() {
+        Network network = SwitchLoopIssueNetworkFactory.create();
+
+        List<Contingency> contingencies = List.of(Contingency.line("L1"));
+
+        List<StateMonitor> monitors = Collections.emptyList();
+
+        runSecurityAnalysis(network, contingencies, monitors);
     }
 }

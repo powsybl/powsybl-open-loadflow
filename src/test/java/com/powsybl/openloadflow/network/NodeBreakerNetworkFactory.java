@@ -11,7 +11,11 @@ import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
 
-public class NodeBreakerNetworkFactory {
+public final class NodeBreakerNetworkFactory {
+
+    private NodeBreakerNetworkFactory() {
+    }
+
     /**
      * <pre>
      *                   G

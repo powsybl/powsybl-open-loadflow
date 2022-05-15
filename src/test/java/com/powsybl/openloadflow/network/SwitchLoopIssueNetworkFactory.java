@@ -1,25 +1,41 @@
+/**
+ * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
 
-public class SwitchLoopIssueNetworkFactory {
+/**
+ * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ */
+public final class SwitchLoopIssueNetworkFactory {
+
+    private SwitchLoopIssueNetworkFactory() {
+    }
 
     /**
      *          LD(1)
      *          |
-     *    ------------- BBS1(0)      VL1
-     *          |
-     *          |
-     *          | L1
-     *          | (3)
-     *          |
-     *    ------------
-     *    |          |
-     *    BR1        |
-     *    |(1)       |              VL2
-     *    D1        D2
-     *    |          |
-     *    ----------- BBS2(0)
+     *    --------------------- BBS1(0)      VL1
+     *          |          |(2)
+     *          D3        BR2
+     *          |          |
+     *          | (3)      |
+     *          | L1       |
+     *          | (2)      |
+     *          |          | L2
+     *    ------------     |
+     *    |          |     |
+     *    D4         |     |
+     *    |(5)       |     |
+     *    BR1        |     |
+     *    |(1)       |     |(3)                VL2
+     *    D1        D2    BR3
+     *    |          |     |
+     *    --------------------- BBS2(0)
      *         |
      *         G(4)
      */
@@ -54,7 +70,7 @@ public class SwitchLoopIssueNetworkFactory {
                 .add();
         vl2.newGenerator()
                 .setId("G")
-                .setNode(5)
+                .setNode(4)
                 .setMinP(-9999.99)
                 .setMaxP(9999.99)
                 .setVoltageRegulatorOn(true)
@@ -62,12 +78,9 @@ public class SwitchLoopIssueNetworkFactory {
                 .setTargetP(600)
                 .setTargetQ(300)
                 .add();
-        vl2.getNodeBreakerView().newBreaker()
-                .setId("D1")
-                .setKind(SwitchKind.DISCONNECTOR)
+        vl2.getNodeBreakerView().newInternalConnection()
                 .setNode1(0)
-                .setNode2(2)
-                .setRetained(false)
+                .setNode2(4)
                 .add();
         vl2.getNodeBreakerView().newBreaker()
                 .setId("D1")
@@ -77,23 +90,64 @@ public class SwitchLoopIssueNetworkFactory {
                 .setRetained(false)
                 .add();
         vl2.getNodeBreakerView().newBreaker()
-                .setId("D1")
+                .setId("D2")
                 .setKind(SwitchKind.DISCONNECTOR)
+                .setNode1(0)
+                .setNode2(2)
+                .setRetained(false)
+                .add();
+        vl2.getNodeBreakerView().newBreaker()
+                .setId("BR1")
+                .setKind(SwitchKind.BREAKER)
+                .setNode1(1)
+                .setNode2(5)
+                .setRetained(true)
+                .add();
+        vl2.getNodeBreakerView().newBreaker()
+                .setId("D4")
+                .setKind(SwitchKind.DISCONNECTOR)
+                .setNode1(5)
+                .setNode2(2)
+                .setRetained(false)
+                .add();
+        vl2.getNodeBreakerView().newBreaker()
+                .setId("BR3")
+                .setKind(SwitchKind.BREAKER)
                 .setNode1(0)
                 .setNode2(3)
                 .setRetained(false)
                 .add();
-        vl2.getNodeBreakerView().newBreaker()
-                .setId("D1")
+        vl1.getNodeBreakerView().newBreaker()
+                .setId("D3")
                 .setKind(SwitchKind.BREAKER)
-                .setNode1(1)
+                .setNode1(0)
                 .setNode2(3)
                 .setRetained(true)
                 .add();
-        network.newLine()
-                .setId("L")
-                .setVoltageLevel1("VL1")
+        vl1.getNodeBreakerView().newBreaker()
+                .setId("BR2")
+                .setKind(SwitchKind.BREAKER)
                 .setNode1(0)
+                .setNode2(2)
+                .setRetained(false)
+                .add();
+        network.newLine()
+                .setId("L1")
+                .setVoltageLevel1("VL1")
+                .setNode1(3)
+                .setVoltageLevel2("VL2")
+                .setNode2(2)
+                .setR(3.0)
+                .setX(33.0)
+                .setG1(0.0)
+                .setB1(386E-6 / 2)
+                .setG2(0.0)
+                .setB2(386E-6 / 2)
+                .add();
+        network.newLine()
+                .setId("L2")
+                .setVoltageLevel1("VL1")
+                .setNode1(2)
                 .setVoltageLevel2("VL2")
                 .setNode2(3)
                 .setR(3.0)
