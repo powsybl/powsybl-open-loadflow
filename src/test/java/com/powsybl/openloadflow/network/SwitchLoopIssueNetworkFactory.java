@@ -32,7 +32,7 @@ public final class SwitchLoopIssueNetworkFactory {
      *    D2         |     |
      *    |(5)       |     |
      *    BR1        |     |
-     *    |(1)       |     |(3)                VL2
+     *    |(1)       |     |(3)              VL2
      *    D1         |    BR3
      *    |          |     |
      *    --------------------- BBS2(0)
