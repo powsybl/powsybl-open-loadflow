@@ -7,6 +7,9 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.sld.SingleLineDiagram;
+
+import java.nio.file.Paths;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -82,13 +85,6 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setNode1(0)
                 .setNode2(4)
                 .add();
-        vl2.getNodeBreakerView().newBreaker()
-                .setId("D1")
-                .setKind(SwitchKind.DISCONNECTOR)
-                .setNode1(0)
-                .setNode2(1)
-                .setRetained(false)
-                .add();
         vl2.getNodeBreakerView().newInternalConnection()
                 .setNode1(0)
                 .setNode2(2)
@@ -96,7 +92,7 @@ public final class SwitchLoopIssueNetworkFactory {
         vl2.getNodeBreakerView().newBreaker()
                 .setId("BR1")
                 .setKind(SwitchKind.BREAKER)
-                .setNode1(1)
+                .setNode1(0)
                 .setNode2(5)
                 .setRetained(true)
                 .add();
@@ -154,6 +150,7 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setG2(0.0)
                 .setB2(386E-6 / 2)
                 .add();
+        SingleLineDiagram.draw(network, "VL2", Paths.get("/Users/geo/toto.svg"));
         return network;
     }
 }
