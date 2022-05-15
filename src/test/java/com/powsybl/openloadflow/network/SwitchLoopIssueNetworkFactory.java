@@ -29,11 +29,11 @@ public final class SwitchLoopIssueNetworkFactory {
      *          |          | L2
      *    ------------     |
      *    |          |     |
-     *    D4         |     |
+     *    D2         |     |
      *    |(5)       |     |
      *    BR1        |     |
      *    |(1)       |     |(3)                VL2
-     *    D1        D2    BR3
+     *    D1         |    BR3
      *    |          |     |
      *    --------------------- BBS2(0)
      *         |
@@ -89,12 +89,9 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setNode2(1)
                 .setRetained(false)
                 .add();
-        vl2.getNodeBreakerView().newBreaker()
-                .setId("D2")
-                .setKind(SwitchKind.DISCONNECTOR)
+        vl2.getNodeBreakerView().newInternalConnection()
                 .setNode1(0)
                 .setNode2(2)
-                .setRetained(false)
                 .add();
         vl2.getNodeBreakerView().newBreaker()
                 .setId("BR1")
@@ -104,7 +101,7 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setRetained(true)
                 .add();
         vl2.getNodeBreakerView().newBreaker()
-                .setId("D4")
+                .setId("D2")
                 .setKind(SwitchKind.DISCONNECTOR)
                 .setNode1(5)
                 .setNode2(2)
