@@ -114,6 +114,17 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         lu = null;
     }
 
+    private Map<Variable<V>, List<EquationTerm<V, E>>> indexTermsByVariable(Equation<V, E> eq) {
+        Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+        for (EquationTerm<V, E> term : eq.getTerms()) {
+            for (Variable<V> v : term.getVariables()) {
+                termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
+                        .add(term);
+            }
+        }
+        return termsByVariable;
+    }
+
     private void initMatrix() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -130,13 +141,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
-            Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
-            for (EquationTerm<V, E> term : eq.getTerms()) {
-                for (Variable<V> v : term.getVariables()) {
-                    termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
-                            .add(term);
-                }
-            }
+            Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = indexTermsByVariable(eq);
             for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
                 Variable<V> v = e.getKey();
                 int row = v.getRow();
