@@ -991,4 +991,21 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(loadFlowDiff.get("L1"), result.getBranchFlow1SensitivityValue("G1", "L1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(loadFlowDiff.get("L2"), result.getBranchFlow1SensitivityValue("G1", "L2"), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void lineWithDifferentNominalVoltageTest() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0", false);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getVoltageLevel("VLHV2").setNominalV(500);
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("NHV1_NHV2_1", "NHV1_NHV2_2"),
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("GEN"),
+                false, ContingencyContext.all());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(network.getLine("NHV1_NHV2_1").getTerminal1().getP(), result.getFunctionReferenceValue("NHV1_NHV2_1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("NHV1_NHV2_2").getTerminal1().getP(), result.getFunctionReferenceValue("NHV1_NHV2_2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+    }
 }
