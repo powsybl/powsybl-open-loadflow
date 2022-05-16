@@ -433,16 +433,4 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertEquals(-120, network.getGenerator("GEN").getTerminal().getQ());
         assertEquals(-160, network.getGenerator("GEN1").getTerminal().getQ(), 0.01);
     }
-
-    @Test
-    void lineWithDifferentNominalVoltageTest2() {
-        parameters.setDc(true);
-        parameters.setDcUseTransformerRatio(true);
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
-        network.getVoltageLevel("VLHV2").setNominalV(420);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-        assertActivePowerEquals(300, line1.getTerminal1()); // no impact.
-        assertActivePowerEquals(300, line2.getTerminal1()); // no impact.
-    }
 }
