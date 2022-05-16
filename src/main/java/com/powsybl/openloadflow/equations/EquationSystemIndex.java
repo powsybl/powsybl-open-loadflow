@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.equations;
 
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +24,6 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     // variable reference counting in equation terms
     private final NavigableMap<Variable<V>, MutableInt> sortedVariablesToFindRefCount = new TreeMap<>();
-
-    private final Map<Pair<Variable<V>, Equation<V, E>>, MutableInt> elementsRefCount = new HashMap<>();
 
     private boolean equationsIndexValid = false;
 
@@ -54,8 +51,8 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onVariableChange(variable, changeType));
     }
 
-    private void notifyElementAddedButNoVariableOrEquationAdded(Equation<V, E> equation, Variable<V> variable) {
-        listeners.forEach(listener -> listener.onElementAddedButNoVariableOrEquationAdded(equation, variable));
+    private void notifyEquationTermChange(EquationTerm<V, E> term) {
+        listeners.forEach(listener -> listener.onEquationTermChange(term));
     }
 
     private void update() {
@@ -79,19 +76,9 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     private void addTerm(EquationTerm<V, E> term) {
+        notifyEquationTermChange(term);
         for (Variable<V> variable : term.getVariables()) {
             MutableInt variableRefCount = sortedVariablesToFindRefCount.get(variable);
-            MutableInt elementRefCount = elementsRefCount.get(Pair.of(variable, term.getEquation()));
-            if (elementRefCount == null) {
-                elementRefCount = new MutableInt(1);
-                elementsRefCount.put(Pair.of(variable, term.getEquation()), elementRefCount);
-                if (variableRefCount != null) {
-                    notifyElementAddedButNoVariableOrEquationAdded(term.getEquation(), variable);
-                }
-            } else {
-                elementRefCount.increment();
-            }
-
             if (variableRefCount == null) {
                 variableRefCount = new MutableInt(1);
                 sortedVariablesToFindRefCount.put(variable, variableRefCount);
@@ -115,6 +102,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     private void removeTerm(EquationTerm<V, E> term) {
+        notifyEquationTermChange(term);
         for (Variable<V> variable : term.getVariables()) {
             MutableInt variableRefCount = sortedVariablesToFindRefCount.get(variable);
             if (variableRefCount != null) {
@@ -124,14 +112,6 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                     sortedVariablesToFindRefCount.remove(variable);
                     variablesIndexValid = false;
                     notifyVariableChange(variable, EquationSystemIndexListener.ChangeType.REMOVED);
-                }
-            }
-
-            MutableInt elementRefCount = elementsRefCount.get(Pair.of(variable, term.getEquation()));
-            if (elementRefCount != null) {
-                elementRefCount.decrement();
-                if (elementRefCount.intValue() == 0) {
-                    elementsRefCount.remove(Pair.of(variable, term.getEquation()));
                 }
             }
         }

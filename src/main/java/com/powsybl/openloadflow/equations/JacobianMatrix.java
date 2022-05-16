@@ -68,11 +68,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private enum Status {
         VALID,
         VALUES_INVALID, // same structure but values have to be updated
-        NON_ZERO_PATTERN_INVALID, // same structure but values non zero pattern has changed
-        MATRIX_INVALID, // structure has changed
+        VALUES_AND_ZEROS_INVALID, // same structure but values have to be updated and non zero values might have changed
+        STRUCTURE_INVALID, // structure has changed
     }
 
-    private Status status = Status.MATRIX_INVALID;
+    private Status status = Status.STRUCTURE_INVALID;
 
     public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
@@ -89,17 +89,17 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     @Override
     public void onEquationChange(Equation<V, E> equation, ChangeType changeType) {
-        updateStatus(Status.MATRIX_INVALID);
+        updateStatus(Status.STRUCTURE_INVALID);
     }
 
     @Override
     public void onVariableChange(Variable<V> variable, ChangeType changeType) {
-        updateStatus(Status.MATRIX_INVALID);
+        updateStatus(Status.STRUCTURE_INVALID);
     }
 
     @Override
-    public void onElementAddedButNoVariableOrEquationAdded(Equation<V, E> equation, Variable<V> variable) {
-        updateStatus(Status.NON_ZERO_PATTERN_INVALID);
+    public void onEquationTermChange(EquationTerm<V, E> term) {
+        updateStatus(Status.VALUES_AND_ZEROS_INVALID);
     }
 
     @Override
@@ -189,7 +189,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public Matrix getMatrix() {
         if (status != Status.VALID) {
             switch (status) {
-                case MATRIX_INVALID:
+                case STRUCTURE_INVALID:
                     initMatrix();
                     break;
 
@@ -197,7 +197,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     updateValues(true);
                     break;
 
-                case NON_ZERO_PATTERN_INVALID:
+                case VALUES_AND_ZEROS_INVALID:
                     updateValues(false);
                     break;
 
