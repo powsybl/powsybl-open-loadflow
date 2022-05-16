@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.network.impl.Networks;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,10 +21,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  */
 class PropertyTest {
 
+    private LfNetwork lfNetwork;
+
+    @BeforeEach
+    void setUp() {
+        Network network = EurostagTutorialExample1Factory.create();
+        lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
+    }
+
     @Test
     void test() {
-        Network network = EurostagTutorialExample1Factory.create();
-        LfNetwork lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
         assertNull(lfNetwork.getProperty("a"));
         lfNetwork.setProperty("a", "test");
         assertEquals("test", lfNetwork.getProperty("a"));
@@ -31,5 +38,17 @@ class PropertyTest {
         assertNull(lfBus.getProperty("b"));
         lfBus.setProperty("b", "hello");
         assertEquals("hello", lfBus.getProperty("b"));
+        lfBus.removeProperty("b");
+        assertNull(lfBus.getProperty("b"));
+        lfBus.setProperty("c", "hi");
+        assertEquals("hi", lfBus.getProperty("c"));
+    }
+
+    @Test
+    void testRemoveWithEmptyMap() {
+        // also try to remove a not defined property
+        assertNull(lfNetwork.getProperty("x"));
+        lfNetwork.removeProperty("x");
+        assertNull(lfNetwork.getProperty("x"));
     }
 }

@@ -176,6 +176,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return slackBus;
     }
 
+    public List<LfShunt> getShunts() {
+        return shuntsByIndex;
+    }
+
     public LfShunt getShunt(int num) {
         return shuntsByIndex.get(num);
     }
