@@ -17,25 +17,25 @@ public final class SwitchLoopIssueNetworkFactory {
     }
 
     /**
-     *          LD(1)
-     *          |
-     *    --------------------- BBS1(0)      VL1
-     *          |          |(2)
-     *          D3        BR2
-     *          |          |
-     *          | (3)      |
-     *          | L1       |
-     *          | (2)      |
-     *          |          | L2
-     *    ------------     |
-     *    |          |     |
-     *    D2         |     |
-     *    |(3)       |     |(1)              VL2
-     *    BR1        |    BR3
-     *    |          |     |
-     *    --------------------- BBS2(0)
-     *         |
-     *         G(4)
+     *                      LD(1)
+     *                       |
+     *              ----------------------- BBS1(0)      VL1
+     *                 |              |(2)
+     *                BR5            BR2
+     *                 |              |
+     *                 | (3)          |
+     *                 | L1           |
+     *                 | (2)          |
+     *                 |              | L2
+     *           ------------         |
+     *           |          |         |
+     *           D2         |         |
+     *           |(3)       |         |(1)               VL2
+     *           BR1        |        BR3
+     *           |          |         |
+     *   BBS2(0)---------------BR4-------- BBS3(5)
+     *                                |
+     *                               G(4)
      */
     public static Network create() {
         Network network = Network.create("test", "test");
@@ -60,6 +60,10 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setId("BBS2")
                 .setNode(0)
                 .add();
+        vl2.getNodeBreakerView().newBusbarSection()
+                .setId("BBS3")
+                .setNode(5)
+                .add();
         vl1.newLoad()
                 .setId("LD")
                 .setNode(1)
@@ -77,8 +81,8 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setTargetQ(300)
                 .add();
         vl2.getNodeBreakerView().newInternalConnection()
-                .setNode1(0)
-                .setNode2(4)
+                .setNode1(4)
+                .setNode2(5)
                 .add();
         vl2.getNodeBreakerView().newInternalConnection()
                 .setNode1(0)
@@ -86,35 +90,40 @@ public final class SwitchLoopIssueNetworkFactory {
                 .add();
         vl2.getNodeBreakerView().newBreaker()
                 .setId("BR1")
-                .setKind(SwitchKind.BREAKER)
                 .setNode1(0)
                 .setNode2(3)
                 .setRetained(true)
                 .add();
-        vl2.getNodeBreakerView().newBreaker()
+        vl2.getNodeBreakerView().newDisconnector()
                 .setId("D2")
-                .setKind(SwitchKind.DISCONNECTOR)
                 .setNode1(3)
                 .setNode2(2)
                 .setRetained(false)
                 .add();
         vl2.getNodeBreakerView().newBreaker()
                 .setId("BR3")
-                .setKind(SwitchKind.BREAKER)
-                .setNode1(0)
+                .setNode1(5)
                 .setNode2(1)
-                .setRetained(false)
+                .setRetained(true)
+                .add();
+        vl2.getNodeBreakerView().newBreaker()
+                .setId("BR4")
+                .setNode1(0)
+                .setNode2(5)
+                .setRetained(true)
                 .add();
         vl1.getNodeBreakerView().newBreaker()
-                .setId("D3")
-                .setKind(SwitchKind.BREAKER)
+                .setId("BR5")
                 .setNode1(0)
                 .setNode2(3)
                 .setRetained(true)
                 .add();
+        vl1.getNodeBreakerView().newInternalConnection()
+                .setNode1(0)
+                .setNode2(1)
+                .add();
         vl1.getNodeBreakerView().newBreaker()
                 .setId("BR2")
-                .setKind(SwitchKind.BREAKER)
                 .setNode1(0)
                 .setNode2(2)
                 .setRetained(false)

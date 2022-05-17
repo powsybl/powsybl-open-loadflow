@@ -25,7 +25,6 @@ import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -1381,14 +1380,21 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    @Disabled
     void testSwitchLoopIssue() {
         Network network = SwitchLoopIssueNetworkFactory.create();
 
         List<Contingency> contingencies = List.of(Contingency.line("L1"));
 
-        List<StateMonitor> monitors = Collections.emptyList();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
-        runSecurityAnalysis(network, contingencies, monitors);
+        var result = runSecurityAnalysis(network, contingencies, monitors);
+
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(-299.977, preContingencyResult.getPreContingencyBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(301.862, preContingencyResult.getPreContingencyBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "L1");
+        assertEquals(-599.882, postContingencyResult.getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(608.214, postContingencyResult.getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
     }
 }
