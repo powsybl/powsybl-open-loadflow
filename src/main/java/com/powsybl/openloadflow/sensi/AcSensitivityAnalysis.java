@@ -194,7 +194,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParameters.isTwtSplitShuntAdmittance(),
                                                                           false,
                                                                           lfParametersExt.getPlausibleActivePowerLimit(),
-                                                                          false,
+                                                                          lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                           true,
                                                                           lfParameters.getCountriesToBalance(),
                                                                           lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,

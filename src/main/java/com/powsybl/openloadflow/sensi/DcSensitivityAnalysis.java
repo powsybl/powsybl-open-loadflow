@@ -655,7 +655,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                           lfParameters.isTwtSplitShuntAdmittance(),
                                                                           false,
                                                                           lfParametersExt.getPlausibleActivePowerLimit(),
-                                                                          false,
+                                                                          lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                           true,
                                                                           lfParameters.getCountriesToBalance(),
                                                                           lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,

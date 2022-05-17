@@ -204,4 +204,44 @@ class DcLoadFlowTest {
         LoadFlowAssert.assertAngleEquals(0, network.getBusView().getBus("VL1_0"));
         LoadFlowAssert.assertAngleEquals(0, network.getBusView().getBus("VL12_0"));
     }
+
+    @Test
+    void lineWithDifferentNominalVoltageTest() {
+
+        parameters.setDcUseTransformerRatio(true);
+        parameters.getExtension(OpenLoadFlowParameters.class).setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
+        Network network = FourBusNetworkFactory.create();
+
+        loadFlowRunner.run(network, parameters);
+
+        Line l14 = network.getLine("l14");
+        Line l12 = network.getLine("l12");
+        Line l23 = network.getLine("l23");
+        Line l34 = network.getLine("l34");
+        Line l13 = network.getLine("l13");
+
+        assertEquals(0.25, l14.getTerminal1().getP(), 0.01);
+        assertEquals(-0.25, l14.getTerminal2().getP(), 0.01);
+        assertEquals(0.25, l12.getTerminal1().getP(), 0.01);
+        assertEquals(-0.25, l12.getTerminal2().getP(), 0.01);
+        assertEquals(1.25, l23.getTerminal1().getP(), 0.01);
+        assertEquals(-1.25, l23.getTerminal2().getP(), 0.01);
+        assertEquals(-1.25, l34.getTerminal1().getP(), 0.01);
+        assertEquals(1.25, l34.getTerminal2().getP(), 0.01);
+        assertEquals(1.5, l13.getTerminal1().getP(), 0.01);
+        assertEquals(-1.5, l13.getTerminal2().getP(), 0.01);
+
+        network.getBusBreakerView().getBus("b1").getVoltageLevel().setNominalV(2d);
+        loadFlowRunner.run(network, parameters);
+        assertEquals(0d, l14.getTerminal1().getP(), 0.01);
+        assertEquals(0d, l14.getTerminal2().getP(), 0.01);
+        assertEquals(0d, l12.getTerminal1().getP(), 0.01);
+        assertEquals(0d, l12.getTerminal2().getP(), 0.01);
+        assertEquals(1d, l23.getTerminal1().getP(), 0.01);
+        assertEquals(-1d, l23.getTerminal2().getP(), 0.01);
+        assertEquals(-1d, l34.getTerminal1().getP(), 0.01);
+        assertEquals(1d, l34.getTerminal2().getP(), 0.01);
+        assertEquals(2d, l13.getTerminal1().getP(), 0.01);
+        assertEquals(-2d, l13.getTerminal2().getP(), 0.01);
+    }
 }
