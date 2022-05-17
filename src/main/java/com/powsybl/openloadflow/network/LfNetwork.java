@@ -38,7 +38,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfNetwork {
+public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
@@ -74,14 +74,12 @@ public class LfNetwork {
 
     private boolean valid = true;
 
-    private final Map<String, Object> userObjects = new HashMap<>();
+    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
-
-    private GraphDecrementalConnectivity<LfBus> connectivity;
+    private GraphDecrementalConnectivity<LfBus, LfBranch> connectivity;
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
-                     GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -176,6 +174,10 @@ public class LfNetwork {
     public LfBus getSlackBus() {
         updateSlack();
         return slackBus;
+    }
+
+    public List<LfShunt> getShunts() {
+        return shuntsByIndex;
     }
 
     public LfShunt getShunt(int num) {
@@ -562,11 +564,13 @@ public class LfNetwork {
         return subGraph;
     }
 
-    public GraphDecrementalConnectivity<LfBus> getConnectivity() {
+    public GraphDecrementalConnectivity<LfBus, LfBranch> getConnectivity() {
         if (connectivity == null) {
             connectivity = Objects.requireNonNull(connectivityFactory.create());
             getBuses().forEach(connectivity::addVertex);
-            getBranches().forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2()));
+            getBranches().stream()
+                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                    .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
         }
         return connectivity;
     }
@@ -585,16 +589,6 @@ public class LfNetwork {
 
     public boolean isValid() {
         return valid;
-    }
-
-    public Object getUserObject(String name) {
-        Objects.requireNonNull(name);
-        return userObjects.get(name);
-    }
-
-    public void setUserObject(String name, Object userObject) {
-        Objects.requireNonNull(name);
-        userObjects.put(name, userObject);
     }
 
     @Override

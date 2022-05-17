@@ -54,12 +54,12 @@ public abstract class AbstractSecurityAnalysis {
 
     protected final MatrixFactory matrixFactory;
 
-    protected final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    protected final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     protected final StateMonitorIndex monitorIndex;
 
     protected AbstractSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
-                                MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory, List<StateMonitor> stateMonitors) {
+                                MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory, List<StateMonitor> stateMonitors) {
         this.network = Objects.requireNonNull(network);
         this.detector = Objects.requireNonNull(detector);
         this.filter = Objects.requireNonNull(filter);

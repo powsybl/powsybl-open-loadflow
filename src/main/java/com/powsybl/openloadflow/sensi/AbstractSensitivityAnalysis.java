@@ -21,7 +21,10 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -49,9 +52,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected final MatrixFactory matrixFactory;
 
-    protected final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    protected final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
@@ -175,8 +178,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         protected SensitivityFactorGroup<V, E> group;
 
         protected AbstractLfSensitivityFactor(int index, String variableId, String functionId,
-                                              LfElement functionElement, SensitivityFunctionType functionType,
-                                              SensitivityVariableType variableType, ContingencyContext contingencyContext) {
+                                           LfElement functionElement, SensitivityFunctionType functionType,
+                                           SensitivityVariableType variableType, ContingencyContext contingencyContext) {
             this.index = index;
             this.variableId = Objects.requireNonNull(variableId);
             this.functionId = Objects.requireNonNull(functionId);
@@ -326,13 +329,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             this.variableElement = variableElement;
             if (variableElement == null) {
                 status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
-            } else {
-                if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                    LfBus controlledBus = (LfBus) variableElement;
-                    if (!isEffectivelyVoltageControlled(controlledBus)) {
-                        status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
-                    }
-                }
             }
         }
 
@@ -557,8 +553,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         boolean updateConnectivityWeights(Set<LfBus> nonConnectedBuses) {
             mainComponentWeights = variableElements.entrySet().stream()
-                    .filter(entry -> !nonConnectedBuses.contains((LfBus) entry.getKey()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .filter(entry -> !nonConnectedBuses.contains((LfBus) entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             return mainComponentWeights.size() != variableElements.size();
         }
     }
@@ -608,20 +604,15 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> breakingConnectivityCandidates) {
+    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, Collection<String> breakingConnectivityCandidates) {
         breakingConnectivityCandidates.stream()
-                .map(lfNetwork::getBranchById)
-                .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
+            .map(lfNetwork::getBranchById)
+            .filter(b -> b.getBus1() != null && b.getBus2() != null)
+            .forEach(connectivity::cut);
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Collection<String> branchIdsToOpen) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            String functionBranchId = factor.getFunctionElement().getId();
-            if (branchIdsToOpen.stream().anyMatch(id -> id.equals(functionBranchId))) {
-                factor.setSensitivityValuePredefinedResult(0d);
-                factor.setFunctionPredefinedResult(0d);
-                continue;
-            }
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                 // after a contingency, we check if the factor function and the variable are in different connected components
                 boolean variableConnected = factor.isVariableConnectedToSlackComponent(connectedComponent);
@@ -689,9 +680,30 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return validFactorHolder;
     }
 
+    private static void cleanBranchIdsToOpen(LfNetwork lfNetwork, PropagatedContingency contingency) {
+        // Elements have already been checked and found in PropagatedContingency, so there is no need to
+        // check them again
+        Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+        for (String branchId : contingency.getBranchIdsToOpen()) {
+            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+            if (lfBranch == null) {
+                branchesToRemove.add(branchId); // disconnected branch
+                continue;
+            }
+            if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
+                branchesToRemove.add(branchId); // branch connected only on one side
+            }
+        }
+        contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+    }
+
     public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
+            if (!contingency.getSwitchesToOpen().isEmpty()) {
+                throw new PowsyblException("Switch opening not supported in sensitivity analysis");
+            }
+
             // check ID are unique because, later contingency are indexed by their IDs
             String contingencyId = contingency.getContingency().getId();
             if (contingenciesIds.contains(contingencyId)) {
@@ -699,21 +711,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             }
             contingenciesIds.add(contingencyId);
 
-            // Elements have already been checked and found in PropagatedContingency, so there is no need to
-            // check them again
-            Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
-            for (String branchId : contingency.getBranchIdsToOpen()) {
-                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-                if (lfBranch == null) {
-                    branchesToRemove.add(branchId); // disconnected branch
-                    continue;
-                }
-                if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
-                    branchesToRemove.add(branchId); // branch connected only on one side
-                }
-            }
-            contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
-            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
+            cleanBranchIdsToOpen(lfNetwork, contingency);
+
+            if (contingency.getBranchIdsToOpen().isEmpty()
+                    && contingency.getHvdcIdsToOpen().isEmpty()
+                    && contingency.getGeneratorIdsToLose().isEmpty()
+                    && contingency.getLoadIdsToShift().isEmpty()) {
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
@@ -772,8 +775,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache) {
         if (busCache.isEmpty()) {
             network.getBusView()
-                    .getBusStream()
-                    .forEach(bus -> busCache.put(bus.getId(), bus));
+                .getBusStream()
+                .forEach(bus -> busCache.put(bus.getId(), bus));
         }
         Bus bus = busCache.get(busId);
         if (bus == null) {
@@ -813,18 +816,18 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         public List<LfSensitivityFactor<V, E>> getFactorsForContingency(String contingencyId) {
             return Stream.concat(commonFactors.stream(), additionalFactorsPerContingency.getOrDefault(contingencyId, Collections.emptyList()).stream())
-                    .collect(Collectors.toList());
+                .collect(Collectors.toList());
         }
 
         public List<LfSensitivityFactor<V, E>> getFactorsForContingencies(List<String> contingenciesIds) {
             return Stream.concat(commonFactors.stream(),
-                    contingenciesIds.stream().flatMap(contingencyId -> additionalFactorsPerContingency.getOrDefault(contingencyId, Collections.emptyList()).stream()))
+                                 contingenciesIds.stream().flatMap(contingencyId -> additionalFactorsPerContingency.getOrDefault(contingencyId, Collections.emptyList()).stream()))
                     .collect(Collectors.toList());
         }
 
         public List<LfSensitivityFactor<V, E>> getFactorsForBaseNetwork() {
             return Stream.concat(commonFactors.stream(), additionalFactorsNoContingency.stream())
-                    .collect(Collectors.toList());
+                .collect(Collectors.toList());
         }
 
         public void addFactor(LfSensitivityFactor<V, E> factor) {
@@ -851,7 +854,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     }
 
     public SensitivityFactorHolder<V, E> readAndCheckFactors(Network network, Map<String, SensitivityVariableSet> variableSetsById,
-                                                             SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
+                                                       SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
         final SensitivityFactorHolder<V, E> factorHolder = new SensitivityFactorHolder<>();
 
         final Map<String, Map<LfElement, Double>> injectionBusesByVariableId = new LinkedHashMap<>();
@@ -860,8 +863,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
                 if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
-                        || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
-                        || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2) {
+                    || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                    || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2) {
                     checkBranch(network, functionId);
                     LfBranch branch = lfNetwork.getBranchById(functionId);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -889,8 +892,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             }
                         }
                         factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
-                                functionId, functionElement, functionType,
-                                injectionLfBuses, variableType, contingencyContext));
+                                    functionId, functionElement, functionType,
+                                    injectionLfBuses, variableType, contingencyContext));
                     } else {
                         throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                     }
@@ -899,9 +902,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
             } else {
                 if ((functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER ||
-                        functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 ||
-                        functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2)
-                        && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
+                      functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 ||
+                      functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2)
+                     && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
                     checkBranch(network, functionId);
                     LfBranch branch = lfNetwork.getBranchById(functionId);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -931,8 +934,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     LfElement functionElement;
                     LfElement variableElement;
                     if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
-                            || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
-                            || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2) {
+                        || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                        || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2) {
                         checkBranch(network, functionId);
                         LfBranch branch = lfNetwork.getBranchById(functionId);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -947,8 +950,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BRANCH_CURRENT
-                            || functionType == SensitivityFunctionType.BRANCH_CURRENT_1
-                            || functionType == SensitivityFunctionType.BRANCH_CURRENT_2) {
+                               || functionType == SensitivityFunctionType.BRANCH_CURRENT_1
+                               || functionType == SensitivityFunctionType.BRANCH_CURRENT_2) {
                         checkBranch(network, functionId);
                         LfBranch branch = lfNetwork.getBranchById(functionId);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -1004,7 +1007,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     public static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
-                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                &&  (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 
@@ -1062,26 +1065,5 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
      */
     protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double unscaleFunction(LfSensitivityFactor<V, E> factor, double value) {
         return value * getFunctionBaseValue(factor);
-    }
-
-    protected static boolean isEffectivelyVoltageControlled(LfBus bus) {
-        boolean controlled = false;
-        if (bus.isVoltageControlled()) {
-            Optional<VoltageControl> voltageControl = bus.getVoltageControl();
-            if (voltageControl.isPresent() && voltageControl.get().getControllerBuses().stream().anyMatch(LfBus::isVoltageControlEnabled)) {
-                controlled = true;
-            }
-        } else if (bus.isTransformerVoltageControlled()) {
-            Optional<TransformerVoltageControl> voltageControl = bus.getTransformerVoltageControl();
-            if (voltageControl.isPresent() && voltageControl.get().getControllers().stream().anyMatch(LfBranch::isVoltageControlEnabled)) {
-                controlled = true;
-            }
-        } else if (bus.isShuntVoltageControlled()) {
-            Optional<ShuntVoltageControl> voltageControl = bus.getShuntVoltageControl();
-            if (voltageControl.isPresent() && voltageControl.get().getControllers().stream().anyMatch(LfShunt::isVoltageControlEnabled)) {
-                controlled = true;
-            }
-        }
-        return controlled;
     }
 }

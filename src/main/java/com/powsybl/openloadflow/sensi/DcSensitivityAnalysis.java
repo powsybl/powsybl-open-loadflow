@@ -166,7 +166,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         super(matrixFactory, connectivityFactory);
     }
 
@@ -215,8 +215,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
 
         if (contingency != null && contingency.getBranchIdsToOpen().stream().anyMatch(id -> id.equals(functionBranchId))) {
-            // the monitored branch is in contingency, sensitivity and post-contingency flow equals to zero in any case.
-            flowValue = 0d;
+            // the monitored branch is in contingency, sensitivity equals 0 and post-contingency flow equals NaN in any case.
+            flowValue = Double.NaN;
             sensiValue = 0d;
             predefFlowValue = true;
             predefSensiValue = true;
@@ -232,14 +232,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (!predefSensiValue) {
                     sensiValue += contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
                 }
-                if (contingencyElement.getElement().getId().equals(functionBranchId)) {
-                    // the monitored branch is in contingency, sensitivity and post-contingency flow equals to zero in any case.
-                    flowValue = 0d;
-                    sensiValue = 0d;
-                    break;
-                }
                 if (contingencyElement.getElement().getId().equals(factor.getVariableId())) {
-                    // the equipment responsible for the variable is indeed in contingency, the sensitivity value equals to zero.
+                    // the equipment responsible for the variable is indeed in contingency, the sensitivity value equals zero.
                     // No assumption about the reference flow on the monitored branch.
                     zeroSensiValue = true;
                 }
@@ -412,7 +406,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         private final Set<LfBus> slackConnectedComponent;
 
         ConnectivityAnalysisResult(Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, Set<ComputedContingencyElement> elementsBreakingConnectivity,
-                                   GraphDecrementalConnectivity<LfBus> connectivity, LfNetwork lfNetwork) {
+                                   GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, LfNetwork lfNetwork) {
             elementsToReconnect = computeElementsToReconnect(connectivity, elementsBreakingConnectivity);
             disabledBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
             slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
@@ -476,7 +470,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             return slackConnectedComponent;
         }
 
-        private static Set<String> computeElementsToReconnect(GraphDecrementalConnectivity<LfBus> connectivity, Set<ComputedContingencyElement> breakingConnectivityCandidates) {
+        private static Set<String> computeElementsToReconnect(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, Set<ComputedContingencyElement> breakingConnectivityCandidates) {
             Set<String> elementsToReconnect = new LinkedHashSet<>();
 
             Map<Pair<Integer, Integer>, ComputedContingencyElement> elementByConnectedComponents = new LinkedHashMap<>();
@@ -520,7 +514,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             return connectivityAnalysisResults;
         }
 
-        GraphDecrementalConnectivity<LfBus> connectivity = lfNetwork.getConnectivity();
+        GraphDecrementalConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
         for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> groupOfElementPotentiallyBreakingConnectivity : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
             Set<ComputedContingencyElement> breakingConnectivityCandidates = groupOfElementPotentiallyBreakingConnectivity.getKey();
             List<PropagatedContingency> contingencyList = groupOfElementPotentiallyBreakingConnectivity.getValue();
@@ -755,7 +749,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                           lfParameters.isTwtSplitShuntAdmittance(),
                                                                           false,
                                                                           lfParametersExt.getPlausibleActivePowerLimit(),
-                                                                          false,
+                                                                          lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                           true,
                                                                           lfParameters.getCountriesToBalance(),
                                                                           lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,

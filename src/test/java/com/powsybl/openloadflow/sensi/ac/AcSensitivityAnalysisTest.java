@@ -13,6 +13,7 @@ import com.powsybl.contingency.DanglingLineContingency;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
@@ -948,5 +949,100 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(0.442, result.getBranchFlow1SensitivityValue("d2", "l25"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testWithPhaseControlOn() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83);
+        SensitivityAnalysisParameters sensiParameters = createParameters(false);
+        sensiParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
+        LoadFlow.run(network, sensiParameters.getLoadFlowParameters());
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                List.of("L1", "L2", "PS1"), SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("G1"), false, ContingencyContext.none());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), result.getBranchFlow1FunctionReferenceValue(null, "PS1"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testInjectionIncreaseWithPhaseControlOnInTheNetwork() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL2_0", false);
+        sensiParameters.getLoadFlowParameters().setPhaseShifterRegulationOn(true);
+
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83);
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        Network network1 = PhaseControlFactory.createNetworkWithT2wt();
+        TwoWindingsTransformer t2wt1 = network1.getTwoWindingsTransformer("PS1");
+        t2wt1.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt1.getTerminal1())
+                .setRegulationValue(83);
+        network1.getGenerator("G1").setTargetP(network1.getGenerator("G1").getTargetP() + SENSI_CHANGE);
+        runLf(network1, sensiParameters.getLoadFlowParameters());
+
+        Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
+                .collect(Collectors.toMap(
+                    lineId -> lineId,
+                    line -> (network1.getLine(line).getTerminal1().getP() - network.getLine(line).getTerminal1().getP()) / SENSI_CHANGE
+                ));
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("L1", "L2"),
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("G1"),
+                false, ContingencyContext.all());
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(loadFlowDiff.get("L1"), result.getBranchFlow1SensitivityValue("G1", "L1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("L2"), result.getBranchFlow1SensitivityValue("G1", "L2"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void lineWithDifferentNominalVoltageTest() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0", false);
+        Network network = EurostagTutorialExample1Factory.create();
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("NHV1_NHV2_1", "NHV1_NHV2_2"),
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("GEN"),
+                false, ContingencyContext.all());
+
+        runLf(network, sensiParameters.getLoadFlowParameters());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0.499, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.499, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(303.166, result.getFunctionReferenceValue("NHV1_NHV2_1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(303.166, result.getFunctionReferenceValue("NHV1_NHV2_2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(303.166, network.getLine("NHV1_NHV2_1").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(303.166, network.getLine("NHV1_NHV2_2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(602.290, network.getTwoWindingsTransformer("NHV2_NLOAD").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-601.419, network.getTwoWindingsTransformer("NHV2_NLOAD").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
+
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
+        network.getVoltageLevel("VLHV2").setNominalV(360);
+        runLf(network, sensiParameters.getLoadFlowParameters());
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(0.499, result2.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.499, result2.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(303.170, result2.getFunctionReferenceValue("NHV1_NHV2_1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(303.170, result2.getFunctionReferenceValue("NHV1_NHV2_2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(303.170, network.getLine("NHV1_NHV2_1").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(303.170, network.getLine("NHV1_NHV2_2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(602.302, network.getTwoWindingsTransformer("NHV2_NLOAD").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-601.430, network.getTwoWindingsTransformer("NHV2_NLOAD").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
     }
 }

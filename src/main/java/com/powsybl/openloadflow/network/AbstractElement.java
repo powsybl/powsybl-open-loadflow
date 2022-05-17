@@ -6,23 +6,19 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractElement implements LfElement {
+public abstract class AbstractElement extends AbstractPropertyBag implements LfElement {
 
     protected final LfNetwork network;
 
     protected int num = -1;
 
     protected boolean disabled = false;
-
-    protected Map<String, Object> userObjects;
 
     protected AbstractElement(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
@@ -56,22 +52,6 @@ public abstract class AbstractElement implements LfElement {
 
     public LfNetwork getNetwork() {
         return network;
-    }
-
-    public Object getUserObject(String name) {
-        Objects.requireNonNull(name);
-        if (userObjects == null) {
-            return null;
-        }
-        return userObjects.get(name);
-    }
-
-    public void setUserObject(String name, Object userObject) {
-        Objects.requireNonNull(name);
-        if (userObjects == null) {
-            userObjects = new HashMap<>();
-        }
-        userObjects.put(name, userObject);
     }
 
     @Override

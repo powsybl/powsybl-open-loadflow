@@ -12,7 +12,7 @@ import java.util.function.ToIntFunction;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NaiveGraphDecrementalConnectivityFactory<V> implements GraphDecrementalConnectivityFactory<V> {
+public class NaiveGraphDecrementalConnectivityFactory<V, E> implements GraphDecrementalConnectivityFactory<V, E> {
 
     private final ToIntFunction<V> numGetter;
 
@@ -21,7 +21,7 @@ public class NaiveGraphDecrementalConnectivityFactory<V> implements GraphDecreme
     }
 
     @Override
-    public GraphDecrementalConnectivity<V> create() {
+    public GraphDecrementalConnectivity<V, E> create() {
         return new NaiveGraphDecrementalConnectivity<>(numGetter);
     }
 }

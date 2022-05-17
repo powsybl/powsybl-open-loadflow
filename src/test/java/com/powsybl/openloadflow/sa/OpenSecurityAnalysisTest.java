@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -595,8 +596,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(0.333, brl14l12.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
 
         BranchResult brl14l14 = postContl14.getBranchResult("l14");
-        assertEquals(0.0, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-1.0, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(NaN, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(NaN, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
 
         BranchResult brl14l23 = postContl14.getBranchResult("l23");
         assertEquals(1.333, brl14l23.getP1(), LoadFlowAssert.DELTA_POWER);
@@ -656,8 +657,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(0.333, brl14l12.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
 
         BranchResult brl14l14 = postContl14.getBranchResult("l14");
-        assertEquals(0.0, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-1.0, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(NaN, brl14l14.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(NaN, brl14l14.getFlowTransfer(), LoadFlowAssert.DELTA_POWER);
 
         BranchResult brl14l23 = postContl14.getBranchResult("l23");
         assertEquals(1.333, brl14l23.getP1(), LoadFlowAssert.DELTA_POWER);
@@ -1335,5 +1336,46 @@ class OpenSecurityAnalysisTest {
         network.getLine("NHV1_NHV2_2").setR(100).setX(-999);
         SecurityAnalysisResult result = runSecurityAnalysis(network);
         assertFalse(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+    }
+
+    @Test
+    void testSwitchContingency() {
+        Network network = createNodeBreakerNetwork();
+
+        List<Contingency> contingencies = List.of(new Contingency("C", new SwitchContingency("C")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+
+        // pre-contingency tests
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(301.884, preContingencyResult.getPreContingencyBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-300, preContingencyResult.getPreContingencyBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(301.884, preContingencyResult.getPreContingencyBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-300, preContingencyResult.getPreContingencyBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+
+        // post-contingency tests
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "C");
+        assertEquals(3.912, postContingencyResult.getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-3.895, postContingencyResult.getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(603.769, postContingencyResult.getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-596.104, postContingencyResult.getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSwitchContingencyNotFound() {
+        Network network = createNodeBreakerNetwork();
+
+        List<Contingency> contingencies = List.of(new Contingency("X", new SwitchContingency("X")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        var e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Switch 'X' not found in the network", e.getCause().getMessage());
     }
 }

@@ -115,7 +115,7 @@ class BridgesTest {
         assertEquals(bridgesSetReference, bridges);
     }
 
-    private Set<String> testBridgesOnConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, String method) {
+    private Set<String> testBridgesOnConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, String method) {
         long start = System.currentTimeMillis();
         initGraphDc(lfNetwork, connectivity);
         LOGGER.info("Graph init for {} in {} ms", method, System.currentTimeMillis() - start);
@@ -125,13 +125,13 @@ class BridgesTest {
         return bridgesSet;
     }
 
-    private static Set<String> getBridges(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity) {
+    private static Set<String> getBridges(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
         Set<String> bridgesSet = new HashSet<>();
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             if (bus1 != null && bus2 != null) {
-                connectivity.cut(bus1, bus2);
+                connectivity.cut(branch);
                 boolean connected = connectivity.getComponentNumber(bus1) == connectivity.getComponentNumber(bus2);
                 if (!connected) {
                     bridgesSet.add(branch.getId());
@@ -157,7 +157,7 @@ class BridgesTest {
         return graph;
     }
 
-    private static void initGraphDc(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity) {
+    private static void initGraphDc(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
         for (LfBus bus : lfNetwork.getBuses()) {
             connectivity.addVertex(bus);
         }
@@ -165,7 +165,7 @@ class BridgesTest {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             if (bus1 != null && bus2 != null) {
-                connectivity.addEdge(bus1, bus2);
+                connectivity.addEdge(bus1, bus2, branch);
             }
         }
     }

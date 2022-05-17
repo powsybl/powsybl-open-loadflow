@@ -587,7 +587,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
                         DiscretePhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, DiscretePhaseControl.Unit.MW);
             }
-            controllerBranch.setPhaseControlEnabled(true);
             controllerBranch.setDiscretePhaseControl(phaseControl);
             controlledBranch.setDiscretePhaseControl(phaseControl);
         }
@@ -614,8 +613,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
-
-        controllerBranch.setVoltageControlEnabled(true);
 
         controlledBus.getTransformerVoltageControl().ifPresentOrElse(vc -> {
             LOGGER.trace("Controlled bus '{}' already has a transformer voltage control: a shared control is created", controlledBus.getId());
@@ -660,14 +657,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             controllerShunt.setVoltageControlCapability(false);
             return;
         }
-        if (controllerShunt.isVoltageControlEnabled()) {
+        if (controllerShunt.getVoltageControl().isPresent()) {
             // if a controller shunt is already in a shunt voltage control, the number of equations will not equal the
             // number of variables. We have only one B variable for more than one bus target V equations.
             LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
             return;
         }
-
-        controllerShunt.setVoltageControlEnabled(true);
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;

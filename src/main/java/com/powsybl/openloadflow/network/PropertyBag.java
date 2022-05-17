@@ -4,12 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.graph;
+package com.powsybl.openloadflow.network;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface GraphDecrementalConnectivityFactory<V, E> {
+public interface PropertyBag {
 
-    GraphDecrementalConnectivity<V, E> create();
+    Object getProperty(String name);
+
+    void setProperty(String name, Object value);
+
+    void removeProperty(String name);
 }

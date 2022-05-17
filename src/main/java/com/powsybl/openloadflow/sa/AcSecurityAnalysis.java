@@ -23,7 +23,6 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -40,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     protected AcSecurityAnalysis(Network network, LimitViolationDetector detector, LimitViolationFilter filter,
-                                 MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory, List<StateMonitor> stateMonitors) {
+                                 MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory, List<StateMonitor> stateMonitors) {
         super(network, detector, filter, matrixFactory, connectivityFactory, stateMonitors);
     }
 
@@ -136,17 +135,14 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             if (preContingencyComputationOk) {
                 detectViolations(network.getBranches().stream(), network.getBuses().stream(), preContingencyLimitViolations);
 
-                LOGGER.info("Save pre-contingency state");
-
                 // save base state for later restoration after each contingency
                 NetworkState networkState = NetworkState.save(network);
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
-                GraphDecrementalConnectivity<LfBus> connectivity = network.getConnectivity();
                 while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    propagatedContingency.toLfContingency(network, connectivity, true)
+                    propagatedContingency.toLfContingency(network, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
                                 lfContingency.apply(loadFlowParameters);
 
@@ -157,8 +153,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                 postContingencyResults.add(postContingencyResult);
 
                                 if (contingencyIt.hasNext()) {
-                                    LOGGER.info("Restore pre-contingency state");
-
                                     // restore base state
                                     networkState.restore();
                                 }
@@ -175,9 +169,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcLoadFlowContext context, Contingency contingency, LfContingency lfContingency,
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
                                                                Map<String, BranchResult> preContingencyBranchResults, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters) {
-        LOGGER.info("Start post contingency '{}' simulation", lfContingency.getId());
-        LOGGER.debug("Contingency '{}' impact: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
-                lfContingency.getId(), lfContingency.getBuses(), lfContingency.getBranches(), lfContingency.getGenerators(),
+        LOGGER.info("Start post contingency '{}' simulation on network {}", lfContingency.getId(), network);
+        LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
+                lfContingency.getId(), network, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches(), lfContingency.getGenerators(),
                 lfContingency.getShuntsShift(), lfContingency.getBusesLoadShift());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -187,7 +181,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
 
         // restart LF on post contingency equation system
-        context.getParameters().getNewtonRaphsonParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         AcLoadFlowResult postContingencyLoadFlowResult = new AcloadFlowEngine(context)
                 .run(Reporter.NO_OP);
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
@@ -214,8 +208,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         });
 
         stopwatch.stop();
-        LOGGER.info("Post contingency '{}' simulation done in {} ms", lfContingency.getId(),
-                stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        LOGGER.info("Post contingency '{}' simulation done on network {} in {} ms", lfContingency.getId(),
+                network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new PostContingencyResult(contingency, new LimitViolationsResult(postContingencyComputationOk,
                 new ArrayList<>(postContingencyLimitViolations.values())), branchResults, busResults, threeWindingsTransformerResults);
