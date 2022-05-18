@@ -1452,4 +1452,23 @@ class OpenSecurityAnalysisTest {
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Switch 'X' not found in the network", e.getCause().getMessage());
     }
+
+    @Test
+    void testSwitchLoopIssue() {
+        Network network = SwitchLoopIssueNetworkFactory.create();
+
+        List<Contingency> contingencies = List.of(Contingency.line("L1"));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        var result = runSecurityAnalysis(network, contingencies, monitors);
+
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(-299.977, preContingencyResult.getPreContingencyBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(301.862, preContingencyResult.getPreContingencyBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "L1");
+        assertEquals(-599.882, postContingencyResult.getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(608.214, postContingencyResult.getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
 }
