@@ -413,7 +413,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork, List<LfNetworkLoaderPostProcessor> postProcessors) {
+    private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork, List<LfNetworkLoaderPostProcessor> postProcessors,
+                                       LfNetworkLoadingReport report) {
         if (switches != null) {
             for (Switch sw : switches) {
                 VoltageLevel vl = sw.getVoltageLevel();
@@ -422,7 +423,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
                 LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
                 LfSwitch lfSwitch = new LfSwitch(lfNetwork, lfBus1, lfBus2, sw);
-                lfNetwork.addBranch(lfSwitch);
+                addBranch(lfNetwork, lfSwitch, report);
                 postProcessors.forEach(pp -> pp.onBranchAdded(sw, lfSwitch));
             }
         }
@@ -721,7 +722,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (parameters.isBreakers()) {
-            createSwitches(switches, lfNetwork, postProcessors);
+            createSwitches(switches, lfNetwork, postProcessors, report);
         }
 
         if (!parameters.isDc()) {
