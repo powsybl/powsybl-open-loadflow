@@ -573,7 +573,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                         false,
                                                         false,
                                                         parametersExt.getPlausibleActivePowerLimit(),
-                                                        false,
+                                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                         parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
                                                         parameters.getCountriesToBalance(),
                                                         parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
