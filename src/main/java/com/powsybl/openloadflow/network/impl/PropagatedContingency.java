@@ -37,7 +37,7 @@ public class PropagatedContingency {
 
     private final Set<Switch> switchesToOpen;
 
-    private final Set<String> hvdcIdsToOpen;
+    private final Set<String> hvdcIdsToOpen; // for HVDC in AC emulation
 
     private final Set<String> generatorIdsToLose;
 
@@ -169,10 +169,8 @@ public class PropagatedContingency {
                     }
                     HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
                     if (control != null && control.isEnabled() && hvdcAcEmulation) {
-                        // Not depending on AC or DC computation.
-                        throw new PowsyblException("Contingency on HVDC line '" + element.getId() + "' with AC emulation control: not supported yet.");
+                        hvdcIdsToOpen.add(element.getId());
                     }
-                    hvdcIdsToOpen.add(element.getId()); // FIXME: try to use it only for HVDC in AC emulation.
                     if (hvdcLine.getConverterStation1() instanceof VscConverterStation) {
                         VscConverterStation vsc1 = (VscConverterStation) hvdcLine.getConverterStation1();
                         vscsToLose.add(vsc1);
@@ -252,10 +250,16 @@ public class PropagatedContingency {
                     break;
 
                 case HVDC_CONVERTER_STATION:
-                    if (connectable instanceof VscConverterStation) {
-                        vscsToLose.add((VscConverterStation) connectable);
+                    HvdcConverterStation station = (HvdcConverterStation) connectable;
+                    HvdcAngleDroopActivePowerControl control = station.getHvdcLine().getExtension(HvdcAngleDroopActivePowerControl.class);
+                    if (control != null && control.isEnabled() && hvdcAcEmulation) {
+                        hvdcIdsToOpen.add(station.getHvdcLine().getId());
                     } else {
-                        lccsToLose.add((LccConverterStation) connectable);
+                        if (connectable instanceof VscConverterStation) {
+                            vscsToLose.add((VscConverterStation) connectable);
+                        } else {
+                            lccsToLose.add((LccConverterStation) connectable);
+                        }
                     }
                     break;
 
@@ -372,14 +376,21 @@ public class PropagatedContingency {
             }
         }
 
+        // find hvdc lines that are part of this network
+        Set<LfHvdc> hvdcs = hvdcIdsToOpen.stream()
+                .map(network::getHvdcById)
+                .filter(Objects::nonNull) // could be in another component
+                .collect(Collectors.toSet());
+
         if (branches.isEmpty()
                 && buses.isEmpty()
                 && shunts.isEmpty()
                 && busesLoadShift.isEmpty()
-                && generators.isEmpty()) {
+                && generators.isEmpty()
+                && hvdcs.isEmpty()) {
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, busesLoadShift, generators));
+        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, busesLoadShift, generators, hvdcs));
     }
 }

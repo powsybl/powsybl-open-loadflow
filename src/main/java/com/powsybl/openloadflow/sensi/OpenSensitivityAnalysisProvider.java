@@ -126,7 +126,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
                 List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies,
                         sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation());
+                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc());
 
                 LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
                 OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);

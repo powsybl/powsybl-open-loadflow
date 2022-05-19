@@ -29,6 +29,8 @@ public class LfContingency {
 
     private final Set<LfBranch> disabledBranches;
 
+    private final Set<LfHvdc> disabledHvdcs;
+
     private final Map<LfShunt, Double> shuntsShift;
 
     private final Map<LfBus, PowerShift> busesLoadShift;
@@ -40,11 +42,12 @@ public class LfContingency {
     private double activePowerLoss = 0;
 
     public LfContingency(String id, int index, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Map<LfShunt, Double> shuntsShift,
-                         Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> generators) {
+                         Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> generators, Set<LfHvdc> disabledHvdcs) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.disabledBuses = Objects.requireNonNull(disabledBuses);
         this.disabledBranches = Objects.requireNonNull(disabledBranches);
+        this.disabledHvdcs = Objects.requireNonNull(disabledHvdcs);
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
         this.busesLoadShift = Objects.requireNonNull(busesLoadShift);
         this.generators = Objects.requireNonNull(generators);
@@ -75,6 +78,10 @@ public class LfContingency {
         return disabledBranches;
     }
 
+    public Set<LfHvdc> getDisabledHvdcs() {
+        return disabledHvdcs;
+    }
+
     public Map<LfShunt, Double> getShuntsShift() {
         return shuntsShift;
     }
@@ -94,6 +101,9 @@ public class LfContingency {
     public void apply(LoadFlowParameters.BalanceType balanceType) {
         for (LfBranch branch : disabledBranches) {
             branch.setDisabled(true);
+        }
+        for (LfHvdc hvdc : disabledHvdcs) {
+            hvdc.setDisabled(true);
         }
         for (LfBus bus : disabledBuses) {
             bus.setDisabled(true);

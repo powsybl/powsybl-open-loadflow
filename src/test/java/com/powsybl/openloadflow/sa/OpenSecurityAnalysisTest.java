@@ -1323,8 +1323,15 @@ class OpenSecurityAnalysisTest {
 
         List<Contingency> contingencies2 = new ArrayList<>();
         contingencies2.add(Contingency.hvdcLine("hvdc34"));
-        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies2, monitors, parameters));
-        assertEquals("Contingency on HVDC line 'hvdc34' with AC emulation control: not supported yet.", exception.getCause().getMessage());
+        contingencies2.add(Contingency.generator("g1"));
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies2, monitors, parameters);
+
+        // post-contingency tests
+        PostContingencyResult hvdcContingencyResult = getPostContingencyResult(result2, "hvdc34");
+        assertEquals(-0.99999, hvdcContingencyResult.getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        PostContingencyResult g1ContingencyResult2 = getPostContingencyResult(result, "g1");
+        assertEquals(-0.696, g1ContingencyResult2.getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
