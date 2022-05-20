@@ -30,6 +30,14 @@ public class PiModelArray implements PiModel {
 
     private LfBranch branch;
 
+    private boolean hasSwitchedUp = false;
+
+    private boolean hasSwitchedDo = false;
+
+    private boolean hasSwitchedUpDo = false;
+
+    private boolean hasSwitchedDoUp = false;
+
     public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition) {
         this.models = Objects.requireNonNull(models);
         this.lowTapPosition = lowTapPosition;
@@ -200,7 +208,17 @@ public class PiModelArray implements PiModel {
 
         // find tap position with the closest r1 value without exceeding maxSwitch position switches
         double smallestDistance = Math.abs(newR1 - getModel().getR1());
-        for (int p = 0; p < models.size(); p++) {
+        int pStart = 0;
+        int pEnd = models.size();
+        if (hasSwitchedDoUp) {
+            // Forbid the tap position to decrease after having decrease then increase
+            pStart = oldTapPosition - lowTapPosition;
+        }
+        if (hasSwitchedUpDo) {
+            // Forbid the tap position to increase after having increase then decrease
+            pEnd = oldTapPosition - lowTapPosition;
+        }
+        for (int p = pStart; p < pEnd; p++) {
             if (Math.abs(lowTapPosition + p - oldTapPosition) <= maxSwitch) {
                 double distance = Math.abs(newR1 - models.get(p).getR1());
                 if (distance < smallestDistance) {
@@ -210,9 +228,23 @@ public class PiModelArray implements PiModel {
             }
         }
 
-        if (oldTapPosition != tapPosition) {
+        if (oldTapPosition < tapPosition) {
             r1 = Double.NaN;
             hasChange = true;
+            if (hasSwitchedDo) {
+                hasSwitchedDoUp = true;
+            } else {
+                hasSwitchedUp = true;
+            }
+        }
+        if (oldTapPosition > tapPosition) {
+            r1 = Double.NaN;
+            hasChange = true;
+            if (hasSwitchedUp) {
+                hasSwitchedUpDo = true;
+            } else {
+                hasSwitchedDo = true;
+            }
         }
 
         if (hasChange) {
