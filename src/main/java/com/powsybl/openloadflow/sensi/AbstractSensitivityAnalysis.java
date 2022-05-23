@@ -744,25 +744,55 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (injection == null) {
             injection = network.getVscConverterStation(injectionId);
         }
-
-        if (injection == null) {
-            throw new PowsyblException("Injection '" + injectionId + "' not found");
-        }
-
         return injection;
     }
 
     protected static String getInjectionBusId(Network network, String injectionId) {
+        // try with an injection
         Injection<?> injection = getInjection(network, injectionId);
-        Bus bus = injection.getTerminal().getBusView().getBus();
-        if (bus == null) {
+        if (injection != null) {
+            Bus bus = injection.getTerminal().getBusView().getBus();
+            if (bus == null) {
+                return null;
+            }
+            if (injection instanceof DanglingLine) {
+                return LfDanglingLineBus.getId((DanglingLine) injection);
+            } else {
+                return bus.getId();
+            }
+        }
+
+        // try with a configured bus
+        Bus configuredBus = network.getBusBreakerView().getBus(injectionId);
+        if (configuredBus != null) {
+            // find a bus from bus view corresponding to this configured bus
+            List<Terminal> terminals = new ArrayList<>();
+            configuredBus.visitConnectedEquipments(new AbstractTerminalTopologyVisitor() {
+                @Override
+                public void visitTerminal(Terminal terminal) {
+                    terminals.add(terminal);
+                }
+            });
+            for (Terminal terminal : terminals) {
+                Bus bus = terminal.getBusView().getBus();
+                if (bus != null) {
+                    return bus.getId();
+                }
+            }
             return null;
         }
-        if (injection instanceof DanglingLine) {
-            return LfDanglingLineBus.getId((DanglingLine) injection);
-        } else {
+
+        // try with a busbar section
+        BusbarSection busbarSection = network.getBusbarSection(injectionId);
+        if (busbarSection != null) {
+            Bus bus = busbarSection.getTerminal().getBusView().getBus();
+            if (bus == null) {
+                return null;
+            }
             return bus.getId();
         }
+
+        throw new PowsyblException("Injection '" + injectionId + "' not found");
     }
 
     private static void checkBranch(Network network, String branchId) {
