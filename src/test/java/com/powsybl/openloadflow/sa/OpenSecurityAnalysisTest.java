@@ -961,6 +961,25 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
+    void testSaWithShuntContingency4() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            shuntCompensator.setSectionCount(10);
+        });
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("SHUNT4", new ShuntCompensatorContingency("SHUNT4")),
+                new Contingency("tr3", new BranchContingency("tr3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, lfParameters));
+        assertEquals("Shunt compensator 'SHUNT4' not found in the network", exception.getCause().getMessage());
+    }
+
+    @Test
     void testDcSaWithLoadContingency() {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
 

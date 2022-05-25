@@ -78,10 +78,6 @@ public class LfContingency {
         return disabledBranches;
     }
 
-    public Set<LfHvdc> getDisabledHvdcs() {
-        return disabledHvdcs;
-    }
-
     public Map<LfShunt, Double> getShuntsShift() {
         return shuntsShift;
     }
