@@ -69,11 +69,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
     public void addEdge(V vertex1, V vertex2, E edge) {
         Objects.requireNonNull(vertex1);
         Objects.requireNonNull(vertex2);
-        if (vertex1 != vertex2) {
-            graph.addEdge(vertex1, vertex2, edge);
-        } else {
-            LOGGER.warn("Loop on vertex {}: problem in input graph", vertex1);
-        }
+        graph.addEdge(vertex1, vertex2, edge);
         invalidateInit();
     }
 
