@@ -250,7 +250,7 @@ public class PropagatedContingency {
                     break;
 
                 case HVDC_CONVERTER_STATION:
-                    HvdcConverterStation station = (HvdcConverterStation) connectable;
+                    HvdcConverterStation<?> station = (HvdcConverterStation) connectable;
                     HvdcAngleDroopActivePowerControl control = station.getHvdcLine().getExtension(HvdcAngleDroopActivePowerControl.class);
                     if (control != null && control.isEnabled() && hvdcAcEmulation) {
                         hvdcIdsToOpen.add(station.getHvdcLine().getId());
