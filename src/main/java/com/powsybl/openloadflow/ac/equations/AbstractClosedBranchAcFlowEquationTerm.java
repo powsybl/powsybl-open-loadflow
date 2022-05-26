@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -59,28 +60,28 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         }
     }
 
-    protected double v1() {
-        return stateVector.get(v1Var.getRow());
+    protected double v1(StateVector sv) {
+        return sv.get(v1Var.getRow());
     }
 
-    protected double v2() {
-        return stateVector.get(v2Var.getRow());
+    protected double v2(StateVector sv) {
+        return sv.get(v2Var.getRow());
     }
 
-    protected double ph1() {
-        return stateVector.get(ph1Var.getRow());
+    protected double ph1(StateVector sv) {
+        return sv.get(ph1Var.getRow());
     }
 
-    protected double ph2() {
-        return stateVector.get(ph2Var.getRow());
+    protected double ph2(StateVector sv) {
+        return sv.get(ph2Var.getRow());
     }
 
-    protected double r1() {
-        return r1Var != null ? stateVector.get(r1Var.getRow()) : branch.getPiModel().getR1();
+    protected double r1(StateVector sv) {
+        return r1Var != null ? sv.get(r1Var.getRow()) : branch.getPiModel().getR1();
     }
 
-    protected double a1() {
-        return a1Var != null ? stateVector.get(a1Var.getRow()) : branch.getPiModel().getA1();
+    protected double a1(StateVector sv) {
+        return a1Var != null ? sv.get(a1Var.getRow()) : branch.getPiModel().getA1();
     }
 
     protected abstract double calculateSensi(double ph1, double ph2, double v1, double v2, double a1, double r1);

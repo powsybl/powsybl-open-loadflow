@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -27,34 +28,37 @@ public class OpenBranchSide2ReactiveFlowEquationTerm extends AbstractOpenSide2Br
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 
-    private double v1() {
-        return stateVector.get(v1Var.getRow());
+    private double v1(StateVector sv) {
+        return sv.get(v1Var.getRow());
     }
 
-    private double r1() {
+    private double r1(StateVector sv) {
         return branch.getPiModel().getR1();
     }
 
-    private double q2() {
+    private double q2(StateVector sv) {
         double shunt = shunt();
-        return -r1() * r1() * v1() * v1() * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * FastMath.cos(ksi) / shunt);
+        double v1 = v1(sv);
+        double r1 = r1(sv);
+        return -r1 * r1 * v1 * v1 * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * FastMath.cos(ksi) / shunt);
     }
 
-    private double dq2dv1() {
+    private double dq2dv1(StateVector sv) {
         double shunt = shunt();
-        return -2 * v1() * r1() * r1() * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * FastMath.cos(ksi) / shunt);
+        double r1 = r1(sv);
+        return -2 * v1(sv) * r1 * r1 * (b1 + y * y * b2 / shunt - (b2 * b2 + g2 * g2) * y * FastMath.cos(ksi) / shunt);
     }
 
     @Override
     public double eval() {
-        return q2();
+        return q2(stateVector);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dq2dv1();
+            return dq2dv1(stateVector);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

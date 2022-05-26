@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -28,61 +29,66 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
-        return dp1dph1() * dph1 + dp1dph2() * dph2 + dp1dv1() * dv1 + dp1dv2() * dv2;
+        return dp1dph1(stateVector) * dph1 + dp1dph2(stateVector) * dph2 + dp1dv1(stateVector) * dv1 + dp1dv2(stateVector) * dv2;
     }
 
-    protected double theta() {
-        return ksi - a1() + A2 - ph1() + ph2();
+    protected double theta(StateVector sv) {
+        return ksi - a1(sv) + A2 - ph1(sv) + ph2(sv);
     }
 
-    private double p1() {
-        return r1() * v1() * (g1 * r1() * v1() + y * r1() * v1() * FastMath.sin(ksi) - y * R2 * v2() * FastMath.sin(theta()));
+    private double p1(StateVector sv) {
+        double v1 = v1(sv);
+        double r1 = r1(sv);
+        return r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * FastMath.sin(ksi) - y * R2 * v2(sv) * FastMath.sin(theta(sv)));
     }
 
-    private double dp1dv1() {
-        return r1() * (2 * g1 * r1() * v1() + 2 * y * r1() * v1() * FastMath.sin(ksi) - y * R2 * v2() * FastMath.sin(theta()));
+    private double dp1dv1(StateVector sv) {
+        double v1 = v1(sv);
+        double r1 = r1(sv);
+        return r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * FastMath.sin(ksi) - y * R2 * v2(sv) * FastMath.sin(theta(sv)));
     }
 
-    private double dp1dv2() {
-        return -y * r1() * R2 * v1() * FastMath.sin(theta());
+    private double dp1dv2(StateVector sv) {
+        return -y * r1(sv) * R2 * v1(sv) * FastMath.sin(theta(sv));
     }
 
-    private double dp1dph1() {
-        return y * r1() * R2 * v1() * v2() * FastMath.cos(theta());
+    private double dp1dph1(StateVector sv) {
+        return y * r1(sv) * R2 * v1(sv) * v2(sv) * FastMath.cos(theta(sv));
     }
 
-    private double dp1dph2() {
-        return -dp1dph1();
+    private double dp1dph2(StateVector sv) {
+        return -dp1dph1(sv);
     }
 
-    private double dp1da1() {
-        return dp1dph1();
+    private double dp1da1(StateVector sv) {
+        return dp1dph1(sv);
     }
 
-    private double dp1dr1() {
-        return v1() * (2 * r1() * v1() * (g1 + y * FastMath.sin(ksi)) - y * R2 * v2() * FastMath.sin(theta()));
+    private double dp1dr1(StateVector sv) {
+        double v1 = v1(sv);
+        return v1 * (2 * r1(sv) * v1 * (g1 + y * FastMath.sin(ksi)) - y * R2 * v2(sv) * FastMath.sin(theta(sv)));
     }
 
     @Override
     public double eval() {
-        return p1();
+        return p1(stateVector);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp1dv1();
+            return dp1dv1(stateVector);
         } else if (variable.equals(v2Var)) {
-            return dp1dv2();
+            return dp1dv2(stateVector);
         } else if (variable.equals(ph1Var)) {
-            return dp1dph1();
+            return dp1dph1(stateVector);
         } else if (variable.equals(ph2Var)) {
-            return dp1dph2();
+            return dp1dph2(stateVector);
         } else if (variable.equals(a1Var)) {
-            return dp1da1();
+            return dp1da1(stateVector);
         } else if (variable.equals(r1Var)) {
-            return dp1dr1();
+            return dp1dr1(stateVector);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

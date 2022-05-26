@@ -55,38 +55,40 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         return variables;
     }
 
-    private double v() {
-        return stateVector.get(vVar.getRow());
+    private double v(StateVector sv) {
+        return sv.get(vVar.getRow());
     }
 
-    private double b() {
-        return bVar != null ? stateVector.get(bVar.getRow()) : shunt.getB();
+    private double b(StateVector sv) {
+        return bVar != null ? sv.get(bVar.getRow()) : shunt.getB();
     }
 
-    private double q() {
-        return  -b() * v() * v();
+    private double q(StateVector sv) {
+        double v = v(sv);
+        return -b(sv) * v * v;
     }
 
-    private double dqdv() {
-        return -2 * b() * v();
+    private double dqdv(StateVector sv) {
+        return -2 * b(sv) * v(sv);
     }
 
-    private double dqdb() {
-        return -v() * v();
+    private double dqdb(StateVector sv) {
+        double v = v(sv);
+        return -v * v;
     }
 
     @Override
     public double eval() {
-        return q();
+        return q(stateVector);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
-            return dqdv();
+            return dqdv(stateVector);
         } else if (variable.equals(bVar)) {
-            return dqdb();
+            return dqdb(stateVector);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

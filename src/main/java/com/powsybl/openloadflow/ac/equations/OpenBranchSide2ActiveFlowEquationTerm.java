@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -27,34 +28,37 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 
-    private double v1() {
-        return stateVector.get(v1Var.getRow());
+    private double v1(StateVector sv) {
+        return sv.get(v1Var.getRow());
     }
 
-    private double r1() {
-        return branch.getPiModel().getR1();
+    private double r1(StateVector sv) {
+        return branch.getPiModel().getR1(); // FIXME
     }
 
-    private double p2() {
+    private double p2(StateVector sv) {
         double shunt = shunt();
-        return r1() * r1() * v1() * v1() * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi) / shunt);
+        double v1 = v1(sv);
+        double r1 = r1(sv);
+        return r1 * r1 * v1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi) / shunt);
     }
 
-    private double dp2dv1() {
+    private double dp2dv1(StateVector sv) {
         double shunt = shunt();
-        return 2 * r1() * r1() * v1() * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi) / shunt);
+        double r1 = r1(sv);
+        return 2 * r1 * r1 * v1(sv) * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi) / shunt);
     }
 
     @Override
     public double eval() {
-        return p2();
+        return p2(stateVector);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp2dv1();
+            return dp2dv1(stateVector);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
