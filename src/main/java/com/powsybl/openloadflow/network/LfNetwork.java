@@ -609,6 +609,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         for (LfBranch branch : controllerBranches) {
             getConnectivity().cut(branch);
         }
+        int disabledTransformerCount = 0;
         for (LfBranch branch : controllerBranches) {
             var voltageControl = branch.getVoltageControl().orElseThrow();
             var controlledBus = voltageControl.getControlled();
@@ -624,11 +625,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 Optional<LfBus> generatorControlledBus = componentOnNotControlledSide.stream().filter(LfBus::isVoltageControlled).findAny();
                 if (generatorControlledBus.isEmpty()) {
                     branch.setVoltageControlEnabled(false);
-                    LOGGER.error("Transformer {} with voltage control on is disabled", branch.getId());
+                    LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
+                            branch.getId());
+                    disabledTransformerCount++;
                 }
             }
         }
         getConnectivity().reset();
+        if (disabledTransformerCount > 0) {
+            LOGGER.warn("{} transformer voltage controls have been disabled because no PV buses on not controlled side connected component",
+                    disabledTransformerCount);
+        }
     }
 
     @Override
