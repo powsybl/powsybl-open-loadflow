@@ -10,16 +10,12 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -50,42 +46,5 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
             status = OuterLoopStatus.UNSTABLE;
         }
         return status;
-    }
-
-    public static void checkControl(LfNetwork network) {
-        var connectivity = network.getConnectivity();
-        List<LfBranch> controllerBranches = new ArrayList<>(1);
-        for (LfBranch branch : network.getBranches()) {
-            if (!branch.isDisabled() && branch.isVoltageController() && branch.isVoltageControlEnabled()) {
-                controllerBranches.add(branch);
-            }
-            if (branch.isDisabled()) {
-                // apply contingency (in case we are inside a security analysis)
-                connectivity.cut(branch);
-            }
-        }
-        for (LfBranch branch : controllerBranches) {
-            connectivity.cut(branch);
-        }
-        for (LfBranch branch : controllerBranches) {
-            var voltageControl = branch.getVoltageControl().orElseThrow();
-            var controlledBus = voltageControl.getControlled();
-            Set<LfBus> componentOnNotControlledSide = null;
-            if (controlledBus.equals(branch.getBus1())) {
-                componentOnNotControlledSide = connectivity.getConnectedComponent(branch.getBus2());
-            } else if (controlledBus.equals(branch.getBus2())) {
-                componentOnNotControlledSide = connectivity.getConnectedComponent(branch.getBus1());
-            } else {
-                // I don't know.
-            }
-            if (componentOnNotControlledSide != null) {
-                Optional<LfBus> generatorControlledBus = componentOnNotControlledSide.stream().filter(LfBus::isVoltageControlled).findAny();
-                if (!generatorControlledBus.isPresent()) {
-                    branch.setVoltageControlEnabled(false);
-                    LOGGER.error("Transformer {} with voltage control on is disabled", branch.getId());
-                }
-            }
-        }
-        connectivity.reset();
     }
 }

@@ -13,7 +13,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AbstractTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
@@ -134,7 +133,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             for (LfBranch branch : lfNetwork.getBranches()) {
                 branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
             }
-            AbstractTransformerVoltageControlOuterLoop.checkControl(lfNetwork);
+            lfNetwork.fixTransformerVoltageControls();
         }
 
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
@@ -247,7 +246,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 for (LfBranch branch : lfNetwork.getBranches()) {
                     branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
                 }
-                AbstractTransformerVoltageControlOuterLoop.checkControl(lfNetwork);
+                lfNetwork.fixTransformerVoltageControls();
             }
 
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one

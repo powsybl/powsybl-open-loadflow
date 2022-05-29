@@ -591,6 +591,45 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return valid;
     }
 
+    /**
+     *
+     */
+    public void fixTransformerVoltageControls() {
+        List<LfBranch> controllerBranches = new ArrayList<>(1);
+        for (LfBranch branch : branches) {
+            if (!branch.isDisabled() && branch.isVoltageController() && branch.isVoltageControlEnabled()) {
+                controllerBranches.add(branch);
+            }
+            if (branch.isDisabled()) {
+                // apply contingency (in case we are inside a security analysis)
+                getConnectivity().cut(branch);
+            }
+        }
+        for (LfBranch branch : controllerBranches) {
+            getConnectivity().cut(branch);
+        }
+        for (LfBranch branch : controllerBranches) {
+            var voltageControl = branch.getVoltageControl().orElseThrow();
+            var controlledBus = voltageControl.getControlled();
+            Set<LfBus> componentOnNotControlledSide = null;
+            if (controlledBus.equals(branch.getBus1())) {
+                componentOnNotControlledSide = getConnectivity().getConnectedComponent(branch.getBus2());
+            } else if (controlledBus.equals(branch.getBus2())) {
+                componentOnNotControlledSide = getConnectivity().getConnectedComponent(branch.getBus1());
+            } else {
+                // I don't know.
+            }
+            if (componentOnNotControlledSide != null) {
+                Optional<LfBus> generatorControlledBus = componentOnNotControlledSide.stream().filter(LfBus::isVoltageControlled).findAny();
+                if (generatorControlledBus.isEmpty()) {
+                    branch.setVoltageControlEnabled(false);
+                    LOGGER.error("Transformer {} with voltage control on is disabled", branch.getId());
+                }
+            }
+        }
+        getConnectivity().reset();
+    }
+
     @Override
     public String toString() {
         return "{CC" + numCC +

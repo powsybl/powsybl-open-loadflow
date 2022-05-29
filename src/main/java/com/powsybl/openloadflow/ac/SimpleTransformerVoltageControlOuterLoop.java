@@ -26,7 +26,7 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
         for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
             controllerBranch.setVoltageControlEnabled(true);
         }
-        checkControl(context.getNetwork());
+        context.getNetwork().fixTransformerVoltageControls();
     }
 
     @Override
