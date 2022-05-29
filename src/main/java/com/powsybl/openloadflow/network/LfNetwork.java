@@ -592,7 +592,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     /**
-     *
+     * Disable transformer voltage control when there is no generator controlling voltage on the connected component
+     * that belong to the not controlled side of the transformer.
      */
     public void fixTransformerVoltageControls() {
         List<LfBranch> controllerBranches = new ArrayList<>(1);
@@ -612,9 +613,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             var voltageControl = branch.getVoltageControl().orElseThrow();
             var controlledBus = voltageControl.getControlled();
             Set<LfBus> componentOnNotControlledSide = null;
-            if (controlledBus.equals(branch.getBus1())) {
+            if (controlledBus == branch.getBus1()) {
                 componentOnNotControlledSide = getConnectivity().getConnectedComponent(branch.getBus2());
-            } else if (controlledBus.equals(branch.getBus2())) {
+            } else if (controlledBus == branch.getBus2()) {
                 componentOnNotControlledSide = getConnectivity().getConnectedComponent(branch.getBus1());
             } else {
                 // I don't know.
