@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -106,7 +107,8 @@ class OpenSecurityAnalysisTest {
                 saParameters,
                 provider,
                 Collections.emptyList(),
-                monitors)
+                monitors,
+                Reporter.NO_OP)
                 .join();
         return report.getResult();
     }
