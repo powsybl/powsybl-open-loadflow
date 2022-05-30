@@ -274,6 +274,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     lfFactor.setFunctionPredefinedResult(null);
                 });
 
+                lfContingency.apply(lfParameters);
+
                 Map<LfBus, Double> postContingencySlackParticipationByBus;
                 if (lfContingency.getDisabledBuses().isEmpty()) {
                     // contingency not breaking connectivity
