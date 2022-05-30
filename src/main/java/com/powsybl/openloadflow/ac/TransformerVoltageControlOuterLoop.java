@@ -92,6 +92,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                 branch.setVoltageControlEnabled(true);
                 status = OuterLoopStatus.UNSTABLE;
             }
+            context.getNetwork().fixTransformerVoltageControls();
         }
 
         // At second outer loop iteration, the transformers are rounded. The generator voltage controls that were

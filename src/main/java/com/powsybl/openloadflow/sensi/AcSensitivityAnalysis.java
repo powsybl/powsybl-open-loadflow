@@ -126,6 +126,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             for (LfBranch branch : lfNetwork.getBranches()) {
                 branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
             }
+            lfNetwork.fixTransformerVoltageControls();
         }
 
         Map<LfBus, Double> newSlackParticipationByBus = participationByBus;
@@ -256,6 +257,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 for (LfBranch branch : lfNetwork.getBranches()) {
                     branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
                 }
+                lfNetwork.fixTransformerVoltageControls();
             }
 
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
@@ -287,8 +289,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 lfContingency.apply(lfParameters.getBalanceType());
 
-                Map<LfBus, Double> postContingencySlackParticipationByBus;
-
                 // Sensitivity values 0 and function reference NaN in case of a sensitivity on a disabled branch
                 contingencyFactors.stream()
                         .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
@@ -303,6 +303,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
                         .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
 
+                Map<LfBus, Double> postContingencySlackParticipationByBus;
                 if (lfContingency.getDisabledBuses().isEmpty()) {
                     // contingency not breaking connectivity
                     LOGGER.info("Contingency {} without loss of connectivity", lfContingency.getId());

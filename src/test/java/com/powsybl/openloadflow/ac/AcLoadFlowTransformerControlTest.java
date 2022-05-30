@@ -128,7 +128,7 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetV(135.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
+        assertTrue(result.isOk());
 
         parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
