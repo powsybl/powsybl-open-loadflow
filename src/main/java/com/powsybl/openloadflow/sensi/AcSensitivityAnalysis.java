@@ -274,23 +274,22 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     lfFactor.setFunctionPredefinedResult(null);
                 });
 
-                lfContingency.apply(lfParameters);
+                contingencyFactors.stream()
+                        .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
+                        .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfFactor.getFunctionElement()))
+                        .forEach(lfFactor ->  {
+                            lfFactor.setSensitivityValuePredefinedResult(0d);
+                            lfFactor.setFunctionPredefinedResult(Double.NaN);
+                        });
+                contingencyFactors.stream()
+                        .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
+                        .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
+                        .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
 
                 Map<LfBus, Double> postContingencySlackParticipationByBus;
                 if (lfContingency.getDisabledBuses().isEmpty()) {
                     // contingency not breaking connectivity
                     postContingencySlackParticipationByBus = slackParticipationByBus;
-                    contingencyFactors.stream()
-                            .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
-                            .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfFactor.getFunctionElement()))
-                            .forEach(lfFactor ->  {
-                                lfFactor.setSensitivityValuePredefinedResult(0d);
-                                lfFactor.setFunctionPredefinedResult(Double.NaN);
-                            });
-                    contingencyFactors.stream()
-                            .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
-                            .filter(lfFactor ->  lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
-                            .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
                 } else {
                     // contingency breaking connectivity
                     // we check if factors are still in the main component
