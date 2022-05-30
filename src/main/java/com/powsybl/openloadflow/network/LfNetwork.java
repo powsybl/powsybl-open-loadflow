@@ -610,16 +610,20 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             getConnectivity().cut(branch);
         }
         int disabledTransformerCount = 0;
+        Map<Integer, Boolean> componentNoPVBusesMap = new HashMap<>();
         for (LfBranch branch : controllerBranches) {
             var voltageControl = branch.getVoltageControl().orElseThrow();
-            var controlledBus = voltageControl.getControlled();
-            Set<LfBus> componentOnNotControlledSide = null;
-            if (controlledBus == branch.getBus1()) {
-                componentOnNotControlledSide = getConnectivity().getConnectedComponent(branch.getBus2());
-            } else if (controlledBus == branch.getBus2()) {
-                componentOnNotControlledSide = getConnectivity().getConnectedComponent(branch.getBus1());
+            LfBus notControlledSide;
+            if (voltageControl.getControlled() == branch.getBus1()) {
+                notControlledSide = branch.getBus2();
+            } else if (voltageControl.getControlled() == branch.getBus2()) {
+                notControlledSide = branch.getBus1();
+            } else {
+                continue;
             }
-            if (componentOnNotControlledSide != null && componentOnNotControlledSide.stream().noneMatch(LfBus::isVoltageControlled)) {
+            boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
+                k -> getConnectivity().getConnectedComponent(notControlledSide).stream().noneMatch(LfBus::isVoltageControlled));
+            if (noPvBusesInComponent) {
                 branch.setVoltageControlEnabled(false);
                 LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
                         branch.getId());
