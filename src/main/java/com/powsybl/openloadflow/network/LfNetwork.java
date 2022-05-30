@@ -618,8 +618,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 componentOnNotControlledSide = getConnectivity().getConnectedComponent(branch.getBus2());
             } else if (controlledBus == branch.getBus2()) {
                 componentOnNotControlledSide = getConnectivity().getConnectedComponent(branch.getBus1());
-            } else {
-                // I don't know.
             }
             if (componentOnNotControlledSide != null && componentOnNotControlledSide.stream().noneMatch(LfBus::isVoltageControlled)) {
                 branch.setVoltageControlEnabled(false);
