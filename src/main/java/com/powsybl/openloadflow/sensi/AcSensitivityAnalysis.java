@@ -129,16 +129,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             lfNetwork.fixTransformerVoltageControls();
         }
 
-        Map<LfBus, Double> newSlackParticipationByBus = participationByBus;
-        if (lfContingency.getDisabledBuses().isEmpty()) {
-            if (lfParameters.isDistributedSlack()) {
-                newSlackParticipationByBus = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt).stream().collect(Collectors.toMap(
-                        ParticipatingElement::getLfBus, element -> -element.getFactor(), Double::sum));
-            } else {
-                newSlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
-            }
-        }
-
         if (hasMultiVariables && (!lfContingency.getBusesLoadShift().isEmpty() || !lfContingency.getGenerators().isEmpty())) {
             // FIXME. It does not work with a contingency that breaks connectivity and loose an isolate injection.
             Set<LfBus> affectedBuses = lfContingency.getLoadAndGeneratorBuses();
@@ -148,7 +138,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
 
         // solve system
-        DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, newSlackParticipationByBus); // this is the rhs for the moment
+        DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, participationByBus); // this is the rhs for the moment
         context.getJacobianMatrix().solveTransposed(factorsStates);
         setFunctionReferences(lfFactors);
 
@@ -304,33 +294,28 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
 
                 Map<LfBus, Double> postContingencySlackParticipationByBus;
+                Set<LfBus> slackConnectedComponent;
                 if (lfContingency.getDisabledBuses().isEmpty()) {
                     // contingency not breaking connectivity
                     LOGGER.info("Contingency {} without loss of connectivity", lfContingency.getId());
-                    postContingencySlackParticipationByBus = slackParticipationByBus;
+                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
                 } else {
                     // contingency breaking connectivity
                     LOGGER.info("Contingency {} with loss of connectivity", lfContingency.getId());
                     // we check if factors are still in the main component
-                    Set<LfBus> slackConnectedComponent = lfNetwork.getBuses().stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
+                    slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
                     setPredefinedResults(contingencyFactors, slackConnectedComponent);
-
                     // we recompute GLSK weights if needed
                     rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
+                }
 
-                    // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
-                    // buses that contain elements participating to slack distribution)
-                    if (lfParameters.isDistributedSlack()) {
-                        List<ParticipatingElement> participatingElementsForThisConnectivity = getParticipatingElements(
-                                slackConnectedComponent, lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the load flow
-                        postContingencySlackParticipationByBus = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
-                            ParticipatingElement::getLfBus,
-                            element -> -element.getFactor(),
-                            Double::sum
-                        ));
-                    } else {
-                        postContingencySlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
-                    }
+                // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
+                // buses that contain elements participating to slack distribution)
+                if (lfParameters.isDistributedSlack()) {
+                    postContingencySlackParticipationByBus = getParticipatingElements(slackConnectedComponent, lfParameters.getBalanceType(), lfParametersExt).stream().collect(Collectors.toMap(
+                            ParticipatingElement::getLfBus, element -> -element.getFactor(), Double::sum));
+                } else {
+                    postContingencySlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
                 }
                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, postContingencySlackParticipationByBus,
                         lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage, hasMultiVariables);
