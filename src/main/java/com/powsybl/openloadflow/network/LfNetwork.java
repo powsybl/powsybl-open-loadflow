@@ -622,8 +622,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 // I don't know.
             }
             if (componentOnNotControlledSide != null) {
-                Optional<LfBus> generatorControlledBus = componentOnNotControlledSide.stream().filter(LfBus::isVoltageControlled).findAny();
-                if (generatorControlledBus.isEmpty()) {
+                if (componentOnNotControlledSide.stream().noneMatch(LfBus::isVoltageControlled)) {
                     branch.setVoltageControlEnabled(false);
                     LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
                             branch.getId());
