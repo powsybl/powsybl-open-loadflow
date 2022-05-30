@@ -775,7 +775,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testLosingALineButBothEndsInMainComponent() {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorOnOneSide();
-        runAcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b3_vl_0", false);
 

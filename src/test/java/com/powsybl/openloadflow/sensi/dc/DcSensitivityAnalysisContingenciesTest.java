@@ -2021,7 +2021,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     @Test
     void testLosingALineButBothEndsInMainComponent() {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorOnOneSide();
-        runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", false);
 
