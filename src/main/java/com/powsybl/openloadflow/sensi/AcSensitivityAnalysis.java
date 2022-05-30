@@ -133,6 +133,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             for (LfBranch branch : lfNetwork.getBranches()) {
                 branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
             }
+            lfNetwork.fixTransformerVoltageControls();
         }
 
         // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
@@ -245,6 +246,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 for (LfBranch branch : lfNetwork.getBranches()) {
                     branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
                 }
+                lfNetwork.fixTransformerVoltageControls();
             }
 
             // we make the assumption that we ran a loadflow before, and thus this jacobian is the right one
