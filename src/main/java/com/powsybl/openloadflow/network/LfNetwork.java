@@ -621,13 +621,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             } else {
                 // I don't know.
             }
-            if (componentOnNotControlledSide != null) {
-                if (componentOnNotControlledSide.stream().noneMatch(LfBus::isVoltageControlled)) {
-                    branch.setVoltageControlEnabled(false);
-                    LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
-                            branch.getId());
-                    disabledTransformerCount++;
-                }
+            if (componentOnNotControlledSide != null && componentOnNotControlledSide.stream().noneMatch(LfBus::isVoltageControlled)) {
+                branch.setVoltageControlEnabled(false);
+                LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
+                        branch.getId());
+                disabledTransformerCount++;
             }
         }
         getConnectivity().reset();
