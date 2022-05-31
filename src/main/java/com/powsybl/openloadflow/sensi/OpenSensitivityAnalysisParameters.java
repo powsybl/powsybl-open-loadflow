@@ -52,8 +52,11 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
     }
 
     public static OpenSensitivityAnalysisParameters load(Map<String, String> properties) {
-        OpenSensitivityAnalysisParameters parameters = new OpenSensitivityAnalysisParameters();
-        Optional.ofNullable(properties.get(DEBUG_DIR_PARAM_NAME)).ifPresent(parameters::setDebugDir);
-        return parameters;
+        return new OpenSensitivityAnalysisParameters().update(properties);
+    }
+
+    public OpenSensitivityAnalysisParameters update(Map<String, String> properties) {
+        Optional.ofNullable(properties.get(DEBUG_DIR_PARAM_NAME)).ifPresent(this::setDebugDir);
+        return this;
     }
 }

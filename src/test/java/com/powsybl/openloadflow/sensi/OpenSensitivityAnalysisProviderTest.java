@@ -12,6 +12,7 @@ import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,5 +43,17 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
         provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.DEBUG_DIR_PARAM_NAME, ""))
                 .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
         assertEquals("", parameters.getExtension(OpenSensitivityAnalysisParameters.class).getDebugDir());
+    }
+
+    @Test
+    void updateSpecificParametersTest() {
+        Map<String, String> parametersMap = new HashMap<>();
+        parametersMap.put("debugDir", "dir");
+        OpenSensitivityAnalysisParameters parameters = OpenSensitivityAnalysisParameters.load(parametersMap);
+        assertEquals("dir", parameters.getDebugDir());
+        Map<String, String> updateParametersMap = new HashMap<>();
+        updateParametersMap.put("debugDir", "dir1");
+        parameters.update(updateParametersMap);
+        assertEquals("dir1", parameters.getDebugDir());
     }
 }

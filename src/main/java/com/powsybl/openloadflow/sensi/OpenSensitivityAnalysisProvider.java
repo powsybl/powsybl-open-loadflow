@@ -105,6 +105,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     @Override
+    public void updateSpecificParameters(Extension<SensitivityAnalysisParameters> extension, Map<String, String> properties) {
+        ((OpenSensitivityAnalysisParameters) extension).update(properties);
+    }
+
+    @Override
     public List<String> getSpecificParametersNames() {
         return OpenSensitivityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES;
     }
