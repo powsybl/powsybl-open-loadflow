@@ -115,7 +115,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
-        List<BusResults> preContingencyBusResults = new ArrayList<>();
+        List<BusResult> preContingencyBusResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
 
         // run pre-contingency simulation
@@ -177,7 +177,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         List<BranchResult> branchResults = new ArrayList<>();
-        List<BusResults> busResults = new ArrayList<>();
+        List<BusResult> busResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
 
         // restart LF on post contingency equation system

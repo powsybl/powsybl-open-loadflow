@@ -163,7 +163,7 @@ class OpenSecurityAnalysisTest {
                 .orElseThrow();
     }
 
-    private static void assertAlmostEquals(BusResults expected, BusResults actual, double epsilon) {
+    private static void assertAlmostEquals(BusResult expected, BusResult actual, double epsilon) {
         assertEquals(expected.getVoltageLevelId(), actual.getVoltageLevelId());
         assertEquals(expected.getBusId(), actual.getBusId());
         assertEquals(expected.getV(), actual.getV(), epsilon);
@@ -460,8 +460,8 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
 
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        List<BusResults> busResults = preContingencyResult.getPreContingencyBusResults();
-        BusResults expectedBus = new BusResults("VLLOAD", "NLOAD", 147.6, -9.6);
+        List<BusResult> busResults = preContingencyResult.getPreContingencyBusResults();
+        BusResult expectedBus = new BusResult("VLLOAD", "NLOAD", 147.6, -9.6);
         assertEquals(1, busResults.size());
         assertAlmostEquals(expectedBus, busResults.get(0), 0.1);
 
@@ -506,7 +506,7 @@ class OpenSecurityAnalysisTest {
 
         assertEquals(1, result.getPreContingencyResult().getPreContingencyBusResults().size());
 
-        assertEquals(new BusResults("b1_vl", "b1", 400, 0.003581299841270782), result.getPreContingencyResult().getPreContingencyBusResults().get(0));
+        assertEquals(new BusResult("b1_vl", "b1", 400, 0.003581299841270782), result.getPreContingencyResult().getPreContingencyBusResults().get(0));
         assertEquals(1, result.getPreContingencyResult().getPreContingencyBusResults().size());
         assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
                      result.getPreContingencyResult().getPreContingencyBranchResults().get(0));
