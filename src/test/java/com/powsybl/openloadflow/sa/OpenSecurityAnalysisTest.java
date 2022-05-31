@@ -24,6 +24,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -53,6 +54,7 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ForkJoinPool;
@@ -79,7 +81,7 @@ class OpenSecurityAnalysisTest {
     void setUp() {
         computationManager = Mockito.mock(ComputationManager.class);
         Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        MatrixFactory matrixFactory = new SparseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
         loadFlowProvider = new OpenLoadFlowProvider(matrixFactory, connectivityFactory);
@@ -2257,5 +2259,17 @@ class OpenSecurityAnalysisTest {
         // Compare results
         assertEquals(network.getLine("S_SO_2").getTerminal1().getP(), brRel.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getBranch("S_SO_2").getTerminal2().getP(), brRel.getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void largeCase() {
+        Network network = Network.read(Path.of("largeFile.xiidm"));
+        List<Contingency> contingencies = network.getLineStream()
+                        .filter(l -> l.getTerminal1().getVoltageLevel().getNominalV() > 340)
+                        .map(b -> Contingency.line(b.getId()))
+                        .skip(150)
+                        .limit(250)
+                        .collect(Collectors.toList());
+        runSecurityAnalysis(network, contingencies);
     }
 }
