@@ -771,4 +771,24 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, result.getFunctionReferenceValue("l23", "l23", SensitivityFunctionType.BRANCH_CURRENT_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, result.getBranchCurrent1SensitivityValue("l23", "l23", "l12"), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testLosingALineButBothEndsInMainComponent() {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorOnOneSide();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b3_vl_0", false);
+
+        List<Contingency> contingencies = List.of(new Contingency("l34+l12", new BranchContingency("l34"), new BranchContingency("l12")));
+
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g3")),
+                List.of(network.getLine("l12")),
+                "l34+l12");
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(1, result.getValues("l34+l12").size());
+
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l34+l12", "g3", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l34+l12", "l12"), LoadFlowAssert.DELTA_POWER);
+    }
 }
