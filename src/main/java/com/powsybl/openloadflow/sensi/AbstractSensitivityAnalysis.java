@@ -301,6 +301,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             if (element instanceof LfBus) {
                 return component.contains(element);
             } else if (element instanceof LfBranch) {
+                // FIXME: a branch in contingency could have both buses in the component, then the method will return True.
                 return component.contains(((LfBranch) element).getBus1()) && component.contains(((LfBranch) element).getBus2());
             }
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
