@@ -609,7 +609,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             if (!branch.isDisabled() && branch.isVoltageController() && branch.isVoltageControlEnabled()) {
                 controllerBranches.add(branch);
             }
-            if (branch.isDisabled()) {
+            if (branch.isDisabled() && branch.getBus1() != null && branch.getBus2() != null) {
                 // apply contingency (in case we are inside a security analysis)
                 getConnectivity().cut(branch);
             }
