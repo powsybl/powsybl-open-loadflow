@@ -55,7 +55,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
         return sv.get(ph2Var.getRow());
     }
 
-    protected double getLossMultiplier() {
+    protected static double getLossMultiplier(double lossFactor1, double lossFactor2) {
         return (1 - lossFactor1) * (1 - lossFactor2);
     }
 
