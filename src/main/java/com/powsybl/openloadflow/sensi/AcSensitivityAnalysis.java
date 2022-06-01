@@ -297,11 +297,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 Set<LfBus> slackConnectedComponent;
                 if (lfContingency.getDisabledBuses().isEmpty()) {
                     // contingency not breaking connectivity
-                    LOGGER.info("Contingency {} without loss of connectivity", lfContingency.getId());
+                    LOGGER.debug("Contingency {} without loss of connectivity", lfContingency.getId());
                     slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
                 } else {
                     // contingency breaking connectivity
-                    LOGGER.info("Contingency {} with loss of connectivity", lfContingency.getId());
+                    LOGGER.debug("Contingency {} with loss of connectivity", lfContingency.getId());
                     // we check if factors are still in the main component
                     slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
                     setPredefinedResults(contingencyFactors, slackConnectedComponent);

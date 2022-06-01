@@ -565,22 +565,22 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
             NetworkState networkState = NetworkState.save(lfNetwork);
-            Optional<LfContingency> lfContingency = contingency.toLfContingency(lfNetwork, true);
+            LfContingency lfContingency = contingency.toLfContingency(lfNetwork, true).orElse(null);
             DenseMatrix newFactorStates = factorStates;
             List<ParticipatingElement> newParticipatingElements = participatingElements;
             boolean participatingElementsChanged = false;
             boolean rhsChanged = false;
-            if (lfContingency.isPresent()) {
-                lfContingency.get().apply(lfParameters.getBalanceType());
+            if (lfContingency != null) {
+                lfContingency.apply(lfParameters.getBalanceType());
                 participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
                         || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToShift().isEmpty());
                 if (hasMultiVariables) {
-                    Set<LfBus> affectedBuses = lfContingency.get().getLoadAndGeneratorBuses();
+                    Set<LfBus> affectedBuses = lfContingency.getLoadAndGeneratorBuses();
                     rhsChanged = rescaleGlsk(factorGroups, affectedBuses);
                 }
                 if (participatingElementsChanged) {
                     if (isDistributedSlackOnGenerators(lfParameters)) {
-                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.get().getParticipatingGeneratorsToBeRemoved();
+                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getParticipatingGeneratorsToBeRemoved();
                         // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
                         Set<LfGenerator> finalParticipatingGeneratorsToRemove = participatingGeneratorsToRemove;
                         newParticipatingElements = participatingElements.stream()

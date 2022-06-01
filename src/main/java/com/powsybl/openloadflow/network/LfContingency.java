@@ -152,20 +152,20 @@ public class LfContingency {
     }
 
     public Set<LfBus> getLoadAndGeneratorBuses() {
-        Set<LfBus> affectedBuses = new HashSet<>();
+        Set<LfBus> buses = new HashSet<>();
         for (var e : busesLoadShift.entrySet()) {
             LfBus bus = e.getKey();
             if (bus != null) {
-                affectedBuses.add(bus);
+                buses.add(bus);
             }
         }
         for (LfGenerator generator : generators) {
             LfBus bus = generator.getBus();
             if (bus != null) {
-                affectedBuses.add(bus);
+                buses.add(bus);
             }
         }
-        return affectedBuses;
+        return buses;
     }
 
     public void writeJson(Writer writer) {
