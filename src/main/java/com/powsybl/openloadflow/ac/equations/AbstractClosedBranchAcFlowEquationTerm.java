@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -60,27 +59,27 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         }
     }
 
-    protected double v1(StateVector sv) {
+    protected double v1() {
         return sv.get(v1Var.getRow());
     }
 
-    protected double v2(StateVector sv) {
+    protected double v2() {
         return sv.get(v2Var.getRow());
     }
 
-    protected double ph1(StateVector sv) {
+    protected double ph1() {
         return sv.get(ph1Var.getRow());
     }
 
-    protected double ph2(StateVector sv) {
+    protected double ph2() {
         return sv.get(ph2Var.getRow());
     }
 
-    protected double r1(StateVector sv) {
+    protected double r1() {
         return r1Var != null ? sv.get(r1Var.getRow()) : branch.getPiModel().getR1();
     }
 
-    protected double a1(StateVector sv) {
+    protected double a1() {
         return a1Var != null ? sv.get(a1Var.getRow()) : branch.getPiModel().getA1();
     }
 

@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
+import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
@@ -55,40 +57,38 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
         return variables;
     }
 
-    private double v(StateVector sv) {
+    private double v() {
         return sv.get(vVar.getRow());
     }
 
-    private double b(StateVector sv) {
+    private double b() {
         return bVar != null ? sv.get(bVar.getRow()) : shunt.getB();
     }
 
-    private double q(StateVector sv) {
-        double v = v(sv);
-        return -b(sv) * v * v;
+    private static double q(double v, double b) {
+        return -b * v * v;
     }
 
-    private double dqdv(StateVector sv) {
-        return -2 * b(sv) * v(sv);
+    private static double dqdv(double v, double b) {
+        return -2 * b * v;
     }
 
-    private double dqdb(StateVector sv) {
-        double v = v(sv);
+    private static double dqdb(double v) {
         return -v * v;
     }
 
     @Override
     public double eval() {
-        return q(stateVector);
+        return q(v(), b());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
-            return dqdv(stateVector);
+            return dqdv(v(), b());
         } else if (variable.equals(bVar)) {
-            return dqdb(stateVector);
+            return dqdb(v());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

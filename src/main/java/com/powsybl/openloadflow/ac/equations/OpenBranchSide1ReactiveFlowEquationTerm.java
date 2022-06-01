@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -30,7 +29,7 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
     }
 
-    private double v2(StateVector sv) {
+    private double v2() {
         return sv.get(v2Var.getRow());
     }
 
@@ -46,14 +45,14 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     @Override
     public double eval() {
-        return q2(y, ksi, g1, b1, b2, v2(stateVector));
+        return q2(y, ksi, g1, b1, b2, v2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
-            return dq2dv2(y, ksi, g1, b1, b2, v2(stateVector));
+            return dq2dv2(y, ksi, g1, b1, b2, v2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

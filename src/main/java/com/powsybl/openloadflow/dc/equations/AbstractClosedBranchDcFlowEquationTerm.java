@@ -62,17 +62,17 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
     }
 
     protected double ph1() {
-        return stateVector.get(ph1Var.getRow());
+        return sv.get(ph1Var.getRow());
     }
 
     protected double ph2() {
-        return stateVector.get(ph2Var.getRow());
+        return sv.get(ph2Var.getRow());
     }
 
     protected abstract double calculateSensi(double ph1, double ph2, double a1);
 
     protected double a1() {
-        return a1Var != null ? stateVector.get(a1Var.getRow()) : branch.getPiModel().getA1();
+        return a1Var != null ? sv.get(a1Var.getRow()) : branch.getPiModel().getA1();
     }
 
     @Override

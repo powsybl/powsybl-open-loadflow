@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -33,11 +32,11 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
     }
 
-    private double v2(StateVector sv) {
+    private double v2() {
         return sv.get(v2Var.getRow());
     }
 
-    private double ph2(StateVector sv) {
+    private double ph2() {
         return sv.get(ph2Var.getRow());
     }
 
@@ -80,14 +79,14 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     @Override
     public double eval() {
-        return i2(y, ksi, g1, b1, g2, b2, v2(stateVector), ph2(stateVector));
+        return i2(y, ksi, g1, b1, g2, b2, v2(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
-            return di2dv2(y, ksi, g1, b1, g2, b2, v2(stateVector), ph2(stateVector));
+            return di2dv2(y, ksi, g1, b1, g2, b2, v2(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

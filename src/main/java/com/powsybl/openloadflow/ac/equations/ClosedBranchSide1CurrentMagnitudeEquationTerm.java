@@ -29,12 +29,12 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        double v1 = v1(stateVector);
-        double ph1 = ph1(stateVector);
-        double r1 = r1(stateVector);
-        double a1 = a1(stateVector);
-        double v2 = v2(stateVector);
-        double ph2 = ph2(stateVector);
+        double v1 = v1();
+        double ph1 = ph1();
+        double r1 = r1();
+        double a1 = a1();
+        double v2 = v2();
+        double ph2 = ph2();
         return di1dph1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dph1
                 + di1dph2(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dph2
                 + di1dv1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dv1
@@ -128,27 +128,22 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     public double eval() {
-        return i1(y, ksi, g1, b1, v1(stateVector), ph1(stateVector), r1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
+        return i1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return di1dv1(y, ksi, g1, b1, v1(stateVector), ph1(stateVector),
-                    r1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
+            return di1dv1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(v2Var)) {
-            return di1dv2(y, ksi, g1, b1, v1(stateVector), ph1(stateVector),
-                    r1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
+            return di1dv2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(ph1Var)) {
-            return di1dph1(y, ksi, g1, b1, v1(stateVector), ph1(stateVector),
-                    r1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
+            return di1dph1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(ph2Var)) {
-            return di1dph2(y, ksi, g1, b1, v1(stateVector), ph1(stateVector),
-                    r1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
+            return di1dph2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(a1Var)) {
-            return di1da1(y, ksi, g1, b1, v1(stateVector), ph1(stateVector),
-                    r1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
+            return di1da1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

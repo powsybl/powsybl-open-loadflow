@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -28,12 +27,12 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
     }
 
-    private double v1(StateVector sv) {
+    private double v1() {
         return sv.get(v1Var.getRow());
     }
 
     private double r1() {
-        return branch.getPiModel().getR1(); // FIXME
+        return branch.getPiModel().getR1();
     }
 
     private static double p2(double y, double ksi, double g1, double g2, double b2, double v1, double r1) {
@@ -48,14 +47,14 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
 
     @Override
     public double eval() {
-        return p2(y, ksi, g1, g2, b2, v1(stateVector), r1());
+        return p2(y, ksi, g1, g2, b2, v1(), r1());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp2dv1(y, ksi, g1, g2, b2, v1(stateVector), r1());
+            return dp2dv1(y, ksi, g1, g2, b2, v1(), r1());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
