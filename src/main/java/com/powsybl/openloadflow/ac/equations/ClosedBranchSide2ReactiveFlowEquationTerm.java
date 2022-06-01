@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -28,64 +27,76 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
-        return dq2dph1(stateVector) * dph1 + dq2dph2(stateVector) * dph2 + dq2dv1(stateVector) * dv1 + dq2dv2(stateVector) * dv2;
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        double v1 = v1(stateVector);
+        double ph1 = ph1(stateVector);
+        double r1 = r1(stateVector);
+        double a1 = a1(stateVector);
+        double v2 = v2(stateVector);
+        double ph2 = ph2(stateVector);
+        return dq2dph1(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph1
+                + dq2dph2(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph2
+                + dq2dv1(y, ksi, ph1, r1, a1, v2, ph2) * dv1
+                + dq2dv2(y, ksi, b2, v1, ph1, r1, a1, v2, ph2) * dv2;
     }
 
-    private double theta(double ph1, double a1, double ph2) {
+    private static double theta(double ksi, double ph1, double a1, double ph2) {
         return ksi + a1 - A2 + ph1 - ph2;
     }
 
-    private double q2(StateVector sv) {
-        double v2 = v2(sv);
-        return R2 * v2 * (-b2 * R2 * v2 - y * r1(sv) * v1(sv) * FastMath.cos(theta(ph1(sv), a1(sv), ph2(sv))) + y * R2 * v2 * FastMath.cos(ksi));
+    private static double q2(double y, double ksi, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return R2 * v2 * (-b2 * R2 * v2 - y * r1 * v1 * FastMath.cos(theta(ksi, ph1, a1, ph2)) + y * R2 * v2 * FastMath.cos(ksi));
     }
 
-    private double dq2dv1(StateVector sv) {
-        return -y * r1(sv) * R2 * v2(sv) * FastMath.cos(theta(ph1(sv), a1(sv), ph2(sv)));
+    private static double dq2dv1(double y, double ksi, double ph1, double r1, double a1, double v2, double ph2) {
+        return -y * r1 * R2 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2));
     }
 
-    private double dq2dv2(StateVector sv) {
-        double v2 = v2(sv);
-        return R2 * (-2 * b2 * R2 * v2 - y * r1(sv) * v1(sv) * FastMath.cos(theta(ph1(sv), a1(sv), ph2(sv))) + 2 * y * R2 * v2 * FastMath.cos(ksi));
+    private static double dq2dv2(double y, double ksi, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return R2 * (-2 * b2 * R2 * v2 - y * r1 * v1 * FastMath.cos(theta(ksi, ph1, a1, ph2)) + 2 * y * R2 * v2 * FastMath.cos(ksi));
     }
 
-    private double dq2dph1(StateVector sv) {
-        return y * r1(sv) * R2 * v1(sv) * v2(sv) * FastMath.sin(theta(ph1(sv), a1(sv), ph2(sv)));
+    private static double dq2dph1(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return y * r1 * R2 * v1 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2));
     }
 
-    private double dq2dph2(StateVector sv) {
-        return -dq2dph1(sv);
+    private static double dq2dph2(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return -dq2dph1(y, ksi, v1, ph1, r1, a1, v2, ph2);
     }
 
-    private double dq2da1(StateVector sv) {
-        return dq2dph1(sv);
+    private static double dq2da1(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return dq2dph1(y, ksi, v1, ph1, r1, a1, v2, ph2);
     }
 
-    private double dq2dr1(StateVector sv) {
-        return -y * R2 * v1(sv) * v2(sv) * FastMath.cos(theta(ph1(sv), a1(sv), ph2(sv)));
+    private static double dq2dr1(double y, double ksi, double v1, double ph1, double a1, double v2, double ph2) {
+        return -y * R2 * v1 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2));
     }
 
     @Override
     public double eval() {
-        return q2(stateVector);
+        return q2(y, ksi, b2, v1(stateVector), ph1(stateVector), r1(stateVector),
+                a1(stateVector), v2(stateVector), ph2(stateVector));
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dq2dv1(stateVector);
+            return dq2dv1(y, ksi, ph1(stateVector), r1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
         } else if (variable.equals(v2Var)) {
-            return dq2dv2(stateVector);
+            return dq2dv2(y, ksi, b2, v1(stateVector), ph1(stateVector), r1(stateVector), a1(stateVector), v2(stateVector),
+                    ph2(stateVector));
         } else if (variable.equals(ph1Var)) {
-            return dq2dph1(stateVector);
+            return dq2dph1(y, ksi, v1(stateVector), ph1(stateVector), r1(stateVector), a1(stateVector), v2(stateVector),
+                    ph2(stateVector));
         } else if (variable.equals(ph2Var)) {
-            return dq2dph2(stateVector);
+            return dq2dph2(y, ksi, v1(stateVector), ph1(stateVector), r1(stateVector), a1(stateVector), v2(stateVector),
+                    ph2(stateVector));
         } else if (variable.equals(a1Var)) {
-            return dq2da1(stateVector);
+            return dq2da1(y, ksi, v1(stateVector), ph1(stateVector), r1(stateVector), a1(stateVector), v2(stateVector),
+                    ph2(stateVector));
         } else if (variable.equals(r1Var)) {
-            return dq2dr1(stateVector);
+            return dq2dr1(y, ksi, v1(stateVector), ph1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

@@ -32,33 +32,30 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
         return sv.get(v1Var.getRow());
     }
 
-    private double r1(StateVector sv) {
+    private double r1() {
         return branch.getPiModel().getR1(); // FIXME
     }
 
-    private double p2(StateVector sv) {
-        double shunt = shunt();
-        double v1 = v1(sv);
-        double r1 = r1(sv);
+    private static double p2(double y, double ksi, double g1, double g2, double b2, double v1, double r1) {
+        double shunt = shunt(y, ksi, g2, b2);
         return r1 * r1 * v1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi) / shunt);
     }
 
-    private double dp2dv1(StateVector sv) {
-        double shunt = shunt();
-        double r1 = r1(sv);
-        return 2 * r1 * r1 * v1(sv) * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi) / shunt);
+    private static double dp2dv1(double y, double ksi, double g1, double g2, double b2, double v1, double r1) {
+        double shunt = shunt(y, ksi, g2, b2);
+        return 2 * r1 * r1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * FastMath.sin(ksi) / shunt);
     }
 
     @Override
     public double eval() {
-        return p2(stateVector);
+        return p2(y, ksi, g1, g2, b2, v1(stateVector), r1());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp2dv1(stateVector);
+            return dp2dv1(y, ksi, g1, g2, b2, v1(stateVector), r1());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -28,70 +27,80 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
-        return dq1dph1(stateVector) * dph1 + dq1dph2(stateVector) * dph2 + dq1dv1(stateVector) * dv1 + dq1dv2(stateVector) * dv2;
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        double v1 = v1(stateVector);
+        double ph1 = ph1(stateVector);
+        double r1 = r1(stateVector);
+        double a1 = a1(stateVector);
+        double v2 = v2(stateVector);
+        double ph2 = ph2(stateVector);
+        return dq1dph1(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph1
+                + dq1dph2(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph2
+                + dq1dv1(y, ksi, b1, v1, ph1, r1, a1, v2, ph2) * dv1
+                + dq1dv2(y, ksi, v1, ph1, r1, a1, ph2) * dv2;
     }
 
-    protected double theta(double ph1, double a1, double ph2) {
+    protected static double theta(double ksi, double ph1, double a1, double ph2) {
         return ksi - a1 + A2 - ph1 + ph2;
     }
 
-    private double q1(StateVector sv) {
-        double v1 = v1(sv);
-        double r1 = r1(sv);
+    private static double q1(double y, double ksi, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         return r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * FastMath.cos(ksi)
-                - y * R2 * v2(sv) * FastMath.cos(theta(ph1(sv), a1(sv), ph2(sv))));
+                - y * R2 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2)));
     }
 
-    private double dq1dv1(StateVector sv) {
-        double v1 = v1(sv);
-        double r1 = r1(sv);
+    private static double dq1dv1(double y, double ksi, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         return r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * FastMath.cos(ksi)
-                - y * R2 * v2(sv) * FastMath.cos(theta(ph1(sv), a1(sv), ph2(sv))));
+                - y * R2 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2)));
     }
 
-    private double dq1dv2(StateVector sv) {
-        return -y * r1(sv) * R2 * v1(sv) * FastMath.cos(theta(ph1(sv), a1(sv), ph2(sv)));
+    private static double dq1dv2(double y, double ksi, double v1, double ph1, double r1, double a1, double ph2) {
+        return -y * r1 * R2 * v1 * FastMath.cos(theta(ksi, ph1, a1, ph2));
     }
 
-    private double dq1dph1(StateVector sv) {
-        return -y * r1(sv) * R2 * v1(sv) * v2(sv) * FastMath.sin(theta(ph1(sv), a1(sv), ph2(sv)));
+    private static double dq1dph1(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return -y * r1 * R2 * v1 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2));
     }
 
-    private double dq1dph2(StateVector sv) {
-        return -dq1dph1(sv);
+    private static double dq1dph2(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return -dq1dph1(y, ksi, v1, ph1, r1, a1, v2, ph2);
     }
 
-    private double dq1da1(StateVector sv) {
-        return dq1dph1(sv);
+    private static double dq1da1(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return dq1dph1(y, ksi, v1, ph1, r1, a1, v2, ph2);
     }
 
-    private double dq1dr1(StateVector sv) {
-        double v1 = v1(sv);
-        double r1 = r1(sv);
-        return v1 * (2 * r1 * v1 * (-b1 + y * FastMath.cos(ksi)) - y * R2 * v2(sv) * FastMath.cos(theta(ph1(sv), a1(sv), ph2(sv))));
+    private static double dq1dr1(double y, double ksi, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return v1 * (2 * r1 * v1 * (-b1 + y * FastMath.cos(ksi)) - y * R2 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2)));
     }
 
     @Override
     public double eval() {
-        return q1(stateVector);
+        return q1(y, ksi, b1, v1(stateVector), ph1(stateVector), r1(stateVector),
+                a1(stateVector), v2(stateVector), ph2(stateVector));
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dq1dv1(stateVector);
+            return dq1dv1(y, ksi, b1, v1(stateVector), ph1(stateVector),
+                    r1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
         } else if (variable.equals(v2Var)) {
-            return dq1dv2(stateVector);
+            return dq1dv2(y, ksi, v1(stateVector), ph1(stateVector), r1(stateVector),
+                    a1(stateVector), ph2(stateVector));
         } else if (variable.equals(ph1Var)) {
-            return dq1dph1(stateVector);
+            return dq1dph1(y, ksi, v1(stateVector), ph1(stateVector), r1(stateVector),
+                    a1(stateVector), v2(stateVector), ph2(stateVector));
         } else if (variable.equals(ph2Var)) {
-            return dq1dph2(stateVector);
+            return dq1dph2(y, ksi, v1(stateVector), ph1(stateVector), r1(stateVector),
+                    a1(stateVector), v2(stateVector), ph2(stateVector));
         } else if (variable.equals(a1Var)) {
-            return dq1da1(stateVector);
+            return dq1da1(y, ksi, v1(stateVector), ph1(stateVector), r1(stateVector),
+                    a1(stateVector), v2(stateVector), ph2(stateVector));
         } else if (variable.equals(r1Var)) {
-            return dq1dr1(stateVector);
+            return dq1dr1(y, ksi, b1, v1(stateVector), ph1(stateVector),
+                    r1(stateVector), a1(stateVector), v2(stateVector), ph2(stateVector));
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
