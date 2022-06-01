@@ -591,6 +591,52 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return valid;
     }
 
+    /**
+     * Disable transformer voltage control when there is no generator controlling voltage on the connected component
+     * that belong to the not controlled side of the transformer.
+     */
+    public void fixTransformerVoltageControls() {
+        List<LfBranch> controllerBranches = new ArrayList<>(1);
+        for (LfBranch branch : branches) {
+            if (!branch.isDisabled() && branch.isVoltageController() && branch.isVoltageControlEnabled()) {
+                controllerBranches.add(branch);
+            }
+            if (branch.isDisabled() && branch.getBus1() != null && branch.getBus2() != null) {
+                // apply contingency (in case we are inside a security analysis)
+                getConnectivity().cut(branch);
+            }
+        }
+        for (LfBranch branch : controllerBranches) {
+            getConnectivity().cut(branch);
+        }
+        int disabledTransformerCount = 0;
+        Map<Integer, Boolean> componentNoPVBusesMap = new HashMap<>();
+        for (LfBranch branch : controllerBranches) {
+            var voltageControl = branch.getVoltageControl().orElseThrow();
+            LfBus notControlledSide;
+            if (voltageControl.getControlled() == branch.getBus1()) {
+                notControlledSide = branch.getBus2();
+            } else if (voltageControl.getControlled() == branch.getBus2()) {
+                notControlledSide = branch.getBus1();
+            } else {
+                continue;
+            }
+            boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
+                k -> getConnectivity().getConnectedComponent(notControlledSide).stream().noneMatch(LfBus::isVoltageControlled));
+            if (noPvBusesInComponent) {
+                branch.setVoltageControlEnabled(false);
+                LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
+                        branch.getId());
+                disabledTransformerCount++;
+            }
+        }
+        getConnectivity().reset();
+        if (disabledTransformerCount > 0) {
+            LOGGER.warn("{} transformer voltage controls have been disabled because no PV buses on not controlled side connected component",
+                    disabledTransformerCount);
+        }
+    }
+
     @Override
     public String toString() {
         return "{CC" + numCC +
