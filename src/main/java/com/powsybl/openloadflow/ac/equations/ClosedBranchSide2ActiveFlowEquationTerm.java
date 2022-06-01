@@ -74,8 +74,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
 
     @Override
     public double eval() {
-        return p2(y, ksi, g2, v1(), ph1(), r1(),
-                a1(), v2(), ph2());
+        return p2(y, ksi, g2, v1(), ph1(), r1(), a1(), v2(), ph2());
     }
 
     @Override
