@@ -36,6 +36,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
 
     private final List<Set<V>> newConnectedComponents;
     private final Map<V, LevelNeighbours> levelNeighboursMap;
+    private Set<V> mainConnectedComponent;
 
     private final List<Triple<V, E, V>> cutEdges;
     private final List<E> edgesToCut;
@@ -79,7 +80,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
         cutEdges.clear();
         edgesToCut.clear();
         newConnectedComponents.clear();
-        invalidateVertexMapCache();
+        invalidateConnectedComponentCache();
     }
 
     @Override
@@ -90,12 +91,13 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
         if (edgesToCut.contains(edge)) {
             throw new PowsyblException("Edge already cut: " + edge);
         }
-        invalidateVertexMapCache();
+        invalidateConnectedComponentCache();
 
         edgesToCut.add(edge);
     }
 
-    private void invalidateVertexMapCache() {
+    private void invalidateConnectedComponentCache() {
+        mainConnectedComponent = null;
         vertexMapCacheInvalidated = true;
         vertexToConnectedComponent.clear();
     }
@@ -116,7 +118,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
     }
 
     public void reset() {
-        invalidateVertexMapCache();
+        invalidateConnectedComponentCache();
         newConnectedComponents.clear();
         allSavedChangedLevels.descendingIterator().forEachRemaining(levelNeighboursMap::putAll);
         allSavedChangedLevels.clear();
@@ -151,7 +153,10 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
     }
 
     private Set<V> getMainConnectedComponent() {
-        return vertices.stream().filter(v -> newConnectedComponents.stream().noneMatch(cc -> cc.contains(v))).collect(Collectors.toSet());
+        if (mainConnectedComponent == null) {
+            mainConnectedComponent = vertices.stream().filter(v -> newConnectedComponents.stream().noneMatch(cc -> cc.contains(v))).collect(Collectors.toSet());
+        }
+        return mainConnectedComponent;
     }
 
     @Override
