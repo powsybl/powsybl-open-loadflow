@@ -70,6 +70,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfHvdc> hvdcs = new ArrayList<>();
 
+    private final Map<String, LfHvdc> hvdcsById = new HashMap<>();
+
     private final List<LfNetworkListener> listeners = new ArrayList<>();
 
     private boolean valid = true;
@@ -198,6 +200,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         Objects.requireNonNull(hvdc);
         hvdc.setNum(hvdcs.size());
         hvdcs.add(hvdc);
+        hvdcsById.put(hvdc.getId(), hvdc);
 
         // create bus -> branches link
         if (hvdc.getBus1() != null) {
@@ -210,6 +213,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public List<LfHvdc> getHvdcs() {
         return hvdcs;
+    }
+
+    public LfHvdc getHvdcById(String id) {
+        Objects.requireNonNull(id);
+        return hvdcsById.get(id);
     }
 
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,

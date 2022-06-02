@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
@@ -36,7 +37,7 @@ public class PropagatedContingency {
 
     private final Set<Switch> switchesToOpen;
 
-    private final Set<String> hvdcIdsToOpen;
+    private final Set<String> hvdcIdsToOpen; // for HVDC in AC emulation
 
     private final Set<String> generatorIdsToLose;
 
@@ -108,11 +109,11 @@ public class PropagatedContingency {
     }
 
     public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies,
-                                                                               boolean slackDistributionOnConformLoad) {
+                                                                               boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false, slackDistributionOnConformLoad);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false, slackDistributionOnConformLoad, hvdcAcEmulation);
             Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
             if (coupler.isEmpty()) {
                 propagatedContingencies.add(propagatedContingency);
@@ -127,12 +128,12 @@ public class PropagatedContingency {
 
     public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies,
                                                                             Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
-                                                                            boolean slackDistributionOnConformLoad) {
+                                                                            boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad);
+                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad, hvdcAcEmulation);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
@@ -140,11 +141,13 @@ public class PropagatedContingency {
     }
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn,
-                                                boolean withBreakers, boolean slackDistributionOnConformLoad) {
+                                                boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
+        Set<VscConverterStation> vscsToLose = new HashSet<>();
+        Set<LccConverterStation> lccsToLose = new HashSet<>();
         Set<Load> loadsToLose = new HashSet<>();
         Set<Generator> generatorsToLose = new HashSet<>();
         Set<ShuntCompensator> shuntsToLose = new HashSet<>();
@@ -164,7 +167,24 @@ public class PropagatedContingency {
                     if (hvdcLine == null) {
                         throw new PowsyblException("HVDC line '" + element.getId() + "' not found in the network");
                     }
-                    hvdcIdsToOpen.add(element.getId());
+                    HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
+                    if (control != null && control.isEnabled() && hvdcAcEmulation) {
+                        hvdcIdsToOpen.add(element.getId());
+                    }
+                    if (hvdcLine.getConverterStation1() instanceof VscConverterStation) {
+                        VscConverterStation vsc1 = (VscConverterStation) hvdcLine.getConverterStation1();
+                        vscsToLose.add(vsc1);
+                    } else {
+                        LccConverterStation lcc1 = (LccConverterStation) hvdcLine.getConverterStation1();
+                        lccsToLose.add(lcc1);
+                    }
+                    if (hvdcLine.getConverterStation2() instanceof VscConverterStation) {
+                        VscConverterStation vsc2 = (VscConverterStation) hvdcLine.getConverterStation2();
+                        vscsToLose.add(vsc2);
+                    } else {
+                        LccConverterStation lcc2 = (LccConverterStation) hvdcLine.getConverterStation2();
+                        lccsToLose.add(lcc2);
+                    }
                     break;
                 case DANGLING_LINE:
                     // dangling line check is done inside tripping
@@ -229,6 +249,20 @@ public class PropagatedContingency {
                     shuntsToLose.add((ShuntCompensator) connectable);
                     break;
 
+                case HVDC_CONVERTER_STATION:
+                    HvdcConverterStation<?> station = (HvdcConverterStation) connectable;
+                    HvdcAngleDroopActivePowerControl control = station.getHvdcLine().getExtension(HvdcAngleDroopActivePowerControl.class);
+                    if (control != null && control.isEnabled() && hvdcAcEmulation) {
+                        hvdcIdsToOpen.add(station.getHvdcLine().getId());
+                    } else {
+                        if (connectable instanceof VscConverterStation) {
+                            vscsToLose.add((VscConverterStation) connectable);
+                        } else {
+                            lccsToLose.add((LccConverterStation) connectable);
+                        }
+                    }
+                    break;
+
                 case BUSBAR_SECTION:
                     // we don't care
                     break;
@@ -246,12 +280,25 @@ public class PropagatedContingency {
         for (Generator generator : generatorsToLose) {
             generatorIdsToLose.add(generator.getId());
         }
+        for (VscConverterStation vsc : vscsToLose) {
+            generatorIdsToLose.add(vsc.getId());
+        }
         for (Load load : loadsToLose) {
             Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus()
                                    : load.getTerminal().getBusView().getBus();
             if (bus != null) {
                 loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
                         .add(getLoadPowerShift(load, slackDistributionOnConformLoad));
+            }
+        }
+        for (LccConverterStation lcc : lccsToLose) {
+            Bus bus = withBreakers ? lcc.getTerminal().getBusBreakerView().getBus()
+                    : lcc.getTerminal().getBusView().getBus();
+            if (bus != null) {
+                // No variable active part for a LCC.
+                loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
+                        .add(new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
+                                HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB));
             }
         }
         for (ShuntCompensator shunt : shuntsToLose) {
@@ -302,10 +349,6 @@ public class PropagatedContingency {
         // reset connectivity to discard triggered branches
         connectivity.reset();
 
-        if (!hvdcIdsToOpen.isEmpty()) {
-            throw new UnsupportedOperationException("HVDC line contingency not supported");
-        }
-
         Map<LfShunt, Double> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {
             LfShunt shunt = network.getShuntById(e.getKey());
@@ -333,14 +376,21 @@ public class PropagatedContingency {
             }
         }
 
+        // find hvdc lines that are part of this network
+        Set<LfHvdc> hvdcs = hvdcIdsToOpen.stream()
+                .map(network::getHvdcById)
+                .filter(Objects::nonNull) // could be in another component
+                .collect(Collectors.toSet());
+
         if (branches.isEmpty()
                 && buses.isEmpty()
                 && shunts.isEmpty()
                 && busesLoadShift.isEmpty()
-                && generators.isEmpty()) {
+                && generators.isEmpty()
+                && hvdcs.isEmpty()) {
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, busesLoadShift, generators));
+        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, busesLoadShift, generators, hvdcs));
     }
 }

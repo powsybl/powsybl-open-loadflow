@@ -68,7 +68,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen,
-                lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+                lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                lfParameters.isHvdcAcEmulation());
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
 
@@ -144,7 +145,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
                     propagatedContingency.toLfContingency(network, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                lfContingency.apply(loadFlowParameters);
+                                lfContingency.apply(loadFlowParameters.getBalanceType());
 
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
@@ -171,7 +172,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                                Map<String, BranchResult> preContingencyBranchResults, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters) {
         LOGGER.info("Start post contingency '{}' simulation on network {}", lfContingency.getId(), network);
         LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
-                lfContingency.getId(), network, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches(), lfContingency.getGenerators(),
+                lfContingency.getId(), network, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches(), lfContingency.getLostGenerators(),
                 lfContingency.getShuntsShift(), lfContingency.getBusesLoadShift());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
