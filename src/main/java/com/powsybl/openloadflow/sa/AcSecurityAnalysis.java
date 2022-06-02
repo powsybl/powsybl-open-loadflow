@@ -35,7 +35,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
@@ -84,13 +83,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         } else {
             LfNetwork largestNetwork = lfNetworks.get(0);
             if (largestNetwork.isValid()) {
-                List<LfContingency> lfContingencies = propagatedContingencies.stream()
-                        .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(largestNetwork, true).stream())
-                        // move contingencies that break connectivity at the end to minimize to number of Jacobian matrix
-                        // initialization
-                        .sorted(Comparator.comparingInt(c -> c.getDisabledBuses().size()))
-                        .collect(Collectors.toList());
-                result = runSimulations(largestNetwork, contingencies, lfContingencies, acParameters, securityAnalysisParameters);
+                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters);
             } else {
                 result = createNoResult();
             }
@@ -118,8 +111,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         return lfNetworks;
     }
 
-    private SecurityAnalysisResult runSimulations(LfNetwork network, List<Contingency> contingencies, List<LfContingency> lfContingencies,
-                                                  AcLoadFlowParameters acParameters, SecurityAnalysisParameters securityAnalysisParameters) {
+    private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
+                                                  SecurityAnalysisParameters securityAnalysisParameters) {
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
@@ -147,21 +140,24 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 NetworkState networkState = NetworkState.save(network);
 
                 // start a simulation for each of the contingency
-                Iterator<LfContingency> contingencyIt = lfContingencies.iterator();
+                Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
-                    LfContingency lfContingency = contingencyIt.next();
-                    lfContingency.apply(loadFlowParameters.getBalanceType());
+                    PropagatedContingency propagatedContingency = contingencyIt.next();
+                    propagatedContingency.toLfContingency(network, true)
+                            .ifPresent(lfContingency -> { // only process contingencies that impact the network
+                                lfContingency.apply(loadFlowParameters.getBalanceType());
 
-                    distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                                distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                    PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, contingencies.get(lfContingency.getIndex()), lfContingency,
-                            preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters());
-                    postContingencyResults.add(postContingencyResult);
+                                PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, propagatedContingency.getContingency(), lfContingency,
+                                        preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters());
+                                postContingencyResults.add(postContingencyResult);
 
-                    if (contingencyIt.hasNext()) {
-                        // restore base state
-                        networkState.restore();
-                    }
+                                if (contingencyIt.hasNext()) {
+                                    // restore base state
+                                    networkState.restore();
+                                }
+                            });
                 }
             }
 
