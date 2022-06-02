@@ -575,16 +575,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
                         || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToShift().isEmpty());
                 if (hasMultiVariables) {
-                    Set<LfBus> affectedBuses = lfContingency.getLoadAndGeneratorBuses();
-                    rhsChanged = rescaleGlsk(factorGroups, affectedBuses);
+                    Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
+                    rhsChanged = rescaleGlsk(factorGroups, impactedBuses);
                 }
                 if (participatingElementsChanged) {
                     if (isDistributedSlackOnGenerators(lfParameters)) {
-                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getParticipatingGeneratorsToBeRemoved();
                         // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
-                        Set<LfGenerator> finalParticipatingGeneratorsToRemove = participatingGeneratorsToRemove;
+                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
                         newParticipatingElements = participatingElements.stream()
-                                .filter(participatingElement -> !finalParticipatingGeneratorsToRemove.contains(participatingElement.getElement()))
+                                .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
                                 .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
                                 .collect(Collectors.toList());
                         normalizeParticipationFactors(newParticipatingElements, "LfGenerators");
