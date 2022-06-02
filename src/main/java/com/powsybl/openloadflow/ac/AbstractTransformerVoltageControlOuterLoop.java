@@ -7,13 +7,16 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
-import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -22,30 +25,26 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTransformerVoltageControlOuterLoop.class);
 
-    protected OuterLoopStatus roundVoltageRatios(LfNetwork network) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
-        for (LfBranch branch : network.getBranches()) {
-            TransformerVoltageControl voltageControl = branch.getVoltageControl().orElse(null);
-            if (voltageControl != null) {
-                branch.setVoltageControlEnabled(false);
-
-                // round the rho shift to the closest tap
-                PiModel piModel = branch.getPiModel();
-                double r1Value = piModel.getR1();
-                piModel.roundR1ToClosestTap();
-                double roundedR1Value = piModel.getR1();
-                LOGGER.trace("Round voltage ratio of '{}': {} -> {}", branch.getId(), r1Value, roundedR1Value);
-
-                status = OuterLoopStatus.UNSTABLE;
-            }
-        }
-        return status;
+    protected static List<LfBranch> getControllerBranches(LfNetwork network) {
+        return network.getBranches()
+                .stream().filter(branch -> !branch.isDisabled() && branch.isVoltageController())
+                .collect(Collectors.toList());
     }
 
-    @Override
-    public void cleanup(LfNetwork network) {
-        for (LfBranch branch : network.getBranches()) {
-            branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(true));
+    protected OuterLoopStatus roundVoltageRatios(OuterLoopContext context) {
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+        for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
+            controllerBranch.setVoltageControlEnabled(false);
+
+            // round the rho shift to the closest tap
+            PiModel piModel = controllerBranch.getPiModel();
+            double r1Value = piModel.getR1();
+            piModel.roundR1ToClosestTap();
+            double roundedR1Value = piModel.getR1();
+            LOGGER.trace("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
+
+            status = OuterLoopStatus.UNSTABLE;
         }
+        return status;
     }
 }

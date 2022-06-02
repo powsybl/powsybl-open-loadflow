@@ -60,7 +60,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private final MatrixFactory matrixFactory;
 
-    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private boolean forcePhaseControlOffAndAddAngle1Var = false; // just for unit testing
 
@@ -72,7 +72,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         this(matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>());
     }
 
-    public OpenLoadFlowProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    public OpenLoadFlowProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
@@ -207,8 +207,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     @Override
     public CompletableFuture<LoadFlowResult> run(Network network, ComputationManager computationManager, String workingVariantId, LoadFlowParameters parameters, Reporter reporter) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(computationManager);
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(parameters);
+        Objects.requireNonNull(reporter);
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
@@ -228,7 +231,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             return result;
-        });
+        }, computationManager.getExecutor());
     }
 
     @Override

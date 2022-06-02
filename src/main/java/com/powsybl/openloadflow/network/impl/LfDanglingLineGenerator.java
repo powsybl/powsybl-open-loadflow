@@ -40,6 +40,11 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     @Override
+    public String getOriginalId() {
+        return danglingLine.getId();
+    }
+
+    @Override
     public OptionalDouble getRemoteControlReactiveKey() {
         return OptionalDouble.empty();
     }

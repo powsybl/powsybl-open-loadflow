@@ -9,23 +9,17 @@ package com.powsybl.openloadflow.network;
 import java.util.List;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public interface LfElement extends PropertyBag {
-
-    String getId();
+public interface LfLoads {
 
     List<String> getOriginalIds();
 
-    ElementType getType();
+    double getAbsVariableLoadTargetP();
 
-    int getNum();
+    void setAbsVariableLoadTargetP(double absVariableLoadTargetP);
 
-    void setNum(int num);
+    double getLoadCount();
 
-    boolean isDisabled();
-
-    void setDisabled(boolean disabled);
-
-    LfNetwork getNetwork();
+    double getLoadTargetQ(double diffLoadTargetP);
 }

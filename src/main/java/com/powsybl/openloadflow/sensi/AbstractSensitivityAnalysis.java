@@ -14,6 +14,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -51,9 +52,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected final MatrixFactory matrixFactory;
 
-    protected final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    protected final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
@@ -300,6 +301,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             if (element instanceof LfBus) {
                 return component.contains(element);
             } else if (element instanceof LfBranch) {
+                // FIXME: a branch in contingency could have both buses in the component, then the method will return True.
                 return component.contains(((LfBranch) element).getBus1()) && component.contains(((LfBranch) element).getBus2());
             }
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
@@ -584,8 +586,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return new ArrayList<>(groupIndexedById.values());
     }
 
-    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
-        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(loadFlowParameters.getBalanceType(), openLoadFlowParameters.isLoadPowerFactorConstant());
+    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
+        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant());
         List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
         ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
         return participatingElements;
@@ -603,20 +605,15 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<String> breakingConnectivityCandidates) {
+    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, Collection<String> breakingConnectivityCandidates) {
         breakingConnectivityCandidates.stream()
             .map(lfNetwork::getBranchById)
-            .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
+            .filter(b -> b.getBus1() != null && b.getBus2() != null)
+            .forEach(connectivity::cut);
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent, Collection<String> branchIdsToOpen) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            String functionBranchId = factor.getFunctionElement().getId();
-            if (branchIdsToOpen.stream().anyMatch(id -> id.equals(functionBranchId))) {
-                factor.setSensitivityValuePredefinedResult(0d);
-                factor.setFunctionPredefinedResult(0d);
-                continue;
-            }
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                 // after a contingency, we check if the factor function and the variable are in different connected components
                 boolean variableConnected = factor.isVariableConnectedToSlackComponent(connectedComponent);
@@ -684,9 +681,30 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return validFactorHolder;
     }
 
+    private static void cleanBranchIdsToOpen(LfNetwork lfNetwork, PropagatedContingency contingency) {
+        // Elements have already been checked and found in PropagatedContingency, so there is no need to
+        // check them again
+        Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+        for (String branchId : contingency.getBranchIdsToOpen()) {
+            LfBranch lfBranch = lfNetwork.getBranchById(branchId);
+            if (lfBranch == null) {
+                branchesToRemove.add(branchId); // disconnected branch
+                continue;
+            }
+            if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
+                branchesToRemove.add(branchId); // branch connected only on one side
+            }
+        }
+        contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+    }
+
     public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
+            if (!contingency.getSwitchesToOpen().isEmpty()) {
+                throw new PowsyblException("Switch opening not supported in sensitivity analysis");
+            }
+
             // check ID are unique because, later contingency are indexed by their IDs
             String contingencyId = contingency.getContingency().getId();
             if (contingenciesIds.contains(contingencyId)) {
@@ -694,21 +712,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             }
             contingenciesIds.add(contingencyId);
 
-            // Elements have already been checked and found in PropagatedContingency, so there is no need to
-            // check them again
-            Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
-            for (String branchId : contingency.getBranchIdsToOpen()) {
-                LfBranch lfBranch = lfNetwork.getBranchById(branchId);
-                if (lfBranch == null) {
-                    branchesToRemove.add(branchId); // disconnected branch
-                    continue;
-                }
-                if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
-                    branchesToRemove.add(branchId); // branch connected only on one side
-                }
-            }
-            contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
-            if (contingency.getBranchIdsToOpen().isEmpty() && contingency.getHvdcIdsToOpen().isEmpty() && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
+            cleanBranchIdsToOpen(lfNetwork, contingency);
+
+            if (contingency.getBranchIdsToOpen().isEmpty()
+                    && contingency.getHvdcIdsToOpen().isEmpty()
+                    && contingency.getGeneratorIdsToLose().isEmpty()
+                    && contingency.getLoadIdsToShift().isEmpty()) {
                 LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
             }
         }
@@ -912,16 +921,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     // => we create a multi (bi) variables factor
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
                     if (bus1 != null) {
-                        // VSC injection follow here a load sign convention as LCC injection.
                         // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus1, (hvdcLine.getConverterStation1() instanceof VscConverterStation ? -1 : 1)
-                                * HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
+                        injectionLfBuses.put(bus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
                     }
                     if (bus2 != null) {
-                        // VSC injection follow here a load sign convention as LCC injection.
                         // FIXME: for LCC, Q changes when P changes
-                        injectionLfBuses.put(bus2, (hvdcLine.getConverterStation2() instanceof VscConverterStation ? -1 : 1)
-                                * HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
+                        injectionLfBuses.put(bus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
                     }
 
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
@@ -995,13 +1000,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return hasTransformerBusTargetVoltage.get();
     }
 
-    public boolean isDistributedSlackOnGenerators(LoadFlowParameters lfParameters) {
+    public static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
                 && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
     }
 
-    public boolean isDistributedSlackOnLoads(LoadFlowParameters lfParameters) {
+    public static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
                 &&  (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);

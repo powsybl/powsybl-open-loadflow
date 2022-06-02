@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
@@ -17,6 +18,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
@@ -141,5 +144,77 @@ class LfBusImplTest {
             sumQ += lfGenerator.getCalculatedQ();
         }
         Assertions.assertEquals(generationQ, sumQ, DELTA_POWER, "sum of generators calculatedQ should be equals to qToDispatch");
+    }
+
+    private List<LfGenerator> createLfGeneratorsWithInitQ(List<Double> initQs) {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
+        LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"),
+                false, 100, true, lfNetworkLoadingReport);
+        lfGenerator1.setCalculatedQ(initQs.get(0));
+        LfGenerator lfGenerator2 = LfGeneratorImpl.create(network.getGenerator("GH2"),
+                false, 200, true, lfNetworkLoadingReport);
+        lfGenerator2.setCalculatedQ(initQs.get(1));
+        LfGenerator lfGenerator3 = LfGeneratorImpl.create(network.getGenerator("GH3"),
+                false, 200, true, lfNetworkLoadingReport);
+        lfGenerator3.setCalculatedQ(initQs.get(2));
+        List<LfGenerator> generators = new ArrayList<>();
+        generators.add(lfGenerator1);
+        generators.add(lfGenerator2);
+        generators.add(lfGenerator3);
+        return generators;
+    }
+
+    @Test
+    void dispatchQForMaxTest() {
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(Arrays.asList(0d, 0d, 0d));
+        LfGenerator generatorToRemove = generators.get(1);
+        double qToDispatch = 21;
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double totalCalculatedQ = generators.get(0).getCalculatedQ() + generators.get(1).getCalculatedQ() + generatorToRemove.getCalculatedQ();
+        Assertions.assertEquals(7.0, generators.get(0).getCalculatedQ());
+        Assertions.assertEquals(7.0, generators.get(1).getCalculatedQ());
+        Assertions.assertEquals(2, generators.size());
+        Assertions.assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
+        Assertions.assertEquals(generatorToRemove.getMaxQ(), generatorToRemove.getCalculatedQ());
+    }
+
+    @Test
+    void dispatchQTestWithInitialQForMax() {
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(Arrays.asList(1.5d, 1d, 3d));
+        double qInitial = generators.get(0).getCalculatedQ() + generators.get(1).getCalculatedQ() + generators.get(2).getCalculatedQ();
+        LfGenerator generatorToRemove1 = generators.get(1);
+        LfGenerator generatorToRemove2 = generators.get(2);
+        double qToDispatch = 20;
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove1.getCalculatedQ() + generatorToRemove2.getCalculatedQ();
+        Assertions.assertEquals(1, generators.size());
+        Assertions.assertEquals(qToDispatch + qInitial - totalCalculatedQ, residueQ, 0.0001);
+        Assertions.assertEquals(8.17, generators.get(0).getCalculatedQ(), 0.01);
+        Assertions.assertEquals(generatorToRemove1.getMaxQ(), generatorToRemove1.getCalculatedQ(), 0.01);
+        Assertions.assertEquals(generatorToRemove2.getMaxQ(), generatorToRemove2.getCalculatedQ(), 0.01);
+    }
+
+    @Test
+    void dispatchQForMinTest() {
+        List<LfGenerator> generators = createLfGeneratorsWithInitQ(Arrays.asList(0d, 0d, 0d));
+        LfGenerator generatorToRemove2 = generators.get(1);
+        LfGenerator generatorToRemove3 = generators.get(2);
+        double qToDispatch = -21;
+        double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
+        double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove2.getCalculatedQ() + generatorToRemove3.getCalculatedQ();
+        Assertions.assertEquals(-7.0, generators.get(0).getCalculatedQ());
+        Assertions.assertEquals(1, generators.size());
+        Assertions.assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
+        Assertions.assertEquals(generatorToRemove2.getMinQ(), generatorToRemove2.getCalculatedQ());
+        Assertions.assertEquals(generatorToRemove3.getMinQ(), generatorToRemove3.getCalculatedQ());
+    }
+
+    @Test
+    void dispatchQEmptyListTest() {
+        List<LfGenerator> generators = new ArrayList<>();
+        double qToDispatch = -21;
+        Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, qToDispatch),
+                "the generator list to dispatch Q can not be empty");
     }
 }

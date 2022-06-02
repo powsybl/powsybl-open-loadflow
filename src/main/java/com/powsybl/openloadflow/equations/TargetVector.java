@@ -89,7 +89,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     }
 
     @Override
-    public void onElementAddedButNoVariableOrEquationAdded(Equation<V, E> equation, Variable<V> variable) {
+    public void onEquationTermChange(EquationTerm<V, E> term) {
         // nothing to do
     }
 

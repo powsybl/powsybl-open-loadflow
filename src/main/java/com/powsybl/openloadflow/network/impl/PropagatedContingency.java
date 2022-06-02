@@ -56,6 +56,10 @@ public class PropagatedContingency {
         return branchIdsToOpen;
     }
 
+    public Set<Switch> getSwitchesToOpen() {
+        return switchesToOpen;
+    }
+
     public Set<String> getHvdcIdsToOpen() {
         return hvdcIdsToOpen;
     }
@@ -139,7 +143,7 @@ public class PropagatedContingency {
                                                 boolean withBreakers, boolean slackDistributionOnConformLoad) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
-        Set<String> branchIdsToOpen = new HashSet<>();
+        Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<Load> loadsToLose = new HashSet<>();
         Set<Generator> generatorsToLose = new HashSet<>();
@@ -190,6 +194,13 @@ public class PropagatedContingency {
                         throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
                     }
                     shuntsToLose.add(shuntCompensator);
+                    break;
+                case SWITCH:
+                    Switch aSwitch = network.getSwitch(element.getId());
+                    if (aSwitch == null) {
+                        throw new PowsyblException("Switch '" + element.getId() + "' not found in the network");
+                    }
+                    switchesToOpen.add(aSwitch);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
@@ -264,21 +275,18 @@ public class PropagatedContingency {
         return c1 != c2 && c1.getType() == IdentifiableType.BUSBAR_SECTION && c2.getType() == IdentifiableType.BUSBAR_SECTION;
     }
 
-    public Optional<LfContingency> toLfContingency(LfNetwork network, GraphDecrementalConnectivity<LfBus> connectivity,
-                                                   boolean useSmallComponents) {
+    public Optional<LfContingency> toLfContingency(LfNetwork network, boolean useSmallComponents) {
         // find contingency branches that are part of this network
-        Set<LfBranch> branches = new HashSet<>(1);
-        for (String branchId : branchIdsToOpen) {
-            LfBranch branch = network.getBranchById(branchId);
-            if (branch != null) { // could be in another component
-                branches.add(branch);
-            }
-        }
+        Set<LfBranch> branches = branchIdsToOpen.stream()
+                .map(network::getBranchById)
+                .filter(Objects::nonNull) // could be in another component
+                .collect(Collectors.toSet());
 
         // update connectivity with triggered branches
-        for (LfBranch branch : branches) {
-            connectivity.cut(branch.getBus1(), branch.getBus2());
-        }
+        GraphDecrementalConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        branches.stream()
+                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .forEach(connectivity::cut);
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state

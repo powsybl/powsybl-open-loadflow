@@ -136,7 +136,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public List<String> getIds() {
+    public List<String> getOriginalIds() {
         return shuntCompensators.stream().map(ShuntCompensator::getId).collect(Collectors.toList());
     }
 

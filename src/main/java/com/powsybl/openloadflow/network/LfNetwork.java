@@ -38,7 +38,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfNetwork {
+public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
@@ -74,14 +74,12 @@ public class LfNetwork {
 
     private boolean valid = true;
 
-    private final Map<String, Object> userObjects = new HashMap<>();
+    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
-
-    private GraphDecrementalConnectivity<LfBus> connectivity;
+    private GraphDecrementalConnectivity<LfBus, LfBranch> connectivity;
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
-                     GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -150,12 +148,12 @@ public class LfNetwork {
         bus.getShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getControllerShunt().ifPresent(shunt -> {
             shunt.setNum(shuntCount++);
             shuntsByIndex.add(shunt);
-            shunt.getIds().forEach(id -> shuntsById.put(id, shunt));
+            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
         });
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
     }
@@ -176,6 +174,10 @@ public class LfNetwork {
     public LfBus getSlackBus() {
         updateSlack();
         return slackBus;
+    }
+
+    public List<LfShunt> getShunts() {
+        return shuntsByIndex;
     }
 
     public LfShunt getShunt(int num) {
@@ -335,7 +337,7 @@ public class LfNetwork {
         if (!Double.isNaN(generator.getTargetQ())) {
             jsonGenerator.writeNumberField("targetQ", generator.getTargetQ());
         }
-        jsonGenerator.writeBooleanField("voltageControl", generator.hasVoltageControl());
+        jsonGenerator.writeBooleanField("voltageControl", generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE);
         jsonGenerator.writeNumberField("minP", generator.getMinP());
         jsonGenerator.writeNumberField("maxP", generator.getMaxP());
     }
@@ -562,11 +564,13 @@ public class LfNetwork {
         return subGraph;
     }
 
-    public GraphDecrementalConnectivity<LfBus> getConnectivity() {
+    public GraphDecrementalConnectivity<LfBus, LfBranch> getConnectivity() {
         if (connectivity == null) {
             connectivity = Objects.requireNonNull(connectivityFactory.create());
             getBuses().forEach(connectivity::addVertex);
-            getBranches().forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2()));
+            getBranches().stream()
+                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                    .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
         }
         return connectivity;
     }
@@ -587,14 +591,50 @@ public class LfNetwork {
         return valid;
     }
 
-    public Object getUserObject(String name) {
-        Objects.requireNonNull(name);
-        return userObjects.get(name);
-    }
-
-    public void setUserObject(String name, Object userObject) {
-        Objects.requireNonNull(name);
-        userObjects.put(name, userObject);
+    /**
+     * Disable transformer voltage control when there is no generator controlling voltage on the connected component
+     * that belong to the not controlled side of the transformer.
+     */
+    public void fixTransformerVoltageControls() {
+        List<LfBranch> controllerBranches = new ArrayList<>(1);
+        for (LfBranch branch : branches) {
+            if (!branch.isDisabled() && branch.isVoltageController() && branch.isVoltageControlEnabled()) {
+                controllerBranches.add(branch);
+            }
+            if (branch.isDisabled() && branch.getBus1() != null && branch.getBus2() != null) {
+                // apply contingency (in case we are inside a security analysis)
+                getConnectivity().cut(branch);
+            }
+        }
+        for (LfBranch branch : controllerBranches) {
+            getConnectivity().cut(branch);
+        }
+        int disabledTransformerCount = 0;
+        Map<Integer, Boolean> componentNoPVBusesMap = new HashMap<>();
+        for (LfBranch branch : controllerBranches) {
+            var voltageControl = branch.getVoltageControl().orElseThrow();
+            LfBus notControlledSide;
+            if (voltageControl.getControlled() == branch.getBus1()) {
+                notControlledSide = branch.getBus2();
+            } else if (voltageControl.getControlled() == branch.getBus2()) {
+                notControlledSide = branch.getBus1();
+            } else {
+                continue;
+            }
+            boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
+                k -> getConnectivity().getConnectedComponent(notControlledSide).stream().noneMatch(LfBus::isVoltageControlled));
+            if (noPvBusesInComponent) {
+                branch.setVoltageControlEnabled(false);
+                LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",
+                        branch.getId());
+                disabledTransformerCount++;
+            }
+        }
+        getConnectivity().reset();
+        if (disabledTransformerCount > 0) {
+            LOGGER.warn("{} transformer voltage controls have been disabled because no PV buses on not controlled side connected component",
+                    disabledTransformerCount);
+        }
     }
 
     @Override

@@ -73,7 +73,6 @@ class EquationSystemIndexTest {
     }
 
     private final List<Pair<Quantity, ChangeType>> quantityAdded = new ArrayList<>();
-    private final List<Pair<Equation<TestVariableType, TestEquationType>, Variable<TestVariableType>>> elementAdded = new ArrayList<>();
 
     @Test
     void test() {
@@ -90,8 +89,8 @@ class EquationSystemIndexTest {
             }
 
             @Override
-            public void onElementAddedButNoVariableOrEquationAdded(Equation<TestVariableType, TestEquationType> equation, Variable<TestVariableType> variable) {
-                elementAdded.add(Pair.of(equation, variable));
+            public void onEquationTermChange(EquationTerm<TestVariableType, TestEquationType> term) {
+                // nothing to do
             }
         });
 
@@ -116,9 +115,7 @@ class EquationSystemIndexTest {
                              Pair.of(TestEquationType.Y, ChangeType.ADDED),
                              Pair.of(TestVariableType.C, ChangeType.ADDED)),
                       quantityAdded);
-        assertEquals(List.of(Pair.of(y, a)), elementAdded);
         quantityAdded.clear();
-        elementAdded.clear();
         assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
@@ -128,7 +125,6 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.REMOVED),
                              Pair.of(TestEquationType.Y, ChangeType.REMOVED)),
                      quantityAdded);
-        assertTrue(elementAdded.isEmpty());
         quantityAdded.clear();
         assertEquals(Set.of(x), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
@@ -140,9 +136,7 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.ADDED),
                              Pair.of(TestEquationType.Y, ChangeType.ADDED)),
                      quantityAdded);
-        assertEquals(List.of(Pair.of(y, a)), elementAdded);
         quantityAdded.clear();
-        elementAdded.clear();
         assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
@@ -193,8 +187,6 @@ class EquationSystemIndexTest {
         // y = a + c
         aTerm2.setActive(true);
         assertTrue(quantityAdded.isEmpty());
-        assertEquals(List.of(Pair.of(y, a)), elementAdded);
-        elementAdded.clear();
         assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
         assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
     }

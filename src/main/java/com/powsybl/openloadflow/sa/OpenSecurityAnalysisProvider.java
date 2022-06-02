@@ -14,6 +14,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.security.*;
@@ -21,6 +22,7 @@ import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -31,9 +33,9 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     private final MatrixFactory matrixFactory;
 
-    private final GraphDecrementalConnectivityFactory<LfBus> connectivityFactory;
+    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    public OpenSecurityAnalysisProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus> connectivityFactory) {
+    public OpenSecurityAnalysisProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = matrixFactory;
         this.connectivityFactory = connectivityFactory;
     }
@@ -47,13 +49,25 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
                                                          LimitViolationFilter limitViolationFilter, ComputationManager computationManager,
                                                          SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                                          List<SecurityAnalysisInterceptor> interceptors, List<StateMonitor> stateMonitors) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(workingVariantId);
+        Objects.requireNonNull(limitViolationDetector);
+        Objects.requireNonNull(limitViolationFilter);
+        Objects.requireNonNull(computationManager);
+        Objects.requireNonNull(securityAnalysisParameters);
+        Objects.requireNonNull(contingenciesProvider);
+        Objects.requireNonNull(interceptors);
+        Objects.requireNonNull(stateMonitors);
+
         AbstractSecurityAnalysis securityAnalysis;
         if (securityAnalysisParameters.getLoadFlowParameters().isDc()) {
             securityAnalysis = new DcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityFactory, stateMonitors);
         } else {
             securityAnalysis = new AcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityFactory, stateMonitors);
         }
+
         interceptors.forEach(securityAnalysis::addInterceptor);
+
         return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
     }
 
