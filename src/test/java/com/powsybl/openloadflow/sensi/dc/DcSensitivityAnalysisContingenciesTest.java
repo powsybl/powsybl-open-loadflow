@@ -11,8 +11,10 @@ import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisParameters;
@@ -2016,5 +2018,64 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertNotEquals(result2.getBranchFlow1SensitivityValue("glsk", "l34"), result.getBranchFlow1SensitivityValue("d2", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
         assertNotEquals(result2.getBranchFlow1SensitivityValue("glsk", "l34"), result.getBranchFlow1SensitivityValue("d2", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
         assertNotEquals(result2.getBranchFlow1SensitivityValue("glsk", "l13"), result.getBranchFlow1SensitivityValue("d2", "glsk", "l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLosingALineButBothEndsInMainComponent() {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorOnOneSide();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", false);
+
+        List<Contingency> contingencies = List.of(new Contingency("l34+l12", new BranchContingency("l34"), new BranchContingency("l12")));
+
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g3")),
+                List.of(network.getLine("l12")),
+                "l34+l12");
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(1, result.getValues("l34+l12").size());
+
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l34+l12", "g3", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l34+l12", "l12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcInAcEmulation() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
+
+        List<SensitivityFactor> factors = createFactorMatrix(Stream.of("g1", "g5").map(network::getGenerator).collect(Collectors.toList()),
+                Stream.of("l12", "l25", "l56").map(network::getBranch).collect(Collectors.toList()));
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        network.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
+        network.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(6, result.getValues("hvdc34").size());
+        List<SensitivityValue> contingencyResult = result.getValues("hvdc34");
+        assertEquals(6, contingencyResult.size());
+        assertEquals(result2.getBranchFlow1SensitivityValue("g1", "l12"), result.getBranchFlow1SensitivityValue("hvdc34", "g1", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("g1", "l25"), result.getBranchFlow1SensitivityValue("hvdc34", "g1", "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("g1", "l56"), result.getBranchFlow1SensitivityValue("hvdc34", "g1", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("g5", "l12"), result.getBranchFlow1SensitivityValue("hvdc34", "g5", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("g5", "l25"), result.getBranchFlow1SensitivityValue("hvdc34", "g5", "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1SensitivityValue("g5", "l56"), result.getBranchFlow1SensitivityValue("hvdc34", "g5", "l56"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l12"), result.getBranchFlow1FunctionReferenceValue("hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l25"), result.getBranchFlow1FunctionReferenceValue("hvdc34", "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l56"), result.getBranchFlow1FunctionReferenceValue("hvdc34", "l56"), LoadFlowAssert.DELTA_POWER);
     }
 }
