@@ -11,7 +11,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.security.results.BusResults;
+import com.powsybl.security.results.BusResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -539,8 +539,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public BusResults createBusResult() {
-        return new BusResults(getVoltageLevelId(), getId(), v, getAngle());
+    public BusResult createBusResult() {
+        return new BusResult(getVoltageLevelId(), getId(), v, getAngle());
     }
 
     @Override

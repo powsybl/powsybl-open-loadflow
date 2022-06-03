@@ -28,10 +28,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -84,7 +84,7 @@ class OpenLoadFlowProviderTest {
 
     @Test
     void specificParametersTest() {
-        var provider = new OpenLoadFlowProvider();
+        OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
         assertEquals(15, provider.getSpecificParametersNames().size());
         LoadFlowParameters parameters = new LoadFlowParameters();
 
@@ -95,5 +95,11 @@ class OpenLoadFlowProviderTest {
         provider.loadSpecificParameters(Map.of(OpenLoadFlowParameters.SLACK_BUS_SELECTION_PARAM_NAME, SlackBusSelectionMode.FIRST.name()))
                 .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
         assertEquals(SlackBusSelectionMode.FIRST, parameters.getExtension(OpenLoadFlowParameters.class).getSlackBusSelectionMode());
+        Map<String, String> updateParametersMap = new HashMap<>();
+        updateParametersMap.put("slackBusSelectionMode", "MOST_MESHED");
+        updateParametersMap.put("voltageRemoteControl", "false");
+        provider.updateSpecificParameters(parameters.getExtension(OpenLoadFlowParameters.class), updateParametersMap);
+        assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getExtension(OpenLoadFlowParameters.class).getSlackBusSelectionMode());
+        assertFalse(parameters.getExtension(OpenLoadFlowParameters.class).hasVoltageRemoteControl());
     }
 }

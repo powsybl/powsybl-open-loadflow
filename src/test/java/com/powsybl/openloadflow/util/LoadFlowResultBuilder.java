@@ -40,7 +40,7 @@ public class LoadFlowResultBuilder {
     }
 
     public LoadFlowResultBuilder addComponentResult(int componentNum, int synchronousComponentNum, LoadFlowResult.ComponentResult.Status status, int iterationCount, String slackBusId, double slackBusActivePowerMismatch) {
-        this.componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(componentNum, synchronousComponentNum, status, iterationCount, slackBusId, slackBusActivePowerMismatch));
+        this.componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(componentNum, synchronousComponentNum, status, iterationCount, slackBusId, slackBusActivePowerMismatch, Double.NaN));
         return this;
     }
 
