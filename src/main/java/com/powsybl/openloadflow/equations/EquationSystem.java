@@ -39,144 +39,13 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement = new HashMap<>();
 
-    private class EquationCache implements EquationSystemListener<V, E> {
-
-        private final NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = new TreeMap<>();
-
-        private final NavigableMap<Variable<V>, Set<Equation<V, E>>> sortedVariablesToFind = new TreeMap<>();
-
-        private final Set<Equation<V, E>> equationsToRemove = new HashSet<>();
-
-        private final Set<Equation<V, E>> equationsToAdd = new HashSet<>();
-
-        private void update() {
-            if (reIndex()) {
-                Stopwatch stopwatch = Stopwatch.createStarted();
-
-                int columnCount = 0;
-                for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
-                    equation.setColumn(columnCount++);
-                }
-
-                int rowCount = 0;
-                for (Variable<V> variable : sortedVariablesToFind.keySet()) {
-                    variable.setRow(rowCount++);
-                }
-
-                LOGGER.debug("Equation system indexed in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
-            }
-        }
-
-        private boolean reIndex() {
-            if (equationsToAdd.isEmpty() && equationsToRemove.isEmpty()) {
-                return false;
-            }
-
-            // index derivatives per variable then per equation
-
-            // equations to remove
-            for (Equation<V, E> equation : equationsToRemove) {
-                sortedEquationsToSolve.remove(equation);
-                for (EquationTerm<V, E> equationTerm : equation.getTerms()) {
-                    for (Variable<V> variable : equationTerm.getVariables()) {
-                        Set<Equation<V, E>> equationsUsingThisVariable = sortedVariablesToFind.get(variable);
-                        if (equationsUsingThisVariable != null) {
-                            equationsUsingThisVariable.remove(equation);
-                            if (equationsUsingThisVariable.isEmpty()) {
-                                sortedVariablesToFind.remove(variable);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // equations to add
-            for (Equation<V, E> equation : equationsToAdd) {
-                // do not use equations that would be updated only after NR
-                if (equation.isActive()) {
-                    // check we have at least one equation term active
-                    boolean atLeastOneTermIsValid = false;
-                    for (EquationTerm<V, E> equationTerm : equation.getTerms()) {
-                        if (equationTerm.isActive()) {
-                            atLeastOneTermIsValid = true;
-                            for (Variable<V> variable : equationTerm.getVariables()) {
-                                sortedEquationsToSolve.computeIfAbsent(equation, k -> new TreeMap<>())
-                                        .computeIfAbsent(variable, k -> new ArrayList<>())
-                                        .add(equationTerm);
-                                sortedVariablesToFind.computeIfAbsent(variable, k -> new TreeSet<>())
-                                        .add(equation);
-                            }
-                        }
-                    }
-                    if (!atLeastOneTermIsValid) {
-                        throw new IllegalStateException("Equation " + equation + " is active but all of its terms are inactive");
-                    }
-                }
-            }
-
-            equationsToRemove.clear();
-            equationsToAdd.clear();
-
-            return true;
-        }
-
-        @Override
-        public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
-            switch (eventType) {
-                case EQUATION_REMOVED:
-                case EQUATION_DEACTIVATED:
-                    if (!sortedEquationsToSolve.isEmpty()) { // not need to remove if not already indexed
-                        equationsToRemove.add(equation);
-                    }
-                    equationsToAdd.remove(equation);
-                    break;
-
-                case EQUATION_CREATED:
-                case EQUATION_ACTIVATED:
-                    // no need to remove first because activated event means it was not already activated
-                    equationsToAdd.add(equation);
-                    break;
-
-                default:
-                    throw new IllegalStateException("Event type not supported: " + eventType);
-            }
-        }
-
-        @Override
-        public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
-            switch (eventType) {
-                case EQUATION_TERM_ADDED:
-                case EQUATION_TERM_ACTIVATED:
-                case EQUATION_TERM_DEACTIVATED:
-                    if (!sortedEquationsToSolve.isEmpty()) { // not need to remove if not already indexed
-                        equationsToRemove.add(term.getEquation());
-                    }
-                    equationsToAdd.add(term.getEquation());
-                    break;
-
-                default:
-                    throw new IllegalStateException("Event type not supported: " + eventType);
-            }
-        }
-
-        private NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve() {
-            update();
-            return sortedEquationsToSolve;
-        }
-
-        private NavigableSet<Variable<V>> getSortedVariablesToFind() {
-            update();
-            return sortedVariablesToFind.navigableKeySet();
-        }
-    }
-
-    private final EquationCache equationCache = new EquationCache();
-
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
     private final VariableSet<V> variableSet;
 
     private final StateVector stateVector = new StateVector();
+
+    private final EquationSystemIndex<V, E> index;
 
     public EquationSystem() {
         this(false);
@@ -189,7 +58,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public EquationSystem(VariableSet<V> variableSet, boolean indexTerms) {
         this.variableSet = Objects.requireNonNull(variableSet);
         this.indexTerms = indexTerms;
-        addListener(equationCache);
+        index = new EquationSystemIndex<>(this);
     }
 
     public VariableSet<V> getVariableSet() {
@@ -202,6 +71,14 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public StateVector getStateVector() {
         return stateVector;
+    }
+
+    public EquationSystemIndex<V, E> getIndex() {
+        return index;
+    }
+
+    public Collection<Equation<V, E>> getEquations() {
+        return equations.values();
     }
 
     void addEquationTerm(EquationTerm<V, E> equationTerm) {
@@ -283,41 +160,33 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         term.setStateVector(stateVector);
     }
 
-    public SortedSet<Variable<V>> getSortedVariablesToFind() {
-        return equationCache.getSortedVariablesToFind();
-    }
-
-    public NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> getSortedEquationsToSolve() {
-        return equationCache.getSortedEquationsToSolve();
-    }
-
     public List<String> getRowNames(LfNetwork network) {
-        return getSortedVariablesToFind().stream()
+        return index.getSortedVariablesToFind().stream()
                 .map(eq -> network.getBus(eq.getElementNum()).getId() + "/" + eq.getType())
                 .collect(Collectors.toList());
     }
 
     public List<String> getColumnNames(LfNetwork network) {
-        return getSortedEquationsToSolve().navigableKeySet().stream()
+        return index.getSortedEquationsToSolve().stream()
                 .map(v -> network.getBus(v.getElementNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());
     }
 
     public double[] createEquationVector() {
-        double[] fx = new double[equationCache.getSortedEquationsToSolve().size()];
+        double[] fx = new double[index.getSortedEquationsToSolve().size()];
         updateEquationVector(fx);
         return fx;
     }
 
     public void updateEquationVector(double[] fx) {
-        if (fx.length != equationCache.getSortedEquationsToSolve().size()) {
+        if (fx.length != index.getSortedEquationsToSolve().size()) {
             throw new IllegalArgumentException("Bad equation vector length: " + fx.length);
         }
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         Arrays.fill(fx, 0);
-        for (Equation<V, E> equation : equationCache.getSortedEquationsToSolve().keySet()) {
+        for (Equation<V, E> equation : index.getSortedEquationsToSolve()) {
             fx[equation.getColumn()] = equation.eval();
         }
 
@@ -380,7 +249,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     public List<Pair<Equation<V, E>, Double>> findLargestMismatches(double[] mismatch, int count) {
-        return getSortedEquationsToSolve().keySet().stream()
+        return index.getSortedEquationsToSolve().stream()
                 .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
                 .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
                 .sorted(Comparator.comparingDouble((Map.Entry<Equation<V, E>, Double> e) -> Math.abs(e.getValue())).reversed())

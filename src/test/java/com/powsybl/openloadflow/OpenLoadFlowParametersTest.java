@@ -33,7 +33,9 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -195,5 +197,26 @@ class OpenLoadFlowParametersTest {
         LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result2 = loadFlowRunner2.run(network, parameters);
         assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
+    }
+
+    @Test
+    void testUpdateParameters() {
+        Map<String, String> parametersMap = new HashMap<>();
+        parametersMap.put("slackBusSelectionMode", "FIRST");
+        parametersMap.put("voltageRemoteControl", "true");
+        parametersMap.put("reactivePowerRemoteControl", "false");
+        OpenLoadFlowParameters parameters = OpenLoadFlowParameters.load(parametersMap);
+        assertEquals(SlackBusSelectionMode.FIRST, parameters.getSlackBusSelectionMode());
+        assertTrue(parameters.hasVoltageRemoteControl());
+        assertFalse(parameters.hasReactivePowerRemoteControl());
+        Map<String, String> updateParametersMap = new HashMap<>();
+        updateParametersMap.put("slackBusSelectionMode", "MOST_MESHED");
+        updateParametersMap.put("voltageRemoteControl", "false");
+        updateParametersMap.put("maxIteration", "10");
+        parameters.update(updateParametersMap);
+        assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getSlackBusSelectionMode());
+        assertFalse(parameters.hasVoltageRemoteControl());
+        assertEquals(10, parameters.getMaxIteration());
+        assertFalse(parameters.hasReactivePowerRemoteControl());
     }
 }

@@ -80,8 +80,8 @@ public class DcLoadFlowEngine {
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
-        double[] x = new double[equationSystem.getSortedVariablesToFind().size()];
-        for (Variable<DcVariableType> v : equationSystem.getSortedVariablesToFind()) {
+        double[] x = new double[equationSystem.getIndex().getSortedVariablesToFind().size()];
+        for (Variable<DcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_PHI:
                     x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getElementNum())));
@@ -104,7 +104,7 @@ public class DcLoadFlowEngine {
 
     public static void updateNetwork(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, double[] x) {
         // update state variable
-        for (Variable<DcVariableType> v : equationSystem.getSortedVariablesToFind()) {
+        for (Variable<DcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_PHI:
                     network.getBus(v.getElementNum()).setAngle(Math.toDegrees(x[v.getRow()]));

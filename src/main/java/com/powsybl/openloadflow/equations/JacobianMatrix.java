@@ -24,7 +24,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
-        implements EquationSystemListener<V, E>, StateVectorListener, AutoCloseable {
+        implements EquationSystemIndexListener<V, E>, StateVectorListener, AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
@@ -67,61 +67,44 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private enum Status {
         VALID,
-        MATRIX_INVALID, // structure has changed
-        VALUES_INVALID // same structure but values have to be updated
+        VALUES_INVALID, // same structure but values have to be updated
+        VALUES_AND_ZEROS_INVALID, // same structure but values have to be updated and non zero values might have changed
+        STRUCTURE_INVALID, // structure has changed
     }
 
-    private Status status = Status.MATRIX_INVALID;
+    private Status status = Status.STRUCTURE_INVALID;
 
     public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        equationSystem.addListener(this);
+        equationSystem.getIndex().addListener(this);
         equationSystem.getStateVector().addListener(this);
     }
 
-    @Override
-    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
-        switch (eventType) {
-            case EQUATION_CREATED:
-            case EQUATION_REMOVED:
-            case EQUATION_ACTIVATED:
-            case EQUATION_DEACTIVATED:
-                status = Status.MATRIX_INVALID;
-                break;
-
-            default:
-                throw new IllegalStateException("Event type not supported: " + eventType);
+    private void updateStatus(Status status) {
+        if (status.ordinal() > this.status.ordinal()) {
+            this.status = status;
         }
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
-        switch (eventType) {
-            case EQUATION_TERM_ADDED:
-            case EQUATION_TERM_ACTIVATED:
-            case EQUATION_TERM_DEACTIVATED:
-                // FIXME
-                // Note for later, it might be possible in the future in case of a term change to not fully rebuild
-                // the matrix as the structure has not changed (same equations and variables). But... we have for that
-                // to handle the case where the invalidation of an equation term break the graph connectivity. This
-                // is typically the case when the equation term is the active power flow of a branch which is also a
-                // bridge (so necessary for the connectivity). Normally in that case a bus equation should also have been
-                // deactivated and so it should work but for an unknown reason it fails with a KLU singular error (which
-                // means most of the time we have created the matrix with a non fully connected network)
-                status = Status.MATRIX_INVALID;
-                break;
+    public void onEquationChange(Equation<V, E> equation, ChangeType changeType) {
+        updateStatus(Status.STRUCTURE_INVALID);
+    }
 
-            default:
-                throw new IllegalStateException("Event type not supported: " + eventType);
-        }
+    @Override
+    public void onVariableChange(Variable<V> variable, ChangeType changeType) {
+        updateStatus(Status.STRUCTURE_INVALID);
+    }
+
+    @Override
+    public void onEquationTermChange(EquationTerm<V, E> term) {
+        updateStatus(Status.VALUES_AND_ZEROS_INVALID);
     }
 
     @Override
     public void onStateUpdate() {
-        if (status == Status.VALID) {
-            status = Status.VALUES_INVALID;
-        }
+        updateStatus(Status.VALUES_INVALID);
     }
 
     private void clearLu() {
@@ -131,11 +114,22 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         lu = null;
     }
 
+    private Map<Variable<V>, List<EquationTerm<V, E>>> indexTermsByVariable(Equation<V, E> eq) {
+        Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+        for (EquationTerm<V, E> term : eq.getTerms()) {
+            for (Variable<V> v : term.getVariables()) {
+                termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
+                        .add(term);
+            }
+        }
+        return termsByVariable;
+    }
+
     private void initMatrix() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        int rowCount = equationSystem.getSortedEquationsToSolve().size();
-        int columnCount = equationSystem.getSortedVariablesToFind().size();
+        int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
+        int columnCount = equationSystem.getIndex().getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
             throw new PowsyblException("Expected to have same number of equations (" + rowCount
                     + ") and variables (" + columnCount + ")");
@@ -145,16 +139,20 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
         partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
 
-        for (Map.Entry<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> e : equationSystem.getSortedEquationsToSolve().entrySet()) {
-            Equation<V, E> eq = e.getKey();
+        for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
-            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e2 : e.getValue().entrySet()) {
-                Variable<V> var = e2.getKey();
-                int row = var.getRow();
-                for (EquationTerm<V, E> equationTerm : e2.getValue()) {
-                    double value = equationTerm.der(var);
-                    int elementIndex = matrix.addAndGetIndex(row, column, value);
-                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(equationTerm, elementIndex, var));
+            Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = indexTermsByVariable(eq);
+            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
+                Variable<V> v = e.getKey();
+                int row = v.getRow();
+                if (row != -1) {
+                    for (EquationTerm<V, E> term : e.getValue()) {
+                        // create a derivative for all terms including de-activated ones because could be reactivated
+                        // at jacobian update stage without any equation or variable index change
+                        double value = term.isActive() ? term.der(v) : 0;
+                        int elementIndex = matrix.addAndGetIndex(row, column, value);
+                        partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(term, elementIndex, v));
+                    }
                 }
             }
         }
@@ -164,42 +162,48 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         clearLu();
     }
 
-    private void updateLu() {
+    private void updateLu(boolean allowIncrementalUpdate) {
         if (lu != null) {
             Stopwatch stopwatch = Stopwatch.createStarted();
 
-            lu.update();
+            lu.update(allowIncrementalUpdate);
 
             LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         }
     }
 
-    private void updateValues() {
+    private void updateValues(boolean allowIncrementalUpdate) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
         for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
-            EquationTerm<V, E> equationTerm = partialDerivative.getEquationTerm();
-            int elementIndex = partialDerivative.getElementIndex();
-            Variable<V> var = partialDerivative.getVariable();
-            double value = equationTerm.der(var);
-            matrix.addAtIndex(elementIndex, value);
+            EquationTerm<V, E> term = partialDerivative.getEquationTerm();
+            if (term.isActive()) {
+                int elementIndex = partialDerivative.getElementIndex();
+                Variable<V> v = partialDerivative.getVariable();
+                double value = term.der(v);
+                matrix.addAtIndex(elementIndex, value);
+            }
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
 
-        updateLu();
+        updateLu(allowIncrementalUpdate);
     }
 
     public Matrix getMatrix() {
         if (status != Status.VALID) {
             switch (status) {
-                case MATRIX_INVALID:
+                case STRUCTURE_INVALID:
                     initMatrix();
                     break;
 
                 case VALUES_INVALID:
-                    updateValues();
+                    updateValues(true);
+                    break;
+
+                case VALUES_AND_ZEROS_INVALID:
+                    updateValues(false);
                     break;
 
                 default:
@@ -240,7 +244,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     @Override
     public void close() {
-        equationSystem.removeListener(this);
+        equationSystem.getIndex().removeListener(this);
         equationSystem.getStateVector().removeListener(this);
         matrix = null;
         partialDerivatives = null;

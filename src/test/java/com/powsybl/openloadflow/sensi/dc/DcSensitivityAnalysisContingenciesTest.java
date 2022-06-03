@@ -1560,7 +1560,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Path networkFile = null;
         Path parametersFile = null;
         Path variableSetsFile = null;
-        FileSystem fileSystem = PlatformConfig.defaultConfig().getConfigDir().getFileSystem();
+        FileSystem fileSystem = PlatformConfig.defaultConfig().getConfigDir().map(Path::getFileSystem).orElseThrow(PowsyblException::new);
         PathMatcher contingenciesMatcher = fileSystem.getPathMatcher("glob:contingencies-*.json");
         PathMatcher factorsMatcher = fileSystem.getPathMatcher("glob:factors-*.json");
         PathMatcher networkMatcher = fileSystem.getPathMatcher("glob:network-*.xiidm");
