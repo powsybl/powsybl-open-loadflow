@@ -42,24 +42,25 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     public void initialize(OuterLoopContext context) {
         // All transformer voltage control are disabled for the first equation system resolution.
         for (LfBranch branch : getControllerBranches(context.getNetwork())) {
-            branch.getVoltageControl().ifPresent(voltageControl -> {
-                branch.setVoltageControlEnabled(false);
-            });
+            branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
         }
     }
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        return changeTapPositions(context.getNetwork(), context.getAcLoadFlowContext().getEquationSystem(), context.getAcLoadFlowContext().getJacobianMatrix());
-    }
-
-    private OuterLoopStatus changeTapPositions(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                               JacobianMatrix<AcVariableType, AcEquationType> j) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
+        LfNetwork network = context.getNetwork();
         List<LfBranch> controllerBranches = getControllerBranches(network);
+        int[] controllerBranchIndex = new int[network.getBranches().size()];
+        for (int i = 0; i < controllerBranches.size(); i++) {
+            LfBranch controllerBranch = controllerBranches.get(i);
+            controllerBranchIndex[controllerBranch.getNum()] = i;
+        }
 
-        DenseMatrix sensitivities = getSensitivityValues(controllerBranches, equationSystem, j);
+        DenseMatrix sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex,
+                                                               context.getAcLoadFlowContext().getEquationSystem(),
+                                                               context.getAcLoadFlowContext().getJacobianMatrix());
 
         network.getBuses().stream()
                 .filter(LfBus::isTransformerVoltageControlled)
@@ -73,16 +74,13 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                         // only one transformer controls a bus
                         LfBranch controller = controllers.get(0);
                         Double targetDeadband = controller.getTransformerVoltageControlTargetDeadband().orElse(null);
-                        if (targetDeadband != null) {
-                            if (difference > targetDeadband) {
-                                double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
-                                        .calculateSensi(sensitivities, controllerBranches.indexOf(controller));
-                                PiModel piModel = controller.getPiModel();
-                                double deltaR = difference / sensitivity;
-                                Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, MAX_INCREMENT);
-                                if (result.getLeft()) {
-                                    status.setValue(OuterLoopStatus.UNSTABLE);
-                                }
+                        if (targetDeadband != null && difference > targetDeadband) {
+                            double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
+                                    .calculateSensi(sensitivities, controllerBranchIndex[controller.getNum()]);
+                            double deltaR = difference / sensitivity;
+                            Pair<Boolean, Double> result = controller.getPiModel().updateTapPositionR(deltaR, MAX_INCREMENT);
+                            if (result.getLeft()) {
+                                status.setValue(OuterLoopStatus.UNSTABLE);
                             }
                         }
                     } else {
@@ -92,18 +90,15 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                             hasChanged = false;
                             for (LfBranch controller : controllers) {
                                 Double targetDeadband = controller.getTransformerVoltageControlTargetDeadband().orElse(null);
-                                if (targetDeadband != null) {
-                                    if (difference > targetDeadband) {
-                                        double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
-                                                .calculateSensi(sensitivities, controllerBranches.indexOf(controller));
-                                        PiModel piModel = controller.getPiModel();
-                                        double deltaR = difference / sensitivity;
-                                        Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, 1);
-                                        difference = difference - result.getRight() * sensitivity;
-                                        if (result.getLeft()) {
-                                            hasChanged = true;
-                                            status.setValue(OuterLoopStatus.UNSTABLE);
-                                        }
+                                if (targetDeadband != null && difference > targetDeadband) {
+                                    double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
+                                            .calculateSensi(sensitivities, controllerBranchIndex[controller.getNum()]);
+                                    double deltaR = difference / sensitivity;
+                                    Pair<Boolean, Double> result = controller.getPiModel().updateTapPositionR(deltaR, 1);
+                                    difference -= result.getRight() * sensitivity;
+                                    if (result.getLeft()) {
+                                        hasChanged = true;
+                                        status.setValue(OuterLoopStatus.UNSTABLE);
                                     }
                                 }
                             }
@@ -114,16 +109,15 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return status.getValue();
     }
 
-    DenseMatrix getSensitivityValues(List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                  JacobianMatrix<AcVariableType, AcEquationType> j) {
+    private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
+                                                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                          JacobianMatrix<AcVariableType, AcEquationType> j) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
-        for (int i = 0; i < controllerBranches.size(); i++) {
-            LfBranch controllerBranch = controllerBranches.get(i);
+        for (LfBranch controllerBranch : controllerBranches) {
             Variable<AcVariableType> rho1 = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1);
-            int row = i;
             equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1).ifPresent(equation -> {
                 var term = equation.getTerms().get(0);
-                rhs.set(equation.getColumn(), row, term.der(rho1));
+                rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], term.der(rho1));
             });
         }
         j.solveTransposed(rhs);
