@@ -8,14 +8,14 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.network.*;
 
-import java.util.List;
-import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener implements EquationSystemListener<V, E> {
+public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfNetworkListener
+        implements EquationSystemIndexListener<V, E> {
 
     @FunctionalInterface
     public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
@@ -44,7 +44,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.initializer = Objects.requireNonNull(initializer);
         network.addListener(this);
-        equationSystem.addListener(this);
+        equationSystem.getIndex().addListener(this);
     }
 
     private void invalidateValues() {
@@ -79,12 +79,17 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     }
 
     @Override
-    public void onEquationChange(Equation<V, E> equation, EquationEventType eventType) {
+    public void onEquationChange(Equation<V, E> equation, ChangeType changeType) {
         status = Status.VECTOR_INVALID;
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
+    public void onVariableChange(Variable<V> variable, ChangeType changeType) {
+        // nothing to do
+    }
+
+    @Override
+    public void onEquationTermChange(EquationTerm<V, E> term) {
         // nothing to do
     }
 
@@ -109,9 +114,9 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         Objects.requireNonNull(network);
         Objects.requireNonNull(equationSystem);
         Objects.requireNonNull(initializer);
-        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
+        NavigableSet<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
         double[] array = new double[sortedEquationsToSolve.size()];
-        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+        for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
         return array;
@@ -123,8 +128,8 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     }
 
     private void updateArray() {
-        NavigableMap<Equation<V, E>, NavigableMap<Variable<V>, List<EquationTerm<V, E>>>> sortedEquationsToSolve = equationSystem.getSortedEquationsToSolve();
-        for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
+        NavigableSet<Equation<V, E>> sortedEquationsToSolve = equationSystem.getIndex().getSortedEquationsToSolve();
+        for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
         status = Status.VALID;
