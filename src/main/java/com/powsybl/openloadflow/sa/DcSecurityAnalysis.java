@@ -71,6 +71,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             preContingencyBranchResults.put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN));
             detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()),
                 violation -> preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+            checkDcCurrent(branch, Math.abs(sensValue.getFunctionReference()));
         }
 
         LimitViolationsResult preContingencyResult = new LimitViolationsResult(true,
@@ -109,5 +110,17 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         }
 
         return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, new ArrayList<>(preContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList()));
+    }
+
+    private void checkDcCurrent(Branch<?> branch, double activePower) {
+        // Check side 1
+        // TODO: get cosphi from parameters
+        double branchCurrent = currentFromAdnActivePower(activePower, branch.getTerminal1().getVoltageLevel().getNominalV(), 0.4);
+
+        // Check side 2
+    }
+
+    public static double currentFromAdnActivePower(double activePower, double dcVoltage, double cosPhi) {
+        return 1000 * activePower / (Math.sqrt(3) * cosPhi * dcVoltage);
     }
 }
