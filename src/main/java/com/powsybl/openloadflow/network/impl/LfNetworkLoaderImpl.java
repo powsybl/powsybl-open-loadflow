@@ -617,6 +617,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
         double deadbandValue = rtc.getTargetDeadband() / regulatingTerminalNominalV;
+        System.out.println(deadbandValue);
 
         controlledBus.getTransformerVoltageControl().ifPresentOrElse(vc -> {
             LOGGER.trace("Controlled bus '{}' already has a transformer voltage control: a shared control is created", controlledBus.getId());
@@ -626,12 +627,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             vc.addController(controllerBranch);
             controllerBranch.setVoltageControl(vc);
-            controllerBranch.setDeadBand(deadbandValue);
+            controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
         }, () -> {
                 TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue);
                 voltageControl.addController(controllerBranch);
                 controllerBranch.setVoltageControl(voltageControl);
-                controllerBranch.setDeadBand(deadbandValue);
+                controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
                 controlledBus.setTransformerVoltageControl(voltageControl);
             });
     }
