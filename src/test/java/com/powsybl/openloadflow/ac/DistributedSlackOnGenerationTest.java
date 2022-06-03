@@ -61,7 +61,7 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(1, result.getComponentResults().size());
-        assertEquals(-120, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(120, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
         assertActivePowerEquals(-115, g1.getTerminal());
         assertActivePowerEquals(-245, g2.getTerminal());
         assertActivePowerEquals(-105, g3.getTerminal());

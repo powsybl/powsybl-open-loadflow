@@ -147,7 +147,7 @@ public class AcloadFlowEngine {
                                                        nrIterations,
                                                        runningContext.lastNrResult.getStatus(),
                                                        runningContext.lastNrResult.getSlackBusActivePowerMismatch(),
-                                                       runningContext.lastNrResult.getSlackBusActivePowerMismatch() - initialSlackBusActivePowerMismatch);
+                                                       initialSlackBusActivePowerMismatch - runningContext.lastNrResult.getSlackBusActivePowerMismatch());
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
