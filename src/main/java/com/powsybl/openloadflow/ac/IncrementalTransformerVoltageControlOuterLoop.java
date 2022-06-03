@@ -108,10 +108,10 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     DenseMatrix getSensitivityValues(List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                   JacobianMatrix<AcVariableType, AcEquationType> j) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), controllerBranches.size());
+        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
         for (LfBranch branch : controllerBranches) {
             Variable var = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1);
-            for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getSortedEquationsToSolve().keySet()) {
+            for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
                 equation.getTerms().stream().filter(term -> term.getVariables().stream().anyMatch(v -> v.equals(var))).forEach(t -> {
                     if (equation.getType().equals(AcEquationType.BRANCH_TARGET_RHO1)) {
                         rhs.set(equation.getColumn(), controllerBranches.indexOf(branch), t.der(var));
