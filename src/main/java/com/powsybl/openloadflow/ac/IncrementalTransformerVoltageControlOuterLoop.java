@@ -17,12 +17,12 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.*;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -55,15 +55,16 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private OuterLoopStatus changeTapPositions(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                JacobianMatrix<AcVariableType, AcEquationType> j) {
-        AtomicReference<OuterLoopStatus> status = new AtomicReference<>();
-        status.set(OuterLoopStatus.STABLE);
+        MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
-        DenseMatrix sensitivities = getSensitivityValues(getControllerBranches(network), equationSystem, j);
+        List<LfBranch> controllerBranches = getControllerBranches(network);
 
-        network.getBuses().stream().filter(LfBus::isTransformerVoltageControlled)
-                .filter(bus -> bus.getTransformerVoltageControl().isPresent())
+        DenseMatrix sensitivities = getSensitivityValues(controllerBranches, equationSystem, j);
+
+        network.getBuses().stream()
+                .filter(LfBus::isTransformerVoltageControlled)
                 .forEach(bus -> {
-                    TransformerVoltageControl voltageControl = bus.getTransformerVoltageControl().get();
+                    TransformerVoltageControl voltageControl = bus.getTransformerVoltageControl().orElseThrow();
                     double targetV = voltageControl.getTargetValue();
                     double voltage = voltageControl.getControlled().getV();
                     double difference = targetV - voltage;
@@ -71,15 +72,16 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     if (controllers.size() == 1) {
                         // only one transformer controls a bus
                         LfBranch controller = controllers.get(0);
-                        if (controller.getTransformerVoltageControlTargetDeadband().isPresent()) {
-                            if (difference > controller.getTransformerVoltageControlTargetDeadband().get()) {
+                        Double targetDeadband = controller.getTransformerVoltageControlTargetDeadband().orElse(null);
+                        if (targetDeadband != null) {
+                            if (difference > targetDeadband) {
                                 double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
-                                        .calculateSensi(sensitivities, getControllerBranches(network).indexOf(controller));
+                                        .calculateSensi(sensitivities, controllerBranches.indexOf(controller));
                                 PiModel piModel = controller.getPiModel();
                                 double deltaR = difference / sensitivity;
                                 Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, MAX_INCREMENT);
                                 if (result.getLeft()) {
-                                    status.set(OuterLoopStatus.UNSTABLE);
+                                    status.setValue(OuterLoopStatus.UNSTABLE);
                                 }
                             }
                         }
@@ -89,17 +91,18 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                         while (hasChanged) {
                             hasChanged = false;
                             for (LfBranch controller : controllers) {
-                                if (controller.getTransformerVoltageControlTargetDeadband().isPresent()) {
-                                    if (difference > controller.getTransformerVoltageControlTargetDeadband().get()) {
+                                Double targetDeadband = controller.getTransformerVoltageControlTargetDeadband().orElse(null);
+                                if (targetDeadband != null) {
+                                    if (difference > targetDeadband) {
                                         double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
-                                                .calculateSensi(sensitivities, getControllerBranches(network).indexOf(controller));
+                                                .calculateSensi(sensitivities, controllerBranches.indexOf(controller));
                                         PiModel piModel = controller.getPiModel();
                                         double deltaR = difference / sensitivity;
                                         Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, 1);
                                         difference = difference - result.getRight() * sensitivity;
                                         if (result.getLeft()) {
                                             hasChanged = true;
-                                            status.set(OuterLoopStatus.UNSTABLE);
+                                            status.setValue(OuterLoopStatus.UNSTABLE);
                                         }
                                     }
                                 }
@@ -107,7 +110,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                         }
                     }
                 });
-        return status.get();
+
+        return status.getValue();
     }
 
     DenseMatrix getSensitivityValues(List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem,
