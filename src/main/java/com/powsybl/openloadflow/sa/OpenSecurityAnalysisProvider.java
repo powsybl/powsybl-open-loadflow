@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
@@ -48,7 +49,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
     public CompletableFuture<SecurityAnalysisReport> run(Network network, String workingVariantId, LimitViolationDetector limitViolationDetector,
                                                          LimitViolationFilter limitViolationFilter, ComputationManager computationManager,
                                                          SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                                         List<SecurityAnalysisInterceptor> interceptors, List<StateMonitor> stateMonitors) {
+                                                         List<SecurityAnalysisInterceptor> interceptors, List<StateMonitor> stateMonitors, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(limitViolationDetector);
