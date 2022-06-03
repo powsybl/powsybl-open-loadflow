@@ -29,20 +29,17 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final int MAX_INCREMENT = 100;
 
-    List<LfBranch> controllerBranches = new ArrayList<>();
-
     @Override
     public String getType() {
         return "Incremental transformer voltage control";
     }
 
     @Override
-    public void initialize(LfNetwork network) {
+    public void initialize(OuterLoopContext context) {
         // All transformer voltage control are disabled for the first equation system resolution.
-        for (LfBranch branch : network.getBranches()) {
+        for (LfBranch branch : getControllerBranches(context.getNetwork())) {
             branch.getVoltageControl().ifPresent(voltageControl -> {
                 branch.setVoltageControlEnabled(false);
-                controllerBranches.add(branch);
             });
         }
     }
@@ -57,7 +54,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         AtomicReference<OuterLoopStatus> status = new AtomicReference<>();
         status.set(OuterLoopStatus.STABLE);
 
-        DenseMatrix sensitivities = getSensitivityValues(controllerBranches, equationSystem, j);
+        DenseMatrix sensitivities = getSensitivityValues(getControllerBranches(network), equationSystem, j);
 
         network.getBuses().stream().filter(LfBus::isTransformerVoltageControlled)
                 .filter(bus -> bus.getTransformerVoltageControl().isPresent())
@@ -86,7 +83,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                             for (LfBranch controller : controllers) {
                                 if (difference > controller.getTargetDeadBand().get()) {
                                     double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) voltageControl.getControlled().getCalculatedV())
-                                            .calculateSensi(sensitivities, controllerBranches.indexOf(controller));
+                                            .calculateSensi(sensitivities, getControllerBranches(network).indexOf(controller));
                                     PiModel piModel = controller.getPiModel();
                                     double deltaR = difference / sensitivity;
                                     Pair<Boolean, Double> result = piModel.updateTapPositionR(deltaR, 1);
