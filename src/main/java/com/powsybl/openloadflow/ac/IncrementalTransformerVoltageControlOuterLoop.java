@@ -8,16 +8,20 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.ac.equations.*;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -109,15 +113,14 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     DenseMatrix getSensitivityValues(List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                   JacobianMatrix<AcVariableType, AcEquationType> j) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
-        for (LfBranch branch : controllerBranches) {
-            Variable var = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1);
-            for (Equation<AcVariableType, AcEquationType> equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
-                equation.getTerms().stream().filter(term -> term.getVariables().stream().anyMatch(v -> v.equals(var))).forEach(t -> {
-                    if (equation.getType().equals(AcEquationType.BRANCH_TARGET_RHO1)) {
-                        rhs.set(equation.getColumn(), controllerBranches.indexOf(branch), t.der(var));
-                    }
-                });
-            }
+        for (int i = 0; i < controllerBranches.size(); i++) {
+            LfBranch controllerBranch = controllerBranches.get(i);
+            Variable<AcVariableType> rho1 = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1);
+            int row = i;
+            equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1).ifPresent(equation -> {
+                var term = equation.getTerms().get(0);
+                rhs.set(equation.getColumn(), row, term.der(rho1));
+            });
         }
         j.solveTransposed(rhs);
         return rhs;
