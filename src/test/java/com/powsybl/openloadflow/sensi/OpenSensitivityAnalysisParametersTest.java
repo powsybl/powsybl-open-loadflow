@@ -10,16 +10,19 @@ import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.file.FileSystem;
 
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
  */
-public class OpenSensitivityAnalysisParametersTest {
+class OpenSensitivityAnalysisParametersTest {
+
     private InMemoryPlatformConfig platformConfig;
 
     private FileSystem fileSystem;
@@ -33,8 +36,13 @@ public class OpenSensitivityAnalysisParametersTest {
         lfModuleConfig.setStringProperty("debugDir", "/debugDir");
     }
 
+    @AfterEach
+    void tearDown() throws IOException {
+        fileSystem.close();
+    }
+
     @Test
-    public void test() {
+    void test() {
         OpenSensitivityAnalysisParameters parameters = OpenSensitivityAnalysisParameters.load(platformConfig);
         Assertions.assertEquals("/debugDir", parameters.getDebugDir());
     }
