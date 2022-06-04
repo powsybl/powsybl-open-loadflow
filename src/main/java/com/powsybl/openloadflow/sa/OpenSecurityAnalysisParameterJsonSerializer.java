@@ -14,7 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.json.JsonUtil;
-import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisParameters;
 
 import java.io.IOException;
@@ -48,7 +47,7 @@ public class OpenSecurityAnalysisParameterJsonSerializer implements ExtensionJso
         String getName();
 
         @JsonIgnore
-        OpenSensitivityAnalysisParameters getExtendable();
+        OpenSecurityAnalysisParameters getExtendable();
     }
 
     private static ObjectMapper createMapper() {

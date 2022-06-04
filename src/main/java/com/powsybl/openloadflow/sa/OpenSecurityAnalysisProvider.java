@@ -16,6 +16,7 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -85,6 +86,11 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
     @Override
     public String getVersion() {
         return new PowsyblOpenLoadFlowVersion().toString();
+    }
+
+    @Override
+    public Optional<String> getLoadFlowProviderName() {
+        return Optional.of(OpenLoadFlowProvider.NAME);
     }
 
     @Override
