@@ -27,6 +27,7 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
         OpenSensitivityAnalysisProvider provider = new OpenSensitivityAnalysisProvider(new DenseMatrixFactory());
         assertEquals("OpenSensitivityAnalysis", provider.getName());
         assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), provider.getVersion());
+        assertEquals("OpenLoadFlow", provider.getLoadFlowProviderName().orElseThrow());
     }
 
     @Test

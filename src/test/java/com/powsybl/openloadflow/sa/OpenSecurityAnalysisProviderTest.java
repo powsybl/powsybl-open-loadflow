@@ -6,19 +6,15 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Jimfs;
 import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.security.SecurityAnalysisParameters;
-import com.powsybl.security.json.SecurityAnalysisParametersJsonModule;
+import com.powsybl.security.json.JsonSecurityAnalysisParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.FileSystem;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,12 +28,10 @@ class OpenSecurityAnalysisProviderTest extends AbstractConverterTest {
 
     private OpenSecurityAnalysisProvider provider;
 
-    private FileSystem fileSystem;
-
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws IOException {
+        super.setUp();
         provider = new OpenSecurityAnalysisProvider();
-        fileSystem = Jimfs.newFileSystem(Configuration.unix());
     }
 
     @Test
@@ -90,9 +84,6 @@ class OpenSecurityAnalysisProviderTest extends AbstractConverterTest {
         OpenSecurityAnalysisParameters parametersExt = new OpenSecurityAnalysisParameters()
                 .setCreateResultExtension(true);
         parameters.addExtension(OpenSecurityAnalysisParameters.class, parametersExt);
-        ObjectMapper objectMapper = new ObjectMapper()
-                .registerModule(new SecurityAnalysisParametersJsonModule());
-        String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(parameters);
-        compareTxt(getClass().getResourceAsStream("/sa-params.json"), json);
+        roundTripTest(parameters, JsonSecurityAnalysisParameters::write, JsonSecurityAnalysisParameters::read, "/sa-params.json");
     }
 }
