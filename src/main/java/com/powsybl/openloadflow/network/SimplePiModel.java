@@ -101,7 +101,7 @@ public class SimplePiModel implements PiModel {
 
     @Override
     public double getContinuousR1() {
-        return r1;
+        return getR1();
     }
 
     public SimplePiModel setR1(double r1) {
