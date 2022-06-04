@@ -6,24 +6,26 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.security.results.BranchResult;
-
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OlfBranchResult extends BranchResult {
+public class OlfBranchResult extends AbstractExtension<BranchResult> {
 
     private final double r1;
 
     private final double continuousR1;
 
-    public OlfBranchResult(String branchId, double p1, double q1, double i1, double p2, double q2, double i2,
-                           double flowTransfer, double r1, double continuousR1) {
-        super(branchId, p1, q1, i1, p2, q2, i2, flowTransfer);
+    public OlfBranchResult(double r1, double continuousR1) {
         this.r1 = r1;
         this.continuousR1 = continuousR1;
+    }
+
+    @Override
+    public String getName() {
+        return "OlfBranchResult";
     }
 
     public double getR1() {
@@ -32,25 +34,5 @@ public class OlfBranchResult extends BranchResult {
 
     public double getContinuousR1() {
         return continuousR1;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null) {
-            return false;
-        }
-        if (!super.equals(o)) {
-            return false;
-        }
-        OlfBranchResult that = (OlfBranchResult) o;
-        return Double.compare(that.r1, r1) == 0 && Double.compare(that.continuousR1, continuousR1) == 0;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), r1, continuousR1);
     }
 }

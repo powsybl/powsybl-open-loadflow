@@ -761,7 +761,6 @@ class OpenSecurityAnalysisTest {
     @Test
     void testSaWithTransformerRemoteSharedControl() {
         Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
-        network.getTwoWindingsTransformerStream().forEach(twt -> twt.setProperty("olf-debug", "true"));
 
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setTransformerVoltageControlOn(true);
@@ -776,16 +775,16 @@ class OpenSecurityAnalysisTest {
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
         assertEquals(-0.659, preContingencyResult.getPreContingencyBranchResult("T2wT2").getQ1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.659, preContingencyResult.getPreContingencyBranchResult("T2wT").getQ1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(1.05, ((OlfBranchResult) preContingencyResult.getPreContingencyBranchResult("T2wT2")).getR1(), 0d);
-        assertEquals(1.050302, ((OlfBranchResult) preContingencyResult.getPreContingencyBranchResult("T2wT2")).getContinuousR1(), LoadFlowAssert.DELTA_RHO);
-        assertEquals(1.05, ((OlfBranchResult) preContingencyResult.getPreContingencyBranchResult("T2wT")).getR1(), 0d);
-        assertEquals(1.050302, ((OlfBranchResult) preContingencyResult.getPreContingencyBranchResult("T2wT")).getContinuousR1(), LoadFlowAssert.DELTA_RHO);
+        assertEquals(1.05, preContingencyResult.getPreContingencyBranchResult("T2wT2").getExtension(OlfBranchResult.class).getR1(), 0d);
+        assertEquals(1.050302, preContingencyResult.getPreContingencyBranchResult("T2wT2").getExtension(OlfBranchResult.class).getContinuousR1(), LoadFlowAssert.DELTA_RHO);
+        assertEquals(1.05, preContingencyResult.getPreContingencyBranchResult("T2wT").getExtension(OlfBranchResult.class).getR1(), 0d);
+        assertEquals(1.050302, preContingencyResult.getPreContingencyBranchResult("T2wT").getExtension(OlfBranchResult.class).getContinuousR1(), LoadFlowAssert.DELTA_RHO);
 
         // post-contingency tests
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "T2wT2");
         assertEquals(-0.577, postContingencyResult.getBranchResult("T2wT").getQ1(), LoadFlowAssert.DELTA_POWER); // this assertion is not so relevant. It is more relevant to look at the logs.
-        assertEquals(1.1, ((OlfBranchResult) postContingencyResult.getBranchResult("T2wT")).getR1(), 0d);
-        assertEquals(1.088228, ((OlfBranchResult) postContingencyResult.getBranchResult("T2wT")).getContinuousR1(), LoadFlowAssert.DELTA_RHO);
+        assertEquals(1.1, postContingencyResult.getBranchResult("T2wT").getExtension(OlfBranchResult.class).getR1(), 0d);
+        assertEquals(1.088228, postContingencyResult.getBranchResult("T2wT").getExtension(OlfBranchResult.class).getContinuousR1(), LoadFlowAssert.DELTA_RHO);
     }
 
     @Test
