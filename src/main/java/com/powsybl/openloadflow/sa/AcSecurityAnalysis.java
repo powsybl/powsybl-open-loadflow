@@ -115,6 +115,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                   SecurityAnalysisParameters securityAnalysisParameters) {
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
+        boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
+
         List<BranchResult> preContingencyBranchResults = new ArrayList<>();
         List<BusResult> preContingencyBusResults = new ArrayList<>();
         List<ThreeWindingsTransformerResult> preContingencyThreeWindingsTransformerResults = new ArrayList<>();
@@ -125,9 +128,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     .run(Reporter.NO_OP);
             Map<String, BranchResult> results = new LinkedHashMap<>();
             addMonitorInfo(network, monitorIndex.getNoneStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
-                    preContingencyThreeWindingsTransformerResults, results, null, true);
+                    preContingencyThreeWindingsTransformerResults, results, null, createResultExtension);
             addMonitorInfo(network, monitorIndex.getAllStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
-                    preContingencyThreeWindingsTransformerResults, results, null, true);
+                    preContingencyThreeWindingsTransformerResults, results, null, createResultExtension);
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new LinkedHashMap<>();
 
@@ -150,7 +153,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
                                 PostContingencyResult postContingencyResult = runPostContingencySimulation(network, context, propagatedContingency.getContingency(), lfContingency,
-                                        preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters());
+                                        preContingencyLimitViolations, results, securityAnalysisParameters.getIncreasedViolationsParameters(), createResultExtension);
                                 postContingencyResults.add(postContingencyResult);
 
                                 if (contingencyIt.hasNext()) {
@@ -169,7 +172,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     private PostContingencyResult runPostContingencySimulation(LfNetwork network, AcLoadFlowContext context, Contingency contingency, LfContingency lfContingency,
                                                                Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations,
-                                                               Map<String, BranchResult> preContingencyBranchResults, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters) {
+                                                               Map<String, BranchResult> preContingencyBranchResults, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
+                                                               boolean createResultExtension) {
         LOGGER.info("Start post contingency '{}' simulation on network {}", lfContingency.getId(), network);
         LOGGER.debug("Contingency '{}' impact on network {}: remove {} buses, remove {} branches, remove {} generators, shift {} shunts, shift load of {} buses",
                 lfContingency.getId(), network, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches(), lfContingency.getLostGenerators(),
@@ -193,11 +197,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     network.getBuses().stream().filter(b -> !b.isDisabled()),
                     postContingencyLimitViolations);
 
-            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId(), true);
+            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId(), createResultExtension);
 
             StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(lfContingency.getId());
             if (stateMonitor != null) {
-                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId(), true);
+                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId(), createResultExtension);
             }
         }
 

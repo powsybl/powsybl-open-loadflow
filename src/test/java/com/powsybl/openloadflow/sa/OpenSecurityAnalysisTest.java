@@ -762,14 +762,17 @@ class OpenSecurityAnalysisTest {
     void testSaWithTransformerRemoteSharedControl() {
         Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
 
-        LoadFlowParameters lfParameters = new LoadFlowParameters()
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        saParameters.getLoadFlowParameters()
                 .setTransformerVoltageControlOn(true);
+        saParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters()
+                .setCreateResultExtension(true));
 
         List<Contingency> contingencies = allBranches(network);
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, lfParameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, saParameters);
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
