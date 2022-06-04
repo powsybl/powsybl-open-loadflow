@@ -20,7 +20,6 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisParameterJsonSerializer;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
@@ -90,7 +89,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     @Override
     public Optional<ExtensionJsonSerializer> getSpecificParametersSerializer() {
-        return Optional.of(new OpenSensitivityAnalysisParameterJsonSerializer());
+        return Optional.of(new OpenSecurityAnalysisParameterJsonSerializer());
     }
 
     @Override
