@@ -250,18 +250,18 @@ public abstract class AbstractSecurityAnalysis {
 
     protected void addMonitorInfo(LfNetwork network, StateMonitor monitor, Collection<BranchResult> branchResultConsumer,
                                   Collection<BusResult> busResultsConsumer, Collection<ThreeWindingsTransformerResult> threeWindingsTransformerResultConsumer,
-                                  Map<String, BranchResult> preContingencyBranchResults, String contingencyId) {
+                                  Map<String, BranchResult> preContingencyBranchResults, String contingencyId, boolean createResultExtension) {
         network.getBranches().stream().filter(lfBranch -> monitor.getBranchIds().contains(lfBranch.getId()))
                 .filter(lfBranch -> !lfBranch.isDisabled())
                 .forEach(lfBranch -> {
                     BranchResult branchResult;
                     if (contingencyId == null) {
-                        branchResult = lfBranch.createBranchResult(Double.NaN, Double.NaN);
+                        branchResult = lfBranch.createBranchResult(Double.NaN, Double.NaN, createResultExtension);
                         preContingencyBranchResults.put(lfBranch.getId(), branchResult);
                     } else {
                         double preContingencyP1 = preContingencyBranchResults.get(lfBranch.getId()) != null ? preContingencyBranchResults.get(lfBranch.getId()).getP1() : Double.NaN;
                         double branchInContingencyP1 = preContingencyBranchResults.get(contingencyId) != null ? preContingencyBranchResults.get(contingencyId).getP1() : Double.NaN;
-                        branchResult = lfBranch.createBranchResult(preContingencyP1, branchInContingencyP1);
+                        branchResult = lfBranch.createBranchResult(preContingencyP1, branchInContingencyP1, createResultExtension);
                     }
                     branchResultConsumer.add(branchResult);
                 });

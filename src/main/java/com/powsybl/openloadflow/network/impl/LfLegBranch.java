@@ -126,7 +126,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1) {
+    public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1, boolean createExtension) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 

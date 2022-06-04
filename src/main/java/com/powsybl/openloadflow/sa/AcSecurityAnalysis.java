@@ -125,9 +125,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     .run(Reporter.NO_OP);
             Map<String, BranchResult> results = new LinkedHashMap<>();
             addMonitorInfo(network, monitorIndex.getNoneStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
-                    preContingencyThreeWindingsTransformerResults, results, null);
+                    preContingencyThreeWindingsTransformerResults, results, null, true);
             addMonitorInfo(network, monitorIndex.getAllStateMonitor(), preContingencyBranchResults, preContingencyBusResults,
-                    preContingencyThreeWindingsTransformerResults, results, null);
+                    preContingencyThreeWindingsTransformerResults, results, null, true);
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new LinkedHashMap<>();
 
@@ -193,11 +193,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     network.getBuses().stream().filter(b -> !b.isDisabled()),
                     postContingencyLimitViolations);
 
-            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId());
+            addMonitorInfo(network, monitorIndex.getAllStateMonitor(), branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId(), true);
 
             StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(lfContingency.getId());
             if (stateMonitor != null) {
-                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId());
+                addMonitorInfo(network, stateMonitor, branchResults, busResults, threeWindingsTransformerResults, preContingencyBranchResults, lfContingency.getId(), true);
             }
         }
 
