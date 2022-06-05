@@ -110,13 +110,13 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public void setConverterStation1(LfVscConverterStation converterStation1) {
-        this.converterStation1 = converterStation1;
+        this.converterStation1 = Objects.requireNonNull(converterStation1);
         converterStation1.setTargetP(0);
     }
 
     @Override
     public void setConverterStation2(LfVscConverterStation converterStation2) {
-        this.converterStation2 = converterStation2;
+        this.converterStation2 = Objects.requireNonNull(converterStation2);
         converterStation2.setTargetP(0);
     }
 
