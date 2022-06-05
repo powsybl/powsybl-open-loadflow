@@ -25,6 +25,8 @@ public interface PiModel {
 
     double getZ();
 
+    double getY();
+
     double getKsi();
 
     double getG1();

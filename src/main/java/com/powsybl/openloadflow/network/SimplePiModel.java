@@ -50,6 +50,11 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
+    public double getY() {
+        return 1 / getZ();
+    }
+
+    @Override
     public double getKsi() {
         return FastMath.atan2(r, x);
     }
