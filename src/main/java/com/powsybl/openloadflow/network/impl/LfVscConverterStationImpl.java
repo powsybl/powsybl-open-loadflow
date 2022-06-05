@@ -15,13 +15,13 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public final class LfVscConverterStationImpl extends AbstractLfGenerator {
+public class LfVscConverterStationImpl extends AbstractLfGenerator {
 
     private final VscConverterStation station;
 
     private double lossFactor;
 
-    private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
+    public LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         super(HvdcConverterStations.getConverterStationTargetP(station));
         this.station = station;
         this.lossFactor = station.getLossFactor();
