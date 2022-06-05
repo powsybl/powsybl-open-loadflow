@@ -157,7 +157,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public void attach(EquationTerm<V, E> term) {
         Objects.requireNonNull(term);
-        term.setSv(stateVector);
+        term.setStateVector(stateVector);
     }
 
     public List<String> getRowNames(LfNetwork network) {

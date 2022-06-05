@@ -80,8 +80,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void setSv(StateVector sv) {
-            term.setSv(sv);
+        public void setStateVector(StateVector sv) {
+            term.setStateVector(sv);
         }
 
         @Override
@@ -197,7 +197,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * Set state vector to use for term evaluation.
      * @param sv the state vector
      */
-    void setSv(StateVector sv);
+    void setStateVector(StateVector sv);
 
     /**
      * Evaluate equation term.

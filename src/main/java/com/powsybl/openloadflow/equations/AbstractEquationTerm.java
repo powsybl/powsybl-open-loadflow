@@ -24,7 +24,7 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     protected EquationTerm<V, E> self = this;
 
     @Override
-    public void setSv(StateVector sv) {
+    public void setStateVector(StateVector sv) {
         this.sv = Objects.requireNonNull(sv);
     }
 
