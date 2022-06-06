@@ -44,7 +44,7 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         return ksi + a1 - A2 + ph1 - ph2;
     }
 
-    private static double q2(double y, double ksi, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+    public static double q2(double y, double ksi, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         return R2 * v2 * (-b2 * R2 * v2 - y * r1 * v1 * FastMath.cos(theta(ksi, ph1, a1, ph2)) + y * R2 * v2 * FastMath.cos(ksi));
     }
 

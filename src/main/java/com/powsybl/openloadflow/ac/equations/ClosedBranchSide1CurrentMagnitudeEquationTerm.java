@@ -65,7 +65,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         return FastMath.hypot(reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta), imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta));
     }
 
-    private static double i1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+    public static double i1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         double theta = theta(ksi, a1, ph2);
         return i1(y, ksi, g1, b1, v1, ph1, r1, v2, theta);
     }

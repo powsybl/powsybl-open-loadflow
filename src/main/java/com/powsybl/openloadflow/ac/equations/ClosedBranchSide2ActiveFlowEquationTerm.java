@@ -44,7 +44,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return ksi + a1 - A2 + ph1 - ph2;
     }
 
-    private static double p2(double y, double ksi, double g2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+    public static double p2(double y, double ksi, double g2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         return R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * FastMath.sin(theta(ksi, ph1, a1, ph2)) + y * R2 * v2 * FastMath.sin(ksi));
     }
 
