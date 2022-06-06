@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.StateVector;
@@ -19,6 +20,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -60,17 +62,33 @@ class AcEquationsTest {
     private static double[] eval(EquationTerm<AcVariableType, AcEquationType> term, List<Variable<AcVariableType>> variables,
                                  StateVector sv) {
         term.setStateVector(sv);
-        double[] values = new double[variables.size() + 1];
+        double[] values = new double[variables.size() + 2];
+
+        // equation value
         values[0] = term.eval();
+
+        // all derivative values
         for (int i = 0; i < variables.size(); i++) {
             var v = variables.get(i);
             try {
                 values[i + 1] = term.der(v);
             } catch (IllegalStateException e) {
-                // ignore because not supported
+                // not supported
                 values[i + 1] = Double.NaN;
             }
         }
+
+        // sensitivity value
+        double[] one = new double[values.length];
+        Arrays.fill(one, 1);
+        DenseMatrix dx = new DenseMatrix(values.length, 1, one);
+        try {
+            values[values.length - 1] = term.calculateSensi(dx, 0);
+        } catch (UnsupportedOperationException e) {
+            // not supported
+            values[values.length - 1] = Double.NaN;
+        }
+
         return values;
     }
 
@@ -114,31 +132,31 @@ class AcEquationsTest {
         var sv = new StateVector(new double[] {V_1, PH_1, V_2, PH_2, R_1, A_1});
 
         // closed branch equations
-        assertArrayEquals(new double[] {41.78173051479356, 48.66261692116701, 138.21343172859858, 29.31710523088579, -138.21343172859858, 54.62161149356045, 138.21343172859858},
+        assertArrayEquals(new double[] {41.78173051479356, 48.66261692116701, 138.21343172859858, 29.31710523088579, -138.21343172859858, 54.62161149356045, 138.21343172859858, 77.9797221520528},
                 eval(new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {-3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898},
+        assertArrayEquals(new double[] {-3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898, -6.480493855143919},
                 eval(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, Double.NaN, 126.09926753871542},
+        assertArrayEquals(new double[] {39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, Double.NaN, 126.09926753871542, 36.50794108255369},
                 eval(new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {-40.6365773800554, -48.52391742324069, -131.8614376204652, -27.319027760225953, 131.8614376204652, -54.4659275092331, -131.8614376204652},
+        assertArrayEquals(new double[] {-40.6365773800554, -48.52391742324069, -131.8614376204652, -27.319027760225953, 131.8614376204652, -54.4659275092331, -131.8614376204652, -75.84294518346664},
                 eval(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {16.04980301110306, -123.06939783256767, 51.99045110393844, 152.96594042215764, -51.99045110393844, -138.1398958886022, 51.99045110393844},
+        assertArrayEquals(new double[] {16.04980301110306, -123.06939783256767, 51.99045110393844, 152.96594042215764, -51.99045110393844, -138.1398958886022, 51.99045110393844, 29.89654258958997},
                 eval(new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, Double.NaN, -132.23571821183896},
+        assertArrayEquals(new double[] {40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, Double.NaN, -132.23571821183896, 38.02791573718571},
                 eval(new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
 
         // open branch equations
-        assertArrayEquals(new double[] {0.1717595025847833, Double.NaN, Double.NaN, 0.3204828812456483, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.1717595025847833, Double.NaN, Double.NaN, 0.3204828812456483, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {-0.36364935827807376, Double.NaN, Double.NaN, -0.6785266162875639, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {-0.36364935827807376, Double.NaN, Double.NaN, -0.6785266162875639, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.37520249405559764, Double.NaN, Double.NaN, 0.3500416993992393, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.37520249405559764, Double.NaN, Double.NaN, 0.3500416993992393, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.15652310047954035, Double.NaN, Double.NaN, 0.2920535601715773, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.15652310047954035, Double.NaN, Double.NaN, 0.2920535601715773, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2ActiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {-0.331495628053771, Double.NaN, Double.NaN, -0.6185315653587614, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {-0.331495628053771, Double.NaN, Double.NaN, -0.6185315653587614, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.3420075216110214, Double.NaN, Double.NaN, 0.31907275662806295, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.3420075216110214, Double.NaN, Double.NaN, 0.31907275662806295, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
 
     }
@@ -161,7 +179,7 @@ class AcEquationsTest {
 
         var sv = new StateVector(new double[] {V_1, B});
 
-        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779},
+        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, Double.NaN},
                 eval(new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, true), variables, sv));
     }
 
@@ -193,9 +211,9 @@ class AcEquationsTest {
 
         var sv = new StateVector(new double[] {PH_1, PH_2});
 
-        assertArrayEquals(new double[] {-144.1554855266458, 5906.983150087268, -5906.983150087268},
+        assertArrayEquals(new double[] {-144.1554855266458, 5906.983150087268, -5906.983150087268, Double.NaN},
                 eval(new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, bus1, bus2, variableSet), variables, sv));
-        assertArrayEquals(new double[] {144.20596034441598, -5909.051430021139, 5909.051430021139},
+        assertArrayEquals(new double[] {144.20596034441598, -5909.051430021139, 5909.051430021139, Double.NaN},
                 eval(new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, bus1, bus2, variableSet), variables, sv));
     }
 }
