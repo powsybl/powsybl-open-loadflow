@@ -46,7 +46,7 @@ class NonImpedantBranchDisablingTest {
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, parameters)) {
             var engine = new AcloadFlowEngine(context);
             engine.run();
-            assertEquals(8, context.getEquationSystem().getSortedVariablesToFind().size());
+            assertEquals(8, context.getEquationSystem().getIndex().getSortedVariablesToFind().size());
             var l1 = lfNetwork.getBranchById("L1");
             var l2 = lfNetwork.getBranchById("L2");
             assertEquals(3.01884, l1.getP1().eval(), 10e-5);
@@ -55,7 +55,7 @@ class NonImpedantBranchDisablingTest {
             lfNetwork.getBranchById("C").setDisabled(true);
 
             engine.run();
-            assertEquals(8, context.getEquationSystem().getSortedVariablesToFind().size()); // we have kept same variables!!!
+            assertEquals(8, context.getEquationSystem().getIndex().getSortedVariablesToFind().size()); // we have kept same variables!!!
             assertEquals(0, l1.getP1().eval(), 10e-5);
             assertEquals(6.07782, l2.getP1().eval(), 10e-5);
         }

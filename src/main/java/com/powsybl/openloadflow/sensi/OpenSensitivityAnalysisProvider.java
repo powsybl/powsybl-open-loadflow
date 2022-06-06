@@ -10,7 +10,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
+import com.powsybl.commons.extensions.Extension;
+import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -44,7 +47,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -82,6 +87,26 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     @Override
     public String getVersion() {
         return new PowsyblCoreVersion().getMavenProjectVersion();
+    }
+
+    @Override
+    public Optional<ExtensionJsonSerializer> getSpecificParametersSerializer() {
+        return Optional.of(new OpenSensitivityAnalysisParameterJsonSerializer());
+    }
+
+    @Override
+    public Optional<Extension<SensitivityAnalysisParameters>> loadSpecificParameters(PlatformConfig platformConfig) {
+        return Optional.of(OpenSensitivityAnalysisParameters.load(platformConfig));
+    }
+
+    @Override
+    public Optional<Extension<SensitivityAnalysisParameters>> loadSpecificParameters(Map<String, String> properties) {
+        return Optional.of(OpenSensitivityAnalysisParameters.load(properties));
+    }
+
+    @Override
+    public List<String> getSpecificParametersNames() {
+        return OpenSensitivityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES;
     }
 
     private static OpenSensitivityAnalysisParameters getSensitivityAnalysisParametersExtension(SensitivityAnalysisParameters sensitivityAnalysisParameters) {
@@ -125,7 +150,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                         "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
 
                 List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc());
 
                 LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
                 OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
@@ -135,7 +161,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
                 // debugging
                 if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
-                    Path debugDir = PlatformConfig.defaultConfig().getConfigDir().getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir());
+                    Path debugDir = PlatformConfig.defaultConfig().getConfigDir()
+                            .map(dir -> dir.getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir()))
+                            .orElseThrow(() -> new PowsyblException("Cannot write to debug directory as no configuration directory has been defined"));
                     String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
 
                     NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));

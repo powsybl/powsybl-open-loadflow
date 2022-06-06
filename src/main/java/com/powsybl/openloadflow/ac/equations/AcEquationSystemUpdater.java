@@ -113,6 +113,9 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
                 LfShunt shunt = (LfShunt) element;
                 shunt.getVoltageControl().ifPresent(voltageControl -> AcEquationSystem.updateShuntVoltageControlEquations(voltageControl, equationSystem));
                 break;
+            case HVDC:
+                // nothing to do
+                break;
             default:
                 throw new IllegalStateException("Unknown element type: " + element.getType());
         }

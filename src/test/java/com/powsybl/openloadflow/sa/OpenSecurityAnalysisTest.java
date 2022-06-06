@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -16,15 +17,20 @@ import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -42,6 +48,22 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 class OpenSecurityAnalysisTest {
+
+    private ComputationManager computationManager;
+
+    private OpenSecurityAnalysisProvider securityAnalysisProvider;
+
+    private OpenLoadFlowProvider loadFlowProvider;
+
+    @BeforeEach
+    void setUp() {
+        computationManager = Mockito.mock(ComputationManager.class);
+        Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
+        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+        loadFlowProvider = new OpenLoadFlowProvider(matrixFactory, connectivityFactory);
+    }
 
     private static Network createNodeBreakerNetwork() {
         Network network = NodeBreakerNetworkFactory.create();
@@ -82,23 +104,25 @@ class OpenSecurityAnalysisTest {
         return network;
     }
 
+    private LoadFlowResult runLoadFlow(Network network, LoadFlowParameters parameters) {
+        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters)
+                .join();
+    }
+
     /**
      * Runs a security analysis with default parameters + most meshed slack bus selection
      */
-    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                              LoadFlowParameters lfParameters) {
+    private SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
+                                                       LoadFlowParameters lfParameters) {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
         return runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
     }
 
-    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                              SecurityAnalysisParameters saParameters) {
+    private SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
+                                                       SecurityAnalysisParameters saParameters) {
         ContingenciesProvider provider = n -> contingencies;
-        var saProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
-        var computationManager = Mockito.mock(ComputationManager.class);
-        Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
-        SecurityAnalysisReport report = saProvider.run(network,
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
                 new DefaultLimitViolationDetector(),
                 new LimitViolationFilter(),
@@ -106,24 +130,25 @@ class OpenSecurityAnalysisTest {
                 saParameters,
                 provider,
                 Collections.emptyList(),
-                monitors)
+                monitors,
+                Reporter.NO_OP)
                 .join();
         return report.getResult();
     }
 
-    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors) {
+    private SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors) {
         return runSecurityAnalysis(network, contingencies, monitors, new LoadFlowParameters());
     }
 
-    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, LoadFlowParameters loadFlowParameters) {
+    private SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, LoadFlowParameters loadFlowParameters) {
         return runSecurityAnalysis(network, contingencies, Collections.emptyList(), loadFlowParameters);
     }
 
-    private static SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies) {
+    private SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies) {
         return runSecurityAnalysis(network, contingencies, Collections.emptyList());
     }
 
-    private static SecurityAnalysisResult runSecurityAnalysis(Network network) {
+    private SecurityAnalysisResult runSecurityAnalysis(Network network) {
         return runSecurityAnalysis(network, Collections.emptyList(), Collections.emptyList());
     }
 
@@ -161,7 +186,7 @@ class OpenSecurityAnalysisTest {
                 .orElseThrow();
     }
 
-    private static void assertAlmostEquals(BusResults expected, BusResults actual, double epsilon) {
+    private static void assertAlmostEquals(BusResult expected, BusResult actual, double epsilon) {
         assertEquals(expected.getVoltageLevelId(), actual.getVoltageLevelId());
         assertEquals(expected.getBusId(), actual.getBusId());
         assertEquals(expected.getV(), actual.getV(), epsilon);
@@ -458,8 +483,8 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
 
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        List<BusResults> busResults = preContingencyResult.getPreContingencyBusResults();
-        BusResults expectedBus = new BusResults("VLLOAD", "NLOAD", 147.6, -9.6);
+        List<BusResult> busResults = preContingencyResult.getPreContingencyBusResults();
+        BusResult expectedBus = new BusResult("VLLOAD", "NLOAD", 147.6, -9.6);
         assertEquals(1, busResults.size());
         assertAlmostEquals(expectedBus, busResults.get(0), 0.1);
 
@@ -504,7 +529,7 @@ class OpenSecurityAnalysisTest {
 
         assertEquals(1, result.getPreContingencyResult().getPreContingencyBusResults().size());
 
-        assertEquals(new BusResults("b1_vl", "b1", 400, 0.003581299841270782), result.getPreContingencyResult().getPreContingencyBusResults().get(0));
+        assertEquals(new BusResult("b1_vl", "b1", 400, 0.003581299841270782), result.getPreContingencyResult().getPreContingencyBusResults().get(0));
         assertEquals(1, result.getPreContingencyResult().getPreContingencyBusResults().size());
         assertEquals(new BranchResult("l24", NaN, NaN, NaN, 0.0, -0.0, 0.0),
                      result.getPreContingencyResult().getPreContingencyBranchResults().get(0));
@@ -960,6 +985,25 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
+    void testSaWithShuntContingency4() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            shuntCompensator.setSectionCount(10);
+        });
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("SHUNT4", new ShuntCompensatorContingency("SHUNT4")),
+                new Contingency("tr3", new BranchContingency("tr3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, lfParameters));
+        assertEquals("Shunt compensator 'SHUNT4' not found in the network", exception.getCause().getMessage());
+    }
+
+    @Test
     void testDcSaWithLoadContingency() {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
 
@@ -1132,14 +1176,14 @@ class OpenSecurityAnalysisTest {
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(109.999, preContingencyResult.getPreContingencyBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-39.999, preContingencyResult.getPreContingencyBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(110, preContingencyResult.getPreContingencyBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-40, preContingencyResult.getPreContingencyBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(50.0, preContingencyResult.getPreContingencyBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests
         PostContingencyResult g1ContingencyResult = getPostContingencyResult(result, "g1");
-        assertEquals(179.999, g1ContingencyResult.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(29.999, g1ContingencyResult.getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(180, g1ContingencyResult.getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(30, g1ContingencyResult.getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(50.0, g1ContingencyResult.getBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(399.855, g1ContingencyResult.getBusResult("b1").getV(), LoadFlowAssert.DELTA_V);
         assertEquals(400, g1ContingencyResult.getBusResult("b2").getV(), LoadFlowAssert.DELTA_V);
@@ -1308,7 +1352,6 @@ class OpenSecurityAnalysisTest {
         contingencies.add(Contingency.line("l12"));
         contingencies.add(Contingency.line("l46"));
         contingencies.add(Contingency.generator("g1"));
-        // FIXME: note that the HVDC line contingency is not supported yet.
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1320,6 +1363,87 @@ class OpenSecurityAnalysisTest {
         // post-contingency tests
         PostContingencyResult g1ContingencyResult = getPostContingencyResult(result, "g1");
         assertEquals(-0.696, g1ContingencyResult.getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        List<Contingency> contingencies2 = new ArrayList<>();
+        contingencies2.add(Contingency.hvdcLine("hvdc34"));
+        contingencies2.add(Contingency.generator("g1"));
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies2, monitors, parameters);
+
+        // post-contingency tests
+        PostContingencyResult hvdcContingencyResult = getPostContingencyResult(result2, "hvdc34");
+        assertEquals(-0.99999, hvdcContingencyResult.getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        PostContingencyResult g1ContingencyResult2 = getPostContingencyResult(result, "g1");
+        assertEquals(-0.696, g1ContingencyResult2.getBranchResult("l25").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcLcc() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setSlackBusPMaxMismatch(0.0001);
+        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        network.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
+        network.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
+        runLoadFlow(network, parameters);
+
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(1.360, preContingencyResult.getPreContingencyBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.360, preContingencyResult.getPreContingencyBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.596, preContingencyResult.getPreContingencyBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "hvdc34");
+        assertEquals(network.getLine("l12").getTerminal1().getP(), postContingencyResult.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l12").getTerminal1().getQ(), postContingencyResult.getBranchResult("l12").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l13").getTerminal1().getP(), postContingencyResult.getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l13").getTerminal1().getQ(), postContingencyResult.getBranchResult("l13").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), postContingencyResult.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getQ(), postContingencyResult.getBranchResult("l23").getQ1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnHvdcVsc() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setSlackBusPMaxMismatch(0.0001);
+        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        network.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
+        network.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
+        runLoadFlow(network, parameters);
+
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(1.25, preContingencyResult.getPreContingencyBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.228, preContingencyResult.getPreContingencyBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.727, preContingencyResult.getPreContingencyBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "hvdc34");
+        assertEquals(network.getLine("l12").getTerminal1().getP(), postContingencyResult.getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l12").getTerminal1().getQ(), postContingencyResult.getBranchResult("l12").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l13").getTerminal1().getP(), postContingencyResult.getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l13").getTerminal1().getQ(), postContingencyResult.getBranchResult("l13").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), postContingencyResult.getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getQ(), postContingencyResult.getBranchResult("l23").getQ1(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

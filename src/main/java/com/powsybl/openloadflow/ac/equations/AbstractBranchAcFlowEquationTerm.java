@@ -32,7 +32,7 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractBranchEquationTe
         b2 = piModel.getB2();
         g1 = piModel.getG1();
         g2 = piModel.getG2();
-        y = 1 / piModel.getZ();
+        y = piModel.getY();
         ksi = piModel.getKsi();
     }
 }

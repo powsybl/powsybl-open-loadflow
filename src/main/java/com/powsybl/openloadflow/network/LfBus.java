@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.Evaluable;
-import com.powsybl.security.results.BusResults;
+import com.powsybl.security.results.BusResult;
 
 import java.util.List;
 import java.util.Map;
@@ -151,7 +151,7 @@ public interface LfBus extends LfElement {
         return false;
     }
 
-    BusResults createBusResult();
+    BusResult createBusResult();
 
     /**
      * Find bus + parallel branches neighbors.

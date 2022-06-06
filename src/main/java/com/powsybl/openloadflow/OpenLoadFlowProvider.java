@@ -144,7 +144,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                             status,
                                                                             result.getNewtonRaphsonIterations(),
                                                                             result.getNetwork().getSlackBus().getId(),
-                                                                            result.getSlackBusActivePowerMismatch() * PerUnit.SB));
+                                                                            result.getSlackBusActivePowerMismatch() * PerUnit.SB,
+                                                                            Double.NaN));
         }
 
         // zero or low impedance branch flows computation
@@ -197,7 +198,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 pResult.getStatus(),
                 0,
                 pResult.getNetwork().getSlackBus().getId(),
-                pResult.getSlackBusActivePowerMismatch() * PerUnit.SB);
+                pResult.getSlackBusActivePowerMismatch() * PerUnit.SB,
+                Double.NaN);
     }
 
     @Override
@@ -252,5 +254,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     @Override
     public List<String> getSpecificParametersNames() {
         return OpenLoadFlowParameters.SPECIFIC_PARAMETERS_NAMES;
+    }
+
+    @Override
+    public void updateSpecificParameters(Extension<LoadFlowParameters> extension, Map<String, String> properties) {
+        ((OpenLoadFlowParameters) extension).update(properties);
     }
 }

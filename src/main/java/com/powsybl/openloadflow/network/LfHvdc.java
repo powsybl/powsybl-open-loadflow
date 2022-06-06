@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import com.powsybl.openloadflow.util.Evaluable;
 
 /**
@@ -30,13 +29,13 @@ public interface LfHvdc extends LfElement {
 
     double getP0();
 
-    LfVscConverterStationImpl getConverterStation1();
+    LfVscConverterStation getConverterStation1();
 
-    LfVscConverterStationImpl getConverterStation2();
+    LfVscConverterStation getConverterStation2();
 
-    void setConverterStation1(LfVscConverterStationImpl converterStation1);
+    void setConverterStation1(LfVscConverterStation converterStation1);
 
-    void setConverterStation2(LfVscConverterStationImpl converterStation2);
+    void setConverterStation2(LfVscConverterStation converterStation2);
 
     void updateState();
 }
