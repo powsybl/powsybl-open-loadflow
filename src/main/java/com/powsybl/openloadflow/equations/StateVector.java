@@ -19,6 +19,14 @@ public class StateVector {
 
     private final List<StateVectorListener> listeners = new ArrayList<>();
 
+    public StateVector() {
+        this(null);
+    }
+
+    public StateVector(double[] array) {
+        this.array = array;
+    }
+
     public void set(double[] array) {
         this.array = Objects.requireNonNull(array);
         notifyStateUpdate();

@@ -478,6 +478,26 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(0.035205d,  result.getBusVoltageSensitivityValue("T2wT", "BUS_2"), LoadFlowAssert.DELTA_V);
         assertEquals(1d,  result.getBusVoltageSensitivityValue("T2wT", "BUS_3"), LoadFlowAssert.DELTA_V);
         assertEquals(1.055117d,  result.getBusVoltageSensitivityValue("T2wT", "BUS_4"), LoadFlowAssert.DELTA_V);
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(3)
+                .setRegulationTerminal(t2wt.getTerminal1()) // control will be disabled.
+                .setTargetV(135.0);
+
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(4, result2.getValues().size());
+        assertEquals(0d, result2.getBusVoltageSensitivityValue("T2wT", "BUS_1"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d,  result2.getBusVoltageSensitivityValue("T2wT", "BUS_2"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d,  result2.getBusVoltageSensitivityValue("T2wT", "BUS_3"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d,  result2.getBusVoltageSensitivityValue("T2wT", "BUS_4"), LoadFlowAssert.DELTA_V);
+
+        assertEquals(135.0, result2.getBusVoltageFunctionReferenceValue("BUS_1"), LoadFlowAssert.DELTA_V);
+        assertEquals(133.77,  result2.getBusVoltageFunctionReferenceValue("BUS_2"), LoadFlowAssert.DELTA_V);
+        assertEquals(25.88,  result2.getBusVoltageFunctionReferenceValue("BUS_3"), LoadFlowAssert.DELTA_V);
+        assertEquals(25.16,  result2.getBusVoltageFunctionReferenceValue("BUS_4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test

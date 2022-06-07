@@ -14,10 +14,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -32,30 +29,33 @@ public class LfContingency {
 
     private final Set<LfBranch> disabledBranches;
 
+    private final Set<LfHvdc> disabledHvdcs;
+
     private final Map<LfShunt, Double> shuntsShift;
 
     private final Map<LfBus, PowerShift> busesLoadShift;
 
-    private final Set<LfGenerator> generators;
+    private final Set<LfGenerator> lostGenerators;
 
     private double activePowerLoss = 0;
 
     public LfContingency(String id, int index, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Map<LfShunt, Double> shuntsShift,
-                         Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> generators) {
+                         Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> lostGenerators, Set<LfHvdc> disabledHvdcs) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
         this.disabledBuses = Objects.requireNonNull(disabledBuses);
         this.disabledBranches = Objects.requireNonNull(disabledBranches);
+        this.disabledHvdcs = Objects.requireNonNull(disabledHvdcs);
         this.shuntsShift = Objects.requireNonNull(shuntsShift);
         this.busesLoadShift = Objects.requireNonNull(busesLoadShift);
-        this.generators = Objects.requireNonNull(generators);
+        this.lostGenerators = Objects.requireNonNull(lostGenerators);
         for (LfBus bus : disabledBuses) {
             activePowerLoss += bus.getGenerationTargetP() - bus.getLoadTargetP();
         }
         for (Map.Entry<LfBus, PowerShift> e : busesLoadShift.entrySet()) {
             activePowerLoss -= e.getValue().getActive();
         }
-        for (LfGenerator generator : generators) {
+        for (LfGenerator generator : lostGenerators) {
             activePowerLoss += generator.getTargetP();
         }
     }
@@ -84,17 +84,20 @@ public class LfContingency {
         return busesLoadShift;
     }
 
-    public Set<LfGenerator> getGenerators() {
-        return generators;
+    public Set<LfGenerator> getLostGenerators() {
+        return lostGenerators;
     }
 
     public double getActivePowerLoss() {
         return activePowerLoss;
     }
 
-    public void apply(LoadFlowParameters parameters) {
+    public void apply(LoadFlowParameters.BalanceType balanceType) {
         for (LfBranch branch : disabledBranches) {
             branch.setDisabled(true);
+        }
+        for (LfHvdc hvdc : disabledHvdcs) {
+            hvdc.setDisabled(true);
         }
         for (LfBus bus : disabledBuses) {
             bus.setDisabled(true);
@@ -106,12 +109,12 @@ public class LfContingency {
         for (var e : busesLoadShift.entrySet()) {
             LfBus bus = e.getKey();
             PowerShift shift = e.getValue();
-            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, parameters.getBalanceType(), shift.getActive(), shift.getVariableActive()));
+            bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, balanceType, shift.getActive(), shift.getVariableActive()));
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
             bus.getLoads().setAbsVariableLoadTargetP(bus.getLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
         }
         Set<LfBus> generatorBuses = new HashSet<>();
-        for (LfGenerator generator : generators) {
+        for (LfGenerator generator : lostGenerators) {
             generator.setTargetP(0);
             LfBus bus = generator.getBus();
             generatorBuses.add(bus);
@@ -131,12 +134,31 @@ public class LfContingency {
 
     public static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
         double factor = 0.0;
-        if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-            factor = Math.abs(initialP0) / (bus.getLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
-        } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-            factor = initialVariableActivePower / (bus.getLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+        if (bus.getLoads().getLoadCount() > 0) {
+            if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
+                factor = Math.abs(initialP0) / (bus.getLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+            } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
+                factor = initialVariableActivePower / (bus.getLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+            }
         }
         return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;
+    }
+
+    public Set<LfBus> getLoadAndGeneratorBuses() {
+        Set<LfBus> buses = new HashSet<>();
+        for (var e : busesLoadShift.entrySet()) {
+            LfBus bus = e.getKey();
+            if (bus != null) {
+                buses.add(bus);
+            }
+        }
+        for (LfGenerator generator : lostGenerators) {
+            LfBus bus = generator.getBus();
+            if (bus != null) {
+                buses.add(bus);
+            }
+        }
+        return buses;
     }
 
     public void writeJson(Writer writer) {
