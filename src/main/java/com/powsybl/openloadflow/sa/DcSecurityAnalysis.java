@@ -63,6 +63,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         StateMonitor monitor = monitorIndex.getAllStateMonitor();
         Map<String, BranchResult> preContingencyBranchResults = new HashMap<>();
 
+        // CosPhi for DC power to current conversion
+        double cosPhi = Math.cos(Math.atan(0.4));
+
         Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolationsMap = new HashMap<>();
         for (SensitivityValue sensValue : res.getValues(null)) {
             SensitivityFactor factor = factors.get(sensValue.getFactorIndex());
@@ -71,7 +74,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             preContingencyBranchResults.put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN));
             detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()),
                 violation -> preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-            checkDcCurrent(branch, Math.abs(sensValue.getFunctionReference()), preContingencyLimitViolationsMap);
+            detector.checkCurrent(branch, Branch.Side.ONE, currentFromAdnActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal1().getVoltageLevel().getNominalV(), cosPhi),
+                violation -> preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+            detector.checkCurrent(branch, Branch.Side.TWO, currentFromAdnActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal2().getVoltageLevel().getNominalV(), cosPhi),
+                violation -> preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
         }
 
         LimitViolationsResult preContingencyResult = new LimitViolationsResult(true,
@@ -99,7 +105,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 }
                 detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()),
                     violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                checkDcCurrent(branch, Math.abs(v.getFunctionReference()), violations);
+                detector.checkCurrent(branch, Branch.Side.ONE, currentFromAdnActivePower(Math.abs(v.getFunctionReference()), branch.getTerminal1().getVoltageLevel().getNominalV(), cosPhi),
+                    violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                detector.checkCurrent(branch, Branch.Side.TWO, currentFromAdnActivePower(Math.abs(v.getFunctionReference()), branch.getTerminal2().getVoltageLevel().getNominalV(), cosPhi),
+                    violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
             }
             preContingencyLimitViolationsMap.forEach((subjectSideId, preContingencyViolation) -> {
                 LimitViolation postContingencyViolation = violations.get(subjectSideId);
@@ -111,34 +120,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         }
 
         return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, new ArrayList<>(preContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList()));
-    }
-
-    private void checkDcCurrent(Branch<?> branch, double activePower, Map<Pair<String, Branch.Side>, LimitViolation>  preContingencyLimitViolationsMap) {
-        // TODO: get cosphi from parameters
-        double cosPhi = Math.cos(Math.atan(0.4));
-        // Permanent limits
-        // Check side 1
-        try {
-            double permanentLimit1 = branch.getCurrentLimits1().getPermanentLimit();
-            double branchCurrent1 = currentFromAdnActivePower(activePower, branch.getTerminal1().getVoltageLevel().getNominalV(), cosPhi);
-            if (branchCurrent1 > permanentLimit1) {
-                LimitViolation violation = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, "Current_Permanent_Limit_Violation_1_" + branch.getId(), 2147483647, permanentLimit1, 1, branchCurrent1, Branch.Side.ONE);
-                preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation);
-            }
-        } catch (NullPointerException ignored) {
-        }
-
-        // Check side 2
-        try {
-            double permanentLimit2 = branch.getCurrentLimits2().getPermanentLimit();
-            double branchCurrent2 = currentFromAdnActivePower(activePower, branch.getTerminal2().getVoltageLevel().getNominalV(), cosPhi);
-            if (branchCurrent2 > permanentLimit2) {
-                LimitViolation violation = new LimitViolation(branch.getId(), LimitViolationType.CURRENT, "Current_Permanent_Limit_Violation_2_" + branch.getId(), 2147483647, permanentLimit2, 1, branchCurrent2, Branch.Side.TWO);
-                preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation);
-            }
-        } catch (NullPointerException ignored) {
-        }
-        // TODO: temporary limits
     }
 
     public static double currentFromAdnActivePower(double activePower, double dcVoltage, double cosPhi) {

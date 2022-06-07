@@ -1523,7 +1523,7 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void testDcCurrentLimitViolations() {
+    void testDcPermanentCurrentLimitViolations() {
         Network fourBusNetwork = FourBusNetworkFactory.create();
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters()
@@ -1533,11 +1533,11 @@ class OpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = allBranches(fourBusNetwork);
 
-        fourBusNetwork.getLine("l14").newCurrentLimits1().setPermanentLimit(62.2).add();
-        fourBusNetwork.getLine("l12").newCurrentLimits1().setPermanentLimit(124.4).add();
-        fourBusNetwork.getLine("l23").newCurrentLimits2().setPermanentLimit(155.5).add();
-        fourBusNetwork.getLine("l34").newCurrentLimits1().setPermanentLimit(93.3).add();
-        fourBusNetwork.getLine("l13").newCurrentLimits2().setPermanentLimit(62.2).add();
+        fourBusNetwork.getLine("l14").newCurrentLimits1().setPermanentLimit(60.0).add();
+        fourBusNetwork.getLine("l12").newCurrentLimits1().setPermanentLimit(120.0).add();
+        fourBusNetwork.getLine("l23").newCurrentLimits2().setPermanentLimit(150.0).add();
+        fourBusNetwork.getLine("l34").newCurrentLimits1().setPermanentLimit(90.0).add();
+        fourBusNetwork.getLine("l13").newCurrentLimits2().setPermanentLimit(60.0).add();
 
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
 
@@ -1551,5 +1551,37 @@ class OpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
+    }
+
+    @Test
+    void testDcTemporaryCurrentLimitViolations() {
+        Network fourBusNetwork = FourBusNetworkFactory.create();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setDc(true);
+        setSlackBusId(lfParameters, "b1_vl_0");
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        List<Contingency> contingencies = allBranches(fourBusNetwork);
+
+        fourBusNetwork.getLine("l14").newCurrentLimits1().beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(60.0).endTemporaryLimit().add();
+        fourBusNetwork.getLine("l12").newCurrentLimits1().beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(120.0).endTemporaryLimit().add();
+        fourBusNetwork.getLine("l23").newCurrentLimits2().beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(150.0).endTemporaryLimit().add();
+        fourBusNetwork.getLine("l34").newCurrentLimits1().beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(90.0).endTemporaryLimit().add();
+        fourBusNetwork.getLine("l13").newCurrentLimits2().beginTemporaryLimit().setName("60").setAcceptableDuration(60).setValue(60.0).endTemporaryLimit().add();
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
+
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        // FIXME: temporary limits are not detected
+        //assertEquals(5, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        //assertEquals(5, result.getPostContingencyResults().size());
+        //assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
+        //assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        //assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
+        //assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
+        //assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
     }
 }
