@@ -19,6 +19,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
+@SuppressWarnings("squid:S00107")
 public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
 
     private final Variable<AcVariableType> v2Var;

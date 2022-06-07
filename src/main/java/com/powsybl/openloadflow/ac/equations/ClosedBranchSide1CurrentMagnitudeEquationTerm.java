@@ -20,6 +20,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
+@SuppressWarnings("squid:S00107")
 public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,

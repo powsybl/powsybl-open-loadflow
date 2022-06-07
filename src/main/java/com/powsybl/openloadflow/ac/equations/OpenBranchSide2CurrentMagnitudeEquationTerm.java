@@ -17,6 +17,7 @@ import java.util.Objects;
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
+@SuppressWarnings("squid:S00107")
 public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSide2BranchAcFlowEquationTerm {
 
     private final Variable<AcVariableType> v1Var;
