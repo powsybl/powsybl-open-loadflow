@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -159,6 +160,28 @@ class AcEquationsTest {
         assertArrayEquals(new double[] {0.3420075216110214, Double.NaN, Double.NaN, 0.31907275662806295, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
 
+        // assert current equation is consistent with active and reactive power ones
+        var p1Eq = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true);
+        p1Eq.setStateVector(sv);
+        double p1 = p1Eq.eval();
+        var q1Eq = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true);
+        q1Eq.setStateVector(sv);
+        double q1 = q1Eq.eval();
+        var i1Eq = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true);
+        i1Eq.setStateVector(sv);
+        double i1 = i1Eq.eval();
+        assertEquals(i1, Math.hypot(p1, q1) / V_1, 10e-14);
+
+        var p2Eq = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true);
+        p2Eq.setStateVector(sv);
+        double p2 = p2Eq.eval();
+        var q2Eq = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true);
+        q2Eq.setStateVector(sv);
+        double q2 = q2Eq.eval();
+        var i2Eq = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true);
+        i2Eq.setStateVector(sv);
+        double i2 = i2Eq.eval();
+        assertEquals(i2, Math.hypot(p2, q2) / V_2, 10e-14);
     }
 
     @Test
