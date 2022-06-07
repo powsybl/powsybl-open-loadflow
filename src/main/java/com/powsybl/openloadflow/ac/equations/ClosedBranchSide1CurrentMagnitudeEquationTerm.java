@@ -53,7 +53,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     private double i1() {
-        return FastMath.hypot(reI1(), imI1());
+        return FastMath.hypot(reI1(), imI1()) / FastMath.sqrt(3);
     }
 
     private double dreI1dv1() {

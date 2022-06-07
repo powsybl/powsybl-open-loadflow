@@ -66,7 +66,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double i2() {
-        return FastMath.hypot(reI2(), imI2());
+        return FastMath.hypot(reI2(), imI2()) / FastMath.sqrt(3);
     }
 
     private double dreI2dv1() {
