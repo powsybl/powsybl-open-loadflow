@@ -1045,4 +1045,26 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(602.302, network.getTwoWindingsTransformer("NHV2_NLOAD").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-601.430, network.getTwoWindingsTransformer("NHV2_NLOAD").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testWithPvPqSwitch() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", false);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        // this network has no G or B, so we should be very close to DC results
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        network.getLoad("d2").setQ0(0.4);
+        network.getLoad("d3").setQ0(1.6);
+        network.getGenerator("g4").newMinMaxReactiveLimits().setMinQ(-0.5).setMaxQ(0.5).add();
+
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b3", "g4"));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(1, result.getValues().size());
+
+        assertEquals(0.0, result.getBusVoltageSensitivityValue("g4", "b3"));
+    }
 }
