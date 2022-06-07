@@ -994,4 +994,27 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l25"), result.getBranchFlow1FunctionReferenceValue("hvdc34", "l25"), LoadFlowAssert.DELTA_POWER);
         assertEquals(result2.getBranchFlow1FunctionReferenceValue(null, "l56"), result.getBranchFlow1FunctionReferenceValue("hvdc34", "l56"), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testVoltageSensitivityConnectivityLoss() {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorOnOneSide();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<Contingency> contingencies = List.of(new Contingency("l34", new BranchContingency("l34")), new Contingency("l13+l23", new BranchContingency("l13"), new BranchContingency("l23")));
+
+        List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b4", "g3", "l34"), createBusVoltagePerTargetV("b1", "g3", "l13+l23"), createBusVoltagePerTargetV("b4", "g3", "l13+l23"));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(3, result.getValues().size());
+
+        assertEquals(0.0, result.getBusVoltageSensitivityValue("l34", "g3", "b4"));
+        assertEquals(Double.NaN, result.getBusVoltageFunctionReferenceValue("l34", "b4"));
+        assertEquals(0.0, result.getBusVoltageSensitivityValue("l13+l23", "g3", "b1"));
+        assertEquals(0.9798, result.getBusVoltageFunctionReferenceValue("l13+l23", "b1"), LoadFlowAssert.DELTA_V);
+        assertEquals(Double.NaN, result.getBusVoltageSensitivityValue("l13+l23", "g3", "b4"));
+        assertEquals(Double.NaN, result.getBusVoltageFunctionReferenceValue("l13+l23", "b4"));
+    }
 }
