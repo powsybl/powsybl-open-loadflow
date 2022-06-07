@@ -1533,11 +1533,11 @@ class OpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = allBranches(fourBusNetwork);
 
-        fourBusNetwork.getLine("l14").newCurrentLimits1().setPermanentLimit(0.1).add();
-        fourBusNetwork.getLine("l12").newCurrentLimits1().setPermanentLimit(0.2).add();
-        fourBusNetwork.getLine("l23").newCurrentLimits2().setPermanentLimit(0.25).add();
-        fourBusNetwork.getLine("l34").newCurrentLimits1().setPermanentLimit(0.15).add();
-        fourBusNetwork.getLine("l13").newCurrentLimits2().setPermanentLimit(0.1).add();
+        fourBusNetwork.getLine("l14").newCurrentLimits1().setPermanentLimit(62.2).add();
+        fourBusNetwork.getLine("l12").newCurrentLimits1().setPermanentLimit(124.4).add();
+        fourBusNetwork.getLine("l23").newCurrentLimits2().setPermanentLimit(155.5).add();
+        fourBusNetwork.getLine("l34").newCurrentLimits1().setPermanentLimit(93.3).add();
+        fourBusNetwork.getLine("l13").newCurrentLimits2().setPermanentLimit(62.2).add();
 
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
 
@@ -1552,5 +1552,4 @@ class OpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
     }
-
 }
