@@ -1065,6 +1065,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(1, result.getValues().size());
 
-        assertEquals(0.0, result.getBusVoltageSensitivityValue("g4", "b3")); // FIX ME: do we want 0 or NaN here ?
+        assertEquals(0.0, result.getBusVoltageSensitivityValue("g4", "b3"));
     }
 }
