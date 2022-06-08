@@ -109,6 +109,7 @@ public class AcloadFlowEngine {
 
         // run initial Newton-Raphson
         runningContext.lastNrResult = newtonRaphson.run(voltageInitializer, reporter);
+        double initialSlackBusActivePowerMismatch = runningContext.lastNrResult.getSlackBusActivePowerMismatch();
 
         // continue with outer loops only if initial Newton-Raphson succeed
         if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
@@ -141,8 +142,12 @@ public class AcloadFlowEngine {
         int nrIterations = runningContext.lastNrResult.getIteration();
         int outerLoopIterations = runningContext.outerLoopIterationByType.values().stream().mapToInt(MutableInt::getValue).sum() + 1;
 
-        AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(), outerLoopIterations, nrIterations, runningContext.lastNrResult.getStatus(),
-                runningContext.lastNrResult.getSlackBusActivePowerMismatch());
+        AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
+                                                       outerLoopIterations,
+                                                       nrIterations,
+                                                       runningContext.lastNrResult.getStatus(),
+                                                       runningContext.lastNrResult.getSlackBusActivePowerMismatch(),
+                                                       initialSlackBusActivePowerMismatch - runningContext.lastNrResult.getSlackBusActivePowerMismatch());
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
@@ -159,7 +164,7 @@ public class AcloadFlowEngine {
                                     .run(reporter);
                         }
                     }
-                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN);
+                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, 0);
                 })
                 .collect(Collectors.toList());
     }
