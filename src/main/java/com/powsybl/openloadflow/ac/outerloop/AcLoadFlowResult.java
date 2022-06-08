@@ -27,13 +27,16 @@ public class AcLoadFlowResult {
 
     private final double slackBusActivePowerMismatch;
 
+    private final double distributedActivePower;
+
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int newtonRaphsonIterations, NewtonRaphsonStatus newtonRaphsonStatus,
-                            double slackBusActivePowerMismatch) {
+                            double slackBusActivePowerMismatch, double distributedActivePower) {
         this.network = Objects.requireNonNull(network);
         this.outerLoopIterations = outerLoopIterations;
         this.newtonRaphsonIterations = newtonRaphsonIterations;
         this.newtonRaphsonStatus = newtonRaphsonStatus;
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
+        this.distributedActivePower = distributedActivePower;
     }
 
     public LfNetwork getNetwork() {
@@ -56,12 +59,17 @@ public class AcLoadFlowResult {
         return slackBusActivePowerMismatch;
     }
 
+    public double getDistributedActivePower() {
+        return distributedActivePower;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
                 + ", newtonRaphsonIterations=" + newtonRaphsonIterations
                 + ", newtonRaphsonStatus=" + newtonRaphsonStatus
                 + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
+                + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
                 + ")";
     }
 }
