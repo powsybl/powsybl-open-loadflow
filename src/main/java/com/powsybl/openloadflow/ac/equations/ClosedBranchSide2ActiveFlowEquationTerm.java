@@ -20,6 +20,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
+@SuppressWarnings("squid:S00107")
 public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
@@ -27,62 +28,71 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
     }
 
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
-        return dp2dph1() * dph1 + dp2dph2() * dph2 + dp2dv1() * dv1 + dp2dv2() * dv2;
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        double v1 = v1();
+        double ph1 = ph1();
+        double r1 = r1();
+        double a1 = a1();
+        double v2 = v2();
+        double ph2 = ph2();
+        return dp2dph1(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph1
+                + dp2dph2(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph2
+                + dp2dv1(y, ksi, ph1, r1, a1, v2, ph2) * dv1
+                + dp2dv2(y, ksi, g2, v1, ph1, r1, a1, v2, ph2) * dv2;
     }
 
-    private double theta() {
-        return ksi + a1() - A2 + ph1() - ph2();
+    private static double theta(double ksi, double ph1, double a1, double ph2) {
+        return ksi + a1 - A2 + ph1 - ph2;
     }
 
-    private double p2() {
-        return R2 * v2() * (g2 * R2 * v2() - y * r1() * v1() * FastMath.sin(theta()) + y * R2 * v2() * FastMath.sin(ksi));
+    public static double p2(double y, double ksi, double g2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * FastMath.sin(theta(ksi, ph1, a1, ph2)) + y * R2 * v2 * FastMath.sin(ksi));
     }
 
-    private double dp2dv1() {
-        return -y * r1() * R2 * v2() * FastMath.sin(theta());
+    private static double dp2dv1(double y, double ksi, double ph1, double r1, double a1, double v2, double ph2) {
+        return -y * r1 * R2 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2));
     }
 
-    private double dp2dv2() {
-        return R2 * (2 * g2 * R2 * v2() - y * r1() * v1() * FastMath.sin(theta()) + 2 * y * R2 * v2() * FastMath.sin(ksi));
+    private static double dp2dv2(double y, double ksi, double g2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return R2 * (2 * g2 * R2 * v2 - y * r1 * v1 * FastMath.sin(theta(ksi, ph1, a1, ph2)) + 2 * y * R2 * v2 * FastMath.sin(ksi));
     }
 
-    private double dp2dph1() {
-        return -y * r1() * R2 * v1() * v2() * FastMath.cos(theta());
+    private static double dp2dph1(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return -y * r1 * R2 * v1 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2));
     }
 
-    private double dp2dph2() {
-        return -dp2dph1();
+    private static double dp2dph2(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return -dp2dph1(y, ksi, v1, ph1, r1, a1, v2, ph2);
     }
 
-    private double dp2da1() {
-        return dp2dph1();
+    private static double dp2da1(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return dp2dph1(y, ksi, v1, ph1, r1, a1, v2, ph2);
     }
 
-    private double dp2dr1() {
-        return -y * R2 * v1() * v2() * FastMath.sin(theta());
+    private static double dp2dr1(double y, double ksi, double v1, double ph1, double a1, double v2, double ph2) {
+        return -y * R2 * v1 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2));
     }
 
     @Override
     public double eval() {
-        return p2();
+        return p2(y, ksi, g2, v1(), ph1(), r1(), a1(), v2(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp2dv1();
+            return dp2dv1(y, ksi, ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(v2Var)) {
-            return dp2dv2();
+            return dp2dv2(y, ksi, g2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(ph1Var)) {
-            return dp2dph1();
+            return dp2dph1(y, ksi, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(ph2Var)) {
-            return dp2dph2();
+            return dp2dph2(y, ksi, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(a1Var)) {
-            return dp2da1();
+            return dp2da1(y, ksi, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(r1Var)) {
-            return dp2dr1();
+            return dp2dr1(y, ksi, v1(), ph1(), a1(), v2(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

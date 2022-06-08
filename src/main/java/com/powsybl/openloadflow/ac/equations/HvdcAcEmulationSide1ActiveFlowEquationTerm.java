@@ -22,34 +22,34 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
         super(hvdc, bus1, bus2, variableSet);
     }
 
-    private double p1() {
-        return  (isController() ? 1 :  getLossMultiplier()) * (p0 + k * (ph1() - ph2()));
+    private static double p1(double p0, double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
+        return (isController(ph1, ph2) ? 1 :  getLossMultiplier(lossFactor1, lossFactor2)) * (p0 + k * (ph1 - ph2));
     }
 
-    private boolean isController() {
-        return (ph1() - ph2()) >= 0;
+    private static boolean isController(double ph1, double ph2) {
+        return (ph1 - ph2) >= 0;
     }
 
-    private double dp1dph1() {
-        return (isController() ? 1 :  getLossMultiplier()) * k;
+    private static double dp1dph1(double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
+        return (isController(ph1, ph2) ? 1 :  getLossMultiplier(lossFactor1, lossFactor2)) * k;
     }
 
-    private double dp1dph2() {
-        return -dp1dph1();
+    private static double dp1dph2(double k, double lossFactor1, double lossFactor2, double ph1, double ph2) {
+        return -dp1dph1(k, lossFactor1, lossFactor2, ph1, ph2);
     }
 
     @Override
     public double eval() {
-        return p1();
+        return p1(p0, k, lossFactor1, lossFactor2, ph1(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
-            return dp1dph1();
+            return dp1dph1(k, lossFactor1, lossFactor2, ph1(), ph2());
         } else if (variable.equals(ph2Var)) {
-            return dp1dph2();
+            return dp1dph2(k, lossFactor1, lossFactor2, ph1(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

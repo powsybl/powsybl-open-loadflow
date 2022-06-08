@@ -19,6 +19,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
+@SuppressWarnings("squid:S00107")
 public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
 
     private final Variable<AcVariableType> v2Var;
@@ -33,59 +34,60 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double v2() {
-        return stateVector.get(v2Var.getRow());
+        return sv.get(v2Var.getRow());
     }
 
     private double ph2() {
-        return stateVector.get(ph2Var.getRow());
+        return sv.get(ph2Var.getRow());
     }
 
-    private double gres(double shunt) {
+    private static double gres(double y, double ksi, double g1, double b1, double g2, double shunt) {
         return g2 + (y * y * g1 + (b1 * b1 + g1 * g1) * y * FastMath.sin(ksi)) / shunt;
     }
 
-    private double bres(double shunt) {
+    private static double bres(double y, double ksi, double g1, double b1, double b2, double shunt) {
         return b2 + (y * y * b1 - (b1 * b1 + g1 * g1) * y * FastMath.cos(ksi)) / shunt;
     }
 
-    private double reI2() {
-        double shunt = shunt();
-        return R2 * R2 * v2() * (gres(shunt) * FastMath.cos(ph2()) - bres(shunt) * FastMath.sin(ph2()));
+    private static double reI2(double y, double ksi, double g1, double b1, double g2, double b2, double v2, double ph2) {
+        double shunt = shunt(y, ksi, g1, b1);
+        return R2 * R2 * v2 * (gres(y, ksi, g1, b1, g2, shunt) * FastMath.cos(ph2) - bres(y, ksi, g1, b1, b2, shunt) * FastMath.sin(ph2));
     }
 
-    private double imI2() {
-        double shunt = shunt();
-        return R2 * R2 * v2() * (gres(shunt) * FastMath.sin(ph2()) + bres(shunt) * FastMath.cos(ph2()));
+    private static double imI2(double y, double ksi, double g1, double b1, double g2, double b2, double v2, double ph2) {
+        double shunt = shunt(y, ksi, g1, b1);
+        return R2 * R2 * v2 * (gres(y, ksi, g1, b1, g2, shunt) * FastMath.sin(ph2) + bres(y, ksi, g1, b1, b2, shunt) * FastMath.cos(ph2));
     }
 
-    private double i2() {
-        return FastMath.hypot(reI2(), imI2());
+    private static double i2(double y, double ksi, double g1, double b1, double g2, double b2, double v2, double ph2) {
+        return FastMath.hypot(reI2(y, ksi, g1, b1, g2, b2, v2, ph2), imI2(y, ksi, g1, b1, g2, b2, v2, ph2));
     }
 
-    private double dreI2dv2() {
-        double shunt = shunt();
-        return R2 * R2 * (gres(shunt) * FastMath.cos(ph2()) - bres(shunt) * FastMath.sin(ph2()));
+    private static double dreI2dv2(double y, double ksi, double g1, double b1, double g2, double b2, double ph2) {
+        double shunt = shunt(y, ksi, g1, b1);
+        return R2 * R2 * (gres(y, ksi, g1, b1, g2, shunt) * FastMath.cos(ph2) - bres(y, ksi, g1, b1, b2, shunt) * FastMath.sin(ph2));
     }
 
-    private double dimI2dv2() {
-        double shunt = shunt();
-        return R2 * R2 * (gres(shunt) * FastMath.sin(ph2()) + bres(shunt) * FastMath.cos(ph2()));
+    private static double dimI2dv2(double y, double ksi, double g1, double b1, double g2, double b2, double ph2) {
+        double shunt = shunt(y, ksi, g1, b1);
+        return R2 * R2 * (gres(y, ksi, g1, b1, g2, shunt) * FastMath.sin(ph2) + bres(y, ksi, g1, b1, b2, shunt) * FastMath.cos(ph2));
     }
 
-    private double di2dv2() {
-        return (reI2() * dreI2dv2() + imI2() * dimI2dv2()) / i2();
+    private static double di2dv2(double y, double ksi, double g1, double b1, double g2, double b2, double v2, double ph2) {
+        return (reI2(y, ksi, g1, b1, g2, b2, v2, ph2) * dreI2dv2(y, ksi, g1, b1, g2, b2, ph2)
+                + imI2(y, ksi, g1, b1, g2, b2, v2, ph2) * dimI2dv2(y, ksi, g1, b1, g2, b2, ph2)) / i2(y, ksi, g1, b1, g2, b2, v2, ph2);
     }
 
     @Override
     public double eval() {
-        return i2();
+        return i2(y, ksi, g1, b1, g2, b2, v2(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
-            return di2dv2();
+            return di2dv2(y, ksi, g1, b1, g2, b2, v2(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

@@ -118,6 +118,8 @@ class EquationSystemTest {
         assertEquals(0, equationEventTypes.size());
         assertEquals(1, equationTermEventTypes.size());
         assertEquals(EquationTermEventType.EQUATION_TERM_DEACTIVATED, equationTermEventTypes.get(0));
+
+        assertEquals(1, equationSystem.getVariableSet().getVariables().size());
     }
 
     @Test
