@@ -83,18 +83,18 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         return a1Var != null ? sv.get(a1Var.getRow()) : branch.getPiModel().getA1();
     }
 
-    protected abstract double calculateSensi(double ph1, double ph2, double v1, double v2, double a1, double r1);
+    protected abstract double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1);
 
     @Override
-    public double calculateSensi(DenseMatrix x, int column) {
-        Objects.requireNonNull(x);
-        double ph1 = x.get(ph1Var.getRow(), column);
-        double ph2 = x.get(ph2Var.getRow(), column);
-        double v1 = x.get(v1Var.getRow(), column);
-        double v2 = x.get(v2Var.getRow(), column);
-        double a1 = a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
-        double r1 = r1Var != null ? x.get(r1Var.getRow(), column) : branch.getPiModel().getR1();
-        return calculateSensi(ph1, ph2, v1, v2, a1, r1);
+    public double calculateSensi(DenseMatrix dx, int column) {
+        Objects.requireNonNull(dx);
+        double dph1 = dx.get(ph1Var.getRow(), column);
+        double dph2 = dx.get(ph2Var.getRow(), column);
+        double dv1 = dx.get(v1Var.getRow(), column);
+        double dv2 = dx.get(v2Var.getRow(), column);
+        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+        double dr1 = r1Var != null ? dx.get(r1Var.getRow(), column) : branch.getPiModel().getR1();
+        return calculateSensi(dph1, dph2, dv1, dv2, da1, dr1);
     }
 
     @Override

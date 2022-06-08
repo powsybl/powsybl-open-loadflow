@@ -163,8 +163,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double calculateSensi(DenseMatrix x, int column) {
-            return x.get(getVariable().getRow(), column);
+        public double calculateSensi(DenseMatrix dx, int column) {
+            return dx.get(getVariable().getRow(), column);
         }
 
         @Override
