@@ -70,11 +70,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
     public void addEdge(V vertex1, V vertex2, E edge) {
         Objects.requireNonNull(vertex1);
         Objects.requireNonNull(vertex2);
-        if (vertex1 != vertex2) {
-            graph.addEdge(vertex1, vertex2, edge);
-        } else {
-            LOGGER.warn("Loop on vertex {}: problem in input graph", vertex1);
-        }
+        graph.addEdge(vertex1, vertex2, edge);
         invalidateInit();
     }
 
@@ -271,31 +267,32 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
         private boolean halted;
 
         public GraphProcessA(V vertex1, V vertex2) {
-            Set<V> traversedVerticesT1 = new LinkedHashSet<>();
-            Set<V> traversedVerticesT2 = new LinkedHashSet<>();
-            this.t1 = new Traverser(vertex1, traversedVerticesT2, traversedVerticesT1);
-            this.t2 = new Traverser(vertex2, traversedVerticesT1, traversedVerticesT2);
+            Set<V> visitedVerticesT1 = new LinkedHashSet<>();
+            Set<V> visitedVerticesT2 = new LinkedHashSet<>();
+            this.t1 = new Traverser(vertex1, visitedVerticesT2, visitedVerticesT1);
+            this.t2 = new Traverser(vertex2, visitedVerticesT1, visitedVerticesT2);
             this.halted = false;
         }
 
         @Override
         public void next() {
-            if (t1.hasEnded() || t2.hasEnded()) {
+            if (t1.hasEnded() || t2.hasEnded() || halted) {
                 return;
             }
 
-            t1.next();
             if (t1.componentBreakDetected()) {
-                updateConnectedComponents(t1.traversedVertices);
+                updateConnectedComponents(t1.visitedVertices);
                 halted = true;
                 return;
             }
+            t1.next();
 
-            t2.next();
             if (t2.componentBreakDetected()) {
-                updateConnectedComponents(t2.traversedVertices);
+                updateConnectedComponents(t2.visitedVertices);
                 halted = true;
+                return;
             }
+            t2.next();
         }
 
         @Override
@@ -400,23 +397,24 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
     }
 
     private class Traverser {
-        private final Set<V> traversedVertices;
+        private final Set<V> visitedVertices;
         private final Deque<V> verticesToTraverse;
         private final Set<V> vertexEnd;
         private boolean ended;
 
-        public Traverser(V vertexStart, Set<V> vertexEnd, Set<V> traversedVertices) {
+        public Traverser(V vertexStart, Set<V> vertexEnd, Set<V> visitedVertices) {
             this.vertexEnd = vertexEnd;
-            this.traversedVertices = traversedVertices;
+            this.visitedVertices = visitedVertices;
+            this.visitedVertices.add(vertexStart);
             this.verticesToTraverse = new LinkedList<>();
             this.verticesToTraverse.add(vertexStart);
-            this.ended = false;
+            this.ended = vertexEnd.contains(vertexStart);
         }
 
         public void next() {
             V v = verticesToTraverse.removeLast();
-            if (traversedVertices.add(v)) {
-                for (V adj : Graphs.neighborListOf(graph, v)) {
+            for (V adj : Graphs.neighborListOf(graph, v)) {
+                if (visitedVertices.add(adj)) {
                     verticesToTraverse.add(adj);
                     if (vertexEnd.contains(adj)) {
                         ended = true;
@@ -427,6 +425,10 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
         }
 
         public boolean componentBreakDetected() {
+            // 3 possible cases:
+            //  - traversing ongoing -> verticesToTraverse not empty
+            //  - traversing ended because it has reached a vertex visited by other side -> verticesToTraverse not empty as this vertex is in verticesToTraverse
+            //  - traversing ended without reaching any vertex visited by other side -> component break -> new component detected (verticesVisited)
             return verticesToTraverse.isEmpty();
         }
 
