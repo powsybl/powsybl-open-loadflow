@@ -33,26 +33,26 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
         return sv.get(v2Var.getRow());
     }
 
-    private static double p2(double y, double ksi, double g1, double b1, double g2, double v2) {
-        double shunt = shunt(y, ksi, g1, b1);
-        return R2 * R2 * v2 * v2 * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * FastMath.sin(ksi) / shunt);
+    private static double p2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double v2) {
+        double shunt = shunt(y, cosKsi, sinKsi, g1, b1);
+        return R2 * R2 * v2 * v2 * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * sinKsi / shunt);
     }
 
-    private static double dp2dv2(double y, double ksi, double g1, double b1, double g2, double v2) {
-        double shunt = shunt(y, ksi, g1, b1);
-        return 2 * R2 * R2 * v2 * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * FastMath.sin(ksi) / shunt);
+    private static double dp2dv2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double v2) {
+        double shunt = shunt(y, cosKsi, sinKsi, g1, b1);
+        return 2 * R2 * R2 * v2 * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * sinKsi / shunt);
     }
 
     @Override
     public double eval() {
-        return p2(y, ksi, g1, b1, g2, v2());
+        return p2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, v2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
-            return dp2dv2(y, ksi, g1, b1, g2, v2());
+            return dp2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, v2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

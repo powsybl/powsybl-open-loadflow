@@ -37,20 +37,20 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         double ph2 = ph2();
         return dp1dph1(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph1
                 + dp1dph2(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph2
-                + dp1dv1(y, ksi, g1, v1, ph1, r1, a1, v2, ph2) * dv1
+                + dp1dv1(y, ksi, FastMath.sin(ksi), g1, v1, ph1, r1, a1, v2, ph2) * dv1
                 + dp1dv2(y, ksi, v1, ph1, r1, a1, ph2) * dv2;
     }
 
-    protected static double theta(double ksi, double ph1, double a1, double ph2) {
+    private static double theta(double ksi, double ph1, double a1, double ph2) {
         return ksi - a1 + A2 - ph1 + ph2;
     }
 
-    public static double p1(double y, double ksi, double g1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * FastMath.sin(ksi) - y * R2 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2)));
+    public static double p1(double y, double ksi, double sinKsi, double g1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * R2 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2)));
     }
 
-    private static double dp1dv1(double y, double ksi, double g1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * FastMath.sin(ksi) - y * R2 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2)));
+    private static double dp1dv1(double y, double ksi, double sinKsi, double g1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * R2 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2)));
     }
 
     private static double dp1dv2(double y, double ksi, double v1, double ph1, double r1, double a1, double ph2) {
@@ -69,20 +69,20 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         return dp1dph1(y, ksi, v1, ph1, r1, a1, v2, ph2);
     }
 
-    private static double dp1dr1(double y, double ksi, double g1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return v1 * (2 * r1 * v1 * (g1 + y * FastMath.sin(ksi)) - y * R2 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2)));
+    private static double dp1dr1(double y, double ksi, double sinKsi, double g1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return v1 * (2 * r1 * v1 * (g1 + y * sinKsi) - y * R2 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2)));
     }
 
     @Override
     public double eval() {
-        return p1(y, ksi, g1, v1(), ph1(), r1(), a1(), v2(), ph2());
+        return p1(y, ksi, FastMath.sin(ksi), g1, v1(), ph1(), r1(), a1(), v2(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dp1dv1(y, ksi, g1, v1(), ph1(), r1(), a1(), v2(), ph2());
+            return dp1dv1(y, ksi, FastMath.sin(ksi), g1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(v2Var)) {
             return dp1dv2(y, ksi, v1(), ph1(), r1(), a1(), ph2());
         } else if (variable.equals(ph1Var)) {
@@ -92,7 +92,7 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         } else if (variable.equals(a1Var)) {
             return dp1da1(y, ksi, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(r1Var)) {
-            return dp1dr1(y, ksi, g1, v1(), ph1(), r1(), a1(), v2(), ph2());
+            return dp1dr1(y, ksi, FastMath.sin(ksi), g1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

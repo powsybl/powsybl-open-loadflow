@@ -37,21 +37,21 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         double ph2 = ph2();
         return dq1dph1(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph1
                 + dq1dph2(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph2
-                + dq1dv1(y, ksi, b1, v1, ph1, r1, a1, v2, ph2) * dv1
+                + dq1dv1(y, ksi, FastMath.cos(ksi), b1, v1, ph1, r1, a1, v2, ph2) * dv1
                 + dq1dv2(y, ksi, v1, ph1, r1, a1, ph2) * dv2;
     }
 
-    protected static double theta(double ksi, double ph1, double a1, double ph2) {
+    private static double theta(double ksi, double ph1, double a1, double ph2) {
         return ksi - a1 + A2 - ph1 + ph2;
     }
 
-    public static double q1(double y, double ksi, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * FastMath.cos(ksi)
+    public static double q1(double y, double ksi, double cosKsi, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * cosKsi
                 - y * R2 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2)));
     }
 
-    private static double dq1dv1(double y, double ksi, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * FastMath.cos(ksi)
+    private static double dq1dv1(double y, double ksi, double cosKsi, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * cosKsi
                 - y * R2 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2)));
     }
 
@@ -71,20 +71,20 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         return dq1dph1(y, ksi, v1, ph1, r1, a1, v2, ph2);
     }
 
-    private static double dq1dr1(double y, double ksi, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return v1 * (2 * r1 * v1 * (-b1 + y * FastMath.cos(ksi)) - y * R2 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2)));
+    private static double dq1dr1(double y, double ksi, double cosKsi, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return v1 * (2 * r1 * v1 * (-b1 + y * cosKsi) - y * R2 * v2 * FastMath.cos(theta(ksi, ph1, a1, ph2)));
     }
 
     @Override
     public double eval() {
-        return q1(y, ksi, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+        return q1(y, ksi, FastMath.cos(ksi), b1, v1(), ph1(), r1(), a1(), v2(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return dq1dv1(y, ksi, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+            return dq1dv1(y, ksi, FastMath.cos(ksi), b1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(v2Var)) {
             return dq1dv2(y, ksi, v1(), ph1(), r1(), a1(), ph2());
         } else if (variable.equals(ph1Var)) {
@@ -94,7 +94,7 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         } else if (variable.equals(a1Var)) {
             return dq1da1(y, ksi, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(r1Var)) {
-            return dq1dr1(y, ksi, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+            return dq1dr1(y, ksi, FastMath.cos(ksi), b1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
