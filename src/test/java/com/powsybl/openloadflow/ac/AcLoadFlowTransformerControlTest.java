@@ -197,7 +197,7 @@ class AcLoadFlowTransformerControlTest {
                 .setRegulating(true)
                 .setTapPosition(1)
                 .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .setTargetV(32.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -213,13 +213,13 @@ class AcLoadFlowTransformerControlTest {
         parameters.setTransformerVoltageControlOn(true);
         parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(3.0)
+                .setTargetDeadband(6.0)
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(t2wt.getTerminal2())
                 .setTargetV(34.0);
         t2wt2.getRatioTapChanger()
-                .setTargetDeadband(3.0)
+                .setTargetDeadband(6.0)
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(t2wt2.getTerminal2())

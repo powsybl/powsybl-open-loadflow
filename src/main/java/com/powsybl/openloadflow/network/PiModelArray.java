@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -30,18 +28,13 @@ public class PiModelArray implements PiModel {
 
     private LfBranch branch;
 
-    private boolean hasSwitchedUp = false;
-
-    private boolean hasSwitchedDo = false;
-
-    private boolean hasSwitchedUpDo = false;
-
-    private boolean hasSwitchedDoUp = false;
+    private Direction r1Variation;
 
     public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition) {
         this.models = Objects.requireNonNull(models);
         this.lowTapPosition = lowTapPosition;
         this.tapPosition = tapPosition;
+        r1Variation = (models.get(0).getR1() > models.get(models.size() - 1).getR1()) ? Direction.DECREASE : Direction.INCREASE; // FIXME: add a control.
     }
 
     private PiModel getModel() {
@@ -172,7 +165,7 @@ public class PiModelArray implements PiModel {
         this.a1 = getA1();
         double previousA1 = Double.NaN;
         double nextA1 = Double.NaN;
-        boolean hasChange = false;
+        boolean hasChanged = false;
         int oldTapPosition = tapPosition;
         if (tapPosition < lowTapPosition + models.size() - 1) {
             nextA1 = models.get(tapPosition - lowTapPosition + 1).getA1(); // abs?
@@ -184,42 +177,50 @@ public class PiModelArray implements PiModel {
                 ((direction == Direction.INCREASE && previousA1 > a1) || (direction == Direction.DECREASE && previousA1 < a1))) {
             tapPosition = tapPosition - 1;
             a1 = Double.NaN;
-            hasChange = true;
+            hasChanged = true;
         }
         if (!Double.isNaN(nextA1) &&
                 ((direction == Direction.INCREASE && nextA1 > a1) || (direction == Direction.DECREASE && nextA1 < a1))) {
             tapPosition = tapPosition + 1;
             a1 = Double.NaN;
-            hasChange = true;
+            hasChanged = true;
         }
-        if (hasChange) {
+        if (hasChanged) {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
                 listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
             }
         }
-        return hasChange;
+        return hasChanged;
     }
 
     @Override
-    public Pair<Boolean, Double> updateTapPositionR(double deltaR, int maxSwitch) {
-        double newR1 = getR1() + deltaR;
-        boolean hasChange = false;
-        int oldTapPosition = tapPosition;
-
-        // find tap position with the closest r1 value without exceeding maxSwitch position switches
-        double smallestDistance = Math.abs(newR1 - getModel().getR1());
-        int pStart = 0;
+    public boolean updateTapPositionR1(double deltaR1, int maxTapIncrement, Direction previousVariations) {
+        double newR1 = getR1() + deltaR1;
+        int pBegin = 0;
         int pEnd = models.size();
-        if (hasSwitchedDoUp) {
-            // Forbid the tap position to decrease after having decrease then increase
-            pStart = oldTapPosition - lowTapPosition;
+        int p0 = tapPosition - lowTapPosition;
+        if (previousVariations == Direction.DECREASE_THEN_INCREASE) {
+            // we forbid R1 to decrease again after having already decrease then increase
+            if (r1Variation == Direction.INCREASE) {
+                pBegin = p0;
+            } else {
+                pEnd = p0;
+            }
         }
-        if (hasSwitchedUpDo) {
-            // Forbid the tap position to increase after having increase then decrease
-            pEnd = oldTapPosition - lowTapPosition;
+        if (previousVariations == Direction.INCREASE_THEN_DECREASE) {
+            // we forbid R1 to increase again after having already increase then decrease
+            if (r1Variation == Direction.INCREASE) {
+                pEnd = p0;
+            } else {
+                pBegin = p0;
+            }
         }
-        for (int p = pStart; p < pEnd; p++) {
-            if (Math.abs(lowTapPosition + p - oldTapPosition) <= maxSwitch) {
+
+        int oldTapPosition = tapPosition;
+        // find tap position with the closest r1 value without exceeding the maximum of taps to switch.
+        double smallestDistance = Math.abs(deltaR1);
+        for (int p = pBegin; p < pEnd; p++) {
+            if (Math.abs(lowTapPosition + p - oldTapPosition) <= maxTapIncrement) {
                 double distance = Math.abs(newR1 - models.get(p).getR1());
                 if (distance < smallestDistance) {
                     tapPosition = lowTapPosition + p;
@@ -228,31 +229,14 @@ public class PiModelArray implements PiModel {
             }
         }
 
-        if (oldTapPosition < tapPosition) {
+        boolean hasChanged = tapPosition != oldTapPosition;
+        if (hasChanged) {
             r1 = Double.NaN;
-            hasChange = true;
-            if (hasSwitchedDo) {
-                hasSwitchedDoUp = true;
-            } else {
-                hasSwitchedUp = true;
-            }
-        }
-        if (oldTapPosition > tapPosition) {
-            r1 = Double.NaN;
-            hasChange = true;
-            if (hasSwitchedUp) {
-                hasSwitchedUpDo = true;
-            } else {
-                hasSwitchedDo = true;
-            }
-        }
-
-        if (hasChange) {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
                 listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
             }
         }
-        return Pair.of(hasChange, getModel().getR1() - models.get(oldTapPosition - lowTapPosition).getR1());
+        return hasChanged;
     }
 
     @Override

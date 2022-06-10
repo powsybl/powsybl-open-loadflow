@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -54,13 +52,16 @@ public interface PiModel {
     void roundR1ToClosestTap();
 
     enum Direction {
+        NONE,
         INCREASE,
-        DECREASE
+        DECREASE,
+        INCREASE_THEN_DECREASE,
+        DECREASE_THEN_INCREASE
     }
 
     boolean updateTapPosition(Direction direction);
 
-    Pair<Boolean, Double> updateTapPositionR(double deltaR, int maxSwitch);
+    boolean updateTapPositionR1(double deltaR1, int maxTapIncrement, Direction previousVariations);
 
     boolean setMinZ(double minZ, boolean dc);
 
