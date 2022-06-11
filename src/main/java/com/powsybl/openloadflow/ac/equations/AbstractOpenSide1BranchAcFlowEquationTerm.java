@@ -10,7 +10,6 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import net.jafama.FastMath;
 
 import java.util.List;
 
@@ -31,9 +30,7 @@ abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchA
         }
     }
 
-    protected static double shunt(double y, double ksi, double g1, double b1) {
-        double sinKsi = FastMath.sin(ksi);
-        double cosKsi = FastMath.cos(ksi);
+    protected static double shunt(double y, double cosKsi, double sinKsi, double g1, double b1) {
         return (g1 + y * sinKsi) * (g1 + y * sinKsi) + (-b1 + y * cosKsi) * (-b1 + y * cosKsi);
     }
 

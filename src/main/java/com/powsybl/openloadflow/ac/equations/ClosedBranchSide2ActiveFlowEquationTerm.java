@@ -38,23 +38,23 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return dp2dph1(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph1
                 + dp2dph2(y, ksi, v1, ph1, r1, a1, v2, ph2) * dph2
                 + dp2dv1(y, ksi, ph1, r1, a1, v2, ph2) * dv1
-                + dp2dv2(y, ksi, g2, v1, ph1, r1, a1, v2, ph2) * dv2;
+                + dp2dv2(y, ksi, FastMath.sin(ksi), g2, v1, ph1, r1, a1, v2, ph2) * dv2;
     }
 
     private static double theta(double ksi, double ph1, double a1, double ph2) {
         return ksi + a1 - A2 + ph1 - ph2;
     }
 
-    public static double p2(double y, double ksi, double g2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * FastMath.sin(theta(ksi, ph1, a1, ph2)) + y * R2 * v2 * FastMath.sin(ksi));
+    public static double p2(double y, double ksi, double sinKsi, double g2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * FastMath.sin(theta(ksi, ph1, a1, ph2)) + y * R2 * v2 * sinKsi);
     }
 
     private static double dp2dv1(double y, double ksi, double ph1, double r1, double a1, double v2, double ph2) {
         return -y * r1 * R2 * v2 * FastMath.sin(theta(ksi, ph1, a1, ph2));
     }
 
-    private static double dp2dv2(double y, double ksi, double g2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return R2 * (2 * g2 * R2 * v2 - y * r1 * v1 * FastMath.sin(theta(ksi, ph1, a1, ph2)) + 2 * y * R2 * v2 * FastMath.sin(ksi));
+    private static double dp2dv2(double y, double ksi, double sinKsi, double g2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return R2 * (2 * g2 * R2 * v2 - y * r1 * v1 * FastMath.sin(theta(ksi, ph1, a1, ph2)) + 2 * y * R2 * v2 * sinKsi);
     }
 
     private static double dp2dph1(double y, double ksi, double v1, double ph1, double r1, double a1, double v2, double ph2) {
@@ -75,7 +75,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
 
     @Override
     public double eval() {
-        return p2(y, ksi, g2, v1(), ph1(), r1(), a1(), v2(), ph2());
+        return p2(y, ksi, FastMath.sin(ksi), g2, v1(), ph1(), r1(), a1(), v2(), ph2());
     }
 
     @Override
@@ -84,7 +84,7 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         if (variable.equals(v1Var)) {
             return dp2dv1(y, ksi, ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(v2Var)) {
-            return dp2dv2(y, ksi, g2, v1(), ph1(), r1(), a1(), v2(), ph2());
+            return dp2dv2(y, ksi, FastMath.sin(ksi), g2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(ph1Var)) {
             return dp2dph1(y, ksi, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(ph2Var)) {
