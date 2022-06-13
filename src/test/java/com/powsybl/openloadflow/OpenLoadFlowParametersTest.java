@@ -105,7 +105,7 @@ class OpenLoadFlowParametersTest {
         assertEquals(OpenLoadFlowParameters.THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
         assertEquals(OpenLoadFlowParameters.SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, olfParameters.getSlackBusPMaxMismatch(), 0.0);
         assertEquals(OpenLoadFlowParameters.REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasReactivePowerRemoteControl());
-        assertEquals(OpenLoadFlowParameters.DC_COS_PHI_DEFAULT_VALUE, olfParameters.getDcCosPhi());
+        assertEquals(OpenLoadFlowParameters.DC_POWER_FACTOR_DEFAULT_VALUE, olfParameters.getDcPowerFactor());
     }
 
     @Test

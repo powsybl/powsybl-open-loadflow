@@ -66,7 +66,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         // CosPhi for DC power to current conversion
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        double cosPhi = parametersExt.getDcCosPhi();
+        double cosPhi = parametersExt.getDcPowerFactor();
 
         Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolationsMap = new HashMap<>();
         for (SensitivityValue sensValue : res.getValues(null)) {

@@ -1568,7 +1568,7 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDc(true);
-        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters().setDcCosPhi(Math.tan(0.4));
+        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters().setDcPowerFactor(Math.tan(0.4));
         lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
         setSlackBusId(lfParameters, "b1_vl_0");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
@@ -1603,5 +1603,11 @@ class OpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
+
+        Security.print(result,
+                network,
+                new OutputStreamWriter(System.out),
+                new AsciiTableFormatterFactory(),
+                new Security.PostContingencyLimitViolationWriteConfig(null, TableFormatterConfig.load(), true, false));
     }
 }
