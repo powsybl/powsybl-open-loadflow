@@ -53,26 +53,26 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
     }
 
     @Override
-    public double calculateSensi(DenseMatrix x, int column) {
-        Objects.requireNonNull(x);
-        double ph1 = x.get(ph1Var.getRow(), column);
-        double ph2 = x.get(ph2Var.getRow(), column);
-        double a1 = a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
-        return calculateSensi(ph1, ph2, a1);
+    public double calculateSensi(DenseMatrix dx, int column) {
+        Objects.requireNonNull(dx);
+        double dph1 = dx.get(ph1Var.getRow(), column);
+        double dph2 = dx.get(ph2Var.getRow(), column);
+        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+        return calculateSensi(dph1, dph2, da1);
     }
 
     protected double ph1() {
-        return stateVector.get(ph1Var.getRow());
+        return sv.get(ph1Var.getRow());
     }
 
     protected double ph2() {
-        return stateVector.get(ph2Var.getRow());
+        return sv.get(ph2Var.getRow());
     }
 
     protected abstract double calculateSensi(double ph1, double ph2, double a1);
 
     protected double a1() {
-        return a1Var != null ? stateVector.get(a1Var.getRow()) : branch.getPiModel().getA1();
+        return a1Var != null ? sv.get(a1Var.getRow()) : branch.getPiModel().getA1();
     }
 
     @Override
