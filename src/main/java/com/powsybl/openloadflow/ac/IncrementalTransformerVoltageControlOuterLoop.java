@@ -108,12 +108,12 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                                     piModelAndTapPositionDirection.get(controller.getId()));
                             piModelAndTapPositionDirection.put(controller.getId(), getDirection(previousR1,
                                     controller.getPiModel().getR1(), piModelAndTapPositionDirection.get(controller.getId())));
-                            LOGGER.error("Round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
+                            LOGGER.info("Round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
                             if (hasChanged) {
                                 status.setValue(OuterLoopStatus.UNSTABLE);
                             }
                         } else {
-                            LOGGER.error("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controller.getId(), targetDeadband, Math.abs(difference));
+                            LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controller.getId(), targetDeadband, Math.abs(difference));
                         }
                     } else {
                         // several transformers control the same bus.
@@ -132,12 +132,12 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                                     piModelAndTapPositionDirection.put(controller.getId(), getDirection(previousR1,
                                             controller.getPiModel().getR1(), piModelAndTapPositionDirection.get(controller.getId())));
                                     difference -= (controller.getPiModel().getR1() - previousR1) * sensitivity;
-                                    LOGGER.error("[Shared control] round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
+                                    LOGGER.info("[Shared control] round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
                                     if (hasChanged) {
                                         status.setValue(OuterLoopStatus.UNSTABLE);
                                     }
                                 } else {
-                                    LOGGER.error("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controller.getId(), targetDeadband, Math.abs(difference));
+                                    LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controller.getId(), targetDeadband, Math.abs(difference));
                                 }
                             }
                         }

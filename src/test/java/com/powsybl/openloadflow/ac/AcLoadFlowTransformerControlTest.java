@@ -148,15 +148,15 @@ class AcLoadFlowTransformerControlTest {
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(true)
-                .setTapPosition(0)
+                .setTapPosition(2)
                 .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .setTargetV(28.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(134.281, bus2);
-        assertVoltageEquals(34.427, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertVoltageEquals(27.003, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
