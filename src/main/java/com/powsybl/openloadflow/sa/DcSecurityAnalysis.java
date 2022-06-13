@@ -12,6 +12,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -64,7 +65,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         Map<String, BranchResult> preContingencyBranchResults = new HashMap<>();
 
         // CosPhi for DC power to current conversion
-        double cosPhi = Math.cos(Math.atan(0.4));
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
+        double cosPhi = parametersExt.getDcCosPhi();
 
         Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolationsMap = new HashMap<>();
         for (SensitivityValue sensValue : res.getValues(null)) {
