@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
@@ -25,9 +26,9 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
     @Test
     void testGeneralInfos() {
         OpenSensitivityAnalysisProvider provider = new OpenSensitivityAnalysisProvider(new DenseMatrixFactory());
-        assertEquals("OpenSensitivityAnalysis", provider.getName());
+        assertEquals(ProviderConstants.NAME, provider.getName());
         assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), provider.getVersion());
-        assertEquals("OpenLoadFlow", provider.getLoadFlowProviderName().orElseThrow());
+        assertEquals(ProviderConstants.NAME, provider.getLoadFlowProviderName().orElseThrow());
     }
 
     @Test

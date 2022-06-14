@@ -29,12 +29,12 @@ import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -59,8 +59,6 @@ import java.util.concurrent.CompletableFuture;
 @AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
 
-    private static final String NAME = "OpenSensitivityAnalysis";
-
     public static final String DATE_TIME_FORMAT = "yyyy-dd-M--HH-mm-ss-SSS";
 
     private final DcSensitivityAnalysis dcSensitivityAnalysis;
@@ -82,7 +80,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     @Override
     public String getName() {
-        return NAME;
+        return ProviderConstants.NAME;
     }
 
     @Override
@@ -92,7 +90,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     @Override
     public Optional<String> getLoadFlowProviderName() {
-        return Optional.of(OpenLoadFlowProvider.NAME);
+        return Optional.of(ProviderConstants.NAME);
     }
 
     @Override
