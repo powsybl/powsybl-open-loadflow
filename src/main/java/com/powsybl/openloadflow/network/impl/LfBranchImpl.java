@@ -53,7 +53,7 @@ public class LfBranchImpl extends AbstractLfBranch {
         double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
         double r1 = 1;
         if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
-            LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ration", line.getId(), nominalV1, nominalV2);
+            LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ratio", line.getId(), nominalV1, nominalV2);
             report.linesWithDifferentNominalVoltageAtBothEnds++;
             r1 = 1 / Transformers.getRatioPerUnitBase(line);
         }
