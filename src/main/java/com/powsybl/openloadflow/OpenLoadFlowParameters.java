@@ -61,6 +61,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
+    public static final double DC_POWER_FACTOR_DEFAULT_VALUE = 1.0;
+
     public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -91,6 +93,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME = "transformerVoltageControlMode";
 
+    public static final String DC_POWER_FACTOR_NAME = "dcPowerFactor";
+
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -105,7 +109,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MAX_ITERATION_NAME,
                                                                          NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME,
                                                                          VOLTAGE_INIT_MODE_OVERRIDE_NAME,
-                                                                         TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME);
+                                                                         TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME,
+                                                                         DC_POWER_FACTOR_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -156,6 +161,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private VoltageInitModeOverride voltageInitModeOverride = VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE;
 
     private TransformerVoltageControlMode transformerVoltageControlMode = TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
+
+    private double dcPowerFactor = DC_POWER_FACTOR_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -305,6 +312,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getDcPowerFactor() {
+        return dcPowerFactor;
+    }
+
+    public OpenLoadFlowParameters setDcPowerFactor(double dcPowerFactor) {
+        this.dcPowerFactor = dcPowerFactor;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -329,7 +345,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxIteration(config.getIntProperty(MAX_ITERATION_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
                 .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
-                .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE)));
+                .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
+                .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_NAME, DC_POWER_FACTOR_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -368,6 +385,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setVoltageInitModeOverride(VoltageInitModeOverride.valueOf(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME))
                 .ifPresent(prop -> this.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(DC_POWER_FACTOR_NAME))
+                .ifPresent(prop -> this.setDcPowerFactor(Double.parseDouble(prop)));
         return this;
     }
 
@@ -389,6 +408,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", newtonRaphsonConvEpsPerEq=" + newtonRaphsonConvEpsPerEq +
                 ", voltageInitModeOverride=" + voltageInitModeOverride +
                 ", transformerVoltageControlMode=" + transformerVoltageControlMode +
+                ", dcPowerFactor=" + dcPowerFactor +
                 ')';
     }
 
@@ -424,6 +444,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
+        LOGGER.info("DC power factor: {}", parametersExt.getDcPowerFactor());
     }
 
     /**
