@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
+import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.json.JsonSecurityAnalysisParameters;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,9 +37,9 @@ class OpenSecurityAnalysisProviderTest extends AbstractConverterTest {
 
     @Test
     void basicTest() {
-        assertEquals("OpenSecurityAnalysis", provider.getName());
+        assertEquals(ProviderConstants.NAME, provider.getName());
         assertEquals(new PowsyblOpenLoadFlowVersion().toString(), provider.getVersion());
-        assertEquals("OpenLoadFlow", provider.getLoadFlowProviderName().orElseThrow());
+        assertEquals(ProviderConstants.NAME, provider.getLoadFlowProviderName().orElseThrow());
     }
 
     @Test

@@ -23,6 +23,7 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -41,7 +42,7 @@ class OpenLoadFlowProviderTest {
     @Test
     void test() {
         LoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(new DenseMatrixFactory());
-        assertEquals("OpenLoadFlow", loadFlowProvider.getName());
+        assertEquals(ProviderConstants.NAME, loadFlowProvider.getName());
         assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());
     }
 

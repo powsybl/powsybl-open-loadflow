@@ -16,12 +16,12 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
+import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.security.*;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
@@ -80,7 +80,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     @Override
     public String getName() {
-        return "OpenSecurityAnalysis";
+        return ProviderConstants.NAME;
     }
 
     @Override
@@ -90,7 +90,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     @Override
     public Optional<String> getLoadFlowProviderName() {
-        return Optional.of(OpenLoadFlowProvider.NAME);
+        return Optional.of(ProviderConstants.NAME);
     }
 
     @Override

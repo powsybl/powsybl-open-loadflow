@@ -38,6 +38,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
+import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.tools.PowsyblCoreVersion;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
@@ -55,8 +56,6 @@ import java.util.stream.Collectors;
 public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenLoadFlowProvider.class);
-
-    public static final String NAME = "OpenLoadFlow";
 
     private final MatrixFactory matrixFactory;
 
@@ -83,7 +82,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     @Override
     public String getName() {
-        return NAME;
+        return ProviderConstants.NAME;
     }
 
     @Override
