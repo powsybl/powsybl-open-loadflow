@@ -7,8 +7,6 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.io.table.AsciiTableFormatterFactory;
-import com.powsybl.commons.io.table.TableFormatterConfig;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
@@ -36,7 +34,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.OutputStreamWriter;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ForkJoinPool;
@@ -1546,20 +1543,30 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
 
-        Security.print(result,
-                network,
-                new OutputStreamWriter(System.out),
-                new AsciiTableFormatterFactory(),
-                new Security.PostContingencyLimitViolationWriteConfig(null, TableFormatterConfig.load(), true, false));
-
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
         assertEquals(5, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(5, result.getPostContingencyResults().size());
-        assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(2, getPostContingencyResult(result, "l14").getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(192.450, getPostContingencyResult(result, "l14").getBranchResult("l12").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(962.250, getPostContingencyResult(result, "l14").getBranchResult("l13").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(2, getPostContingencyResult(result, "l12").getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(192.450, getPostContingencyResult(result, "l12").getBranchResult("l14").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(962.250, getPostContingencyResult(result, "l12").getBranchResult("l13").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(4, getPostContingencyResult(result, "l13").getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(577.350, getPostContingencyResult(result, "l13").getBranchResult("l12").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(577.350, getPostContingencyResult(result, "l13").getBranchResult("l14").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(1154.700, getPostContingencyResult(result, "l13").getBranchResult("l23").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(1154.700, getPostContingencyResult(result, "l13").getBranchResult("l34").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(4, getPostContingencyResult(result, "l23").getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(577.350, getPostContingencyResult(result, "l23").getBranchResult("l12").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(384.900, getPostContingencyResult(result, "l23").getBranchResult("l14").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(1347.150, getPostContingencyResult(result, "l23").getBranchResult("l13").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(962.250, getPostContingencyResult(result, "l23").getBranchResult("l34").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(4, getPostContingencyResult(result, "l34").getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(384.900, getPostContingencyResult(result, "l34").getBranchResult("l12").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(577.350, getPostContingencyResult(result, "l34").getBranchResult("l14").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(1347.150, getPostContingencyResult(result, "l34").getBranchResult("l13").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(962.250, getPostContingencyResult(result, "l34").getBranchResult("l23").getI1(), LoadFlowAssert.DELTA_I);
     }
 
     @Test
@@ -1603,11 +1610,5 @@ class OpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
-
-        Security.print(result,
-                network,
-                new OutputStreamWriter(System.out),
-                new AsciiTableFormatterFactory(),
-                new Security.PostContingencyLimitViolationWriteConfig(null, TableFormatterConfig.load(), true, false));
     }
 }

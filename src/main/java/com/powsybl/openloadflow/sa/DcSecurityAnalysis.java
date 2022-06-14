@@ -73,12 +73,14 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             SensitivityFactor factor = factors.get(sensValue.getFactorIndex());
             String branchId = factor.getFunctionId();
             Branch<?> branch = network.getBranch(branchId);
-            preContingencyBranchResults.put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN));
+            double i1 = currentActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal1().getVoltageLevel().getNominalV(), dcPowerFactor);
+            double i2 = currentActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal2().getVoltageLevel().getNominalV(), dcPowerFactor);
+            preContingencyBranchResults.put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, i1, -sensValue.getFunctionReference(), Double.NaN, i2, Double.NaN));
             detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()),
                 violation -> preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-            detector.checkCurrent(branch, Branch.Side.ONE, currentActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal1().getVoltageLevel().getNominalV(), dcPowerFactor),
+            detector.checkCurrent(branch, Branch.Side.ONE, i1,
                 violation -> preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-            detector.checkCurrent(branch, Branch.Side.TWO, currentActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal2().getVoltageLevel().getNominalV(), dcPowerFactor),
+            detector.checkCurrent(branch, Branch.Side.TWO, i2,
                 violation -> preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
         }
 
@@ -99,17 +101,20 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 SensitivityFactor factor = factors.get(v.getFactorIndex());
                 String branchId = factor.getFunctionId();
                 Branch<?> branch = network.getBranch(branchId);
+                double i1 = currentActivePower(Math.abs(v.getFunctionReference()), branch.getTerminal1().getVoltageLevel().getNominalV(), dcPowerFactor);
+                double i2 = currentActivePower(Math.abs(v.getFunctionReference()), branch.getTerminal2().getVoltageLevel().getNominalV(), dcPowerFactor);
 
                 if (monitor.getBranchIds().contains(branchId)) {
                     BranchResult preContingencyBranchResult = preContingencyBranchResults.get(branchId);
                     double flowTransfer = Double.isNaN(branchInContingencyP1) ? Double.NaN : (v.getFunctionReference() - preContingencyBranchResult.getP1()) / branchInContingencyP1;
-                    postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, flowTransfer));
+                    postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Double.NaN, i1,
+                            -v.getFunctionReference(), Double.NaN, i2, flowTransfer));
                 }
                 detector.checkActivePower(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()),
                     violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                detector.checkCurrent(branch, Branch.Side.ONE, currentActivePower(Math.abs(v.getFunctionReference()), branch.getTerminal1().getVoltageLevel().getNominalV(), dcPowerFactor),
+                detector.checkCurrent(branch, Branch.Side.ONE, i1,
                     violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                detector.checkCurrent(branch, Branch.Side.TWO, currentActivePower(Math.abs(v.getFunctionReference()), branch.getTerminal2().getVoltageLevel().getNominalV(), dcPowerFactor),
+                detector.checkCurrent(branch, Branch.Side.TWO, i2,
                     violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
             }
             preContingencyLimitViolationsMap.forEach((subjectSideId, preContingencyViolation) -> {
