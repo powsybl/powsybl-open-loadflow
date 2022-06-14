@@ -15,7 +15,7 @@
     <parent>
         <groupId>com.powsybl</groupId>
         <artifactId>powsybl-parent</artifactId>
-        <version>4</version>
+        <version>8</version>
         <relativePath/>
     </parent>
 
@@ -44,11 +44,11 @@
     <properties>
         <java.version>11</java.version>
 
-        <jafama.version>2.3.1</jafama.version>
-        <junit-jupiter.version>5.5.2</junit-jupiter.version>
-        <slf4jtoys.version>1.6.2</slf4jtoys.version>
+        <jafama.version>2.3.2</jafama.version>
+        <junit-jupiter.version>5.8.2</junit-jupiter.version>
+        <slf4jtoys.version>1.6.3</slf4jtoys.version>
 
-        <powsybl-core.version>4.9.0-RC1</powsybl-core.version>
+        <powsybl-core.version>4.9.0</powsybl-core.version>
     </properties>
 
     <build>
