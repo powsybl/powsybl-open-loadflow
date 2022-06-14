@@ -208,15 +208,19 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1) {
+    public BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1, boolean createExtension) {
         double flowTransfer = Double.NaN;
         if (!Double.isNaN(preContingencyP1) && !Double.isNaN(branchInContingencyP1)) {
             flowTransfer = (p1.eval() * PerUnit.SB - preContingencyP1) / branchInContingencyP1;
         }
         double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
         double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
-        return new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
-                                p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
+        var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
+                                            p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
+        if (createExtension) {
+            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1()));
+        }
+        return branchResult;
     }
 
     @Override

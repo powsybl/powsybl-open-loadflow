@@ -29,6 +29,7 @@ import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -87,6 +88,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     @Override
     public String getVersion() {
         return new PowsyblCoreVersion().getMavenProjectVersion();
+    }
+
+    @Override
+    public Optional<String> getLoadFlowProviderName() {
+        return Optional.of(OpenLoadFlowProvider.NAME);
     }
 
     @Override

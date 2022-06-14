@@ -7,12 +7,16 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.auto.service.AutoService;
+import com.powsybl.commons.config.PlatformConfig;
+import com.powsybl.commons.extensions.Extension;
+import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -23,7 +27,9 @@ import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -80,5 +86,35 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
     @Override
     public String getVersion() {
         return new PowsyblOpenLoadFlowVersion().toString();
+    }
+
+    @Override
+    public Optional<String> getLoadFlowProviderName() {
+        return Optional.of(OpenLoadFlowProvider.NAME);
+    }
+
+    @Override
+    public Optional<ExtensionJsonSerializer> getSpecificParametersSerializer() {
+        return Optional.of(new OpenSecurityAnalysisParameterJsonSerializer());
+    }
+
+    @Override
+    public Optional<Extension<SecurityAnalysisParameters>> loadSpecificParameters(PlatformConfig platformConfig) {
+        return Optional.of(OpenSecurityAnalysisParameters.load(platformConfig));
+    }
+
+    @Override
+    public Optional<Extension<SecurityAnalysisParameters>> loadSpecificParameters(Map<String, String> properties) {
+        return Optional.of(OpenSecurityAnalysisParameters.load(properties));
+    }
+
+    @Override
+    public List<String> getSpecificParametersNames() {
+        return OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES;
+    }
+
+    @Override
+    public void updateSpecificParameters(Extension<SecurityAnalysisParameters> extension, Map<String, String> properties) {
+        ((OpenSecurityAnalysisParameters) extension).update(properties);
     }
 }
