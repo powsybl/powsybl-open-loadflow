@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.equations;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,5 +21,9 @@ public class VariableSet<V extends Enum<V> & Quantity> {
 
     public Variable<V> getVariable(int elementNum, V type) {
         return variables.computeIfAbsent(Pair.of(elementNum, type), p -> new Variable<>(p.getLeft(), p.getRight()));
+    }
+
+    public Collection<Variable<V>> getVariables() {
+        return variables.values();
     }
 }

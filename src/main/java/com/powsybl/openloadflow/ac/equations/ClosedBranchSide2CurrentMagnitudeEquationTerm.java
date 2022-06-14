@@ -20,6 +20,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
+@SuppressWarnings("squid:S00107")
 public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
@@ -28,104 +29,122 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double a1, double r1) {
-        return di2dph1() * dph1 + di2dph2() * dph2 + di2dv1() * dv1 + di2dv2() * dv2;
+    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        double v1 = v1();
+        double ph1 = ph1();
+        double r1 = r1();
+        double a1 = a1();
+        double v2 = v2();
+        double ph2 = ph2();
+        return di2dph1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dph1
+                + di2dph2(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dph2
+                + di2dv1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dv1
+                + di2dv2(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dv2;
     }
 
-    private double theta() {
-        return ksi + a1() - A2 + ph1();
+    private static double theta(double ksi, double ph1, double a1) {
+        return ksi + a1 - A2 + ph1;
     }
 
-    private double interReI2() {
-        return g2 * FastMath.cos(ph2()) - b2 * FastMath.sin(ph2()) + y * FastMath.sin(ph2() + ksi);
+    private static double interReI2(double y, double ksi, double g2, double b2, double ph2) {
+        return g2 * FastMath.cos(ph2) - b2 * FastMath.sin(ph2) + y * FastMath.sin(ph2 + ksi);
     }
 
-    private double interImI2() {
-        return g2 * FastMath.sin(ph2()) + b2 * FastMath.cos(ph2()) - y * FastMath.cos(ph2() + ksi);
+    private static double interImI2(double y, double ksi, double g2, double b2, double ph2) {
+        return g2 * FastMath.sin(ph2) + b2 * FastMath.cos(ph2) - y * FastMath.cos(ph2 + ksi);
     }
 
-    private double reI2() {
-        return R2 * (R2 * v2() * interReI2() - y * r1() * v1() * FastMath.sin(theta()));
+    private static double reI2(double y, double ksi, double g2, double b2, double v1, double r1, double v2, double ph2, double theta) {
+        return R2 * (R2 * v2 * interReI2(y, ksi, g2, b2, ph2) - y * r1 * v1 * FastMath.sin(theta));
     }
 
-    private double imI2() {
-        return R2 * (R2 * v2() * interImI2() + y * r1() * v1() * FastMath.cos(theta()));
+    private static double imI2(double y, double ksi, double g2, double b2, double v1, double r1, double v2, double ph2, double theta) {
+        return R2 * (R2 * v2 * interImI2(y, ksi, g2, b2, ph2) + y * r1 * v1 * FastMath.cos(theta));
     }
 
-    private double i2() {
-        return FastMath.hypot(reI2(), imI2());
+    private static double i2(double y, double ksi, double g2, double b2, double v1, double r1, double v2, double ph2, double theta) {
+        return FastMath.hypot(reI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta), imI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta));
     }
 
-    private double dreI2dv2() {
-        return R2 * R2 * interReI2();
+    public static double i2(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        double theta = theta(ksi, ph1, a1);
+        return i2(y, ksi, g2, b2, v1, r1, v2, ph2, theta);
     }
 
-    private double dreI2dv1() {
-        return R2 * (-y * r1() * FastMath.sin(theta()));
+    private static double dreI2dv2(double y, double ksi, double g2, double b2, double ph2) {
+        return R2 * R2 * interReI2(y, ksi, g2, b2, ph2);
     }
 
-    private double dreI2dph2() {
-        return R2 * R2 * v2() * (-g2 * FastMath.sin(ph2()) - b2 * FastMath.cos(ph2()) + y * FastMath.cos(ph2() + ksi));
+    private static double dreI2dv1(double y, double r1, double theta) {
+        return R2 * (-y * r1 * FastMath.sin(theta));
     }
 
-    private double dreI2dph1() {
-        return R2 * (-y * r1() * v1() * FastMath.cos(theta()));
+    private static double dreI2dph2(double y, double ksi, double g2, double b2, double v2, double ph2) {
+        return R2 * R2 * v2 * (-g2 * FastMath.sin(ph2) - b2 * FastMath.cos(ph2) + y * FastMath.cos(ph2 + ksi));
     }
 
-    private double dimI2dv2() {
-        return R2 * R2 * interImI2();
+    private static double dreI2dph1(double y, double ksi, double v1, double ph1, double r1, double a1) {
+        return R2 * (-y * r1 * v1 * FastMath.cos(theta(ksi, ph1, a1)));
     }
 
-    private double dimI2dv1() {
-        return R2 * (y * r1() * FastMath.cos(theta()));
+    private static double dimI2dv2(double y, double ksi, double g2, double b2, double ph2) {
+        return R2 * R2 * interImI2(y, ksi, g2, b2, ph2);
     }
 
-    private double dimI2dph2() {
-        return R2 * R2 * v2() * interReI2();
+    private static double dimI2dv1(double y, double ksi, double ph1, double r1, double a1) {
+        return R2 * (y * r1 * FastMath.cos(theta(ksi, ph1, a1)));
     }
 
-    private double dimI2dph1() {
-        return R2 * (-y * r1() * v1() * FastMath.sin(theta()));
+    private static double dimI2dph2(double y, double ksi, double g2, double b2, double v2, double ph2) {
+        return R2 * R2 * v2 * interReI2(y, ksi, g2, b2, ph2);
     }
 
-    private double di2dv2() {
-        return (reI2() * dreI2dv2() + imI2() * dimI2dv2()) / i2();
+    private static double dimI2dph1(double y, double v1, double r1, double theta) {
+        return R2 * (-y * r1 * v1 * FastMath.sin(theta));
     }
 
-    private double di2dv1() {
-        return (reI2() * dreI2dv1() + imI2() * dimI2dv1()) / i2();
+    private static double di2dv2(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        double theta = theta(ksi, ph1, a1);
+        return (reI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dreI2dv2(y, ksi, g2, b2, ph2) + imI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dimI2dv2(y, ksi, g2, b2, ph2)) / i2(y, ksi, g2, b2, v1, r1, v2, ph2, theta);
     }
 
-    private double di2dph2() {
-        return (reI2() * dreI2dph2() + imI2() * dimI2dph2()) / i2();
+    private static double di2dv1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        double theta = theta(ksi, ph1, a1);
+        return (reI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dreI2dv1(y, r1, theta) + imI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dimI2dv1(y, ksi, ph1, r1, a1)) / i2(y, ksi, g2, b2, v1, r1, v2, ph2, theta);
     }
 
-    private double di2dph1() {
-        return (reI2() * dreI2dph1() + imI2() * dimI2dph1()) / i2();
+    private static double di2dph2(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        double theta = theta(ksi, ph1, a1);
+        return (reI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dreI2dph2(y, ksi, g2, b2, v2, ph2) + imI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dimI2dph2(y, ksi, g2, b2, v2, ph2)) / i2(y, ksi, g2, b2, v1, r1, v2, ph2, theta);
     }
 
-    private double di2da1() {
-        return -di2dph1();
+    private static double di2dph1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        double theta = theta(ksi, ph1, a1);
+        return (reI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dreI2dph1(y, ksi, v1, ph1, r1, a1) + imI2(y, ksi, g2, b2, v1, r1, v2, ph2, theta) * dimI2dph1(y, v1, r1, theta)) / i2(y, ksi, g2, b2, v1, r1, v2, ph2, theta);
+    }
+
+    private static double di2da1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
+        return -di2dph1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2);
     }
 
     @Override
     public double eval() {
-        return i2();
+        return i2(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return di2dv1();
+            return di2dv1(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(v2Var)) {
-            return di2dv2();
+            return di2dv2(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(ph1Var)) {
-            return di2dph1();
+            return di2dph1(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(ph2Var)) {
-            return di2dph2();
+            return di2dph2(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(a1Var)) {
-            return di2da1();
+            return di2da1(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

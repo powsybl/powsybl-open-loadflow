@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.LfVscConverterStation;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -15,13 +16,13 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public final class LfVscConverterStationImpl extends AbstractLfGenerator {
+public class LfVscConverterStationImpl extends AbstractLfGenerator implements LfVscConverterStation {
 
     private final VscConverterStation station;
 
-    private double lossFactor;
+    private final double lossFactor;
 
-    private LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
+    public LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         super(HvdcConverterStations.getConverterStationTargetP(station));
         this.station = station;
         this.lossFactor = station.getLossFactor();
@@ -37,6 +38,7 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
         return new LfVscConverterStationImpl(station, breakers, reactiveLimits, report);
     }
 
+    @Override
     public double getLossFactor() {
         return lossFactor;
     }

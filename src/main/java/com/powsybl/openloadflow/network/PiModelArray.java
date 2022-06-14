@@ -64,6 +64,11 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
+    public double getY() {
+        return getModel().getY();
+    }
+
+    @Override
     public double getKsi() {
         return getModel().getKsi();
     }

@@ -80,8 +80,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void setStateVector(StateVector stateVector) {
-            term.setStateVector(stateVector);
+        public void setStateVector(StateVector sv) {
+            term.setStateVector(sv);
         }
 
         @Override
@@ -154,7 +154,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public double eval() {
-            return stateVector.get(getVariable().getRow());
+            return sv.get(getVariable().getRow());
         }
 
         @Override
@@ -163,8 +163,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public double calculateSensi(DenseMatrix x, int column) {
-            return x.get(getVariable().getRow(), column);
+        public double calculateSensi(DenseMatrix dx, int column) {
+            return dx.get(getVariable().getRow(), column);
         }
 
         @Override
@@ -195,9 +195,9 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     /**
      * Set state vector to use for term evaluation.
-     * @param stateVector the state vector
+     * @param sv the state vector
      */
-    void setStateVector(StateVector stateVector);
+    void setStateVector(StateVector sv);
 
     /**
      * Evaluate equation term.

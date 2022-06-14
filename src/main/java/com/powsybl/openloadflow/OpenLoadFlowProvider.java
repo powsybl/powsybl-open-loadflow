@@ -145,7 +145,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                             result.getNewtonRaphsonIterations(),
                                                                             result.getNetwork().getSlackBus().getId(),
                                                                             result.getSlackBusActivePowerMismatch() * PerUnit.SB,
-                                                                            Double.NaN));
+                                                                            result.getDistributedActivePower() * PerUnit.SB));
         }
 
         // zero or low impedance branch flows computation

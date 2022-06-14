@@ -34,9 +34,9 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private final double p0;
 
-    private LfVscConverterStationImpl vsc1;
+    private LfVscConverterStation converterStation1;
 
-    private LfVscConverterStationImpl vsc2;
+    private LfVscConverterStation converterStation2;
 
     public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcAngleDroopActivePowerControl control) {
         super(network);
@@ -99,31 +99,31 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public LfVscConverterStationImpl getConverterStation1() {
-        return vsc1;
+    public LfVscConverterStation getConverterStation1() {
+        return converterStation1;
     }
 
     @Override
-    public LfVscConverterStationImpl getConverterStation2() {
-        return vsc2;
+    public LfVscConverterStation getConverterStation2() {
+        return converterStation2;
     }
 
     @Override
-    public void setConverterStation1(LfVscConverterStationImpl converterStation1) {
-        this.vsc1 = converterStation1;
+    public void setConverterStation1(LfVscConverterStation converterStation1) {
+        this.converterStation1 = Objects.requireNonNull(converterStation1);
         converterStation1.setTargetP(0);
     }
 
     @Override
-    public void setConverterStation2(LfVscConverterStationImpl converterStation2) {
-        this.vsc2 = converterStation2;
+    public void setConverterStation2(LfVscConverterStation converterStation2) {
+        this.converterStation2 = Objects.requireNonNull(converterStation2);
         converterStation2.setTargetP(0);
     }
 
     @Override
     public void updateState() {
         // Should be done before updating state of generators.
-        vsc1.setTargetP(-p1.eval());
-        vsc2.setTargetP(-p2.eval());
+        converterStation1.setTargetP(-p1.eval());
+        converterStation2.setTargetP(-p2.eval());
     }
 }

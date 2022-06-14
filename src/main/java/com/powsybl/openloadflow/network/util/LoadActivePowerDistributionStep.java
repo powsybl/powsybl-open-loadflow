@@ -79,7 +79,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         }
 
         LOGGER.debug("{} MW / {} MW distributed at iteration {} to {} buses ({} at min consumption)",
-                done * PerUnit.SB, -remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
+                -done * PerUnit.SB, -remainingMismatch * PerUnit.SB, iteration, modifiedBuses, loadsAtMin);
 
         return done;
     }
