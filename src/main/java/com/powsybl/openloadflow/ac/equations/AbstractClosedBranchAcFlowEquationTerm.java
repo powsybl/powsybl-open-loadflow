@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static com.powsybl.openloadflow.network.PiModel.A2;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -81,6 +83,14 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected double a1() {
         return a1Var != null ? sv.get(a1Var.getRow()) : branch.getPiModel().getA1();
+    }
+
+    public static double theta1(double ksi, double ph1, double a1, double ph2) {
+        return ksi - a1 + A2 - ph1 + ph2;
+    }
+
+    public static double theta2(double ksi, double ph1, double a1, double ph2) {
+        return ksi + a1 - A2 + ph1 - ph2;
     }
 
     protected abstract double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1);
