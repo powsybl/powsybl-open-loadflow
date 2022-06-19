@@ -22,9 +22,7 @@ import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnect
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
-import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -139,8 +137,7 @@ class OpenSecurityAnalysisGraphTest {
     List<List<LfContingency>> getLoadFlowContingencies(GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
 
         var matrixFactory = new DenseMatrixFactory();
-        AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), matrixFactory, connectivityFactory, Collections.emptyList());
+        AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, connectivityFactory, Collections.emptyList());
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
