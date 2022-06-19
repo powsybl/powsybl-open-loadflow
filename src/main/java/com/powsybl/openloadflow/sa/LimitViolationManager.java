@@ -199,7 +199,7 @@ public class LimitViolationManager {
         return false;
     }
 
-    protected static boolean isFlowViolation(LimitViolation limit) {
+    private static boolean isFlowViolation(LimitViolation limit) {
         return limit.getLimitType() == LimitViolationType.CURRENT || limit.getLimitType() == LimitViolationType.ACTIVE_POWER || limit.getLimitType() == LimitViolationType.APPARENT_POWER;
     }
 }
