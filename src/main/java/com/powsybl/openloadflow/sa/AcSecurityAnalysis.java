@@ -118,23 +118,22 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
-        // run pre-contingency simulation
         try (AcLoadFlowContext context = new AcLoadFlowContext(network, acParameters)) {
+            // run pre-contingency simulation
             AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
                     .run(Reporter.NO_OP);
 
+            boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+            Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new LinkedHashMap<>();
+            List<PostContingencyResult> postContingencyResults = new ArrayList<>();
             var preContingencyNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
 
-            boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-            if (preContingencyComputationOk) {
-                preContingencyNetworkResult.update();
-            }
-
-            Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolations = new LinkedHashMap<>();
-
             // only run post-contingency simulations if pre-contingency simulation is ok
-            List<PostContingencyResult> postContingencyResults = new ArrayList<>();
             if (preContingencyComputationOk) {
+                // update network result
+                preContingencyNetworkResult.update();
+
+                // detect violations
                 detectViolations(network.getBranches().stream(), network.getBuses().stream(), preContingencyLimitViolations);
 
                 // save base state for later restoration after each contingency
@@ -182,17 +181,20 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyMonitorInfos, contingency);
-
         // restart LF on post contingency equation system
         context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         AcLoadFlowResult postContingencyLoadFlowResult = new AcloadFlowEngine(context)
                 .run(Reporter.NO_OP);
+
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
         Map<Pair<String, Branch.Side>, LimitViolation> postContingencyLimitViolations = new LinkedHashMap<>();
+        var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyMonitorInfos, contingency);
+
         if (postContingencyComputationOk) {
+            // update network result
             postContingencyNetworkResult.update();
 
+            // detect violations
             detectViolations(
                     network.getBranches().stream().filter(b -> !b.isDisabled()),
                     network.getBuses().stream().filter(b -> !b.isDisabled()),
