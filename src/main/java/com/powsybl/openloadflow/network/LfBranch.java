@@ -129,7 +129,7 @@ public interface LfBranch extends LfElement {
 
     void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
-    BranchResult createBranchResult(double preContingencyP1, double branchInContingencyP1, boolean createExtension);
+    BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
 
     double computeApparentPower1();
 

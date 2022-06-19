@@ -20,8 +20,6 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.security.LimitViolationFilter;
-import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,8 +65,7 @@ class LfContingencyTest extends AbstractConverterTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
-        new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-            new LimitViolationFilter(), new DenseMatrixFactory(), connectivityFactory, Collections.emptyList());
+        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList());
 
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
@@ -94,12 +91,10 @@ class LfContingencyTest extends AbstractConverterTest {
     void testGeneratorNotFound() {
         Network network = FourSubstationsNodeBreakerFactory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
         GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
-        new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(), new DenseMatrixFactory(), connectivityFactory, Collections.emptyList());
+        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList());
 
         String generatorId = "GEN";
         Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
@@ -112,12 +107,10 @@ class LfContingencyTest extends AbstractConverterTest {
     void testLoadNotFound() {
         Network network = FourSubstationsNodeBreakerFactory.create();
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
         GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
-        new AcSecurityAnalysis(network, new DefaultLimitViolationDetector(),
-                new LimitViolationFilter(), new DenseMatrixFactory(), connectivityFactory, Collections.emptyList());
+        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList());
 
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));

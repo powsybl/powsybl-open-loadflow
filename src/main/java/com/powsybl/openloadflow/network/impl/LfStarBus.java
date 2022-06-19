@@ -26,9 +26,13 @@ public class LfStarBus extends AbstractLfBus {
         nominalV = t3wt.getRatedU0();
     }
 
+    public static String getId(String id) {
+        return id + "_BUS0";
+    }
+
     @Override
     public String getId() {
-        return t3wt.getId() + "_BUS0";
+        return getId(t3wt.getId());
     }
 
     @Override

@@ -58,22 +58,17 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
                                                          List<SecurityAnalysisInterceptor> interceptors, List<StateMonitor> stateMonitors, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(workingVariantId);
-        Objects.requireNonNull(limitViolationDetector);
-        Objects.requireNonNull(limitViolationFilter);
         Objects.requireNonNull(computationManager);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
-        Objects.requireNonNull(interceptors);
         Objects.requireNonNull(stateMonitors);
 
         AbstractSecurityAnalysis securityAnalysis;
         if (securityAnalysisParameters.getLoadFlowParameters().isDc()) {
-            securityAnalysis = new DcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityFactory, stateMonitors);
+            securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, connectivityFactory, stateMonitors);
         } else {
-            securityAnalysis = new AcSecurityAnalysis(network, limitViolationDetector, limitViolationFilter, matrixFactory, connectivityFactory, stateMonitors);
+            securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, connectivityFactory, stateMonitors);
         }
-
-        interceptors.forEach(securityAnalysis::addInterceptor);
 
         return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
     }
