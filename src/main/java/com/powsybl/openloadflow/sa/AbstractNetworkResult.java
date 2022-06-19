@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sa.monitor;
+package com.powsybl.openloadflow.sa;
 
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractMonitorInfos {
+public abstract class AbstractNetworkResult {
 
     protected final LfNetwork network;
 
@@ -35,13 +35,13 @@ public abstract class AbstractMonitorInfos {
 
     protected final List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
 
-    protected AbstractMonitorInfos(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
+    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
         this.network = Objects.requireNonNull(network);
         this.monitorIndex = Objects.requireNonNull(monitorIndex);
         this.createResultExtension = createResultExtension;
     }
 
-    protected void addMonitorInfo(StateMonitor monitor, Consumer<LfBranch> branchConsumer) {
+    protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer) {
         Objects.requireNonNull(monitor);
         if (!monitor.getBranchIds().isEmpty()) {
             network.getBranches().stream()
@@ -91,4 +91,6 @@ public abstract class AbstractMonitorInfos {
     }
 
     public abstract List<BranchResult> getBranchResults();
+
+    public abstract void update();
 }

@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sa.monitor;
+package com.powsybl.openloadflow.sa;
 
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.monitor.StateMonitor;
@@ -16,11 +16,11 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class PreContingencyMonitorInfos extends AbstractMonitorInfos {
+public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Map<String, BranchResult> branchResults = new HashMap<>();
 
-    public PreContingencyMonitorInfos(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
+    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
         super(network, monitorIndex, createResultExtension);
     }
 
@@ -30,17 +30,18 @@ public class PreContingencyMonitorInfos extends AbstractMonitorInfos {
         branchResults.clear();
     }
 
-    private void addMonitorInfo(StateMonitor monitor) {
-        addMonitorInfo(monitor, branch -> {
+    private void addResults(StateMonitor monitor) {
+        addResults(monitor, branch -> {
             var branchResult = branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension);
             branchResults.put(branch.getId(), branchResult);
         });
     }
 
+    @Override
     public void update() {
         clear();
-        addMonitorInfo(monitorIndex.getNoneStateMonitor());
-        addMonitorInfo(monitorIndex.getAllStateMonitor());
+        addResults(monitorIndex.getNoneStateMonitor());
+        addResults(monitorIndex.getAllStateMonitor());
     }
 
     public BranchResult getBranchResult(String branchId) {

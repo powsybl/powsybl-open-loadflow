@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.sa.monitor;
+package com.powsybl.openloadflow.sa;
 
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
@@ -21,16 +21,16 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class PostContingencyMonitorInfos extends AbstractMonitorInfos {
+public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
     private final List<BranchResult> branchResults = new ArrayList<>();
 
-    private final PreContingencyMonitorInfos preContingencyMonitorInfos;
+    private final PreContingencyNetworkResult preContingencyMonitorInfos;
 
     private final Contingency contingency;
 
-    public PostContingencyMonitorInfos(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension,
-                                       PreContingencyMonitorInfos preContingencyMonitorInfos, Contingency contingency) {
+    public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension,
+                                        PreContingencyNetworkResult preContingencyMonitorInfos, Contingency contingency) {
         super(network, monitorIndex, createResultExtension);
         this.preContingencyMonitorInfos = Objects.requireNonNull(preContingencyMonitorInfos);
         this.contingency = Objects.requireNonNull(contingency);
@@ -42,8 +42,8 @@ public class PostContingencyMonitorInfos extends AbstractMonitorInfos {
         branchResults.clear();
     }
 
-    public void addMonitorInfo(StateMonitor monitor) {
-        addMonitorInfo(monitor, branch -> {
+    public void addResults(StateMonitor monitor) {
+        addResults(monitor, branch -> {
             var preContingencyBranchResult = preContingencyMonitorInfos.getBranchResult(branch.getId());
             double preContingencyBranchP1 =  preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
             double preContingencyBranchOfContingencyP1 = Double.NaN;
@@ -63,12 +63,13 @@ public class PostContingencyMonitorInfos extends AbstractMonitorInfos {
         });
     }
 
+    @Override
     public void update() {
         clear();
-        addMonitorInfo(monitorIndex.getAllStateMonitor());
+        addResults(monitorIndex.getAllStateMonitor());
         StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(contingency.getId());
         if (stateMonitor != null) {
-            addMonitorInfo(stateMonitor);
+            addResults(stateMonitor);
         }
     }
 
