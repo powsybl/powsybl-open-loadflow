@@ -1285,22 +1285,22 @@ class OpenSecurityAnalysisTest {
         violationsParameters.setFlowProportionalThreshold(1.5);
         violationsParameters.setHighVoltageProportionalThreshold(0.1);
         violationsParameters.setHighVoltageAbsoluteThreshold(3);
-        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
+        assertFalse(LimitViolationManager.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
         violationsParameters.setHighVoltageProportionalThreshold(0.01); // 4.21 kV
         violationsParameters.setHighVoltageAbsoluteThreshold(5);
-        assertTrue(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
+        assertTrue(LimitViolationManager.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
 
         LimitViolation violation3 = new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 375);
         LimitViolation violation4 =  new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 371.26);
         violationsParameters.setFlowProportionalThreshold(1.5);
         violationsParameters.setLowVoltageProportionalThreshold(0.1);
         violationsParameters.setLowVoltageAbsoluteThreshold(3);
-        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
+        assertFalse(LimitViolationManager.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
         violationsParameters.setLowVoltageProportionalThreshold(0.01); // 3.75 kV
         violationsParameters.setLowVoltageAbsoluteThreshold(5);
-        assertTrue(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
+        assertTrue(LimitViolationManager.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
 
-        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation4, violationsParameters));
+        assertFalse(LimitViolationManager.violationWeakenedOrEquivalent(violation1, violation4, violationsParameters));
     }
 
     @Test
