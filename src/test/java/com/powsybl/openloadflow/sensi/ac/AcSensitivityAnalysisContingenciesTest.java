@@ -1029,18 +1029,18 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g2"));
 
-        // SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         // different sensitivity for (g2, l46) on base case and after contingency l45
-        // assertEquals(0.0667d, result.getBranchFlow1SensitivityValue("g2", "l46"), LoadFlowAssert.DELTA_POWER);
-        // assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0667d, result.getBranchFlow1SensitivityValue("g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
 
         // we open l45 at both sides
         Line l45 = network.getLine("l45");
         l45.getTerminal1().disconnect();
         l45.getTerminal2().disconnect();
 
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         // we now have as expected the sensitivity for (g2, l46) on base case and after contingency l45
         // because l45 is already open on base case
