@@ -1645,5 +1645,13 @@ class OpenSecurityAnalysisTest {
         PostContingencyResult contingencyResult = getPostContingencyResult(result, "T3wT");
         assertEquals(network.getLine("LINE_12").getTerminal2().getP(), contingencyResult.getBranchResult("LINE_12").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("LINE_12").getTerminal2().getQ(), contingencyResult.getBranchResult("LINE_12").getQ2(), LoadFlowAssert.DELTA_POWER);
+
+        network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().connect();
+        network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().connect();
+        network.getThreeWindingsTransformer("T3wT").getLeg3().getTerminal().connect();
+        List<Contingency> contingencies2 = List.of(new Contingency("T3wT2", new ThreeWindingsTransformerContingency("T3wT2")));
+        var e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies2, monitors, securityAnalysisParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Three windings transformer 'T3wT2' not found in the network", e.getCause().getMessage());
     }
 }
