@@ -89,7 +89,6 @@ public class PropagatedContingency {
         this.loadIdsToShift = Objects.requireNonNull(loadIdsToShift);
         this.shuntIdsToShift = Objects.requireNonNull(shuntIdsToShift);
 
-        // WTF?????
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
         }
@@ -109,15 +108,18 @@ public class PropagatedContingency {
     }
 
     public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies,
-                                                                               boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+                                                                               boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
+                                                                               boolean contingencyPropagation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false, slackDistributionOnConformLoad, hvdcAcEmulation);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false,
+                    slackDistributionOnConformLoad, hvdcAcEmulation, contingencyPropagation);
             Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
             if (coupler.isEmpty()) {
                 propagatedContingencies.add(propagatedContingency);
             } else {
+                // FIXME.
                 // Sensitivity analysis works in bus view, it cannot deal (yet)  with contingencies whose propagation encounters a coupler
                 LOGGER.warn("Propagated contingency '{}' not processed: coupler '{}' has been encountered while propagating the contingency",
                     contingency.getId(), coupler.get().getId());
@@ -133,7 +135,7 @@ public class PropagatedContingency {
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad, hvdcAcEmulation);
+                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad, hvdcAcEmulation, true);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
@@ -141,7 +143,7 @@ public class PropagatedContingency {
     }
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn,
-                                                boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+                                                boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation, boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new LinkedHashSet<>();
@@ -158,9 +160,18 @@ public class PropagatedContingency {
                 case BRANCH:
                 case LINE:
                 case TWO_WINDINGS_TRANSFORMER:
-                    // branch check is done inside tripping
-                    ContingencyTripping.createBranchTripping(network, element.getId())
-                        .traverse(switchesToOpen, terminalsToDisconnect);
+                    if (contingencyPropagation) {
+                        // branch check is done inside tripping
+                        ContingencyTripping.createBranchTripping(network, element.getId())
+                                .traverse(switchesToOpen, terminalsToDisconnect);
+                    } else {
+                        Branch<?> branch = network.getBranch(element.getId());
+                        if (branch == null) {
+                            throw new PowsyblException("Branch '" + element.getId() + "' not found in the network");
+                        }
+                        terminalsToDisconnect.add(branch.getTerminal1());
+                        terminalsToDisconnect.add(branch.getTerminal2());
+                    }
                     break;
                 case HVDC_LINE:
                     HvdcLine hvdcLine = network.getHvdcLine(element.getId());
@@ -187,9 +198,17 @@ public class PropagatedContingency {
                     }
                     break;
                 case DANGLING_LINE:
-                    // dangling line check is done inside tripping
-                    ContingencyTripping.createDanglingLineTripping(network, element.getId())
-                        .traverse(switchesToOpen, terminalsToDisconnect);
+                    if (contingencyPropagation) {
+                        // dangling line check is done inside tripping
+                        ContingencyTripping.createDanglingLineTripping(network, element.getId())
+                                .traverse(switchesToOpen, terminalsToDisconnect);
+                    } else {
+                        DanglingLine danglingLine = network.getDanglingLine(element.getId());
+                        if (danglingLine == null) {
+                            throw new PowsyblException("Dangling line '" + element.getId() + "' not found in the network");
+                        }
+                        terminalsToDisconnect.add(danglingLine.getTerminal());
+                    }
                     break;
                 case GENERATOR:
                     Generator generator = network.getGenerator(element.getId());

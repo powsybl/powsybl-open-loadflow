@@ -17,6 +17,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
+import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
@@ -593,6 +594,9 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testContingencyPropagationLfSwitch() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        OpenSensitivityAnalysisParameters sensiParametersExt = new OpenSensitivityAnalysisParameters();
+        sensiParametersExt.setContingencyPropagation(true);
+        sensiParameters.addExtension(OpenSensitivityAnalysisParameters.class, sensiParametersExt);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
         runLf(network, sensiParameters.getLoadFlowParameters());
@@ -1025,6 +1029,10 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()), network.getBranchStream().collect(Collectors.toList()));
         SensitivityAnalysisParameters sensiParameters = createParameters(false);
         sensiParameters.getLoadFlowParameters().setDistributedSlack(false);
+        OpenSensitivityAnalysisParameters sensiParametersExt = new OpenSensitivityAnalysisParameters();
+        sensiParametersExt.setContingencyPropagation(true);
+        sensiParameters.addExtension(OpenSensitivityAnalysisParameters.class, sensiParametersExt);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        // FIXME: continue work.
     }
 }

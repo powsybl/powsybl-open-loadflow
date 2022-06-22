@@ -153,13 +153,14 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
                         "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
 
-                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc());
-
                 LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
                 OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
+
+                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies,
+                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc(),
+                        sensitivityAnalysisParametersExt.isContingencyPropagation());
 
                 SensitivityFactorReader decoratedFactorReader = factorReader;
 
