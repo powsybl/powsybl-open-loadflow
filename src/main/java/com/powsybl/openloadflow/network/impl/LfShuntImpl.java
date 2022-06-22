@@ -246,13 +246,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         if (!voltageControlCapability) {
             for (ShuntCompensator sc : shuntCompensators) {
                 sc.getTerminal().setQ(-sc.getB() * vSquare);
-                sc.getTerminal().setP(sc.getG() * vSquare);
             }
         } else {
             for (int i = 0; i < shuntCompensators.size(); i++) {
                 ShuntCompensator sc = shuntCompensators.get(i);
                 sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / zb);
-                sc.getTerminal().setP(controllers.get(i).getG() * vSquare / zb);
                 sc.setSectionCount(controllers.get(i).getPosition());
             }
         }
