@@ -15,6 +15,7 @@ import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +44,7 @@ public class PropagatedContingency {
 
     private final Map<String, PowerShift> loadIdsToShift;
 
-    private final Map<String, Double> shuntIdsToShift;
+    private final Map<String, Pair<Double, Double>> shuntIdsToShift;
 
     public Contingency getContingency() {
         return contingency;
@@ -73,13 +74,13 @@ public class PropagatedContingency {
         return loadIdsToShift;
     }
 
-    public Map<String, Double> getShuntIdsToShift() {
+    public Map<String, Pair<Double, Double>> getShuntIdsToShift() {
         return shuntIdsToShift;
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
                                  Set<Switch> switchesToOpen, Set<String> generatorIdsToLose,
-                                 Map<String, PowerShift> loadIdsToShift, Map<String, Double> shuntIdsToShift) {
+                                 Map<String, PowerShift> loadIdsToShift, Map<String, Pair<Double, Double>> shuntIdsToShift) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
@@ -276,7 +277,7 @@ public class PropagatedContingency {
         // then process injection power shift
         Set<String> generatorIdsToLose = new HashSet<>();
         Map<String, PowerShift> loadIdsToShift = new HashMap<>();
-        Map<String, Double> shuntIdsToShift = new HashMap<>();
+        Map<String, Pair<Double, Double>> shuntIdsToShift = new HashMap<>();
         for (Generator generator : generatorsToLose) {
             generatorIdsToLose.add(generator.getId());
         }
@@ -303,7 +304,7 @@ public class PropagatedContingency {
         }
         for (ShuntCompensator shunt : shuntsToLose) {
             double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
-            shuntIdsToShift.put(shunt.getId(), shunt.getB() * nominalV * nominalV / PerUnit.SB);
+            shuntIdsToShift.put(shunt.getId(), Pair.of(shunt.getB() * nominalV * nominalV / PerUnit.SB, -shunt.getG() * nominalV * nominalV / PerUnit.SB));
         }
 
         return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen,
@@ -349,12 +350,12 @@ public class PropagatedContingency {
         // reset connectivity to discard triggered branches
         connectivity.reset();
 
-        Map<LfShunt, Double> shunts = new HashMap<>(1);
+        Map<LfShunt, Pair<Double, Double>> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {
             LfShunt shunt = network.getShuntById(e.getKey());
             if (shunt != null) { // could be in another component
-                double oldB = shunts.getOrDefault(shunt, 0d);
-                shunts.put(shunt, oldB + e.getValue());
+                Pair<Double, Double> oldBG = shunts.getOrDefault(shunt, Pair.of(0d, 0d));
+                shunts.put(shunt, Pair.of(oldBG.getLeft() + e.getValue().getLeft(), oldBG.getRight() + e.getValue().getRight()));
             }
         }
 
