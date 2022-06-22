@@ -1631,7 +1631,6 @@ class OpenSecurityAnalysisTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDistributedSlack(false);
         setSlackBusId(parameters, "BUS_1");
-        parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(1.);
         securityAnalysisParameters.setLoadFlowParameters(parameters);
         List<Contingency> contingencies = List.of(new Contingency("T3wT", new ThreeWindingsTransformerContingency("T3wT")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
