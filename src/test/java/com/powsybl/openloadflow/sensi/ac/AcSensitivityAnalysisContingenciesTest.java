@@ -1017,4 +1017,14 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, result.getBusVoltageSensitivityValue("l13+l23", "g3", "b4"));
         assertEquals(Double.NaN, result.getBusVoltageFunctionReferenceValue("l13+l23", "b4"));
     }
+
+    @Test
+    void testNodeBreakerNetwork() {
+        Network network = NodeBreakerNetworkFactory.create();
+        List<Contingency> contingencies = network.getBranchStream().map(branch -> new Contingency(branch.getId(), new BranchContingency(branch.getId()))).collect(Collectors.toList());
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()), network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisParameters sensiParameters = createParameters(false);
+        sensiParameters.getLoadFlowParameters().setDistributedSlack(false);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+    }
 }

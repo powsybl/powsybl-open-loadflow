@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -24,6 +25,7 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -699,7 +701,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
             if (!contingency.getSwitchesToOpen().isEmpty()) {
-                throw new PowsyblException("Switch opening not supported in sensitivity analysis");
+                // throw new PowsyblException("Switch opening not supported in sensitivity analysis");
             }
 
             // check ID are unique because, later contingency are indexed by their IDs
@@ -1093,5 +1095,20 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
      */
     protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double unscaleFunction(LfSensitivityFactor<V, E> factor, double value) {
         return value * getFunctionBaseValue(factor);
+    }
+
+    List<LfNetwork> createNetworks(Network network, Set<Switch> allSwitchesToOpen, LfNetworkParameters networkParameters, Reporter reporter) {
+        List<LfNetwork> lfNetworks;
+        String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
+        network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
+        try {
+            network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
+                    .forEach(sw -> sw.setRetained(false));
+            allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
+            lfNetworks = Networks.load(network, networkParameters, reporter);
+        } finally {
+            network.getVariantManager().removeVariant(tmpVariantId);
+        }
+        return lfNetworks;
     }
 }

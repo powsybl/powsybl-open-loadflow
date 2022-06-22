@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -21,7 +22,6 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -197,7 +197,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParameters.isShuntCompensatorVoltageControlOn(),
                                                                           !lfParameters.isNoGeneratorReactiveLimits(),
                                                                           lfParameters.isHvdcAcEmulation());
-        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
+
+        // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
+        Set<Switch> allSwitchesToOpen = new HashSet<>();
+        for (PropagatedContingency contingency : contingencies) {
+            allSwitchesToOpen.addAll(contingency.getSwitchesToOpen());
+        }
+        // create networks including all necessary switches
+        List<LfNetwork> lfNetworks = createNetworks(network, allSwitchesToOpen, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);

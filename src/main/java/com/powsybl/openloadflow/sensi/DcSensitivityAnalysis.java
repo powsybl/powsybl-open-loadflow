@@ -662,7 +662,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                           false,
                                                                           false,
                                                                           false);
-        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
+        // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
+        Set<Switch> allSwitchesToOpen = new HashSet<>();
+        for (PropagatedContingency contingency : contingencies) {
+            allSwitchesToOpen.addAll(contingency.getSwitchesToOpen());
+        }
+        // create networks including all necessary switches
+        List<LfNetwork> lfNetworks = createNetworks(network, allSwitchesToOpen, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
