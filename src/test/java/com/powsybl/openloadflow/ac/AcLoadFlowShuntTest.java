@@ -455,21 +455,6 @@ class AcLoadFlowShuntTest {
 
     @Test
     void testGComponent() {
-        // Reference test without G component on shunt
-        shunt.setSectionCount(1);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-        assertActivePowerEquals(101.366, l1.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(-101.299, l1.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(-2.166, l1.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(2.368, l1.getTerminal(Branch.Side.TWO));
-        assertActivePowerEquals(0, l2.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(0.153, l2.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(152.826, l2.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(-152.368, l2.getTerminal(Branch.Side.TWO));
-        //assertActivePowerEquals(0, shunt.getTerminal());
-        assertReactivePowerEquals(-152.826, shunt.getTerminal());
-
         // Test with G component on shunt
         Network networkWithG = Network.create("svc", "testG");
         Substation s1G = networkWithG.newSubstation()

@@ -56,7 +56,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         public Controller(String id, List<Double> sectionsB, List<Double> sectionsG, int position) {
             this.id = Objects.requireNonNull(id);
             this.sectionsB = Objects.requireNonNull(sectionsB);
-            this.sectionsG = Objects.requireNonNull(sectionsB);
+            this.sectionsG = Objects.requireNonNull(sectionsG);
             this.position = position;
             double bMin = Math.min(sectionsB.get(0), sectionsB.get(sectionsB.size() - 1));
             double bMax = Math.max(sectionsB.get(0), sectionsB.get(sectionsB.size() - 1));
@@ -171,7 +171,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public void setG(double b) {
+    public void setG(double g) {
         this.g = g;
     }
 
