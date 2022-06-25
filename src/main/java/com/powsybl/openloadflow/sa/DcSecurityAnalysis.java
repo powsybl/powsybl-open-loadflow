@@ -119,7 +119,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             }
             preContingencyLimitViolationsMap.forEach((subjectSideId, preContingencyViolation) -> {
                 LimitViolation postContingencyViolation = violations.get(subjectSideId);
-                if (violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation, securityAnalysisParameters.getIncreasedViolationsParameters())) {
+                if (LimitViolationManager.violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation, securityAnalysisParameters.getIncreasedViolationsParameters())) {
                     violations.remove(subjectSideId);
                 }
             });

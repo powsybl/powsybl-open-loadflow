@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -1285,22 +1286,22 @@ class OpenSecurityAnalysisTest {
         violationsParameters.setFlowProportionalThreshold(1.5);
         violationsParameters.setHighVoltageProportionalThreshold(0.1);
         violationsParameters.setHighVoltageAbsoluteThreshold(3);
-        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
+        assertFalse(LimitViolationManager.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
         violationsParameters.setHighVoltageProportionalThreshold(0.01); // 4.21 kV
         violationsParameters.setHighVoltageAbsoluteThreshold(5);
-        assertTrue(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
+        assertTrue(LimitViolationManager.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
 
         LimitViolation violation3 = new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 375);
         LimitViolation violation4 =  new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 371.26);
         violationsParameters.setFlowProportionalThreshold(1.5);
         violationsParameters.setLowVoltageProportionalThreshold(0.1);
         violationsParameters.setLowVoltageAbsoluteThreshold(3);
-        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
+        assertFalse(LimitViolationManager.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
         violationsParameters.setLowVoltageProportionalThreshold(0.01); // 3.75 kV
         violationsParameters.setLowVoltageAbsoluteThreshold(5);
-        assertTrue(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
+        assertTrue(LimitViolationManager.violationWeakenedOrEquivalent(violation3, violation4, violationsParameters));
 
-        assertFalse(AbstractSecurityAnalysis.violationWeakenedOrEquivalent(violation1, violation4, violationsParameters));
+        assertFalse(LimitViolationManager.violationWeakenedOrEquivalent(violation1, violation4, violationsParameters));
     }
 
     @Test
@@ -1621,5 +1622,36 @@ class OpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
+    }
+
+    @Test
+    void testThreeWindingsTransformerContingency() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "BUS_1");
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        List<Contingency> contingencies = List.of(new Contingency("T3wT", new ThreeWindingsTransformerContingency("T3wT")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().disconnect();
+        network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().disconnect();
+        network.getThreeWindingsTransformer("T3wT").getLeg3().getTerminal().disconnect();
+        setSlackBusId(parameters, "VL_1_0");
+        LoadFlow.run(network, parameters);
+
+        PostContingencyResult contingencyResult = getPostContingencyResult(result, "T3wT");
+        assertEquals(network.getLine("LINE_12").getTerminal2().getP(), contingencyResult.getBranchResult("LINE_12").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("LINE_12").getTerminal2().getQ(), contingencyResult.getBranchResult("LINE_12").getQ2(), LoadFlowAssert.DELTA_POWER);
+
+        network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().connect();
+        network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().connect();
+        network.getThreeWindingsTransformer("T3wT").getLeg3().getTerminal().connect();
+        List<Contingency> contingencies2 = List.of(new Contingency("T3wT2", new ThreeWindingsTransformerContingency("T3wT2")));
+        var e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies2, monitors, securityAnalysisParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Three windings transformer 'T3wT2' not found in the network", e.getCause().getMessage());
     }
 }
