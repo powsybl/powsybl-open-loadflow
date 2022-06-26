@@ -269,10 +269,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             NetworkState networkState = NetworkState.save(lfNetwork);
 
-            contingencies.stream().forEach(contingency -> {
-                Optional<LfContingency> optionalLfContingency = contingency.toLfContingency(lfNetwork, false);
-                if (optionalLfContingency.isPresent()) {
-                    LfContingency lfContingency = optionalLfContingency.get();
+            contingencies.forEach(contingency -> contingency.toLfContingency(lfNetwork, false)
+                .ifPresentOrElse(lfContingency -> {
                     List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfContingency.getId());
                     contingencyFactors.forEach(lfFactor -> {
                         lfFactor.setSensitivityValuePredefinedResult(null);
@@ -323,11 +321,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage, hasMultiVariables);
 
                     networkState.restore();
-                } else {
+                }, () ->
                     // It means that the contingency has no impact.
-                    calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingency.getIndex(), valueWriter);
-                }
-            });
+                    calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingency.getIndex(), valueWriter)
+                ));
         }
     }
 }
