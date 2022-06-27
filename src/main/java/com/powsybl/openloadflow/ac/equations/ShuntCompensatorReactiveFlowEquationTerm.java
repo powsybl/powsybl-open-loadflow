@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
@@ -19,21 +17,14 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
+public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompensatorEquationTerm {
 
-    private final LfShunt shunt;
-
-    private final Variable<AcVariableType> vVar;
-
-    private Variable<AcVariableType> bVar = null;
+    private Variable<AcVariableType> bVar;
 
     private final List<Variable<AcVariableType>> variables;
 
     public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet, boolean deriveB) {
-        this.shunt = Objects.requireNonNull(shunt);
-        Objects.requireNonNull(bus);
-        Objects.requireNonNull(variableSet);
-        vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
+        super(shunt, bus, variableSet);
         if (deriveB) {
             bVar = variableSet.getVariable(shunt.getNum(), AcVariableType.SHUNT_B);
             variables = List.of(vVar, bVar);
@@ -43,22 +34,8 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractNamedEquat
     }
 
     @Override
-    public ElementType getElementType() {
-        return ElementType.SHUNT_COMPENSATOR;
-    }
-
-    @Override
-    public int getElementNum() {
-        return shunt.getNum();
-    }
-
-    @Override
     public List<Variable<AcVariableType>> getVariables() {
         return variables;
-    }
-
-    private double v() {
-        return sv.get(vVar.getRow());
     }
 
     private double b() {
