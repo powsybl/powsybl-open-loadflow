@@ -10,12 +10,14 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -32,7 +34,7 @@ public class LfContingency {
 
     private final Set<LfHvdc> disabledHvdcs;
 
-    private final Map<LfShunt, Pair<Double, Double>> shuntsShift;
+    private final Map<LfShunt, AdmittanceShift> shuntsShift;
 
     private final Map<LfBus, PowerShift> busesLoadShift;
 
@@ -40,7 +42,7 @@ public class LfContingency {
 
     private double activePowerLoss = 0;
 
-    public LfContingency(String id, int index, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Map<LfShunt, Pair<Double, Double>> shuntsShift,
+    public LfContingency(String id, int index, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Map<LfShunt, AdmittanceShift> shuntsShift,
                          Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> lostGenerators, Set<LfHvdc> disabledHvdcs) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
@@ -77,7 +79,7 @@ public class LfContingency {
         return disabledBranches;
     }
 
-    public Map<LfShunt, Pair<Double, Double>> getShuntsShift() {
+    public Map<LfShunt, AdmittanceShift> getShuntsShift() {
         return shuntsShift;
     }
 
@@ -105,8 +107,8 @@ public class LfContingency {
         }
         for (var e : shuntsShift.entrySet()) {
             LfShunt shunt = e.getKey();
-            shunt.setB(shunt.getB() - e.getValue().getLeft());
-            shunt.setG(shunt.getG() - e.getValue().getRight());
+            shunt.setG(shunt.getG() - e.getValue().getG());
+            shunt.setB(shunt.getB() - e.getValue().getB());
         }
         for (var e : busesLoadShift.entrySet()) {
             LfBus bus = e.getKey();
