@@ -1017,4 +1017,34 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(Double.NaN, result.getBusVoltageSensitivityValue("l13+l23", "g3", "b4"));
         assertEquals(Double.NaN, result.getBusVoltageFunctionReferenceValue("l13+l23", "b4"));
     }
+
+    @Test
+    void testContingencyWithDisconnectedBranch() {
+        Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<Contingency> contingencies = List.of(new Contingency("l45", new BranchContingency("l45")));
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g2"));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        // different sensitivity for (g2, l46) on base case and after contingency l45
+        assertEquals(0.0667d, result.getBranchFlow1SensitivityValue("g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+
+        // we open l45 at both sides
+        Line l45 = network.getLine("l45");
+        l45.getTerminal1().disconnect();
+        l45.getTerminal2().disconnect();
+
+        result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        // we now have as expected the sensitivity for (g2, l46) on base case and after contingency l45
+        // because l45 is already open on base case
+        assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+    }
 }
