@@ -223,6 +223,11 @@ public class PropagatedContingency {
                     }
                     switchesToOpen.add(aSwitch);
                     break;
+                case THREE_WINDINGS_TRANSFORMER:
+                    // three windings transformer check is done inside tripping
+                    ContingencyTripping.createThreeWindingsTransformerTripping(network, element.getId())
+                            .traverse(switchesToOpen, terminalsToDisconnect);
+                    break;
                 default:
                     throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
             }
@@ -266,6 +271,12 @@ public class PropagatedContingency {
 
                 case BUSBAR_SECTION:
                     // we don't care
+                    break;
+
+                case THREE_WINDINGS_TRANSFORMER:
+                    branchIdsToOpen.add(connectable.getId() + "_leg_1");
+                    branchIdsToOpen.add(connectable.getId() + "_leg_2");
+                    branchIdsToOpen.add(connectable.getId() + "_leg_3");
                     break;
 
                 default:
