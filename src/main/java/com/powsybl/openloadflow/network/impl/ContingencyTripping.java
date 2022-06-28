@@ -64,6 +64,18 @@ public class ContingencyTripping {
         return new ContingencyTripping(danglingLine.getTerminal());
     }
 
+    public static ContingencyTripping createThreeWindingsTransformerTripping(Network network, String twtId) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(twtId);
+
+        ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(twtId);
+        if (twt == null) {
+            throw new PowsyblException("Three windings transformer '" + twtId + "' not found in the network");
+        }
+
+        return new ContingencyTripping(List.of(twt.getLeg1().getTerminal(), twt.getLeg2().getTerminal(), twt.getLeg3().getTerminal()));
+    }
+
     public void traverse(Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect) {
         Set<Terminal> traversedTerminals = new HashSet<>();
         terminals.forEach(t -> traverseFromTerminal(t, switchesToOpen, traversedTerminals));

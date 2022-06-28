@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -1621,5 +1622,36 @@ class OpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(2).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(3).getLimitViolationsResult().getLimitViolations().size());
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
+    }
+
+    @Test
+    void testThreeWindingsTransformerContingency() {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "BUS_1");
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        List<Contingency> contingencies = List.of(new Contingency("T3wT", new ThreeWindingsTransformerContingency("T3wT")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().disconnect();
+        network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().disconnect();
+        network.getThreeWindingsTransformer("T3wT").getLeg3().getTerminal().disconnect();
+        setSlackBusId(parameters, "VL_1_0");
+        LoadFlow.run(network, parameters);
+
+        PostContingencyResult contingencyResult = getPostContingencyResult(result, "T3wT");
+        assertEquals(network.getLine("LINE_12").getTerminal2().getP(), contingencyResult.getBranchResult("LINE_12").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("LINE_12").getTerminal2().getQ(), contingencyResult.getBranchResult("LINE_12").getQ2(), LoadFlowAssert.DELTA_POWER);
+
+        network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().connect();
+        network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().connect();
+        network.getThreeWindingsTransformer("T3wT").getLeg3().getTerminal().connect();
+        List<Contingency> contingencies2 = List.of(new Contingency("T3wT2", new ThreeWindingsTransformerContingency("T3wT2")));
+        var e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies2, monitors, securityAnalysisParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Three windings transformer 'T3wT2' not found in the network", e.getCause().getMessage());
     }
 }
