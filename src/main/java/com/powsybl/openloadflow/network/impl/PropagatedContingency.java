@@ -114,14 +114,7 @@ public class PropagatedContingency {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false,
                     slackDistributionOnConformLoad, hvdcAcEmulation, false);
-            Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
-            if (coupler.isEmpty()) {
-                propagatedContingencies.add(propagatedContingency);
-            } else {
-                // Sensitivity analysis works in bus view, it cannot deal (yet)  with contingencies whose propagation encounters a coupler
-                LOGGER.warn("Propagated contingency '{}' not processed: coupler '{}' has been encountered while propagating the contingency",
-                    contingency.getId(), coupler.get().getId());
-            }
+            propagatedContingencies.add(propagatedContingency);
         }
         return propagatedContingencies;
     }
@@ -358,18 +351,6 @@ public class PropagatedContingency {
 
         return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen,
                                          generatorIdsToLose, loadIdsToShift, shuntIdsToShift);
-    }
-
-    private static boolean isCoupler(Switch s) {
-        VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
-        Terminal terminal1 = nbv.getTerminal1(s.getId());
-        Terminal terminal2 = nbv.getTerminal2(s.getId());
-        if (terminal1 == null || terminal2 == null) {
-            return false; // FIXME: this can be a coupler, a traverser could be used to detect it
-        }
-        Connectable<?> c1 = terminal1.getConnectable();
-        Connectable<?> c2 = terminal2.getConnectable();
-        return c1 != c2 && c1.getType() == IdentifiableType.BUSBAR_SECTION && c2.getType() == IdentifiableType.BUSBAR_SECTION;
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network, boolean useSmallComponents) {
