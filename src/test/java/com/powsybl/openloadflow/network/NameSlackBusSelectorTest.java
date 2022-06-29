@@ -50,4 +50,35 @@ class NameSlackBusSelectorTest {
         assertThrows(PowsyblException.class, () -> lfNetwork.getSlackBus(),
             "Slack bus '???' not found");
     }
+
+    @Test
+    void voltageLevelIdTest() {
+        List<LfNetwork> lfNetworks = Networks.load(network, new NameSlackBusSelector("VLGEN"));
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertEquals("VLGEN_0", lfNetwork.getSlackBus().getId());
+
+        // test with multiple buses
+        var vlgen = network.getVoltageLevel("VLGEN");
+        vlgen.getBusBreakerView().newBus()
+                .setId("NEW_BUS")
+                .add();
+        vlgen.getBusBreakerView().newSwitch()
+                .setId("NEW_SWITCH")
+                .setBus1("NGEN")
+                .setBus2("NEW_BUS")
+                .setOpen(false)
+                .add();
+        vlgen.newLoad()
+                .setId("NEW_LOAD")
+                .setConnectableBus("NEW_BUS")
+                .setBus("NEW_BUS")
+                .setP0(10)
+                .setQ0(10)
+                .add();
+        LfNetworkParameters parameters = new LfNetworkParameters(new NameSlackBusSelector("VLGEN"))
+                .setBreakers(true);
+        lfNetworks = Networks.load(network, parameters);
+        lfNetwork = lfNetworks.get(0);
+        assertEquals("NGEN", lfNetwork.getSlackBus().getId());
+    }
 }
