@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
  */
 public class NameSlackBusSelector implements SlackBusSelector {
 
+    private static final String SELECTION_METHOD = "Parameter bus";
+
     private final List<String> busesOrVoltageLevelsIds;
 
     private final SlackBusSelector secondLevelSelector = new MostMeshedSlackBusSelector();
@@ -40,12 +42,17 @@ public class NameSlackBusSelector implements SlackBusSelector {
             // first try to search as a bus ID
             LfBus slackBus = busesById.get(busOrVoltageLevelId);
             if (slackBus != null) {
-                return new SelectedSlackBus(slackBus, "Parameter bus");
+                return new SelectedSlackBus(slackBus, SELECTION_METHOD);
             }
             // then as a voltage level ID
             var slackBusCandidates = busesByVoltageLevelId.get(busOrVoltageLevelId);
             if (slackBusCandidates != null) {
-                return secondLevelSelector.select(slackBusCandidates);
+                if (slackBusCandidates.size() == 1) {
+                    return new SelectedSlackBus(slackBusCandidates.get(0), SELECTION_METHOD);
+                } else {
+                    var selectedSlackBus = secondLevelSelector.select(slackBusCandidates);
+                    return new SelectedSlackBus(selectedSlackBus.getBus(), SELECTION_METHOD + " + " + selectedSlackBus.getSelectionMethod());
+                }
             }
         }
         throw new PowsyblException("None of the buses or voltage levels " + busesOrVoltageLevelsIds + " have been found");

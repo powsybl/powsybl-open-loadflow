@@ -31,7 +31,7 @@ public class LfNetworkParameters {
 
     private final boolean twtSplitShuntAdmittance;
 
-    private final boolean breakers;
+    private boolean breakers;
 
     private final double plausibleActivePowerLimit;
 
@@ -126,6 +126,11 @@ public class LfNetworkParameters {
 
     public boolean isBreakers() {
         return breakers;
+    }
+
+    public LfNetworkParameters setBreakers(boolean breakers) {
+        this.breakers = breakers;
+        return this;
     }
 
     public double getPlausibleActivePowerLimit() {
