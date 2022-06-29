@@ -15,8 +15,6 @@ import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,7 +25,7 @@ import java.util.stream.Collectors;
  */
 public class PropagatedContingency {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PropagatedContingency.class);
+    private static final String NOT_FOUND_IN_NETWORK_ERROR_MESSAGE = "not found in the network";
 
     private final Contingency contingency;
 
@@ -155,7 +153,7 @@ public class PropagatedContingency {
                 case TWO_WINDINGS_TRANSFORMER:
                     Branch<?> branch = network.getBranch(element.getId());
                     if (branch == null) {
-                        throw new PowsyblException("Branch '" + element.getId() + "' not found in the network");
+                        throw new PowsyblException("Branch '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
                     }
                     if (contingencyPropagation) {
                         ContingencyTripping.createBranchTripping(network, branch)
@@ -168,7 +166,7 @@ public class PropagatedContingency {
                 case HVDC_LINE:
                     HvdcLine hvdcLine = network.getHvdcLine(element.getId());
                     if (hvdcLine == null) {
-                        throw new PowsyblException("HVDC line '" + element.getId() + "' not found in the network");
+                        throw new PowsyblException("HVDC line '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
                     }
                     HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
                     if (control != null && control.isEnabled() && hvdcAcEmulation) {
@@ -192,7 +190,7 @@ public class PropagatedContingency {
                 case DANGLING_LINE:
                     DanglingLine danglingLine = network.getDanglingLine(element.getId());
                     if (danglingLine == null) {
-                        throw new PowsyblException("Dangling line '" + element.getId() + "' not found in the network");
+                        throw new PowsyblException("Dangling line '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
                     }
                     if (contingencyPropagation) {
                         ContingencyTripping.createInjectionTripping(network, danglingLine)
@@ -204,7 +202,7 @@ public class PropagatedContingency {
                 case GENERATOR:
                     Generator generator = network.getGenerator(element.getId());
                     if (generator == null) {
-                        throw new PowsyblException("Generator '" + element.getId() + "' not found in the network");
+                        throw new PowsyblException("Generator '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
                     }
                     if (contingencyPropagation) {
                         ContingencyTripping.createInjectionTripping(network, generator)
@@ -216,7 +214,7 @@ public class PropagatedContingency {
                 case LOAD:
                     Load load = network.getLoad(element.getId());
                     if (load == null) {
-                        throw new PowsyblException("Load '" + element.getId() + "' not found in the network");
+                        throw new PowsyblException("Load '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
                     }
                     if (contingencyPropagation) {
                         ContingencyTripping.createInjectionTripping(network, load)
@@ -228,7 +226,7 @@ public class PropagatedContingency {
                 case SHUNT_COMPENSATOR:
                     ShuntCompensator shuntCompensator = network.getShuntCompensator(element.getId());
                     if (shuntCompensator == null) {
-                        throw new PowsyblException("Shunt compensator '" + element.getId() + "' not found in the network");
+                        throw new PowsyblException("Shunt compensator '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
                     }
                     if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
@@ -243,14 +241,14 @@ public class PropagatedContingency {
                 case SWITCH:
                     Switch aSwitch = network.getSwitch(element.getId());
                     if (aSwitch == null) {
-                        throw new PowsyblException("Switch '" + element.getId() + "' not found in the network");
+                        throw new PowsyblException("Switch '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
                     }
                     switchesToOpen.add(aSwitch);
                     break;
                 case THREE_WINDINGS_TRANSFORMER:
                     ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(element.getId());
                     if (twt == null) {
-                        throw new PowsyblException("Three windings transformer '" + element.getId() + "' not found in the network");
+                        throw new PowsyblException("Three windings transformer '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
                     }
                     if (contingencyPropagation) {
                         ContingencyTripping.createThreeWindingsTransformerTripping(network, twt)
