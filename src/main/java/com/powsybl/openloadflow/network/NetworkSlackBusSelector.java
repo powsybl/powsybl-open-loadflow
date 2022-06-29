@@ -44,6 +44,10 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
                 if (bus != null) {
                     slackBusIds.add(bus.getId());
                 }
+                bus = slackTerminal.getTerminal().getBusBreakerView().getBus();
+                if (bus != null) {
+                    slackBusIds.add(bus.getId());
+                }
             }
         }
     }
