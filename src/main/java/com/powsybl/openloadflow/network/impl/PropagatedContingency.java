@@ -89,7 +89,6 @@ public class PropagatedContingency {
         this.loadIdsToShift = Objects.requireNonNull(loadIdsToShift);
         this.shuntIdsToShift = Objects.requireNonNull(shuntIdsToShift);
 
-        // WTF?????
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
         }
@@ -113,7 +112,8 @@ public class PropagatedContingency {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false, slackDistributionOnConformLoad, hvdcAcEmulation);
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false,
+                    slackDistributionOnConformLoad, hvdcAcEmulation, false);
             Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
             if (coupler.isEmpty()) {
                 propagatedContingencies.add(propagatedContingency);
@@ -128,12 +128,13 @@ public class PropagatedContingency {
 
     public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies,
                                                                             Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
-                                                                            boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+                                                                            boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
+                                                                            boolean contingencyPropagation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad, hvdcAcEmulation);
+                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad, hvdcAcEmulation, contingencyPropagation);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
@@ -141,7 +142,8 @@ public class PropagatedContingency {
     }
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn,
-                                                boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+                                                boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
+                                                boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
         Set<String> branchIdsToOpen = new LinkedHashSet<>();
@@ -158,9 +160,17 @@ public class PropagatedContingency {
                 case BRANCH:
                 case LINE:
                 case TWO_WINDINGS_TRANSFORMER:
-                    // branch check is done inside tripping
-                    ContingencyTripping.createBranchTripping(network, element.getId())
-                        .traverse(switchesToOpen, terminalsToDisconnect);
+                    Branch<?> branch = network.getBranch(element.getId());
+                    if (branch == null) {
+                        throw new PowsyblException("Branch '" + element.getId() + "' not found in the network");
+                    }
+                    if (contingencyPropagation) {
+                        ContingencyTripping.createBranchTripping(network, branch)
+                                .traverse(switchesToOpen, terminalsToDisconnect);
+                    } else {
+                        terminalsToDisconnect.add(branch.getTerminal1());
+                        terminalsToDisconnect.add(branch.getTerminal2());
+                    }
                     break;
                 case HVDC_LINE:
                     HvdcLine hvdcLine = network.getHvdcLine(element.getId());
@@ -187,23 +197,40 @@ public class PropagatedContingency {
                     }
                     break;
                 case DANGLING_LINE:
-                    // dangling line check is done inside tripping
-                    ContingencyTripping.createDanglingLineTripping(network, element.getId())
-                        .traverse(switchesToOpen, terminalsToDisconnect);
+                    DanglingLine danglingLine = network.getDanglingLine(element.getId());
+                    if (danglingLine == null) {
+                        throw new PowsyblException("Dangling line '" + element.getId() + "' not found in the network");
+                    }
+                    if (contingencyPropagation) {
+                        ContingencyTripping.createInjectionTripping(network, danglingLine)
+                                .traverse(switchesToOpen, terminalsToDisconnect);
+                    } else {
+                        terminalsToDisconnect.add(danglingLine.getTerminal());
+                    }
                     break;
                 case GENERATOR:
                     Generator generator = network.getGenerator(element.getId());
                     if (generator == null) {
                         throw new PowsyblException("Generator '" + element.getId() + "' not found in the network");
                     }
-                    generatorsToLose.add(generator);
+                    if (contingencyPropagation) {
+                        ContingencyTripping.createInjectionTripping(network, generator)
+                                .traverse(switchesToOpen, terminalsToDisconnect);
+                    } else {
+                        terminalsToDisconnect.add(generator.getTerminal());
+                    }
                     break;
                 case LOAD:
                     Load load = network.getLoad(element.getId());
                     if (load == null) {
                         throw new PowsyblException("Load '" + element.getId() + "' not found in the network");
                     }
-                    loadsToLose.add(load);
+                    if (contingencyPropagation) {
+                        ContingencyTripping.createInjectionTripping(network, load)
+                                .traverse(switchesToOpen, terminalsToDisconnect);
+                    } else {
+                        terminalsToDisconnect.add(load.getTerminal());
+                    }
                     break;
                 case SHUNT_COMPENSATOR:
                     ShuntCompensator shuntCompensator = network.getShuntCompensator(element.getId());
@@ -213,7 +240,12 @@ public class PropagatedContingency {
                     if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
                     }
-                    shuntsToLose.add(shuntCompensator);
+                    if (contingencyPropagation) {
+                        ContingencyTripping.createInjectionTripping(network, shuntCompensator)
+                                .traverse(switchesToOpen, terminalsToDisconnect);
+                    } else {
+                        terminalsToDisconnect.add(shuntCompensator.getTerminal());
+                    }
                     break;
                 case SWITCH:
                     Switch aSwitch = network.getSwitch(element.getId());
@@ -223,9 +255,16 @@ public class PropagatedContingency {
                     switchesToOpen.add(aSwitch);
                     break;
                 case THREE_WINDINGS_TRANSFORMER:
-                    // three windings transformer check is done inside tripping
-                    ContingencyTripping.createThreeWindingsTransformerTripping(network, element.getId())
-                            .traverse(switchesToOpen, terminalsToDisconnect);
+                    ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(element.getId());
+                    if (twt == null) {
+                        throw new PowsyblException("Three windings transformer '" + element.getId() + "' not found in the network");
+                    }
+                    if (contingencyPropagation) {
+                        ContingencyTripping.createThreeWindingsTransformerTripping(network, twt)
+                                .traverse(switchesToOpen, terminalsToDisconnect);
+                    } else {
+                        terminalsToDisconnect.addAll(twt.getTerminals());
+                    }
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
