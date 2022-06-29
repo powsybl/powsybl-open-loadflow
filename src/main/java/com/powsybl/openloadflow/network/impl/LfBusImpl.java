@@ -8,7 +8,9 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.Objects;
 
@@ -19,6 +21,10 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final Bus bus;
 
+    private MutableInt copyCount;
+
+    private final int copyNumber;
+
     private final double nominalV;
 
     private final double lowVoltageLimit;
@@ -27,9 +33,11 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final boolean participating;
 
-    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean participating) {
+    protected LfBusImpl(Bus bus, int copyNumber, MutableInt copyCount, LfNetwork network, double v, double angle, boolean participating) {
         super(network, v, angle);
         this.bus = bus;
+        this.copyNumber = copyNumber;
+        this.copyCount = Objects.requireNonNull(copyCount);
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
@@ -38,12 +46,12 @@ public class LfBusImpl extends AbstractLfBus {
 
     public static LfBusImpl create(Bus bus, LfNetwork network, boolean participating) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), participating);
+        return new LfBusImpl(bus, 0, new MutableInt(), network, bus.getV(), bus.getAngle(), participating);
     }
 
     @Override
     public String getId() {
-        return bus.getId();
+        return bus.getId() + (copyNumber > 0 ? "_copy_" + copyNumber : "");
     }
 
     @Override
@@ -73,6 +81,10 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+        if (copyNumber != 0) {
+            return;
+        }
+
         bus.setV(v).setAngle(angle);
 
         // update slack bus
@@ -86,5 +98,11 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public boolean isParticipating() {
         return participating;
+    }
+
+    @Override
+    public LfBus copy() {
+        copyCount.increment();
+        return new LfBusImpl(bus, copyCount.getValue(), copyCount, network, v, angle, participating);
     }
 }

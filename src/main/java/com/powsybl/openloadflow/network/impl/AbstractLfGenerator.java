@@ -29,6 +29,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected static final double DEFAULT_DROOP = 4; // why not
 
+    protected final LfNetwork network;
+
     protected double targetP;
 
     protected LfBus bus;
@@ -47,7 +49,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected double remoteTargetQ = Double.NaN;
 
-    protected AbstractLfGenerator(double targetP) {
+    protected AbstractLfGenerator(LfNetwork network, double targetP) {
+        this.network = Objects.requireNonNull(network);
         this.targetP = targetP;
     }
 
@@ -169,8 +172,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     }
 
     @Override
-    public LfBus getControlledBus(LfNetwork lfNetwork) {
-        return lfNetwork.getBusById(controlledBusId);
+    public LfBus getControlledBus() {
+        return network.getBusById(controlledBusId);
     }
 
     protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
@@ -252,8 +255,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     }
 
     @Override
-    public LfBranch getControlledBranch(LfNetwork lfNetwork) {
-        return lfNetwork.getBranchById(controlledBranchId);
+    public LfBranch getControlledBranch() {
+        return network.getBranchById(controlledBranchId);
     }
 
     @Override

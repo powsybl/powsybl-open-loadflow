@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -28,9 +29,9 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double droop;
 
-    private LfGeneratorImpl(Generator generator, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
+    private LfGeneratorImpl(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
                             LfNetworkLoadingReport report) {
-        super(generator.getTargetP());
+        super(network, generator.getTargetP());
         this.generator = generator;
         participating = true;
         droop = DEFAULT_DROOP;
@@ -57,11 +58,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    public static LfGeneratorImpl create(Generator generator, boolean breakers, double plausibleActivePowerLimit,
+    public static LfGeneratorImpl create(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit,
                                          boolean reactiveLimits, LfNetworkLoadingReport report) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, breakers, plausibleActivePowerLimit, reactiveLimits, report);
+        return new LfGeneratorImpl(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report);
     }
 
     @Override

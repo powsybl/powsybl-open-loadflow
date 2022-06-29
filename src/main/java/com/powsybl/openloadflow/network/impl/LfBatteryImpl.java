@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -25,8 +26,8 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private double droop;
 
-    private LfBatteryImpl(Battery battery, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
-        super(battery.getTargetP());
+    private LfBatteryImpl(Battery battery, LfNetwork network, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
+        super(network, battery.getTargetP());
         this.battery = battery;
         participating = true;
         droop = DEFAULT_DROOP;
@@ -44,10 +45,10 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         }
     }
 
-    public static LfBatteryImpl create(Battery generator, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
-        Objects.requireNonNull(generator);
+    public static LfBatteryImpl create(Battery battery, LfNetwork network, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
+        Objects.requireNonNull(battery);
         Objects.requireNonNull(report);
-        return new LfBatteryImpl(generator, plausibleActivePowerLimit, report);
+        return new LfBatteryImpl(battery, network, plausibleActivePowerLimit, report);
     }
 
     @Override

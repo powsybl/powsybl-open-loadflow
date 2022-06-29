@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -132,7 +133,7 @@ class LfBusImplTest {
         List<LfNetwork> networks = Networks.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = networks.get(0);
 
-        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, true);
+        LfBusImpl lfBus = new LfBusImpl(bus1, 0, new MutableInt(), mainNetwork, 385, 0, true);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
         lfBus.addStaticVarCompensator(svc1, false, true, true, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc2, false, true, true, lfNetworkLoadingReport);
@@ -149,13 +150,13 @@ class LfBusImplTest {
     private List<LfGenerator> createLfGeneratorsWithInitQ(List<Double> initQs) {
         Network network = FourSubstationsNodeBreakerFactory.create();
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
-        LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"),
+        LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"), lfNetwork,
                 false, 100, true, lfNetworkLoadingReport);
         lfGenerator1.setCalculatedQ(initQs.get(0));
-        LfGenerator lfGenerator2 = LfGeneratorImpl.create(network.getGenerator("GH2"),
+        LfGenerator lfGenerator2 = LfGeneratorImpl.create(network.getGenerator("GH2"), lfNetwork,
                 false, 200, true, lfNetworkLoadingReport);
         lfGenerator2.setCalculatedQ(initQs.get(1));
-        LfGenerator lfGenerator3 = LfGeneratorImpl.create(network.getGenerator("GH3"),
+        LfGenerator lfGenerator3 = LfGeneratorImpl.create(network.getGenerator("GH3"), lfNetwork,
                 false, 200, true, lfNetworkLoadingReport);
         lfGenerator3.setCalculatedQ(initQs.get(2));
         List<LfGenerator> generators = new ArrayList<>();

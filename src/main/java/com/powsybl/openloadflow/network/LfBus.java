@@ -167,4 +167,12 @@ public interface LfBus extends LfElement {
      * Only make sens for slack bus.
      */
     double getMismatchP();
+
+    void addGenerator(LfGenerator generator);
+
+    void removeGenerator(LfGenerator generator);
+
+    default LfBus copy() {
+        throw new UnsupportedOperationException();
+    }
 }

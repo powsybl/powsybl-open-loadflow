@@ -217,7 +217,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs);
     }
 
-    protected void add(LfGenerator generator) {
+    @Override
+    public void addGenerator(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
         if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !Double.isNaN(generator.getTargetQ())) {
@@ -227,14 +228,24 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addGenerator(Generator generator, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
                       LfNetworkLoadingReport report) {
-        add(LfGeneratorImpl.create(generator, breakers, plausibleActivePowerLimit, reactiveLimits, report));
+        addGenerator(LfGeneratorImpl.create(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report));
+    }
+
+    @Override
+    public void removeGenerator(LfGenerator generator) {
+        if (generators.remove(generator)) {
+            generator.setBus(null);
+            if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !Double.isNaN(generator.getTargetQ())) {
+                generationTargetQ -= generator.getTargetQ() * PerUnit.SB;
+            }
+        }
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl,
                                  boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, this, voltagePerReactivePowerControl, breakers, reactiveLimits, report);
-            add(lfSvc);
+            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, voltagePerReactivePowerControl, breakers, reactiveLimits, report);
+            addGenerator(lfSvc);
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
             }
@@ -242,11 +253,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addVscConverterStation(VscConverterStation vscCs, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
-        add(LfVscConverterStationImpl.create(vscCs, breakers, reactiveLimits, report));
+        addGenerator(LfVscConverterStationImpl.create(vscCs, network, breakers, reactiveLimits, report));
     }
 
     void addBattery(Battery generator, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
-        add(LfBatteryImpl.create(generator, plausibleActivePowerLimit, report));
+        addGenerator(LfBatteryImpl.create(generator, network, plausibleActivePowerLimit, report));
     }
 
     void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl) {

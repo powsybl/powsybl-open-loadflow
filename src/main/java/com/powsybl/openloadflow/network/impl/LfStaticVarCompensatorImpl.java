@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -26,8 +27,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private double slope = 0;
 
-    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
-        super(0);
+    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
+        super(network, 0);
         this.svc = svc;
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
         this.reactiveLimits = new MinMaxReactiveLimits() {
@@ -69,10 +70,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         }
     }
 
-    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
+    public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                                     boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         Objects.requireNonNull(svc);
-        return new LfStaticVarCompensatorImpl(svc, bus, voltagePerReactivePowerControl, breakers, reactiveLimits, report);
+        return new LfStaticVarCompensatorImpl(svc, network, bus, voltagePerReactivePowerControl, breakers, reactiveLimits, report);
     }
 
     @Override

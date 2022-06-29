@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -21,8 +22,8 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final DanglingLine danglingLine;
 
-    public LfDanglingLineGenerator(DanglingLine danglingLine, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report) {
-        super(danglingLine.getGeneration().getTargetP());
+    public LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report) {
+        super(network, danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;
 
         // local control only

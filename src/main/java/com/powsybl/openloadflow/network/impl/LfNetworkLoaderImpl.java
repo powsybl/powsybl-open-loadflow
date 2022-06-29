@@ -67,22 +67,37 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         // set controller -> controlled link
         for (LfBus controllerBus : lfBuses) {
+            List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream()
+                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
+                    .collect(Collectors.toList());
 
-            List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).collect(Collectors.toList());
             if (!voltageControlGenerators.isEmpty()) {
-
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
-                LfBus controlledBus = lfGenerator0.getControlledBus(lfNetwork);
+                LfBus controlledBus = lfGenerator0.getControlledBus();
                 double controllerTargetV = lfGenerator0.getTargetV();
 
                 voltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
-                    LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
+                    LfBus generatorControlledBus = lfGenerator.getControlledBus();
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus)) {
-                        // check that target voltage is the same for the generators of current controller bus which have voltage control on
-                        checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                    if (controlledBus.getNum() != generatorControlledBus.getNum()) {
+                        // copy controller bus
+                        LfBus controllerBusCopy = controllerBus.copy();
+                        lfNetwork.addBus(controllerBusCopy);
+
+                        // move generator to controller bus copy
+                        controllerBus.removeGenerator(lfGenerator);
+                        controllerBusCopy.addGenerator(lfGenerator);
+
+                        // create a closed switch between original controller bus and its copy
+                        lfNetwork.addBranch(new LfInternalConnection(lfNetwork, controlledBus, controllerBusCopy));
+
+                        LOGGER.debug("Generator '{}' is connected to same bus '{}' as generator '{}' but does not control the same bus => move to copy '{}' of the controller bus",
+                                lfGenerator.getId(), controllerBus.getId(), lfGenerator0.getId(), controllerBusCopy.getId());
                     }
+
+                    // check that target voltage is the same for the generators of current controller bus which have voltage control on
+                    checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
                 });
 
                 if (voltageRemoteControl || controlledBus == controllerBus) {
@@ -151,18 +166,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static boolean checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
-        Objects.requireNonNull(controlledBus);
-        Objects.requireNonNull(controlledBusGen);
-        if (controlledBus.getNum() != controlledBusGen.getNum()) {
-            String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
-            LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
-                    generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
-            return false;
-        }
-        return true;
-    }
-
     private static void checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus) {
         double targetV = lfGenerator.getTargetV();
         if (FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
@@ -191,12 +194,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
                 if (generators.size() == 1) {
                     LfGenerator lfGenerator = generators.get(0);
-                    LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
+                    LfBranch controlledBranch = lfGenerator.getControlledBranch();
                     Optional<ReactivePowerControl> control = controlledBranch.getReactivePowerControl();
                     if (control.isPresent()) {
                         LOGGER.warn("Branch {} is remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
                     } else {
-                        createRemoteReactivePowerControl(lfGenerator.getControlledBranch(lfNetwork), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
+                        createRemoteReactivePowerControl(lfGenerator.getControlledBranch(), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
                     }
                 } else { // generators.size() > 1 (as > 0 and not equal to 1)
                     LOGGER.warn("Bus {} has more than one generator controlling reactive power remotely: not yet supported", controllerBus.getId());
