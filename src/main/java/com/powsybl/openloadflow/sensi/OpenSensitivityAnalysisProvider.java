@@ -35,6 +35,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.ProviderConstants;
+import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import com.powsybl.tools.PowsyblCoreVersion;
@@ -150,8 +151,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().setWorkingVariant(workingVariantId);
             try {
-                Reporter sensiReporter = reporter.createSubReporter("sensitivityAnalysis",
-                        "Sensitivity analysis on network ${networkId}", "networkId", network.getId());
+                Reporter sensiReporter = Reports.createSensitivityAnalysis(reporter, network.getId());
 
                 List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies,
                         sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,

@@ -282,11 +282,13 @@ class AcLoadFlowEurostagTutorialExample1Test {
         // also check there is a report added for this error
         assertEquals(1, reporter.getSubReporters().size());
         ReporterModel lfReporter = reporter.getSubReporters().get(0);
-        assertEquals(2, lfReporter.getSubReporters().size());
-        ReporterModel postLoadingReporter = lfReporter.getSubReporters().get(1);
-        assertEquals("postLoading", postLoadingReporter.getTaskKey());
+        assertEquals(1, lfReporter.getSubReporters().size());
+        ReporterModel createNetworkReporter = lfReporter.getSubReporters().get(0);
+        assertEquals("lfNetwork", createNetworkReporter.getTaskKey());
+        ReporterModel postLoadingReporter = createNetworkReporter.getSubReporters().get(0);
+        assertEquals("postLoadingProcessing", postLoadingReporter.getTaskKey());
         assertEquals(1, postLoadingReporter.getReports().size());
-        assertEquals("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled",
+        assertEquals("Network CC${networkNumCc} SC${networkNumSc} must have at least one bus voltage controlled",
                 postLoadingReporter.getReports().iterator().next().getDefaultMessage());
     }
 

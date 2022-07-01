@@ -118,7 +118,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         new AcloadFlowEngine(context)
-                .run(reporter);
+                .run();
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
@@ -217,7 +217,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
             new AcloadFlowEngine(context)
-                    .run(reporter);
+                    .run();
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups = createFactorGroups(validLfFactors.stream()
