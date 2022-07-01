@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -50,9 +51,8 @@ public class AcloadFlowEngine {
         private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
     }
 
-    private void runOuterLoop(OuterLoop outerLoop, OuterLoopContextImpl outerLoopContext, NewtonRaphson newtonRaphson, RunningContext runningContext,
-                              Reporter reporter) {
-        Reporter olReporter = reporter.createSubReporter("OuterLoop", "Outer loop ${outerLoopType}", "outerLoopType", outerLoop.getType());
+    private void runOuterLoop(OuterLoop outerLoop, OuterLoopContextImpl outerLoopContext, NewtonRaphson newtonRaphson, RunningContext runningContext) {
+        Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
 
         // for each outer loop re-run Newton-Raphson until stabilization
         OuterLoopStatus outerLoopStatus;
@@ -68,7 +68,7 @@ public class AcloadFlowEngine {
                 LOGGER.debug("Start outer loop iteration {} (name='{}')", outerLoopIteration, outerLoop.getType());
 
                 // if not yet stable, restart Newton-Raphson
-                runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer(), reporter);
+                runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer());
                 if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
                     return;
                 }
@@ -79,10 +79,6 @@ public class AcloadFlowEngine {
     }
 
     public AcLoadFlowResult run() {
-        return run(Reporter.NO_OP);
-    }
-
-    public AcLoadFlowResult run(Reporter reporter) {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
         VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
@@ -108,7 +104,7 @@ public class AcloadFlowEngine {
         }
 
         // run initial Newton-Raphson
-        runningContext.lastNrResult = newtonRaphson.run(voltageInitializer, reporter);
+        runningContext.lastNrResult = newtonRaphson.run(voltageInitializer);
         double initialSlackBusActivePowerMismatch = runningContext.lastNrResult.getSlackBusActivePowerMismatch();
 
         // continue with outer loops only if initial Newton-Raphson succeed
@@ -121,7 +117,7 @@ public class AcloadFlowEngine {
 
                 // outer loops are nested: inner most loop first in the list, outer most loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
-                    runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), newtonRaphson, runningContext, reporter);
+                    runOuterLoop(outerLoopAndContext.getLeft(), outerLoopAndContext.getRight(), newtonRaphson, runningContext);
 
                     // continue with next outer loop only if last Newton-Raphson succeed
                     if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
@@ -161,7 +157,7 @@ public class AcloadFlowEngine {
                     if (n.isValid()) {
                         try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
                             return new AcloadFlowEngine(context)
-                                    .run(reporter);
+                                    .run();
                         }
                     }
                     return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, 0);

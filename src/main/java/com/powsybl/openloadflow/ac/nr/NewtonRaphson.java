@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -164,8 +163,7 @@ public class NewtonRaphson {
         }
     }
 
-    public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
-        Objects.requireNonNull(reporter);
+    public NewtonRaphsonResult run(VoltageInitializer voltageInitializer) {
 
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);

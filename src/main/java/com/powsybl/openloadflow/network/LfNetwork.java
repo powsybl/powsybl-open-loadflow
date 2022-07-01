@@ -10,12 +10,11 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -80,12 +79,20 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private GraphDecrementalConnectivity<LfBus, LfBranch> connectivity;
 
+    private final Reporter reporter;
+
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
-                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
+        this.reporter = Objects.requireNonNull(reporter);
+    }
+
+    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
+                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+        this(numCC, numSC, slackBusSelector, connectivityFactory, Reporter.NO_OP);
     }
 
     public int getNumCC() {
@@ -94,6 +101,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public int getNumSC() {
         return numSC;
+    }
+
+    public Reporter getReporter() {
+        return reporter;
     }
 
     private void invalidateSlack() {
@@ -416,14 +427,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private void reportSize(Reporter reporter) {
-        reporter.report(Report.builder()
-            .withKey("networkSize")
-            .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} has ${busCount} buses and ${branchCount} branches")
-            .withValue("numNetworkCc", numCC)
-            .withValue("numNetworkSc", numSC)
-            .withValue("busCount", busesById.values().size())
-            .withValue("branchCount", branches.size())
-            .build());
+        Reports.reportNetworkSize(reporter, numCC, numSC, busesById.values().size(), branches.size());
         LOGGER.info("Network {} has {} buses and {} branches",
             this, busesById.values().size(), branches.size());
     }
@@ -440,16 +444,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
         }
 
-        reporter.report(Report.builder()
-            .withKey("networkBalance")
-            .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
-            .withValue("numNetworkCc", numCC)
-            .withValue("numNetworkSc", numSC)
-            .withValue("activeGeneration", activeGeneration)
-            .withValue("activeLoad", activeLoad)
-            .withValue("reactiveGeneration", reactiveGeneration)
-            .withValue("reactiveLoad", reactiveLoad)
-            .build());
+        Reports.reportNetworkBalance(reporter, numCC, numSC, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
         LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
@@ -473,12 +468,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             }
             if (!hasAtLeastOneBusVoltageControlled) {
                 LOGGER.error("Network {} must have at least one bus voltage controlled", this);
-                reporter.report(Report.builder()
-                        .withKey("networkMustHaveAtLEastOneBusVoltageControlled")
-                        .withDefaultMessage("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled")
-                        .withValue("numNetworkCc", numCC)
-                        .withValue("numNetworkSc", numSC)
-                        .build());
+                Reports.reportNetworkMustHaveAtLeastOneBusVoltageControlled(reporter, numCC, numSC);
                 valid = false;
             }
         }
@@ -532,9 +522,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         Objects.requireNonNull(parameters);
         List<LfNetwork> lfNetworks = networkLoader.load(network, parameters, reporter);
         for (LfNetwork lfNetwork : lfNetworks) {
-            Reporter reporterNetwork = reporter.createSubReporter("postLoading", "Post loading process on network CC${numNetworkCc} SC${numNetworkSc}",
-                Map.of("numNetworkCc", new TypedValue(lfNetwork.getNumCC(), TypedValue.UNTYPED),
-                    "numNetworkSc", new TypedValue(lfNetwork.getNumSC(), TypedValue.UNTYPED)));
+            Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.isDc());
             lfNetwork.validate(parameters.isMinImpedance(), parameters.isDc(), reporterNetwork);
             if (lfNetwork.isValid()) {

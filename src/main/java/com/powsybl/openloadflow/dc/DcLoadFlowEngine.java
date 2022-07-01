@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixException;
@@ -20,6 +18,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -198,12 +197,8 @@ public class DcLoadFlowEngine {
             status = LoadFlowResult.ComponentResult.Status.CONVERGED;
         } catch (MatrixException e) {
             status = LoadFlowResult.ComponentResult.Status.FAILED;
-            reporter.report(Report.builder()
-                .withKey("loadFlowFailure")
-                .withDefaultMessage("Failed to solve linear system for DC load flow: ${errorMessage}")
-                .withValue("errorMessage", e.getMessage())
-                .withSeverity(TypedValue.ERROR_SEVERITY)
-                .build());
+
+            Reports.reportDcLfSolverFailure(reporter, e.getMessage());
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
 
@@ -217,12 +212,7 @@ public class DcLoadFlowEngine {
             }
         }
 
-        reporter.report(Report.builder()
-            .withKey("loadFlowCompleted")
-            .withDefaultMessage("DC load flow completed (status=${lfStatus})")
-            .withValue("lfStatus", status.toString())
-            .withSeverity(TypedValue.INFO_SEVERITY)
-            .build());
+        Reports.reportDcLfComplete(reporter, status.toString());
         LOGGER.info("DC load flow completed (status={})", status);
 
         return Pair.of(status, targetVector);
