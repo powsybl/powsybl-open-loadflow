@@ -169,4 +169,11 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
             checkTargetDeadband(rtc);
         }
     }
+
+    @Override
+    public void updateFlow(double p1, double q1, double p2, double q2) {
+        // star bus always at end2
+        leg.getTerminal().setP(p1 * PerUnit.SB);
+        leg.getTerminal().setQ(q1 * PerUnit.SB);
+    }
 }

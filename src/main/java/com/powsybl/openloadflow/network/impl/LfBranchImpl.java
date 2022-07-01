@@ -277,4 +277,12 @@ public class LfBranchImpl extends AbstractLfBranch {
             checkTargetDeadband(rtc);
         }
     }
+
+    @Override
+    public void updateFlow(double p1, double q1, double p2, double q2) {
+        branch.getTerminal1().setP(p1 * PerUnit.SB);
+        branch.getTerminal1().setQ(q1 * PerUnit.SB);
+        branch.getTerminal2().setP(p2 * PerUnit.SB);
+        branch.getTerminal2().setQ(q2 * PerUnit.SB);
+    }
 }

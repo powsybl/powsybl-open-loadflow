@@ -26,6 +26,10 @@ public abstract class AbstractFictitiousLfBranch extends AbstractLfBranch {
 
     protected Evaluable i = NAN;
 
+    protected Evaluable fictitiousSideP = NAN;
+
+    protected Evaluable fictitiusSideQ = NAN;
+
     protected AbstractFictitiousLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network, bus1, bus2, piModel);
     }
@@ -42,12 +46,12 @@ public abstract class AbstractFictitiousLfBranch extends AbstractLfBranch {
 
     @Override
     public void setP2(Evaluable p2) {
-        // nothing to do
+        this.fictitiousSideP = Objects.requireNonNull(p2);
     }
 
     @Override
     public Evaluable getP2() {
-        return NAN;
+        return fictitiousSideP;
     }
 
     @Override
@@ -62,12 +66,12 @@ public abstract class AbstractFictitiousLfBranch extends AbstractLfBranch {
 
     @Override
     public void setQ2(Evaluable q2) {
-        // nothing to do
+        this.fictitiusSideQ = Objects.requireNonNull(q2);
     }
 
     @Override
     public Evaluable getQ2() {
-        return NAN;
+        return fictitiusSideQ;
     }
 
     @Override

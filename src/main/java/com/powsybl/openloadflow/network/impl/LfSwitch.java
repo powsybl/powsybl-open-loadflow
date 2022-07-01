@@ -124,4 +124,9 @@ public class LfSwitch extends AbstractLfBranch {
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
         // nothing to do
     }
+
+    @Override
+    public void updateFlow(double p1, double q1, double p2, double q2) {
+        // nothing to do
+    }
 }
