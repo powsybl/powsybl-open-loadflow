@@ -150,13 +150,11 @@ public class PropagatedContingency {
 
         Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
-        Set<VscConverterStation> vscsToLose = new HashSet<>();
-        Set<LccConverterStation> lccsToLose = new HashSet<>();
-        Set<Load> loadsToLose = new HashSet<>();
-        Set<Generator> generatorsToLose = new HashSet<>();
-        Set<ShuntCompensator> shuntsToLose = new HashSet<>();
+        Set<String> generatorIdsToLose = new HashSet<>();
+        Map<String, PowerShift> loadIdsToShift = new HashMap<>();
+        Map<String, Double> shuntIdsToShift = new HashMap<>();
 
-        // then process other elements resulting of propagation of initial elements
+        // process terminals disconnected, in particular process injection power shift
         for (Terminal terminal : terminalsToDisconnect) {
             Connectable<?> connectable = terminal.getConnectable();
             switch (connectable.getType()) {
@@ -167,19 +165,21 @@ public class PropagatedContingency {
                     break;
 
                 case GENERATOR:
-                    generatorsToLose.add((Generator) connectable);
+                    generatorIdsToLose.add(connectable.getId());
                     break;
 
                 case LOAD:
-                    loadsToLose.add((Load) connectable);
+                    Load load = (Load) connectable;
+                    addPowerShift(load.getTerminal(), loadIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), withBreakers);
                     break;
 
                 case SHUNT_COMPENSATOR:
-                    ShuntCompensator shuntCompensator = (ShuntCompensator) connectable;
-                    if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
-                        throw new UnsupportedOperationException("Shunt compensator '" + shuntCompensator.getId() + "' with voltage control on: not supported yet");
+                    ShuntCompensator shunt = (ShuntCompensator) connectable;
+                    if (shuntCompensatorVoltageControlOn && shunt.isVoltageRegulatorOn()) {
+                        throw new UnsupportedOperationException("Shunt compensator '" + shunt.getId() + "' with voltage control on: not supported yet");
                     }
-                    shuntsToLose.add(shuntCompensator);
+                    double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
+                    shuntIdsToShift.put(shunt.getId(), shunt.getB() * nominalV * nominalV / PerUnit.SB);
                     break;
 
                 case HVDC_CONVERTER_STATION:
@@ -189,9 +189,12 @@ public class PropagatedContingency {
                         hvdcIdsToOpen.add(station.getHvdcLine().getId());
                     }
                     if (connectable instanceof VscConverterStation) {
-                        vscsToLose.add((VscConverterStation) connectable);
+                        generatorIdsToLose.add(connectable.getId());
                     } else {
-                        lccsToLose.add((LccConverterStation) connectable);
+                        LccConverterStation lcc = (LccConverterStation) connectable;
+                        PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
+                                HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB);
+                        addPowerShift(lcc.getTerminal(), loadIdsToShift, lccPowerShift, withBreakers);
                     }
                     break;
 
@@ -209,29 +212,6 @@ public class PropagatedContingency {
                     throw new UnsupportedOperationException("Unsupported by propagation contingency element type: "
                             + connectable.getType());
             }
-        }
-
-        // then process injection power shift
-        Set<String> generatorIdsToLose = new HashSet<>();
-        Map<String, PowerShift> loadIdsToShift = new HashMap<>();
-        Map<String, Double> shuntIdsToShift = new HashMap<>();
-        for (Generator generator : generatorsToLose) {
-            generatorIdsToLose.add(generator.getId());
-        }
-        for (VscConverterStation vsc : vscsToLose) {
-            generatorIdsToLose.add(vsc.getId());
-        }
-        for (Load load : loadsToLose) {
-            addPowerShift(load.getTerminal(), loadIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), withBreakers);
-        }
-        for (LccConverterStation lcc : lccsToLose) {
-            PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
-                    HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB);
-            addPowerShift(lcc.getTerminal(), loadIdsToShift, lccPowerShift, withBreakers);
-        }
-        for (ShuntCompensator shunt : shuntsToLose) {
-            double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
-            shuntIdsToShift.put(shunt.getId(), shunt.getB() * nominalV * nominalV / PerUnit.SB);
         }
 
         return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen,
