@@ -18,6 +18,10 @@ import java.util.Map;
  */
 public final class Reports {
 
+    private static final String NETWORK_NUM_CC = "networkNumCc";
+    private static final String NETWORK_NUM_SC = "networkNumSc";
+    private static final String ITERATION = "iteration";
+
     private Reports() {
     }
 
@@ -25,8 +29,8 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("networkSize")
                 .withDefaultMessage("Network CC${networkNumCc} SC${networkNumSc} has ${busCount} buses and ${branchCount} branches")
-                .withValue("networkNumCc", networkNumCc)
-                .withValue("networkNumSc", networkNumSc)
+                .withValue(NETWORK_NUM_CC, networkNumCc)
+                .withValue(NETWORK_NUM_SC, networkNumSc)
                 .withValue("busCount", busCount)
                 .withValue("branchCount", branchCount)
                 .build());
@@ -36,8 +40,8 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("networkBalance")
                 .withDefaultMessage("Network CC${networkNumCc} SC${networkNumSc} balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
-                .withValue("networkNumCc", networkNumCc)
-                .withValue("networkNumSc", networkNumSc)
+                .withValue(NETWORK_NUM_CC, networkNumCc)
+                .withValue(NETWORK_NUM_SC, networkNumSc)
                 .withValue("activeGeneration", activeGeneration)
                 .withValue("activeLoad", activeLoad)
                 .withValue("reactiveGeneration", reactiveGeneration)
@@ -49,8 +53,8 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("networkMustHaveAtLeastOneBusVoltageControlled")
                 .withDefaultMessage("Network CC${networkNumCc} SC${networkNumSc} must have at least one bus voltage controlled")
-                .withValue("networkNumCc", networkNumCc)
-                .withValue("networkNumSc", networkNumSc)
+                .withValue(NETWORK_NUM_CC, networkNumCc)
+                .withValue(NETWORK_NUM_SC, networkNumSc)
                 .build());
     }
 
@@ -58,7 +62,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("mismatchDistributionFailure")
                 .withDefaultMessage("Iteration ${iteration}: failed to distribute slack bus active power mismatch, ${mismatch} MW remains")
-                .withValue("iteration", iteration)
+                .withValue(ITERATION, iteration)
                 .withTypedValue("mismatch", remainingMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withSeverity(TypedValue.ERROR_SEVERITY)
                 .build());
@@ -68,7 +72,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("mismatchDistributionSuccess")
                 .withDefaultMessage("Iteration ${iteration}: slack bus active power (${initialMismatch} MW) distributed in ${iterationCount} iterations")
-                .withValue("iteration", iteration)
+                .withValue(ITERATION, iteration)
                 .withTypedValue("initialMismatch", slackBusActivePowerMismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withValue("iterationCount", iterationCount)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -79,7 +83,7 @@ public final class Reports {
         reporter.report(Report.builder()
                 .withKey("NoMismatchDistribution")
                 .withDefaultMessage("Iteration ${iteration}: already balanced")
-                .withValue("iteration", iteration)
+                .withValue(ITERATION, iteration)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }
@@ -145,8 +149,8 @@ public final class Reports {
 
     public static Reporter createLfNetworkReporter(Reporter reporter, int networkNumCc, int networkNumSc) {
         return reporter.createSubReporter("lfNetwork", "Network CC${networkNumCc} SC${networkNumSc}",
-                Map.of("networkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                       "networkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+                Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
     }
 
     public static Reporter createPostLoadingProcessingReporter(Reporter reporter) {
