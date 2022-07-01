@@ -16,6 +16,8 @@ import java.util.*;
  */
 public class ContingencyTripping {
 
+    private static final ContingencyTripping NO_OP_TRIPPING = new ContingencyTripping(Collections.emptyList());
+
     private final List<? extends Terminal> terminals;
 
     public ContingencyTripping(List<? extends Terminal> terminals) {
@@ -59,6 +61,26 @@ public class ContingencyTripping {
         Objects.requireNonNull(twt);
 
         return new ContingencyTripping(twt.getTerminals());
+    }
+
+    public static ContingencyTripping createContingencyTripping(Network network, Identifiable<?> identifiable) {
+        switch (identifiable.getType()) {
+            case LINE:
+            case TWO_WINDINGS_TRANSFORMER:
+                return ContingencyTripping.createBranchTripping(network, (Branch<?>) identifiable);
+            case DANGLING_LINE:
+            case GENERATOR:
+            case LOAD:
+            case SHUNT_COMPENSATOR:
+                return ContingencyTripping.createInjectionTripping(network, (Injection<?>) identifiable);
+            case THREE_WINDINGS_TRANSFORMER:
+                return ContingencyTripping.createThreeWindingsTransformerTripping(network, (ThreeWindingsTransformer) identifiable);
+            case HVDC_LINE:
+            case SWITCH:
+                return ContingencyTripping.NO_OP_TRIPPING;
+            default:
+                throw new UnsupportedOperationException("Unsupported contingency element type: " + identifiable.getType());
+        }
     }
 
     public void traverse(Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect) {

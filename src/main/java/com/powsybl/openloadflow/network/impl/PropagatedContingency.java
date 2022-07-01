@@ -25,8 +25,6 @@ import java.util.stream.Collectors;
  */
 public class PropagatedContingency {
 
-    private static final String NOT_FOUND_IN_NETWORK_ERROR_MESSAGE = "not found in the network";
-
     private final Contingency contingency;
 
     private final int index;
@@ -137,6 +135,19 @@ public class PropagatedContingency {
                                                 boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
+
+        // process elements of the contingency
+        for (ContingencyElement element : contingency.getElements()) {
+            Identifiable<?> identifiable = getIdentifiable(network, element);
+            if (contingencyPropagation) {
+                ContingencyTripping.createContingencyTripping(network, identifiable).traverse(switchesToOpen, terminalsToDisconnect);
+            }
+            terminalsToDisconnect.addAll(getTerminals(identifiable));
+            if (identifiable instanceof Switch) {
+                switchesToOpen.add((Switch) identifiable);
+            }
+        }
+
         Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<VscConverterStation> vscsToLose = new HashSet<>();
@@ -144,123 +155,6 @@ public class PropagatedContingency {
         Set<Load> loadsToLose = new HashSet<>();
         Set<Generator> generatorsToLose = new HashSet<>();
         Set<ShuntCompensator> shuntsToLose = new HashSet<>();
-
-        // process elements of the contingency
-        for (ContingencyElement element : contingency.getElements()) {
-            switch (element.getType()) {
-                case BRANCH:
-                case LINE:
-                case TWO_WINDINGS_TRANSFORMER:
-                    Branch<?> branch = network.getBranch(element.getId());
-                    if (branch == null) {
-                        throw new PowsyblException("Branch '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
-                    }
-                    if (contingencyPropagation) {
-                        ContingencyTripping.createBranchTripping(network, branch)
-                                .traverse(switchesToOpen, terminalsToDisconnect);
-                    } else {
-                        terminalsToDisconnect.add(branch.getTerminal1());
-                        terminalsToDisconnect.add(branch.getTerminal2());
-                    }
-                    break;
-                case HVDC_LINE:
-                    HvdcLine hvdcLine = network.getHvdcLine(element.getId());
-                    if (hvdcLine == null) {
-                        throw new PowsyblException("HVDC line '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
-                    }
-                    HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
-                    if (control != null && control.isEnabled() && hvdcAcEmulation) {
-                        hvdcIdsToOpen.add(element.getId());
-                    }
-                    if (hvdcLine.getConverterStation1() instanceof VscConverterStation) {
-                        VscConverterStation vsc1 = (VscConverterStation) hvdcLine.getConverterStation1();
-                        vscsToLose.add(vsc1);
-                    } else {
-                        LccConverterStation lcc1 = (LccConverterStation) hvdcLine.getConverterStation1();
-                        lccsToLose.add(lcc1);
-                    }
-                    if (hvdcLine.getConverterStation2() instanceof VscConverterStation) {
-                        VscConverterStation vsc2 = (VscConverterStation) hvdcLine.getConverterStation2();
-                        vscsToLose.add(vsc2);
-                    } else {
-                        LccConverterStation lcc2 = (LccConverterStation) hvdcLine.getConverterStation2();
-                        lccsToLose.add(lcc2);
-                    }
-                    break;
-                case DANGLING_LINE:
-                    DanglingLine danglingLine = network.getDanglingLine(element.getId());
-                    if (danglingLine == null) {
-                        throw new PowsyblException("Dangling line '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
-                    }
-                    if (contingencyPropagation) {
-                        ContingencyTripping.createInjectionTripping(network, danglingLine)
-                                .traverse(switchesToOpen, terminalsToDisconnect);
-                    } else {
-                        terminalsToDisconnect.add(danglingLine.getTerminal());
-                    }
-                    break;
-                case GENERATOR:
-                    Generator generator = network.getGenerator(element.getId());
-                    if (generator == null) {
-                        throw new PowsyblException("Generator '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
-                    }
-                    if (contingencyPropagation) {
-                        ContingencyTripping.createInjectionTripping(network, generator)
-                                .traverse(switchesToOpen, terminalsToDisconnect);
-                    } else {
-                        terminalsToDisconnect.add(generator.getTerminal());
-                    }
-                    break;
-                case LOAD:
-                    Load load = network.getLoad(element.getId());
-                    if (load == null) {
-                        throw new PowsyblException("Load '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
-                    }
-                    if (contingencyPropagation) {
-                        ContingencyTripping.createInjectionTripping(network, load)
-                                .traverse(switchesToOpen, terminalsToDisconnect);
-                    } else {
-                        terminalsToDisconnect.add(load.getTerminal());
-                    }
-                    break;
-                case SHUNT_COMPENSATOR:
-                    ShuntCompensator shuntCompensator = network.getShuntCompensator(element.getId());
-                    if (shuntCompensator == null) {
-                        throw new PowsyblException("Shunt compensator '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
-                    }
-                    if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
-                        throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
-                    }
-                    if (contingencyPropagation) {
-                        ContingencyTripping.createInjectionTripping(network, shuntCompensator)
-                                .traverse(switchesToOpen, terminalsToDisconnect);
-                    } else {
-                        terminalsToDisconnect.add(shuntCompensator.getTerminal());
-                    }
-                    break;
-                case SWITCH:
-                    Switch aSwitch = network.getSwitch(element.getId());
-                    if (aSwitch == null) {
-                        throw new PowsyblException("Switch '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
-                    }
-                    switchesToOpen.add(aSwitch);
-                    break;
-                case THREE_WINDINGS_TRANSFORMER:
-                    ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(element.getId());
-                    if (twt == null) {
-                        throw new PowsyblException("Three windings transformer '" + element.getId() + "' " + NOT_FOUND_IN_NETWORK_ERROR_MESSAGE);
-                    }
-                    if (contingencyPropagation) {
-                        ContingencyTripping.createThreeWindingsTransformerTripping(network, twt)
-                                .traverse(switchesToOpen, terminalsToDisconnect);
-                    } else {
-                        terminalsToDisconnect.addAll(twt.getTerminals());
-                    }
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
-            }
-        }
 
         // then process other elements resulting of propagation of initial elements
         for (Terminal terminal : terminalsToDisconnect) {
@@ -281,20 +175,23 @@ public class PropagatedContingency {
                     break;
 
                 case SHUNT_COMPENSATOR:
-                    shuntsToLose.add((ShuntCompensator) connectable);
+                    ShuntCompensator shuntCompensator = (ShuntCompensator) connectable;
+                    if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
+                        throw new UnsupportedOperationException("Shunt compensator '" + shuntCompensator.getId() + "' with voltage control on: not supported yet");
+                    }
+                    shuntsToLose.add(shuntCompensator);
                     break;
 
                 case HVDC_CONVERTER_STATION:
-                    HvdcConverterStation<?> station = (HvdcConverterStation) connectable;
+                    HvdcConverterStation<?> station = (HvdcConverterStation<?>) connectable;
                     HvdcAngleDroopActivePowerControl control = station.getHvdcLine().getExtension(HvdcAngleDroopActivePowerControl.class);
                     if (control != null && control.isEnabled() && hvdcAcEmulation) {
                         hvdcIdsToOpen.add(station.getHvdcLine().getId());
+                    }
+                    if (connectable instanceof VscConverterStation) {
+                        vscsToLose.add((VscConverterStation) connectable);
                     } else {
-                        if (connectable instanceof VscConverterStation) {
-                            vscsToLose.add((VscConverterStation) connectable);
-                        } else {
-                            lccsToLose.add((LccConverterStation) connectable);
-                        }
+                        lccsToLose.add((LccConverterStation) connectable);
                     }
                     break;
 
@@ -325,22 +222,12 @@ public class PropagatedContingency {
             generatorIdsToLose.add(vsc.getId());
         }
         for (Load load : loadsToLose) {
-            Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus()
-                                   : load.getTerminal().getBusView().getBus();
-            if (bus != null) {
-                loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
-                        .add(getLoadPowerShift(load, slackDistributionOnConformLoad));
-            }
+            addPowerShift(load.getTerminal(), loadIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), withBreakers);
         }
         for (LccConverterStation lcc : lccsToLose) {
-            Bus bus = withBreakers ? lcc.getTerminal().getBusBreakerView().getBus()
-                    : lcc.getTerminal().getBusView().getBus();
-            if (bus != null) {
-                // No variable active part for a LCC.
-                loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
-                        .add(new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
-                                HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB));
-            }
+            PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
+                    HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB);
+            addPowerShift(lcc.getTerminal(), loadIdsToShift, lccPowerShift, withBreakers);
         }
         for (ShuntCompensator shunt : shuntsToLose) {
             double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
@@ -349,6 +236,74 @@ public class PropagatedContingency {
 
         return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen,
                                          generatorIdsToLose, loadIdsToShift, shuntIdsToShift);
+    }
+
+    private static void addPowerShift(Terminal terminal, Map<String, PowerShift> loadIdsToShift, PowerShift powerShift, boolean withBreakers) {
+        Bus bus = withBreakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+        if (bus != null) {
+            loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift()).add(powerShift);
+        }
+    }
+
+    private static List<? extends Terminal> getTerminals(Identifiable<?> identifiable) {
+        if (identifiable instanceof Connectable<?>) {
+            return ((Connectable<?>) identifiable).getTerminals();
+        }
+        if (identifiable instanceof HvdcLine) {
+            HvdcLine hvdcLine = (HvdcLine) identifiable;
+            return Arrays.asList(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
+        }
+        if (identifiable instanceof Switch) {
+            return Collections.emptyList();
+        }
+        throw new UnsupportedOperationException("Unsupported contingency element type: " + identifiable.getType());
+    }
+
+    private static Identifiable<?> getIdentifiable(Network network, ContingencyElement element) {
+        Identifiable<?> identifiable;
+        String identifiableType;
+        switch (element.getType()) {
+            case BRANCH:
+            case LINE:
+            case TWO_WINDINGS_TRANSFORMER:
+                identifiable = network.getBranch(element.getId());
+                identifiableType = "Branch";
+                break;
+            case HVDC_LINE:
+                identifiable = network.getHvdcLine(element.getId());
+                identifiableType = "HVDC line";
+                break;
+            case DANGLING_LINE:
+                identifiable = network.getDanglingLine(element.getId());
+                identifiableType = "Dangling line";
+                break;
+            case GENERATOR:
+                identifiable = network.getGenerator(element.getId());
+                identifiableType = "Generator";
+                break;
+            case LOAD:
+                identifiable = network.getLoad(element.getId());
+                identifiableType = "Load";
+                break;
+            case SHUNT_COMPENSATOR:
+                identifiable = network.getShuntCompensator(element.getId());
+                identifiableType = "Shunt compensator";
+                break;
+            case SWITCH:
+                identifiable = network.getSwitch(element.getId());
+                identifiableType = "Switch";
+                break;
+            case THREE_WINDINGS_TRANSFORMER:
+                identifiable = network.getThreeWindingsTransformer(element.getId());
+                identifiableType = "Three windings transformer";
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
+        }
+        if (identifiable == null) {
+            throw new PowsyblException(identifiableType + " '" + element.getId() + "' not found in the network");
+        }
+        return identifiable;
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network, boolean useSmallComponents) {
