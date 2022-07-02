@@ -13,10 +13,15 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -52,6 +57,15 @@ public class NewtonRaphson {
         this.equationVector = Objects.requireNonNull(equationVector);
     }
 
+    public static List<Pair<Equation<AcVariableType, AcEquationType>, Double>> findLargestMismatches(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, int count) {
+        return equationSystem.getIndex().getSortedEquationsToSolve().stream()
+                .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
+                .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
+                .sorted(Comparator.comparingDouble((Map.Entry<Equation<AcVariableType, AcEquationType>, Double> e) -> Math.abs(e.getValue())).reversed())
+                .limit(count)
+                .collect(Collectors.toList());
+    }
+
     private NewtonRaphsonStatus runIteration() {
         LOGGER.debug("Start iteration {}", iteration);
 
@@ -70,7 +84,7 @@ public class NewtonRaphson {
             Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
             if (LOGGER.isTraceEnabled()) {
-                equationSystem.findLargestMismatches(equationVector.getArray(), 5)
+                findLargestMismatches(equationSystem, equationVector.getArray(), 5)
                         .forEach(e -> {
                             Equation<AcVariableType, AcEquationType> equation = e.getKey();
                             String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");

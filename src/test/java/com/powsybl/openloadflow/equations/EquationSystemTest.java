@@ -21,7 +21,6 @@ import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -195,7 +194,7 @@ class EquationSystemTest {
         double[] targets = TargetVector.createArray(mainNetwork, equationSystem, AcTargetVector::init);
         var equationVector = new EquationVector<>(equationSystem);
         Vectors.minus(equationVector.getArray(), targets);
-        List<Pair<Equation<AcVariableType, AcEquationType>, Double>> largestMismatches = equationSystem.findLargestMismatches(equationVector.getArray(), 3);
+        var largestMismatches = NewtonRaphson.findLargestMismatches(equationSystem, equationVector.getArray(), 3);
         assertEquals(3, largestMismatches.size());
         assertEquals(-7.397518453004565, largestMismatches.get(0).getValue(), 0);
         assertEquals(5.999135514403292, largestMismatches.get(1).getValue(), 0);

@@ -218,13 +218,4 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public String writeToString() {
         return writeToString(false);
     }
-
-    public List<Pair<Equation<V, E>, Double>> findLargestMismatches(double[] mismatch, int count) {
-        return index.getSortedEquationsToSolve().stream()
-                .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
-                .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
-                .sorted(Comparator.comparingDouble((Map.Entry<Equation<V, E>, Double> e) -> Math.abs(e.getValue())).reversed())
-                .limit(count)
-                .collect(Collectors.toList());
-    }
 }
