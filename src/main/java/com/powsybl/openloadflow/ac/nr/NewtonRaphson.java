@@ -77,11 +77,14 @@ public class NewtonRaphson {
                 LOGGER.error(e.toString(), e);
                 return NewtonRaphsonStatus.SOLVER_FAILED;
             }
+            // f(x) now contains dx
 
-            // update x
+            // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minus(equationVector.getArray());
 
-            Vectors.minus(equationVector.getArray(), targetVector.getArray());
+            // substract targets from f(x)
+            equationVector.minus(targetVector);
+            // f(x) now contains equation mismatches
 
             if (LOGGER.isTraceEnabled()) {
                 findLargestMismatches(equationSystem, equationVector.getArray(), 5)

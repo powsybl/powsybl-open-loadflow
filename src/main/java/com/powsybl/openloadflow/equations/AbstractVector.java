@@ -11,7 +11,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Vector {
 
     protected final EquationSystem<V, E> equationSystem;
 
@@ -54,14 +54,15 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
         }
     }
 
-    private void invalidateVector() {
+    protected void invalidateVector() {
         status = Status.VECTOR_INVALID;
     }
 
-    private void validate() {
+    protected void validate() {
         status = Status.VALID;
     }
 
+    @Override
     public double[] getArray() {
         switch (status) {
             case VECTOR_INVALID:
@@ -84,4 +85,10 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
     protected abstract double[] createArray();
 
     protected abstract void updateArray(double[] array);
+
+    @Override
+    public void minus(Vector other) {
+        Objects.requireNonNull(other);
+        Vectors.minus(getArray(), other.getArray());
+    }
 }
