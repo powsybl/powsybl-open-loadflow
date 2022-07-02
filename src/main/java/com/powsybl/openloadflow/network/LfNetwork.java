@@ -488,7 +488,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 LfBus bus1 = branch.getBus1();
                 LfBus bus2 = branch.getBus2();
                 // ensure target voltages are consistent
-                if (bus1 != null && bus2 != null) {
+                if (bus1 != null && bus2 != null && bus1.isVoltageControlled() && bus2.isVoltageControlled()) {
                     Optional<VoltageControl> vc1 = bus1.getVoltageControl();
                     Optional<VoltageControl> vc2 = bus2.getVoltageControl();
                     if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControlEnabled() && bus2.isVoltageControlEnabled()
