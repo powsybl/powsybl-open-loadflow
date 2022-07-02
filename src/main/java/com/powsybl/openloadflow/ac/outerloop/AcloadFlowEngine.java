@@ -88,8 +88,12 @@ public class AcloadFlowEngine {
         voltageInitializer.prepare(context.getNetwork());
 
         RunningContext runningContext = new RunningContext();
-        NewtonRaphson newtonRaphson = new NewtonRaphson(context.getNetwork(), context.getParameters().getNewtonRaphsonParameters(),
-                context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector());
+        NewtonRaphson newtonRaphson = new NewtonRaphson(context.getNetwork(),
+                                                        context.getParameters().getNewtonRaphsonParameters(),
+                                                        context.getEquationSystem(),
+                                                        context.getJacobianMatrix(),
+                                                        context.getTargetVector(),
+                                                        context.getEquationVector());
 
         List<OuterLoop> outerLoops = context.getParameters().getOuterLoops();
         List<Pair<OuterLoop, OuterLoopContextImpl>> outerLoopsAndContexts = outerLoops.stream()

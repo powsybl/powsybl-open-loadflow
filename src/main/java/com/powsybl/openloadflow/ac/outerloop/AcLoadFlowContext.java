@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -30,6 +31,8 @@ public class AcLoadFlowContext implements AutoCloseable {
     private JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix;
 
     private AcTargetVector targetVector;
+
+    private EquationVector<AcVariableType, AcEquationType> equationVector;
 
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
         this.network = Objects.requireNonNull(network);
@@ -63,6 +66,13 @@ public class AcLoadFlowContext implements AutoCloseable {
             targetVector = new AcTargetVector(network, getEquationSystem());
         }
         return targetVector;
+    }
+
+    public EquationVector<AcVariableType, AcEquationType> getEquationVector() {
+        if (equationVector == null) {
+            equationVector = new EquationVector<>(getEquationSystem());
+        }
+        return equationVector;
     }
 
     @Override

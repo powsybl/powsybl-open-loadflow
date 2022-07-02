@@ -13,10 +13,15 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -37,38 +42,52 @@ public class NewtonRaphson {
 
     private final TargetVector<AcVariableType, AcEquationType> targetVector;
 
+    private final EquationVector<AcVariableType, AcEquationType> equationVector;
+
     public NewtonRaphson(LfNetwork network, NewtonRaphsonParameters parameters,
-                         EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j,
-                         TargetVector<AcVariableType, AcEquationType> targetVector) {
+                         EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                         JacobianMatrix<AcVariableType, AcEquationType> j,
+                         TargetVector<AcVariableType, AcEquationType> targetVector,
+                         EquationVector<AcVariableType, AcEquationType> equationVector) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.j = Objects.requireNonNull(j);
         this.targetVector = Objects.requireNonNull(targetVector);
+        this.equationVector = Objects.requireNonNull(equationVector);
     }
 
-    private NewtonRaphsonStatus runIteration(double[] fx) {
+    public static List<Pair<Equation<AcVariableType, AcEquationType>, Double>> findLargestMismatches(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, int count) {
+        return equationSystem.getIndex().getSortedEquationsToSolve().stream()
+                .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
+                .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
+                .sorted(Comparator.comparingDouble((Map.Entry<Equation<AcVariableType, AcEquationType>, Double> e) -> Math.abs(e.getValue())).reversed())
+                .limit(count)
+                .collect(Collectors.toList());
+    }
+
+    private NewtonRaphsonStatus runIteration() {
         LOGGER.debug("Start iteration {}", iteration);
 
         try {
             // solve f(x) = j * dx
             try {
-                j.solveTransposed(fx);
+                j.solveTransposed(equationVector.getArray());
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
                 return NewtonRaphsonStatus.SOLVER_FAILED;
             }
+            // f(x) now contains dx
 
-            // update x
-            equationSystem.getStateVector().minus(fx);
+            // update x and f(x) will be automatically updated
+            equationSystem.getStateVector().minus(equationVector.getArray());
 
-            // recalculate f(x) with new x
-            equationSystem.updateEquationVector(fx);
-
-            Vectors.minus(fx, targetVector.toArray());
+            // substract targets from f(x)
+            equationVector.minus(targetVector);
+            // f(x) now contains equation mismatches
 
             if (LOGGER.isTraceEnabled()) {
-                equationSystem.findLargestMismatches(fx, 5)
+                findLargestMismatches(equationSystem, equationVector.getArray(), 5)
                         .forEach(e -> {
                             Equation<AcVariableType, AcEquationType> equation = e.getKey();
                             String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
@@ -77,7 +96,7 @@ public class NewtonRaphson {
             }
 
             // test stopping criteria and log norm(fx)
-            NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(fx);
+            NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray());
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
@@ -168,15 +187,12 @@ public class NewtonRaphson {
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);
 
-        // initialize mismatch vector (difference between equation values and targets)
-        double[] fx = equationSystem.createEquationVector();
-
-        Vectors.minus(fx, targetVector.toArray());
+        Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration(fx);
+            NewtonRaphsonStatus newStatus = runIteration();
             if (newStatus != null) {
                 status = newStatus;
                 break;
