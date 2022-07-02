@@ -62,7 +62,7 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
         status = Status.VALID;
     }
 
-    public double[] toArray() {
+    public double[] getArray() {
         switch (status) {
             case VECTOR_INVALID:
                 array = createArray();

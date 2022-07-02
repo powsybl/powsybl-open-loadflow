@@ -6,30 +6,22 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystem.class);
 
     private final boolean indexTerms;
 
@@ -170,27 +162,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return index.getSortedEquationsToSolve().stream()
                 .map(v -> network.getBus(v.getElementNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());
-    }
-
-    public double[] createEquationVector() {
-        double[] fx = new double[index.getSortedEquationsToSolve().size()];
-        updateEquationVector(fx);
-        return fx;
-    }
-
-    public void updateEquationVector(double[] fx) {
-        if (fx.length != index.getSortedEquationsToSolve().size()) {
-            throw new IllegalArgumentException("Bad equation vector length: " + fx.length);
-        }
-
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
-        Arrays.fill(fx, 0);
-        for (Equation<V, E> equation : index.getSortedEquationsToSolve()) {
-            fx[equation.getColumn()] = equation.eval();
-        }
-
-        LOGGER.debug(PERFORMANCE_MARKER, "Equation vector updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
     public void addListener(EquationSystemListener<V, E> listener) {
