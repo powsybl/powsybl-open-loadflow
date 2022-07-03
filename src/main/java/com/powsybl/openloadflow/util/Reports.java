@@ -21,6 +21,7 @@ public final class Reports {
     private static final String NETWORK_NUM_CC = "networkNumCc";
     private static final String NETWORK_NUM_SC = "networkNumSc";
     private static final String ITERATION = "iteration";
+    private static final String NETWORK_ID = "networkId";
 
     private Reports() {
     }
@@ -146,7 +147,7 @@ public final class Reports {
 
     public static Reporter createLoadFlowReporter(Reporter reporter, String networkId) {
         return reporter.createSubReporter("loadFlow", "Load flow on network '${networkId}'",
-                "networkId", networkId);
+                NETWORK_ID, networkId);
     }
 
     public static Reporter createLfNetworkReporter(Reporter reporter, int networkNumCc, int networkNumSc) {
@@ -165,12 +166,12 @@ public final class Reports {
 
     public static Reporter createSensitivityAnalysis(Reporter reporter, String networkId) {
         return reporter.createSubReporter("sensitivityAnalysis",
-                "Sensitivity analysis on network '${networkId}'", "networkId", networkId);
+                "Sensitivity analysis on network '${networkId}'", NETWORK_ID, networkId);
     }
 
     public static Reporter createAcSecurityAnalysis(Reporter reporter, String networkId) {
         return reporter.createSubReporter("acSecurityAnalysis",
-                "AC security analysis on network '${networkId}'", "networkId", networkId);
+                "AC security analysis on network '${networkId}'", NETWORK_ID, networkId);
     }
 
     public static Reporter createPreContingencySimulation(Reporter reporter) {
