@@ -89,7 +89,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         } else {
             LfNetwork largestNetwork = lfNetworks.get(0);
             if (largestNetwork.isValid()) {
-                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, saReporter);
+                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters);
             } else {
                 result = createNoResult();
             }
@@ -127,14 +127,15 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
-                                                  SecurityAnalysisParameters securityAnalysisParameters, Reporter saReporter) {
+                                                  SecurityAnalysisParameters securityAnalysisParameters) {
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
         try (AcLoadFlowContext context = new AcLoadFlowContext(network, acParameters)) {
-            Reporter preContSimReporter = Reports.createPreContingencySimulation(saReporter);
+            Reporter networkReporter = network.getReporter();
+            Reporter preContSimReporter = Reports.createPreContingencySimulation(networkReporter);
             network.setReporter(preContSimReporter);
 
             // run pre-contingency simulation
@@ -163,7 +164,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
                     propagatedContingency.toLfContingency(network, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
-                                Reporter postContSimReporter = Reports.createPostContingencySimulation(saReporter, lfContingency.getId());
+                                Reporter postContSimReporter = Reports.createPostContingencySimulation(networkReporter, lfContingency.getId());
                                 network.setReporter(postContSimReporter);
 
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
