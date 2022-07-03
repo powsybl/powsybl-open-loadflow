@@ -6,8 +6,10 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.google.common.io.ByteStreams;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -36,12 +38,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.commons.TestUtil.normalizeLineSeparator;
 import static java.lang.Double.NaN;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -123,6 +129,11 @@ class OpenSecurityAnalysisTest {
 
     private SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
                                                        SecurityAnalysisParameters saParameters) {
+        return runSecurityAnalysis(network, contingencies, monitors, saParameters, Reporter.NO_OP);
+    }
+
+    private SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
+                                                       SecurityAnalysisParameters saParameters, Reporter reporter) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
@@ -133,7 +144,7 @@ class OpenSecurityAnalysisTest {
                 provider,
                 Collections.emptyList(),
                 monitors,
-                Reporter.NO_OP)
+                reporter)
                 .join();
         return report.getResult();
     }
@@ -165,7 +176,7 @@ class OpenSecurityAnalysisTest {
         return List.of(new StateMonitor(ContingencyContext.all(), allBranchIds, allVoltageLevelIds, Collections.emptySet()));
     }
 
-    private static List<Contingency> allBranches(Network network) {
+    private static List<Contingency> createAllBranchesContingencies(Network network) {
         return network.getBranchStream()
                 .map(b -> new Contingency(b.getId(), new BranchContingency(b.getId())))
                 .collect(Collectors.toList());
@@ -406,7 +417,7 @@ class OpenSecurityAnalysisTest {
         Network network = FourSubstationsNodeBreakerFactory.create();
 
         // Testing all contingencies at once
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
 
@@ -460,7 +471,7 @@ class OpenSecurityAnalysisTest {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
 
         // Testing all contingencies at once
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
 
@@ -513,7 +524,7 @@ class OpenSecurityAnalysisTest {
             new StateMonitor(ContingencyContext.all(), Collections.singleton("l1"), Collections.singleton("bus"), Collections.singleton("three windings"))
         );
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, allBranches(network), monitors);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
 
         assertEquals(0, result.getPreContingencyResult().getPreContingencyBusResults().size());
         assertEquals(0, result.getPreContingencyResult().getPreContingencyBranchResults().size());
@@ -527,7 +538,7 @@ class OpenSecurityAnalysisTest {
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("l24"), Collections.singleton("b1_vl"), emptySet()));
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, allBranches(network), monitors);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
 
         assertEquals(1, result.getPreContingencyResult().getPreContingencyBusResults().size());
 
@@ -539,7 +550,7 @@ class OpenSecurityAnalysisTest {
         network = DistributedSlackNetworkFactory.create();
         network.getBranch("l24").getTerminal2().disconnect();
 
-        result = runSecurityAnalysis(network, allBranches(network), monitors);
+        result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
 
         assertEquals(0, result.getPreContingencyResult().getPreContingencyBranchResults().size());
 
@@ -547,7 +558,7 @@ class OpenSecurityAnalysisTest {
         network.getBranch("l24").getTerminal2().disconnect();
         network.getBranch("l24").getTerminal1().disconnect();
 
-        result = runSecurityAnalysis(network, allBranches(network), monitors);
+        result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
 
         assertEquals(0, result.getPreContingencyResult().getPreContingencyBranchResults().size());
     }
@@ -559,7 +570,7 @@ class OpenSecurityAnalysisTest {
         List<StateMonitor> monitors = new ArrayList<>();
         monitors.add(new StateMonitor(ContingencyContext.all(), Collections.singleton("dl1"), Collections.singleton("vl1"), emptySet()));
 
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
         CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors));
         assertEquals("Unsupported type of branch for branch result: dl1", exception.getCause().getMessage());
     }
@@ -573,7 +584,7 @@ class OpenSecurityAnalysisTest {
             new StateMonitor(ContingencyContext.all(), emptySet(), emptySet(), Collections.singleton("3wt"))
         );
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, allBranches(network), monitors);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, createAllBranchesContingencies(network), monitors);
 
         assertEquals(1, result.getPreContingencyResult().getPreContingencyThreeWindingsTransformerResults().size());
         assertAlmostEquals(new ThreeWindingsTransformerResult("3wt", 161, 82, 258,
@@ -590,7 +601,7 @@ class OpenSecurityAnalysisTest {
         setSlackBusId(lfParameters, "b1_vl_0");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
-        List<Contingency> contingencies = allBranches(fourBusNetwork);
+        List<Contingency> contingencies = createAllBranchesContingencies(fourBusNetwork);
 
         fourBusNetwork.getLine("l14").newActivePowerLimits1().setPermanentLimit(0.1).add();
         fourBusNetwork.getLine("l12").newActivePowerLimits1().setPermanentLimit(0.2).add();
@@ -651,7 +662,7 @@ class OpenSecurityAnalysisTest {
         increasedViolationsParameters.setFlowProportionalThreshold(0);
         securityAnalysisParameters.setIncreasedViolationsParameters(increasedViolationsParameters);
 
-        List<Contingency> contingencies = allBranches(fourBusNetwork);
+        List<Contingency> contingencies = createAllBranchesContingencies(fourBusNetwork);
 
         fourBusNetwork.getLine("l14").newActivePowerLimits1().setPermanentLimit(0.1).add();
         fourBusNetwork.getLine("l12").newActivePowerLimits1().setPermanentLimit(0.2).add();
@@ -704,7 +715,7 @@ class OpenSecurityAnalysisTest {
     void testSaModeAcAllBranchMonitoredFlowTransfer() {
         Network network = FourBusNetworkFactory.create();
 
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -741,7 +752,7 @@ class OpenSecurityAnalysisTest {
     void testSaWithRemoteSharedControl() {
         Network network = VoltageControlNetworkFactory.createWithIdenticalTransformers();
 
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -769,7 +780,7 @@ class OpenSecurityAnalysisTest {
         saParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters()
                 .setCreateResultExtension(true));
 
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -820,7 +831,7 @@ class OpenSecurityAnalysisTest {
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setShuntCompensatorVoltageControlOn(true);
 
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1337,7 +1348,7 @@ class OpenSecurityAnalysisTest {
         network.getLine("L1-2-1").setR(0).setX(0);
         network.getLine("L4-5-1").setR(0).setX(0);
 
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         List<StateMonitor> monitors = Collections.emptyList();
 
@@ -1543,7 +1554,7 @@ class OpenSecurityAnalysisTest {
         setSlackBusId(lfParameters, "b1_vl_0");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         network.getLine("l14").newCurrentLimits1().setPermanentLimit(60.0).add();
         network.getLine("l12").newCurrentLimits1().setPermanentLimit(120.0).add();
@@ -1592,7 +1603,7 @@ class OpenSecurityAnalysisTest {
         setSlackBusId(lfParameters, "b1_vl_0");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
-        List<Contingency> contingencies = allBranches(network);
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
 
         network.getLine("l14").newCurrentLimits1().setPermanentLimit(60.0)
                 .beginTemporaryLimit().setName("60").setAcceptableDuration(Integer.MAX_VALUE).setValue(200.0).endTemporaryLimit()
@@ -1653,5 +1664,24 @@ class OpenSecurityAnalysisTest {
         var e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies2, monitors, securityAnalysisParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Three windings transformer 'T3wT2' not found in the network", e.getCause().getMessage());
+    }
+
+    @Test
+    void reportTest() throws IOException {
+        var network = EurostagTutorialExample1Factory.create();
+
+        List<Contingency> contingencies = createAllBranchesContingencies(network);
+
+        ReporterModel reporter = new ReporterModel("TestSecurityAnalysis", "Test security analysis report");
+
+        runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), reporter);
+
+        String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(Objects.requireNonNull(getClass().getResourceAsStream("/saReport.txt"))), StandardCharsets.UTF_8));
+
+        StringWriter writer = new StringWriter();
+        reporter.export(writer);
+        String logExport = normalizeLineSeparator(writer.toString());
+
+        assertEquals(refLogExport, logExport);
     }
 }

@@ -25,23 +25,19 @@ public final class Reports {
     private Reports() {
     }
 
-    public static void reportNetworkSize(Reporter reporter, int networkNumCc, int networkNumSc, int busCount, int branchCount) {
+    public static void reportNetworkSize(Reporter reporter, int busCount, int branchCount) {
         reporter.report(Report.builder()
                 .withKey("networkSize")
-                .withDefaultMessage("Network CC${networkNumCc} SC${networkNumSc} has ${busCount} buses and ${branchCount} branches")
-                .withValue(NETWORK_NUM_CC, networkNumCc)
-                .withValue(NETWORK_NUM_SC, networkNumSc)
+                .withDefaultMessage("Network has ${busCount} buses and ${branchCount} branches")
                 .withValue("busCount", busCount)
                 .withValue("branchCount", branchCount)
                 .build());
     }
 
-    public static void reportNetworkBalance(Reporter reporter, int networkNumCc, int networkNumSc, double activeGeneration, double activeLoad, double reactiveGeneration, double reactiveLoad) {
+    public static void reportNetworkBalance(Reporter reporter, double activeGeneration, double activeLoad, double reactiveGeneration, double reactiveLoad) {
         reporter.report(Report.builder()
                 .withKey("networkBalance")
-                .withDefaultMessage("Network CC${networkNumCc} SC${networkNumSc} balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
-                .withValue(NETWORK_NUM_CC, networkNumCc)
-                .withValue(NETWORK_NUM_SC, networkNumSc)
+                .withDefaultMessage("Network balance: active generation=${activeGeneration} MW, active load=${activeLoad} MW, reactive generation=${reactiveGeneration} MVar, reactive load=${reactiveLoad} MVar")
                 .withValue("activeGeneration", activeGeneration)
                 .withValue("activeLoad", activeLoad)
                 .withValue("reactiveGeneration", reactiveGeneration)
@@ -49,12 +45,10 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportNetworkMustHaveAtLeastOneBusVoltageControlled(Reporter reporter, int networkNumCc, int networkNumSc) {
+    public static void reportNetworkMustHaveAtLeastOneBusVoltageControlled(Reporter reporter) {
         reporter.report(Report.builder()
                 .withKey("networkMustHaveAtLeastOneBusVoltageControlled")
-                .withDefaultMessage("Network CC${networkNumCc} SC${networkNumSc} must have at least one bus voltage controlled")
-                .withValue(NETWORK_NUM_CC, networkNumCc)
-                .withValue(NETWORK_NUM_SC, networkNumSc)
+                .withDefaultMessage("Network must have at least one bus voltage controlled")
                 .build());
     }
 
@@ -143,7 +137,7 @@ public final class Reports {
     }
 
     public static Reporter createLoadFlowReporter(Reporter reporter, String networkId) {
-        return reporter.createSubReporter("loadFlow", "Load flow on network ${networkId}",
+        return reporter.createSubReporter("loadFlow", "Load flow on network '${networkId}'",
                 "networkId", networkId);
     }
 
@@ -163,6 +157,20 @@ public final class Reports {
 
     public static Reporter createSensitivityAnalysis(Reporter reporter, String networkId) {
         return reporter.createSubReporter("sensitivityAnalysis",
-                "Sensitivity analysis on network ${networkId}", "networkId", networkId);
+                "Sensitivity analysis on network '${networkId}'", "networkId", networkId);
+    }
+
+    public static Reporter createAcSecurityAnalysis(Reporter reporter, String networkId) {
+        return reporter.createSubReporter("acSecurityAnalysis",
+                "AC security analysis on network '${networkId}'", "networkId", networkId);
+    }
+
+    public static Reporter createPreContingencySimulation(Reporter reporter) {
+        return reporter.createSubReporter("preContingencySimulation", "Pre-contingency simulation");
+    }
+
+    public static Reporter createPostContingencySimulation(Reporter reporter, String contingencyId) {
+        return reporter.createSubReporter("postContingencySimulation", "Post-contingency simulation '${contingencyId}'",
+                "contingencyId", contingencyId);
     }
 }

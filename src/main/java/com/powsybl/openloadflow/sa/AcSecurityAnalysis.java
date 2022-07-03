@@ -28,6 +28,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.LimitViolationsResult;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisReport;
@@ -42,8 +43,8 @@ import java.util.concurrent.TimeUnit;
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     protected AcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                 List<StateMonitor> stateMonitors) {
-        super(network, matrixFactory, connectivityFactory, stateMonitors);
+                                 List<StateMonitor> stateMonitors, Reporter reporter) {
+        super(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
     }
 
     private static SecurityAnalysisResult createNoResult() {
@@ -57,6 +58,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     @Override
     SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                    ComputationManager computationManager) {
+        var saReporter = Reports.createAcSecurityAnalysis(reporter, network.getId());
+
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
@@ -74,10 +77,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 lfParameters.isHvdcAcEmulation());
 
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, saReporter, true, false);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());
+        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters(), saReporter);
 
         // run simulation on largest network
         SecurityAnalysisResult result;
@@ -86,7 +89,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         } else {
             LfNetwork largestNetwork = lfNetworks.get(0);
             if (largestNetwork.isValid()) {
-                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters);
+                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, saReporter);
             } else {
                 result = createNoResult();
             }
@@ -99,7 +102,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         return new SecurityAnalysisReport(result);
     }
 
-    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, LfNetworkParameters networkParameters) {
+    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, LfNetworkParameters networkParameters,
+                                   Reporter saReporter) {
         List<LfNetwork> lfNetworks;
         String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
         network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
@@ -107,7 +111,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                     .forEach(sw -> sw.setRetained(false));
             allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
-            lfNetworks = Networks.load(network, networkParameters, Reporter.NO_OP);
+            lfNetworks = Networks.load(network, networkParameters, saReporter);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);
         }
@@ -123,13 +127,16 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
-                                                  SecurityAnalysisParameters securityAnalysisParameters) {
+                                                  SecurityAnalysisParameters securityAnalysisParameters, Reporter saReporter) {
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
         try (AcLoadFlowContext context = new AcLoadFlowContext(network, acParameters)) {
+            Reporter preContSimReporter = Reports.createPreContingencySimulation(saReporter);
+            network.setReporter(preContSimReporter);
+
             // run pre-contingency simulation
             AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
                     .run();
@@ -156,6 +163,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
                     propagatedContingency.toLfContingency(network, true)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
+                                Reporter postContSimReporter = Reports.createPostContingencySimulation(saReporter, lfContingency.getId());
+                                network.setReporter(postContSimReporter);
+
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
 
                                 distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
