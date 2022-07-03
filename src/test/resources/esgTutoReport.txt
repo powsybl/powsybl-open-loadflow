@@ -1,6 +1,7 @@
 + Test ESG tutorial report
   + Load flow on network 'sim1'
     + Network CC0 SC0
+       AC load flow complete with NR status 'CONVERGED'
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
@@ -13,6 +14,7 @@
       + Outer loop Reactive limits
   + Sensitivity analysis on network 'sim1'
     + Network CC0 SC0
+       AC load flow complete with NR status 'CONVERGED'
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar

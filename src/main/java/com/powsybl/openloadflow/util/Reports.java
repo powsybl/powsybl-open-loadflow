@@ -136,6 +136,14 @@ public final class Reports {
                 .build());
     }
 
+    public static void reportAcLfComplete(Reporter reporter, String nrStatus) {
+        reporter.report(Report.builder()
+                .withKey("acLfComplete")
+                .withDefaultMessage("AC load flow complete with NR status '${nrStatus}'")
+                .withValue("nrStatus", nrStatus)
+                .build());
+    }
+
     public static Reporter createLoadFlowReporter(Reporter reporter, String networkId) {
         return reporter.createSubReporter("loadFlow", "Load flow on network '${networkId}'",
                 "networkId", networkId);
