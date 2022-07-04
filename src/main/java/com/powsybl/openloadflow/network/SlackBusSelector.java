@@ -26,6 +26,8 @@ public interface SlackBusSelector {
                 return new MostMeshedSlackBusSelector();
             case NAME:
                 return new NameSlackBusSelector(slackBusesIds);
+            case LARGEST_GENERATOR:
+                return new LargestGeneratorSlackBusSelector();
             default:
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
         }

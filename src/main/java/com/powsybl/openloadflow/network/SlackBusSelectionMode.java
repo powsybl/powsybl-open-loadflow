@@ -12,5 +12,6 @@ package com.powsybl.openloadflow.network;
 public enum SlackBusSelectionMode {
     FIRST,
     MOST_MESHED,
-    NAME
+    NAME,
+    LARGEST_GENERATOR
 }
