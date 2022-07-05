@@ -23,4 +23,22 @@ class LargestGeneratorSlackBusSelectorTest {
         var slackBus = lfNetwork.getSlackBus();
         assertEquals("b2_vl_0", slackBus.getId());
     }
+
+    @Test
+    void testFictitiousGenerator() {
+        var network = DistributedSlackNetworkFactory.create();
+        network.getGenerator("g2").setFictitious(true);
+        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LargestGeneratorSlackBusSelector(5000)).get(0);
+        var slackBus = lfNetwork.getSlackBus();
+        assertEquals("b3_vl_0", slackBus.getId());
+    }
+
+    @Test
+    void testNonPlausibleMaxP() {
+        var network = DistributedSlackNetworkFactory.create();
+        network.getGenerator("g2").setMaxP(10000);
+        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LargestGeneratorSlackBusSelector(5000)).get(0);
+        var slackBus = lfNetwork.getSlackBus();
+        assertEquals("b3_vl_0", slackBus.getId());
+    }
 }

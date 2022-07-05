@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Comparator;
 import java.util.List;
@@ -27,7 +28,7 @@ public class LargestGeneratorSlackBusSelector implements SlackBusSelector {
     }
 
     private boolean isGeneratorInvalid(LfGenerator generator) {
-        return generator.isFictitious() || generator.getMaxP() > plausibleActivePowerLimit;
+        return generator.isFictitious() || generator.getMaxP() > plausibleActivePowerLimit / PerUnit.SB;
     }
 
     @Override
