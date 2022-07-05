@@ -25,6 +25,8 @@ public interface LfGenerator extends PropertyBag {
 
     void setBus(LfBus bus);
 
+    boolean isFictitious();
+
     boolean hasRemoteReactivePowerControl();
 
     GeneratorControlType getGeneratorControlType();
