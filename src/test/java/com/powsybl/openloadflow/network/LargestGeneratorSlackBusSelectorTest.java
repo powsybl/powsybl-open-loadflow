@@ -19,7 +19,7 @@ class LargestGeneratorSlackBusSelectorTest {
     @Test
     void test() {
         var network = DistributedSlackNetworkFactory.create();
-        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LargestGeneratorSlackBusSelector()).get(0);
+        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LargestGeneratorSlackBusSelector(5000)).get(0);
         var slackBus = lfNetwork.getSlackBus();
         assertEquals("b2_vl_0", slackBus.getId());
     }

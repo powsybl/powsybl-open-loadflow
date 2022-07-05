@@ -16,14 +16,24 @@ import java.util.List;
  */
 public class LargestGeneratorSlackBusSelector implements SlackBusSelector {
 
+    private final double plausibleActivePowerLimit;
+
+    public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit) {
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+    }
+
     private static double getMaxP(LfBus bus) {
         return bus.getGenerators().stream().mapToDouble(LfGenerator::getMaxP).sum();
+    }
+
+    private boolean isGeneratorInvalid(LfGenerator generator) {
+        return generator.isFictitious() || generator.getMaxP() > plausibleActivePowerLimit;
     }
 
     @Override
     public SelectedSlackBus select(List<LfBus> buses) {
         LfBus slackBus = buses.stream()
-                .filter(bus -> !bus.getGenerators().isEmpty())
+                .filter(bus -> !bus.getGenerators().isEmpty() && bus.getGenerators().stream().noneMatch(this::isGeneratorInvalid))
                 .max(Comparator.comparingDouble(LargestGeneratorSlackBusSelector::getMaxP))
                 .orElseThrow(() -> new PowsyblException("Cannot find a bus with a generator"));
         return new SelectedSlackBus(slackBus, "Largest generator bus");
