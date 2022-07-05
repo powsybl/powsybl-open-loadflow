@@ -6,15 +6,14 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,13 +105,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             }
         }
 
-        reporter.report(Report.builder()
-            .withKey("switchPvPq")
-            .withDefaultMessage("${pvToPqBuses} buses switched PV -> PQ ({remainingPvBuses} bus remains PV}")
-            .withValue("pvToPqBuses", pvToPqBuses.size())
-            .withValue("remainingPvBuses", modifiedRemainingPvBusCount)
-            .withSeverity(TypedValue.INFO_SEVERITY)
-            .build());
+        Reports.reportPvToPqBuses(reporter, pvToPqBuses.size(), modifiedRemainingPvBusCount);
+
         LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV}", pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
         return done;
@@ -161,13 +155,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             }
         }
 
-        reporter.report(Report.builder()
-            .withKey("switchPqPv")
-            .withDefaultMessage("${pqToPvBuses} buses switched PQ -> PV ({blockedPqBuses} buses blocked PQ because have reach max number of switch)")
-            .withValue("pqToPvBuses", pqPvSwitchCount)
-            .withValue("blockedPqBuses", pqToPvBuses.size() - pqPvSwitchCount)
-            .withSeverity(TypedValue.INFO_SEVERITY)
-            .build());
+        Reports.reportPqToPvBuses(reporter, pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
+
         LOGGER.info("{} buses switched PQ -> PV ({} buses blocked PQ because have reach max number of switch)",
                 pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
 

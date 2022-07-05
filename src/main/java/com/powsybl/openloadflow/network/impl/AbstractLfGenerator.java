@@ -65,6 +65,11 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     }
 
     @Override
+    public boolean isFictitious() {
+        return false;
+    }
+
+    @Override
     public double getTargetP() {
         return targetP / PerUnit.SB;
     }
