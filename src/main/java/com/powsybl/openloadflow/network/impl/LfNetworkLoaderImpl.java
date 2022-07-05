@@ -79,10 +79,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
-
-                    // check that target voltage is the same for the generators of current controller bus which have voltage control on
-                    checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                    if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus)) {
+                        // check that target voltage is the same for the generators of current controller bus which have voltage control on
+                        checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                    }
                 });
 
                 if (voltageRemoteControl || controlledBus == controllerBus) {
@@ -151,14 +151,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
+    private static boolean checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
         Objects.requireNonNull(controlledBus);
         Objects.requireNonNull(controlledBusGen);
         if (controlledBus.getNum() != controlledBusGen.getNum()) {
             String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
-            throw new PowsyblException("Generators [" + generatorIds
-                + "] connected to bus '" + controller.getId() + "' must control the voltage of the same bus");
+            LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
+                    generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+            return false;
         }
+        return true;
     }
 
     private static void checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus) {
