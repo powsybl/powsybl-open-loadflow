@@ -154,7 +154,7 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(SlackBusSelectionMode.NAME, olfParameters.getSlackBusSelectionMode());
-        List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), SlackBusSelector.fromMode(olfParameters.getSlackBusSelectionMode(), olfParameters.getSlackBusesIds()));
+        List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), SlackBusSelector.fromMode(olfParameters.getSlackBusSelectionMode(), olfParameters.getSlackBusesIds(), olfParameters.getPlausibleActivePowerLimit()));
         LfNetwork lfNetwork = lfNetworks.get(0);
         PowsyblException thrown = assertThrows(PowsyblException.class, lfNetwork::getSlackBus);
         assertEquals("None of the buses or voltage levels [???] have been found", thrown.getMessage());

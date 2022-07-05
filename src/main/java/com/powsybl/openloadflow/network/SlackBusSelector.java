@@ -16,7 +16,7 @@ public interface SlackBusSelector {
 
     SelectedSlackBus select(List<LfBus> buses);
 
-    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds) {
+    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds, double plausibleActivePowerLimit) {
         Objects.requireNonNull(mode);
         Objects.requireNonNull(slackBusesIds);
         switch (mode) {
@@ -26,6 +26,8 @@ public interface SlackBusSelector {
                 return new MostMeshedSlackBusSelector();
             case NAME:
                 return new NameSlackBusSelector(slackBusesIds);
+            case LARGEST_GENERATOR:
+                return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit);
             default:
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
         }
