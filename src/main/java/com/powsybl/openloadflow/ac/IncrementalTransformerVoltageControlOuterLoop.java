@@ -21,9 +21,10 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -32,22 +33,27 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerVoltageControlOuterLoop.class);
 
+    private static final int MAX_TAP_INCREMENT = 5;
+
+    private static final class ControllerContext {
+
+        private PiModel.Direction direction = PiModel.Direction.NONE;
+
+        private PiModel.Direction getDirection() {
+            return direction;
+        }
+
+        private void setDirection(PiModel.Direction direction) {
+            this.direction = Objects.requireNonNull(direction);
+        }
+    }
+
     private static final class ContextData {
 
-        private static final int MAX_TAP_INCREMENT = 5;
+        private final Map<String, ControllerContext> controllersContexts = new HashMap<>();
 
-        private Map<String, PiModel.Direction> piModelAndTapPositionDirection = new LinkedHashMap<>();
-
-        public int getMaxIncrement() {
-            return MAX_TAP_INCREMENT;
-        }
-
-        public Map<String, PiModel.Direction> getPiModelAndTapPositionDirection() {
-            return piModelAndTapPositionDirection;
-        }
-
-        public void setPiModelAndTapPositionDirection(Map<String, PiModel.Direction> piModelAndTapPositionDirection) {
-            this.piModelAndTapPositionDirection = piModelAndTapPositionDirection;
+        private Map<String, ControllerContext> getControllersContexts() {
+            return controllersContexts;
         }
     }
 
@@ -58,15 +64,14 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     @Override
     public void initialize(OuterLoopContext context) {
-        context.setData(new ContextData());
+        var contextData = new ContextData();
+        context.setData(contextData);
 
-        Map<String, PiModel.Direction> piModelAndTapPositionDirection = new LinkedHashMap<>();
         // All transformer voltage control are disabled for the first equation system resolution.
         for (LfBranch branch : getControllerBranches(context.getNetwork())) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
-            piModelAndTapPositionDirection.put(branch.getId(), PiModel.Direction.NONE);
+            contextData.getControllersContexts().put(branch.getId(), new ControllerContext());
         }
-        ((ContextData) context.getData()).setPiModelAndTapPositionDirection(piModelAndTapPositionDirection);
     }
 
     @Override
@@ -85,7 +90,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                                                                context.getAcLoadFlowContext().getEquationSystem(),
                                                                context.getAcLoadFlowContext().getJacobianMatrix());
 
-        Map<String, PiModel.Direction> piModelAndTapPositionDirection = ((ContextData) context.getData()).getPiModelAndTapPositionDirection();
+        var contextData = (ContextData) context.getData();
 
         network.getBuses().stream()
                 .filter(LfBus::isTransformerVoltageControlled)
@@ -98,16 +103,15 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     if (controllers.size() == 1) {
                         // only one transformer controls a bus
                         LfBranch controller = controllers.get(0);
+                        var controllerContext = contextData.getControllersContexts().get(controller.getId());
                         Double targetDeadband = controller.getTransformerVoltageControlTargetDeadband().orElse(null);
                         if (targetDeadband != null && Math.abs(difference) > targetDeadband / 2) {
                             double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
                                     .calculateSensi(sensitivities, controllerBranchIndex[controller.getNum()]);
                             double previousR1 = controller.getPiModel().getR1();
                             double deltaR1 = difference / sensitivity;
-                            boolean hasChanged = controller.getPiModel().updateTapPositionR1(deltaR1, ((ContextData) context.getData()).getMaxIncrement(),
-                                    piModelAndTapPositionDirection.get(controller.getId()));
-                            piModelAndTapPositionDirection.put(controller.getId(), getDirection(previousR1,
-                                    controller.getPiModel().getR1(), piModelAndTapPositionDirection.get(controller.getId())));
+                            boolean hasChanged = controller.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_INCREMENT, controllerContext.getDirection());
+                            controllerContext.setDirection(getDirection(previousR1, controller.getPiModel().getR1(), controllerContext.getDirection()));
                             LOGGER.info("Round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
                             if (hasChanged) {
                                 status.setValue(OuterLoopStatus.UNSTABLE);
@@ -121,16 +125,15 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                         while (hasChanged) {
                             hasChanged = false;
                             for (LfBranch controller : controllers) {
+                                var controllerContext = contextData.getControllersContexts().get(controller.getId());
                                 Double targetDeadband = controller.getTransformerVoltageControlTargetDeadband().orElse(null);
                                 if (targetDeadband != null && Math.abs(difference) > targetDeadband / 2) {
                                     double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
                                             .calculateSensi(sensitivities, controllerBranchIndex[controller.getNum()]);
                                     double previousR1 = controller.getPiModel().getR1();
                                     double deltaR1 = difference / sensitivity;
-                                    hasChanged = controller.getPiModel().updateTapPositionR1(deltaR1, 1,
-                                            piModelAndTapPositionDirection.get(controller.getId()));
-                                    piModelAndTapPositionDirection.put(controller.getId(), getDirection(previousR1,
-                                            controller.getPiModel().getR1(), piModelAndTapPositionDirection.get(controller.getId())));
+                                    hasChanged = controller.getPiModel().updateTapPositionR1(deltaR1, 1, controllerContext.getDirection());
+                                    controllerContext.setDirection(getDirection(previousR1, controller.getPiModel().getR1(), controllerContext.getDirection()));
                                     difference -= (controller.getPiModel().getR1() - previousR1) * sensitivity;
                                     LOGGER.info("[Shared control] round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
                                     if (hasChanged) {
@@ -143,7 +146,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                         }
                     }
                 });
-        ((ContextData) context.getData()).setPiModelAndTapPositionDirection(piModelAndTapPositionDirection);
         return status.getValue();
     }
 
