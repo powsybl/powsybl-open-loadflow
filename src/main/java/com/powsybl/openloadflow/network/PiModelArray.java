@@ -187,7 +187,7 @@ public class PiModelArray implements PiModel {
         }
         if (hasChanged) {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
+                listener.onTransformerPhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
             }
         }
         return hasChanged;
@@ -228,7 +228,7 @@ public class PiModelArray implements PiModel {
         if (hasChanged) {
             r1 = Double.NaN;
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
+                listener.onTransformerVoltageControlTapPositionChange(branch, oldTapPosition, tapPosition);
             }
             return Optional.of(tapPosition - oldTapPosition > 0 ? Direction.INCREASE : Direction.DECREASE);
         }
