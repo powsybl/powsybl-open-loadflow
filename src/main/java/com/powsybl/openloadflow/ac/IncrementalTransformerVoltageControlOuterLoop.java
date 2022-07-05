@@ -33,7 +33,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerVoltageControlOuterLoop.class);
 
-    private static final int MAX_TAP_INCREMENT = 5;
+    private static final int MAX_TAP_SHIFT = 5;
 
     private static final class ControllerContext {
 
@@ -110,7 +110,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                                     .calculateSensi(sensitivities, controllerBranchIndex[controller.getNum()]);
                             double previousR1 = controller.getPiModel().getR1();
                             double deltaR1 = difference / sensitivity;
-                            controller.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_INCREMENT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                            controller.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                                 controllerContext.setAllowedDirection(direction.getAllowedDirection());
                                 LOGGER.info("Round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
                                 status.setValue(OuterLoopStatus.UNSTABLE);

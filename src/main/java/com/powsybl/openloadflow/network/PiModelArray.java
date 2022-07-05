@@ -207,7 +207,7 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapIncrement, AllowedDirection allowedDirection) {
+    public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
         double newR1 = getR1() + deltaR1;
         Range<Integer> positionRange = getAllowedPositionRange(allowedDirection);
 
@@ -215,7 +215,7 @@ public class PiModelArray implements PiModel {
         // find tap position with the closest r1 value without exceeding the maximum of taps to switch.
         double smallestDistance = Math.abs(deltaR1);
         for (int p = positionRange.getMinimum();
-             p < positionRange.getMaximum() && Math.abs(lowTapPosition + p - oldTapPosition) <= maxTapIncrement;
+             p < positionRange.getMaximum() && Math.abs(lowTapPosition + p - oldTapPosition) <= maxTapShift;
              p++) {
             double distance = Math.abs(newR1 - models.get(p).getR1());
             if (distance < smallestDistance) {
