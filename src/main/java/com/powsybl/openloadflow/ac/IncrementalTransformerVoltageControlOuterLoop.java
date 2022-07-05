@@ -37,14 +37,14 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final class ControllerContext {
 
-        private PiModel.Direction direction = PiModel.Direction.NONE;
+        private PiModel.AllowedDirection allowedDirection = PiModel.AllowedDirection.BOTH;
 
-        private PiModel.Direction getDirection() {
-            return direction;
+        private PiModel.AllowedDirection getAllowedDirection() {
+            return allowedDirection;
         }
 
-        private void setDirection(PiModel.Direction direction) {
-            this.direction = Objects.requireNonNull(direction);
+        private void setAllowedDirection(PiModel.AllowedDirection allowedDirection) {
+            this.allowedDirection = Objects.requireNonNull(allowedDirection);
         }
     }
 
@@ -110,12 +110,11 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                                     .calculateSensi(sensitivities, controllerBranchIndex[controller.getNum()]);
                             double previousR1 = controller.getPiModel().getR1();
                             double deltaR1 = difference / sensitivity;
-                            boolean hasChanged = controller.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_INCREMENT, controllerContext.getDirection());
-                            controllerContext.setDirection(getDirection(previousR1, controller.getPiModel().getR1(), controllerContext.getDirection()));
-                            LOGGER.info("Round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
-                            if (hasChanged) {
+                            controller.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_INCREMENT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                                controllerContext.setAllowedDirection(direction.getAllowedDirection());
+                                LOGGER.info("Round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
                                 status.setValue(OuterLoopStatus.UNSTABLE);
-                            }
+                            });
                         } else {
                             LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controller.getId(), targetDeadband, Math.abs(difference));
                         }
@@ -132,12 +131,13 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                                             .calculateSensi(sensitivities, controllerBranchIndex[controller.getNum()]);
                                     double previousR1 = controller.getPiModel().getR1();
                                     double deltaR1 = difference / sensitivity;
-                                    hasChanged = controller.getPiModel().updateTapPositionR1(deltaR1, 1, controllerContext.getDirection());
-                                    controllerContext.setDirection(getDirection(previousR1, controller.getPiModel().getR1(), controllerContext.getDirection()));
-                                    difference -= (controller.getPiModel().getR1() - previousR1) * sensitivity;
-                                    LOGGER.info("[Shared control] round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
-                                    if (hasChanged) {
+                                    PiModel.Direction direction = controller.getPiModel().updateTapPositionR1(deltaR1, 1, controllerContext.getAllowedDirection()).orElse(null);
+                                    if (direction != null) {
+                                        controllerContext.setAllowedDirection(direction.getAllowedDirection());
+                                        difference -= (controller.getPiModel().getR1() - previousR1) * sensitivity;
+                                        hasChanged = true;
                                         status.setValue(OuterLoopStatus.UNSTABLE);
+                                        LOGGER.info("[Shared control] round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
                                     }
                                 } else {
                                     LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controller.getId(), targetDeadband, Math.abs(difference));
@@ -162,37 +162,5 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
         j.solveTransposed(rhs);
         return rhs;
-    }
-
-    private PiModel.Direction getDirection(double previousR1, double r1, PiModel.Direction previousDirection) {
-        if (previousDirection == PiModel.Direction.INCREASE_THEN_DECREASE || previousDirection == PiModel.Direction.DECREASE_THEN_INCREASE) {
-            return previousDirection;
-        }
-        if (r1 > previousR1) {
-            // increasing.
-            switch (previousDirection) {
-                case NONE:
-                case INCREASE:
-                    return PiModel.Direction.INCREASE;
-                case DECREASE:
-                case DECREASE_THEN_INCREASE:
-                    return PiModel.Direction.DECREASE_THEN_INCREASE;
-                case INCREASE_THEN_DECREASE:
-                    LOGGER.error("We want to increase R1 of a PiModel that has already increased then decreased. It should never happen.");
-            }
-        } else if (r1 < previousR1) {
-            // decreasing.
-            switch (previousDirection) {
-                case NONE:
-                case DECREASE:
-                    return PiModel.Direction.DECREASE;
-                case INCREASE:
-                case INCREASE_THEN_DECREASE:
-                    return PiModel.Direction.INCREASE_THEN_DECREASE;
-                case DECREASE_THEN_INCREASE:
-                    LOGGER.error("We want to decrease R1 of a PiModel that has already decreased then increased. It should never happen.");
-            }
-        }
-        return PiModel.Direction.NONE;
     }
 }

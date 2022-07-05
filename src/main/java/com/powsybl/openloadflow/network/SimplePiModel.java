@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.network;
 
 import net.jafama.FastMath;
 
+import java.util.Optional;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -141,7 +143,7 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public boolean updateTapPositionR1(double deltaR1, int maxTapIncrement, Direction previousVariations) {
+    public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapIncrement, AllowedDirection allowedDirection) {
         throw new IllegalStateException("No tap position change in simple Pi model implementation");
     }
 

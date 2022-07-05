@@ -10,6 +10,7 @@ import org.apache.commons.lang3.Range;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -192,40 +193,29 @@ public class PiModelArray implements PiModel {
         return hasChanged;
     }
 
-    private Range<Integer> getAllowedPositionRange(Direction previousVariations) {
-        int pBegin = 0;
-        int pEnd = models.size();
-        int p0 = tapPosition - lowTapPosition;
-        Direction r1Variation = (models.get(0).getR1() > models.get(models.size() - 1).getR1()) ? Direction.DECREASE : Direction.INCREASE; // FIXME: add a control.
-        if (previousVariations == Direction.DECREASE_THEN_INCREASE) {
-            // we forbid R1 to decrease again after having already decrease then increase
-            if (r1Variation == Direction.INCREASE) {
-                pBegin = p0;
-            } else {
-                pEnd = p0;
-            }
+    private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
+        switch (allowedDirection) {
+            case INCREASE:
+                return Range.between(tapPosition - lowTapPosition, models.size());
+            case DECREASE:
+                return Range.between(0, tapPosition - lowTapPosition);
+            case BOTH:
+                return Range.between(0, models.size());
+            default:
+                throw new IllegalStateException("Unknown direction: " + allowedDirection);
         }
-        if (previousVariations == Direction.INCREASE_THEN_DECREASE) {
-            // we forbid R1 to increase again after having already increase then decrease
-            if (r1Variation == Direction.INCREASE) {
-                pEnd = p0;
-            } else {
-                pBegin = p0;
-            }
-        }
-        return Range.between(pBegin, pEnd);
     }
 
     @Override
-    public boolean updateTapPositionR1(double deltaR1, int maxTapIncrement, Direction previousVariations) {
+    public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapIncrement, AllowedDirection allowedDirection) {
         double newR1 = getR1() + deltaR1;
-        Range<Integer> pRange = getAllowedPositionRange(previousVariations);
+        Range<Integer> positionRange = getAllowedPositionRange(allowedDirection);
 
         int oldTapPosition = tapPosition;
         // find tap position with the closest r1 value without exceeding the maximum of taps to switch.
         double smallestDistance = Math.abs(deltaR1);
-        for (int p = pRange.getMinimum();
-             p < pRange.getMaximum() && Math.abs(lowTapPosition + p - oldTapPosition) <= maxTapIncrement;
+        for (int p = positionRange.getMinimum();
+             p < positionRange.getMaximum() && Math.abs(lowTapPosition + p - oldTapPosition) <= maxTapIncrement;
              p++) {
             double distance = Math.abs(newR1 - models.get(p).getR1());
             if (distance < smallestDistance) {
@@ -240,8 +230,9 @@ public class PiModelArray implements PiModel {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
                 listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
             }
+            return Optional.of(tapPosition - oldTapPosition > 0 ? Direction.INCREASE : Direction.DECREASE);
         }
-        return hasChanged;
+        return Optional.empty();
     }
 
     @Override
