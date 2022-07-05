@@ -74,6 +74,56 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
     }
 
+    private void adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, ContextData contextData, int[] controllerBranchIndex,
+                                         DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
+        // only one transformer controls a bus
+        var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+        Double targetDeadband = controllerBranch.getTransformerVoltageControlTargetDeadband().orElse(null);
+        if (targetDeadband != null && Math.abs(diffV) > targetDeadband / 2) {
+            double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
+                    .calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
+            double previousR1 = controllerBranch.getPiModel().getR1();
+            double deltaR1 = diffV / sensitivity;
+            controllerBranch.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                controllerContext.setAllowedDirection(direction.getAllowedDirection());
+                LOGGER.info("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
+                status.setValue(OuterLoopStatus.UNSTABLE);
+            });
+        } else {
+            LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controllerBranch.getId(), targetDeadband, Math.abs(diffV));
+        }
+    }
+
+    private void adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, ContextData contextData, int[] controllerBranchIndex,
+                                              DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
+        // several transformers control the same bus
+        double remainingDiffV = diffV;
+        boolean hasChanged = true;
+        while (hasChanged) {
+            hasChanged = false;
+            for (LfBranch controllerBranch : controllerBranches) {
+                var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+                Double targetDeadband = controllerBranch.getTransformerVoltageControlTargetDeadband().orElse(null);
+                if (targetDeadband != null && Math.abs(remainingDiffV) > targetDeadband / 2) {
+                    double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
+                            .calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
+                    double previousR1 = controllerBranch.getPiModel().getR1();
+                    double deltaR1 = remainingDiffV / sensitivity;
+                    PiModel.Direction direction = controllerBranch.getPiModel().updateTapPositionR1(deltaR1, 1, controllerContext.getAllowedDirection()).orElse(null);
+                    if (direction != null) {
+                        controllerContext.setAllowedDirection(direction.getAllowedDirection());
+                        remainingDiffV -= (controllerBranch.getPiModel().getR1() - previousR1) * sensitivity;
+                        hasChanged = true;
+                        status.setValue(OuterLoopStatus.UNSTABLE);
+                        LOGGER.info("[Shared control] round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
+                    }
+                } else {
+                    LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controllerBranch.getId(), targetDeadband, Math.abs(diffV));
+                }
+            }
+        }
+    }
+
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
@@ -94,56 +144,16 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         network.getBuses().stream()
                 .filter(LfBus::isTransformerVoltageControlled)
-                .forEach(bus -> {
-                    TransformerVoltageControl voltageControl = bus.getTransformerVoltageControl().orElseThrow();
+                .forEach(controlledBus -> {
+                    TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
                     double targetV = voltageControl.getTargetValue();
-                    double voltage = voltageControl.getControlled().getV();
-                    double difference = targetV - voltage;
+                    double v = voltageControl.getControlled().getV();
+                    double diffV = targetV - v;
                     List<LfBranch> controllers = voltageControl.getControllers();
                     if (controllers.size() == 1) {
-                        // only one transformer controls a bus
-                        LfBranch controller = controllers.get(0);
-                        var controllerContext = contextData.getControllersContexts().get(controller.getId());
-                        Double targetDeadband = controller.getTransformerVoltageControlTargetDeadband().orElse(null);
-                        if (targetDeadband != null && Math.abs(difference) > targetDeadband / 2) {
-                            double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
-                                    .calculateSensi(sensitivities, controllerBranchIndex[controller.getNum()]);
-                            double previousR1 = controller.getPiModel().getR1();
-                            double deltaR1 = difference / sensitivity;
-                            controller.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                                controllerContext.setAllowedDirection(direction.getAllowedDirection());
-                                LOGGER.info("Round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
-                                status.setValue(OuterLoopStatus.UNSTABLE);
-                            });
-                        } else {
-                            LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controller.getId(), targetDeadband, Math.abs(difference));
-                        }
+                        adjustWithOneController(controllers.get(0), controlledBus, contextData, controllerBranchIndex, sensitivities, diffV, status);
                     } else {
-                        // several transformers control the same bus.
-                        boolean hasChanged = true;
-                        while (hasChanged) {
-                            hasChanged = false;
-                            for (LfBranch controller : controllers) {
-                                var controllerContext = contextData.getControllersContexts().get(controller.getId());
-                                Double targetDeadband = controller.getTransformerVoltageControlTargetDeadband().orElse(null);
-                                if (targetDeadband != null && Math.abs(difference) > targetDeadband / 2) {
-                                    double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) bus.getCalculatedV())
-                                            .calculateSensi(sensitivities, controllerBranchIndex[controller.getNum()]);
-                                    double previousR1 = controller.getPiModel().getR1();
-                                    double deltaR1 = difference / sensitivity;
-                                    PiModel.Direction direction = controller.getPiModel().updateTapPositionR1(deltaR1, 1, controllerContext.getAllowedDirection()).orElse(null);
-                                    if (direction != null) {
-                                        controllerContext.setAllowedDirection(direction.getAllowedDirection());
-                                        difference -= (controller.getPiModel().getR1() - previousR1) * sensitivity;
-                                        hasChanged = true;
-                                        status.setValue(OuterLoopStatus.UNSTABLE);
-                                        LOGGER.info("[Shared control] round voltage ratio of '{}': {} -> {}", controller.getId(), previousR1, controller.getPiModel().getR1());
-                                    }
-                                } else {
-                                    LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controller.getId(), targetDeadband, Math.abs(difference));
-                                }
-                            }
-                        }
+                        adjustWithSeveralControllers(controllers, controlledBus, contextData, controllerBranchIndex, sensitivities, diffV, status);
                     }
                 });
         return status.getValue();
