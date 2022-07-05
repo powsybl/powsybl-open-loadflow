@@ -110,7 +110,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            Map<LfBus, Double> participationByBus,
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                            int contingencyIndex, SensitivityValueWriter valueWriter,
-                                                           Reporter reporter, boolean hasTransformerBusTargetVoltage, boolean hasMultiVariables) {
+                                                           boolean hasTransformerBusTargetVoltage, boolean hasMultiVariables) {
         if (lfParameters.isDistributedSlack() && Math.abs(lfContingency.getActivePowerLoss()) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant());
             activePowerDistribution.run(lfNetwork, lfContingency.getActivePowerLoss());
@@ -118,7 +118,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         new AcloadFlowEngine(context)
-                .run(reporter);
+                .run();
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
@@ -169,6 +169,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         Objects.requireNonNull(lfParametersExt);
         Objects.requireNonNull(factorReader);
         Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(reporter);
 
         // create LF network (we only manage main connected component)
         boolean hasTransformerBusTargetVoltage = hasTransformerBusTargetVoltage(factorReader, network);
@@ -177,7 +178,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // voltage control for the AC load flow engine.
             lfParameters.setTransformerVoltageControlOn(true);
         }
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(), lfParametersExt.getPlausibleActivePowerLimit());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector,
                                                                           connectivityFactory,
                                                                           lfParametersExt.hasVoltageRemoteControl(),
@@ -217,7 +218,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
             new AcloadFlowEngine(context)
-                    .run(reporter);
+                    .run();
 
             // index factors by variable group to compute a minimal number of states
             List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups = createFactorGroups(validLfFactors.stream()
@@ -318,7 +319,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         postContingencySlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
                     }
                     calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, postContingencySlackParticipationByBus,
-                            lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, reporter, hasTransformerBusTargetVoltage, hasMultiVariables);
+                            lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, hasTransformerBusTargetVoltage, hasMultiVariables);
 
                     networkState.restore();
                 }, () ->

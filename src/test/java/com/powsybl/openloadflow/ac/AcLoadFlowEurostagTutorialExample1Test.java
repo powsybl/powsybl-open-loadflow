@@ -282,11 +282,13 @@ class AcLoadFlowEurostagTutorialExample1Test {
         // also check there is a report added for this error
         assertEquals(1, reporter.getSubReporters().size());
         ReporterModel lfReporter = reporter.getSubReporters().get(0);
-        assertEquals(2, lfReporter.getSubReporters().size());
-        ReporterModel postLoadingReporter = lfReporter.getSubReporters().get(1);
-        assertEquals("postLoading", postLoadingReporter.getTaskKey());
+        assertEquals(1, lfReporter.getSubReporters().size());
+        ReporterModel createNetworkReporter = lfReporter.getSubReporters().get(0);
+        assertEquals("lfNetwork", createNetworkReporter.getTaskKey());
+        ReporterModel postLoadingReporter = createNetworkReporter.getSubReporters().get(0);
+        assertEquals("postLoadingProcessing", postLoadingReporter.getTaskKey());
         assertEquals(1, postLoadingReporter.getReports().size());
-        assertEquals("Network CC${numNetworkCc} SC${numNetworkSc} must have at least one bus voltage controlled",
+        assertEquals("Network CC${networkNumCc} SC${networkNumSc} must have at least one bus voltage controlled",
                 postLoadingReporter.getReports().iterator().next().getDefaultMessage());
     }
 
@@ -432,5 +434,24 @@ class AcLoadFlowEurostagTutorialExample1Test {
         });
         assertEquals(-120, network.getGenerator("GEN").getTerminal().getQ());
         assertEquals(-160, network.getGenerator("GEN1").getTerminal().getQ(), 0.01);
+    }
+
+    @Test
+    void testGeneratorsConnectedToSameBusNotControllingSameBus() {
+        var network = EurostagTutorialExample1Factory.create();
+        network.getVoltageLevel("VLGEN").newGenerator()
+                .setId("GEN2")
+                .setConnectableBus("NGEN")
+                .setBus("NGEN")
+                .setMinP(0)
+                .setMaxP(100)
+                .setTargetP(1)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(148)
+                .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
+                .add();
+        loadFlowRunner.run(network);
+        assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
+        assertVoltageEquals(147.57, network.getBusBreakerView().getBus("NLOAD"));
     }
 }

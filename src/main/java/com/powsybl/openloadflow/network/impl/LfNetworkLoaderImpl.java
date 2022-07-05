@@ -8,12 +8,12 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
@@ -79,10 +79,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
-                    checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus);
-
-                    // check that target voltage is the same for the generators of current controller bus which have voltage control on
-                    checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                    if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus)) {
+                        // check that target voltage is the same for the generators of current controller bus which have voltage control on
+                        checkUniqueTargetVControllerBus(lfGenerator, controllerTargetV, controllerBus, generatorControlledBus);
+                    }
                 });
 
                 if (voltageRemoteControl || controlledBus == controllerBus) {
@@ -151,14 +151,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
+    private static boolean checkUniqueControlledBus(LfBus controlledBus, LfBus controlledBusGen, LfBus controller) {
         Objects.requireNonNull(controlledBus);
         Objects.requireNonNull(controlledBusGen);
         if (controlledBus.getNum() != controlledBusGen.getNum()) {
             String generatorIds = controller.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
-            throw new PowsyblException("Generators [" + generatorIds
-                + "] connected to bus '" + controller.getId() + "' must control the voltage of the same bus");
+            LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
+                    generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+            return false;
         }
+        return true;
     }
 
     private static void checkUniqueTargetVControllerBus(LfGenerator lfGenerator, double previousTargetV, LfBus controllerBus, LfBus controlledBus) {
@@ -695,7 +697,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(),
-                parameters.getConnectivityFactory());
+                parameters.getConnectivityFactory(), reporter);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
@@ -743,20 +745,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
-            reporter.report(Report.builder()
-                .withKey("notStartedGenerators")
-                .withDefaultMessage("${nbGenImpacted} generators have been discarded from voltage control because not started")
-                .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseNotStarted)
-                .build());
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
-            reporter.report(Report.builder()
-                .withKey("smallReactiveRangeGenerators")
-                .withDefaultMessage("${nbGenImpacted} generators have been discarded from voltage control because of a too small max reactive range")
-                .withValue("nbGenImpacted", report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall)
-                .build());
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall(reporter, report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
         }
@@ -839,8 +833,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             : busesByCc.entrySet().stream();
 
         List<LfNetwork> lfNetworks = filteredBusesByCcStream
-                .map(e -> create(e.getKey().getLeft(), e.getKey().getRight(), e.getValue(), switchesByCc.get(e.getKey()), parameters,
-                    reporter.createSubReporter("createLfNetwork", "Create network ${networkNum}", "networkNum", e.getKey().getLeft())))
+                .map(e -> {
+                    var networkKey = e.getKey();
+                    int numCc = networkKey.getLeft();
+                    int numSc = networkKey.getRight();
+                    List<Bus> lfBuses = e.getValue();
+                    return create(numCc, numSc, lfBuses, switchesByCc.get(networkKey), parameters,
+                            Reports.createLfNetworkReporter(reporter, numCc, numSc));
+                })
                 .collect(Collectors.toList());
 
         stopwatch.stop();

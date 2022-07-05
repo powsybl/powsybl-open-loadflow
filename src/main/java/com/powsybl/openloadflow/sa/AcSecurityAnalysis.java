@@ -64,6 +64,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, the remaining mismatch is put on the slack bus and no exception is thrown.
         lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
+        OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
 
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
@@ -72,7 +73,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen,
                 lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isHvdcAcEmulation());
+                lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation());
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
 
@@ -132,7 +133,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         try (AcLoadFlowContext context = new AcLoadFlowContext(network, acParameters)) {
             // run pre-contingency simulation
             AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
-                    .run(Reporter.NO_OP);
+                    .run();
 
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             var preContingencyLimitViolationManager = new LimitViolationManager();
@@ -197,7 +198,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         // restart LF on post contingency equation system
         context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
         AcLoadFlowResult postContingencyLoadFlowResult = new AcloadFlowEngine(context)
-                .run(Reporter.NO_OP);
+                .run();
 
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);

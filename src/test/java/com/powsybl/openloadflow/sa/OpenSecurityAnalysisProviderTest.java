@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
+import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -44,7 +45,7 @@ class OpenSecurityAnalysisProviderTest extends AbstractConverterTest {
 
     @Test
     void specificParametersNamesTest() {
-        assertEquals(List.of("createResultExtension"), provider.getSpecificParametersNames());
+        assertEquals(List.of("createResultExtension", "contingencyPropagation"), provider.getSpecificParametersNames());
     }
 
     @Test
@@ -55,35 +56,43 @@ class OpenSecurityAnalysisProviderTest extends AbstractConverterTest {
         assertFalse(parametersExt.isCreateResultExtension());
         parametersExt.setCreateResultExtension(true);
         assertTrue(parametersExt.isCreateResultExtension());
+        assertTrue(parametersExt.isContingencyPropagation());
+        parametersExt.setContingencyPropagation(false);
+        assertFalse(parametersExt.isContingencyPropagation());
     }
 
     @Test
     void specificParametersFromPlatformConfigTest() {
         InMemoryPlatformConfig platformConfig = new InMemoryPlatformConfig(fileSystem);
-        platformConfig.createModuleConfig("open-security-analysis-default-parameters")
-                .setStringProperty("createResultExtension", "true");
+        MapModuleConfig moduleConfig = platformConfig.createModuleConfig("open-security-analysis-default-parameters");
+        moduleConfig.setStringProperty("createResultExtension", "true");
+        moduleConfig.setStringProperty("contingencyPropagation", "false");
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(platformConfig).orElseThrow();
         assertTrue(parametersExt.isCreateResultExtension());
+        assertFalse(parametersExt.isContingencyPropagation());
     }
 
     @Test
     void specificParametersFromEmptyPropertiesTest() {
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(Collections.emptyMap()).orElseThrow();
         assertFalse(parametersExt.isCreateResultExtension());
+        assertTrue(parametersExt.isContingencyPropagation());
     }
 
     @Test
     void specificParametersFromPropertiesTest() {
-        Map<String, String> properties = Map.of("createResultExtension", "true");
+        Map<String, String> properties = Map.of("createResultExtension", "true", "contingencyPropagation", "false");
         OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(properties).orElseThrow();
         assertTrue(parametersExt.isCreateResultExtension());
+        assertFalse(parametersExt.isContingencyPropagation());
     }
 
     @Test
     void jsonTest() throws IOException {
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
         OpenSecurityAnalysisParameters parametersExt = new OpenSecurityAnalysisParameters()
-                .setCreateResultExtension(true);
+                .setCreateResultExtension(true)
+                .setContingencyPropagation(false);
         parameters.addExtension(OpenSecurityAnalysisParameters.class, parametersExt);
         roundTripTest(parameters, JsonSecurityAnalysisParameters::write, JsonSecurityAnalysisParameters::read, "/sa-params.json");
     }

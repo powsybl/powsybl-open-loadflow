@@ -35,6 +35,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.*;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -224,8 +225,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
-        Reporter lfReporter = reporter.createSubReporter("loadFlow", "Load flow on network ${networkId}",
-            "networkId", network.getId());
+        Reporter lfReporter = Reports.createLoadFlowReporter(reporter, network.getId());
 
         return CompletableFuture.supplyAsync(() -> {
 
