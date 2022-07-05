@@ -62,6 +62,7 @@ public class AcloadFlowEngine {
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration.getValue());
             outerLoopContext.setLastNewtonRaphsonResult(runningContext.lastNrResult);
+            outerLoopContext.setAcLoadFlowContext(context);
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
