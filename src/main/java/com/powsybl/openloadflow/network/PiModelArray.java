@@ -161,7 +161,7 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean updateTapPosition(Direction direction) {
+    public boolean updateTapPositionA1(Direction direction) {
         this.a1 = getA1();
         double previousA1 = Double.NaN;
         double nextA1 = Double.NaN;

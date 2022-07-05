@@ -74,7 +74,7 @@ public interface PiModel {
         BOTH
     }
 
-    boolean updateTapPosition(Direction direction);
+    boolean updateTapPositionA1(Direction direction);
 
     Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapIncrement, AllowedDirection allowedDirection);
 
