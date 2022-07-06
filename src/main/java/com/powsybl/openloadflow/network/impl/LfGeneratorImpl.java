@@ -70,6 +70,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public boolean isFictitious() {
+        return generator.isFictitious();
+    }
+
+    @Override
     public OptionalDouble getRemoteControlReactiveKey() {
         CoordinatedReactiveControl coordinatedReactiveControl = generator.getExtension(CoordinatedReactiveControl.class);
         if (coordinatedReactiveControl == null) {

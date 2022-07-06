@@ -16,6 +16,8 @@ import java.util.*;
  */
 public class ContingencyTripping {
 
+    private static final ContingencyTripping NO_OP_TRIPPING = new ContingencyTripping(Collections.emptyList());
+
     private final List<? extends Terminal> terminals;
 
     public ContingencyTripping(List<? extends Terminal> terminals) {
@@ -26,18 +28,13 @@ public class ContingencyTripping {
         this(Collections.singletonList(terminal));
     }
 
-    public static ContingencyTripping createBranchTripping(Network network, String branchId) {
-        return createBranchTripping(network, branchId, null);
+    public static ContingencyTripping createBranchTripping(Network network, Branch<?> branch) {
+        return createBranchTripping(network, branch, null);
     }
 
-    public static ContingencyTripping createBranchTripping(Network network, String branchId, String voltageLevelId) {
+    public static ContingencyTripping createBranchTripping(Network network, Branch<?> branch, String voltageLevelId) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(branchId);
-
-        Branch<?> branch = network.getBranch(branchId);
-        if (branch == null) {
-            throw new PowsyblException("Branch '" + branchId + "' not found in the network");
-        }
+        Objects.requireNonNull(branch);
 
         if (voltageLevelId != null) {
             if (voltageLevelId.equals(branch.getTerminal1().getVoltageLevel().getId())) {
@@ -45,35 +42,45 @@ public class ContingencyTripping {
             } else if (voltageLevelId.equals(branch.getTerminal2().getVoltageLevel().getId())) {
                 return new ContingencyTripping(branch.getTerminal2());
             } else {
-                throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to branch '" + branchId + "'");
+                throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to branch '" + branch.getId() + "'");
             }
         } else {
             return new ContingencyTripping(branch.getTerminals());
         }
     }
 
-    public static ContingencyTripping createDanglingLineTripping(Network network, String dlId) {
+    public static ContingencyTripping createInjectionTripping(Network network, Injection<?> injection) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(dlId);
+        Objects.requireNonNull(injection);
 
-        DanglingLine danglingLine = network.getDanglingLine(dlId);
-        if (danglingLine == null) {
-            throw new PowsyblException("Dangling line '" + dlId + "' not found in the network");
-        }
-
-        return new ContingencyTripping(danglingLine.getTerminal());
+        return new ContingencyTripping(injection.getTerminal());
     }
 
-    public static ContingencyTripping createThreeWindingsTransformerTripping(Network network, String twtId) {
+    public static ContingencyTripping createThreeWindingsTransformerTripping(Network network, ThreeWindingsTransformer twt) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(twtId);
+        Objects.requireNonNull(twt);
 
-        ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(twtId);
-        if (twt == null) {
-            throw new PowsyblException("Three windings transformer '" + twtId + "' not found in the network");
+        return new ContingencyTripping(twt.getTerminals());
+    }
+
+    public static ContingencyTripping createContingencyTripping(Network network, Identifiable<?> identifiable) {
+        switch (identifiable.getType()) {
+            case LINE:
+            case TWO_WINDINGS_TRANSFORMER:
+                return ContingencyTripping.createBranchTripping(network, (Branch<?>) identifiable);
+            case DANGLING_LINE:
+            case GENERATOR:
+            case LOAD:
+            case SHUNT_COMPENSATOR:
+                return ContingencyTripping.createInjectionTripping(network, (Injection<?>) identifiable);
+            case THREE_WINDINGS_TRANSFORMER:
+                return ContingencyTripping.createThreeWindingsTransformerTripping(network, (ThreeWindingsTransformer) identifiable);
+            case HVDC_LINE:
+            case SWITCH:
+                return ContingencyTripping.NO_OP_TRIPPING;
+            default:
+                throw new UnsupportedOperationException("Unsupported contingency element type: " + identifiable.getType());
         }
-
-        return new ContingencyTripping(List.of(twt.getLeg1().getTerminal(), twt.getLeg2().getTerminal(), twt.getLeg3().getTerminal()));
     }
 
     public void traverse(Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect) {

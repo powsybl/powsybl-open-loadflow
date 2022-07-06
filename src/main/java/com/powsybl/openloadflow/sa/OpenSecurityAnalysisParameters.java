@@ -19,11 +19,15 @@ import java.util.Optional;
  */
 public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAnalysisParameters> {
 
-    private boolean createResultExtension;
+    private boolean createResultExtension = CREATE_RESULT_EXTENSION_DEFAULT_VALUE;
+
+    private boolean contingencyPropagation = CONTINGENCY_PROPAGATION_DEFAULT_VALUE;
 
     public static final String CREATE_RESULT_EXTENSION_PARAM_NAME = "createResultExtension";
     public static final boolean CREATE_RESULT_EXTENSION_DEFAULT_VALUE = false;
-    public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(CREATE_RESULT_EXTENSION_PARAM_NAME);
+    public static final String CONTINGENCY_PROPAGATION_PARAM_NAME = "contingencyPropagation";
+    public static final boolean CONTINGENCY_PROPAGATION_DEFAULT_VALUE = true;
+    public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(CREATE_RESULT_EXTENSION_PARAM_NAME, CONTINGENCY_PROPAGATION_PARAM_NAME);
 
     @Override
     public String getName() {
@@ -36,6 +40,15 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
 
     public OpenSecurityAnalysisParameters setCreateResultExtension(boolean createResultExtension) {
         this.createResultExtension = createResultExtension;
+        return this;
+    }
+
+    public boolean isContingencyPropagation() {
+        return contingencyPropagation;
+    }
+
+    public OpenSecurityAnalysisParameters setContingencyPropagation(boolean contingencyPropagation) {
+        this.contingencyPropagation = contingencyPropagation;
         return this;
     }
 
@@ -55,7 +68,8 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
         OpenSecurityAnalysisParameters parameters = new OpenSecurityAnalysisParameters();
         platformConfig.getOptionalModuleConfig("open-security-analysis-default-parameters")
                 .ifPresent(config -> parameters
-                        .setCreateResultExtension(config.getBooleanProperty(CREATE_RESULT_EXTENSION_PARAM_NAME, CREATE_RESULT_EXTENSION_DEFAULT_VALUE)));
+                        .setCreateResultExtension(config.getBooleanProperty(CREATE_RESULT_EXTENSION_PARAM_NAME, CREATE_RESULT_EXTENSION_DEFAULT_VALUE))
+                        .setContingencyPropagation(config.getBooleanProperty(CONTINGENCY_PROPAGATION_PARAM_NAME, CONTINGENCY_PROPAGATION_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -67,6 +81,8 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
     public OpenSecurityAnalysisParameters update(Map<String, String> properties) {
         Optional.ofNullable(properties.get(CREATE_RESULT_EXTENSION_PARAM_NAME))
                 .ifPresent(value -> this.setCreateResultExtension(Boolean.parseBoolean(value)));
+        Optional.ofNullable(properties.get(CONTINGENCY_PROPAGATION_PARAM_NAME))
+                .ifPresent(value -> this.setContingencyPropagation(Boolean.parseBoolean(value)));
         return this;
     }
 }
