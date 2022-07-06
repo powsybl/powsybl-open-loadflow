@@ -124,8 +124,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                 parameters.isPhaseShifterRegulationOn(),
                                                 parameters.isTransformerVoltageControlOn(),
                                                 parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                                parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
-                                                    parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(), parameters.isDc());
+                                                parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(), parameters.isDc());
 
                 // zero or low impedance branch flows computation
                 computeZeroImpedanceFlows(result.getNetwork(), parameters.isDc());
@@ -162,7 +161,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph(dc);
         if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
             SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
-
             new ZeroImpedanceFlows(zeroImpedanceSubGraph, spanningTree).compute(dc);
         }
     }
@@ -197,7 +195,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     false, true);
 
             // zero or low impedance branch flows computation
-            computeZeroImpedanceFlows(pResult.getNetwork(), parameters.isDc());
+            computeZeroImpedanceFlows(pResult.getNetwork(), true);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(

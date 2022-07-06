@@ -30,9 +30,7 @@ public class ZeroImpedanceFlows {
     private final Graph<LfBus, LfBranch> graph;
     private final SpanningTreeAlgorithm.SpanningTree<LfBranch> tree;
 
-    public ZeroImpedanceFlows(Graph<LfBus, LfBranch> zeroImpedanceSubGraph,
-        SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree) {
-
+    public ZeroImpedanceFlows(Graph<LfBus, LfBranch> zeroImpedanceSubGraph, SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree) {
         this.graph = zeroImpedanceSubGraph;
         this.tree = spanningTree;
     }
@@ -50,12 +48,14 @@ public class ZeroImpedanceFlows {
         });
 
         // Zero flow for all zero impedance branches outside the tree
+        // FIXME: refactoring
         List<LfBranch> branches = graph.edgeSet().stream().filter(branch -> !tree.getEdges().contains(branch))
             .collect(Collectors.toList());
-        branches.forEach(branch -> branch.updateFlow(0.0, 0.0, 0.0, 0.0));
+        branches.forEach(branch -> branch.updateFlows(0.0, 0.0, 0.0, 0.0)); // FIXME, NaN better?
     }
 
     private static final class TreeByLevels {
+
         private final LfBus lfBus;
         private final List<List<LfBus>> levels;
         private final Map<LfBus, LfBranch> parent;
@@ -66,7 +66,6 @@ public class ZeroImpedanceFlows {
             levels = new ArrayList<>();
             parent = new HashMap<>();
             processedLfBuses = new ArrayList<>();
-
             createTreeByLevels(graph, tree);
         }
 
@@ -124,7 +123,7 @@ public class ZeroImpedanceFlows {
                     PQ branchFlow = balance.add(z0flow);
 
                     LfBranch branch = parent.get(bus);
-                    updateBranchFlow(branch, bus, branchFlow.negate(), branchFlow);
+                    updateBranchFlows(branch, bus, branchFlow.negate(), branchFlow);
                     descendentZeroImpedanceFlow.merge(otherBus(branch, bus), branchFlow, (pq1, pq2) -> pq1.add(pq2));
                 });
                 level--;
@@ -153,11 +152,11 @@ public class ZeroImpedanceFlows {
             return descendentZeroImpedanceFlow.containsKey(bus) ? descendentZeroImpedanceFlow.get(bus) : new PQ(0.0, 0.0);
         }
 
-        private void updateBranchFlow(LfBranch branch, LfBus bus, PQ pqBus, PQ pqOtherBus) {
+        private void updateBranchFlows(LfBranch branch, LfBus bus, PQ pqBus, PQ pqOtherBus) {
             if (branch.getBus1().equals(bus)) {
-                branch.updateFlow(pqBus.p, pqBus.q, pqOtherBus.p, pqOtherBus.q);
+                branch.updateFlows(pqBus.p, pqBus.q, pqOtherBus.p, pqOtherBus.q);
             } else {
-                branch.updateFlow(pqOtherBus.p, pqOtherBus.q, pqBus.p, pqBus.q);
+                branch.updateFlows(pqOtherBus.p, pqOtherBus.q, pqBus.p, pqBus.q);
             }
         }
 

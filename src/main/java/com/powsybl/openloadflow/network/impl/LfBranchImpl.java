@@ -255,10 +255,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
-        branch.getTerminal1().setP(p1.eval() * PerUnit.SB);
-        branch.getTerminal1().setQ(q1.eval() * PerUnit.SB);
-        branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
-        branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
+        updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
 
         if (phaseShifterRegulationOn && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that branch
@@ -279,7 +276,7 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public void updateFlow(double p1, double q1, double p2, double q2) {
+    public void updateFlows(double p1, double q1, double p2, double q2) {
         branch.getTerminal1().setP(p1 * PerUnit.SB);
         branch.getTerminal1().setQ(q1 * PerUnit.SB);
         branch.getTerminal2().setP(p2 * PerUnit.SB);

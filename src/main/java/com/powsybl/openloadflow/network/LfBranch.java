@@ -109,7 +109,7 @@ public interface LfBranch extends LfElement {
 
     void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc);
 
-    void updateFlow(double p1, double q1, double p2, double q2);
+    void updateFlows(double p1, double q1, double p2, double q2);
 
     boolean isPhaseController();
 

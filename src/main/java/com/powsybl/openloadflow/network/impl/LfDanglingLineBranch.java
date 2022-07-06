@@ -81,13 +81,12 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
 
     @Override
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
-        danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
-        danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
+        updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
     }
 
     @Override
-    public void updateFlow(double p1, double q1, double p2, double q2) {
-        // Network side always at end1
+    public void updateFlows(double p1, double q1, double p2, double q2) {
+        // Network side is always on side 1.
         danglingLine.getTerminal().setP(p1 * PerUnit.SB);
         danglingLine.getTerminal().setQ(q1 * PerUnit.SB);
     }

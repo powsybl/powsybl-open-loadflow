@@ -20,15 +20,15 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public abstract class AbstractFictitiousLfBranch extends AbstractLfBranch {
 
-    protected Evaluable p = NAN;
+    protected Evaluable p1 = NAN;
 
-    protected Evaluable q = NAN;
+    protected Evaluable q1 = NAN;
 
-    protected Evaluable i = NAN;
+    protected Evaluable i1 = NAN;
 
-    protected Evaluable fictitiousSideP = NAN;
+    protected Evaluable p2 = NAN; // used for zero impedance branch only.
 
-    protected Evaluable fictitiusSideQ = NAN;
+    protected Evaluable q2 = NAN; // used for zero impedance branch only.
 
     protected AbstractFictitiousLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network, bus1, bus2, piModel);
@@ -36,52 +36,52 @@ public abstract class AbstractFictitiousLfBranch extends AbstractLfBranch {
 
     @Override
     public void setP1(Evaluable p1) {
-        this.p = Objects.requireNonNull(p1);
+        this.p1 = Objects.requireNonNull(p1);
     }
 
     @Override
     public Evaluable getP1() {
-        return p;
+        return p1;
     }
 
     @Override
     public void setP2(Evaluable p2) {
-        this.fictitiousSideP = Objects.requireNonNull(p2);
+        this.p2 = Objects.requireNonNull(p2);
     }
 
     @Override
     public Evaluable getP2() {
-        return fictitiousSideP;
+        return p2;
     }
 
     @Override
     public void setQ1(Evaluable q1) {
-        this.q = Objects.requireNonNull(q1);
+        this.q1 = Objects.requireNonNull(q1);
     }
 
     @Override
     public Evaluable getQ1() {
-        return q;
+        return q1;
     }
 
     @Override
     public void setQ2(Evaluable q2) {
-        this.fictitiusSideQ = Objects.requireNonNull(q2);
+        this.q2 = Objects.requireNonNull(q2);
     }
 
     @Override
     public Evaluable getQ2() {
-        return fictitiusSideQ;
+        return q2;
     }
 
     @Override
     public void setI1(Evaluable i1) {
-        this.i = Objects.requireNonNull(i1);
+        this.i1 = Objects.requireNonNull(i1);
     }
 
     @Override
     public Evaluable getI1() {
-        return i;
+        return i1;
     }
 
     @Override
