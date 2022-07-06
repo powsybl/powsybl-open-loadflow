@@ -62,12 +62,13 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
         Objects.requireNonNull(stateMonitors);
+        Objects.requireNonNull(reporter);
 
         AbstractSecurityAnalysis securityAnalysis;
         if (securityAnalysisParameters.getLoadFlowParameters().isDc()) {
-            securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, connectivityFactory, stateMonitors);
+            securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
         } else {
-            securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, connectivityFactory, stateMonitors);
+            securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
         }
 
         return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);

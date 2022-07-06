@@ -137,7 +137,7 @@ class OpenSecurityAnalysisGraphTest {
     List<List<LfContingency>> getLoadFlowContingencies(GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
 
         var matrixFactory = new DenseMatrixFactory();
-        AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, connectivityFactory, Collections.emptyList());
+        AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, connectivityFactory, Collections.emptyList(), Reporter.NO_OP);
 
         LoadFlowParameters lfParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
@@ -157,7 +157,7 @@ class OpenSecurityAnalysisGraphTest {
             lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters());
+        List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters(), Reporter.NO_OP);
 
         // run simulation on each network
         start = System.currentTimeMillis();

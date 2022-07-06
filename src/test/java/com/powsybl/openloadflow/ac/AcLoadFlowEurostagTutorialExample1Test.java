@@ -288,7 +288,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         ReporterModel postLoadingReporter = createNetworkReporter.getSubReporters().get(0);
         assertEquals("postLoadingProcessing", postLoadingReporter.getTaskKey());
         assertEquals(1, postLoadingReporter.getReports().size());
-        assertEquals("Network CC${networkNumCc} SC${networkNumSc} must have at least one bus voltage controlled",
+        assertEquals("Network must have at least one bus voltage controlled",
                 postLoadingReporter.getReports().iterator().next().getDefaultMessage());
     }
 
