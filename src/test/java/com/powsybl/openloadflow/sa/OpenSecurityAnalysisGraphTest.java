@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.SecurityAnalysisParameters;
 import org.junit.jupiter.api.BeforeEach;
@@ -157,7 +158,7 @@ class OpenSecurityAnalysisGraphTest {
             lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters(), Reporter.NO_OP);
+        List<LfNetwork> lfNetworks = Networks.createNetworks(network, allSwitchesToOpen, acParameters.getNetworkParameters(), Reporter.NO_OP);
 
         // run simulation on each network
         start = System.currentTimeMillis();

@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -162,7 +163,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
      */
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
-                        SensitivityValueWriter valueWriter, Reporter reporter) {
+                        SensitivityValueWriter valueWriter, Reporter reporter, Set<Switch> allSwitchesToOpen) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(lfParameters);
@@ -170,6 +171,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         Objects.requireNonNull(factorReader);
         Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
+
+        boolean breakers = allSwitchesToOpen.isEmpty() ? false : true;
 
         // create LF network (we only manage main connected component)
         boolean hasTransformerBusTargetVoltage = hasTransformerBusTargetVoltage(factorReader, network);
@@ -184,7 +187,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParametersExt.hasVoltageRemoteControl(),
                                                                           true,
                                                                           lfParameters.isTwtSplitShuntAdmittance(),
-                                                                          false,
+                                                                          breakers,
                                                                           lfParametersExt.getPlausibleActivePowerLimit(),
                                                                           lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                           true,
@@ -198,12 +201,17 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParameters.isShuntCompensatorVoltageControlOn(),
                                                                           !lfParameters.isNoGeneratorReactiveLimits(),
                                                                           lfParameters.isHvdcAcEmulation());
-        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
+        List<LfNetwork> lfNetworks;
+        if (breakers) {
+            // create networks including all necessary switches
+            lfNetworks = Networks.createNetworks(network, allSwitchesToOpen, lfNetworkParameters, reporter);
+        } else {
+            // networks come from the bus/view
+            lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
+        }
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
-
-        boolean breakers = false;
 
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
         SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);

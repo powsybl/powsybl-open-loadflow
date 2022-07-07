@@ -13,7 +13,6 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -40,6 +39,9 @@ import com.powsybl.security.results.PreContingencyResult;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ */
 public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     protected AcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
@@ -78,10 +80,18 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation());
 
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, saReporter, true, false);
+        boolean breakers = allSwitchesToOpen.isEmpty() ? false : true;
 
-        // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters(), saReporter);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, saReporter, breakers, false);
+
+        List<LfNetwork> lfNetworks;
+        if (breakers) {
+            // create networks including all necessary switches
+            lfNetworks = Networks.createNetworks(network, allSwitchesToOpen, acParameters.getNetworkParameters(), saReporter);
+        } else {
+            // networks come from the bus/view
+            lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), saReporter);
+        }
 
         // run simulation on largest network
         SecurityAnalysisResult result;
@@ -101,22 +111,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new SecurityAnalysisReport(result);
-    }
-
-    List<LfNetwork> createNetworks(Set<Switch> allSwitchesToOpen, LfNetworkParameters networkParameters,
-                                   Reporter saReporter) {
-        List<LfNetwork> lfNetworks;
-        String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
-        network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
-        try {
-            network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
-                    .forEach(sw -> sw.setRetained(false));
-            allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
-            lfNetworks = Networks.load(network, networkParameters, saReporter);
-        } finally {
-            network.getVariantManager().removeVariant(tmpVariantId);
-        }
-        return lfNetworks;
     }
 
     public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters,
@@ -186,8 +180,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 }
             }
 
-            return new SecurityAnalysisResult(new LimitViolationsResult(preContingencyComputationOk,
-                                                                        preContingencyLimitViolationManager.getLimitViolations()),
+            return new SecurityAnalysisResult(new LimitViolationsResult(preContingencyComputationOk, preContingencyLimitViolationManager.getLimitViolations()),
                                               postContingencyResults,
                                               preContingencyNetworkResult.getBranchResults(),
                                               preContingencyNetworkResult.getBusResults(),
@@ -228,8 +221,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new PostContingencyResult(contingency,
-                                         new LimitViolationsResult(postContingencyComputationOk,
-                                                                   postContingencyLimitViolationManager.getLimitViolations()),
+                                         new LimitViolationsResult(postContingencyComputationOk, postContingencyLimitViolationManager.getLimitViolations()),
                                          postContingencyNetworkResult.getBranchResults(),
                                          postContingencyNetworkResult.getBusResults(),
                                          postContingencyNetworkResult.getThreeWindingsTransformerResults());

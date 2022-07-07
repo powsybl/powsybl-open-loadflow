@@ -14,6 +14,8 @@ import com.powsybl.openloadflow.network.SlackBusSelector;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -109,5 +111,21 @@ public final class Networks {
 
     public static List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
+    }
+
+    public static List<LfNetwork> createNetworks(Network network, Set<Switch> allSwitchesToOpen, LfNetworkParameters networkParameters,
+                                                 Reporter saReporter) {
+        List<LfNetwork> lfNetworks;
+        String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
+        network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
+        try {
+            network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
+                    .forEach(sw -> sw.setRetained(false));
+            allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
+            lfNetworks = com.powsybl.openloadflow.network.impl.Networks.load(network, networkParameters, saReporter);
+        } finally {
+            network.getVariantManager().removeVariant(tmpVariantId);
+        }
+        return lfNetworks;
     }
 }
