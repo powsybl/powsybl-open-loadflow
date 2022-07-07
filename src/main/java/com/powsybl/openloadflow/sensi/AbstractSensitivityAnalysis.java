@@ -913,7 +913,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             }
                             List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
                             for (WeightedSensitivityVariable variable : set.getVariables()) {
-                                String injectionBusId = getInjectionBusId(network, variable.getId(), false);
+                                String injectionBusId = getInjectionBusId(network, variable.getId(), breakers);
                                 LfBus injectionLfBus = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 if (injectionLfBus == null) {
                                     skippedInjection.add(variable.getId());
@@ -976,7 +976,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                         LfBranch branch = lfNetwork.getBranchById(functionId);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
-                            String injectionBusId = getInjectionBusId(network, variableId, false);
+                            String injectionBusId = getInjectionBusId(network, variableId, breakers);
                             variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                         } else if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
                             checkPhaseShifter(network, variableId);
@@ -999,7 +999,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
-                        checkBus(network, functionId, busCache, false);
+                        checkBus(network, functionId, busCache, breakers);
                         functionElement = lfNetwork.getBusById(functionId);
                         if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
                             checkRegulatingTerminal(network, variableId);
