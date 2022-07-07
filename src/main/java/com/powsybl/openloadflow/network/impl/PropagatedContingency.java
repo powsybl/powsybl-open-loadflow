@@ -131,7 +131,7 @@ public class PropagatedContingency {
     }
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn,
-                                                boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
+                                                boolean breakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
                                                 boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
@@ -170,7 +170,7 @@ public class PropagatedContingency {
 
                 case LOAD:
                     Load load = (Load) connectable;
-                    addPowerShift(load.getTerminal(), loadIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), withBreakers);
+                    addPowerShift(load.getTerminal(), loadIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), breakers);
                     break;
 
                 case SHUNT_COMPENSATOR:
@@ -194,7 +194,7 @@ public class PropagatedContingency {
                         LccConverterStation lcc = (LccConverterStation) connectable;
                         PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
                                 HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB);
-                        addPowerShift(lcc.getTerminal(), loadIdsToShift, lccPowerShift, withBreakers);
+                        addPowerShift(lcc.getTerminal(), loadIdsToShift, lccPowerShift, breakers);
                     }
                     break;
 
@@ -218,8 +218,8 @@ public class PropagatedContingency {
                                          generatorIdsToLose, loadIdsToShift, shuntIdsToShift);
     }
 
-    private static void addPowerShift(Terminal terminal, Map<String, PowerShift> loadIdsToShift, PowerShift powerShift, boolean withBreakers) {
-        Bus bus = withBreakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+    private static void addPowerShift(Terminal terminal, Map<String, PowerShift> loadIdsToShift, PowerShift powerShift, boolean breakers) {
+        Bus bus = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
         if (bus != null) {
             loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift()).add(powerShift);
         }
