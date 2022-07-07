@@ -745,11 +745,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return injection;
     }
 
-    protected static String getInjectionBusId(Network network, String injectionId) {
+    protected static String getInjectionBusId(Network network, String injectionId, boolean breakers) {
         // try with an injection
         Injection<?> injection = getInjection(network, injectionId);
         if (injection != null) {
-            Bus bus = injection.getTerminal().getBusView().getBus();
+            Bus bus = breakers ? injection.getTerminal().getBusBreakerView().getBus() : injection.getTerminal().getBusView().getBus();
             if (bus == null) {
                 return null;
             }
@@ -772,7 +772,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 }
             });
             for (Terminal terminal : terminals) {
-                Bus bus = terminal.getBusView().getBus();
+                Bus bus = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
                 if (bus != null) {
                     return bus.getId();
                 }
@@ -783,7 +783,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         // try with a busbar section
         BusbarSection busbarSection = network.getBusbarSection(injectionId);
         if (busbarSection != null) {
-            Bus bus = busbarSection.getTerminal().getBusView().getBus();
+            Bus bus = breakers ? busbarSection.getTerminal().getBusBreakerView().getBus() : busbarSection.getTerminal().getBusView().getBus();
             if (bus == null) {
                 return null;
             }
@@ -800,11 +800,17 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    private static void checkBus(Network network, String busId, Map<String, Bus> busCache) {
+    private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {
         if (busCache.isEmpty()) {
-            network.getBusView()
-                .getBusStream()
-                .forEach(bus -> busCache.put(bus.getId(), bus));
+            if (breakers) {
+                network.getBusBreakerView()
+                        .getBusStream()
+                        .forEach(bus -> busCache.put(bus.getId(), bus));
+            } else {
+                network.getBusView()
+                        .getBusStream()
+                        .forEach(bus -> busCache.put(bus.getId(), bus));
+            }
         }
         Bus bus = busCache.get(busId);
         if (bus == null) {
@@ -882,7 +888,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     }
 
     public SensitivityFactorHolder<V, E> readAndCheckFactors(Network network, Map<String, SensitivityVariableSet> variableSetsById,
-                                                       SensitivityFactorReader factorReader, LfNetwork lfNetwork) {
+                                                             SensitivityFactorReader factorReader, LfNetwork lfNetwork, boolean breakers) {
         final SensitivityFactorHolder<V, E> factorHolder = new SensitivityFactorHolder<>();
 
         final Map<String, Map<LfElement, Double>> injectionBusesByVariableId = new LinkedHashMap<>();
@@ -907,7 +913,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             }
                             List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
                             for (WeightedSensitivityVariable variable : set.getVariables()) {
-                                String injectionBusId = getInjectionBusId(network, variable.getId());
+                                String injectionBusId = getInjectionBusId(network, variable.getId(), false);
                                 LfBus injectionLfBus = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 if (injectionLfBus == null) {
                                     skippedInjection.add(variable.getId());
@@ -941,8 +947,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     if (hvdcLine == null) {
                         throw new PowsyblException("HVDC line '" + variableId + "' cannot be found in the network.");
                     }
-                    LfBus bus1 = lfNetwork.getBusById(hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
-                    LfBus bus2 = lfNetwork.getBusById(hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
+                    LfBus bus1 = lfNetwork.getBusById(breakers ? hvdcLine.getConverterStation1().getTerminal().getBusBreakerView().getBus().getId() :
+                            hvdcLine.getConverterStation1().getTerminal().getBusView().getBus().getId());
+                    LfBus bus2 = lfNetwork.getBusById(breakers ? hvdcLine.getConverterStation2().getTerminal().getBusBreakerView().getBus().getId() :
+                            hvdcLine.getConverterStation2().getTerminal().getBusView().getBus().getId());
 
                     // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
                     // => we create a multi (bi) variables factor
@@ -968,7 +976,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                         LfBranch branch = lfNetwork.getBranchById(functionId);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
-                            String injectionBusId = getInjectionBusId(network, variableId);
+                            String injectionBusId = getInjectionBusId(network, variableId, false);
                             variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                         } else if (variableType == SensitivityVariableType.TRANSFORMER_PHASE) {
                             checkPhaseShifter(network, variableId);
@@ -991,13 +999,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
                     } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
-                        checkBus(network, functionId, busCache);
+                        checkBus(network, functionId, busCache, false);
                         functionElement = lfNetwork.getBusById(functionId);
                         if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
                             checkRegulatingTerminal(network, variableId);
                             Terminal regulatingTerminal = getEquipmentRegulatingTerminal(network, variableId);
                             assert regulatingTerminal != null; // this cannot fail because it is checked in checkRegulatingTerminal
-                            Bus regulatedBus = regulatingTerminal.getBusView().getBus();
+                            Bus regulatedBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
                             variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
