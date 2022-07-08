@@ -12,6 +12,7 @@ import com.powsybl.security.results.BusResult;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -19,6 +20,8 @@ import java.util.Optional;
 public interface LfBus extends LfElement {
 
     String getVoltageLevelId();
+
+    Set<String> getConfiguredBusesIds();
 
     boolean isFictitious();
 
@@ -151,7 +154,7 @@ public interface LfBus extends LfElement {
         return false;
     }
 
-    BusResult createBusResult();
+    List<BusResult> createBusResults();
 
     /**
      * Find bus + parallel branches neighbors.

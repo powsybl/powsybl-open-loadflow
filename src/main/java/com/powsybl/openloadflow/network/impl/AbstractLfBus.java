@@ -94,6 +94,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public Set<String> getConfiguredBusesIds() {
+        return Collections.EMPTY_SET;
+    }
+
+    @Override
     public boolean isSlack() {
         network.updateSlack();
         return slack;
@@ -539,8 +544,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public BusResult createBusResult() {
-        return new BusResult(getVoltageLevelId(), getId(), v, getAngle());
+    public List<BusResult> createBusResults() {
+        return getConfiguredBusesIds().stream().map(id -> new BusResult(getVoltageLevelId(), id, v, getAngle())).collect(Collectors.toList());
     }
 
     @Override

@@ -54,7 +54,8 @@ public abstract class AbstractNetworkResult {
             network.getBuses().stream()
                     .filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
                     .filter(lfBus -> !lfBus.isDisabled())
-                    .forEach(lfBus -> busResults.add(lfBus.createBusResult()));
+                    .filter(lfBus -> !lfBus.isFictitious())
+                    .forEach(lfBus -> busResults.addAll(lfBus.createBusResults()));
         }
 
         if (!monitor.getThreeWindingsTransformerIds().isEmpty()) {
