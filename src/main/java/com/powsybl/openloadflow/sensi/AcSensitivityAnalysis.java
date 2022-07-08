@@ -172,7 +172,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         Objects.requireNonNull(valueWriter);
         Objects.requireNonNull(reporter);
 
-        boolean breakers = allSwitchesToOpen.isEmpty() ? false : true;
+        boolean breakers = !allSwitchesToOpen.isEmpty();
 
         // create LF network (we only manage main connected component)
         boolean hasTransformerBusTargetVoltage = hasTransformerBusTargetVoltage(factorReader, network);

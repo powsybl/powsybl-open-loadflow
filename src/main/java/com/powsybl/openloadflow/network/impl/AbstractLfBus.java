@@ -95,7 +95,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public Set<String> getConfiguredBusesIds() {
-        return Collections.EMPTY_SET;
+        return Collections.emptySet();
     }
 
     @Override

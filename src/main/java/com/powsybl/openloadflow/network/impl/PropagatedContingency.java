@@ -103,25 +103,10 @@ public class PropagatedContingency {
                               load.getQ0() / PerUnit.SB);
     }
 
-    public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies,
-                                                                               Set<Switch> allSwitchesToOpen,
-                                                                               boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
-                                                                               boolean contingencyPropagation) {
-        List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
-        for (int index = 0; index < contingencies.size(); index++) {
-            Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false,
-                    slackDistributionOnConformLoad, hvdcAcEmulation, contingencyPropagation);
-            propagatedContingencies.add(propagatedContingency);
-            allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
-        }
-        return propagatedContingencies;
-    }
-
-    public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies,
-                                                                            Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
-                                                                            boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
-                                                                            boolean contingencyPropagation) {
+    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies,
+                                                         Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
+                                                         boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
+                                                         boolean contingencyPropagation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
@@ -150,7 +135,7 @@ public class PropagatedContingency {
             }
         }
 
-        boolean breakers = switchesToOpen.isEmpty() ? false : true;
+        boolean breakers = !switchesToOpen.isEmpty();
 
         Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
