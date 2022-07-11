@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.*;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +35,17 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerVoltageControlOuterLoop.class);
 
     private static final int MAX_TAP_SHIFT = 5;
+    private static final int MAX_DIRECTION_CHANGE = 1;
 
     private static final class ControllerContext {
 
+        private final MutableInt directionChangeCount =  new MutableInt();
+
         private PiModel.AllowedDirection allowedDirection = PiModel.AllowedDirection.BOTH;
+
+        public MutableInt getDirectionChangeCount() {
+            return directionChangeCount;
+        }
 
         private PiModel.AllowedDirection getAllowedDirection() {
             return allowedDirection;
@@ -74,6 +82,13 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
     }
 
+    private static void updateAllowedDirection(ControllerContext controllerContext, PiModel.Direction direction) {
+        if (controllerContext.getDirectionChangeCount().getValue() >= MAX_DIRECTION_CHANGE) {
+            controllerContext.setAllowedDirection(direction.getAllowedDirection());
+        }
+        controllerContext.getDirectionChangeCount().increment();
+    }
+
     private void adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, ContextData contextData, int[] controllerBranchIndex,
                                          DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
         // only one transformer controls a bus
@@ -85,7 +100,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             double previousR1 = controllerBranch.getPiModel().getR1();
             double deltaR1 = diffV / sensitivity;
             controllerBranch.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                controllerContext.setAllowedDirection(direction.getAllowedDirection());
+                updateAllowedDirection(controllerContext, direction);
                 LOGGER.info("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
                 status.setValue(OuterLoopStatus.UNSTABLE);
             });
@@ -111,7 +126,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     double deltaR1 = remainingDiffV / sensitivity;
                     PiModel.Direction direction = controllerBranch.getPiModel().updateTapPositionR1(deltaR1, 1, controllerContext.getAllowedDirection()).orElse(null);
                     if (direction != null) {
-                        controllerContext.setAllowedDirection(direction.getAllowedDirection());
+                        updateAllowedDirection(controllerContext, direction);
                         remainingDiffV -= (controllerBranch.getPiModel().getR1() - previousR1) * sensitivity;
                         hasChanged = true;
                         status.setValue(OuterLoopStatus.UNSTABLE);
