@@ -35,7 +35,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerVoltageControlOuterLoop.class);
 
     private static final int MAX_TAP_SHIFT = 5;
-    private static final int MAX_DIRECTION_CHANGE = 1;
+    private static final int MAX_DIRECTION_CHANGE = 2;
 
     private static final class ControllerContext {
 
@@ -83,10 +83,15 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private static void updateAllowedDirection(ControllerContext controllerContext, PiModel.Direction direction) {
-        if (controllerContext.getDirectionChangeCount().getValue() >= MAX_DIRECTION_CHANGE) {
+        if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
+            if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
+                // both vs increase or decrease
+                // increase vs decrease
+                // decrease vs increase
+                controllerContext.getDirectionChangeCount().increment();
+            }
             controllerContext.setAllowedDirection(direction.getAllowedDirection());
         }
-        controllerContext.getDirectionChangeCount().increment();
     }
 
     private void adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, ContextData contextData, int[] controllerBranchIndex,
