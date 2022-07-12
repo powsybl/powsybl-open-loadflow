@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import net.jafama.FastMath;
+import org.apache.commons.math3.util.FastMath;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -149,7 +149,7 @@ public class SimplePiModel implements PiModel {
     @Override
     public boolean setMinZ(double minZ, boolean dc) {
         if (dc) {
-            if (this.x < minZ) {
+            if (FastMath.abs(this.x) < minZ) {
                 this.x = minZ;
                 return true;
             }
