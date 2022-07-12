@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import org.apache.commons.math3.util.FastMath;
+import net.jafama.FastMath;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
