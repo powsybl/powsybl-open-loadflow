@@ -31,8 +31,8 @@ import java.util.*;
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     protected DcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                 List<StateMonitor> stateMonitors) {
-        super(network, matrixFactory, connectivityFactory, stateMonitors);
+                                 List<StateMonitor> stateMonitors, Reporter reporter) {
+        super(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
     }
 
     @Override

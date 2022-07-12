@@ -79,7 +79,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private GraphDecrementalConnectivity<LfBus, LfBranch> connectivity;
 
-    private final Reporter reporter;
+    private Reporter reporter;
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
                      GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
@@ -105,6 +105,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public Reporter getReporter() {
         return reporter;
+    }
+
+    public void setReporter(Reporter reporter) {
+        this.reporter = Objects.requireNonNull(reporter);
     }
 
     private void invalidateSlack() {
@@ -427,7 +431,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private void reportSize(Reporter reporter) {
-        Reports.reportNetworkSize(reporter, numCC, numSC, busesById.values().size(), branches.size());
+        Reports.reportNetworkSize(reporter, busesById.values().size(), branches.size());
         LOGGER.info("Network {} has {} buses and {} branches",
             this, busesById.values().size(), branches.size());
     }
@@ -444,7 +448,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
         }
 
-        Reports.reportNetworkBalance(reporter, numCC, numSC, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+        Reports.reportNetworkBalance(reporter, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
         LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
@@ -468,7 +472,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             }
             if (!hasAtLeastOneBusVoltageControlled) {
                 LOGGER.error("Network {} must have at least one bus voltage controlled", this);
-                Reports.reportNetworkMustHaveAtLeastOneBusVoltageControlled(reporter, numCC, numSC);
+                Reports.reportNetworkMustHaveAtLeastOneBusVoltageControlled(reporter);
                 valid = false;
             }
         }

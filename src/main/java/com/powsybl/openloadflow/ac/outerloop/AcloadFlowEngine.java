@@ -152,6 +152,8 @@ public class AcloadFlowEngine {
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
+        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name());
+
         return result;
     }
 
