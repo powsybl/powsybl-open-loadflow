@@ -134,11 +134,11 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     public List<LfLimit> getLimits1(final LimitType type) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, leg.getActivePowerLimits());
+                return getLimits1(type, leg.getNullableActivePowerLimits());
             case APPARENT_POWER:
-                return getLimits1(type, leg.getApparentPowerLimits());
+                return getLimits1(type, leg.getNullableApparentPowerLimits());
             case CURRENT:
-                return getLimits1(type, leg.getCurrentLimits());
+                return getLimits1(type, leg.getNullableCurrentLimits());
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
