@@ -23,13 +23,12 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.security.*;
+import com.powsybl.security.action.Action;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.strategy.OperatorStrategy;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -55,7 +54,8 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
     public CompletableFuture<SecurityAnalysisReport> run(Network network, String workingVariantId, LimitViolationDetector limitViolationDetector,
                                                          LimitViolationFilter limitViolationFilter, ComputationManager computationManager,
                                                          SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                                         List<SecurityAnalysisInterceptor> interceptors, List<StateMonitor> stateMonitors, Reporter reporter) {
+                                                         List<SecurityAnalysisInterceptor> interceptors, List<OperatorStrategy> operatorStrategies, List<Action> actions,
+                                                         List<StateMonitor> stateMonitors, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(computationManager);
