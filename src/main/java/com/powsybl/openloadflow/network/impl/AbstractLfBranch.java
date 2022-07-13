@@ -39,6 +39,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected TransformerVoltageControl voltageControl;
 
+    protected double transformerVoltageControlTargetDeadband;
+
     protected boolean voltageControlEnabled = false;
 
     protected boolean spanningTreeEdge = false;
@@ -195,6 +197,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
+    public Optional<Double> getTransformerVoltageControlTargetDeadband() {
+        return Optional.ofNullable(transformerVoltageControlTargetDeadband);
+    }
+
+    @Override
     public boolean isVoltageController() {
         return voltageControl != null;
     }
@@ -202,6 +209,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setVoltageControl(TransformerVoltageControl transformerVoltageControl) {
         this.voltageControl = transformerVoltageControl;
+    }
+
+    @Override
+    public void setTransformerVoltageControlTargetDeadband(double transformerVoltageControlTargetDeadband) {
+        this.transformerVoltageControlTargetDeadband = transformerVoltageControlTargetDeadband;
     }
 
     @Override

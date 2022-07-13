@@ -139,10 +139,10 @@ public class PhaseControlOuterLoop implements OuterLoop {
         PiModel piModel = controllerBranch.getPiModel();
         if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
             boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
-            return isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
+            return isSensibilityPositive ? piModel.updateTapPositionA1(PiModel.Direction.DECREASE) : piModel.updateTapPositionA1(PiModel.Direction.INCREASE);
         } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
             boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
-            return isSensibilityPositive ? piModel.updateTapPosition(PiModel.Direction.DECREASE) : piModel.updateTapPosition(PiModel.Direction.INCREASE);
+            return isSensibilityPositive ? piModel.updateTapPositionA1(PiModel.Direction.DECREASE) : piModel.updateTapPositionA1(PiModel.Direction.INCREASE);
         }
         return false;
     }
