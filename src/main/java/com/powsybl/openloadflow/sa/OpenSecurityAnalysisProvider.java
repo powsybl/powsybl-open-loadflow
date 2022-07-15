@@ -71,7 +71,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
             securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
         }
 
-        return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
+        return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager, operatorStrategies, actions);
     }
 
     @Override

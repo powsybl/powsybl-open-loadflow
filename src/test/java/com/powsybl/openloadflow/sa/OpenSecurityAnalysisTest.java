@@ -31,9 +31,13 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
+import com.powsybl.security.action.Action;
+import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
+import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -145,6 +149,26 @@ class OpenSecurityAnalysisTest {
                 Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList(),
+                monitors,
+                reporter)
+                .join();
+        return report.getResult();
+    }
+
+    private SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
+                                                       SecurityAnalysisParameters saParameters, List<OperatorStrategy> operatorStrategies,
+                                                       List<Action> actions, Reporter reporter) {
+        ContingenciesProvider provider = n -> contingencies;
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network,
+                network.getVariantManager().getWorkingVariantId(),
+                new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(),
+                computationManager,
+                saParameters,
+                provider,
+                Collections.emptyList(),
+                operatorStrategies,
+                actions,
                 monitors,
                 reporter)
                 .join();
@@ -1696,5 +1720,43 @@ class OpenSecurityAnalysisTest {
         String logExport = normalizeLineSeparator(writer.toString());
 
         assertEquals(refLogExport, logExport);
+    }
+
+    @Test
+    void testSecurityAnalysisWithOperatorStrategy() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getSwitch("C1").setOpen(true);
+        network.getSwitch("C2").setOpen(true);
+        network.getLineStream().forEach(line -> {
+            if (line.getCurrentLimits1().isPresent()) {
+                line.getCurrentLimits1().orElseThrow().setPermanentLimit(310);
+            }
+            if (line.getCurrentLimits2().isPresent()) {
+                line.getCurrentLimits2().orElseThrow().setPermanentLimit(310);
+            }
+        });
+
+        List<Contingency> contingencies = Stream.of("L1", "L3")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+
+        List<Action> actions = new ArrayList<>();
+        actions.add(new SwitchAction("action1", "C1", false));
+        actions.add(new SwitchAction("action3", "C2", false));
+
+        List<OperatorStrategy> operatorStrategies = new ArrayList<>();
+        operatorStrategies.add(new OperatorStrategy("strategyL1", "L1", new TrueCondition(), List.of("action1")));
+        operatorStrategies.add(new OperatorStrategy("strategyL3", "L3", new TrueCondition(), List.of("action3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "VL2_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
     }
 }
