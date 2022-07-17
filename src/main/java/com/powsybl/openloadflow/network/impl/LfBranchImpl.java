@@ -24,21 +24,11 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfBranchImpl extends AbstractLfBranch {
+public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
     private final Branch<?> branch;
-
-    private Evaluable p1 = NAN;
-
-    private Evaluable p2 = NAN;
-
-    private Evaluable q1 = NAN;
-
-    private Evaluable q2 = NAN;
-
-    private Evaluable i1 = NAN;
 
     private Evaluable i2 = NAN;
 
@@ -145,56 +135,6 @@ public class LfBranchImpl extends AbstractLfBranch {
     public boolean hasPhaseControlCapability() {
         return branch.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER
                 && ((TwoWindingsTransformer) branch).getPhaseTapChanger() != null;
-    }
-
-    @Override
-    public void setP1(Evaluable p1) {
-        this.p1 = Objects.requireNonNull(p1);
-    }
-
-    @Override
-    public Evaluable getP1() {
-        return p1;
-    }
-
-    @Override
-    public void setP2(Evaluable p2) {
-        this.p2 = Objects.requireNonNull(p2);
-    }
-
-    @Override
-    public Evaluable getP2() {
-        return p2;
-    }
-
-    @Override
-    public void setQ1(Evaluable q1) {
-        this.q1 = Objects.requireNonNull(q1);
-    }
-
-    @Override
-    public Evaluable getQ1() {
-        return q1;
-    }
-
-    @Override
-    public void setQ2(Evaluable q2) {
-        this.q2 = Objects.requireNonNull(q2);
-    }
-
-    @Override
-    public Evaluable getQ2() {
-        return q2;
-    }
-
-    @Override
-    public void setI1(Evaluable i1) {
-        this.i1 = Objects.requireNonNull(i1);
-    }
-
-    @Override
-    public Evaluable getI1() {
-        return i1;
     }
 
     @Override
