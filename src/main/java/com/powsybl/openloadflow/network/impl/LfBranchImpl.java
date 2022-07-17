@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
@@ -19,8 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -29,8 +26,6 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
     private final Branch<?> branch;
-
-    private Evaluable i2 = NAN;
 
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
@@ -135,16 +130,6 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     public boolean hasPhaseControlCapability() {
         return branch.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER
                 && ((TwoWindingsTransformer) branch).getPhaseTapChanger() != null;
-    }
-
-    @Override
-    public void setI2(Evaluable i2) {
-        this.i2 = Objects.requireNonNull(i2);
-    }
-
-    @Override
-    public Evaluable getI2() {
-        return i2;
     }
 
     @Override

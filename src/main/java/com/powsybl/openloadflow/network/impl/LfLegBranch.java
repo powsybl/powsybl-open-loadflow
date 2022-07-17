@@ -20,7 +20,7 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractFictitiousLfBranch {
+public class LfLegBranch extends AbstractImpedantLfBranch {
 
     private final ThreeWindingsTransformer twt;
 

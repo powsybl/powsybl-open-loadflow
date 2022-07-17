@@ -30,6 +30,8 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
     protected Evaluable q2 = NAN;
 
+    protected Evaluable i2 = NAN;
+
     protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network, bus1, bus2, piModel);
     }
@@ -82,5 +84,15 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
     @Override
     public Evaluable getI1() {
         return i1;
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
+        this.i2 = Objects.requireNonNull(i2);
+    }
+
+    @Override
+    public Evaluable getI2() {
+        return i2;
     }
 }
