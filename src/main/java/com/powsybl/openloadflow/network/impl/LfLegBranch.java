@@ -172,7 +172,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
     @Override
     public void updateFlows(double p1, double q1, double p2, double q2) {
         // Star bus is always on side 2.
-        leg.getTerminal().setP(p1 * PerUnit.SB);
-        leg.getTerminal().setQ(q1 * PerUnit.SB);
+        leg.getTerminal().setP(p1 * PerUnit.SB)
+                .setQ(q1 * PerUnit.SB);
     }
 }

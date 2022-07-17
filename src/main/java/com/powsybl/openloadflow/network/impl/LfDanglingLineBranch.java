@@ -87,7 +87,7 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     @Override
     public void updateFlows(double p1, double q1, double p2, double q2) {
         // Network side is always on side 1.
-        danglingLine.getTerminal().setP(p1 * PerUnit.SB);
-        danglingLine.getTerminal().setQ(q1 * PerUnit.SB);
+        danglingLine.getTerminal().setP(p1 * PerUnit.SB)
+                .setQ(q1 * PerUnit.SB);
     }
 }
