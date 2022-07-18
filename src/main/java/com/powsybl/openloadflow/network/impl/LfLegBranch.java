@@ -20,7 +20,7 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractFictitiousLfBranch {
+public class LfLegBranch extends AbstractImpedantLfBranch {
 
     private final ThreeWindingsTransformer twt;
 
@@ -147,8 +147,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
 
     @Override
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
-        leg.getTerminal().setP(p.eval() * PerUnit.SB);
-        leg.getTerminal().setQ(q.eval() * PerUnit.SB);
+        updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
 
         if (phaseShifterRegulationOn && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that leg
@@ -157,7 +156,7 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
 
         if (phaseShifterRegulationOn && isPhaseControlled() && discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
             // check if the target value deadband is respected
-            checkTargetDeadband(p.eval());
+            checkTargetDeadband(p1.eval());
         }
 
         if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
@@ -168,5 +167,12 @@ public class LfLegBranch extends AbstractFictitiousLfBranch {
             updateTapPosition(rtc, ptcRho, rho);
             checkTargetDeadband(rtc);
         }
+    }
+
+    @Override
+    public void updateFlows(double p1, double q1, double p2, double q2) {
+        // Star bus is always on side 2.
+        leg.getTerminal().setP(p1 * PerUnit.SB)
+                .setQ(q1 * PerUnit.SB);
     }
 }
