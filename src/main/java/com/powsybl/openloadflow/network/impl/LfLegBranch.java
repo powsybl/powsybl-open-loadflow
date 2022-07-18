@@ -134,11 +134,11 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
     public List<LfLimit> getLimits1(final LimitType type) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, leg.getNullableActivePowerLimits());
+                return getLimits1(type, leg.getActivePowerLimits().orElse(null));
             case APPARENT_POWER:
-                return getLimits1(type, leg.getNullableApparentPowerLimits());
+                return getLimits1(type, leg.getApparentPowerLimits().orElse(null));
             case CURRENT:
-                return getLimits1(type, leg.getNullableCurrentLimits());
+                return getLimits1(type, leg.getCurrentLimits().orElse(null));
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
