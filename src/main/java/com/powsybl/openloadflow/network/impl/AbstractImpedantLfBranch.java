@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * Copyright (c) 2022, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -18,76 +18,81 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractFictitiousLfBranch extends AbstractLfBranch {
+public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
-    protected Evaluable p = NAN;
+    protected Evaluable p1 = NAN;
 
-    protected Evaluable q = NAN;
+    protected Evaluable q1 = NAN;
 
-    protected Evaluable i = NAN;
+    protected Evaluable i1 = NAN;
 
-    protected AbstractFictitiousLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
+    protected Evaluable p2 = NAN;
+
+    protected Evaluable q2 = NAN;
+
+    protected Evaluable i2 = NAN;
+
+    protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network, bus1, bus2, piModel);
     }
 
     @Override
     public void setP1(Evaluable p1) {
-        this.p = Objects.requireNonNull(p1);
+        this.p1 = Objects.requireNonNull(p1);
     }
 
     @Override
     public Evaluable getP1() {
-        return p;
+        return p1;
     }
 
     @Override
     public void setP2(Evaluable p2) {
-        // nothing to do
+        this.p2 = Objects.requireNonNull(p2);
     }
 
     @Override
     public Evaluable getP2() {
-        return NAN;
+        return p2;
     }
 
     @Override
     public void setQ1(Evaluable q1) {
-        this.q = Objects.requireNonNull(q1);
+        this.q1 = Objects.requireNonNull(q1);
     }
 
     @Override
     public Evaluable getQ1() {
-        return q;
+        return q1;
     }
 
     @Override
     public void setQ2(Evaluable q2) {
-        // nothing to do
+        this.q2 = Objects.requireNonNull(q2);
     }
 
     @Override
     public Evaluable getQ2() {
-        return NAN;
+        return q2;
     }
 
     @Override
     public void setI1(Evaluable i1) {
-        this.i = Objects.requireNonNull(i1);
+        this.i1 = Objects.requireNonNull(i1);
     }
 
     @Override
     public Evaluable getI1() {
-        return i;
+        return i1;
     }
 
     @Override
     public void setI2(Evaluable i2) {
-        // nothing to do
+        this.i2 = Objects.requireNonNull(i2);
     }
 
     @Override
     public Evaluable getI2() {
-        return NAN;
+        return i2;
     }
-
 }

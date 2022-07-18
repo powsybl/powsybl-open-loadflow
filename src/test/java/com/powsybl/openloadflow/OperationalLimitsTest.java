@@ -96,7 +96,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         }
         LfBranch branch = lfNetwork.getBranchById("DL");
         assertEquals(0.626, branch.getI1().eval(), DELTA);
-        assertTrue(Double.isNaN(branch.getI2().eval()));
+        assertEquals(0.618, branch.getI2().eval(), DELTA);
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch, Integer.MAX_VALUE, Branch.Side.TWO, LimitType.CURRENT), DELTA);
         assertEquals(0.173205, getLimitValueFromAcceptableDuration(branch, 1200, Branch.Side.ONE, LimitType.CURRENT), DELTA);
         assertEquals(0.207846, getLimitValueFromAcceptableDuration(branch, 600, Branch.Side.ONE, LimitType.CURRENT), DELTA);
@@ -117,7 +117,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         }
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
         assertEquals(1.144, branch1.getI1().eval(), DELTA);
-        assertTrue(Double.isNaN(branch1.getI2().eval()));
+        assertEquals(0.117, branch1.getI2().eval(), DELTA);
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch1, Integer.MAX_VALUE, Branch.Side.ONE, LimitType.CURRENT), DELTA);
         assertEquals(Double.NaN, getLimitValueFromAcceptableDuration(branch1, Integer.MAX_VALUE, Branch.Side.TWO, LimitType.CURRENT), DELTA);
         assertTrue(branch1.getLimits1(LimitType.CURRENT).isEmpty());
@@ -178,7 +178,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         }
         LfBranch branch = lfNetwork.getBranchById("DL");
         assertEquals(54.815, branch.getP1().eval() * PerUnit.SB, 10E-3);
-        assertTrue(Double.isNaN(branch.getP2().eval()));
+        assertEquals(-50.0, branch.getP2().eval() * PerUnit.SB, 10E-3);
     }
 
     @Test
@@ -195,6 +195,6 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         }
         LfBranch branch1 = lfNetwork.getBranchById("3WT_leg_1");
         assertEquals(116.251, branch1.getP1().eval() * PerUnit.SB, DELTA);
-        assertTrue(Double.isNaN(branch1.getP2().eval()));
+        assertEquals(-11.5153, branch1.getP2().eval() * PerUnit.SB, DELTA);
     }
 }

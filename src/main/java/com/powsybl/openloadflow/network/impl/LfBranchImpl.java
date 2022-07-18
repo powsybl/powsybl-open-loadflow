@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
@@ -19,28 +18,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfBranchImpl extends AbstractLfBranch {
+public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
     private final Branch<?> branch;
-
-    private Evaluable p1 = NAN;
-
-    private Evaluable p2 = NAN;
-
-    private Evaluable q1 = NAN;
-
-    private Evaluable q2 = NAN;
-
-    private Evaluable i1 = NAN;
-
-    private Evaluable i2 = NAN;
 
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
@@ -148,66 +133,6 @@ public class LfBranchImpl extends AbstractLfBranch {
     }
 
     @Override
-    public void setP1(Evaluable p1) {
-        this.p1 = Objects.requireNonNull(p1);
-    }
-
-    @Override
-    public Evaluable getP1() {
-        return p1;
-    }
-
-    @Override
-    public void setP2(Evaluable p2) {
-        this.p2 = Objects.requireNonNull(p2);
-    }
-
-    @Override
-    public Evaluable getP2() {
-        return p2;
-    }
-
-    @Override
-    public void setQ1(Evaluable q1) {
-        this.q1 = Objects.requireNonNull(q1);
-    }
-
-    @Override
-    public Evaluable getQ1() {
-        return q1;
-    }
-
-    @Override
-    public void setQ2(Evaluable q2) {
-        this.q2 = Objects.requireNonNull(q2);
-    }
-
-    @Override
-    public Evaluable getQ2() {
-        return q2;
-    }
-
-    @Override
-    public void setI1(Evaluable i1) {
-        this.i1 = Objects.requireNonNull(i1);
-    }
-
-    @Override
-    public Evaluable getI1() {
-        return i1;
-    }
-
-    @Override
-    public void setI2(Evaluable i2) {
-        this.i2 = Objects.requireNonNull(i2);
-    }
-
-    @Override
-    public Evaluable getI2() {
-        return i2;
-    }
-
-    @Override
     public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
         double flowTransfer = Double.NaN;
         if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
@@ -255,10 +180,7 @@ public class LfBranchImpl extends AbstractLfBranch {
 
     @Override
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
-        branch.getTerminal1().setP(p1.eval() * PerUnit.SB);
-        branch.getTerminal1().setQ(q1.eval() * PerUnit.SB);
-        branch.getTerminal2().setP(p2.eval() * PerUnit.SB);
-        branch.getTerminal2().setQ(q2.eval() * PerUnit.SB);
+        updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
 
         if (phaseShifterRegulationOn && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that branch
@@ -276,5 +198,13 @@ public class LfBranchImpl extends AbstractLfBranch {
             updateTapPosition(rtc, ptcRho, rho);
             checkTargetDeadband(rtc);
         }
+    }
+
+    @Override
+    public void updateFlows(double p1, double q1, double p2, double q2) {
+        branch.getTerminal1().setP(p1 * PerUnit.SB)
+                .setQ(q1 * PerUnit.SB);
+        branch.getTerminal2().setP(p2 * PerUnit.SB)
+                .setQ(q2 * PerUnit.SB);
     }
 }
