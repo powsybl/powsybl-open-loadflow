@@ -469,11 +469,11 @@ class AcLoadFlowShuntTest {
                 .newNonLinearModel()
                 .beginSection()
                 .setB(1e-3)
-                .setG(1e-3)
+                .setG(1e-5)
                 .endSection()
                 .beginSection()
                 .setB(3e-3)
-                .setG(3e-3)
+                .setG(3e-5)
                 .endSection()
                 .add()
                 .add();
@@ -481,31 +481,23 @@ class AcLoadFlowShuntTest {
         shuntG.setSectionCount(1);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
-        assertActivePowerEquals(101.366, l1.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(-101.299, l1.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(-1.398, l1.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(1.600, l1.getTerminal(Branch.Side.TWO));
-        assertActivePowerEquals(-152.513, l2.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(152.818, l2.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(152.514, l2.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(-151.599, l2.getTerminal(Branch.Side.TWO));
-        assertActivePowerEquals(152.513, shuntG.getTerminal());
-        assertReactivePowerEquals(-152.514, shuntG.getTerminal());
+        assertActivePowerEquals(102.749, l1.getTerminal(Branch.Side.ONE));
+        assertActivePowerEquals(-102.679, l1.getTerminal(Branch.Side.TWO));
+        assertReactivePowerEquals(-2.154, l1.getTerminal(Branch.Side.ONE));
+        assertReactivePowerEquals(2.362, l1.getTerminal(Branch.Side.TWO));
+        assertActivePowerEquals(-1.528, l2.getTerminal(Branch.Side.ONE));
+        assertActivePowerEquals(1.681, l2.getTerminal(Branch.Side.TWO));
+        assertReactivePowerEquals(152.82, l2.getTerminal(Branch.Side.ONE));
+        assertReactivePowerEquals(-152.362, l2.getTerminal(Branch.Side.TWO));
+        assertActivePowerEquals(1.528, shuntG.getTerminal());
+        assertReactivePowerEquals(-152.82, shuntG.getTerminal());
 
         shuntG.setSectionCount(2);
         LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
         assertTrue(result3.isOk());
-        assertActivePowerEquals(101.366, l1.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(-100.682, l1.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(-306.296, l1.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(308.349, l1.getTerminal(Branch.Side.TWO));
-        assertActivePowerEquals(-466.739, l2.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(469.540, l2.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(466.746, l2.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(-458.344, l2.getTerminal(Branch.Side.TWO));
-        assertActivePowerEquals(466.742, shuntG.getTerminal());
-        assertReactivePowerEquals(-466.743, shuntG.getTerminal());
-        assertVoltageEquals(394.437, shuntG.getTerminal().getBusView().getBus());
+        assertActivePowerEquals(4.697, shuntG.getTerminal());
+        assertReactivePowerEquals(-469.698, shuntG.getTerminal());
+        assertVoltageEquals(395.684, shuntG.getTerminal().getBusView().getBus());
 
         shuntG.setSectionCount(0);
         parameters.setSimulShunt(true);
@@ -513,7 +505,7 @@ class AcLoadFlowShuntTest {
         assertTrue(result4.isOk());
         assertVoltageEquals(390.93, shuntG.getTerminal().getBusView().getBus());
         assertEquals(1, shuntG.getSectionCount());
-        assertActivePowerEquals(152.826, shuntG.getTerminal());
+        assertActivePowerEquals(1.528, shuntG.getTerminal());
         assertReactivePowerEquals(-152.826, shuntG.getTerminal());
     }
 }
