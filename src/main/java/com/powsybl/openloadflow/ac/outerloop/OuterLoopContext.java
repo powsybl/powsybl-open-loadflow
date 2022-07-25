@@ -23,4 +23,8 @@ public interface OuterLoopContext {
     Object getData();
 
     void setData(Object data);
+
+    AcLoadFlowContext getAcLoadFlowContext();
+
+    void setAcLoadFlowContext(AcLoadFlowContext acLoadFlowContext);
 }

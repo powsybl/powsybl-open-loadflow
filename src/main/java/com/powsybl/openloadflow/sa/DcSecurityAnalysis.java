@@ -31,8 +31,8 @@ import java.util.*;
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     protected DcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                 List<StateMonitor> stateMonitors) {
-        super(network, matrixFactory, connectivityFactory, stateMonitors);
+                                 List<StateMonitor> stateMonitors, Reporter reporter) {
+        super(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
     }
 
     @Override
@@ -123,10 +123,12 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                     violations.remove(subjectSideId);
                 }
             });
-            postContingencyResults.add(new PostContingencyResult(contingency, true, new ArrayList<>(violations.values()), postContingencyBranchResults, Collections.emptyMap(), Collections.emptyMap()));
+            postContingencyResults.add(new PostContingencyResult(contingency, true, new ArrayList<>(violations.values()),
+                    new ArrayList<>(postContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList()));
         }
 
-        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, new ArrayList<>(preContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList()));
+        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults,
+                new ArrayList<>(preContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList(), Collections.emptyList()));
     }
 
     public static double currentActivePower(double activePower, double voltage, double cosPhi) {

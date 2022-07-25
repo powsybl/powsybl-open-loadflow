@@ -19,7 +19,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
-import com.powsybl.loadflow.resultscompletion.z0flows.Z0FlowsCompletion;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -33,14 +32,20 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.*;
+import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.openloadflow.util.Markers;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.tools.PowsyblCoreVersion;
-import net.jafama.FastMath;
+
+import org.jgrapht.Graph;
+import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
+import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,8 +124,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                 parameters.isPhaseShifterRegulationOn(),
                                                 parameters.isTransformerVoltageControlOn(),
                                                 parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                                parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD ||
-                                                    parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(), parameters.isDc());
+                                                parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(), parameters.isDc());
+
+                // zero or low impedance branch flows computation
+                computeZeroImpedanceFlows(result.getNetwork(), parameters.isDc());
             }
 
             LoadFlowResult.ComponentResult.Status status;
@@ -147,18 +154,15 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                             result.getDistributedActivePower() * PerUnit.SB));
         }
 
-        // zero or low impedance branch flows computation
-        if (ok) {
-            new Z0FlowsCompletion(network, line -> {
-                // to be consistent with low impedance criteria used in DcEquationSystem and AcEquationSystem
-                double nominalV = line.getTerminal1().getVoltageLevel().getNominalV();
-                double zb = nominalV * nominalV / PerUnit.SB;
-                double z = FastMath.hypot(line.getR(), line.getX());
-                return z / zb <= LfBranch.LOW_IMPEDANCE_THRESHOLD;
-            }).complete();
-        }
-
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
+    }
+
+    private void computeZeroImpedanceFlows(LfNetwork network, boolean dc) {
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph(dc);
+        if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
+            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
+            new ZeroImpedanceFlows(zeroImpedanceSubGraph, spanningTree).compute(dc);
+        }
     }
 
     private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, Reporter reporter) {
@@ -189,6 +193,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     parameters.isTransformerVoltageControlOn(),
                     parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                     false, true);
+
+            // zero or low impedance branch flows computation
+            computeZeroImpedanceFlows(pResult.getNetwork(), true);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(
@@ -216,8 +223,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
-        Reporter lfReporter = reporter.createSubReporter("loadFlow", "Load flow on network ${networkId}",
-            "networkId", network.getId());
+        Reporter lfReporter = Reports.createLoadFlowReporter(reporter, network.getId());
 
         return CompletableFuture.supplyAsync(() -> {
 

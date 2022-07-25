@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
@@ -40,12 +41,15 @@ public abstract class AbstractSecurityAnalysis {
 
     protected final StateMonitorIndex monitorIndex;
 
+    protected final Reporter reporter;
+
     protected AbstractSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                       List<StateMonitor> stateMonitors) {
+                                       List<StateMonitor> stateMonitors, Reporter reporter) {
         this.network = Objects.requireNonNull(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
         this.monitorIndex = new StateMonitorIndex(stateMonitors);
+        this.reporter = Objects.requireNonNull(reporter);
     }
 
     public CompletableFuture<SecurityAnalysisReport> run(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters,

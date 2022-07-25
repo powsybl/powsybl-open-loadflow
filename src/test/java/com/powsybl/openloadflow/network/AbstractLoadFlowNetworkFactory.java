@@ -129,6 +129,58 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .add();
     }
 
+    protected static ThreeWindingsTransformer createThreeWindingsTransformer(Network network, String substationId,
+        Bus b1, Bus b2, Bus b3, String id, double x1, double rho1, double x2, double rho2, double x3, double rho3) {
+        return network.getSubstation(substationId).newThreeWindingsTransformer()
+            .setId(id)
+            .setRatedU0(1)
+            .newLeg1()
+            .setVoltageLevel(b1.getVoltageLevel().getId())
+            .setBus(b1.getId())
+            .setConnectableBus(b1.getId())
+            .setRatedU(rho1)
+            .setR(0)
+            .setX(x1)
+            .setG(0)
+            .setB(0)
+            .add()
+            .newLeg2()
+            .setVoltageLevel(b2.getVoltageLevel().getId())
+            .setBus(b2.getId())
+            .setConnectableBus(b2.getId())
+            .setRatedU(rho2)
+            .setR(0)
+            .setX(x2)
+            .setG(0)
+            .setB(0)
+            .add()
+            .newLeg3()
+            .setVoltageLevel(b3.getVoltageLevel().getId())
+            .setBus(b3.getId())
+            .setConnectableBus(b3.getId())
+            .setRatedU(rho3)
+            .setR(0)
+            .setX(x3)
+            .setG(0)
+            .setB(0)
+            .add()
+            .add();
+    }
+
+    protected static DanglingLine createDanglingLine(Bus b, String id, double x, double p0, double q0) {
+        return b.getVoltageLevel().newDanglingLine()
+            .setId(id)
+            .setBus(b.getId())
+            .setConnectableBus(b.getId())
+            .setR(0)
+            .setX(x)
+            .setG(0)
+            .setB(0)
+            .setP0(p0)
+            .setQ0(q0)
+            .add();
+    }
+
     protected static LccConverterStation createLcc(Bus b, String id) {
         return b.getVoltageLevel().newLccConverterStation()
             .setId(id)

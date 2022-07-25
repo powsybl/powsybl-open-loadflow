@@ -89,7 +89,6 @@ public class PropagatedContingency {
         this.loadIdsToShift = Objects.requireNonNull(loadIdsToShift);
         this.shuntIdsToShift = Objects.requireNonNull(shuntIdsToShift);
 
-        // WTF?????
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
         }
@@ -113,27 +112,22 @@ public class PropagatedContingency {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false, slackDistributionOnConformLoad, hvdcAcEmulation);
-            Optional<Switch> coupler = propagatedContingency.switchesToOpen.stream().filter(PropagatedContingency::isCoupler).findFirst();
-            if (coupler.isEmpty()) {
-                propagatedContingencies.add(propagatedContingency);
-            } else {
-                // Sensitivity analysis works in bus view, it cannot deal (yet)  with contingencies whose propagation encounters a coupler
-                LOGGER.warn("Propagated contingency '{}' not processed: coupler '{}' has been encountered while propagating the contingency",
-                    contingency.getId(), coupler.get().getId());
-            }
+            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false,
+                    slackDistributionOnConformLoad, hvdcAcEmulation, false);
+            propagatedContingencies.add(propagatedContingency);
         }
         return propagatedContingencies;
     }
 
     public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies,
                                                                             Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
-                                                                            boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+                                                                            boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
+                                                                            boolean contingencyPropagation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad, hvdcAcEmulation);
+                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad, hvdcAcEmulation, contingencyPropagation);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
@@ -141,98 +135,30 @@ public class PropagatedContingency {
     }
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn,
-                                                boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+                                                boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
+                                                boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
-        Set<String> branchIdsToOpen = new LinkedHashSet<>();
-        Set<String> hvdcIdsToOpen = new HashSet<>();
-        Set<VscConverterStation> vscsToLose = new HashSet<>();
-        Set<LccConverterStation> lccsToLose = new HashSet<>();
-        Set<Load> loadsToLose = new HashSet<>();
-        Set<Generator> generatorsToLose = new HashSet<>();
-        Set<ShuntCompensator> shuntsToLose = new HashSet<>();
 
         // process elements of the contingency
         for (ContingencyElement element : contingency.getElements()) {
-            switch (element.getType()) {
-                case BRANCH:
-                case LINE:
-                case TWO_WINDINGS_TRANSFORMER:
-                    // branch check is done inside tripping
-                    ContingencyTripping.createBranchTripping(network, element.getId())
-                        .traverse(switchesToOpen, terminalsToDisconnect);
-                    break;
-                case HVDC_LINE:
-                    HvdcLine hvdcLine = network.getHvdcLine(element.getId());
-                    if (hvdcLine == null) {
-                        throw new PowsyblException("HVDC line '" + element.getId() + "' not found in the network");
-                    }
-                    HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
-                    if (control != null && control.isEnabled() && hvdcAcEmulation) {
-                        hvdcIdsToOpen.add(element.getId());
-                    }
-                    if (hvdcLine.getConverterStation1() instanceof VscConverterStation) {
-                        VscConverterStation vsc1 = (VscConverterStation) hvdcLine.getConverterStation1();
-                        vscsToLose.add(vsc1);
-                    } else {
-                        LccConverterStation lcc1 = (LccConverterStation) hvdcLine.getConverterStation1();
-                        lccsToLose.add(lcc1);
-                    }
-                    if (hvdcLine.getConverterStation2() instanceof VscConverterStation) {
-                        VscConverterStation vsc2 = (VscConverterStation) hvdcLine.getConverterStation2();
-                        vscsToLose.add(vsc2);
-                    } else {
-                        LccConverterStation lcc2 = (LccConverterStation) hvdcLine.getConverterStation2();
-                        lccsToLose.add(lcc2);
-                    }
-                    break;
-                case DANGLING_LINE:
-                    // dangling line check is done inside tripping
-                    ContingencyTripping.createDanglingLineTripping(network, element.getId())
-                        .traverse(switchesToOpen, terminalsToDisconnect);
-                    break;
-                case GENERATOR:
-                    Generator generator = network.getGenerator(element.getId());
-                    if (generator == null) {
-                        throw new PowsyblException("Generator '" + element.getId() + "' not found in the network");
-                    }
-                    generatorsToLose.add(generator);
-                    break;
-                case LOAD:
-                    Load load = network.getLoad(element.getId());
-                    if (load == null) {
-                        throw new PowsyblException("Load '" + element.getId() + "' not found in the network");
-                    }
-                    loadsToLose.add(load);
-                    break;
-                case SHUNT_COMPENSATOR:
-                    ShuntCompensator shuntCompensator = network.getShuntCompensator(element.getId());
-                    if (shuntCompensator == null) {
-                        throw new PowsyblException("Shunt compensator '" + element.getId() + "' not found in the network");
-                    }
-                    if (shuntCompensatorVoltageControlOn && shuntCompensator.isVoltageRegulatorOn()) {
-                        throw new UnsupportedOperationException("Shunt compensator '" + element.getId() + "' with voltage control on: not supported yet");
-                    }
-                    shuntsToLose.add(shuntCompensator);
-                    break;
-                case SWITCH:
-                    Switch aSwitch = network.getSwitch(element.getId());
-                    if (aSwitch == null) {
-                        throw new PowsyblException("Switch '" + element.getId() + "' not found in the network");
-                    }
-                    switchesToOpen.add(aSwitch);
-                    break;
-                case THREE_WINDINGS_TRANSFORMER:
-                    // three windings transformer check is done inside tripping
-                    ContingencyTripping.createThreeWindingsTransformerTripping(network, element.getId())
-                            .traverse(switchesToOpen, terminalsToDisconnect);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
+            Identifiable<?> identifiable = getIdentifiable(network, element);
+            if (contingencyPropagation) {
+                ContingencyTripping.createContingencyTripping(network, identifiable).traverse(switchesToOpen, terminalsToDisconnect);
+            }
+            terminalsToDisconnect.addAll(getTerminals(identifiable));
+            if (identifiable instanceof Switch) {
+                switchesToOpen.add((Switch) identifiable);
             }
         }
 
-        // then process other elements resulting of propagation of initial elements
+        Set<String> branchIdsToOpen = new LinkedHashSet<>();
+        Set<String> hvdcIdsToOpen = new HashSet<>();
+        Set<String> generatorIdsToLose = new HashSet<>();
+        Map<String, PowerShift> loadIdsToShift = new HashMap<>();
+        Map<String, AdmittanceShift> shuntIdsToShift = new HashMap<>();
+
+        // process terminals disconnected, in particular process injection power shift
         for (Terminal terminal : terminalsToDisconnect) {
             Connectable<?> connectable = terminal.getConnectable();
             switch (connectable.getType()) {
@@ -243,28 +169,37 @@ public class PropagatedContingency {
                     break;
 
                 case GENERATOR:
-                    generatorsToLose.add((Generator) connectable);
+                    generatorIdsToLose.add(connectable.getId());
                     break;
 
                 case LOAD:
-                    loadsToLose.add((Load) connectable);
+                    Load load = (Load) connectable;
+                    addPowerShift(load.getTerminal(), loadIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), withBreakers);
                     break;
 
                 case SHUNT_COMPENSATOR:
-                    shuntsToLose.add((ShuntCompensator) connectable);
+                    ShuntCompensator shunt = (ShuntCompensator) connectable;
+                    if (shuntCompensatorVoltageControlOn && shunt.isVoltageRegulatorOn()) {
+                        throw new UnsupportedOperationException("Shunt compensator '" + shunt.getId() + "' with voltage control on: not supported yet");
+                    }
+                    double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
+                    shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(-shunt.getG() * nominalV * nominalV / PerUnit.SB,
+                            shunt.getB() * nominalV * nominalV / PerUnit.SB));
                     break;
 
                 case HVDC_CONVERTER_STATION:
-                    HvdcConverterStation<?> station = (HvdcConverterStation) connectable;
+                    HvdcConverterStation<?> station = (HvdcConverterStation<?>) connectable;
                     HvdcAngleDroopActivePowerControl control = station.getHvdcLine().getExtension(HvdcAngleDroopActivePowerControl.class);
                     if (control != null && control.isEnabled() && hvdcAcEmulation) {
                         hvdcIdsToOpen.add(station.getHvdcLine().getId());
+                    }
+                    if (connectable instanceof VscConverterStation) {
+                        generatorIdsToLose.add(connectable.getId());
                     } else {
-                        if (connectable instanceof VscConverterStation) {
-                            vscsToLose.add((VscConverterStation) connectable);
-                        } else {
-                            lccsToLose.add((LccConverterStation) connectable);
-                        }
+                        LccConverterStation lcc = (LccConverterStation) connectable;
+                        PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
+                                HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB);
+                        addPowerShift(lcc.getTerminal(), loadIdsToShift, lccPowerShift, withBreakers);
                     }
                     break;
 
@@ -284,54 +219,76 @@ public class PropagatedContingency {
             }
         }
 
-        // then process injection power shift
-        Set<String> generatorIdsToLose = new HashSet<>();
-        Map<String, PowerShift> loadIdsToShift = new HashMap<>();
-        Map<String, AdmittanceShift> shuntIdsToShift = new HashMap<>();
-        for (Generator generator : generatorsToLose) {
-            generatorIdsToLose.add(generator.getId());
-        }
-        for (VscConverterStation vsc : vscsToLose) {
-            generatorIdsToLose.add(vsc.getId());
-        }
-        for (Load load : loadsToLose) {
-            Bus bus = withBreakers ? load.getTerminal().getBusBreakerView().getBus()
-                                   : load.getTerminal().getBusView().getBus();
-            if (bus != null) {
-                loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
-                        .add(getLoadPowerShift(load, slackDistributionOnConformLoad));
-            }
-        }
-        for (LccConverterStation lcc : lccsToLose) {
-            Bus bus = withBreakers ? lcc.getTerminal().getBusBreakerView().getBus()
-                    : lcc.getTerminal().getBusView().getBus();
-            if (bus != null) {
-                // No variable active part for a LCC.
-                loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift())
-                        .add(new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
-                                HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB));
-            }
-        }
-        for (ShuntCompensator shunt : shuntsToLose) {
-            double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
-            shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(-shunt.getG() * nominalV * nominalV / PerUnit.SB,
-                                                                   shunt.getB() * nominalV * nominalV / PerUnit.SB));
-        }
-
         return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen,
                                          generatorIdsToLose, loadIdsToShift, shuntIdsToShift);
     }
 
-    private static boolean isCoupler(Switch s) {
-        VoltageLevel.NodeBreakerView nbv = s.getVoltageLevel().getNodeBreakerView();
-        Terminal terminal1 = nbv.getTerminal1(s.getId());
-        Terminal terminal2 = nbv.getTerminal2(s.getId());
-        if (terminal1 == null || terminal2 == null) {
-            return false; // FIXME: this can be a coupler, a traverser could be used to detect it
+    private static void addPowerShift(Terminal terminal, Map<String, PowerShift> loadIdsToShift, PowerShift powerShift, boolean withBreakers) {
+        Bus bus = withBreakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+        if (bus != null) {
+            loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift()).add(powerShift);
         }
-        Connectable<?> c1 = terminal1.getConnectable();
-        Connectable<?> c2 = terminal2.getConnectable();
-        return c1 != c2 && c1.getType() == IdentifiableType.BUSBAR_SECTION && c2.getType() == IdentifiableType.BUSBAR_SECTION;
+    }
+
+    private static List<? extends Terminal> getTerminals(Identifiable<?> identifiable) {
+        if (identifiable instanceof Connectable<?>) {
+            return ((Connectable<?>) identifiable).getTerminals();
+        }
+        if (identifiable instanceof HvdcLine) {
+            HvdcLine hvdcLine = (HvdcLine) identifiable;
+            return Arrays.asList(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
+        }
+        if (identifiable instanceof Switch) {
+            return Collections.emptyList();
+        }
+        throw new UnsupportedOperationException("Unsupported contingency element type: " + identifiable.getType());
+    }
+
+    private static Identifiable<?> getIdentifiable(Network network, ContingencyElement element) {
+        Identifiable<?> identifiable;
+        String identifiableType;
+        switch (element.getType()) {
+            case BRANCH:
+            case LINE:
+            case TWO_WINDINGS_TRANSFORMER:
+                identifiable = network.getBranch(element.getId());
+                identifiableType = "Branch";
+                break;
+            case HVDC_LINE:
+                identifiable = network.getHvdcLine(element.getId());
+                identifiableType = "HVDC line";
+                break;
+            case DANGLING_LINE:
+                identifiable = network.getDanglingLine(element.getId());
+                identifiableType = "Dangling line";
+                break;
+            case GENERATOR:
+                identifiable = network.getGenerator(element.getId());
+                identifiableType = "Generator";
+                break;
+            case LOAD:
+                identifiable = network.getLoad(element.getId());
+                identifiableType = "Load";
+                break;
+            case SHUNT_COMPENSATOR:
+                identifiable = network.getShuntCompensator(element.getId());
+                identifiableType = "Shunt compensator";
+                break;
+            case SWITCH:
+                identifiable = network.getSwitch(element.getId());
+                identifiableType = "Switch";
+                break;
+            case THREE_WINDINGS_TRANSFORMER:
+                identifiable = network.getThreeWindingsTransformer(element.getId());
+                identifiableType = "Three windings transformer";
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
+        }
+        if (identifiable == null) {
+            throw new PowsyblException(identifiableType + " '" + element.getId() + "' not found in the network");
+        }
+        return identifiable;
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network, boolean useSmallComponents) {

@@ -24,6 +24,8 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
 
     private static final SlackBusSelector DEFAULT_FALLBACK_SELECTOR = new MostMeshedSlackBusSelector();
 
+    private static final String SELECTION_METHOD = "Network extension bus";
+
     private final SlackBusSelector fallbackSelector;
 
     private final Set<String> slackBusIds = new HashSet<>();
@@ -42,6 +44,10 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
                 if (bus != null) {
                     slackBusIds.add(bus.getId());
                 }
+                bus = slackTerminal.getTerminal().getBusBreakerView().getBus();
+                if (bus != null) {
+                    slackBusIds.add(bus.getId());
+                }
             }
         }
     }
@@ -53,10 +59,11 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
             // fallback to automatic selection
             return fallbackSelector.select(buses);
         } else if (slackBuses.size() == 1) {
-            return new SelectedSlackBus(slackBuses.get(0), "Network extension bus");
+            return new SelectedSlackBus(slackBuses.get(0), SELECTION_METHOD);
         } else {
             // fallback to automatic selection among slack buses
-            return fallbackSelector.select(slackBuses);
+            var slackBusSelector = fallbackSelector.select(slackBuses);
+            return new SelectedSlackBus(slackBusSelector.getBus(), SELECTION_METHOD + " + " + slackBusSelector.getSelectionMethod());
         }
     }
 }

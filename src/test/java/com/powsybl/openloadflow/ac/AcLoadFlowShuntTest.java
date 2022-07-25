@@ -454,7 +454,7 @@ class AcLoadFlowShuntTest {
     }
 
     @Test
-    void testGComponent() {
+    void testAdmittanceShift() {
         // Test with G component on shunt
         Network networkWithG = Network.create("svc", "testG");
         Substation s1G = networkWithG.newSubstation()
@@ -560,7 +560,7 @@ class AcLoadFlowShuntTest {
         assertActivePowerEquals(152.818, l2G.getTerminal(Branch.Side.TWO));
         assertReactivePowerEquals(152.514, l2G.getTerminal(Branch.Side.ONE));
         assertReactivePowerEquals(-151.599, l2G.getTerminal(Branch.Side.TWO));
-        //assertActivePowerEquals(152.513, shuntG.getTerminal());
+        assertActivePowerEquals(152.513, shuntG.getTerminal());
         assertReactivePowerEquals(-152.514, shuntG.getTerminal());
 
         // Test with two sections
@@ -575,7 +575,7 @@ class AcLoadFlowShuntTest {
         assertActivePowerEquals(469.540, l2G.getTerminal(Branch.Side.TWO));
         assertReactivePowerEquals(466.746, l2G.getTerminal(Branch.Side.ONE));
         assertReactivePowerEquals(-458.344, l2G.getTerminal(Branch.Side.TWO));
-        //assertActivePowerEquals(466.739, shuntG.getTerminal());
+        assertActivePowerEquals(466.742, shuntG.getTerminal());
         assertReactivePowerEquals(-466.743, shuntG.getTerminal());
     }
 }

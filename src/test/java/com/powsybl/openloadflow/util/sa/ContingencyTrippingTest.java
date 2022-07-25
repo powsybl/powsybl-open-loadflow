@@ -32,38 +32,22 @@ class ContingencyTrippingTest {
 
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
-        ContingencyTripping.createBranchTripping(network, "L1").traverse(switchesToOpen, terminalsToDisconnect);
+        ContingencyTripping.createBranchTripping(network, network.getBranch("L1")).traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "C");
         checkTerminalIds(terminalsToDisconnect, "BBS1", "L1");
 
         switchesToOpen.clear();
         terminalsToDisconnect.clear();
-        ContingencyTripping.createBranchTripping(network, "L2").traverse(switchesToOpen, terminalsToDisconnect);
+        ContingencyTripping.createBranchTripping(network, network.getBranch("L2")).traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
         checkTerminalIds(terminalsToDisconnect, "L2");
-    }
-
-    @Test
-    void testUnknownLineTripping() {
-        Network network = NodeBreakerNetworkFactory.create();
-        Exception unknownBranch = assertThrows(PowsyblException.class,
-            () -> ContingencyTripping.createBranchTripping(network, "L9"));
-        assertEquals("Branch 'L9' not found in the network", unknownBranch.getMessage());
-    }
-
-    @Test
-    void testUnknownDanglingLineTripping() {
-        Network network = NodeBreakerNetworkFactory.create();
-        Exception unknownBranch = assertThrows(PowsyblException.class,
-            () -> ContingencyTripping.createDanglingLineTripping(network, "DL0"));
-        assertEquals("Dangling line 'DL0' not found in the network", unknownBranch.getMessage());
     }
 
     @Test
     void testUnconnectedVoltageLevel() {
         Network network = NodeBreakerNetworkFactory.create();
         Exception unknownVl = assertThrows(PowsyblException.class,
-            () -> ContingencyTripping.createBranchTripping(network, "L1", "VL3"));
+            () -> ContingencyTripping.createBranchTripping(network, network.getBranch("L1"), "VL3"));
         assertEquals("VoltageLevel 'VL3' not connected to branch 'L1'", unknownVl.getMessage());
     }
 
@@ -71,14 +55,14 @@ class ContingencyTrippingTest {
     void testVoltageLevelFilter() {
         Network network = NodeBreakerNetworkFactory.create();
 
-        ContingencyTripping trippingTaskVl1 = ContingencyTripping.createBranchTripping(network, "L1", "VL1");
+        ContingencyTripping trippingTaskVl1 = ContingencyTripping.createBranchTripping(network, network.getBranch("L1"), "VL1");
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         trippingTaskVl1.traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "C");
         checkTerminalIds(terminalsToDisconnect, "BBS1", "L1");
 
-        ContingencyTripping trippingTaskVl2 = ContingencyTripping.createBranchTripping(network, "L1", "VL2");
+        ContingencyTripping trippingTaskVl2 = ContingencyTripping.createBranchTripping(network, network.getBranch("L1"), "VL2");
         switchesToOpen.clear();
         terminalsToDisconnect.clear();
         trippingTaskVl2.traverse(switchesToOpen, terminalsToDisconnect);
@@ -92,7 +76,7 @@ class ContingencyTrippingTest {
 
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
-        ContingencyTripping.createBranchTripping(network, "CJ").traverse(switchesToOpen, terminalsToDisconnect);
+        ContingencyTripping.createBranchTripping(network, network.getBranch("CJ")).traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
         checkTerminalIds(terminalsToDisconnect, "D", "CI", "CJ");
     }
@@ -106,7 +90,7 @@ class ContingencyTrippingTest {
         network.getSwitch("AZ").setOpen(false);
 
         // First without opening disconnector
-        ContingencyTripping lbt1 = ContingencyTripping.createBranchTripping(network, "CJ");
+        ContingencyTripping lbt1 = ContingencyTripping.createBranchTripping(network, network.getBranch("CJ"));
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(switchesToOpen, terminalsToDisconnect);
@@ -131,7 +115,7 @@ class ContingencyTrippingTest {
 
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
-        ContingencyTripping.createBranchTripping(network, "CJ").traverse(switchesToOpen, terminalsToDisconnect);
+        ContingencyTripping.createBranchTripping(network, network.getBranch("CJ")).traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen);
         checkTerminalIds(terminalsToDisconnect, "CJ");
     }
@@ -167,7 +151,7 @@ class ContingencyTrippingTest {
             .setNode2(18)
             .add();
 
-        ContingencyTripping lbt1 = ContingencyTripping.createBranchTripping(network, "CJ");
+        ContingencyTripping lbt1 = ContingencyTripping.createBranchTripping(network, network.getBranch("CJ"));
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(switchesToOpen, terminalsToDisconnect);
@@ -203,7 +187,7 @@ class ContingencyTrippingTest {
 
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
-        ContingencyTripping.createBranchTripping(network, "CJ").traverse(switchesToOpen, terminalsToDisconnect);
+        ContingencyTripping.createBranchTripping(network, network.getBranch("CJ")).traverse(switchesToOpen, terminalsToDisconnect);
         checkSwitches(switchesToOpen, "BL");
         checkTerminalIds(terminalsToDisconnect, "D", "CE", "CI", "CJ");
     }
@@ -227,7 +211,7 @@ class ContingencyTrippingTest {
             .setNode2(4)
             .add();
 
-        ContingencyTripping lbt1 = ContingencyTripping.createBranchTripping(network, "CJ");
+        ContingencyTripping lbt1 = ContingencyTripping.createBranchTripping(network, network.getBranch("CJ"));
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         lbt1.traverse(switchesToOpen, terminalsToDisconnect);
@@ -249,7 +233,7 @@ class ContingencyTrippingTest {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
 
-        ContingencyTripping trippingTask = ContingencyTripping.createBranchTripping(network, "NHV1_NHV2_1");
+        ContingencyTripping trippingTask = ContingencyTripping.createBranchTripping(network, network.getBranch("NHV1_NHV2_1"));
         trippingTask.traverse(switchesToOpen, terminalsToDisconnect);
 
         assertTrue(switchesToOpen.isEmpty());
