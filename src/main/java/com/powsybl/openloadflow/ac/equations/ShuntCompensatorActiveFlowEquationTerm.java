@@ -17,20 +17,13 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompensatorEquationTerm {
-
-    private Variable<AcVariableType> bVar;
+public class ShuntCompensatorActiveFlowEquationTerm extends AbstractShuntCompensatorEquationTerm {
 
     private final List<Variable<AcVariableType>> variables;
 
-    public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet, boolean deriveB) {
+    public ShuntCompensatorActiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet) {
         super(shunt, bus, variableSet);
-        if (deriveB) {
-            bVar = variableSet.getVariable(shunt.getNum(), AcVariableType.SHUNT_B);
-            variables = List.of(vVar, bVar);
-        } else {
-            variables = List.of(vVar);
-        }
+        variables = List.of(vVar);
     }
 
     @Override
@@ -38,34 +31,28 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         return variables;
     }
 
-    private double b() {
-        return bVar != null ? sv.get(bVar.getRow()) : shunt.getB();
+    private double g() {
+        return shunt.getG();
     }
 
-    private static double q(double v, double b) {
-        return -b * v * v;
+    private static double p(double v, double g) {
+        return g * v * v;
     }
 
-    private static double dqdv(double v, double b) {
-        return -2 * b * v;
-    }
-
-    private static double dqdb(double v) {
-        return -v * v;
+    private static double dpdv(double v, double g) {
+        return 2 * g * v;
     }
 
     @Override
     public double eval() {
-        return q(v(), b());
+        return p(v(), g());
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
-            return dqdv(v(), b());
-        } else if (variable.equals(bVar)) {
-            return dqdb(v());
+            return dpdv(v(), g());
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -73,6 +60,6 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
 
     @Override
     protected String getName() {
-        return "ac_q_shunt";
+        return "ac_p_shunt";
     }
 }
