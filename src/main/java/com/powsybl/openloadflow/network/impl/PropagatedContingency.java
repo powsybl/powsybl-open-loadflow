@@ -15,8 +15,6 @@ import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,8 +24,6 @@ import java.util.stream.Collectors;
  * @author Gaël Macherel <gael.macherel@artelys.com>
  */
 public class PropagatedContingency {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PropagatedContingency.class);
 
     private final Contingency contingency;
 

@@ -456,56 +456,10 @@ class AcLoadFlowShuntTest {
     @Test
     void testAdmittanceShift() {
         // Test with G component on shunt
-        Network networkWithG = Network.create("svc", "testG");
-        Substation s1G = networkWithG.newSubstation()
-                .setId("S1")
-                .add();
-        Substation s2G = networkWithG.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl1G = s1G.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1G.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1G.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(101.3664)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(150)
-                .setVoltageRegulatorOn(true)
-                .add();
-        VoltageLevel vl2G = s2G.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2G.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2G.newLoad()
-                .setId("ld1")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(101)
-                .setQ0(150)
-                .add();
-        VoltageLevel vl3G = s2G.newVoltageLevel()
-                .setId("vl3")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl3G.getBusBreakerView().newBus()
-                .setId("b3")
-                .add();
-        ShuntCompensator shuntG = vl3G.newShuntCompensator()
-                .setId("SHUNT")
+        network = createNetwork();
+        network.getShuntCompensator("SHUNT").getTerminal().disconnect();
+        ShuntCompensator shuntG = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
                 .setBus("b3")
                 .setConnectableBus("b3")
                 .setSectionCount(0)
@@ -523,59 +477,43 @@ class AcLoadFlowShuntTest {
                 .endSection()
                 .add()
                 .add();
-        Line l1G = networkWithG.newLine()
-                .setId("l1")
-                .setVoltageLevel1("vl1")
-                .setBus1("b1")
-                .setVoltageLevel2("vl2")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
-                .add();
-        Line l2G = networkWithG.newLine()
-                .setId("l2")
-                .setVoltageLevel1("vl3")
-                .setBus1("b3")
-                .setVoltageLevel2("vl2")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
-                .add();
+
         shuntG.setSectionCount(1);
-        LoadFlowResult result2 = loadFlowRunner.run(networkWithG, parameters);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
-        assertActivePowerEquals(101.366, l1G.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(-101.299, l1G.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(-1.398, l1G.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(1.600, l1G.getTerminal(Branch.Side.TWO));
-        assertActivePowerEquals(-152.513, l2G.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(152.818, l2G.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(152.514, l2G.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(-151.599, l2G.getTerminal(Branch.Side.TWO));
+        assertActivePowerEquals(101.366, l1.getTerminal(Branch.Side.ONE));
+        assertActivePowerEquals(-101.299, l1.getTerminal(Branch.Side.TWO));
+        assertReactivePowerEquals(-1.398, l1.getTerminal(Branch.Side.ONE));
+        assertReactivePowerEquals(1.600, l1.getTerminal(Branch.Side.TWO));
+        assertActivePowerEquals(-152.513, l2.getTerminal(Branch.Side.ONE));
+        assertActivePowerEquals(152.818, l2.getTerminal(Branch.Side.TWO));
+        assertReactivePowerEquals(152.514, l2.getTerminal(Branch.Side.ONE));
+        assertReactivePowerEquals(-151.599, l2.getTerminal(Branch.Side.TWO));
         assertActivePowerEquals(152.513, shuntG.getTerminal());
         assertReactivePowerEquals(-152.514, shuntG.getTerminal());
 
-        // Test with two sections
         shuntG.setSectionCount(2);
-        LoadFlowResult result3 = loadFlowRunner.run(networkWithG, parameters);
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
         assertTrue(result3.isOk());
-        assertActivePowerEquals(101.366, l1G.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(-100.682, l1G.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(-306.296, l1G.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(308.349, l1G.getTerminal(Branch.Side.TWO));
-        assertActivePowerEquals(-466.739, l2G.getTerminal(Branch.Side.ONE));
-        assertActivePowerEquals(469.540, l2G.getTerminal(Branch.Side.TWO));
-        assertReactivePowerEquals(466.746, l2G.getTerminal(Branch.Side.ONE));
-        assertReactivePowerEquals(-458.344, l2G.getTerminal(Branch.Side.TWO));
+        assertActivePowerEquals(101.366, l1.getTerminal(Branch.Side.ONE));
+        assertActivePowerEquals(-100.682, l1.getTerminal(Branch.Side.TWO));
+        assertReactivePowerEquals(-306.296, l1.getTerminal(Branch.Side.ONE));
+        assertReactivePowerEquals(308.349, l1.getTerminal(Branch.Side.TWO));
+        assertActivePowerEquals(-466.739, l2.getTerminal(Branch.Side.ONE));
+        assertActivePowerEquals(469.540, l2.getTerminal(Branch.Side.TWO));
+        assertReactivePowerEquals(466.746, l2.getTerminal(Branch.Side.ONE));
+        assertReactivePowerEquals(-458.344, l2.getTerminal(Branch.Side.TWO));
         assertActivePowerEquals(466.742, shuntG.getTerminal());
         assertReactivePowerEquals(-466.743, shuntG.getTerminal());
+        assertVoltageEquals(394.437, shuntG.getTerminal().getBusView().getBus());
+
+        shuntG.setSectionCount(0);
+        parameters.setSimulShunt(true);
+        LoadFlowResult result4 = loadFlowRunner.run(network, parameters);
+        assertTrue(result4.isOk());
+        assertVoltageEquals(390.93, shuntG.getTerminal().getBusView().getBus());
+        assertEquals(1, shuntG.getSectionCount());
+        assertActivePowerEquals(152.826, shuntG.getTerminal());
+        assertReactivePowerEquals(-152.826, shuntG.getTerminal());
     }
 }
