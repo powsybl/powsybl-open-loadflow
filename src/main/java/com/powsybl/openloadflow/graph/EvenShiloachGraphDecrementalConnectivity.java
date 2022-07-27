@@ -94,8 +94,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
     public void save() {
         if (!saved) {
             initConnectedComponents();
-            vertices.stream().findFirst().ifPresent(
-                    v -> buildNextLevel(Collections.singleton(v), 0));
+            vertices.stream().findFirst().ifPresent(v -> buildNextLevel(Collections.singleton(v), 0));
             saved = true;
         } else {
             throw new PowsyblException("EvenShiloachGraphDecrementalConnectivity does not (yet) support several saves");
