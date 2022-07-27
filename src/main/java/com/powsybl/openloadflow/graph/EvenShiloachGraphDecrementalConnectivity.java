@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecrementalConnectivity<V, E> {
+public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConnectivity<V, E> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EvenShiloachGraphDecrementalConnectivity.class);
 
@@ -84,7 +84,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
     }
 
     @Override
-    public void cut(E edge) {
+    public void removeEdge(E edge) {
         if (!graph.containsEdge(edge)) {
             throw new PowsyblException("No such edge in graph: " + edge);
         }

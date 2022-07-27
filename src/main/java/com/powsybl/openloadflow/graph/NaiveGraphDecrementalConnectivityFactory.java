@@ -21,7 +21,7 @@ public class NaiveGraphDecrementalConnectivityFactory<V, E> implements GraphDecr
     }
 
     @Override
-    public GraphDecrementalConnectivity<V, E> create() {
-        return new NaiveGraphDecrementalConnectivity<>(numGetter);
+    public GraphConnectivity<V, E> create() {
+        return new NaiveGraphConnectivity<>(numGetter);
     }
 }

@@ -11,7 +11,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -77,7 +77,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    private GraphDecrementalConnectivity<LfBus, LfBranch> connectivity;
+    private GraphConnectivity<LfBus, LfBranch> connectivity;
 
     private Reporter reporter;
 
@@ -564,13 +564,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return subGraph;
     }
 
-    public GraphDecrementalConnectivity<LfBus, LfBranch> getConnectivity() {
+    public GraphConnectivity<LfBus, LfBranch> getConnectivity() {
         if (connectivity == null) {
             connectivity = Objects.requireNonNull(connectivityFactory.create());
             getBuses().forEach(connectivity::addVertex);
             getBranches().stream()
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
+            connectivity.save();
         }
         return connectivity;
     }
@@ -603,11 +604,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             }
             if (branch.isDisabled() && branch.getBus1() != null && branch.getBus2() != null) {
                 // apply contingency (in case we are inside a security analysis)
-                getConnectivity().cut(branch);
+                getConnectivity().removeEdge(branch);
             }
         }
         for (LfBranch branch : controllerBranches) {
-            getConnectivity().cut(branch);
+            getConnectivity().removeEdge(branch);
         }
         int disabledTransformerCount = 0;
         Map<Integer, Boolean> componentNoPVBusesMap = new HashMap<>();

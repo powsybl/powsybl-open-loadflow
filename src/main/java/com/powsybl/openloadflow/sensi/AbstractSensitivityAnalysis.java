@@ -19,7 +19,7 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
@@ -602,11 +602,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, Collection<String> breakingConnectivityCandidates) {
+    public void cutConnectivity(LfNetwork lfNetwork, GraphConnectivity<LfBus, LfBranch> connectivity, Collection<String> breakingConnectivityCandidates) {
         breakingConnectivityCandidates.stream()
             .map(lfNetwork::getBranchById)
             .filter(b -> b.getBus1() != null && b.getBus2() != null)
-            .forEach(connectivity::cut);
+            .forEach(connectivity::removeEdge);
     }
 
     protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> connectedComponent) {

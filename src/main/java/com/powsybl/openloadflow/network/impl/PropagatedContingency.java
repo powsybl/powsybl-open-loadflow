@@ -12,7 +12,7 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.LoadDetail;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -294,10 +294,10 @@ public class PropagatedContingency {
                 .collect(Collectors.toSet());
 
         // update connectivity with triggered branches
-        GraphDecrementalConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         branches.stream()
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .forEach(connectivity::cut);
+                .forEach(connectivity::removeEdge);
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state

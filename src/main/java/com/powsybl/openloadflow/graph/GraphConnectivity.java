@@ -12,7 +12,7 @@ import java.util.Set;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface GraphDecrementalConnectivity<V, E> {
+public interface GraphConnectivity<V, E> {
 
     void addVertex(V vertex);
 
@@ -21,10 +21,15 @@ public interface GraphDecrementalConnectivity<V, E> {
     /**
      * Cut given edge
      */
-    void cut(E edge);
+    void removeEdge(E edge);
 
     /**
-     * Reset all the cut done previously in the graph
+     * Save the connectivity state
+     */
+    void save();
+
+    /**
+     * Reset to the state of last save
      */
     void reset();
 

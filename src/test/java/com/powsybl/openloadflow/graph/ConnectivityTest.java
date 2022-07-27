@@ -18,7 +18,7 @@ class ConnectivityTest {
 
     @Test
     public void circleTest() {
-        GraphDecrementalConnectivity<String, String> dc = new EvenShiloachGraphDecrementalConnectivity<>();
+        GraphConnectivity<String, String> dc = new EvenShiloachGraphDecrementalConnectivity<>();
         String o1 = "1";
         String o2 = "2";
         String o3 = "3";
@@ -35,13 +35,13 @@ class ConnectivityTest {
         dc.addEdge(o2, o3, e23);
         dc.addEdge(o3, o4, e34);
         dc.addEdge(o4, o1, e41);
-        dc.cut(e12);
+        dc.removeEdge(e12);
         assertTrue(dc.getSmallComponents().isEmpty());
     }
 
     @Test
     public void loopCircleTest() {
-        GraphDecrementalConnectivity<String, String> dc = new EvenShiloachGraphDecrementalConnectivity<>();
+        GraphConnectivity<String, String> dc = new EvenShiloachGraphDecrementalConnectivity<>();
         String o1 = "1";
         String o2 = "2";
         String o3 = "3";
@@ -57,14 +57,14 @@ class ConnectivityTest {
         dc.addEdge(o2, o3, e23);
         dc.addEdge(o3, o1, e31);
 
-        dc.cut(e11);
+        dc.removeEdge(e11);
         assertTrue(dc.getSmallComponents().isEmpty());
 
         dc.reset();
-        dc.cut(e12);
+        dc.removeEdge(e12);
         assertTrue(dc.getSmallComponents().isEmpty());
 
-        dc.cut(e31);
+        dc.removeEdge(e31);
         assertFalse(dc.getSmallComponents().isEmpty());
     }
 }

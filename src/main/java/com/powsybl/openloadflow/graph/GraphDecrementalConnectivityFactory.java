@@ -11,5 +11,5 @@ package com.powsybl.openloadflow.graph;
  */
 public interface GraphDecrementalConnectivityFactory<V, E> {
 
-    GraphDecrementalConnectivity<V, E> create();
+    GraphConnectivity<V, E> create();
 }

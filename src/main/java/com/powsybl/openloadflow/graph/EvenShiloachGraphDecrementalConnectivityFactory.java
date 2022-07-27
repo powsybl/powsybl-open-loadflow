@@ -12,7 +12,7 @@ package com.powsybl.openloadflow.graph;
 public class EvenShiloachGraphDecrementalConnectivityFactory<V, E> implements GraphDecrementalConnectivityFactory<V, E> {
 
     @Override
-    public GraphDecrementalConnectivity<V, E> create() {
+    public GraphConnectivity<V, E> create() {
         return new EvenShiloachGraphDecrementalConnectivity<>();
     }
 }

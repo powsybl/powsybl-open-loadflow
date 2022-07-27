@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class MinimumSpanningTreeGraphDecrementalConnectivity<V, E> implements GraphDecrementalConnectivity<V, E> {
+public class MinimumSpanningTreeGraphDecrementalConnectivity<V, E> implements GraphConnectivity<V, E> {
 
     private SpanningTrees mstOrigin;
     private SpanningTrees mst;
@@ -48,7 +48,7 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V, E> implements Gr
     }
 
     @Override
-    public void cut(E edge) {
+    public void removeEdge(E edge) {
         if (cutEdges.stream().anyMatch(t -> t.getMiddle().equals(edge))) {
             throw new PowsyblException("Edge already cut: " + edge);
         }

@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NaiveGraphDecrementalConnectivity<V, E> implements GraphDecrementalConnectivity<V, E> {
+public class NaiveGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
     private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
 
@@ -31,7 +31,7 @@ public class NaiveGraphDecrementalConnectivity<V, E> implements GraphDecremental
 
     private List<Set<V>> componentSets;
 
-    public NaiveGraphDecrementalConnectivity(ToIntFunction<V> numGetter) {
+    public NaiveGraphConnectivity(ToIntFunction<V> numGetter) {
         this.numGetter = Objects.requireNonNull(numGetter);
     }
 
@@ -72,7 +72,7 @@ public class NaiveGraphDecrementalConnectivity<V, E> implements GraphDecremental
     }
 
     @Override
-    public void cut(E edge) {
+    public void removeEdge(E edge) {
         if (cutEdges.stream().anyMatch(t -> t.getMiddle().equals(edge))) {
             throw new PowsyblException("Edge already cut: " + edge);
         }
