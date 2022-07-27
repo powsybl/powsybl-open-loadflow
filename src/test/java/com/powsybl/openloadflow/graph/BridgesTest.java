@@ -72,7 +72,7 @@ class BridgesTest {
 
     @Test
     void testMst() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new MinimumSpanningTreeGraphDecrementalConnectivity<>(), "Even-Shiloach");
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new MinimumSpanningTreeGraphConnectivity<>(), "Even-Shiloach");
         assertEquals(bridgesSetReference, bridges);
     }
 

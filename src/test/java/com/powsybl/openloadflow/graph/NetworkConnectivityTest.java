@@ -63,7 +63,7 @@ class NetworkConnectivityTest {
         // Testing cutting twice an edge
         testDoubleCut(new NaiveGraphConnectivity<>(LfBus::getNum));
         testDoubleCut(new EvenShiloachGraphDecrementalConnectivity<>());
-        testDoubleCut(new MinimumSpanningTreeGraphDecrementalConnectivity<>());
+        testDoubleCut(new MinimumSpanningTreeGraphConnectivity<>());
     }
 
     @Test
@@ -75,7 +75,7 @@ class NetworkConnectivityTest {
 
         testUnknownCut(new NaiveGraphConnectivity<>(LfBus::getNum), otherNetworkBranch);
         testUnknownCut(new EvenShiloachGraphDecrementalConnectivity<>(), otherNetworkBranch);
-        testUnknownCut(new MinimumSpanningTreeGraphDecrementalConnectivity<>(), otherNetworkBranch);
+        testUnknownCut(new MinimumSpanningTreeGraphConnectivity<>(), otherNetworkBranch);
     }
 
     @Test
@@ -98,14 +98,14 @@ class NetworkConnectivityTest {
     void testNonConnectedComponents() {
         testNonConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testNonConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testNonConnectedComponents(new MinimumSpanningTreeGraphDecrementalConnectivity<>());
+        testNonConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
     }
 
     @Test
     void testConnectedComponents() {
         testConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testConnectedComponents(new MinimumSpanningTreeGraphDecrementalConnectivity<>());
+        testConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
     }
 
     private void testConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {

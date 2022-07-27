@@ -13,6 +13,6 @@ public class MinimumSpanningTreeGraphDecrementalConnectivityFactory<V, E> implem
 
     @Override
     public GraphConnectivity<V, E> create() {
-        return new MinimumSpanningTreeGraphDecrementalConnectivity<>();
+        return new MinimumSpanningTreeGraphConnectivity<>();
     }
 }
