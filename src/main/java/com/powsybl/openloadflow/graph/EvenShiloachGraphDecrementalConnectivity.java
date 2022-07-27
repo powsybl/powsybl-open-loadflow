@@ -12,8 +12,6 @@ import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,8 +25,6 @@ import java.util.stream.Collectors;
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConnectivity<V, E> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(EvenShiloachGraphDecrementalConnectivity.class);
 
     private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
 
@@ -45,7 +41,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
     private final LinkedList<Map<V, LevelNeighbours>> allSavedChangedLevels;
 
     private boolean vertexMapCacheInvalidated;
-    private boolean init;
+    private boolean saved;
 
     public EvenShiloachGraphDecrementalConnectivity() {
         this.cutEdges = new ArrayList<>();
@@ -60,27 +56,24 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
 
     @Override
     public void addVertex(V vertex) {
+        if (saved) {
+            throw new PowsyblException("EvenShiloachGraphDecrementalConnectivity does not support incremental connectivity: " +
+                    "vertices cannot be added once that connectivity is saved");
+        }
         Objects.requireNonNull(vertex);
         graph.addVertex(vertex);
         vertices.add(vertex);
-        invalidateInit();
     }
 
     @Override
     public void addEdge(V vertex1, V vertex2, E edge) {
+        if (saved) {
+            throw new PowsyblException("EvenShiloachGraphDecrementalConnectivity does not support incremental connectivity: " +
+                    "edges cannot be added once that connectivity is saved");
+        }
         Objects.requireNonNull(vertex1);
         Objects.requireNonNull(vertex2);
         graph.addEdge(vertex1, vertex2, edge);
-        invalidateInit();
-    }
-
-    private void invalidateInit() {
-        edgesToCut.forEach(graph::removeEdge);
-        init = false;
-        cutEdges.clear();
-        edgesToCut.clear();
-        newConnectedComponents.clear();
-        invalidateConnectedComponentCache();
     }
 
     @Override
@@ -88,12 +81,25 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
         if (!graph.containsEdge(edge)) {
             throw new PowsyblException("No such edge in graph: " + edge);
         }
-        if (edgesToCut.contains(edge)) {
-            throw new PowsyblException("Edge already cut: " + edge);
+        if (saved) {
+            if (edgesToCut.contains(edge)) {
+                throw new PowsyblException("Edge already cut: " + edge);
+            }
+            invalidateConnectedComponentCache();
+            edgesToCut.add(edge);
         }
-        invalidateConnectedComponentCache();
+    }
 
-        edgesToCut.add(edge);
+    @Override
+    public void save() {
+        if (!saved) {
+            initConnectedComponents();
+            vertices.stream().findFirst().ifPresent(
+                    v -> buildNextLevel(Collections.singleton(v), 0));
+            saved = true;
+        } else {
+            throw new PowsyblException("EvenShiloachGraphDecrementalConnectivity does not (yet) support several saves");
+        }
     }
 
     private void invalidateConnectedComponentCache() {
@@ -109,12 +115,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
         if (initialConnectedComponents.size() > 1) {
             throw new PowsyblException("Algorithm not implemented for a network with several connected components at start");
         }
-    }
-
-    public void initLevels() {
-        levelNeighboursMap.clear();
-        vertices.stream().findFirst().ifPresent(
-            v -> buildNextLevel(Collections.singleton(v), 0));
     }
 
     public void reset() {
@@ -172,11 +172,10 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
     }
 
     private void lazyComputeConnectivity() {
-        if (init && edgesToCut.isEmpty()) {
+        if (saved && edgesToCut.isEmpty()) {
             return;
         }
 
-        init();
         for (E edgeToCut : edgesToCut) {
             V vertex1 = graph.getEdgeSource(edgeToCut);
             V vertex2 = graph.getEdgeTarget(edgeToCut);
@@ -201,14 +200,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
         edgesToCut.clear();
 
         sortComponents();
-    }
-
-    private void init() {
-        if (!init) {
-            initConnectedComponents();
-            initLevels();
-            init = true;
-        }
     }
 
     private void sortComponents() {
