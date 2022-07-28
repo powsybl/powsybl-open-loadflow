@@ -6,10 +6,11 @@
  */
 package com.powsybl.openloadflow.sensi;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.contingency.Contingency;
+import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -19,364 +20,52 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.dc.DcLoadFlowResult;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.dc.equations.*;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
-import com.powsybl.openloadflow.network.util.GenerationActionPowerDistributionStep;
-import com.powsybl.openloadflow.network.util.LoadActivePowerDistributionStep;
+import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
-import com.powsybl.sensitivity.SensitivityFactor;
-import com.powsybl.sensitivity.SensitivityValue;
-import com.powsybl.sensitivity.factors.BranchFlowPerInjectionIncrease;
-import com.powsybl.sensitivity.factors.BranchFlowPerLinearGlsk;
-import com.powsybl.sensitivity.factors.BranchFlowPerPSTAngle;
-import com.powsybl.sensitivity.factors.variables.LinearGlsk;
-import org.apache.commons.lang3.NotImplementedException;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.ObjDoubleConsumer;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Gaël Macherel <gael.macherel@artelys.com>
  */
-public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
+public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariableType, DcEquationType> {
 
-    static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-6;
-
-    protected static class LazyConnectivity {
-        private GraphDecrementalConnectivity<LfBus> connectivity = null;
-        private LfNetwork network;
-
-        public LazyConnectivity(LfNetwork lfNetwork) {
-            network = lfNetwork;
-        }
-
-        public GraphDecrementalConnectivity<LfBus> getConnectivity() {
-            if (connectivity != null) {
-                return connectivity;
-            }
-            connectivity = new NaiveGraphDecrementalConnectivity<>(LfBus::getNum); // FIXME: use EvenShiloach
-            for (LfBus bus : network.getBuses()) {
-                connectivity.addVertex(bus);
-            }
-            for (LfBranch branch : network.getBranches()) {
-                connectivity.addEdge(branch.getBus1(), branch.getBus2());
-            }
-            return connectivity;
-        }
-    }
-
-    static class LfSensitivityFactor {
-        // Wrap factors in specific class to have instant access to their branch, and their equation term
-        private final SensitivityFactor factor;
-
-        private final LfBranch functionLfBranch;
-
-        private final String functionLfBranchId;
-
-        private final ClosedBranchSide1DcFlowEquationTerm equationTerm;
-
-        private Double predefinedResult = null;
-
-        private Double functionReference;
-
-        public LfSensitivityFactor(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem) {
-            this.factor = factor;
-            if (factor instanceof BranchFlowPerInjectionIncrease) {
-                functionLfBranch = lfNetwork.getBranchById(((BranchFlowPerInjectionIncrease) factor).getFunction().getBranchId());
-            } else if (factor instanceof BranchFlowPerPSTAngle) {
-                functionLfBranch = lfNetwork.getBranchById(((BranchFlowPerPSTAngle) factor).getFunction().getBranchId());
-            } else if (factor instanceof BranchFlowPerLinearGlsk) {
-                functionLfBranch = lfNetwork.getBranchById(((BranchFlowPerLinearGlsk) factor).getFunction().getBranchId());
-            } else {
-                throw new UnsupportedOperationException("Only factors of type BranchFlow are supported");
-            }
-            functionLfBranchId = functionLfBranch.getId();
-            equationTerm = equationSystem.getEquationTerm(SubjectType.BRANCH, functionLfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-            functionReference = 0d;
-        }
-
-        public static LfSensitivityFactor create(SensitivityFactor factor, Network network, LfNetwork lfNetwork, EquationSystem equationSystem) {
-            if (factor instanceof BranchFlowPerInjectionIncrease) {
-                return new LfBranchFlowPerInjectionIncrease(factor, network, lfNetwork, equationSystem);
-            } else if (factor instanceof BranchFlowPerPSTAngle) {
-                return new LfBranchFlowPerPSTAngle(factor, lfNetwork, equationSystem);
-            }  else if (factor instanceof BranchFlowPerLinearGlsk) {
-                return new LfBranchFlowPerLinearGlsk(factor, network, lfNetwork, equationSystem);
-            } else {
-                throw new UnsupportedOperationException("Factor type '" + factor.getClass().getSimpleName() + "' not yet supported");
-            }
-        }
-
-        public SensitivityFactor getFactor() {
-            return factor;
-        }
-
-        public LfBranch getFunctionLfBranch() {
-            return functionLfBranch;
-        }
-
-        public String getFunctionLfBranchId() {
-            return functionLfBranchId;
-        }
-
-        public ClosedBranchSide1DcFlowEquationTerm getEquationTerm() {
-            return equationTerm;
-        }
-
-        public Double getPredefinedResult() {
-            return predefinedResult;
-        }
-
-        public void setPredefinedResult(Double predefinedResult) {
-            this.predefinedResult = predefinedResult;
-        }
-
-        public Double getFunctionReference() {
-            return functionReference;
-        }
-
-        public void setFunctionReference(Double functionReference) {
-            this.functionReference = functionReference;
-        }
-
-        public boolean areVariableAndFunctionDisconnected(GraphDecrementalConnectivity<LfBus> connectivity) {
-            throw new NotImplementedException("areVariableAndFunctionDisconnected should have an override");
-        }
-
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            throw new NotImplementedException("isConnectedToComponent should have an override");
-        }
-    }
-
-    static class LfBranchFlowPerInjectionIncrease extends LfSensitivityFactor {
-
-        private final LfBus injectionLfBus;
-
-        LfBranchFlowPerInjectionIncrease(SensitivityFactor factor, Network network, LfNetwork lfNetwork, EquationSystem equationSystem) {
-            super(factor, lfNetwork, equationSystem);
-            injectionLfBus = DcSensitivityAnalysis.getInjectionLfBus(network, lfNetwork, (BranchFlowPerInjectionIncrease) factor);
-        }
-
-        @Override
-        public boolean areVariableAndFunctionDisconnected(final GraphDecrementalConnectivity<LfBus> connectivity) {
-            return connectivity.getComponentNumber(injectionLfBus) != connectivity.getComponentNumber(getFunctionLfBranch().getBus1())
-                    || connectivity.getComponentNumber(injectionLfBus) != connectivity.getComponentNumber(getFunctionLfBranch().getBus2());
-        }
-
-        @Override
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            return connectivity.getComponentNumber(injectionLfBus) == componentNumber;
-        }
-
-        public LfBus getInjectionLfBus() {
-            return injectionLfBus;
-        }
-    }
-
-    static class LfBranchFlowPerPSTAngle extends LfSensitivityFactor {
-
-        private final LfBranch phaseTapChangerLfBranch;
-
-        LfBranchFlowPerPSTAngle(SensitivityFactor factor, LfNetwork lfNetwork, EquationSystem equationSystem) {
-            super(factor, lfNetwork, equationSystem);
-            phaseTapChangerLfBranch = getPhaseTapChangerLfBranch(lfNetwork, (BranchFlowPerPSTAngle) factor);
-        }
-
-        @Override
-        public boolean areVariableAndFunctionDisconnected(final GraphDecrementalConnectivity<LfBus> connectivity) {
-            return connectivity.getComponentNumber(phaseTapChangerLfBranch.getBus1()) != connectivity.getComponentNumber(getFunctionLfBranch().getBus1())
-                    || connectivity.getComponentNumber(phaseTapChangerLfBranch.getBus1()) != connectivity.getComponentNumber(getFunctionLfBranch().getBus2());
-        }
-
-        @Override
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            return componentNumber == connectivity.getComponentNumber(phaseTapChangerLfBranch.getBus1());
-        }
-
-    }
-
-    static class LfBranchFlowPerLinearGlsk extends LfSensitivityFactor {
-
-        private final Map<LfBus, Double> injectionBuses;
-
-        LfBranchFlowPerLinearGlsk(SensitivityFactor factor, Network network, LfNetwork lfNetwork, EquationSystem equationSystem) {
-            super(factor, lfNetwork, equationSystem);
-            injectionBuses = ((LinearGlsk) factor.getVariable()).getGLSKs()
-                                                                .entrySet()
-                                                                .stream()
-                                                                .collect(Collectors.toMap(
-                                                                    entry -> DcSensitivityAnalysis.getInjectionLfBus(network, lfNetwork, entry.getKey()),
-                                                                    entry -> entry.getValue().doubleValue(),
-                                                                    Double::sum
-                                                                ));
-        }
-
-        @Override
-        public boolean areVariableAndFunctionDisconnected(final GraphDecrementalConnectivity<LfBus> connectivity) {
-            for (LfBus lfBus : injectionBuses.keySet()) {
-                if (connectivity.getComponentNumber(lfBus) == connectivity.getComponentNumber(getFunctionLfBranch().getBus1())
-                    && connectivity.getComponentNumber(lfBus) == connectivity.getComponentNumber(getFunctionLfBranch().getBus2())) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public boolean isConnectedToComponent(Integer componentNumber, GraphDecrementalConnectivity<LfBus> connectivity) {
-            if (connectivity.getComponentNumber(getFunctionLfBranch().getBus1()) != componentNumber
-                || connectivity.getComponentNumber(getFunctionLfBranch().getBus2()) != componentNumber) {
-                return false;
-            }
-            for (LfBus lfBus : injectionBuses.keySet()) {
-                if (connectivity.getComponentNumber(lfBus) == componentNumber) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public Map<LfBus, Double> getInjectionBuses() {
-            return injectionBuses;
-        }
-    }
-
-    static class SensitivityFactorGroup {
-
-        private final String id;
-
-        private final List<LfSensitivityFactor> factors = new ArrayList<>();
-
-        private int index = -1;
-
-        SensitivityFactorGroup(String id) {
-            this.id = Objects.requireNonNull(id);
-        }
-
-        String getId() {
-            return id;
-        }
-
-        List<LfSensitivityFactor> getFactors() {
-            return factors;
-        }
-
-        int getIndex() {
-            return index;
-        }
-
-        void setIndex(int index) {
-            this.index = index;
-        }
-
-        void addFactor(LfSensitivityFactor factor) {
-            factors.add(factor);
-        }
-
-        void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
-            throw new NotImplementedException("fillRhs method must be implemented in subclasses");
-        }
-    }
-
-    static class PhaseTapChangerFactorGroup extends SensitivityFactorGroup {
-
-        PhaseTapChangerFactorGroup(final String id) {
-            super(id);
-        }
-
-        @Override
-        void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
-            LfBranch lfBranch = lfNetwork.getBranchById(getId());
-            Equation a1 = equationSystem.getEquation(lfBranch.getNum(), EquationType.BRANCH_ALPHA1).orElseThrow(IllegalStateException::new);
-            rhs.set(a1.getColumn(), getIndex(), Math.toRadians(1d));
-        }
-    }
-
-    static class InjectionFactorGroup extends SensitivityFactorGroup {
-
-        Map<String, Double> injectionByBus;
-
-        InjectionFactorGroup(final String id) {
-            super(id);
-        }
-
-        public void setInjectionByBus(final Map<String, Double> slackParticipationByBus) {
-            slackParticipationByBus.put(getId(), slackParticipationByBus.getOrDefault(getId(), 0d) + 1);
-            injectionByBus = slackParticipationByBus;
-        }
-
-        @Override
-        void fillRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Matrix rhs) {
-            for (Map.Entry<String, Double> injectionByBus : injectionByBus.entrySet()) {
-                LfBus lfBus = lfNetwork.getBusById(injectionByBus.getKey());
-                int column;
-                if (lfBus.isSlack()) {
-                    Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_PHI).orElseThrow(IllegalStateException::new);
-                    column = p.getColumn();
-                } else {
-                    Equation p = equationSystem.getEquation(lfBus.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                    column = p.getColumn();
-                }
-                rhs.set(column, getIndex(), injectionByBus.getValue() / PerUnit.SB);
-            }
-        }
-    }
-
-    static class LinearGlskGroup extends InjectionFactorGroup {
-        // This group makes sense because we are only computing sensitivities in the main connected component
-        // otherwise, we wouldn't be able to group different branches within the same group
-        private final Map<LfBus, Double> glskMap;
-        private Map<String, Double> glskMapInMainComponent;
-
-        LinearGlskGroup(String id, Map<LfBus, Double> glskMap) {
-            super(id);
-            this.glskMap = glskMap;
-            glskMapInMainComponent = glskMap.entrySet().stream().collect(Collectors.toMap(
-                entry -> entry.getKey().getId(),
-                Map.Entry::getValue
-            ));
-        }
-
-        @Override
-        public void setInjectionByBus(final Map<String, Double> participationToSlackByBus) {
-            Double glskWeightSum = glskMapInMainComponent.values().stream().mapToDouble(Math::abs).sum();
-            glskMapInMainComponent.forEach((busId, weight) -> participationToSlackByBus.merge(busId, weight / glskWeightSum, Double::sum));
-            injectionByBus = participationToSlackByBus;
-        }
-
-        public void setGlskMapInMainComponent(final Map<String, Double> glskMapInMainComponent) {
-            this.glskMapInMainComponent = glskMapInMainComponent;
-        }
-
-        public Map<LfBus, Double> getGlskMap() {
-            return glskMap;
-        }
-    }
+    static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
 
     static class ComputedContingencyElement {
 
         private int contingencyIndex = -1; // index of the element in the rhs for +1-1
         private int localIndex = -1; // local index of the element : index of the element in the matrix used in the setAlphas method
-        private double alpha = Double.NaN;
+        private double alphaForSensitivityValue = Double.NaN;
+        private double alphaForFunctionReference = Double.NaN;
         private final ContingencyElement element;
         private final LfBranch lfBranch;
         private final ClosedBranchSide1DcFlowEquationTerm branchEquation;
 
-        public ComputedContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem equationSystem) {
+        public ComputedContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
             this.element = element;
             lfBranch = lfNetwork.getBranchById(element.getId());
-            branchEquation = equationSystem.getEquationTerm(SubjectType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+            branchEquation = equationSystem.getEquationTerm(ElementType.BRANCH, lfBranch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
         }
 
         public int getContingencyIndex() {
@@ -395,12 +84,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             this.localIndex = index;
         }
 
-        public double getAlpha() {
-            return alpha;
+        public double getAlphaForSensitivityValue() {
+            return alphaForSensitivityValue;
         }
 
-        public void setAlpha(final double alpha) {
-            this.alpha = alpha;
+        public void setAlphaForSensitivityValue(final double alpha) {
+            this.alphaForSensitivityValue = alpha;
+        }
+
+        public double getAlphaForFunctionReference() {
+            return alphaForFunctionReference;
+        }
+
+        public void setAlphaForFunctionReference(final double alpha) {
+            this.alphaForFunctionReference = alpha;
         }
 
         public ContingencyElement getElement() {
@@ -431,238 +128,164 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
 
     }
 
-    public DcSensitivityAnalysis(MatrixFactory matrixFactory) {
-        super(matrixFactory);
-    }
+    static class PhaseTapChangerContingenciesIndexing {
 
-    protected void setFunctionReferenceOnFactors(List<LfNetwork> lfNetworks, List<LfSensitivityFactor> factors,
-                                                 LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
-        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfParametersExt.getSlackBusSelector(), matrixFactory,
-                true, lfParametersExt.isDcUseTransformerRatio(), lfParameters.isDistributedSlack(),  lfParameters.getBalanceType());
-        DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(lfNetworks, dcLoadFlowParameters).run();
-        for (LfSensitivityFactor factor : factors) {
-            factor.setFunctionReference(dcLoadFlowResult.getNetwork().getBranchById(factor.getFunctionLfBranchId()).getP1() * PerUnit.SB);
+        private Collection<PropagatedContingency> contingenciesWithoutTransformers;
+        private Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByPhaseTapChangers;
+
+        public PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+            this(contingencies, contingencyElementByBranch, Collections.emptySet());
         }
-    }
 
-    protected void fillRhsSensitivityVariable(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorGroups, Matrix rhs) {
-        for (SensitivityFactorGroup factorGroup : factorGroups) {
-            factorGroup.fillRhs(lfNetwork, equationSystem, rhs);
-        }
-    }
-
-    protected List<SensitivityFactorGroup> createFactorGroups(Network network, List<LfSensitivityFactor> factors) {
-        Map<String, SensitivityFactorGroup> groupIndexedById = new HashMap<>(factors.size());
-        // index factors by variable config
-        for (LfSensitivityFactor factor : factors) {
-            if (factor instanceof LfBranchFlowPerInjectionIncrease) {
-                LfBus lfBus = ((LfBranchFlowPerInjectionIncrease) factor).getInjectionLfBus();
-                // skip disconnected injections
-                if (lfBus != null) {
-                    groupIndexedById.computeIfAbsent(lfBus.getId(), id -> new InjectionFactorGroup(lfBus.getId())).addFactor(factor);
+        public PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies, Map<String,
+                ComputedContingencyElement> contingencyElementByBranch, Collection<String> elementIdsToSkip) {
+            contingenciesIndexedByPhaseTapChangers = new LinkedHashMap<>();
+            contingenciesWithoutTransformers = new ArrayList<>();
+            for (PropagatedContingency contingency : contingencies) {
+                Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().stream()
+                        .filter(element -> !elementIdsToSkip.contains(element))
+                        .map(contingencyElementByBranch::get)
+                        .map(ComputedContingencyElement::getLfBranch)
+                        .filter(LfBranch::hasPhaseControlCapability)
+                        .collect(Collectors.toSet());
+                if (lostTransformers.isEmpty()) {
+                    contingenciesWithoutTransformers.add(contingency);
+                } else {
+                    contingenciesIndexedByPhaseTapChangers.computeIfAbsent(lostTransformers, key -> new ArrayList<>()).add(contingency);
                 }
-            } else if (factor instanceof LfBranchFlowPerPSTAngle) {
-                BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor.getFactor();
-                String phaseTapChangerHolderId = pstAngleFactor.getVariable().getPhaseTapChangerHolderId();
-                TwoWindingsTransformer twt = network.getTwoWindingsTransformer(phaseTapChangerHolderId);
-                if (twt == null) {
-                    throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found");
-                }
-                groupIndexedById.computeIfAbsent(phaseTapChangerHolderId, k -> new PhaseTapChangerFactorGroup(phaseTapChangerHolderId)).addFactor(factor);
-            } else if (factor instanceof LfBranchFlowPerLinearGlsk) {
-                LfBranchFlowPerLinearGlsk lfFactor = (LfBranchFlowPerLinearGlsk) factor;
-                LinearGlsk glsk = (LinearGlsk) factor.getFactor().getVariable();
-                String glskId = glsk.getId();
-                groupIndexedById.computeIfAbsent(glskId, id -> new LinearGlskGroup(glskId, lfFactor.getInjectionBuses())).addFactor(factor);
-            } else {
-                throw new UnsupportedOperationException("Factor type '" + factor.getFactor().getClass().getSimpleName() + "' not yet supported");
             }
         }
 
-        // assign an index to each factor group
-        int index = 0;
-        for (SensitivityFactorGroup factorGroup : groupIndexedById.values()) {
-            factorGroup.setIndex(index++);
+        public Collection<PropagatedContingency> getContingenciesWithoutPhaseTapChangerLoss() {
+            return contingenciesWithoutTransformers;
         }
 
-        return new ArrayList<>(groupIndexedById.values());
-    }
-
-    protected void computeInjectionFactors(Function<String, Map<String, Double>> getSlackParticipationByBus, List<SensitivityFactorGroup> factorGroups) {
-        // compute the corresponding injection (including participation) for each factor
-        for (SensitivityFactorGroup factorGroup : factorGroups) {
-            if (factorGroup instanceof InjectionFactorGroup) {
-                InjectionFactorGroup injectionGroup = (InjectionFactorGroup) factorGroup;
-                Map<String, Double> participationFactorByBus = getSlackParticipationByBus.apply(factorGroup.getId());
-                if (participationFactorByBus == null) {
-                    factorGroup.getFactors().forEach(factor -> factor.setPredefinedResult(Double.NaN));
-                    participationFactorByBus = new HashMap<>();
-                }
-
-                Map<String, Double> slackParticipationByBus = new HashMap<>(participationFactorByBus);
-                injectionGroup.setInjectionByBus(slackParticipationByBus);
-            }
+        public Map<Set<LfBranch>, Collection<PropagatedContingency>> getContingenciesIndexedByPhaseTapChangers() {
+            return contingenciesIndexedByPhaseTapChangers;
         }
     }
 
-    protected void rescaleGlsk(List<SensitivityFactorGroup> factorGroups, GraphDecrementalConnectivity<LfBus> connectivity, Integer mainComponentNumber) {
-        // compute the corresponding injection (with participation) for each factor
-        for (SensitivityFactorGroup factorGroup : factorGroups) {
-            if (!(factorGroup instanceof LinearGlskGroup)) {
-                continue;
-            }
-            LinearGlskGroup glskGroup = (LinearGlskGroup) factorGroup;
-            Map<String, Double> remainingGlskInjections = glskGroup.getGlskMap().entrySet().stream().filter(entry -> connectivity.getComponentNumber(entry.getKey()) == mainComponentNumber)
-                     .collect(Collectors.toMap(
-                         entry -> entry.getKey().getId(),
-                         Map.Entry::getValue
-                     ));
-            glskGroup.setGlskMapInMainComponent(remainingGlskInjections);
+    public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+        super(matrixFactory, connectivityFactory);
+    }
+
+    protected DenseMatrix setReferenceActivePowerFlows(LfNetwork network, DcLoadFlowParameters parameters,
+                                                       EquationSystem<DcVariableType, DcEquationType> equationSystem, JacobianMatrix<DcVariableType, DcEquationType> j,
+                                                       List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, List<ParticipatingElement> participatingElements,
+                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
+                                                       Reporter reporter) {
+
+        List<BusState> busStates = Collections.emptyList();
+        if (parameters.isDistributedSlack()) {
+            busStates = ElementState.save(participatingElements.stream()
+                .map(ParticipatingElement::getLfBus)
+                .collect(Collectors.toSet()), BusState::save);
         }
-    }
+        // the A1 variables will be set to 0 for disabledBranches, so we need to restore them at the end
+        List<BranchState> branchStates = ElementState.save(disabledBranches, BranchState::save);
 
-    protected void computeInjectionFactors(Map<String, Double> participationMap, List<SensitivityFactorGroup> factorGroups) {
-        computeInjectionFactors(x -> participationMap, factorGroups);
-    }
+        double[] dx = DcLoadFlowEngine.run(network, parameters, equationSystem, j, disabledBuses, disabledBranches, reporter).getRight();
 
-    protected LfBus getParticipatingElementLfBus(ParticipatingElement participatingElement) {
-        if (participatingElement.getElement() instanceof LfGenerator) {
-            return ((LfGenerator) participatingElement.getElement()).getBus();
-        } else if (participatingElement.getElement() instanceof LfBus) {
-            return (LfBus) participatingElement.getElement();
-        } else {
-            throw new UnsupportedOperationException("Unsupported participating element");
-        }
-    }
-
-    protected List<ParticipatingElement> getParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters loadFlowParameters) {
-        ActivePowerDistribution.Step step;
-        List<ParticipatingElement> participatingElements;
-
-        switch (loadFlowParameters.getBalanceType()) {
-            case PROPORTIONAL_TO_GENERATION_P_MAX:
-                step = new GenerationActionPowerDistributionStep();
-                break;
-            case PROPORTIONAL_TO_LOAD:
-                step = new LoadActivePowerDistributionStep(false, false);
-                break;
-            default:
-                throw new UnsupportedOperationException("Balance type not yet supported: " + loadFlowParameters.getBalanceType());
+        for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
+            factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
         }
 
-        participatingElements = step.getParticipatingElements(lfNetwork);
-        ParticipatingElement.normalizeParticipationFactors(participatingElements, "bus");
-        return participatingElements;
-    }
-
-    public void checkSensitivities(Network network, LfNetwork lfNetwork, List<SensitivityFactor> factors) {
-        for (SensitivityFactor<?, ?> factor : factors) {
-            LfBranch monitoredBranch;
-            if (factor instanceof  BranchFlowPerInjectionIncrease) {
-                BranchFlowPerInjectionIncrease injectionFactor = (BranchFlowPerInjectionIncrease) factor;
-                Injection<?> injection = getInjection(network, injectionFactor.getVariable().getInjectionId());
-                if (injection == null) {
-                    throw new PowsyblException("Injection " + injectionFactor.getVariable().getInjectionId() + " not found in the network");
-                }
-                if (lfNetwork.getBranchById(factor.getFunction().getId()) == null) {
-                    throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
-                }
-                monitoredBranch = lfNetwork.getBranchById(injectionFactor.getFunction().getBranchId());
-            } else if (factor instanceof BranchFlowPerPSTAngle) {
-                BranchFlowPerPSTAngle pstAngleFactor = (BranchFlowPerPSTAngle) factor;
-                String phaseTapChangerHolderId = pstAngleFactor.getVariable().getPhaseTapChangerHolderId();
-                TwoWindingsTransformer twt = network.getTwoWindingsTransformer(phaseTapChangerHolderId);
-                if (twt == null) {
-                    throw new PowsyblException("Phase shifter '" + phaseTapChangerHolderId + "' not found in the network");
-                }
-                if (lfNetwork.getBranchById(factor.getFunction().getId()) == null) {
-                    throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
-                }
-                monitoredBranch = lfNetwork.getBranchById(pstAngleFactor.getFunction().getBranchId());
-            } else if (factor instanceof BranchFlowPerLinearGlsk) {
-                BranchFlowPerLinearGlsk glskFactor = (BranchFlowPerLinearGlsk) factor;
-                if (glskFactor.getVariable().getGLSKs().isEmpty()) {
-                    throw new PowsyblException("The glsk '" + factor.getVariable().getId() + "' cannot be empty");
-                }
-                for (Map.Entry<String, Float> injectionEntry : glskFactor.getVariable().getGLSKs().entrySet()) {
-                    Injection<?> injection = getInjection(network, injectionEntry.getKey());
-                    if (injection == null) {
-                        throw new PowsyblException("Injection " + injectionEntry.getKey() + " not found in the network");
-                    }
-                }
-                if (lfNetwork.getBranchById(factor.getFunction().getId()) == null) {
-                    throw new PowsyblException("Branch '" + factor.getFunction().getId() + "' not found");
-                }
-                monitoredBranch = lfNetwork.getBranchById(glskFactor.getFunction().getBranchId());
-            } else {
-                throw new PowsyblException("Only sensitivity factors of type BranchFlowPerInjectionIncrease and BranchFlowPerPSTAngle are yet supported");
-            }
-            if (monitoredBranch == null) {
-                throw new PowsyblException("Monitored branch " + factor.getFunction().getId() + " not found in the network");
-            }
+        if (parameters.isDistributedSlack()) {
+            ElementState.restore(busStates);
         }
+        ElementState.restore(branchStates);
+
+        return new DenseMatrix(dx.length, 1, dx);
     }
 
-    public void checkContingencies(LfNetwork lfNetwork, List<Contingency> contingencies) {
-        for (Contingency contingency : contingencies) {
-            for (ContingencyElement contingencyElement : contingency.getElements()) {
-                if (!contingencyElement.getType().equals(ContingencyElementType.BRANCH)) {
-                    throw new UnsupportedOperationException("Only contingencies on a branch are yet supported");
-                }
-                LfBranch lfBranch = lfNetwork.getBranchById(contingencyElement.getId());
-                if (lfBranch == null) {
-                    throw new PowsyblException("The contingency on the branch " + contingencyElement.getId() + " not found in the network");
-                }
-            }
+    private void createBranchSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, DenseMatrix contingenciesStates,
+                                              Collection<ComputedContingencyElement> contingencyElements,
+                                              PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
+        boolean predefSensiValue = factor.getSensitivityValuePredefinedResult() != null;
+        boolean predefFlowValue = factor.getFunctionPredefinedResult() != null;
+        EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
+        String functionBranchId = factor.getFunctionElement().getId();
+        double sensiValue = predefSensiValue ? factor.getSensitivityValuePredefinedResult() : factor.getBaseSensitivityValue();
+        double flowValue = predefFlowValue ? factor.getFunctionPredefinedResult() : factor.getFunctionReference();
+
+        if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
+            sensiValue = 0d;
+            predefSensiValue = true;
         }
-    }
 
-    private SensitivityValue createBranchSensitivityValue(LfSensitivityFactor factor, SensitivityFactorGroup factorGroup,
-                                                          DenseMatrix factorStates, DenseMatrix contingenciesStates,
-                                                          List<ComputedContingencyElement> contingencyElements) {
-        double value;
-        ClosedBranchSide1DcFlowEquationTerm p1 = factor.getEquationTerm();
-        if (factor.getPredefinedResult() != null) {
-            value = factor.getPredefinedResult();
-        } else {
-            value = p1.calculate(factorStates, factorGroup.getIndex());
+        if (contingency != null && contingency.getBranchIdsToOpen().stream().anyMatch(id -> id.equals(functionBranchId))) {
+            // the monitored branch is in contingency, sensitivity equals 0 and post-contingency flow equals NaN in any case.
+            flowValue = Double.NaN;
+            sensiValue = 0d;
+            predefFlowValue = true;
+            predefSensiValue = true;
+        }
+
+        boolean zeroSensiValue = false;
+        if (!(predefFlowValue && predefSensiValue)) {
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                if (contingencyElement.getElement().getId().equals(factor.getFunctionLfBranchId())
-                        || contingencyElement.getElement().getId().equals(factor.getFactor().getVariable().getId())) {
-                    // the sensitivity on a removed branch is 0, the sensitivity if the variable was a removed branch is 0
-                    value = 0d;
-                    break;
+                double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
+                if (!predefFlowValue) {
+                    flowValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
                 }
-                value = value + contingencyElement.getAlpha() * p1.calculate(contingenciesStates, contingencyElement.getContingencyIndex());
+                if (!predefSensiValue) {
+                    sensiValue += contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
+                }
+                if (contingencyElement.getElement().getId().equals(factor.getVariableId())) {
+                    // the equipment responsible for the variable is indeed in contingency, the sensitivity value equals zero.
+                    // No assumption about the reference flow on the monitored branch.
+                    zeroSensiValue = true;
+                }
             }
         }
-        return new SensitivityValue(factor.getFactor(), value * PerUnit.SB, factor.getFunctionReference(), 0);
+
+        valueWriter.write(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, unscaleSensitivity(factor, zeroSensiValue ? 0d : sensiValue), unscaleFunction(factor, flowValue));
     }
 
-    protected List<SensitivityValue> calculateSensitivityValues(List<SensitivityFactorGroup> factorGroups, DenseMatrix factorStates,
-                                                                DenseMatrix contingenciesStates, List<ComputedContingencyElement> contingencyElements) {
-        List<SensitivityValue> sensitivityValuesContingencies = new ArrayList<>(factorGroups.stream().mapToInt(group -> group.getFactors().size()).sum());
-        for (SensitivityFactorGroup factorGroup : factorGroups) {
-            setAlphas(contingencyElements, factorGroup, factorStates, contingenciesStates);
-            for (LfSensitivityFactor factor : factorGroup.getFactors()) {
-                sensitivityValuesContingencies.add(createBranchSensitivityValue(factor, factorGroup, factorStates, contingenciesStates, contingencyElements));
+    protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups, DenseMatrix factorsState) {
+        for (SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup : factorGroups) {
+            for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factorGroup.getFactors()) {
+                factor.setBaseCaseSensitivityValue(factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex()));
             }
         }
-        return sensitivityValuesContingencies;
     }
 
-    private void setAlphas(List<ComputedContingencyElement> contingencyElements, SensitivityFactorGroup sensitivityFactorGroup,
-                           DenseMatrix factorStates, DenseMatrix contingencyStates) {
+    protected void calculateSensitivityValues(List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors, DenseMatrix factorStates,
+                                              DenseMatrix contingenciesStates, DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements,
+                                              PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
+        if (lfFactors.isEmpty()) {
+            return;
+        }
+
+        setAlphas(contingencyElements, flowStates, contingenciesStates, 0, ComputedContingencyElement::setAlphaForFunctionReference);
+
+        lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
+                .forEach(factor -> createBranchSensitivityValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter));
+
+        Map<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> factorsByGroup = lfFactors.stream()
+                .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
+                .collect(Collectors.groupingBy(LfSensitivityFactor::getGroup, LinkedHashMap::new, Collectors.toList()));
+        for (Map.Entry<SensitivityFactorGroup<DcVariableType, DcEquationType>, List<LfSensitivityFactor<DcVariableType, DcEquationType>>> e : factorsByGroup.entrySet()) {
+            SensitivityFactorGroup<DcVariableType, DcEquationType> factorGroup = e.getKey();
+            List<LfSensitivityFactor<DcVariableType, DcEquationType>> factorsForThisGroup = e.getValue();
+            setAlphas(contingencyElements, factorStates, contingenciesStates, factorGroup.getIndex(), ComputedContingencyElement::setAlphaForSensitivityValue);
+            for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factorsForThisGroup) {
+                createBranchSensitivityValue(factor, contingenciesStates, contingencyElements, contingency, valueWriter);
+            }
+        }
+    }
+
+    private void setAlphas(Collection<ComputedContingencyElement> contingencyElements, DenseMatrix states,
+                           DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
         if (contingencyElements.size() == 1) {
-            ComputedContingencyElement element = contingencyElements.get(0);
+            ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
             // we solve a*alpha = b
-            double a = lfBranch.getPiModel().getX() / PerUnit.SB - (contingencyStates.get(p1.getVariables().get(0).getRow(), element.getContingencyIndex())
-                    - contingencyStates.get(p1.getVariables().get(1).getRow(), element.getContingencyIndex()));
-            double b = factorStates.get(p1.getVariables().get(0).getRow(), sensitivityFactorGroup.getIndex())
-                    - factorStates.get(p1.getVariables().get(1).getRow(), sensitivityFactorGroup.getIndex());
-            element.setAlpha(b / a);
+            double a = lfBranch.getPiModel().getX() - (contingenciesStates.get(p1.getVariables().get(0).getRow(), element.getContingencyIndex())
+                    - contingenciesStates.get(p1.getVariables().get(1).getRow(), element.getContingencyIndex()));
+            double b = states.get(p1.getVariables().get(0).getRow(), columnState) - states.get(p1.getVariables().get(1).getRow(), columnState);
+            setValue.accept(element, b / a);
         } else {
             // FIXME: direct resolution if contingencyElements.size() == 2
             ComputedContingencyElement.setLocalIndexes(contingencyElements);
@@ -671,46 +294,46 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             for (ComputedContingencyElement element : contingencyElements) {
                 LfBranch lfBranch = element.getLfBranch();
                 ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
-                rhs.set(element.getLocalIndex(), 0, factorStates.get(p1.getVariables().get(0).getRow(), sensitivityFactorGroup.getIndex())
-                        - factorStates.get(p1.getVariables().get(1).getRow(), sensitivityFactorGroup.getIndex())
+                rhs.set(element.getLocalIndex(), 0, states.get(p1.getVariables().get(0).getRow(), columnState)
+                        - states.get(p1.getVariables().get(1).getRow(), columnState)
                 );
                 for (ComputedContingencyElement element2 : contingencyElements) {
                     double value = 0d;
                     if (element.equals(element2)) {
-                        value = lfBranch.getPiModel().getX() / PerUnit.SB;
+                        value = lfBranch.getPiModel().getX();
                     }
-                    value = value - (contingencyStates.get(p1.getVariables().get(0).getRow(), element2.getContingencyIndex())
-                            - contingencyStates.get(p1.getVariables().get(1).getRow(), element2.getContingencyIndex()));
+                    value = value - (contingenciesStates.get(p1.getVariables().get(0).getRow(), element2.getContingencyIndex())
+                            - contingenciesStates.get(p1.getVariables().get(1).getRow(), element2.getContingencyIndex()));
                     matrix.set(element.getLocalIndex(), element2.getLocalIndex(), value);
                 }
             }
             LUDecomposition lu = matrix.decomposeLU();
             lu.solve(rhs); // rhs now contains state matrix
-            contingencyElements.forEach(element -> element.setAlpha(rhs.get(element.getLocalIndex(), 0)));
+            contingencyElements.forEach(element -> setValue.accept(element, rhs.get(element.getLocalIndex(), 0)));
         }
     }
 
-    private Set<ComputedContingencyElement> getGroupOfElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix contingencyStates,
-                                                                                         List<ComputedContingencyElement> contingencyElements,
-                                                                                         EquationSystem equationSystem) {
+    private Set<ComputedContingencyElement> getGroupOfElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix contingenciesStates,
+                                                                                   Collection<ComputedContingencyElement> contingencyElements,
+                                                                                   EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         // use a sensitivity-criterion to detect the loss of connectivity after a contingency
         // we consider a +1 -1 on a line, and we observe the sensitivity of these injections on the other contingency elements
         // if the sum of the sensitivities (in absolute value) is 1, it means that all the flow is going through the lines with a non-zero sensitivity
         // thus, losing these lines will lose the connectivity
-        Set<ComputedContingencyElement> groupOfElementsBreakingConnectivity = new HashSet<>();
+        Set<ComputedContingencyElement> groupOfElementsBreakingConnectivity = new LinkedHashSet<>();
         for (ComputedContingencyElement element : contingencyElements) {
-            Set<ComputedContingencyElement> responsibleElements = new HashSet<>();
+            Set<ComputedContingencyElement> responsibleElements = new LinkedHashSet<>();
             double sum = 0d;
             for (ComputedContingencyElement element2 : contingencyElements) {
                 LfBranch branch = lfNetwork.getBranchById(element2.getElement().getId());
-                ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(SubjectType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                double value = Math.abs(p.calculate(contingencyStates, element.getContingencyIndex()));
+                ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(ElementType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
+                double value = Math.abs(p.calculateSensi(contingenciesStates, element.getContingencyIndex()));
                 if (value > CONNECTIVITY_LOSS_THRESHOLD) {
                     responsibleElements.add(element2);
                 }
                 sum += value;
             }
-            if (sum * PerUnit.SB > 1d - CONNECTIVITY_LOSS_THRESHOLD) {
+            if (sum > 1d - CONNECTIVITY_LOSS_THRESHOLD) {
                 // all lines that have a non-0 sensitivity associated to "element" breaks the connectivity
                 groupOfElementsBreakingConnectivity.addAll(responsibleElements);
             }
@@ -718,9 +341,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         return groupOfElementsBreakingConnectivity;
     }
 
-    protected void fillRhsContingency(final LfNetwork lfNetwork, final EquationSystem equationSystem,
-                                      final Map<String, ComputedContingencyElement> contingencyElements, final Matrix rhs) {
-        for (ComputedContingencyElement element : contingencyElements.values()) {
+    protected void fillRhsContingency(final LfNetwork lfNetwork, final EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                      final Collection<ComputedContingencyElement> contingencyElements, final Matrix rhs) {
+        for (ComputedContingencyElement element : contingencyElements) {
             LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
             if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
                 continue;
@@ -728,38 +351,33 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
             LfBus bus1 = lfBranch.getBus1();
             LfBus bus2 = lfBranch.getBus2();
             if (bus1.isSlack()) {
-                Equation p = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), -1 / PerUnit.SB);
+                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                rhs.set(p.getColumn(), element.getContingencyIndex(), -1);
             } else if (bus2.isSlack()) {
-                Equation p = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p.getColumn(), element.getContingencyIndex(), 1 / PerUnit.SB);
+                Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                rhs.set(p.getColumn(), element.getContingencyIndex(), 1);
             } else {
-                Equation p1 = equationSystem.getEquation(bus1.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                Equation p2 = equationSystem.getEquation(bus2.getNum(), EquationType.BUS_P).orElseThrow(IllegalStateException::new);
-                rhs.set(p1.getColumn(), element.getContingencyIndex(), 1 / PerUnit.SB);
-                rhs.set(p2.getColumn(), element.getContingencyIndex(), -1 / PerUnit.SB);
+                Equation<DcVariableType, DcEquationType> p1 = equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                Equation<DcVariableType, DcEquationType> p2 = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
+                rhs.set(p1.getColumn(), element.getContingencyIndex(), 1);
+                rhs.set(p2.getColumn(), element.getContingencyIndex(), -1);
             }
         }
     }
 
-    protected DenseMatrix initFactorsRhs(LfNetwork lfNetwork, EquationSystem equationSystem, List<SensitivityFactorGroup> factorsGroups) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), factorsGroups.size());
-        fillRhsSensitivityVariable(lfNetwork, equationSystem, factorsGroups, rhs);
-        return rhs;
-    }
-
-    protected DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem equationSystem, Map<String, ComputedContingencyElement> contingencyElements) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getSortedEquationsToSolve().size(), contingencyElements.size());
+    protected DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
+        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), contingencyElements.size());
         fillRhsContingency(lfNetwork, equationSystem, contingencyElements, rhs);
         return rhs;
     }
 
-    private void detectConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<Contingency> contingencies, Map<String, ComputedContingencyElement> contingenciesElements,
-                                        EquationSystem equationSystem, Collection<Contingency> nonLosingConnectivityContingencies,
-                                        Map<Set<ComputedContingencyElement>, List<Contingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
-        for (Contingency contingency : contingencies) {
+    private void detectPotentialConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
+                                                 Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                 EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<PropagatedContingency> nonLosingConnectivityContingencies,
+                                                 Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
+        for (PropagatedContingency contingency : contingencies) {
             Set<ComputedContingencyElement> groupOfElementsBreakingConnectivity = getGroupOfElementsBreakingConnectivity(lfNetwork, states,
-                    contingency.getElements().stream().map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList()), equationSystem);
+                    contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList()), equationSystem);
             if (groupOfElementsBreakingConnectivity.isEmpty()) { // connectivity not broken
                 nonLosingConnectivityContingencies.add(contingency);
             } else {
@@ -768,202 +386,502 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis {
         }
     }
 
-    private Set<String> getElementsToReconnect(GraphDecrementalConnectivity<LfBus> connectivity, Set<ComputedContingencyElement> breakingConnectivityCandidates) {
-        Set<String> elementsToReconnect = new HashSet<>();
+    static class ConnectivityAnalysisResult {
 
-        Map<Pair<Integer, Integer>, ComputedContingencyElement> elementByConnectedComponents = new HashMap<>();
-        for (ComputedContingencyElement element : breakingConnectivityCandidates) {
-            int bus1Cc = connectivity.getComponentNumber(element.getLfBranch().getBus1());
-            int bus2Cc = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsSensi;
 
-            Pair<Integer, Integer> pairOfCc = bus1Cc > bus2Cc ? Pair.of(bus2Cc, bus1Cc) : Pair.of(bus1Cc, bus2Cc);
-            // we only need to reconnect one line to restore connectivity
-            elementByConnectedComponents.put(pairOfCc, element);
-        }
+        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsRef;
 
-        Map<Integer, Set<Integer>> connections = new HashMap<>();
-        for (int i = 0; i < connectivity.getSmallComponents().size() + 1; i++) {
-            connections.put(i, Collections.singleton(i));
-        }
+        private final Collection<PropagatedContingency> contingencies = new HashSet<>();
 
-        for (Map.Entry<Pair<Integer, Integer>, ComputedContingencyElement> elementsByCc : elementByConnectedComponents.entrySet()) {
-            Integer cc1 = elementsByCc.getKey().getKey();
-            Integer cc2 = elementsByCc.getKey().getValue();
-            if (connections.get(cc1).contains(cc2)) {
-                // cc are already connected
-                continue;
+        private final Set<String> elementsToReconnect;
+
+        private final Set<LfBus> disabledBuses;
+
+        private final Set<LfBus> slackConnectedComponent;
+
+        ConnectivityAnalysisResult(Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, Set<ComputedContingencyElement> elementsBreakingConnectivity,
+                                   GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, LfNetwork lfNetwork) {
+            elementsToReconnect = computeElementsToReconnect(connectivity, elementsBreakingConnectivity);
+            disabledBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
+            slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
+            slackConnectedComponent.removeAll(disabledBuses);
+            predefinedResultsSensi = new HashMap<>();
+            predefinedResultsRef = new HashMap<>();
+            for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
+                if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
+                    // after a contingency, we check if the factor function and the variable are in different connected components
+                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(slackConnectedComponent);
+                    boolean functionConnected = factor.isFunctionConnectedToSlackComponent(slackConnectedComponent);
+                    if (!variableConnected && functionConnected) {
+                        // VALID_ONLY_FOR_FUNCTION status
+                        predefinedResultsSensi.put(factor, 0d);
+                    }
+                    if (!variableConnected && !functionConnected) {
+                        // SKIP status
+                        predefinedResultsSensi.put(factor, Double.NaN);
+                        predefinedResultsRef.put(factor, Double.NaN);
+                    }
+                    if (variableConnected && !functionConnected) {
+                        // ZERO status
+                        predefinedResultsSensi.put(factor, 0d);
+                        predefinedResultsRef.put(factor, Double.NaN);
+                    }
+                } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
+                    // Sensitivity equals 0 for VALID_REFERENCE factors
+                    predefinedResultsSensi.put(factor, 0d);
+                    if (!factor.isFunctionConnectedToSlackComponent(slackConnectedComponent)) {
+                        // The reference is not in the main componant of the post contingency network.
+                        // Therefore, its value cannot be computed.
+                        predefinedResultsRef.put(factor, Double.NaN);
+                    }
+                } else {
+                    throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
+                }
             }
-            elementsToReconnect.add(elementsByCc.getValue().getElement().getId());
-            Set<Integer> newCc = new HashSet<>();
-            newCc.addAll(connections.get(cc1));
-            newCc.addAll(connections.get(cc2));
-            newCc.forEach(integer -> connections.put(integer, newCc));
         }
 
-        return elementsToReconnect;
+        void setSensitivityValuePredefinedResults() {
+            predefinedResultsSensi.forEach(LfSensitivityFactor::setSensitivityValuePredefinedResult);
+        }
+
+        void setFunctionPredefinedResults() {
+            predefinedResultsRef.forEach(LfSensitivityFactor::setFunctionPredefinedResult);
+        }
+
+        public Collection<PropagatedContingency> getContingencies() {
+            return contingencies;
+        }
+
+        public Set<String> getElementsToReconnect() {
+            return elementsToReconnect;
+        }
+
+        public Set<LfBus> getDisabledBuses() {
+            return disabledBuses;
+        }
+
+        public Set<LfBus> getSlackConnectedComponent() {
+            return slackConnectedComponent;
+        }
+
+        private static Set<String> computeElementsToReconnect(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, Set<ComputedContingencyElement> breakingConnectivityCandidates) {
+            Set<String> elementsToReconnect = new LinkedHashSet<>();
+
+            Map<Pair<Integer, Integer>, ComputedContingencyElement> elementByConnectedComponents = new LinkedHashMap<>();
+            for (ComputedContingencyElement element : breakingConnectivityCandidates) {
+                int bus1Cc = connectivity.getComponentNumber(element.getLfBranch().getBus1());
+                int bus2Cc = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+
+                Pair<Integer, Integer> pairOfCc = bus1Cc > bus2Cc ? Pair.of(bus2Cc, bus1Cc) : Pair.of(bus1Cc, bus2Cc);
+                // we only need to reconnect one line to restore connectivity
+                elementByConnectedComponents.put(pairOfCc, element);
+            }
+
+            Map<Integer, Set<Integer>> connections = new HashMap<>();
+            for (int i = 0; i < connectivity.getSmallComponents().size() + 1; i++) {
+                connections.put(i, Collections.singleton(i));
+            }
+
+            for (Map.Entry<Pair<Integer, Integer>, ComputedContingencyElement> elementsByCc : elementByConnectedComponents.entrySet()) {
+                Integer cc1 = elementsByCc.getKey().getKey();
+                Integer cc2 = elementsByCc.getKey().getValue();
+                if (connections.get(cc1).contains(cc2)) {
+                    // cc are already connected
+                    continue;
+                }
+                elementsToReconnect.add(elementsByCc.getValue().getElement().getId());
+                Set<Integer> newCc = new HashSet<>();
+                newCc.addAll(connections.get(cc1));
+                newCc.addAll(connections.get(cc2));
+                newCc.forEach(integer -> connections.put(integer, newCc));
+            }
+
+            return elementsToReconnect;
+        }
     }
 
-    public void cutConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, Collection<ComputedContingencyElement> elementsPotentiallyBreakingConnectivity) {
-        elementsPotentiallyBreakingConnectivity.stream()
-                                               .map(ComputedContingencyElement::getElement)
-                                               .map(element -> lfNetwork.getBranchById(element.getId()))
-                                               .forEach(lfBranch -> connectivity.cut(lfBranch.getBus1(), lfBranch.getBus2()));
+    private Map<Set<ComputedContingencyElement>, ConnectivityAnalysisResult> computeConnectivityData(LfNetwork lfNetwork, SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder,
+                                                                                                     Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity,
+                                                                                                     Collection<PropagatedContingency> nonLosingConnectivityContingencies) {
+        Map<Set<ComputedContingencyElement>, ConnectivityAnalysisResult> connectivityAnalysisResults = new LinkedHashMap<>();
+        if (contingenciesByGroupOfElementsBreakingConnectivity.isEmpty()) {
+            return connectivityAnalysisResults;
+        }
+
+        GraphDecrementalConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
+        for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> groupOfElementPotentiallyBreakingConnectivity : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
+            Set<ComputedContingencyElement> breakingConnectivityCandidates = groupOfElementPotentiallyBreakingConnectivity.getKey();
+            List<PropagatedContingency> contingencyList = groupOfElementPotentiallyBreakingConnectivity.getValue();
+            cutConnectivity(lfNetwork, connectivity, breakingConnectivityCandidates.stream().map(ComputedContingencyElement::getElement).map(ContingencyElement::getId).collect(Collectors.toSet()));
+
+            // filter the branches that really impacts connectivity
+            Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream().filter(element -> {
+                LfBranch lfBranch = element.getLfBranch();
+                return connectivity.getComponentNumber(lfBranch.getBus1()) != connectivity.getComponentNumber(lfBranch.getBus2());
+            }).collect(Collectors.toCollection(LinkedHashSet::new));
+            if (breakingConnectivityElements.isEmpty()) {
+                // we did not break any connectivity
+                nonLosingConnectivityContingencies.addAll(contingencyList);
+            } else {
+                // only compute for factors that have to be computed for this contingency lost
+                List<String> contingenciesIds = contingencyList.stream().map(contingency -> contingency.getContingency().getId()).collect(Collectors.toList());
+
+                List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds);
+                if (!lfFactors.isEmpty()) {
+                    connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork)).getContingencies().addAll(contingencyList);
+                }
+            }
+            connectivity.reset();
+        }
+        return connectivityAnalysisResults;
     }
 
-    public Pair<List<SensitivityValue>, Map<String, List<SensitivityValue>>> analyse(Network network, List<SensitivityFactor> factors,
-                                                                                     List<Contingency> contingencies, LoadFlowParameters lfParameters,
-                                                                                     OpenLoadFlowParameters lfParametersExt) {
+    public DenseMatrix calculateStates(JacobianMatrix<DcVariableType, DcEquationType> j, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                       List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups,
+                                       List<ParticipatingElement> participatingElements) {
+
+        Map<LfBus, Double> slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
+            ParticipatingElement::getLfBus,
+            element -> -element.getFactor(),
+            Double::sum
+        ));
+        DenseMatrix states = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBus);
+        j.solveTransposed(states);
+        setBaseCaseSensitivityValues(factorGroups, states);
+        return states;
+    }
+
+    public void calculateContingencySensitivityValues(PropagatedContingency contingency, List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups, boolean hasMultiVariables, DenseMatrix factorStates, DenseMatrix contingenciesStates,
+                                                      DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements, SensitivityValueWriter valueWriter,
+                                                      LfNetwork lfNetwork, DcLoadFlowParameters lfParameters,  OpenLoadFlowParameters lfParametersExt, JacobianMatrix<DcVariableType, DcEquationType> j, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                      SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder, List<ParticipatingElement> participatingElements,
+                                                      Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
+        List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
+        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
+            calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
+                    contingency, valueWriter);
+        } else {
+            // if we have a contingency including the loss of a DC line or a generator or a load
+            // save base state for later restoration after each contingency
+            NetworkState networkState = NetworkState.save(lfNetwork);
+            LfContingency lfContingency = contingency.toLfContingency(lfNetwork, true).orElse(null);
+            DenseMatrix newFactorStates = factorStates;
+            List<ParticipatingElement> newParticipatingElements = participatingElements;
+            boolean participatingElementsChanged = false;
+            boolean rhsChanged = false;
+            if (lfContingency != null) {
+                lfContingency.apply(lfParameters.getBalanceType());
+                participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
+                        || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToShift().isEmpty());
+                if (hasMultiVariables) {
+                    Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
+                    rhsChanged = rescaleGlsk(factorGroups, impactedBuses);
+                }
+                if (participatingElementsChanged) {
+                    if (isDistributedSlackOnGenerators(lfParameters)) {
+                        // deep copy of participatingElements, removing the participating LfGeneratorImpl whose targetP has been set to 0
+                        Set<LfGenerator> participatingGeneratorsToRemove = lfContingency.getLostGenerators();
+                        newParticipatingElements = participatingElements.stream()
+                                .filter(participatingElement -> !participatingGeneratorsToRemove.contains(participatingElement.getElement()))
+                                .map(participatingElement -> new ParticipatingElement(participatingElement.getElement(), participatingElement.getFactor()))
+                                .collect(Collectors.toList());
+                        normalizeParticipationFactors(newParticipatingElements, "LfGenerators");
+                    } else { // slack distribution on loads
+                        newParticipatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
+                    }
+                }
+                if (participatingElementsChanged || rhsChanged) {
+                    newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
+                }
+            }
+
+            DenseMatrix newFlowStates = setReferenceActivePowerFlows(lfNetwork, lfParameters, equationSystem, j, factors,
+                    newParticipatingElements, disabledBuses, disabledBranches, reporter);
+
+            calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements, contingency, valueWriter);
+
+            networkState.restore();
+            if (participatingElementsChanged) {
+                setBaseCaseSensitivityValues(factorGroups, factorStates);
+            }
+        }
+    }
+
+    private JacobianMatrix<DcVariableType, DcEquationType> createJacobianMatrix(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer voltageInitializer) {
+        DcLoadFlowEngine.initStateVector(network, equationSystem, voltageInitializer);
+        return new JacobianMatrix<>(equationSystem, matrixFactory);
+    }
+
+    private static DcLoadFlowParameters createDcLoadFlowParameters(LfNetworkParameters networkParameters, MatrixFactory matrixFactory,
+                                                                   LoadFlowParameters lfParameters) {
+        var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
+                                                                                      true,
+                                                                                      true,
+                                                                                      lfParameters.isDcUseTransformerRatio());
+
+        return new DcLoadFlowParameters(networkParameters,
+                                        equationSystemCreationParameters,
+                                        matrixFactory,
+                                        lfParameters.isDistributedSlack(),
+                                        lfParameters.getBalanceType(),
+                                        true);
+    }
+
+    public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
+                        LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
+                        SensitivityValueWriter valueWriter, Reporter reporter) {
         Objects.requireNonNull(network);
-        Objects.requireNonNull(factors);
+        Objects.requireNonNull(contingencies);
+        Objects.requireNonNull(variableSets);
+        Objects.requireNonNull(lfParameters);
         Objects.requireNonNull(lfParametersExt);
+        Objects.requireNonNull(factorReader);
+        Objects.requireNonNull(valueWriter);
+
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
         // create the network (we only manage main connected component)
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, lfParametersExt.getSlackBusSelector());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(), lfParametersExt.getPlausibleActivePowerLimit());
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector,
+                                                                          connectivityFactory,
+                                                                          false,
+                                                                          true,
+                                                                          lfParameters.isTwtSplitShuntAdmittance(),
+                                                                          false,
+                                                                          lfParametersExt.getPlausibleActivePowerLimit(),
+                                                                          lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
+                                                                          true,
+                                                                          lfParameters.getCountriesToBalance(),
+                                                                          lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                                                                          false,
+                                                                          false,
+                                                                          false,
+                                                                          false,
+                                                                          true,
+                                                                          false,
+                                                                          false,
+                                                                          false);
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
-        checkSensitivities(network, lfNetwork, factors);
-        LazyConnectivity connectivity = new LazyConnectivity(lfNetwork);
+        checkLoadFlowParameters(lfParameters);
+
+        Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
+        SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork);
+        List<LfSensitivityFactor<DcVariableType, DcEquationType>> allLfFactors = allFactorHolder.getAllFactors();
+
+        allLfFactors.stream()
+                .filter(lfFactor -> (lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER
+                    && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                    && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2)
+                    || (lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
+                    && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
+                    && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER))
+                .findFirst()
+                .ifPresent(ignored -> {
+                    throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1 and BRANCH_ACTIVE_POWER_2 are yet supported in DC");
+                });
+
+        LOGGER.info("Running DC sensitivity analysis with {} factors and {} contingencies",  allLfFactors.size(), contingencies.size());
+
+        var dcLoadFlowParameters = createDcLoadFlowParameters(lfNetworkParameters, matrixFactory, lfParameters);
 
         // create DC equation system for sensitivity analysis
-        EquationSystem equationSystem = DcEquationSystem.create(lfNetwork, new VariableSet(),
-                new DcEquationSystemCreationParameters(false, true, true, lfParametersExt.isDcUseTransformerRatio()));
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(lfNetwork, dcLoadFlowParameters.getEquationSystemCreationParameters());
 
-        // we wrap the factor into a class that allows us to have access to their branch and EquationTerm instantly
-        List<LfSensitivityFactor> lfFactors = factors.stream().map(factor -> LfSensitivityFactor.create(factor, network, lfNetwork, equationSystem)).collect(Collectors.toList());
+        // next we only work with valid factors
+        var validFactorHolder = writeInvalidFactors(allFactorHolder, valueWriter);
+        var validLfFactors = validFactorHolder.getAllFactors();
 
-        // run DC load
-        setFunctionReferenceOnFactors(lfNetworks, lfFactors, lfParameters, lfParametersExt);
+        // index factors by variable group to compute the minimal number of states
+        List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups = createFactorGroups(validLfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID).collect(Collectors.toList()));
 
-        // index factors by variable group to compute a minimal number of states
-        List<SensitivityFactorGroup> factorGroups = createFactorGroups(network, lfFactors);
-        boolean hasGlsk = factorGroups.stream().anyMatch(group -> group instanceof LinearGlskGroup);
+        boolean hasMultiVariables = factorGroups.stream().anyMatch(MultiVariablesFactorGroup.class::isInstance);
 
-        if (factorGroups.isEmpty()) {
-            return Pair.of(Collections.emptyList(), Collections.emptyMap());
-        }
-
-        // compute the participation to slack distribution for every factor
-        List<ParticipatingElement> participatingElements = null;
-        Map<String, Double> slackParticipationByBus;
+        // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
+        // buses that contain elements participating to slack distribution)
+        List<ParticipatingElement> participatingElements;
+        Map<LfBus, Double> slackParticipationByBus;
         if (lfParameters.isDistributedSlack()) {
-            participatingElements = getParticipatingElements(lfNetwork, lfParameters);
+            participatingElements = getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt);
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
-                element -> getParticipatingElementLfBus(element).getId(),
+                ParticipatingElement::getLfBus,
                 element -> -element.getFactor(),
                 Double::sum
             ));
         } else {
-            slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d);
+            participatingElements = new ArrayList<>();
+            slackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
         }
-        // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
-        // buses that contain elements participating to slack distribution
-        computeInjectionFactors(slackParticipationByBus, factorGroups);
 
-        // contingencies management
-        Map<String, ComputedContingencyElement> contingenciesElements =
-                contingencies.stream()
-                        .flatMap(contingency -> contingency.getElements().stream())
-                        .map(contingencyElement -> new ComputedContingencyElement(contingencyElement, lfNetwork, equationSystem))
-                        .collect(Collectors.toMap(
-                            computedContingencyElement -> computedContingencyElement.getElement().getId(),
-                            computedContingencyElement -> computedContingencyElement
-                        ));
-        ComputedContingencyElement.setContingencyIndexes(contingenciesElements.values());
+        // prepare management of contingencies
+        Map<String, ComputedContingencyElement> contingencyElementByBranch =
+            contingencies.stream()
+                             .flatMap(contingency -> contingency.getBranchIdsToOpen().stream())
+                             .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
+                             .filter(element -> element.getLfBranchEquation() != null)
+                             .collect(Collectors.toMap(
+                                 computedContingencyElement -> computedContingencyElement.getElement().getId(),
+                                 computedContingencyElement -> computedContingencyElement,
+                                 (existing, replacement) -> existing,
+                                 LinkedHashMap::new
+                             ));
+        ComputedContingencyElement.setContingencyIndexes(contingencyElementByBranch.values());
 
-        // create jacobian matrix either using base network calculated voltages or nominal voltages
+        // create jacobian matrix either using calculated voltages from pre-contingency network or nominal voltages
         VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
-        JacobianMatrix j = createJacobianMatrix(equationSystem, voltageInitializer);
-        try (LUDecomposition jlu = j.decomposeLU()) {
-            // compute pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
-            DenseMatrix factorsStates = initFactorsRhs(lfNetwork, equationSystem, factorGroups); // this is the rhs for the moment
-            DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingenciesElements); // rhs with +1 -1 on contingency elements
-            jlu.solveTransposed(factorsStates); // states for the sensitivity factors
-            jlu.solveTransposed(contingenciesStates); // states for the +1 -1 of the contingencies
+        try (JacobianMatrix<DcVariableType, DcEquationType> j = createJacobianMatrix(lfNetwork, equationSystem, voltageInitializer)) {
 
-            // sensitivity values for base case.
-            List<SensitivityValue> sensitivityValues = calculateSensitivityValues(factorGroups,
-                    factorsStates, contingenciesStates, Collections.emptyList());
+            // run DC load on pre-contingency network
+            DenseMatrix flowStates = setReferenceActivePowerFlows(lfNetwork, dcLoadFlowParameters, equationSystem, j, validLfFactors, participatingElements, Collections.emptyList(), Collections.emptyList(), reporter);
 
-            // connectivity analysis by connectivity
-            // we will index contingencies by a list of branch that may breaks connectivity
+            // compute the pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
+            DenseMatrix factorsStates = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBus); // this is the rhs for the moment
+            DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingencyElementByBranch.values()); // rhs with +1 -1 on contingency elements
+            j.solveTransposed(factorsStates); // states for the sensitivity factors
+            j.solveTransposed(contingenciesStates); // states for the +1 -1 of contingencies
+
+            // sensitivity values for pre-contingency network
+            setBaseCaseSensitivityValues(factorGroups, factorsStates);
+            calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorsStates, contingenciesStates, flowStates,
+                    Collections.emptyList(), null, valueWriter);
+
+            // connectivity analysis by contingency
+            // we have to compute sensitivities and reference functions in a different way depending on either or not the contingency breaks connectivity
+            // so, we will index contingencies by a list of branch that may break connectivity
             // for example, if in the network, loosing line L1 breaks connectivity, and loosing L2 and L3 together breaks connectivity,
             // the index would be: {L1, L2, L3}
-            // todo: There may be a better way to group the contingencies that will have the same connectivities afterwards
-            Collection<Contingency> nonLosingConnectivityContingencies = new LinkedList<>();
-            Map<Set<ComputedContingencyElement>, List<Contingency>> contingenciesByGroupOfElementsBreakingConnectivity = new HashMap<>();
+            // a contingency involving a phase tap changer loss has to be treated separately
+            Collection<PropagatedContingency> nonLosingConnectivityContingencies = new LinkedList<>();
+            Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity = new LinkedHashMap<>();
 
-            detectConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingenciesElements, equationSystem, nonLosingConnectivityContingencies, contingenciesByGroupOfElementsBreakingConnectivity);
+            detectPotentialConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingencyElementByBranch, equationSystem,
+                    nonLosingConnectivityContingencies, contingenciesByGroupOfElementsBreakingConnectivity);
 
-            Map<String, List<SensitivityValue>> contingenciesValue = new HashMap<>();
+            // process connectivity data for all contingencies that potentially lose connectivity
+            Map<Set<ComputedContingencyElement>, ConnectivityAnalysisResult> connectivityAnalysisResults = computeConnectivityData(lfNetwork, validFactorHolder, contingenciesByGroupOfElementsBreakingConnectivity, nonLosingConnectivityContingencies);
+            PhaseTapChangerContingenciesIndexing phaseTapChangerContingenciesIndexing = new PhaseTapChangerContingenciesIndexing(nonLosingConnectivityContingencies, contingencyElementByBranch);
+
             // compute the contingencies without loss of connectivity
-            for (Contingency contingency : nonLosingConnectivityContingencies) {
-                contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorGroups,
-                        factorsStates, contingenciesStates, contingency.getElements().stream().map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList())
-                ));
+            // first we compute the ones without loss of phase tap changers (because we reuse the load flows from the pre contingency network for all of them)
+            for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
+                List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
+                calculateContingencySensitivityValues(contingency, factorGroups, hasMultiVariables, factorsStates, contingenciesStates, flowStates, contingencyElements, valueWriter,
+                        lfNetwork, dcLoadFlowParameters, lfParametersExt, j, equationSystem, validFactorHolder, participatingElements,
+                        Collections.emptyList(), Collections.emptyList(), reporter);
             }
+
+            // then we compute the ones involving the loss of a phase tap changer (because we need to recompute the load flows)
+            for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> entry : phaseTapChangerContingenciesIndexing.getContingenciesIndexedByPhaseTapChangers().entrySet()) {
+                Set<LfBranch> removedPhaseTapChangers = entry.getKey();
+                Collection<PropagatedContingency> propagatedContingencies = entry.getValue();
+                List<String> contingenciesIds = propagatedContingencies.stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
+                List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies = validFactorHolder.getFactorsForContingencies(contingenciesIds);
+                if (!lfFactorsForContingencies.isEmpty()) {
+                    flowStates = setReferenceActivePowerFlows(lfNetwork, dcLoadFlowParameters, equationSystem, j, lfFactorsForContingencies, participatingElements, Collections.emptyList(), removedPhaseTapChangers, reporter);
+                }
+                for (PropagatedContingency contingency : propagatedContingencies) {
+                    List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
+                    calculateContingencySensitivityValues(contingency, factorGroups, hasMultiVariables, factorsStates, contingenciesStates, flowStates, contingencyElements, valueWriter,
+                            lfNetwork, dcLoadFlowParameters, lfParametersExt, j, equationSystem, validFactorHolder, participatingElements,
+                            Collections.emptyList(), removedPhaseTapChangers, reporter);
+                }
+            }
+
+            if (contingenciesByGroupOfElementsBreakingConnectivity.isEmpty()) {
+                return;
+            }
+
             // compute the contingencies with loss of connectivity
-            for (Map.Entry<Set<ComputedContingencyElement>, List<Contingency>> entry : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
-                Set<ComputedContingencyElement> breakingConnectivityCandidates = entry.getKey();
-                List<Contingency> contingencyList = entry.getValue();
+            for (ConnectivityAnalysisResult connectivityAnalysisResult : connectivityAnalysisResults.values()) {
+                List<String> contingenciesIds = connectivityAnalysisResult.getContingencies().stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
+                List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies = validFactorHolder.getFactorsForContingencies(contingenciesIds);
 
-                lfFactors.forEach(factor -> factor.setPredefinedResult(null));
-                cutConnectivity(lfNetwork, connectivity.getConnectivity(), breakingConnectivityCandidates);
+                // we need to reset predefined values for factor that need to be calculated for this set of contingency
+                // predefined may have be set by a previous set of contingency with loss of connectivity
+                // note that if a factor changes its status after contingency, we rely on predefined results only, and we
+                // will output a factor that becomes ZERO or SKIP through its predefined results.
+                lfFactorsForContingencies.forEach(factor -> factor.setSensitivityValuePredefinedResult(null));
+                lfFactorsForContingencies.forEach(factor -> factor.setFunctionPredefinedResult(null));
+                connectivityAnalysisResult.setSensitivityValuePredefinedResults();
+                connectivityAnalysisResult.setFunctionPredefinedResults();
 
-                Integer slackBusComponent = connectivity.getConnectivity().getComponentNumber(lfNetwork.getSlackBus());
+                Set<LfBus> disabledBuses = connectivityAnalysisResult.getDisabledBuses();
 
-                for (LfSensitivityFactor factor : lfFactors) {
-                    // check if the factor function and variable are in different connected components
-                    if (factor.areVariableAndFunctionDisconnected(connectivity.getConnectivity())) {
-                        factor.setPredefinedResult(0d);
-                    } else if (!factor.isConnectedToComponent(slackBusComponent, connectivity.getConnectivity())) {
-                        factor.setPredefinedResult(Double.NaN);
+                // null and unused if slack bus is not distributed
+                List<ParticipatingElement> participatingElementsForThisConnectivity = participatingElements;
+                boolean rhsChanged = false; // true if the disabled buses change the slack distribution, or the GLSK
+                DenseMatrix factorStateForThisConnectivity = factorsStates;
+                if (lfParameters.isDistributedSlack()) {
+                    rhsChanged = participatingElements.stream().anyMatch(element -> disabledBuses.contains(element.getLfBus()));
+                }
+                if (hasMultiVariables) {
+                    // some elements of the GLSK may not be in the connected component anymore, we recompute the injections
+                    rhsChanged |= rescaleGlsk(factorGroups, disabledBuses);
+                }
+
+                // we need to recompute the factor states because the connectivity changed
+                if (rhsChanged) {
+                    Map<LfBus, Double> slackParticipationByBusForThisConnectivity;
+
+                    if (lfParameters.isDistributedSlack()) {
+                        participatingElementsForThisConnectivity = getParticipatingElements(connectivityAnalysisResult.getSlackConnectedComponent(), lfParameters.getBalanceType(), lfParametersExt); // will also be used to recompute the loadflow
+                        slackParticipationByBusForThisConnectivity = participatingElementsForThisConnectivity.stream().collect(Collectors.toMap(
+                            element -> lfNetwork.getBusById(element.getLfBus().getId()),
+                            element -> -element.getFactor(),
+                            Double::sum
+                        ));
+                    } else {
+                        slackParticipationByBusForThisConnectivity = Collections.singletonMap(lfNetwork.getBusById(lfNetwork.getSlackBus().getId()), -1d);
+                    }
+
+                    factorStateForThisConnectivity = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBusForThisConnectivity);
+                    j.solveTransposed(factorStateForThisConnectivity); // get the states for the new connectivity
+                    setBaseCaseSensitivityValues(factorGroups, factorStateForThisConnectivity); // use this state to compute the base sensitivity (without +1-1)
+                }
+
+                Set<String> elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
+                phaseTapChangerContingenciesIndexing = new PhaseTapChangerContingenciesIndexing(connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, elementsToReconnect);
+
+                if (!lfFactorsForContingencies.isEmpty()) {
+                    flowStates = setReferenceActivePowerFlows(lfNetwork, dcLoadFlowParameters, equationSystem, j, lfFactorsForContingencies,
+                            participatingElementsForThisConnectivity, disabledBuses, Collections.emptyList(), reporter);
+                }
+
+                // compute contingencies without loss of phase tap changer
+                for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
+                    Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingencyElementByBranch::get).collect(Collectors.toList());
+                    calculateContingencySensitivityValues(contingency, factorGroups, hasMultiVariables, factorStateForThisConnectivity, contingenciesStates, flowStates, contingencyElements, valueWriter,
+                            lfNetwork, dcLoadFlowParameters, lfParametersExt, j, equationSystem, validFactorHolder, participatingElementsForThisConnectivity,
+                            disabledBuses, Collections.emptyList(), reporter);
+                }
+
+                // then we compute the ones involving the loss of a phase tap changer (because we need to recompute the load flows)
+                for (Map.Entry<Set<LfBranch>, Collection<PropagatedContingency>> entry1 : phaseTapChangerContingenciesIndexing.getContingenciesIndexedByPhaseTapChangers().entrySet()) {
+                    Set<LfBranch> disabledPhaseTapChangers = entry1.getKey();
+                    Collection<PropagatedContingency> propagatedContingencies = entry1.getValue();
+                    List<String> contingenciesIds2 = propagatedContingencies.stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
+                    List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies2 = validFactorHolder.getFactorsForContingencies(contingenciesIds2);
+                    if (!lfFactorsForContingencies2.isEmpty()) {
+                        flowStates = setReferenceActivePowerFlows(lfNetwork, dcLoadFlowParameters, equationSystem, j, lfFactorsForContingencies2, participatingElementsForThisConnectivity, disabledBuses, disabledPhaseTapChangers, reporter);
+                    }
+                    for (PropagatedContingency contingency : propagatedContingencies) {
+                        Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().filter(element -> !elementsToReconnect.contains(element)).map(contingencyElementByBranch::get).collect(Collectors.toList());
+                        calculateContingencySensitivityValues(contingency, factorGroups, hasMultiVariables, factorStateForThisConnectivity, contingenciesStates, flowStates, contingencyElements, valueWriter,
+                                lfNetwork, dcLoadFlowParameters, lfParametersExt, j, equationSystem, validFactorHolder, participatingElementsForThisConnectivity,
+                                disabledBuses, disabledPhaseTapChangers, reporter);
                     }
                 }
 
-                rescaleGlsk(factorGroups, connectivity.getConnectivity(), slackBusComponent);
-
-                // recompute the participation of each factor
-                if (lfParameters.isDistributedSlack()) {
-                    Map<Integer, List<ParticipatingElement>> participatingElementsPerCc = new HashMap<>();
-                    participatingElements.forEach(element -> participatingElementsPerCc.computeIfAbsent(connectivity.getConnectivity().getComponentNumber(getParticipatingElementLfBus(element)), key -> new LinkedList<>())
-                            .add(element));
-                    participatingElementsPerCc.values().forEach(ccElements -> ParticipatingElement.normalizeParticipationFactors(ccElements, "bus"));
-                    Map<Integer, Map<String, Double>> slackParticipationPerCc = participatingElementsPerCc.entrySet().stream().collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry2 -> entry2.getValue().stream().collect(Collectors.toMap(
-                            element -> getParticipatingElementLfBus(element).getId(),
-                            element -> -element.getFactor(),
-                            Double::sum
-                        ))
-                    ));
-                    // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
-                    // buses that contain elements participating to slack distribution and that are in the main connected component
-                    Function<String, Map<String, Double>> getSlackParticipationByBus = busId ->
-                            slackParticipationPerCc.get(connectivity.getConnectivity().getComponentNumber(lfNetwork.getBusById(busId)));
-                    computeInjectionFactors(getSlackParticipationByBus, factorGroups);
-                    factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
-                    fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
-                    jlu.solveTransposed(factorsStates);
-                } else if (hasGlsk) {
-                    computeInjectionFactors(Collections.singletonMap(lfNetwork.getSlackBus().getId(), -1d), factorGroups);
-                    factorsStates.reset(); // avoid creating a new matrix to avoid buffer allocation time
-                    fillRhsSensitivityVariable(lfNetwork, equationSystem, factorGroups, factorsStates);
-                    jlu.solveTransposed(factorsStates);
+                if (rhsChanged) {
+                    setBaseCaseSensitivityValues(factorGroups, factorsStates); // we modified the rhs, we need to restore previous state
                 }
-
-                Set<String> elementsToReconnect = getElementsToReconnect(connectivity.getConnectivity(), breakingConnectivityCandidates);
-
-                for (Contingency contingency : contingencyList) {
-                    contingenciesValue.put(contingency.getId(), calculateSensitivityValues(factorGroups, factorsStates, contingenciesStates,
-                            contingency.getElements().stream().filter(element -> !elementsToReconnect.contains(element.getId())).map(element -> contingenciesElements.get(element.getId())).collect(Collectors.toList())
-                    ));
-                }
-
-                connectivity.getConnectivity().reset();
             }
-
-            return Pair.of(sensitivityValues, contingenciesValue);
         }
+
+        stopwatch.stop();
+        LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 }

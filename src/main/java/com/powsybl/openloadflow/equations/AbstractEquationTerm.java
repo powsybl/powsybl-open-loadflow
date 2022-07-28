@@ -6,24 +6,35 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
+
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractEquationTerm implements EquationTerm {
+public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
-    private Equation equation;
+    private Equation<V, E> equation;
 
     private boolean active = true;
 
+    protected StateVector sv;
+
+    protected EquationTerm<V, E> self = this;
+
     @Override
-    public Equation getEquation() {
+    public void setStateVector(StateVector sv) {
+        this.sv = Objects.requireNonNull(sv);
+    }
+
+    @Override
+    public Equation<V, E> getEquation() {
         return equation;
     }
 
     @Override
-    public void setEquation(Equation equation) {
+    public void setEquation(Equation<V, E> equation) {
         this.equation = Objects.requireNonNull(equation);
     }
 
@@ -31,12 +42,33 @@ public abstract class AbstractEquationTerm implements EquationTerm {
     public void setActive(boolean active) {
         if (this.active != active) {
             this.active = active;
-            equation.getEquationSystem().notifyListeners(equation, EquationEventType.EQUATION_UPDATED);
+            equation.getEquationSystem().notifyEquationTermChange(self, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
+                                                                               : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
     }
 
     @Override
     public boolean isActive() {
         return active;
+    }
+
+    @Override
+    public void setSelf(EquationTerm<V, E> self) {
+        this.self = Objects.requireNonNull(self);
+    }
+
+    @Override
+    public double calculateSensi(DenseMatrix dx, int column) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public boolean hasRhs() {
+        return false;
+    }
+
+    @Override
+    public double rhs() {
+        return 0;
     }
 }

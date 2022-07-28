@@ -7,6 +7,8 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfGenerator;
 
 import java.util.List;
 
@@ -19,7 +21,7 @@ public class ParticipatingElement {
 
     private double factor;
 
-    ParticipatingElement(Object element, double factor) {
+    public ParticipatingElement(Object element, double factor) {
         this.element = element;
         this.factor = factor;
     }
@@ -41,6 +43,16 @@ public class ParticipatingElement {
         }
         for (ParticipatingElement participatingElement : participatingElements) {
             participatingElement.factor /= factorSum;
+        }
+    }
+
+    public LfBus getLfBus() {
+        if (element instanceof LfGenerator) {
+            return ((LfGenerator) element).getBus();
+        } else if (element instanceof LfBus) {
+            return (LfBus) element;
+        } else {
+            return null;
         }
     }
 }

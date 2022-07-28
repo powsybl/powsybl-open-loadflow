@@ -11,15 +11,29 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfGenerator {
+public interface LfGenerator extends PropertyBag {
+
+    enum GeneratorControlType {
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
+    }
 
     String getId();
+
+    String getOriginalId();
 
     LfBus getBus();
 
     void setBus(LfBus bus);
 
-    boolean hasVoltageControl();
+    boolean isFictitious();
+
+    boolean hasRemoteReactivePowerControl();
+
+    GeneratorControlType getGeneratorControlType();
+
+    void setGeneratorControlType(GeneratorControlType generatorControlType);
+
+    double getTargetV();
 
     OptionalDouble getRemoteControlReactiveKey();
 
@@ -39,13 +53,35 @@ public interface LfGenerator {
 
     double getMaxRangeQ();
 
-    boolean isParticipating();
+    default boolean isParticipating() {
+        return false;
+    }
 
-    double getParticipationFactor();
+    void setParticipating(boolean participating);
+
+    default double getDroop() {
+        return 0;
+    }
 
     double getCalculatedQ();
 
     void setCalculatedQ(double calculatedQ);
 
     void updateState();
+
+    LfBus getControlledBus(LfNetwork lfNetwork);
+
+    default double getSlope() {
+        return 0;
+    }
+
+    default void setSlope(double slope) {
+        // nothing to do
+    }
+
+    LfBranch getControlledBranch(LfNetwork lfNetwork);
+
+    ReactivePowerControl.ControlledSide getControlledBranchSide();
+
+    double getRemoteTargetQ();
 }

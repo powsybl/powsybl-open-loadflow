@@ -7,6 +7,9 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
+import com.powsybl.openloadflow.network.LfNetwork;
+
+import java.util.List;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -17,15 +20,24 @@ public class LfStarBus extends AbstractLfBus {
 
     private final double nominalV;
 
-    public LfStarBus(ThreeWindingsTransformer t3wt) {
-        super(Networks.getPropertyV(t3wt), Networks.getPropertyAngle(t3wt));
+    public LfStarBus(LfNetwork network, ThreeWindingsTransformer t3wt) {
+        super(network, Networks.getPropertyV(t3wt), Networks.getPropertyAngle(t3wt));
         this.t3wt = t3wt;
-        nominalV = t3wt.getLeg1().getTerminal().getVoltageLevel().getNominalV();
+        nominalV = t3wt.getRatedU0();
+    }
+
+    public static String getId(String id) {
+        return id + "_BUS0";
     }
 
     @Override
     public String getId() {
-        return t3wt.getId() + "_BUS0";
+        return getId(t3wt.getId());
+    }
+
+    @Override
+    public List<String> getOriginalIds() {
+        return List.of(t3wt.getId());
     }
 
     @Override
@@ -44,20 +56,10 @@ public class LfStarBus extends AbstractLfBus {
     }
 
     @Override
-    public double getLowVoltageLimit() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getHighVoltageLimit() {
-        return Double.NaN;
-    }
-
-    @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Networks.setPropertyV(t3wt, v);
         Networks.setPropertyAngle(t3wt, angle);
 
-        super.updateState(reactiveLimits, writeSlackBus);
+        super.updateState(reactiveLimits, writeSlackBus, false, false);
     }
 }

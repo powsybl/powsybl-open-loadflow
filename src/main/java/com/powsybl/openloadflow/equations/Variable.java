@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.openloadflow.network.LfNetwork;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Objects;
@@ -15,32 +13,24 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class Variable implements Comparable<Variable> {
+public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variable<V>> {
 
-    /**
-     * Bus or any other equipment num.
-     */
-    private final int num;
+    private final int elementNum;
 
-    private final VariableType type;
+    private final V type;
 
     private int row = -1;
 
-    /**
-     * true if this variable is active, false otherwise
-     */
-    private boolean active = true;
-
-    Variable(int num, VariableType type) {
-        this.num = num;
+    Variable(int elementNum, V type) {
+        this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
     }
 
-    public int getNum() {
-        return num;
+    public int getElementNum() {
+        return elementNum;
     }
 
-    public VariableType getType() {
+    public V getType() {
         return type;
     }
 
@@ -52,79 +42,9 @@ public class Variable implements Comparable<Variable> {
         this.row = row;
     }
 
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        // FIXME invalidate equation system cache
-        this.active = active;
-    }
-
-    void initState(VoltageInitializer initializer, LfNetwork network, double[] x) {
-        Objects.requireNonNull(initializer);
-        Objects.requireNonNull(network);
-        Objects.requireNonNull(x);
-        switch (type) {
-            case BUS_V:
-                x[row] = initializer.getMagnitude(network.getBus(num));
-                break;
-
-            case BUS_PHI:
-                x[row] = Math.toRadians(initializer.getAngle(network.getBus(num)));
-                break;
-
-            case BRANCH_ALPHA1:
-                x[row] = network.getBranch(num).getPiModel().getA1();
-                break;
-
-            case BRANCH_RHO1:
-                x[row] = network.getBranch(num).getPiModel().getR1();
-                break;
-
-            case DUMMY_P:
-            case DUMMY_Q:
-                x[row] = 0;
-                break;
-
-            default:
-                throw new IllegalStateException("Unknown variable type "  + type);
-        }
-    }
-
-    void updateState(LfNetwork network, double[] x) {
-        Objects.requireNonNull(network);
-        Objects.requireNonNull(x);
-        switch (type) {
-            case BUS_V:
-                network.getBus(num).setV(x[row]);
-                break;
-
-            case BUS_PHI:
-                network.getBus(num).setAngle(Math.toDegrees(x[row]));
-                break;
-
-            case BRANCH_ALPHA1:
-                network.getBranch(num).getPiModel().setA1(x[row]);
-                break;
-
-            case BRANCH_RHO1:
-                network.getBranch(num).getPiModel().setR1(x[row]);
-                break;
-
-            case DUMMY_P:
-            case DUMMY_Q:
-                // nothing to do
-                break;
-
-            default:
-                throw new IllegalStateException("Unknown variable type "  + type);
-        }
-    }
-
     @Override
     public int hashCode() {
-        return num + type.hashCode();
+        return elementNum + type.hashCode();
     }
 
     @Override
@@ -139,11 +59,11 @@ public class Variable implements Comparable<Variable> {
     }
 
     @Override
-    public int compareTo(Variable o) {
+    public int compareTo(Variable<V> o) {
         if (o == this) {
             return 0;
         }
-        int c = num - o.num;
+        int c = elementNum - o.elementNum;
         if (c == 0) {
             c = type.ordinal() - o.type.ordinal();
         }
@@ -152,11 +72,15 @@ public class Variable implements Comparable<Variable> {
 
     public void write(Writer writer) throws IOException {
         writer.write(type.getSymbol());
-        writer.write(Integer.toString(num));
+        writer.write(Integer.toString(elementNum));
+    }
+
+    public <E extends Enum<E> & Quantity> EquationTerm<V, E> createTerm() {
+        return new EquationTerm.VariableEquationTerm<>(this);
     }
 
     @Override
     public String toString() {
-        return "Variable(num=" + num + ", type=" + type + ", row=" + row + ")";
+        return "Variable(elementNum=" + elementNum + ", type=" + type + ", row=" + row + ")";
     }
 }

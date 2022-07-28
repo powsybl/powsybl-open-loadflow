@@ -6,20 +6,14 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
-import com.powsybl.openloadflow.equations.SubjectType;
+import com.powsybl.openloadflow.equations.AbstractBranchEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
-import net.jafama.FastMath;
-
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTerm {
-
-    protected final LfBranch branch;
+abstract class AbstractBranchAcFlowEquationTerm extends AbstractBranchEquationTerm<AcVariableType, AcEquationType> {
 
     protected final double b1;
     protected final double b2;
@@ -27,11 +21,9 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTer
     protected final double g2;
     protected final double y;
     protected final double ksi;
-    protected final double sinKsi;
-    protected final double cosKsi;
 
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
-        this.branch = Objects.requireNonNull(branch);
+        super(branch);
         PiModel piModel = branch.getPiModel();
         if (piModel.getR() == 0 && piModel.getX() == 0) {
             throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
@@ -40,29 +32,7 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractNamedEquationTer
         b2 = piModel.getB2();
         g1 = piModel.getG1();
         g2 = piModel.getG2();
-        y = 1 / piModel.getZ();
+        y = piModel.getY();
         ksi = piModel.getKsi();
-        sinKsi = FastMath.sin(ksi);
-        cosKsi = FastMath.cos(ksi);
-    }
-
-    @Override
-    public SubjectType getSubjectType() {
-        return SubjectType.BRANCH;
-    }
-
-    @Override
-    public int getSubjectNum() {
-        return branch.getNum();
-    }
-
-    @Override
-    public boolean hasRhs() {
-        return false;
-    }
-
-    @Override
-    public double rhs() {
-        return 0;
     }
 }

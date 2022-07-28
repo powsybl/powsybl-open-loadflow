@@ -24,6 +24,8 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
 
     private static final SlackBusSelector DEFAULT_FALLBACK_SELECTOR = new MostMeshedSlackBusSelector();
 
+    private static final String SELECTION_METHOD = "Network extension bus";
+
     private final SlackBusSelector fallbackSelector;
 
     private final Set<String> slackBusIds = new HashSet<>();
@@ -42,21 +44,26 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
                 if (bus != null) {
                     slackBusIds.add(bus.getId());
                 }
+                bus = slackTerminal.getTerminal().getBusBreakerView().getBus();
+                if (bus != null) {
+                    slackBusIds.add(bus.getId());
+                }
             }
         }
     }
 
     @Override
-    public LfBus select(List<LfBus> buses) {
+    public SelectedSlackBus select(List<LfBus> buses) {
         List<LfBus> slackBuses = buses.stream().filter(bus -> !bus.isFictitious() && slackBusIds.contains(bus.getId())).collect(Collectors.toList());
         if (slackBuses.isEmpty()) {
             // fallback to automatic selection
             return fallbackSelector.select(buses);
         } else if (slackBuses.size() == 1) {
-            return slackBuses.get(0);
+            return new SelectedSlackBus(slackBuses.get(0), SELECTION_METHOD);
         } else {
             // fallback to automatic selection among slack buses
-            return fallbackSelector.select(slackBuses);
+            var slackBusSelector = fallbackSelector.select(slackBuses);
+            return new SelectedSlackBus(slackBusSelector.getBus(), SELECTION_METHOD + " + " + slackBusSelector.getSelectionMethod());
         }
     }
 }

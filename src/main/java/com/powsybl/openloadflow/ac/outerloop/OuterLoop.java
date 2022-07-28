@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.powsybl.commons.reporter.Reporter;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -13,5 +15,11 @@ public interface OuterLoop {
 
     String getType();
 
-    OuterLoopStatus check(OuterLoopContext context);
+    default void initialize(OuterLoopContext context) {
+    }
+
+    OuterLoopStatus check(OuterLoopContext context, Reporter reporter);
+
+    default void cleanup(OuterLoopContext context) {
+    }
 }

@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -21,15 +20,11 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBranchDcFlowEquationTerm {
 
-    private double p1;
-
-    private double rhs;
-
-    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet, boolean deriveA1, boolean useTransformerRatio) {
+    private ClosedBranchSide1DcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet, boolean deriveA1, boolean useTransformerRatio) {
         super(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
     }
 
-    public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet variableSet,
+    public static ClosedBranchSide1DcFlowEquationTerm create(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<DcVariableType> variableSet,
                                                              boolean deriveA1, boolean useTransformerRatio) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(bus1);
@@ -38,36 +33,19 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
         return new ClosedBranchSide1DcFlowEquationTerm(branch, bus1, bus2, variableSet, deriveA1, useTransformerRatio);
     }
 
-    private double calculate(double ph1, double ph2, double a1) {
+    @Override
+    protected double calculateSensi(double ph1, double ph2, double a1) {
         double deltaPhase =  ph2 - ph1 + A2 - a1;
         return -power * deltaPhase;
     }
 
-    public double calculate(DenseMatrix x, int column) {
-        Objects.requireNonNull(x);
-        double ph1 = x.get(ph1Var.getRow(), column);
-        double ph2 = x.get(ph2Var.getRow(), column);
-        double a1 = a1Var != null ? x.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
-        return calculate(ph1, ph2, a1);
-    }
-
-    @Override
-    public void update(double[] x) {
-        Objects.requireNonNull(x);
-        double ph1 = x[ph1Var.getRow()];
-        double ph2 = x[ph2Var.getRow()];
-        double a1 = a1Var != null ? x[a1Var.getRow()] : branch.getPiModel().getA1();
-        p1 = calculate(ph1, ph2, a1);
-        rhs = -power * (A2 - a1);
-    }
-
     @Override
     public double eval() {
-        return p1;
+        return calculateSensi(ph1(), ph2(), a1());
     }
 
     @Override
-    public double der(Variable variable) {
+    public double der(Variable<DcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(ph1Var)) {
             return power;
@@ -82,7 +60,11 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
 
     @Override
     public double rhs() {
-        return rhs;
+        if (a1Var != null) {
+            return -power * A2;
+        } else {
+            return -power * (A2 - a1());
+        }
     }
 
     @Override

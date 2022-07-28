@@ -6,11 +6,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResultsEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
@@ -22,11 +17,15 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResultsEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -58,24 +57,23 @@ class DistributedSlackOnLoadTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setDistributedSlack(true)
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
     }
 
     @Test
     void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(37.5, l1.getTerminal());
-        assertActivePowerEquals(75, l2.getTerminal());
-        assertActivePowerEquals(62.5, l3.getTerminal());
-        assertActivePowerEquals(175, l4.getTerminal());
-        assertActivePowerEquals(12.5, l5.getTerminal());
-        assertActivePowerEquals(-50, l6.getTerminal()); // same as p0 because p0 < 0
+        assertActivePowerEquals(35.294, l1.getTerminal());
+        assertActivePowerEquals(70.588, l2.getTerminal());
+        assertActivePowerEquals(58.824, l3.getTerminal());
+        assertActivePowerEquals(164.705, l4.getTerminal());
+        assertActivePowerEquals(11.765, l5.getTerminal());
+        assertActivePowerEquals(-41.176, l6.getTerminal());
         LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
                 .addMetrics("3", "CONVERGED")
-                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 1.6895598253796607E-7)
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 1.6895598253796607E-7)
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected, result);
     }
@@ -86,18 +84,22 @@ class DistributedSlackOnLoadTest {
                 .withVariableActivePower(40)
                 .withFixedActivePower(20)
                 .add();
+        l6.newExtension(LoadDetailAdder.class)
+                .withVariableActivePower(-25)
+                .withFixedActivePower(-25)
+                .add();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(38.182, l1.getTerminal());
-        assertActivePowerEquals(70.909, l2.getTerminal());
-        assertActivePowerEquals(63.636, l3.getTerminal());
-        assertActivePowerEquals(178.182, l4.getTerminal());
-        assertActivePowerEquals(12.727, l5.getTerminal());
-        assertActivePowerEquals(-50, l6.getTerminal()); // same as p0 because p0 < 0
+        assertActivePowerEquals(30.0, l1.getTerminal());
+        assertActivePowerEquals(96.923, l2.getTerminal());
+        assertActivePowerEquals(50.0, l3.getTerminal());
+        assertActivePowerEquals(140, l4.getTerminal());
+        assertActivePowerEquals(10.0, l5.getTerminal());
+        assertActivePowerEquals(-26.923, l6.getTerminal());
         LoadFlowResult loadFlowResultExpected = new LoadFlowResultBuilder(true)
                 .addMetrics("3", "CONVERGED")
-                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 9.726437433243973E-8)
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "b4_vl_0", 9.726437433243973E-8)
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected, result);
     }
@@ -109,7 +111,7 @@ class DistributedSlackOnLoadTest {
                 for (Load load : network.getLoads()) {
                     assertEquals(load.getP0() / load.getQ0(),
                             load.getTerminal().getP() / load.getTerminal().getQ(),
-                            DELTA_MISMATCH, "Power factor should be a constant value");
+                            DELTA_MISMATCH, "Power factor should be a constant value for load " + load.getId());
                 }
                 break;
             default:
@@ -128,8 +130,8 @@ class DistributedSlackOnLoadTest {
 
         assertPowerFactor(network1);
         LoadFlowResult loadFlowResultExpected1 = new LoadFlowResultBuilder(true)
-                .addMetrics("5", "CONVERGED")
-                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", -3.06844963660069E-5)
+                .addMetrics("4", "CONVERGED")
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 4, "VLHV1_0", 0.026900149770181514)
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected1, loadFlowResult1);
 
@@ -148,9 +150,28 @@ class DistributedSlackOnLoadTest {
 
         // then
         assertPowerFactor(network2);
-        LoadFlowResult loadFlowResultExpected2 = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED")
-                .addComponentResult(0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", 1.340823176931849E-5)
+        LoadFlowResult loadFlowResultExpected2 = new LoadFlowResultBuilder(true).addMetrics("4", "CONVERGED")
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 4, "VLHV1_0", 0.026900149770181514)
                 .build();
         assertLoadFlowResultsEquals(loadFlowResultExpected2, loadFlowResult2);
+        assertActivePowerEquals(601.440, network1.getLoad("LOAD").getTerminal());
+
+        // PROPORTIONAL_TO_CONFORM_LOAD and power factor constant for loads
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parametersExt.setLoadPowerFactorConstant(true);
+        Network network3 = EurostagTutorialExample1Factory.create();
+        network3.getVoltageLevel("VLLOAD").newLoad().setId("LOAD1").setP0(-10).setQ0(1).setBus("NLOAD").setConnectableBus("NLOAD").add();
+
+        //when
+        LoadFlowResult loadFlowResult3 = loadFlowRunner.run(network3, parameters);
+
+        // then
+        assertPowerFactor(network3);
+        LoadFlowResult loadFlowResultExpected3 = new LoadFlowResultBuilder(true).addMetrics("5", "CONVERGED")
+                .addComponentResult(0, 0, LoadFlowResult.ComponentResult.Status.CONVERGED, 5, "VLHV1_0", 0.2263232679029059)
+                .build();
+        assertLoadFlowResultsEquals(loadFlowResultExpected3, loadFlowResult3);
+        assertActivePowerEquals(611.405, network3.getLoad("LOAD").getTerminal());
+        assertActivePowerEquals(-9.809, network3.getLoad("LOAD1").getTerminal());
     }
 }

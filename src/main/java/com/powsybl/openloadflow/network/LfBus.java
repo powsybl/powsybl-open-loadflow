@@ -6,19 +6,17 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BusResult;
+
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfBus {
-
-    String getId();
-
-    int getNum();
-
-    void setNum(int num);
+public interface LfBus extends LfElement {
 
     String getVoltageLevelId();
 
@@ -28,9 +26,17 @@ public interface LfBus {
 
     void setSlack(boolean slack);
 
-    boolean hasVoltageControlCapability();
+    boolean hasVoltageControllerCapability();
 
-    boolean hasVoltageControl();
+    boolean isVoltageControlEnabled();
+
+    boolean isVoltageControlled();
+
+    List<LfGenerator> getGeneratorsControllingVoltageWithSlope();
+
+    boolean hasGeneratorsWithSlope();
+
+    void removeGeneratorSlopes();
 
     /**
      * Get the number of time, voltage control status has be set from true to false.
@@ -41,11 +47,17 @@ public interface LfBus {
 
     void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
 
-    void setVoltageControl(boolean voltageControl);
+    void setVoltageControlEnabled(boolean voltageControlEnabled);
 
-    Optional<LfBus> getControlledBus();
+    Optional<VoltageControl> getVoltageControl();
 
-    List<LfBus> getControllerBuses();
+    void removeVoltageControl();
+
+    void setVoltageControl(VoltageControl voltageControl);
+
+    Optional<ReactivePowerControl> getReactivePowerControl();
+
+    void setReactivePowerControl(ReactivePowerControl reactivePowerControl);
 
     double getTargetP();
 
@@ -53,25 +65,21 @@ public interface LfBus {
 
     double getLoadTargetP();
 
+    double getInitialLoadTargetP();
+
     void setLoadTargetP(double loadTargetP);
-
-    double getFixedLoadTargetP();
-
-    int getPositiveLoadCount();
 
     double getLoadTargetQ();
 
     void setLoadTargetQ(double loadTargetQ);
 
-    double getFixedLoadTargetQ();
+    boolean ensurePowerFactorConstantByLoad();
 
     double getGenerationTargetP();
 
     double getGenerationTargetQ();
 
     void setGenerationTargetQ(double generationTargetQ);
-
-    double getTargetV();
 
     double getMinQ();
 
@@ -81,13 +89,13 @@ public interface LfBus {
 
     void setV(double v);
 
+    Evaluable getCalculatedV();
+
+    void setCalculatedV(Evaluable calculatedV);
+
     double getAngle();
 
     void setAngle(double angle);
-
-    double getCalculatedQ();
-
-    void setCalculatedQ(double calculatedQ);
 
     /**
      * Get nominal voltage in Kv.
@@ -95,23 +103,68 @@ public interface LfBus {
      */
     double getNominalV();
 
-    double getLowVoltageLimit();
+    default double getLowVoltageLimit() {
+        return Double.NaN;
+    }
 
-    double getHighVoltageLimit();
+    default double getHighVoltageLimit() {
+        return Double.NaN;
+    }
 
     List<LfGenerator> getGenerators();
 
-    List<LfShunt> getShunts();
+    Optional<LfShunt> getShunt();
+
+    Optional<LfShunt> getControllerShunt();
+
+    LfLoads getLoads();
 
     List<LfBranch> getBranches();
 
     void addBranch(LfBranch branch);
 
-    void updateState(boolean reactiveLimits, boolean writeSlackBus);
+    void addHvdc(LfHvdc hvdc);
 
-    DiscreteVoltageControl getDiscreteVoltageControl();
+    void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
 
-    boolean isDiscreteVoltageControlled();
+    Optional<TransformerVoltageControl> getTransformerVoltageControl();
 
-    void setDiscreteVoltageControl(DiscreteVoltageControl discreteVoltageControl);
+    boolean isTransformerVoltageControlled();
+
+    void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl);
+
+    Optional<ShuntVoltageControl> getShuntVoltageControl();
+
+    boolean isShuntVoltageControlled();
+
+    void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl);
+
+    void setP(Evaluable p);
+
+    Evaluable getP();
+
+    void setQ(Evaluable q);
+
+    Evaluable getQ();
+
+    default boolean isParticipating() {
+        return false;
+    }
+
+    BusResult createBusResult();
+
+    /**
+     * Find bus + parallel branches neighbors.
+     */
+    Map<LfBus, List<LfBranch>> findNeighbors();
+
+    double getRemoteVoltageControlReactivePercent();
+
+    void setRemoteVoltageControlReactivePercent(double remoteVoltageControlReactivePercent);
+
+    /**
+     * Get active power mismatch.
+     * Only make sens for slack bus.
+     */
+    double getMismatchP();
 }

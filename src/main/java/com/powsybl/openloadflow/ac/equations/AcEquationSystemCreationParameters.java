@@ -11,27 +11,24 @@ package com.powsybl.openloadflow.ac.equations;
  */
 public class AcEquationSystemCreationParameters {
 
-    private final boolean voltageRemoteControl;
+    private final boolean forceA1Var;
 
-    private final boolean phaseControl;
-
-    private final boolean transformerVoltageControl;
-
-    public AcEquationSystemCreationParameters(boolean voltageRemoteControl, boolean phaseControl, boolean transformerVoltageControl) {
-        this.voltageRemoteControl = voltageRemoteControl;
-        this.phaseControl = phaseControl;
-        this.transformerVoltageControl = transformerVoltageControl;
+    public AcEquationSystemCreationParameters() {
+        this(false);
     }
 
-    public boolean isVoltageRemoteControl() {
-        return voltageRemoteControl;
+    public AcEquationSystemCreationParameters(boolean forceA1Var) {
+        this.forceA1Var = forceA1Var;
     }
 
-    public boolean isPhaseControl() {
-        return phaseControl;
+    public boolean isForceA1Var() {
+        return forceA1Var;
     }
 
-    public boolean isTransformerVoltageControl() {
-        return transformerVoltageControl;
+    @Override
+    public String toString() {
+        return "AcEquationSystemCreationParameters(" +
+                "forceA1Var=" + forceA1Var +
+                ')';
     }
 }

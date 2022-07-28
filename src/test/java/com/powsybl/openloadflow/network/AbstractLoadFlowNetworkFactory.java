@@ -64,6 +64,19 @@ public abstract class AbstractLoadFlowNetworkFactory {
         return g;
     }
 
+    protected static Generator createGenerator2(Bus b, String id, double p, double v) {
+        Generator g = b.getVoltageLevel()
+                .newGenerator()
+                .setId(id)
+                .setBus(b.getId())
+                .setConnectableBus(b.getId())
+                .setEnergySource(EnergySource.OTHER)
+                .setMinP(0)
+                .setMaxP(p)
+                .add();
+        return g;
+    }
+
     protected static Load createLoad(Bus b, String id, double p) {
         return createLoad(b, id, p, 0);
     }
@@ -114,6 +127,94 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setG(0)
                 .setB(0)
                 .add();
+    }
+
+    protected static ThreeWindingsTransformer createThreeWindingsTransformer(Network network, String substationId,
+        Bus b1, Bus b2, Bus b3, String id, double x1, double rho1, double x2, double rho2, double x3, double rho3) {
+        return network.getSubstation(substationId).newThreeWindingsTransformer()
+            .setId(id)
+            .setRatedU0(1)
+            .newLeg1()
+            .setVoltageLevel(b1.getVoltageLevel().getId())
+            .setBus(b1.getId())
+            .setConnectableBus(b1.getId())
+            .setRatedU(rho1)
+            .setR(0)
+            .setX(x1)
+            .setG(0)
+            .setB(0)
+            .add()
+            .newLeg2()
+            .setVoltageLevel(b2.getVoltageLevel().getId())
+            .setBus(b2.getId())
+            .setConnectableBus(b2.getId())
+            .setRatedU(rho2)
+            .setR(0)
+            .setX(x2)
+            .setG(0)
+            .setB(0)
+            .add()
+            .newLeg3()
+            .setVoltageLevel(b3.getVoltageLevel().getId())
+            .setBus(b3.getId())
+            .setConnectableBus(b3.getId())
+            .setRatedU(rho3)
+            .setR(0)
+            .setX(x3)
+            .setG(0)
+            .setB(0)
+            .add()
+            .add();
+    }
+
+    protected static DanglingLine createDanglingLine(Bus b, String id, double x, double p0, double q0) {
+        return b.getVoltageLevel().newDanglingLine()
+            .setId(id)
+            .setBus(b.getId())
+            .setConnectableBus(b.getId())
+            .setR(0)
+            .setX(x)
+            .setG(0)
+            .setB(0)
+            .setP0(p0)
+            .setQ0(q0)
+            .add();
+    }
+
+    protected static LccConverterStation createLcc(Bus b, String id) {
+        return b.getVoltageLevel().newLccConverterStation()
+            .setId(id)
+            .setConnectableBus(b.getId())
+            .setBus(b.getId())
+            .setPowerFactor(0.8f)
+            .setLossFactor(1.1f)
+            .add();
+    }
+
+    protected static VscConverterStation createVsc(Bus b, String id, double voltageSetpoint, double reactivePowerSetpoint) {
+        return b.getVoltageLevel().newVscConverterStation()
+            .setId(id)
+            .setConnectableBus(b.getId())
+            .setBus(b.getId())
+            .setVoltageRegulatorOn(true)
+            .setVoltageSetpoint(voltageSetpoint)
+            .setReactivePowerSetpoint(reactivePowerSetpoint)
+            .setLossFactor(1.1f)
+            .add();
+    }
+
+    protected static HvdcLine createHvdcLine(Network network, String id, HvdcConverterStation station1, HvdcConverterStation station2,
+                                             double nominalV, double r, double activePowerSetpoint) {
+        return network.newHvdcLine()
+            .setId(id)
+            .setConverterStationId1(station1.getId())
+            .setConverterStationId2(station2.getId())
+            .setNominalV(nominalV)
+            .setR(r)
+            .setActivePowerSetpoint(activePowerSetpoint)
+            .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
+            .setMaxP(activePowerSetpoint)
+            .add();
     }
 }
 

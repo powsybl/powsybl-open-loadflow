@@ -17,13 +17,23 @@ public class DefaultNewtonRaphsonStoppingCriteria implements NewtonRaphsonStoppi
     /**
      * Convergence epsilon per equation: 10^-4 in p.u => 10^-2 in Kv, Mw or MVar
      */
-    public static final double CONV_EPS_PER_EQ = Math.pow(10, -4);
+    public static final double DEFAULT_CONV_EPS_PER_EQ = Math.pow(10, -4);
+
+    private final double convEpsPerEq;
+
+    public DefaultNewtonRaphsonStoppingCriteria() {
+        this(DEFAULT_CONV_EPS_PER_EQ);
+    }
+
+    public DefaultNewtonRaphsonStoppingCriteria(double convEpsPerEq) {
+        this.convEpsPerEq = convEpsPerEq;
+    }
 
     @Override
     public TestResult test(double[] fx) {
         // calculate norm L2 of equations mismatch vector
         double norm = Vectors.norm2(fx);
-        boolean stop = norm < FastMath.sqrt(CONV_EPS_PER_EQ * CONV_EPS_PER_EQ * fx.length);
+        boolean stop = norm < FastMath.sqrt(convEpsPerEq * convEpsPerEq * fx.length);
         return new TestResult(stop, norm);
     }
 }

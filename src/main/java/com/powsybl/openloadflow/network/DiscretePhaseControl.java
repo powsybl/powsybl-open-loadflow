@@ -20,13 +20,12 @@ public class DiscretePhaseControl {
 
     public enum Mode {
         CONTROLLER,
-        LIMITER,
-        OFF
+        LIMITER
     }
 
     public enum Unit {
         MW,
-        A;
+        A
     }
 
     private final LfBranch controller;
@@ -34,13 +33,13 @@ public class DiscretePhaseControl {
     private final double targetValue;
     private final double targetDeadband;
     private final ControlledSide controlledSide;
-    private Mode mode;
+    private final Mode mode;
     private final Unit unit;
 
     public DiscretePhaseControl(LfBranch controller, LfBranch controlled, ControlledSide controlledSide, DiscretePhaseControl.Mode mode,
                                 double targetValue, double targetDeadband, Unit unit) {
-        this.controller = controller;
-        this.controlled = controlled;
+        this.controller = Objects.requireNonNull(controller);
+        this.controlled = Objects.requireNonNull(controlled);
         this.targetValue = targetValue;
         this.targetDeadband = targetDeadband;
         this.controlledSide = Objects.requireNonNull(controlledSide);
@@ -70,10 +69,6 @@ public class DiscretePhaseControl {
 
     public Mode getMode() {
         return mode;
-    }
-
-    public void setMode(Mode mode) {
-        this.mode = Objects.requireNonNull(mode);
     }
 
     public Unit getUnit() {

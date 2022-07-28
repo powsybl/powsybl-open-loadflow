@@ -7,38 +7,32 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.security.results.BranchResult;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractLfBranch {
+public class LfLegBranch extends AbstractImpedantLfBranch {
 
     private final ThreeWindingsTransformer twt;
 
     private final ThreeWindingsTransformer.Leg leg;
 
-    private Evaluable p = NAN;
-
-    private Evaluable q = NAN;
-
-    protected LfLegBranch(LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
-        super(bus1, bus0, piModel);
+    protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
+        super(network, bus1, bus0, piModel);
         this.twt = twt;
         this.leg = leg;
     }
 
-    public static LfLegBranch create(LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
+    public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
                                      boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
@@ -88,7 +82,7 @@ public class LfLegBranch extends AbstractLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
-        return new LfLegBranch(bus1, bus0, piModel, twt, leg);
+        return new LfLegBranch(network, bus1, bus0, piModel, twt, leg);
     }
 
     private int getLegNum() {
@@ -101,9 +95,29 @@ public class LfLegBranch extends AbstractLfBranch {
         }
     }
 
+    public static String getId(String twtId, int legNum) {
+        return twtId + "_leg_" + legNum;
+    }
+
     @Override
     public String getId() {
-        return twt.getId() + "_leg_" + getLegNum();
+        return getId(twt.getId(), getLegNum());
+    }
+
+    @Override
+    public BranchType getBranchType() {
+        if (leg == twt.getLeg1()) {
+            return BranchType.TRANSFO_3_LEG_1;
+        } else if (leg == twt.getLeg2()) {
+            return BranchType.TRANSFO_3_LEG_2;
+        } else {
+            return BranchType.TRANSFO_3_LEG_3;
+        }
+    }
+
+    @Override
+    public List<String> getOriginalIds() {
+        return List.of(twt.getId());
     }
 
     @Override
@@ -112,69 +126,37 @@ public class LfLegBranch extends AbstractLfBranch {
     }
 
     @Override
-    public void setP1(Evaluable p1) {
-        this.p = Objects.requireNonNull(p1);
+    public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
     @Override
-    public double getP1() {
-        return p.eval();
+    public List<LfLimit> getLimits1(final LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER:
+                return getLimits1(type, leg.getActivePowerLimits().orElse(null));
+            case APPARENT_POWER:
+                return getLimits1(type, leg.getApparentPowerLimits().orElse(null));
+            case CURRENT:
+                return getLimits1(type, leg.getCurrentLimits().orElse(null));
+            case VOLTAGE:
+            default:
+                throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
+        }
     }
 
     @Override
-    public void setP2(Evaluable p2) {
-        // nothing to do
-    }
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+        updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
 
-    @Override
-    public double getP2() {
-        return Double.NaN;
-    }
-
-    @Override
-    public void setQ1(Evaluable q1) {
-        this.q = Objects.requireNonNull(q1);
-    }
-
-    @Override
-    public void setQ2(Evaluable q2) {
-        // nothing to do
-    }
-
-    @Override
-    public double getI1() {
-        return getBus1() != null ? Math.hypot(p.eval(), q.eval())
-            / (Math.sqrt(3.) * getBus1().getV() / 1000) : Double.NaN;
-    }
-
-    @Override
-    public double getI2() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getPermanentLimit1() {
-        return leg.getCurrentLimits() != null ? leg.getCurrentLimits().getPermanentLimit() * getBus1().getNominalV() / PerUnit.SB : Double.NaN;
-    }
-
-    @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
-    }
-
-    @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
-        leg.getTerminal().setP(p.eval() * PerUnit.SB);
-        leg.getTerminal().setQ(q.eval() * PerUnit.SB);
-
-        if (phaseShifterRegulationOn && isPhaseController() && phaseControl.getMode() == DiscretePhaseControl.Mode.OFF) {
+        if (phaseShifterRegulationOn && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that leg
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (phaseShifterRegulationOn && isPhaseControlled() && phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
+        if (phaseShifterRegulationOn && isPhaseControlled() && discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
             // check if the target value deadband is respected
-            checkTargetDeadband(p.eval());
+            checkTargetDeadband(p1.eval());
         }
 
         if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
@@ -185,5 +167,12 @@ public class LfLegBranch extends AbstractLfBranch {
             updateTapPosition(rtc, ptcRho, rho);
             checkTargetDeadband(rtc);
         }
+    }
+
+    @Override
+    public void updateFlows(double p1, double q1, double p2, double q2) {
+        // Star bus is always on side 2.
+        leg.getTerminal().setP(p1 * PerUnit.SB)
+                .setQ(q1 * PerUnit.SB);
     }
 }

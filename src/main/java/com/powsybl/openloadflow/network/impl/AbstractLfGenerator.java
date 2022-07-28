@@ -6,20 +6,28 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.MinMaxReactiveLimits;
-import com.powsybl.iidm.network.ReactiveCapabilityCurve;
-import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractLfGenerator implements LfGenerator {
+public abstract class AbstractLfGenerator extends AbstractPropertyBag implements LfGenerator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
+
+    private static final double POWER_EPSILON_SI = 1e-4;
+
+    private static final double TARGET_P_EPSILON = 1e-2;
+
+    protected static final double DEFAULT_DROOP = 4; // why not
 
     protected double targetP;
 
@@ -27,8 +35,25 @@ public abstract class AbstractLfGenerator implements LfGenerator {
 
     protected double calculatedQ = Double.NaN;
 
+    private double targetV = Double.NaN;
+
+    protected GeneratorControlType generatorControlType = GeneratorControlType.OFF;
+
+    protected String controlledBusId;
+
+    protected String controlledBranchId;
+
+    protected ReactivePowerControl.ControlledSide controlledBranchSide;
+
+    protected double remoteTargetQ = Double.NaN;
+
     protected AbstractLfGenerator(double targetP) {
         this.targetP = targetP;
+    }
+
+    @Override
+    public String getOriginalId() {
+        return getId();
     }
 
     public LfBus getBus() {
@@ -40,13 +65,45 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     }
 
     @Override
+    public boolean isFictitious() {
+        return false;
+    }
+
+    @Override
     public double getTargetP() {
         return targetP / PerUnit.SB;
     }
 
     @Override
     public void setTargetP(double targetP) {
-        this.targetP = targetP * PerUnit.SB;
+        double newTargetP = targetP * PerUnit.SB;
+        if (newTargetP != this.targetP) {
+            double oldTargetP = this.targetP;
+            this.targetP = newTargetP;
+            for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
+                listener.onGenerationActivePowerTargetChange(this, oldTargetP, newTargetP);
+            }
+        }
+    }
+
+    @Override
+    public double getTargetV() {
+        return targetV;
+    }
+
+    @Override
+    public GeneratorControlType getGeneratorControlType() {
+        return generatorControlType;
+    }
+
+    @Override
+    public void setGeneratorControlType(GeneratorControlType generatorControlType) {
+        this.generatorControlType = Objects.requireNonNull(generatorControlType);
+    }
+
+    @Override
+    public boolean hasRemoteReactivePowerControl() {
+        return generatorControlType == GeneratorControlType.REMOTE_REACTIVE_POWER;
     }
 
     @Override
@@ -109,5 +166,149 @@ public abstract class AbstractLfGenerator implements LfGenerator {
     @Override
     public void setCalculatedQ(double calculatedQ) {
         this.calculatedQ = calculatedQ * PerUnit.SB;
+    }
+
+    @Override
+    public LfBus getControlledBus(LfNetwork lfNetwork) {
+        return lfNetwork.getBusById(controlledBusId);
+    }
+
+    protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
+                                     boolean reactiveLimits, LfNetworkLoadingReport report) {
+        if (!checkVoltageControlConsistency(reactiveLimits, report)) {
+            return;
+        }
+        Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        if (controlledBus == null) {
+            LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
+            return;
+        }
+        boolean inSameSynchronousComponent = breakers
+                ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().getNum() == terminal.getBusBreakerView().getBus().getSynchronousComponent().getNum()
+                : regulatingTerminal.getBusView().getBus().getSynchronousComponent().getNum() == terminal.getBusView().getBus().getSynchronousComponent().getNum();
+        if (!inSameSynchronousComponent) {
+            LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
+            return;
+        }
+        this.controlledBusId = controlledBus.getId();
+        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report);
+        this.generatorControlType = GeneratorControlType.VOLTAGE;
+    }
+
+    protected boolean checkVoltageControlConsistency(boolean reactiveLimits, LfNetworkLoadingReport report) {
+        boolean consistency = true;
+        if (reactiveLimits) {
+            double maxRangeQ = getMaxRangeQ();
+            if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
+                report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
+                consistency = false;
+            }
+        }
+        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
+            LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
+            report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
+            consistency = false;
+        }
+        return consistency;
+    }
+
+    protected void setTargetV(double targetV, LfNetworkLoadingReport report) {
+        double newTargetV = targetV;
+        // check that targetV has a plausible value (wrong nominal voltage issue)
+        if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU) {
+            newTargetV = PlausibleValues.MIN_TARGET_VOLTAGE_PU;
+            LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
+                getId(), targetV, PlausibleValues.MIN_TARGET_VOLTAGE_PU);
+            report.generatorsWithInconsistentTargetVoltage++;
+        } else if (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
+            newTargetV = PlausibleValues.MAX_TARGET_VOLTAGE_PU;
+            LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
+                getId(), targetV, PlausibleValues.MAX_TARGET_VOLTAGE_PU);
+            report.generatorsWithInconsistentTargetVoltage++;
+        }
+        this.targetV = newTargetV;
+    }
+
+    protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
+        Connectable<?> connectable = regulatingTerminal.getConnectable();
+        if (connectable instanceof Line) {
+            Line l = (Line) connectable;
+            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+            this.controlledBranchId = l.getId();
+        } else if (connectable instanceof TwoWindingsTransformer) {
+            TwoWindingsTransformer l = (TwoWindingsTransformer) connectable;
+            this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
+                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+            this.controlledBranchId = l.getId();
+        } else {
+            LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
+                    getId(), connectable.getClass());
+            return;
+        }
+        this.generatorControlType = GeneratorControlType.REMOTE_REACTIVE_POWER;
+        this.remoteTargetQ = targetQ / PerUnit.SB;
+    }
+
+    @Override
+    public LfBranch getControlledBranch(LfNetwork lfNetwork) {
+        return lfNetwork.getBranchById(controlledBranchId);
+    }
+
+    @Override
+    public ReactivePowerControl.ControlledSide getControlledBranchSide() {
+        return controlledBranchSide;
+    }
+
+    @Override
+    public double getRemoteTargetQ() {
+        return remoteTargetQ;
+    }
+
+    @Override
+    public void setParticipating(boolean participating) {
+        // nothing to do
+    }
+
+    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, double plausibleActivePowerLimit,
+                                              LfNetworkLoadingReport report) {
+        boolean participating = true;
+        if (Math.abs(targetP) < TARGET_P_EPSILON) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
+                    getId(), targetP);
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
+            participating = false;
+        }
+        if (targetP > maxP) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
+                    getId(), targetP, maxP);
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
+            participating = false;
+        }
+        if (targetP < minP) {
+            LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) < minP ({})",
+                    getId(), targetP, minP);
+            report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
+            participating = false;
+        }
+        if (maxP > plausibleActivePowerLimit) {
+            LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
+                    getId(), maxP, plausibleActivePowerLimit);
+            report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
+            participating = false;
+        }
+        if ((maxP - minP) < TARGET_P_EPSILON) {
+            LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
+                    getId(), maxP, minP);
+            report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
+            participating = false;
+        }
+        return participating;
+    }
+
+    @Override
+    public String toString() {
+        return getId();
     }
 }

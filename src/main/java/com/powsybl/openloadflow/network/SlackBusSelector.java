@@ -7,11 +7,29 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface SlackBusSelector {
 
-    LfBus select(List<LfBus> buses);
+    SelectedSlackBus select(List<LfBus> buses);
+
+    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds, double plausibleActivePowerLimit) {
+        Objects.requireNonNull(mode);
+        Objects.requireNonNull(slackBusesIds);
+        switch (mode) {
+            case FIRST:
+                return new FirstSlackBusSelector();
+            case MOST_MESHED:
+                return new MostMeshedSlackBusSelector();
+            case NAME:
+                return new NameSlackBusSelector(slackBusesIds);
+            case LARGEST_GENERATOR:
+                return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit);
+            default:
+                throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
+        }
+    }
 }

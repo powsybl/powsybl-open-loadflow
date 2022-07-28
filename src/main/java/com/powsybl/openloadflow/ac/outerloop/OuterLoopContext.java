@@ -6,54 +6,25 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
-
-import java.util.Objects;
+import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OuterLoopContext {
+public interface OuterLoopContext {
 
-    private final int iteration;
+    LfNetwork getNetwork();
 
-    private final LfNetwork network;
+    int getIteration();
 
-    private final EquationSystem equationSystem;
+    NewtonRaphsonResult getLastNewtonRaphsonResult();
 
-    private final VariableSet variableSet;
+    Object getData();
 
-    private final NewtonRaphsonResult lastNewtonRaphsonResult;
+    void setData(Object data);
 
-    OuterLoopContext(int iteration, LfNetwork network, EquationSystem equationSystem, VariableSet variableSet,
-                     NewtonRaphsonResult lastNewtonRaphsonResult) {
-        this.iteration = iteration;
-        this.network = Objects.requireNonNull(network);
-        this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.variableSet = Objects.requireNonNull(variableSet);
-        this.lastNewtonRaphsonResult = Objects.requireNonNull(lastNewtonRaphsonResult);
-    }
+    AcLoadFlowContext getAcLoadFlowContext();
 
-    public int getIteration() {
-        return iteration;
-    }
-
-    public LfNetwork getNetwork() {
-        return network;
-    }
-
-    public EquationSystem getEquationSystem() {
-        return equationSystem;
-    }
-
-    public VariableSet getVariableSet() {
-        return variableSet;
-    }
-
-    public NewtonRaphsonResult getLastNewtonRaphsonResult() {
-        return lastNewtonRaphsonResult;
-    }
+    void setAcLoadFlowContext(AcLoadFlowContext acLoadFlowContext);
 }

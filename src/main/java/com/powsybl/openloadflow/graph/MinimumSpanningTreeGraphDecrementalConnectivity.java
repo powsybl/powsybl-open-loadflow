@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.commons.PowsyblException;
 import org.apache.commons.lang3.tuple.Triple;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
@@ -18,18 +19,18 @@ import java.util.stream.Collectors;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements GraphDecrementalConnectivity<V> {
+public class MinimumSpanningTreeGraphDecrementalConnectivity<V, E> implements GraphDecrementalConnectivity<V, E> {
 
     private SpanningTrees mstOrigin;
     private SpanningTrees mst;
-    private final Graph<V, Object> graph;
+    private final Graph<V, E> graph;
 
-    private final List<Triple<V, V, Object>> cutEdges;
+    private final List<Triple<V, E, V>> cutEdges;
     private List<V> sortedRoots;
     private Map<V, V> parentMap;
 
     public MinimumSpanningTreeGraphDecrementalConnectivity() {
-        this.graph = new Pseudograph<>(Object.class);
+        this.graph = new Pseudograph<>(null, null, false);
         this.cutEdges = new ArrayList<>();
     }
 
@@ -40,38 +41,39 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
     }
 
     @Override
-    public void addEdge(V vertex1, V vertex2) {
-        if (vertex1 == null || vertex2 == null) {
-            return;
-        }
-        graph.addEdge(vertex1, vertex2, new Object());
+    public void addEdge(V vertex1, V vertex2, E edge) {
+        Objects.requireNonNull(vertex1);
+        Objects.requireNonNull(vertex2);
+        graph.addEdge(vertex1, vertex2, edge);
     }
 
     @Override
-    public void cut(V vertex1, V vertex2) {
-        if (vertex1 == null || vertex2 == null) {
-            return;
+    public void cut(E edge) {
+        if (cutEdges.stream().anyMatch(t -> t.getMiddle().equals(edge))) {
+            throw new PowsyblException("Edge already cut: " + edge);
         }
-
+        if (!graph.containsEdge(edge)) {
+            throw new PowsyblException("No such edge in graph: " + edge);
+        }
         if (this.mstOrigin == null) {
             this.mstOrigin = new KruskalMinimumSpanningTrees().getSpanningTree();
             resetMst();
         }
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
-        Object e = graph.removeEdge(vertex1, vertex2);
 
-        if (mst != null && mst.getEdges().contains(e)) {
+        if (mst != null && mst.getEdges().contains(edge)) {
             invalidateMst();
         }
 
-        cutEdges.add(Triple.of(vertex1, vertex2, e));
+        V vertex1 = graph.getEdgeSource(edge);
+        V vertex2 = graph.getEdgeTarget(edge);
+        graph.removeEdge(edge);
+        cutEdges.add(Triple.of(vertex1, edge, vertex2));
     }
 
     @Override
     public void reset() {
-        for (Triple<V, V, Object> cutEdge : cutEdges) {
-            graph.addEdge(cutEdge.getLeft(), cutEdge.getMiddle(), cutEdge.getRight());
+        for (Triple<V, E, V> cutEdge : cutEdges) {
+            graph.addEdge(cutEdge.getLeft(), cutEdge.getRight(), cutEdge.getMiddle());
         }
         cutEdges.clear();
         resetMst();
@@ -91,25 +93,19 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
 
     @Override
     public int getComponentNumber(V vertex) {
-        if (this.mst == null) {
-            this.mst = new KruskalMinimumSpanningTrees().getSpanningTree();
-        }
-        if (this.parentMap == null) {
-            this.parentMap = mst.forest.getParentMap();
-            this.sortedRoots = mst.forest.getSortedRoots();
-        }
+        checkVertex(vertex);
+        lazyCompute();
         return sortedRoots.indexOf(parentMap.get(vertex));
     }
 
     @Override
     public List<Set<V>> getSmallComponents() {
-        if (this.mst == null) {
-            this.mst = new KruskalMinimumSpanningTrees().getSpanningTree();
-        }
-        if (this.parentMap == null) {
-            this.parentMap = mst.forest.getParentMap();
-            this.sortedRoots = mst.forest.getSortedRoots();
-        }
+        List<Set<V>> components = getConnectedComponents();
+        return components.subList(1, components.size());
+    }
+
+    private List<Set<V>> getConnectedComponents() {
+        lazyCompute();
         List<Set<V>> components = new ArrayList<>();
         for (V root : sortedRoots) {
             Set<V> set = parentMap.entrySet().stream()
@@ -117,7 +113,36 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
             components.add(set);
         }
-        return components.subList(1, components.size());
+        return components;
+    }
+
+    @Override
+    public Set<V> getConnectedComponent(V vertex) {
+        checkVertex(vertex);
+        return getConnectedComponents().get(getComponentNumber(vertex));
+    }
+
+    @Override
+    public Set<V> getNonConnectedVertices(V vertex) {
+        checkVertex(vertex);
+        return getConnectedComponents().stream().filter(component -> !component.contains(vertex))
+            .flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
+    private void lazyCompute() {
+        if (this.mst == null) {
+            this.mst = new KruskalMinimumSpanningTrees().getSpanningTree();
+        }
+        if (this.parentMap == null) {
+            this.parentMap = mst.forest.getParentMap();
+            this.sortedRoots = mst.forest.getSortedRoots();
+        }
+    }
+
+    private void checkVertex(V vertex) {
+        if (!graph.containsVertex(vertex)) {
+            throw new AssertionError("given vertex " + vertex + " is not in the graph");
+        }
     }
 
     class KruskalMinimumSpanningTrees implements SpanningTreeAlgorithm<Object> {
@@ -127,7 +152,7 @@ public class MinimumSpanningTreeGraphDecrementalConnectivity<V> implements Graph
             MyUnionFind forest = new MyUnionFind(graph.vertexSet());
 
             Set<Object> edgeList = new HashSet<>();
-            for (Object edge : graph.edgeSet()) {
+            for (E edge : graph.edgeSet()) {
                 V source = graph.getEdgeSource(edge);
                 V target = graph.getEdgeTarget(edge);
                 if (forest.find(source).equals(forest.find(target))) {

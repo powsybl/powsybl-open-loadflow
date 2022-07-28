@@ -12,12 +12,12 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -43,7 +43,6 @@ class AcloadFlowReactiveLimitsTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
-    private OpenLoadFlowParameters parametersExt;
 
     private void createNetwork() {
         network = EurostagTutorialExample1Factory.create();
@@ -111,13 +110,11 @@ class AcloadFlowReactiveLimitsTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
                 .setDistributedSlack(false);
-        parametersExt = new OpenLoadFlowParameters();
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test
     void diagramTest() {
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         LfBus genBus = lfNetwork.getBus(0);

@@ -6,26 +6,57 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.EquationType;
-import com.powsybl.openloadflow.equations.Variable;
-import com.powsybl.openloadflow.equations.VariableType;
-import com.powsybl.openloadflow.network.DiscreteVoltageControl;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.PiModel;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class TransformerVoltageControlOuterLoop implements OuterLoop {
+public class TransformerVoltageControlOuterLoop extends AbstractTransformerVoltageControlOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TransformerVoltageControlOuterLoop.class);
+    private static final class ContextData {
+
+        private double maxControlledNominalVoltage = Double.MIN_VALUE;
+
+        private final List<LfBus> busesWithVoltageControlDisabled = new ArrayList<>();
+
+        private double getMaxControlledNominalVoltage() {
+            return maxControlledNominalVoltage;
+        }
+
+        private void setMaxControlledNominalVoltage(double maxControlledNominalVoltage) {
+            this.maxControlledNominalVoltage = maxControlledNominalVoltage;
+        }
+
+        private List<LfBus> getBusesWithVoltageControlDisabled() {
+            return busesWithVoltageControlDisabled;
+        }
+    }
+
+    @Override
+    public void initialize(OuterLoopContext context) {
+        context.setData(new ContextData());
+
+        for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
+            controllerBranch.setVoltageControlEnabled(false);
+        }
+
+        // All transformer voltage control are disabled for the first equation system resolution.
+        double[] maxControlledNominalVoltage = new double[1];
+        maxControlledNominalVoltage[0] = Double.MIN_VALUE;
+        for (LfBus bus : context.getNetwork().getBuses()) {
+            if (!bus.isDisabled() && bus.isTransformerVoltageControlled()) {
+                maxControlledNominalVoltage[0] = Math.max(maxControlledNominalVoltage[0], bus.getNominalV());
+            }
+        }
+        ((ContextData) context.getData()).setMaxControlledNominalVoltage(maxControlledNominalVoltage[0]);
+    }
 
     @Override
     public String getType() {
@@ -33,41 +64,48 @@ public class TransformerVoltageControlOuterLoop implements OuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context) {
+    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
+        var contextData = (ContextData) context.getData();
+
+        double maxControlledNominalVoltage = contextData.getMaxControlledNominalVoltage();
+
+        // At first outer loop iteration, the voltage control of generators that controlled at nominal voltage of
+        // the set controlledNominalVoltages are disabled.
+        // The transformer voltage controls are enabled.
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
-                if (bus.isDiscreteVoltageControlled()) {
-                    // de-activate transformer voltage control equation
-                    Equation t = context.getEquationSystem().createEquation(bus.getNum(), EquationType.BUS_V);
-                    t.setActive(false);
-
-                    // at first iteration all branches controlling voltage are switched off
-                    for (LfBranch controllerBranch : bus.getDiscreteVoltageControl().getControllers()) {
-                        // de-activate r1 variable for next outer loop run
-                        Variable r1 = context.getVariableSet().getVariable(controllerBranch.getNum(), VariableType.BRANCH_RHO1);
-                        r1.setActive(false);
-
-                        // clean transformer distribution equations
-                        context.getEquationSystem().removeEquation(controllerBranch.getNum(), EquationType.ZERO_RHO1);
-
-                        // round the rho shift to the closest tap
-                        PiModel piModel = controllerBranch.getPiModel();
-                        double r1Value = piModel.getR1();
-                        piModel.roundR1ToClosestTap();
-                        double roundedR1Value = piModel.getR1();
-                        LOGGER.trace("Round voltage shift of '{}': {} -> {}", controllerBranch.getId(), r1Value, roundedR1Value);
-                    }
-
-                    // switch off regulating transformers
-                    bus.getDiscreteVoltageControl().setMode(DiscreteVoltageControl.Mode.OFF);
-
-                    // if at least one transformer has been switched off wee need to continue
+                if (!bus.isDisabled() && bus.isVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
+                    var voltageControl = bus.getVoltageControl().orElseThrow();
+                    voltageControl.getControllerBuses().forEach(controllerBus -> {
+                        if (controllerBus.isVoltageControlEnabled()) {
+                            controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
+                            controllerBus.setVoltageControlEnabled(false);
+                            contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
+                        }
+                    });
                     status = OuterLoopStatus.UNSTABLE;
                 }
             }
+            for (LfBranch branch : getControllerBranches(context.getNetwork())) {
+                branch.setVoltageControlEnabled(true);
+                status = OuterLoopStatus.UNSTABLE;
+            }
+            context.getNetwork().fixTransformerVoltageControls();
         }
+
+        // At second outer loop iteration, the transformers are rounded. The generator voltage controls that were
+        // disabled previously are enabled.
+        if (context.getIteration() == 1) {
+            status = roundVoltageRatios(context);
+            for (LfBus controllerBus : contextData.getBusesWithVoltageControlDisabled()) {
+                controllerBus.setGenerationTargetQ(0);
+                controllerBus.setVoltageControlEnabled(true);
+                status = OuterLoopStatus.UNSTABLE;
+            }
+        }
+
         return status;
     }
 }

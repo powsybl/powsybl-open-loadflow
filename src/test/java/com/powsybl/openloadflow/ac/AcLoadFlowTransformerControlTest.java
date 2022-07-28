@@ -14,7 +14,9 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.HvdcNetworkFactory;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,15 +33,13 @@ class AcLoadFlowTransformerControlTest {
     private Bus bus2;
     private Bus bus3;
     private Bus bus4;
-    private Line line12;
-    private Line line24;
     private TwoWindingsTransformer t2wt;
     private TwoWindingsTransformer t2wt2;
     private ThreeWindingsTransformer t3wt;
-    private Load load3;
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
@@ -47,14 +47,13 @@ class AcLoadFlowTransformerControlTest {
         parameters = new LoadFlowParameters();
         parameters.setTransformerVoltageControlOn(false);
         parameters.setDistributedSlack(false);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new FirstSlackBusSelector());
-        this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
     }
 
     @Test
     void baseCaseT2wtTest() {
-        selectNetwork(createNetworkWithT2wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -66,9 +65,9 @@ class AcLoadFlowTransformerControlTest {
 
     @Test
     void tapPlusTwoT2wtTest() {
-        selectNetwork(createNetworkWithT2wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
-        t2wt.getRatioTapChanger().setTapPosition(2);
+        t2wt.getRatioTapChanger().setTapPosition(3);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -79,7 +78,7 @@ class AcLoadFlowTransformerControlTest {
 
     @Test
     void voltageControlT2wtTest() {
-        selectNetwork(createNetworkWithT2wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
         parameters.setTransformerVoltageControlOn(true);
         t2wt.getRatioTapChanger()
@@ -93,12 +92,150 @@ class AcLoadFlowTransformerControlTest {
         assertTrue(result.isOk());
         assertVoltageEquals(134.281, bus2);
         assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus()); //FIXME: should be 34.427
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest2() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus()); //FIXME: should be 34.427
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest3() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setTargetV(135.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(27.0, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest4() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(2)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(28.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(27.003, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest5() {
+        selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt2.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt2.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest6() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(4.0)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(32.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(30.766, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest7() {
+        selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(6.0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+        t2wt2.getRatioTapChanger()
+                .setTargetDeadband(6.0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt2.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(32.242, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
     }
 
     @Test
     void remoteVoltageControlT2wtTest() {
-        selectNetwork(createNetworkWithT2wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
         Substation substation = network.newSubstation()
                 .setId("SUBSTATION4")
@@ -106,7 +243,7 @@ class AcLoadFlowTransformerControlTest {
                 .add();
         VoltageLevel vl4 = substation.newVoltageLevel()
                 .setId("VL_4")
-                .setNominalV(32.0)
+                .setNominalV(33.0)
                 .setLowVoltageLimit(0)
                 .setHighVoltageLimit(100)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
@@ -138,14 +275,14 @@ class AcLoadFlowTransformerControlTest {
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
                 .setRegulating(false)
-                .setTapPosition(2)
+                .setTapPosition(3)
                 .setRegulationTerminal(line34.getTerminal2())
                 .setTargetV(33.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertVoltageEquals(31.861, bus4);
+        assertVoltageEquals(32.872, bus4);
         assertTrue(result.isOk());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
 
         parameters.setTransformerVoltageControlOn(true);
         t2wt.getRatioTapChanger()
@@ -156,14 +293,69 @@ class AcLoadFlowTransformerControlTest {
                 .setTargetV(33.0);
 
         result = loadFlowRunner.run(network, parameters);
-        assertVoltageEquals(31.862, bus4); //FIXME: should be 31.861
+        assertVoltageEquals(32.874, bus4); //FIXME: should be 32.872
         assertTrue(result.isOk());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void remoteVoltageControlT2wtTest2() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        Substation substation = network.newSubstation()
+                .setId("SUBSTATION4")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vl4 = substation.newVoltageLevel()
+                .setId("VL_4")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(0)
+                .setHighVoltageLimit(100)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus bus4 = vl4.getBusBreakerView().newBus()
+                .setId("BUS_4")
+                .add();
+        vl4.newLoad()
+                .setId("LOAD_4")
+                .setBus("BUS_4")
+                .setP0(2.)
+                .setQ0(0.5)
+                .add();
+
+        Line line34 = network.newLine()
+                .setId("LINE_34")
+                .setVoltageLevel1("VL_3")
+                .setVoltageLevel2("VL_4")
+                .setBus1("BUS_3")
+                .setBus2("BUS_4")
+                .setR(1.05)
+                .setX(10.0)
+                .setG1(0.0000005)
+                .setG2(0.)
+                .setB1(0.)
+                .setB2(0.)
+                .add();
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(line34.getTerminal2())
+                .setTargetV(33.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertVoltageEquals(32.891, bus4);
+        assertTrue(result.isOk());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
     void nonSupportedVoltageControlT2wtTest() {
-        selectNetwork(createNetworkWithT2wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
@@ -178,70 +370,34 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
-    void sharedVoltageControlT2wtTest() {
-        selectNetwork(createNetworkWithT2wt());
-
-        TwoWindingsTransformer t2wt2 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
-                .setId("T2wT2")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
-                .setRatedU1(132.0)
-                .setRatedU2(33.0)
-                .setR(17.0)
-                .setX(10.0)
-                .setG(0.00573921028466483)
-                .setB(0.000573921028466483)
-                .setBus1("BUS_2")
-                .setBus2("BUS_3")
-                .add();
-
-        t2wt2.newRatioTapChanger()
-                .beginStep()
-                .setRho(0.9)
-                .setR(0.1089)
-                .setX(0.01089)
-                .setG(0.8264462809917356)
-                .setB(0.08264462809917356)
-                .endStep()
-                .beginStep()
-                .setRho(1.0)
-                .setR(0.121)
-                .setX(0.0121)
-                .setG(0.8264462809917356)
-                .setB(0.08264462809917356)
-                .endStep()
-                .beginStep()
-                .setRho(1.1)
-                .setR(0.1331)
-                .setX(0.01331)
-                .setG(0.9090909090909092)
-                .setB(0.09090909090909092)
-                .endStep()
-                .setTapPosition(0)
-                .setLoadTapChangingCapabilities(true)
-                .setRegulating(false)
-                .setTargetV(33.0)
-                .setRegulationTerminal(load3.getTerminal())
-                .add();
-
+    void nonSupportedVoltageControlT2wtTest2() {
+        Network network = HvdcNetworkFactory.createLccWithBiggerComponents();
+        TwoWindingsTransformer twt = network.getTwoWindingsTransformer("l45");
         parameters.setTransformerVoltageControlOn(true);
-        t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
-                .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
-        t2wt2.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
-                .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+        twt.getPhaseTapChanger().remove();
+        twt.newRatioTapChanger().setTapPosition(0)
+                .beginStep()
+                .setR(0)
+                .setX(0.1f)
+                .setG(0)
+                .setB(0)
+                .setRho(1)
+                .endStep()
+                .add();
+        twt.getRatioTapChanger().setRegulationTerminal(network.getGenerator("g1").getTerminal()).setTargetV(400).setTargetDeadband(1).setLoadTapChangingCapabilities(true).setRegulating(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390, network.getGenerator("g1").getTerminal().getBusView().getBus());
+    }
 
+    @Test
+    void sharedVoltageControlT2wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl());
+        parameters.setTransformerVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(134.279, bus2);
-        assertVoltageEquals(35.730, t2wt.getTerminal2().getBusView().getBus());
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
         assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
     }
@@ -263,6 +419,32 @@ class AcLoadFlowTransformerControlTest {
                 .setTapPosition(0)
                 .setRegulationTerminal(t2wt2.getTerminal2())
                 .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.279, bus2);
+        assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void inconsistentT2wtTargetVoltagesTest() {
+        selectNetwork(createNetworkWithSharedControl());
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+            .setTargetDeadband(0)
+            .setRegulating(true)
+            .setTapPosition(0)
+            .setRegulationTerminal(t2wt.getTerminal2())
+            .setTargetV(33.6);
+        t2wt2.getRatioTapChanger()
+            .setTargetDeadband(0)
+            .setRegulating(true)
+            .setTapPosition(0)
+            .setRegulationTerminal(t2wt2.getTerminal2())
+            .setTargetV(34.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -309,7 +491,7 @@ class AcLoadFlowTransformerControlTest {
 
     @Test
     void openT2wtTest() {
-        selectNetwork(createNetworkWithT2wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
@@ -326,7 +508,7 @@ class AcLoadFlowTransformerControlTest {
 
     @Test
     void regulatingTerminalDisconnectedTest() {
-        selectNetwork(createNetworkWithT2wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
         Load load = network.getLoad("LOAD_2");
         load.getTerminal().disconnect();
 
@@ -344,7 +526,7 @@ class AcLoadFlowTransformerControlTest {
 
     @Test
     void t2wtWithoutLoadTapChangingCapabilitiesTest() {
-        selectNetwork(createNetworkWithT2wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
@@ -362,7 +544,7 @@ class AcLoadFlowTransformerControlTest {
 
     @Test
     void baseCaseT3wtTest() {
-        selectNetwork(createNetworkWithT3wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -375,7 +557,7 @@ class AcLoadFlowTransformerControlTest {
 
     @Test
     void tapPlusTwoT3wtTest() {
-        selectNetwork(createNetworkWithT3wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
 
         t3wt.getLeg2().getRatioTapChanger().setTapPosition(2);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -389,7 +571,7 @@ class AcLoadFlowTransformerControlTest {
 
     @Test
     void voltageControlT3wtTest() {
-        selectNetwork(createNetworkWithT3wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
 
         t3wt.getLeg2().getRatioTapChanger()
                 .setTargetDeadband(0)
@@ -408,7 +590,7 @@ class AcLoadFlowTransformerControlTest {
 
     @Test
     void remoteVoltageControlT3wtTest() {
-        selectNetwork(createNetworkWithT3wt());
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
 
         Substation substation = network.newSubstation()
                 .setId("SUBSTATION5")
@@ -416,7 +598,7 @@ class AcLoadFlowTransformerControlTest {
                 .add();
         VoltageLevel vl5 = substation.newVoltageLevel()
                 .setId("VL_5")
-                .setNominalV(30.0)
+                .setNominalV(33.0)
                 .setLowVoltageLimit(0)
                 .setHighVoltageLimit(100.0)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
@@ -454,7 +636,7 @@ class AcLoadFlowTransformerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(31.200, bus5);
+        assertVoltageEquals(34.329, bus5);
 
         parameters.setTransformerVoltageControlOn(true);
         t3wt.getLeg2().getRatioTapChanger()
@@ -466,172 +648,7 @@ class AcLoadFlowTransformerControlTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(31.200, bus5);
-    }
-
-    /**
-     * A very small network to test with a T3wt.
-     *
-     *     G1        LD2        LD3
-     *     |    L12   |          |
-     *     |  ------- |          |
-     *     B1         B2         B3
-     *                  \        /
-     *                leg1     leg2
-     *                   \      /
-     *                     T3WT
-     *                      |
-     *                     leg3
-     *                      |
-     *                      B4
-     *                      |
-     *                     LD4
-     */
-    private Network createNetworkWithT3wt() {
-        Network network = createBaseNetwork("three-windings-transformer-control");
-
-        VoltageLevel vl4 = network.getSubstation("SUBSTATION").newVoltageLevel()
-                .setId("VL_4")
-                .setNominalV(10.0)
-                .setLowVoltageLimit(5.0)
-                .setHighVoltageLimit(15.0)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        bus4 = vl4.getBusBreakerView().newBus()
-                .setId("BUS_4")
-                .add();
-
-        vl4.newLoad()
-                .setId("LOAD_4")
-                .setBus("BUS_4")
-                .setQ0(0)
-                .setP0(5)
-                .add();
-
-        t3wt = network.getSubstation("SUBSTATION").newThreeWindingsTransformer()
-                .setId("T3wT")
-                .setRatedU0(200.0)
-                .newLeg1()
-                    .setR(2.0)
-                    .setX(10.0)
-                    .setG(0.0)
-                    .setB(0.0)
-                    .setRatedU(130.0)
-                    .setVoltageLevel("VL_2")
-                    .setConnectableBus("BUS_2")
-                    .setBus("BUS_2")
-                .add()
-                .newLeg2()
-                    .setR(2.0)
-                    .setX(10.0)
-                    .setG(0.0)
-                    .setB(0.0)
-                    .setRatedU(30.0)
-                    .setVoltageLevel("VL_3")
-                    .setConnectableBus("BUS_3")
-                    .setBus("BUS_3")
-                .add()
-                .newLeg3()
-                    .setR(2.0)
-                    .setX(10.0)
-                    .setG(0.0)
-                    .setB(0.0)
-                    .setRatedU(10.0)
-                    .setVoltageLevel("VL_4")
-                    .setConnectableBus("BUS_4")
-                    .setBus("BUS_4")
-                .add()
-                .add();
-
-        t3wt.getLeg2().newRatioTapChanger()
-                .beginStep()
-                .setRho(0.9)
-                .setR(0.1089)
-                .setX(0.01089)
-                .setG(0.8264462809917356)
-                .setB(0.08264462809917356)
-                .endStep()
-                .beginStep()
-                .setRho(1.0)
-                .setR(0.121)
-                .setX(0.0121)
-                .setG(0.8264462809917356)
-                .setB(0.08264462809917356)
-                .endStep()
-                .beginStep()
-                .setRho(1.1)
-                .setR(0.1331)
-                .setX(0.01331)
-                .setG(0.9090909090909092)
-                .setB(0.09090909090909092)
-                .endStep()
-                .setTapPosition(0)
-                .setLoadTapChangingCapabilities(true)
-                .setRegulating(false)
-                .setTargetV(33.0)
-                .setRegulationTerminal(load3.getTerminal())
-                .add();
-
-        return network;
-    }
-
-    /**
-     * A very small network to test with a T2wt.
-     *
-     *     G1        LD2      LD3
-     *     |    L12   |        |
-     *     |  ------- |        |
-     *     B1         B2      B3
-     *                  \    /
-     *                   T2WT
-     */
-    private Network createNetworkWithT2wt() {
-        Network network = createBaseNetwork("two-windings-transformer-control");
-
-        t2wt = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
-                .setId("T2wT")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
-                .setRatedU1(132.0)
-                .setRatedU2(33.0)
-                .setR(17.0)
-                .setX(10.0)
-                .setG(0.00573921028466483)
-                .setB(0.000573921028466483)
-                .setBus1("BUS_2")
-                .setBus2("BUS_3")
-                .add();
-
-        t2wt.newRatioTapChanger()
-                .beginStep()
-                .setRho(0.9)
-                .setR(0.1089)
-                .setX(0.01089)
-                .setG(0.8264462809917356)
-                .setB(0.08264462809917356)
-                .endStep()
-                .beginStep()
-                .setRho(1.0)
-                .setR(0.121)
-                .setX(0.0121)
-                .setG(0.8264462809917356)
-                .setB(0.08264462809917356)
-                .endStep()
-                .beginStep()
-                .setRho(1.1)
-                .setR(0.1331)
-                .setX(0.01331)
-                .setG(0.9090909090909092)
-                .setB(0.09090909090909092)
-                .endStep()
-                .setTapPosition(0)
-                .setLoadTapChangingCapabilities(true)
-                .setRegulating(false)
-                .setTargetV(33.0)
-                .setRegulationTerminal(load3.getTerminal())
-                .add();
-
-        return network;
+        assertVoltageEquals(34.329, bus5);
     }
 
     /**
@@ -646,7 +663,7 @@ class AcLoadFlowTransformerControlTest {
      */
     private Network createNetworkWithSharedControl() {
 
-        Network network = createBaseNetwork("two-windings-transformer-control");
+        Network network = VoltageControlNetworkFactory.createTransformerBaseNetwork("two-windings-transformer-control");
 
         VoltageLevel vl4 = network.getSubstation("SUBSTATION").newVoltageLevel()
                 .setId("VL_4")
@@ -738,7 +755,7 @@ class AcLoadFlowTransformerControlTest {
                 .setLoadTapChangingCapabilities(true)
                 .setRegulating(false)
                 .setTargetV(33.0)
-                .setRegulationTerminal(load3.getTerminal())
+                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
                 .add();
 
         t2wt2 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
@@ -781,90 +798,7 @@ class AcLoadFlowTransformerControlTest {
                 .setLoadTapChangingCapabilities(true)
                 .setRegulating(false)
                 .setTargetV(33.0)
-                .setRegulationTerminal(load3.getTerminal())
-                .add();
-
-        return network;
-    }
-
-    private Network createBaseNetwork(String id) {
-
-        Network network = Network.create(id, "test");
-
-        Substation substation1 = network.newSubstation()
-                .setId("SUBSTATION1")
-                .setCountry(Country.FR)
-                .add();
-        VoltageLevel vl1 = substation1.newVoltageLevel()
-                .setId("VL_1")
-                .setNominalV(132.0)
-                .setLowVoltageLimit(118.8)
-                .setHighVoltageLimit(145.2)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        bus1 = vl1.getBusBreakerView().newBus()
-                .setId("BUS_1")
-                .add();
-        vl1.newGenerator()
-                .setId("GEN_1")
-                .setBus("BUS_1")
-                .setMinP(0.0)
-                .setMaxP(140)
-                .setTargetP(25)
-                .setTargetV(135)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        Substation substation = network.newSubstation()
-                .setId("SUBSTATION")
-                .setCountry(Country.FR)
-                .add();
-        VoltageLevel vl2 = substation.newVoltageLevel()
-                .setId("VL_2")
-                .setNominalV(132.0)
-                .setLowVoltageLimit(118.8)
-                .setHighVoltageLimit(145.2)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        bus2 = vl2.getBusBreakerView().newBus()
-                .setId("BUS_2")
-                .add();
-        vl2.newLoad()
-                .setId("LOAD_2")
-                .setBus("BUS_2")
-                .setP0(11.2)
-                .setQ0(7.5)
-                .add();
-
-        VoltageLevel vl3 = substation.newVoltageLevel()
-                .setId("VL_3")
-                .setNominalV(33.0)
-                .setLowVoltageLimit(0)
-                .setHighVoltageLimit(100)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        bus3 = vl3.getBusBreakerView().newBus()
-                .setId("BUS_3")
-                .add();
-        load3 = vl3.newLoad()
-                .setId("LOAD_3")
-                .setBus("BUS_3")
-                .setQ0(0)
-                .setP0(5)
-                .add();
-
-        line12 = network.newLine()
-                .setId("LINE_12")
-                .setVoltageLevel1("VL_1")
-                .setVoltageLevel2("VL_2")
-                .setBus1("BUS_1")
-                .setBus2("BUS_2")
-                .setR(1.05)
-                .setX(10.0)
-                .setG1(0.0000005)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
+                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
                 .add();
 
         return network;
@@ -872,14 +806,24 @@ class AcLoadFlowTransformerControlTest {
 
     private void selectNetwork(Network network) {
         this.network = network;
+
         bus1 = network.getBusBreakerView().getBus("BUS_1");
         bus2 = network.getBusBreakerView().getBus("BUS_2");
         bus3 = network.getBusBreakerView().getBus("BUS_3");
         bus4 = network.getBusBreakerView().getBus("BUS_4");
 
-        line12 = network.getLine("LINE_12");
-
         t2wt = network.getTwoWindingsTransformer("T2wT");
         t3wt = network.getThreeWindingsTransformer("T3wT");
+    }
+
+    private void selectNetwork2(Network network) {
+        this.network = network;
+
+        bus1 = network.getBusBreakerView().getBus("BUS_1");
+        bus2 = network.getBusBreakerView().getBus("BUS_2");
+        bus3 = network.getBusBreakerView().getBus("BUS_3");
+
+        t2wt = network.getTwoWindingsTransformer("T2wT1");
+        t2wt2 = network.getTwoWindingsTransformer("T2wT2");
     }
 }

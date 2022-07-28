@@ -7,7 +7,9 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
+import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -19,30 +21,30 @@ public class LfDanglingLineBus extends AbstractLfBus {
 
     private final double nominalV;
 
-    public LfDanglingLineBus(DanglingLine danglingLine) {
-        super(Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine));
+    public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, boolean reactiveLimits, LfNetworkLoadingReport report) {
+        super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine));
         this.danglingLine = Objects.requireNonNull(danglingLine);
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         loadTargetP += danglingLine.getP0();
         loadTargetQ += danglingLine.getQ0();
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
-            if (generation.isVoltageRegulationOn()) {
-                this.targetV = generation.getTargetV();
-                this.voltageControl = true;
-                this.voltageControlCapacility = true;
-            } else {
-                if (!Double.isNaN(generation.getTargetQ())) {
-                    generationTargetQ += generation.getTargetQ();
-                }
-            }
-            generators.add(new LfDanglingLineGenerator(danglingLine));
+            add(new LfDanglingLineGenerator(danglingLine, getId(), reactiveLimits, report));
         }
+    }
+
+    public static String getId(DanglingLine danglingLine) {
+        return danglingLine.getId() + "_BUS";
+    }
+
+    @Override
+    public List<String> getOriginalIds() {
+        return List.of(danglingLine.getId());
     }
 
     @Override
     public String getId() {
-        return danglingLine.getId() + "_BUS";
+        return getId(danglingLine);
     }
 
     @Override
@@ -61,20 +63,10 @@ public class LfDanglingLineBus extends AbstractLfBus {
     }
 
     @Override
-    public double getLowVoltageLimit() {
-        return Double.NaN;
-    }
-
-    @Override
-    public double getHighVoltageLimit() {
-        return Double.NaN;
-    }
-
-    @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus) {
+    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
         Networks.setPropertyV(danglingLine, v);
         Networks.setPropertyAngle(danglingLine, angle);
 
-        super.updateState(reactiveLimits, writeSlackBus);
+        super.updateState(reactiveLimits, writeSlackBus, false, false);
     }
 }

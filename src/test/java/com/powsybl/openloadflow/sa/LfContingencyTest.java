@@ -7,12 +7,20 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.AbstractConverterTest;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.GeneratorContingency;
+import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,8 +34,10 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -49,17 +59,23 @@ class LfContingencyTest extends AbstractConverterTest {
     @Test
     void test() throws IOException {
         Network network = FourSubstationsNodeBreakerFactory.create();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new MostMeshedSlackBusSelector());
+
+        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+
+        List<LfNetwork> lfNetworks = Networks.load(network, new LfNetworkParameters(new MostMeshedSlackBusSelector(), connectivityFactory));
+        LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
-        OpenSecurityAnalysis sa = new OpenSecurityAnalysisFactory().create(network, null, 0);
+        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), Reporter.NO_OP);
 
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
-        List<OpenSecurityAnalysis.ContingencyContext> contingencyContexts =
-            sa.getContingencyContexts(Collections.singletonList(contingency), new HashSet<>());
+        List<PropagatedContingency> propagatedContingencies =
+            PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false, false, true);
 
-        List<LfContingency> lfContingencies = sa.createContingencies(contingencyContexts, lfNetworks.get(0));
+        List<LfContingency> lfContingencies = propagatedContingencies.stream()
+                .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(mainNetwork, true).stream())
+                .collect(Collectors.toList());
         assertEquals(1, lfContingencies.size());
 
         Path file = fileSystem.getPath("/work/lfc.json");
@@ -72,4 +88,35 @@ class LfContingencyTest extends AbstractConverterTest {
         }
     }
 
+    @Test
+    void testGeneratorNotFound() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(2, lfNetworks.size());
+
+        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), Reporter.NO_OP);
+
+        String generatorId = "GEN";
+        Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
+        assertThrows(PowsyblException.class, () ->
+                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false, false, true),
+                "Generator 'GEN' not found in the network");
+    }
+
+    @Test
+    void testLoadNotFound() {
+        Network network = FourSubstationsNodeBreakerFactory.create();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(2, lfNetworks.size());
+
+        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), Reporter.NO_OP);
+
+        String loadId = "LOAD";
+        Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
+        assertThrows(PowsyblException.class, () ->
+                        PropagatedContingency.createListForSecurityAnalysis(network, Collections.singletonList(contingency), new HashSet<>(), false, false, false, true),
+                "Load 'LOAD' not found in the network");
+    }
 }

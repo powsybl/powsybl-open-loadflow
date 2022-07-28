@@ -12,18 +12,16 @@ import java.util.Set;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface GraphDecrementalConnectivity<V> {
+public interface GraphDecrementalConnectivity<V, E> {
 
     void addVertex(V vertex);
 
-    void addEdge(V vertex1, V vertex2);
+    void addEdge(V vertex1, V vertex2, E edge);
 
     /**
-     * Cut one edge between given vertices
-     * @param vertex1 first vertex, from or towards which the edge has been constructed
-     * @param vertex2 second vertex, towards or from which the edge has been constructed
+     * Cut given edge
      */
-    void cut(V vertex1, V vertex2);
+    void cut(E edge);
 
     /**
      * Reset all the cut done previously in the graph
@@ -44,4 +42,8 @@ public interface GraphDecrementalConnectivity<V> {
      * @return the collection of small connected components
      */
     Collection<Set<V>> getSmallComponents();
+
+    Set<V> getConnectedComponent(V vertex);
+
+    Set<V> getNonConnectedVertices(V vertex);
 }

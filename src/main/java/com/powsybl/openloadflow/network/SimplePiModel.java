@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.network;
 
 import net.jafama.FastMath;
 
+import java.util.Optional;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -47,6 +49,11 @@ public class SimplePiModel implements PiModel {
     @Override
     public double getZ() {
         return FastMath.hypot(r, x);
+    }
+
+    @Override
+    public double getY() {
+        return 1 / getZ();
     }
 
     @Override
@@ -99,6 +106,11 @@ public class SimplePiModel implements PiModel {
         return r1;
     }
 
+    @Override
+    public double getContinuousR1() {
+        return getR1();
+    }
+
     public SimplePiModel setR1(double r1) {
         this.r1 = r1;
         return this;
@@ -123,5 +135,43 @@ public class SimplePiModel implements PiModel {
     @Override
     public void roundR1ToClosestTap() {
         throw new IllegalStateException("R1 rounding is not supported in simple Pi model implementation");
+    }
+
+    @Override
+    public boolean updateTapPositionA1(Direction direction) {
+        throw new IllegalStateException("No tap position change in simple Pi model implementation");
+    }
+
+    @Override
+    public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
+        throw new IllegalStateException("No tap position change in simple Pi model implementation");
+    }
+
+    private void rescaleZ(double z) {
+        double ksi = getKsi();
+        r = z * FastMath.cos(ksi);
+        x = z * FastMath.sin(ksi);
+    }
+
+    @Override
+    public boolean setMinZ(double minZ, boolean dc) {
+        if (dc) {
+            if (FastMath.abs(this.x) < minZ) {
+                this.x = minZ;
+                return true;
+            }
+        } else {
+            double z = getZ();
+            if (z < minZ) {
+                rescaleZ(minZ);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void setBranch(LfBranch branch) {
+        // nothing to set
     }
 }

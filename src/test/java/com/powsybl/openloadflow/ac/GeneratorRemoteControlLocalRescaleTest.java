@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -90,9 +90,8 @@ class GeneratorRemoteControlLocalRescaleTest {
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+        OpenLoadFlowParameters.create(parameters)
                 .setVoltageRemoteControl(false);
-        this.parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
     }
 
     @Test

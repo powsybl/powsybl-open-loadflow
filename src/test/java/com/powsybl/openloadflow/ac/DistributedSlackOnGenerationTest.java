@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -18,16 +16,17 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumSet;
 import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -52,15 +51,17 @@ class DistributedSlackOnGenerationTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
     }
 
     @Test
     void test() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(120, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
         assertActivePowerEquals(-115, g1.getTerminal());
         assertActivePowerEquals(-245, g2.getTerminal());
         assertActivePowerEquals(-105, g3.getTerminal());
@@ -78,10 +79,17 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    void testUnsupportedGenerationBalanceType() {
+    void testProportionalToGenerationPBalanceType() {
+        // decrease g1 max limit power, so that distributed slack algo reach the g1 max
+        g1.setMaxP(105);
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
-        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-                "java.lang.UnsupportedOperationException: Unsupported balance type mode: PROPORTIONAL_TO_GENERATION_P");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-105, g1.getTerminal());
+        assertActivePowerEquals(-260.526, g2.getTerminal());
+        assertActivePowerEquals(-117.236, g3.getTerminal());
+        assertActivePowerEquals(-117.236, g4.getTerminal());
     }
 
     @Test
@@ -134,9 +142,9 @@ class DistributedSlackOnGenerationTest {
         network.getGenerator("GEN").setTargetP(-607);
         network.getLoad("LOAD").setP0(-600);
         network.getLoad("LOAD").setQ0(-200);
-        LoadFlowResult result = LoadFlow.find("OpenLoadFlow").run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertActivePowerEquals(595.350, network.getGenerator("GEN").getTerminal());
+        assertActivePowerEquals(595.328, network.getGenerator("GEN").getTerminal());
     }
 
     @Test
@@ -146,5 +154,35 @@ class DistributedSlackOnGenerationTest {
         network.getGenerator("GEN").setMinP(1000);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
                 "Failed to distribute slack bus active power mismatch, -1.4404045651214226 MW remains");
+    }
+
+    @Test
+    void nonParticipatingBus() {
+
+        //B1 and B2 are located in germany the rest is in france
+        Substation b1s = network.getSubstation("b1_s");
+        b1s.setCountry(Country.GE);
+        Substation b2s = network.getSubstation("b2_s");
+        b2s.setCountry(Country.GE);
+
+        //Only substation located in france are used
+        parameters.setCountriesToBalance(EnumSet.of(Country.FR));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-100, g1.getTerminal());
+        assertActivePowerEquals(-200, g2.getTerminal());
+        assertActivePowerEquals(-150, g3.getTerminal());
+        assertActivePowerEquals(-150, g4.getTerminal());
+    }
+
+    @Test
+    void generatorWithTargetPLowerThanMinP() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").setMaxP(1000);
+        network.getGenerator("GEN").setMinP(200);
+        network.getGenerator("GEN").setTargetP(100);
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
+                "Failed to distribute slack bus active power mismatch, 504.9476825313616 MW remains");
     }
 }

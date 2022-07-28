@@ -6,13 +6,18 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.openloadflow.network.AbstractLfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.SimplePiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.security.results.BranchResult;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -21,14 +26,19 @@ public class LfSwitch extends AbstractLfBranch {
 
     private final Switch aSwitch;
 
-    public LfSwitch(LfBus bus1, LfBus bus2, Switch aSwitch) {
-        super(bus1, bus2, new SimplePiModel());
+    public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch) {
+        super(network, bus1, bus2, new SimplePiModel());
         this.aSwitch = Objects.requireNonNull(aSwitch);
     }
 
     @Override
     public String getId() {
         return aSwitch.getId();
+    }
+
+    @Override
+    public BranchType getBranchType() {
+        return BranchType.SWITCH;
     }
 
     @Override
@@ -42,8 +52,8 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP1() {
-        return Double.NaN;
+    public Evaluable getP1() {
+        return NAN;
     }
 
     @Override
@@ -52,8 +62,8 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public double getP2() {
-        return Double.NaN;
+    public Evaluable getP2() {
+        return NAN;
     }
 
     @Override
@@ -62,32 +72,61 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
+    public Evaluable getQ1() {
+        return NAN;
+    }
+
+    @Override
     public void setQ2(Evaluable q2) {
         // nothing to do
     }
 
     @Override
-    public double getI1() {
-        return Double.NaN;
+    public Evaluable getQ2() {
+        return NAN;
     }
 
     @Override
-    public double getI2() {
-        return Double.NaN;
+    public void setI1(Evaluable i1) {
+        // nothing to do
     }
 
     @Override
-    public double getPermanentLimit1() {
-        return Double.NaN;
+    public Evaluable getI1() {
+        return NAN;
     }
 
     @Override
-    public double getPermanentLimit2() {
-        return Double.NaN;
+    public void setI2(Evaluable i2) {
+        // nothing to do
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn) {
+    public Evaluable getI2() {
+        return NAN;
+    }
+
+    @Override
+    public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        throw new PowsyblException("Unsupported type of branch for branch result: " + aSwitch.getId());
+    }
+
+    public List<LfLimit> getLimits1(final LimitType type) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<LfLimit> getLimits2(final LimitType type) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+        // nothing to do
+    }
+
+    @Override
+    public void updateFlows(double p1, double q1, double p2, double q2) {
         // nothing to do
     }
 }

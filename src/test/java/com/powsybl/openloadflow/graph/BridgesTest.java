@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.jgrapht.alg.connectivity.BiconnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +29,7 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -44,7 +45,7 @@ class BridgesTest {
     void setUp() {
         long start = System.currentTimeMillis();
         Network network = EurostagTutorialExample1Factory.create();
-        List<LfNetwork> lfn = LfNetwork.load(network, new FirstSlackBusSelector());
+        List<LfNetwork> lfn = Networks.load(network, new FirstSlackBusSelector());
         this.lfNetwork = lfn.get(0);
         LOGGER.info("Reading network of {} buses in {} ms", lfNetwork.getBuses().size(), System.currentTimeMillis() - start);
 
@@ -114,7 +115,7 @@ class BridgesTest {
         assertEquals(bridgesSetReference, bridges);
     }
 
-    private Set<String> testBridgesOnConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity, String method) {
+    private Set<String> testBridgesOnConnectivity(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, String method) {
         long start = System.currentTimeMillis();
         initGraphDc(lfNetwork, connectivity);
         LOGGER.info("Graph init for {} in {} ms", method, System.currentTimeMillis() - start);
@@ -124,13 +125,13 @@ class BridgesTest {
         return bridgesSet;
     }
 
-    private static Set<String> getBridges(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity) {
+    private static Set<String> getBridges(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
         Set<String> bridgesSet = new HashSet<>();
         for (LfBranch branch : lfNetwork.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             if (bus1 != null && bus2 != null) {
-                connectivity.cut(bus1, bus2);
+                connectivity.cut(branch);
                 boolean connected = connectivity.getComponentNumber(bus1) == connectivity.getComponentNumber(bus2);
                 if (!connected) {
                     bridgesSet.add(branch.getId());
@@ -156,7 +157,7 @@ class BridgesTest {
         return graph;
     }
 
-    private static void initGraphDc(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus> connectivity) {
+    private static void initGraphDc(LfNetwork lfNetwork, GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
         for (LfBus bus : lfNetwork.getBuses()) {
             connectivity.addVertex(bus);
         }
@@ -164,7 +165,7 @@ class BridgesTest {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             if (bus1 != null && bus2 != null) {
-                connectivity.addEdge(bus1, bus2);
+                connectivity.addEdge(bus1, bus2, branch);
             }
         }
     }

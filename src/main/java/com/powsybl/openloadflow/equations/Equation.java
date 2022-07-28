@@ -7,57 +7,50 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class Equation implements Evaluable, Comparable<Equation> {
+public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Evaluable, Comparable<Equation<V, E>> {
 
-    /**
-     * Bus or any other equipment id.
-     */
-    private final int num;
+    private final int elementNum;
 
-    private final EquationType type;
+    private final E type;
 
-    private final EquationSystem equationSystem;
+    private final EquationSystem<V, E> equationSystem;
 
     private int column = -1;
-
-    private Object data;
 
     /**
      * true if this equation term active, false otherwise
      */
     private boolean active = true;
 
-    private final List<EquationTerm> terms = new ArrayList<>();
+    private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
-    Equation(int num, EquationType type, EquationSystem equationSystem) {
-        this.num = num;
+    Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
+        this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
     }
 
-    public int getNum() {
-        return num;
+    public int getElementNum() {
+        return elementNum;
     }
 
-    public EquationType getType() {
+    public E getType() {
         return type;
     }
 
-    public EquationSystem getEquationSystem() {
+    public EquationSystem<V, E> getEquationSystem() {
         return equationSystem;
     }
 
@@ -76,164 +69,39 @@ public class Equation implements Evaluable, Comparable<Equation> {
     public void setActive(boolean active) {
         if (active != this.active) {
             this.active = active;
-            equationSystem.notifyListeners(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
+            equationSystem.notifyEquationChange(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
         }
     }
 
-    public void setData(Object data) {
-        this.data = data;
-    }
-
-    public <T> T getData() {
-        return (T) data;
-    }
-
-    public Equation addTerm(EquationTerm term) {
+    public Equation<V, E> addTerm(EquationTerm<V, E> term) {
         Objects.requireNonNull(term);
+        if (term.getEquation() != null) {
+            throw new PowsyblException("Equation term already added to another equation: "
+                    + term.getEquation());
+        }
         terms.add(term);
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
-        equationSystem.notifyListeners(this, EquationEventType.EQUATION_UPDATED);
+        equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
     }
 
-    public Equation addTerms(List<EquationTerm> terms) {
+    public Equation<V, E> addTerms(List<EquationTerm<V, E>> terms) {
         Objects.requireNonNull(terms);
-        for (EquationTerm term : terms) {
+        for (EquationTerm<V, E> term : terms) {
             addTerm(term);
         }
         return this;
     }
 
-    public List<EquationTerm> getTerms() {
+    public List<EquationTerm<V, E>> getTerms() {
         return terms;
-    }
-
-    private static double getBusTargetV(LfBus bus) {
-        Objects.requireNonNull(bus);
-        if (bus.isDiscreteVoltageControlled()) {
-            return bus.getDiscreteVoltageControl().getTargetValue();
-        }
-        if (bus.getControllerBuses().isEmpty()) {
-            return bus.getTargetV();
-        } else {
-            List<LfBus> controllerBuses = bus.getControllerBuses()
-                    .stream()
-                    .filter(LfBus::hasVoltageControl)
-                    .collect(Collectors.toList());
-            if (bus.hasVoltageControl()) {
-                controllerBuses.add(bus);
-            }
-            if (controllerBuses.isEmpty()) {
-                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId()
-                        + "'has voltage control on");
-            }
-            return controllerBuses.get(0).getTargetV();
-        }
-    }
-
-    private static double getBranchA(LfBranch branch) {
-        Objects.requireNonNull(branch);
-        PiModel piModel = branch.getPiModel();
-        return PiModel.A2 - piModel.getA1();
-    }
-
-    private static double getBranchTarget(LfBranch branch, DiscretePhaseControl.Unit unit) {
-        Objects.requireNonNull(branch);
-        if (!branch.isPhaseControlled()) {
-            throw new PowsyblException("Branch '" + branch.getId() + "' is not phase-controlled");
-        }
-        DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl();
-        if (phaseControl.getUnit() != unit) {
-            throw new PowsyblException("Branch '" + branch.getId() + "' has not a target in " + unit);
-        }
-        return phaseControl.getTargetValue();
-    }
-
-    private static double getReactivePowerDistributionTarget(LfNetwork network, int num, DistributionData data) {
-        LfBus controllerBus = network.getBus(num);
-        LfBus firstControllerBus = network.getBus(data.getFirstControllerElementNum());
-        double c = data.getC();
-        return c * (controllerBus.getLoadTargetQ() - controllerBus.getGenerationTargetQ())
-                - firstControllerBus.getLoadTargetQ() - firstControllerBus.getGenerationTargetQ();
-    }
-
-    private static double getRho1DistributionTarget(LfNetwork network, int num, DistributionData data) {
-        LfBranch controllerBranch = network.getBranch(num);
-        LfBranch firstControllerBranch = network.getBranch(data.getFirstControllerElementNum());
-        // as a first and very simple ratio distribution strategy, we keep the gap between the 2 ratios constant
-        return controllerBranch.getPiModel().getR1() - firstControllerBranch.getPiModel().getR1();
-    }
-
-    void initTarget(LfNetwork network, double[] targets) {
-        switch (type) {
-            case BUS_P:
-                targets[column] = network.getBus(num).getTargetP();
-                break;
-
-            case BUS_Q:
-                targets[column] = network.getBus(num).getTargetQ();
-                break;
-
-            case BUS_V:
-                targets[column] = getBusTargetV(network.getBus(num));
-                break;
-
-            case BUS_PHI:
-                targets[column] = 0;
-                break;
-
-            case BRANCH_P:
-                targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.MW);
-                break;
-
-            case BRANCH_I:
-                targets[column] = getBranchTarget(network.getBranch(num), DiscretePhaseControl.Unit.A);
-                break;
-
-            case BRANCH_ALPHA1:
-                targets[column] = network.getBranch(num).getPiModel().getA1();
-                break;
-
-            case ZERO_Q:
-                targets[column] = getReactivePowerDistributionTarget(network, num, getData());
-                break;
-
-            case ZERO_V:
-                targets[column] = 0;
-                break;
-
-            case ZERO_PHI:
-                targets[column] = getBranchA(network.getBranch(num));
-                break;
-
-            case ZERO_RHO1:
-                targets[column] = getRho1DistributionTarget(network, num, getData());
-                break;
-
-            default:
-                throw new IllegalStateException("Unknown state variable type: "  + type);
-        }
-
-        for (EquationTerm term : terms) {
-            if (term.isActive() && term.hasRhs()) {
-                targets[column] -= term.rhs();
-            }
-        }
-    }
-
-    public void update(double[] x) {
-        for (EquationTerm term : terms) {
-            if (term.isActive()) {
-                term.update(x);
-            }
-        }
     }
 
     @Override
     public double eval() {
         double value = 0;
-        for (EquationTerm term : terms) {
+        for (EquationTerm<V, E> term : terms) {
             if (term.isActive()) {
                 value += term.eval();
                 if (term.hasRhs()) {
@@ -246,7 +114,7 @@ public class Equation implements Evaluable, Comparable<Equation> {
 
     @Override
     public int hashCode() {
-        return num + type.hashCode();
+        return elementNum + type.hashCode();
     }
 
     @Override
@@ -261,59 +129,58 @@ public class Equation implements Evaluable, Comparable<Equation> {
     }
 
     @Override
-    public int compareTo(Equation o) {
+    public int compareTo(Equation<V, E> o) {
         if (o == this) {
             return 0;
         }
-        int c = num - o.num;
+        int c = elementNum - o.elementNum;
         if (c == 0) {
             c = type.ordinal() - o.type.ordinal();
         }
         return c;
     }
 
-    public void write(Writer writer) throws IOException {
-        writer.write(type.getSymbol());
-        writer.append(Integer.toString(num));
-        writer.append(" = ");
-        List<EquationTerm> activeTerms = terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
-        for (Iterator<EquationTerm> it = activeTerms.iterator(); it.hasNext();) {
-            EquationTerm term = it.next();
+    public void write(Writer writer, boolean writeInactiveTerms) throws IOException {
+        writer.append(type.getSymbol())
+                .append(Integer.toString(elementNum))
+                .append(" = ");
+        List<EquationTerm<V, E>> activeTerms = writeInactiveTerms ? terms : terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
+        for (Iterator<EquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
+            EquationTerm<V, E> term = it.next();
+            if (!term.isActive()) {
+                writer.write("[ ");
+            }
             term.write(writer);
+            if (!term.isActive()) {
+                writer.write(" ]");
+            }
             if (it.hasNext()) {
-                writer.write(" + ");
+                writer.append(" + ");
             }
         }
     }
 
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder("Equation(num=")
-                .append(num);
-        switch (type) {
-            case BUS_P:
-            case BUS_Q:
-            case BUS_V:
-            case BUS_PHI:
-                LfBus bus = equationSystem.getNetwork().getBus(num);
-                builder.append(", busId=").append(bus.getId());
+    public Optional<LfElement> getElement(LfNetwork network) {
+        Objects.requireNonNull(network);
+        LfElement element = null;
+        switch (type.getElementType()) {
+            case BUS:
+                element = network.getBus(elementNum);
                 break;
-            case BRANCH_P:
-            case BRANCH_I:
-                LfBranch branch = equationSystem.getNetwork().getBranch(num);
-                builder.append(", branchId=").append(branch.getId());
+            case BRANCH:
+                element = network.getBranch(elementNum);
                 break;
-            case ZERO_Q:
-                LfBus controllerBus = equationSystem.getNetwork().getBus(num);
-                builder.append(", controllerBusId=").append(controllerBus.getId());
-                break;
-            case ZERO_V:
-            case ZERO_PHI:
-            default:
+            case SHUNT_COMPENSATOR:
+                element = network.getShunt(elementNum);
                 break;
         }
-        builder.append(", type=").append(type)
-                .append(", column=").append(column).append(")");
-        return builder.toString();
+        return Optional.ofNullable(element);
+    }
+
+    @Override
+    public String toString() {
+        return "Equation(elementNum=" + elementNum +
+                ", type=" + type +
+                ", column=" + column + ")";
     }
 }

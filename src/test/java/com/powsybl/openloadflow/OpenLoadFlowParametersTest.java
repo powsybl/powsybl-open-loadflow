@@ -19,11 +19,12 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
-import com.powsybl.openloadflow.network.NameSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,10 +33,11 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import static com.powsybl.openloadflow.util.ParameterConstants.*;
-import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Jérémy Labous <jlabous at silicom.fr>
@@ -45,6 +47,8 @@ class OpenLoadFlowParametersTest {
     private InMemoryPlatformConfig platformConfig;
 
     private FileSystem fileSystem;
+
+    public static final double DELTA_MISMATCH = 1E-4d;
 
     @BeforeEach
     public void setUp() {
@@ -66,7 +70,7 @@ class OpenLoadFlowParametersTest {
     @Test
     void testConfig() {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
-        olfModuleConfig.setStringProperty("slackBusSelectorType", "First");
+        olfModuleConfig.setStringProperty("slackBusSelectionMode", "FIRST");
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
 
@@ -77,11 +81,11 @@ class OpenLoadFlowParametersTest {
         assertTrue(parameters.isDistributedSlack());
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertTrue(olfParameters.getSlackBusSelector() instanceof FirstSlackBusSelector);
+        assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
 
-        assertTrue(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+        assertFalse(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
         assertTrue(olfParameters.hasVoltageRemoteControl());
-        assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
+        assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
     }
 
     @Test
@@ -95,25 +99,22 @@ class OpenLoadFlowParametersTest {
         assertTrue(parameters.isDistributedSlack());
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(SLACK_BUS_SELECTOR_DEFAULT_VALUE, olfParameters.getSlackBusSelector());
-        assertEquals(VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
-        assertEquals(LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
-        assertEquals(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
-
-        assertEquals(DC_USE_TRANSFORMER_RATIO_DEFAULT_VALUE, olfParameters.isDcUseTransformerRatio());
+        assertEquals(OpenLoadFlowParameters.SLACK_BUS_SELECTION_DEFAULT_VALUE, olfParameters.getSlackBusSelectionMode());
+        assertEquals(OpenLoadFlowParameters.VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
+        assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
+        assertEquals(OpenLoadFlowParameters.THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
+        assertEquals(OpenLoadFlowParameters.SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, olfParameters.getSlackBusPMaxMismatch(), 0.0);
+        assertEquals(OpenLoadFlowParameters.REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasReactivePowerRemoteControl());
+        assertEquals(OpenLoadFlowParameters.DC_POWER_FACTOR_DEFAULT_VALUE, olfParameters.getDcPowerFactor());
     }
 
     @Test
     void testInvalidOpenLoadflowConfig() {
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
-        // Invalid -> SlackBusSelectorParametersReader cannot be found
-        olfModuleConfig.setStringProperty("slackBusSelectorType", "Invalid");
+        olfModuleConfig.setStringProperty("slackBusSelectionMode", "Invalid");
 
-        LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
-        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-
-        // Default value are selected and error log message is printed
-        assertEquals(SLACK_BUS_SELECTOR_DEFAULT_VALUE, olfParameters.getSlackBusSelector());
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> LoadFlowParameters.load(platformConfig));
+        assertEquals("No enum constant com.powsybl.openloadflow.network.SlackBusSelectionMode.Invalid", exception.getMessage());
     }
 
     @Test
@@ -126,7 +127,7 @@ class OpenLoadFlowParametersTest {
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(FirstSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
+        assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
     }
 
     @Test
@@ -139,7 +140,7 @@ class OpenLoadFlowParametersTest {
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(MostMeshedSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
+        assertEquals(SlackBusSelectionMode.MOST_MESHED, olfParameters.getSlackBusSelectionMode());
     }
 
     @Test
@@ -152,10 +153,11 @@ class OpenLoadFlowParametersTest {
 
         LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(NameSlackBusSelector.class, olfParameters.getSlackBusSelector().getClass());
-        LfNetwork lfNetwork = LfNetwork.load(EurostagTutorialExample1Factory.create(), olfParameters.getSlackBusSelector()).get(0);
+        assertEquals(SlackBusSelectionMode.NAME, olfParameters.getSlackBusSelectionMode());
+        List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), SlackBusSelector.fromMode(olfParameters.getSlackBusSelectionMode(), olfParameters.getSlackBusesIds(), olfParameters.getPlausibleActivePowerLimit()));
+        LfNetwork lfNetwork = lfNetworks.get(0);
         PowsyblException thrown = assertThrows(PowsyblException.class, lfNetwork::getSlackBus);
-        assertEquals("Slack bus '???' not found", thrown.getMessage());
+        assertEquals("None of the buses or voltage levels [???] have been found", thrown.getMessage());
     }
 
     @Test
@@ -163,8 +165,12 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
         Network network = EurostagTutorialExample1Factory.create();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
-        network.getGenerator("GEN").setTargetV(5);
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+
+        // Change the nominal voltage to have a target V distant enough but still plausible (in [0.8 1.2] in Pu), so that the NR diverges
+        network.getVoltageLevel("VLGEN").setNominalV(100);
+        network.getGenerator("GEN").setTargetV(120);
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
@@ -174,9 +180,44 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         parameters.setWriteSlackBus(true);
         Network network = EurostagTutorialExample1Factory.create();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(network.getVoltageLevel("VLHV1").getExtension(SlackTerminal.class).getTerminal().getBusView().getBus().getId(),
                 result.getComponentResults().get(0).getSlackBusId());
+    }
+
+    @Test
+    void testSetSlackBusPMaxMismatch() {
+        LoadFlowParameters parameters = LoadFlowParameters.load();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(-0.004, result.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.0001);
+        LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowResult result2 = loadFlowRunner2.run(network, parameters);
+        assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
+    }
+
+    @Test
+    void testUpdateParameters() {
+        Map<String, String> parametersMap = new HashMap<>();
+        parametersMap.put("slackBusSelectionMode", "FIRST");
+        parametersMap.put("voltageRemoteControl", "true");
+        parametersMap.put("reactivePowerRemoteControl", "false");
+        OpenLoadFlowParameters parameters = OpenLoadFlowParameters.load(parametersMap);
+        assertEquals(SlackBusSelectionMode.FIRST, parameters.getSlackBusSelectionMode());
+        assertTrue(parameters.hasVoltageRemoteControl());
+        assertFalse(parameters.hasReactivePowerRemoteControl());
+        Map<String, String> updateParametersMap = new HashMap<>();
+        updateParametersMap.put("slackBusSelectionMode", "MOST_MESHED");
+        updateParametersMap.put("voltageRemoteControl", "false");
+        updateParametersMap.put("maxIteration", "10");
+        parameters.update(updateParametersMap);
+        assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getSlackBusSelectionMode());
+        assertFalse(parameters.hasVoltageRemoteControl());
+        assertEquals(10, parameters.getMaxIteration());
+        assertFalse(parameters.hasReactivePowerRemoteControl());
     }
 }

@@ -8,7 +8,8 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 
 import java.util.Objects;
 
@@ -17,38 +18,39 @@ import java.util.Objects;
  */
 public class DcLoadFlowParameters {
 
-    private final SlackBusSelector slackBusSelector;
+    private final LfNetworkParameters networkParameters;
+
+    private final DcEquationSystemCreationParameters equationSystemCreationParameters;
 
     private final MatrixFactory matrixFactory;
 
-    private final boolean updateFlows;
+    private final boolean distributedSlack;
 
-    boolean useTransformerRatio;
+    private final LoadFlowParameters.BalanceType balanceType;
 
-    private boolean distributedSlack;
+    private final boolean setVToNan;
 
-    private LoadFlowParameters.BalanceType balanceType;
-
-    public DcLoadFlowParameters(SlackBusSelector slackBusSelector, MatrixFactory matrixFactory, boolean updateFlows,
-                                boolean useTransformerRatio, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType) {
-        this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+    public DcLoadFlowParameters(LfNetworkParameters networkParameters, DcEquationSystemCreationParameters equationSystemCreationParameters,
+                                MatrixFactory matrixFactory, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
+                                boolean setVToNan) {
+        this.networkParameters = Objects.requireNonNull(networkParameters);
+        this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.updateFlows = updateFlows;
-        this.useTransformerRatio = useTransformerRatio;
         this.distributedSlack = distributedSlack;
         this.balanceType = balanceType;
+        this.setVToNan = setVToNan;
     }
 
-    public SlackBusSelector getSlackBusSelector() {
-        return slackBusSelector;
+    public LfNetworkParameters getNetworkParameters() {
+        return networkParameters;
+    }
+
+    public DcEquationSystemCreationParameters getEquationSystemCreationParameters() {
+        return equationSystemCreationParameters;
     }
 
     public MatrixFactory getMatrixFactory() {
         return matrixFactory;
-    }
-
-    public boolean isUpdateFlows() {
-        return updateFlows;
     }
 
     public boolean isDistributedSlack() {
@@ -59,7 +61,19 @@ public class DcLoadFlowParameters {
         return balanceType;
     }
 
-    public boolean isUseTransformerRatio() {
-        return useTransformerRatio;
+    public boolean isSetVToNan() {
+        return setVToNan;
+    }
+
+    @Override
+    public String toString() {
+        return "DcLoadFlowParameters(" +
+                "networkParameters=" + networkParameters +
+                ", equationSystemCreationParameters=" + equationSystemCreationParameters +
+                ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
+                ", distributedSlack=" + distributedSlack +
+                ", balanceType=" + balanceType +
+                ", setVToNan=" + setVToNan +
+                ')';
     }
 }

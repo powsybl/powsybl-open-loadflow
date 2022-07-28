@@ -7,13 +7,14 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -114,9 +115,8 @@ class AcLoadFlowSvcTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
                 .setDistributedSlack(false);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
     }
 
     @Test
@@ -135,7 +135,7 @@ class AcLoadFlowSvcTest {
         assertTrue(Double.isNaN(svc1.getTerminal().getP()));
         assertTrue(Double.isNaN(svc1.getTerminal().getQ()));
 
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
 
         result = loadFlowRunner.run(network, parameters);
@@ -161,5 +161,153 @@ class AcLoadFlowSvcTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(-svc1.getBmin() * svc1.getVoltageSetpoint() * svc1.getVoltageSetpoint(), svc1.getTerminal()); // min reactive limit has been correctly reached
+    }
+
+    @Test
+    void testSvcWithSlope() {
+        svc1.setVoltageSetpoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(387.845, bus2);
+        assertAngleEquals(-0.022026, bus2);
+        assertActivePowerEquals(101.466, l1.getTerminal1());
+        assertReactivePowerEquals(246.252, l1.getTerminal1());
+        assertActivePowerEquals(-101, l1.getTerminal2());
+        assertReactivePowerEquals(-244.853, l1.getTerminal2());
+        assertActivePowerEquals(0, svc1.getTerminal());
+        assertReactivePowerEquals(94.853, svc1.getTerminal());
+    }
+
+    @Test
+    void testSvcWithSlope2() {
+        // Test switch PV to PQ
+        svc1.setVoltageSetpoint(440)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(398.190, bus2);
+        assertAngleEquals(-0.526124, bus2);
+        assertActivePowerEquals(109.018, l1.getTerminal1());
+        assertReactivePowerEquals(-1098.933, l1.getTerminal1());
+        assertActivePowerEquals(-101, l1.getTerminal2());
+        assertReactivePowerEquals(1122.987, l1.getTerminal2());
+        assertActivePowerEquals(0, svc1.getTerminal());
+        assertReactivePowerEquals(-1268.445, svc1.getTerminal());
+    }
+
+    @Test
+    void testSvcWithSlope3() {
+        Generator gen = network.getVoltageLevel("vl2").newGenerator()
+                .setId("gen")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setTargetP(0)
+                .setTargetV(385)
+                .setTargetQ(100)
+                .setMaxP(100)
+                .setMinP(0)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        svc1.setVoltageSetpoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(385, bus2);
+        assertAngleEquals(0.116345, bus2);
+        assertReactivePowerEquals(228.948, svc1.getTerminal()); // same behaviour as slope = 0
+        assertReactivePowerEquals(228.948, gen.getTerminal()); // same behaviour as slope = 0
+    }
+
+    @Test
+    void testSvcWithSlope4() {
+
+        StaticVarCompensator svc2 = network.getVoltageLevel("vl2").newStaticVarCompensator()
+                .setId("svc2")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setVoltageSetpoint(385)
+                .setBmin(-0.008)
+                .setBmax(0.008)
+                .add();
+
+        svc1.setVoltageSetpoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc2.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(385, bus2);
+        assertAngleEquals(0.116345, bus2);
+        assertReactivePowerEquals(228.948, svc1.getTerminal()); // same behaviour as slope = 0
+        assertReactivePowerEquals(228.948, svc2.getTerminal()); // same behaviour as slope = 0
+    }
+
+    @Test
+    void testSvcWithSlope5() {
+        // With a generator at bus2 not controlling voltage
+        svc1.setVoltageSetpoint(385)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+
+        Generator gen = network.getVoltageLevel("vl2").newGenerator()
+                .setId("gen")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setTargetP(0)
+                .setTargetV(385)
+                .setTargetQ(100)
+                .setMaxP(100)
+                .setMinP(0)
+                .setVoltageRegulatorOn(false)
+                .add();
+
+        parameters.getExtension(OpenLoadFlowParameters.class).setVoltagePerReactivePowerControl(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(388.462, bus2);
+        assertAngleEquals(-0.052034, bus2);
+        assertActivePowerEquals(101.249, l1.getTerminal1());
+        assertReactivePowerEquals(166.160, l1.getTerminal1());
+        assertActivePowerEquals(-101, l1.getTerminal2());
+        assertReactivePowerEquals(-165.413, l1.getTerminal2());
+        assertActivePowerEquals(0, svc1.getTerminal());
+        assertReactivePowerEquals(115.413, svc1.getTerminal());
+    }
+
+    @Test
+    void testRegulationModeOff() {
+        svc1.setReactivePowerSetpoint(100)
+                .setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(100, svc1.getTerminal());
     }
 }

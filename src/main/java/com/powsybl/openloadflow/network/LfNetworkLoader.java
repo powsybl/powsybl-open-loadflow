@@ -6,13 +6,23 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.reporter.Reporter;
+
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfNetworkLoader {
+public interface LfNetworkLoader<T> {
 
-    Optional<List<LfNetwork>> load(Object network, LfNetworkParameters parameters);
+    /**
+     * Load the given network object
+     * @param network the network to load
+     * @param parameters parameters used to load the network
+     * @param reporter the reporter used for functional logs
+     * @return the list of LfNetwork, sorted by ascending connected components number then by ascending synchronous
+     * components number (hence sorted by descending connected components size then by descending synchronous components
+     * size)
+     */
+    List<LfNetwork> load(T network, LfNetworkParameters parameters, Reporter reporter);
 }

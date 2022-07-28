@@ -6,22 +6,34 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.util.Evaluable;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface LfShunt {
-
-    String getId();
-
-    int getNum();
-
-    void setNum(int num);
+public interface LfShunt extends LfElement {
 
     double getB();
 
-    void setQ(Evaluable q);
+    void setB(double b);
+
+    double dispatchB();
+
+    double getG();
+
+    void setG(double g);
 
     void updateState();
+
+    boolean hasVoltageControlCapability();
+
+    void setVoltageControlCapability(boolean voltageControlCapability);
+
+    boolean isVoltageControlEnabled();
+
+    void setVoltageControlEnabled(boolean voltageControlEnabled);
+
+    Optional<ShuntVoltageControl> getVoltageControl();
+
+    void setVoltageControl(ShuntVoltageControl voltageControl);
 }

@@ -7,8 +7,10 @@
 package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,7 +28,7 @@ public final class ActivePowerDistribution {
 
         String getElementType();
 
-        List<ParticipatingElement> getParticipatingElements(LfNetwork network);
+        List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses);
 
         double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch);
     }
@@ -62,7 +64,11 @@ public final class ActivePowerDistribution {
     }
 
     public Result run(LfNetwork network, double activePowerMismatch) {
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(network);
+        return run(network.getBuses(), activePowerMismatch);
+    }
+
+    public Result run(Collection<LfBus> buses, double activePowerMismatch) {
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(buses);
 
         int iteration = 0;
         double remainingMismatch = activePowerMismatch;
@@ -78,22 +84,25 @@ public final class ActivePowerDistribution {
     }
 
     public static ActivePowerDistribution create(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant) {
-        ActivePowerDistribution.Step step;
+        return new ActivePowerDistribution(getStep(balanceType, loadPowerFactorConstant));
+    }
+
+    public static Step getStep(LoadFlowParameters.BalanceType balanceType, boolean loadPowerFactorConstant) {
+        Step step;
         switch (balanceType) {
             case PROPORTIONAL_TO_LOAD:
-                step = new LoadActivePowerDistributionStep(false, loadPowerFactorConstant);
-                break;
             case PROPORTIONAL_TO_CONFORM_LOAD:
-                step = new LoadActivePowerDistributionStep(true, loadPowerFactorConstant);
+                step = new LoadActivePowerDistributionStep(loadPowerFactorConstant);
                 break;
             case PROPORTIONAL_TO_GENERATION_P_MAX:
-                step = new GenerationActionPowerDistributionStep();
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.MAX);
                 break;
-            case PROPORTIONAL_TO_GENERATION_P: // to be implemented.
-                throw new UnsupportedOperationException("Unsupported balance type mode: " + balanceType);
+            case PROPORTIONAL_TO_GENERATION_P:
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET);
+                break;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + balanceType);
         }
-        return new ActivePowerDistribution(step);
+        return step;
     }
 }

@@ -6,7 +6,8 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.apache.commons.lang3.tuple.Pair;
+import com.powsybl.commons.PowsyblException;
+import org.apache.commons.lang3.tuple.Triple;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
@@ -18,11 +19,11 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalConnectivity<V> {
+public class NaiveGraphDecrementalConnectivity<V, E> implements GraphDecrementalConnectivity<V, E> {
 
-    private final Graph<V, Object> graph = new Pseudograph<>(Object.class);
+    private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
 
-    private final List<Pair<V, V>> cutEdges = new ArrayList<>();
+    private final List<Triple<V, E, V>> cutEdges = new ArrayList<>();
 
     private int[] components;
 
@@ -63,28 +64,32 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
     }
 
     @Override
-    public void addEdge(V vertex1, V vertex2) {
-        if (vertex1 == null || vertex2 == null) {
-            return;
-        }
-        graph.addEdge(vertex1, vertex2, new Object());
+    public void addEdge(V vertex1, V vertex2, E edge) {
+        Objects.requireNonNull(vertex1);
+        Objects.requireNonNull(vertex2);
+        graph.addEdge(vertex1, vertex2, edge);
         invalidateComponents();
     }
 
     @Override
-    public void cut(V vertex1, V vertex2) {
-        if (vertex1 == null || vertex2 == null) {
-            return;
+    public void cut(E edge) {
+        if (cutEdges.stream().anyMatch(t -> t.getMiddle().equals(edge))) {
+            throw new PowsyblException("Edge already cut: " + edge);
         }
-        graph.removeEdge(vertex1, vertex2);
-        cutEdges.add(Pair.of(vertex1, vertex2));
+        if (!graph.containsEdge(edge)) {
+            throw new PowsyblException("No such edge in graph: " + edge);
+        }
+        V vertex1 = graph.getEdgeSource(edge);
+        V vertex2 = graph.getEdgeTarget(edge);
+        graph.removeEdge(edge);
+        cutEdges.add(Triple.of(vertex1, edge, vertex2));
         invalidateComponents();
     }
 
     @Override
     public void reset() {
-        for (Pair<V, V> cutEdge : cutEdges) {
-            graph.addEdge(cutEdge.getLeft(), cutEdge.getRight(), new Object());
+        for (Triple<V, E, V> cutEdge : cutEdges) {
+            graph.addEdge(cutEdge.getLeft(), cutEdge.getRight(), cutEdge.getMiddle());
         }
         cutEdges.clear();
         invalidateComponents();
@@ -92,6 +97,7 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
 
     @Override
     public int getComponentNumber(V vertex) {
+        checkVertex(vertex);
         updateComponents();
         return components[numGetter.applyAsInt(vertex)];
     }
@@ -100,5 +106,26 @@ public class NaiveGraphDecrementalConnectivity<V> implements GraphDecrementalCon
     public Collection<Set<V>> getSmallComponents() {
         updateComponents();
         return componentSets.subList(1, componentSets.size());
+    }
+
+    @Override
+    public Set<V> getConnectedComponent(V vertex) {
+        checkVertex(vertex);
+        updateComponents();
+        return componentSets.get(components[numGetter.applyAsInt(vertex)]);
+    }
+
+    @Override
+    public Set<V> getNonConnectedVertices(V vertex) {
+        checkVertex(vertex);
+        updateComponents();
+        return componentSets.stream().filter(component -> !component.contains(vertex))
+            .flatMap(Collection::stream).collect(Collectors.toSet());
+    }
+
+    private void checkVertex(V vertex) {
+        if (!graph.containsVertex(vertex)) {
+            throw new AssertionError("given vertex " + vertex + " is not in the graph");
+        }
     }
 }

@@ -7,6 +7,8 @@
 
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.reporter.ReporterModel;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
@@ -17,9 +19,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.nr.DefaultAcLoadFlowObserver;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -65,9 +65,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
-        parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new FirstSlackBusSelector());
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
     }
 
     @Test
@@ -100,21 +99,9 @@ class AcLoadFlowEurostagTutorialExample1Test {
     @Test
     void dcLfVoltageInitTest() {
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        boolean[] stateVectorInitialized = new boolean[1];
-        parametersExt.getAdditionalObservers().add(new DefaultAcLoadFlowObserver() {
-            @Override
-            public void afterStateVectorCreation(double[] x, int iteration) {
-                assertEquals(0, x[1], LoadFlowAssert.DELTA_ANGLE);
-                assertEquals(-0.043833, x[3], LoadFlowAssert.DELTA_ANGLE);
-                assertEquals(-0.112393, x[5], LoadFlowAssert.DELTA_ANGLE);
-                assertEquals(-0.220241, x[7], LoadFlowAssert.DELTA_ANGLE);
-                stateVectorInitialized[0] = true;
-            }
-        });
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertTrue(stateVectorInitialized[0]);
     }
 
     @Test
@@ -266,5 +253,205 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertNull(vlload.getExtension(SlackTerminal.class));
         assertNull(vlhv1.getExtension(SlackTerminal.class));
         assertNull(vlhv2.getExtension(SlackTerminal.class));
+    }
+
+    @Test
+    void lineWithDifferentNominalVoltageTest() {
+        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
+        network.getVoltageLevel("VLHV2").setNominalV(420);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(24.5, genBus);
+        assertVoltageEquals(402.143, bus1);
+        assertVoltageEquals(389.953, bus2);
+        assertVoltageEquals(147.578, loadBus);
+    }
+
+    @Test
+    void noGeneratorTest() {
+        network.getGenerator("GEN").getTerminal().disconnect();
+
+        ReporterModel reporter = new ReporterModel("unitTest", "");
+        LoadFlowResult result = loadFlowRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), parameters, reporter);
+        assertFalse(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+
+        // also check there is a report added for this error
+        assertEquals(1, reporter.getSubReporters().size());
+        ReporterModel lfReporter = reporter.getSubReporters().get(0);
+        assertEquals(1, lfReporter.getSubReporters().size());
+        ReporterModel createNetworkReporter = lfReporter.getSubReporters().get(0);
+        assertEquals("lfNetwork", createNetworkReporter.getTaskKey());
+        ReporterModel postLoadingReporter = createNetworkReporter.getSubReporters().get(0);
+        assertEquals("postLoadingProcessing", postLoadingReporter.getTaskKey());
+        assertEquals(1, postLoadingReporter.getReports().size());
+        assertEquals("Network must have at least one bus voltage controlled",
+                postLoadingReporter.getReports().iterator().next().getDefaultMessage());
+    }
+
+    @Test
+    void noGeneratorBecauseOfReactiveRangeTest() {
+        Generator gen = network.getGenerator("GEN");
+        gen.newMinMaxReactiveLimits()
+                .setMinQ(0)
+                .setMaxQ(0)
+                .add();
+
+        parameters.setNoGeneratorReactiveLimits(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+
+        // but if we do not take into account reactive limits in parameters, calculation should be ok
+        parameters.setNoGeneratorReactiveLimits(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+    }
+
+    @Test
+    void testSeveralShunts() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getVoltageLevel("VLLOAD").newShuntCompensator()
+                .setId("SC")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                .setBPerSection(3.25 * Math.pow(10, -3))
+                .setMaximumSectionCount(1)
+                .add()
+                .add();
+        network.getVoltageLevel("VLLOAD").newShuntCompensator()
+                .setId("SC2")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                .setBPerSection(-3.25 * Math.pow(10, -3))
+                .setMaximumSectionCount(1)
+                .add()
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(-70.782, network.getShuntCompensator("SC").getTerminal());
+        assertReactivePowerEquals(70.782, network.getShuntCompensator("SC2").getTerminal());
+    }
+
+    @Test
+    void testSeveralShunts2() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getVoltageLevel("VLLOAD").newShuntCompensator()
+                .setId("SC")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                .setBPerSection(0.0)
+                .setMaximumSectionCount(1)
+                .add()
+                .add();
+        network.getVoltageLevel("VLLOAD").newShuntCompensator()
+                .setId("SC2")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                .setBPerSection(0.0)
+                .setMaximumSectionCount(1)
+                .add()
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setConnectedComponentMode(LoadFlowParameters.ConnectedComponentMode.ALL)
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(0, network.getShuntCompensator("SC").getTerminal());
+        assertReactivePowerEquals(0, network.getShuntCompensator("SC2").getTerminal());
+    }
+
+    @Test
+    void testEmptyNetwork() {
+        Network network = Network.create("empty", "");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.getComponentResults().isEmpty());
+    }
+
+    @Test
+    void testWithDisconnectedGenerator() {
+        loadFlowRunner.run(network, parameters);
+        gen.getTerminal().disconnect();
+        loadBus.getVoltageLevel().newGenerator()
+                .setId("g1")
+                .setBus(loadBus.getId())
+                .setConnectableBus(loadBus.getId())
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(10)
+                .setMaxP(200)
+                .setTargetP(1)
+                .setTargetV(150)
+                .setVoltageRegulatorOn(true)
+                .add();
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertActivePowerEquals(Double.NaN, gen.getTerminal());
+        assertReactivePowerEquals(Double.NaN, gen.getTerminal());
+    }
+
+    @Test
+    void testGeneratorReactiveLimits() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(120).add();
+        network.getVoltageLevel("VLGEN").newGenerator().setId("GEN1")
+                .setBus("NGEN").setConnectableBus("NGEN")
+                .setMinP(-9999.99D).setMaxP(9999.99D)
+                .setVoltageRegulatorOn(true).setTargetV(24.5D)
+                .setTargetP(607.0D).setTargetQ(301.0D).add();
+        network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(160).add();
+        LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
+                .setDistributedSlack(false)
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        loadFlowRunner.run(network, parameters);
+        network.getGenerators().forEach(gen -> {
+            if (gen.getReactiveLimits() instanceof MinMaxReactiveLimits) {
+                assertTrue(-gen.getTerminal().getQ() <= ((MinMaxReactiveLimits) gen.getReactiveLimits()).getMaxQ());
+                assertTrue(-gen.getTerminal().getQ() >= ((MinMaxReactiveLimits) gen.getReactiveLimits()).getMinQ());
+            }
+        });
+        assertEquals(-120, network.getGenerator("GEN").getTerminal().getQ());
+        assertEquals(-160, network.getGenerator("GEN1").getTerminal().getQ(), 0.01);
+    }
+
+    @Test
+    void testGeneratorsConnectedToSameBusNotControllingSameBus() {
+        var network = EurostagTutorialExample1Factory.create();
+        network.getVoltageLevel("VLGEN").newGenerator()
+                .setId("GEN2")
+                .setConnectableBus("NGEN")
+                .setBus("NGEN")
+                .setMinP(0)
+                .setMaxP(100)
+                .setTargetP(1)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(148)
+                .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
+                .add();
+        loadFlowRunner.run(network);
+        assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
+        assertVoltageEquals(147.57, network.getBusBreakerView().getBus("NLOAD"));
     }
 }

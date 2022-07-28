@@ -7,76 +7,53 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.ac.nr.AcLoadFlowObserver;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteria;
-import com.powsybl.openloadflow.equations.VoltageInitializer;
-import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcLoadFlowParameters {
 
-    private final SlackBusSelector slackBusSelector;
+    private final LfNetworkParameters networkParameters;
 
-    private VoltageInitializer voltageInitializer;
+    private final AcEquationSystemCreationParameters equationSystemCreationParameters;
 
-    private final NewtonRaphsonStoppingCriteria stoppingCriteria;
+    private final NewtonRaphsonParameters newtonRaphsonParameters;
 
     private final List<OuterLoop> outerLoops;
 
     private final MatrixFactory matrixFactory;
 
-    private final AcLoadFlowObserver observer;
+    private VoltageInitializer voltageInitializer;
 
-    private final boolean voltageRemoteControl;
-
-    private final boolean phaseControl;
-
-    private final boolean transformerVoltageControlOn;
-
-    private final boolean minImpedance;
-
-    private final boolean twtSplitShuntAdmittance;
-
-    private final boolean breakers;
-
-    public AcLoadFlowParameters(SlackBusSelector slackBusSelector, VoltageInitializer voltageInitializer,
-                                NewtonRaphsonStoppingCriteria stoppingCriteria, List<OuterLoop> outerLoops,
-                                MatrixFactory matrixFactory, AcLoadFlowObserver observer, boolean voltageRemoteControl,
-                                boolean phaseControl, boolean transformerVoltageControlOn, boolean minImpedance,
-                                boolean twtSplitShuntAdmittance, boolean breakers) {
-        this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
-        this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
-        this.stoppingCriteria = Objects.requireNonNull(stoppingCriteria);
+    public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
+                                NewtonRaphsonParameters newtonRaphsonParameters, List<OuterLoop> outerLoops, MatrixFactory matrixFactory,
+                                VoltageInitializer voltageInitializer) {
+        this.networkParameters = Objects.requireNonNull(networkParameters);
+        this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
+        this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.observer = Objects.requireNonNull(observer);
-        this.voltageRemoteControl = voltageRemoteControl;
-        this.phaseControl = phaseControl;
-        this.transformerVoltageControlOn = transformerVoltageControlOn;
-        this.minImpedance = minImpedance;
-        this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
-        this.breakers = breakers;
+        this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
     }
 
-    public SlackBusSelector getSlackBusSelector() {
-        return slackBusSelector;
+    public LfNetworkParameters getNetworkParameters() {
+        return networkParameters;
     }
 
-    public VoltageInitializer getVoltageInitializer() {
-        return voltageInitializer;
+    public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
+        return equationSystemCreationParameters;
     }
 
-    public void setVoltageInitializer(VoltageInitializer voltageInitializer) {
-        this.voltageInitializer = voltageInitializer;
-    }
-
-    public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
-        return stoppingCriteria;
+    public NewtonRaphsonParameters getNewtonRaphsonParameters() {
+        return newtonRaphsonParameters;
     }
 
     public List<OuterLoop> getOuterLoops() {
@@ -87,31 +64,23 @@ public class AcLoadFlowParameters {
         return matrixFactory;
     }
 
-    public AcLoadFlowObserver getObserver() {
-        return observer;
+    public VoltageInitializer getVoltageInitializer() {
+        return voltageInitializer;
     }
 
-    public boolean isVoltageRemoteControl() {
-        return voltageRemoteControl;
+    public void setVoltageInitializer(VoltageInitializer voltageInitializer) {
+        this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
     }
 
-    public boolean isPhaseControl() {
-        return phaseControl;
-    }
-
-    public boolean isTransformerVoltageControlOn() {
-        return transformerVoltageControlOn;
-    }
-
-    public boolean isMinImpedance() {
-        return minImpedance;
-    }
-
-    public boolean isTwtSplitShuntAdmittance() {
-        return twtSplitShuntAdmittance;
-    }
-
-    public boolean isBreakers() {
-        return breakers;
+    @Override
+    public String toString() {
+        return "AcLoadFlowParameters(" +
+                "networkParameters=" + networkParameters +
+                ", equationSystemCreationParameters=" + equationSystemCreationParameters +
+                ", newtonRaphsonParameters=" + newtonRaphsonParameters +
+                ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).collect(Collectors.toList()) +
+                ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
+                ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
+                ')';
     }
 }

@@ -6,10 +6,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.HvdcLine;
-import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.VscConverterStation;
-import com.powsybl.openloadflow.network.PerUnit;
+import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.LfVscConverterStation;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -17,39 +16,36 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public final class LfVscConverterStationImpl extends AbstractLfGenerator {
+public class LfVscConverterStationImpl extends AbstractLfGenerator implements LfVscConverterStation {
 
     private final VscConverterStation station;
 
-    private LfVscConverterStationImpl(VscConverterStation station) {
-        super(getHvdcLineTargetP(station));
+    private final double lossFactor;
+
+    public LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
+        super(HvdcConverterStations.getConverterStationTargetP(station));
         this.station = station;
+        this.lossFactor = station.getLossFactor();
+
+        // local control only
+        if (station.isVoltageRegulatorOn()) {
+            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), breakers, reactiveLimits, report);
+        }
     }
 
-    public static LfVscConverterStationImpl create(VscConverterStation station) {
+    public static LfVscConverterStationImpl create(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
         Objects.requireNonNull(station);
-        return new LfVscConverterStationImpl(station);
+        return new LfVscConverterStationImpl(station, breakers, reactiveLimits, report);
     }
 
-    private static double getHvdcLineTargetP(VscConverterStation vscCs) {
-        // The active power setpoint is always positive.
-        // If the converter station is at side 1 and is rectifier, targetP should be negative.
-        // If the converter station is at side 1 and is inverter, targetP should be positive.
-        // If the converter station is at side 2 and is rectifier, targetP should be negative.
-        // If the converter station is at side 2 and is inverter, targetP should be positive.
-        boolean isConverterStationRectifier = HvdcConverterStations.isRectifier(vscCs);
-        HvdcLine line = vscCs.getHvdcLine();
-        return (isConverterStationRectifier ? -1 : 1) * line.getActivePowerSetpoint() * (1 + (isConverterStationRectifier ? 1 : -1) * vscCs.getLossFactor() / 100);
+    @Override
+    public double getLossFactor() {
+        return lossFactor;
     }
 
     @Override
     public String getId() {
         return station.getId();
-    }
-
-    @Override
-    public boolean hasVoltageControl() {
-        return station.isVoltageRegulatorOn();
     }
 
     @Override
@@ -65,16 +61,6 @@ public final class LfVscConverterStationImpl extends AbstractLfGenerator {
     @Override
     public double getMaxP() {
         return station.getHvdcLine().getMaxP() / PerUnit.SB;
-    }
-
-    @Override
-    public boolean isParticipating() {
-        return false;
-    }
-
-    @Override
-    public double getParticipationFactor() {
-        return 0;
     }
 
     @Override
