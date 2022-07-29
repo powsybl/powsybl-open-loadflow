@@ -174,7 +174,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     }
 
     protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
-                                     boolean reactiveLimits, LfNetworkLoadingReport report) {
+                                     boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
+                                     double maxPlausibleTargetVoltage) {
         if (!checkVoltageControlConsistency(reactiveLimits, report)) {
             return;
         }
@@ -191,7 +192,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             return;
         }
         this.controlledBusId = controlledBus.getId();
-        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report);
+        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
         this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
@@ -213,18 +214,19 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         return consistency;
     }
 
-    protected void setTargetV(double targetV, LfNetworkLoadingReport report) {
+    protected void setTargetV(double targetV, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
+                              double maxPlausibleTargetVoltage) {
         double newTargetV = targetV;
         // check that targetV has a plausible value (wrong nominal voltage issue)
-        if (targetV < PlausibleValues.MIN_TARGET_VOLTAGE_PU) {
-            newTargetV = PlausibleValues.MIN_TARGET_VOLTAGE_PU;
+        if (targetV < minPlausibleTargetVoltage) {
+            newTargetV = minPlausibleTargetVoltage;
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
-                getId(), targetV, PlausibleValues.MIN_TARGET_VOLTAGE_PU);
+                getId(), targetV, minPlausibleTargetVoltage);
             report.generatorsWithInconsistentTargetVoltage++;
-        } else if (targetV > PlausibleValues.MAX_TARGET_VOLTAGE_PU) {
-            newTargetV = PlausibleValues.MAX_TARGET_VOLTAGE_PU;
+        } else if (targetV > maxPlausibleTargetVoltage) {
+            newTargetV = maxPlausibleTargetVoltage;
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
-                getId(), targetV, PlausibleValues.MAX_TARGET_VOLTAGE_PU);
+                getId(), targetV, maxPlausibleTargetVoltage);
             report.generatorsWithInconsistentTargetVoltage++;
         }
         this.targetV = newTargetV;
