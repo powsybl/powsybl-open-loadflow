@@ -169,6 +169,7 @@ class BridgesTest {
                 connectivity.addEdge(bus1, bus2, branch);
             }
         }
+        connectivity.save();
     }
 
 }
