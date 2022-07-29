@@ -57,7 +57,9 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                         false,
                                                                         false,
                                                                         true,
-                                                                        false);
+                                                                        false,
+                                                                        LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE,
+                                                                        LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
@@ -100,7 +102,9 @@ class NonImpedantBranchWithBreakerIssueTest {
                                                                         false,
                                                                         false,
                                                                         true,
-                                                                        false);
+                                                                        false,
+                                                                        LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE,
+                                                                        LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();

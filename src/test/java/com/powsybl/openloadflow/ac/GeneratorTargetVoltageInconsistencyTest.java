@@ -219,7 +219,9 @@ class GeneratorTargetVoltageInconsistencyTest {
                                                                  false,
                                                                  false,
                                                                  true,
-                                                                 false);
+                                                                 false,
+                                                                 LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE,
+                                                                 LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
 
         Generator g = network.getGenerator("g2");
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
@@ -228,7 +230,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         LfNetwork mainNetwork = networkList.get(0);
         LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
         assertEquals("g2", generator.getId());
-        assertEquals(PlausibleValues.MIN_TARGET_VOLTAGE_PU, generator.getTargetV());
+        assertEquals(LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, generator.getTargetV());
     }
 
     @Test
@@ -346,7 +348,9 @@ class GeneratorTargetVoltageInconsistencyTest {
                                                                  false,
                                                                  false,
                                                                  true,
-                                                                 false);
+                                                                 false,
+                                                                 LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE,
+                                                                 LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
 
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());
