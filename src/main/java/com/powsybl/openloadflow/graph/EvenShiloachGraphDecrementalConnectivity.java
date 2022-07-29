@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import org.apache.commons.lang3.tuple.Triple;
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
@@ -50,7 +49,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
         this.vertexToConnectedComponent = new HashMap<>();
         this.levelNeighboursMap = new HashMap<>();
         this.allSavedChangedLevels = new LinkedList<>();
-        this.vertexMapCacheInvalidated = false;
+        this.vertexMapCacheInvalidated = true;
         this.vertices = new HashSet<>();
     }
 
@@ -68,8 +67,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
     @Override
     public void addEdge(V vertex1, V vertex2, E edge) {
         if (saved) {
-            throw new PowsyblException("EvenShiloachGraphDecrementalConnectivity does not support incremental connectivity: " +
-                    "edges cannot be added once that connectivity is saved");
+            throw new PowsyblException("Current implementation does not support incremental connectivity: edges cannot be added once that connectivity is saved");
         }
         Objects.requireNonNull(vertex1);
         Objects.requireNonNull(vertex2);
@@ -93,8 +91,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
     @Override
     public void save() {
         if (!saved) {
-            initConnectedComponents();
             vertices.stream().findFirst().ifPresent(v -> buildNextLevel(Collections.singleton(v), 0));
+            if (vertices.size() > levelNeighboursMap.size()) {
+                // Checking if only one connected components at start
+                throw new PowsyblException("Algorithm not implemented for a network with several connected components at start");
+            }
             saved = true;
         } else {
             throw new PowsyblException("EvenShiloachGraphDecrementalConnectivity does not (yet) support several saves");
@@ -105,15 +106,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
         mainConnectedComponent = null;
         vertexMapCacheInvalidated = true;
         vertexToConnectedComponent.clear();
-    }
-
-    private void initConnectedComponents() {
-        // Checking if only one connected components at start as algorithm is not implemented for a network with several connected components at start
-        // Can be easily extended to the general case at the cost of slower computation
-        List<Set<V>> initialConnectedComponents = new ConnectivityInspector<>(graph).connectedSets();
-        if (initialConnectedComponents.size() > 1) {
-            throw new PowsyblException("Algorithm not implemented for a network with several connected components at start");
-        }
     }
 
     public void reset() {
@@ -130,6 +122,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
 
     @Override
     public int getComponentNumber(V vertex) {
+        checkSaved();
         checkVertex(vertex);
         lazyComputeConnectivity();
         updateVertexMapCache();
@@ -138,12 +131,14 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
 
     @Override
     public List<Set<V>> getSmallComponents() {
+        checkSaved();
         lazyComputeConnectivity();
         return newConnectedComponents;
     }
 
     @Override
     public Set<V> getConnectedComponent(V vertex) {
+        checkSaved();
         checkVertex(vertex);
         lazyComputeConnectivity();
         updateVertexMapCache();
@@ -152,6 +147,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
     }
 
     private Set<V> getMainConnectedComponent() {
+        checkSaved();
         if (mainConnectedComponent == null) {
             mainConnectedComponent = vertices.stream().filter(v -> newConnectedComponents.stream().noneMatch(cc -> cc.contains(v))).collect(Collectors.toSet());
         }
@@ -160,6 +156,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
 
     @Override
     public Set<V> getNonConnectedVertices(V vertex) {
+        checkSaved();
         checkVertex(vertex);
         lazyComputeConnectivity();
         List<Set<V>> nonConnectedComponents = new ArrayList<>(newConnectedComponents);
@@ -235,6 +232,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
                 newConnectedComponent.forEach(v -> vertexToConnectedComponent.put(v, indxCC));
             }
             vertexMapCacheInvalidated = false;
+        }
+    }
+
+    private void checkSaved() {
+        if (!saved) {
+            throw new PowsyblException("Cannot call connectivity computation, no saved connectivity");
         }
     }
 

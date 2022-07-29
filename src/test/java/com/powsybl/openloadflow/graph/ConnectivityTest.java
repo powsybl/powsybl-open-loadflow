@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ConnectivityTest {
 
     @Test
-    public void circleTest() {
+    void circleTest() {
         GraphConnectivity<String, String> dc = new EvenShiloachGraphDecrementalConnectivity<>();
         String o1 = "1";
         String o2 = "2";
@@ -35,12 +35,13 @@ class ConnectivityTest {
         dc.addEdge(o2, o3, e23);
         dc.addEdge(o3, o4, e34);
         dc.addEdge(o4, o1, e41);
+        dc.save();
         dc.removeEdge(e12);
         assertTrue(dc.getSmallComponents().isEmpty());
     }
 
     @Test
-    public void loopCircleTest() {
+    void loopCircleTest() {
         GraphConnectivity<String, String> dc = new EvenShiloachGraphDecrementalConnectivity<>();
         String o1 = "1";
         String o2 = "2";
@@ -56,6 +57,7 @@ class ConnectivityTest {
         dc.addEdge(o1, o2, e12);
         dc.addEdge(o2, o3, e23);
         dc.addEdge(o3, o1, e31);
+        dc.save();
 
         dc.removeEdge(e11);
         assertTrue(dc.getSmallComponents().isEmpty());

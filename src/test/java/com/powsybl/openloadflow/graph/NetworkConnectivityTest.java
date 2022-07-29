@@ -54,16 +54,17 @@ class NetworkConnectivityTest {
     @Test
     void testReaddEdge() {
         // Testing cutting an edge then adding it back
-        testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum));
-        testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>());
+        testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum), true);
+        testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
+        testReaddEdge(new MinimumSpanningTreeGraphConnectivity<>(), true);
     }
 
     @Test
     void testDoubleCut() {
         // Testing cutting twice an edge
-        testDoubleCut(new NaiveGraphConnectivity<>(LfBus::getNum));
-        testDoubleCut(new EvenShiloachGraphDecrementalConnectivity<>());
-        testDoubleCut(new MinimumSpanningTreeGraphConnectivity<>());
+        testDoubleCut(new NaiveGraphConnectivity<>(LfBus::getNum), "No such edge in graph");
+        testDoubleCut(new EvenShiloachGraphDecrementalConnectivity<>(), "Edge already cut");
+        testDoubleCut(new MinimumSpanningTreeGraphConnectivity<>(), "No such edge in graph");
     }
 
     @Test
@@ -90,7 +91,7 @@ class NetworkConnectivityTest {
                 connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
             }
         }
-        PowsyblException e = assertThrows(PowsyblException.class, connectivity::getSmallComponents);
+        PowsyblException e = assertThrows(PowsyblException.class, connectivity::save);
         assertEquals("Algorithm not implemented for a network with several connected components at start", e.getMessage());
     }
 
@@ -131,7 +132,7 @@ class NetworkConnectivityTest {
         assertEquals(4, connectivity.getSmallComponents().size());
     }
 
-    private void testReaddEdge(GraphConnectivity<LfBus, LfBranch> connectivity) {
+    private void testReaddEdge(GraphConnectivity<LfBus, LfBranch> connectivity, boolean supported) {
         updateConnectivity(connectivity);
 
         String branchId = "l34";
@@ -142,22 +143,29 @@ class NetworkConnectivityTest {
         assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
         assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
 
-        connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
-        assertEquals(0, connectivity.getSmallComponents().size());
-        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
-        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+        LfBus bus1 = lfBranch.getBus1();
+        LfBus bus2 = lfBranch.getBus2();
+        if (supported) {
+            connectivity.addEdge(bus1, bus2, lfBranch);
+            assertEquals(0, connectivity.getSmallComponents().size());
+            assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
+            assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
 
-        cutBranches(connectivity, "l48");
-        assertEquals(1, connectivity.getSmallComponents().size());
-        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
-        assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+            cutBranches(connectivity, "l48");
+            assertEquals(1, connectivity.getSmallComponents().size());
+            assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
+            assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+        } else {
+            PowsyblException e = assertThrows(PowsyblException.class, () -> connectivity.addEdge(bus1, bus2, lfBranch));
+            assertEquals("Current implementation does not support incremental connectivity: edges cannot be added once that connectivity is saved", e.getMessage());
+        }
     }
 
-    private void testDoubleCut(GraphConnectivity<LfBus, LfBranch> connectivity) {
+    private void testDoubleCut(GraphConnectivity<LfBus, LfBranch> connectivity, String msg) {
         updateConnectivity(connectivity);
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> cutBranches(connectivity, "l34", "l48", "l34"));
-        assertEquals("Edge already cut: l34", e.getMessage());
+        assertEquals(msg + ": l34", e.getMessage());
     }
 
     private void testUnknownCut(GraphConnectivity<LfBus, LfBranch> connectivity, LfBranch unknownBranch) {
@@ -208,6 +216,7 @@ class NetworkConnectivityTest {
         for (LfBranch lfBranch : lfNetwork.getBranches()) {
             connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
         }
+        connectivity.save();
     }
 
     private Set<LfBus> createVerticesSet(String... busIds) {

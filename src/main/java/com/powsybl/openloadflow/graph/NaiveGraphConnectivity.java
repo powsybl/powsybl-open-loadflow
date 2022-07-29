@@ -22,7 +22,7 @@ public class NaiveGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
     private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
 
-    private final Deque<List<GraphModification<V, E>>> graphModifications = new ArrayDeque<>();
+    private final Deque<Deque<GraphModification<V, E>>> graphModifications = new ArrayDeque<>();
 
     private int[] components;
 
@@ -91,7 +91,7 @@ public class NaiveGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public void save() {
-        graphModifications.add(new ArrayList<>());
+        graphModifications.add(new ArrayDeque<>());
     }
 
     @Override
@@ -99,7 +99,16 @@ public class NaiveGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         if (graphModifications.isEmpty()) {
             throw new PowsyblException("Cannot reset, no remaining saved connectivity");
         }
-        graphModifications.poll().forEach(gm -> gm.undo(graph));
+        Deque<GraphModification<V, E>> m = graphModifications.pollLast();
+        if (m.isEmpty()) {
+            // there are no modifications left at this level: going to lower level.
+            if (graphModifications.isEmpty()) {
+                throw new PowsyblException("Cannot reset, no remaining saved connectivity");
+            }
+            m = graphModifications.pollLast();
+        }
+        graphModifications.add(new ArrayDeque<>());
+        m.descendingIterator().forEachRemaining(gm -> gm.undo(graph));
         invalidateComponents();
     }
 
