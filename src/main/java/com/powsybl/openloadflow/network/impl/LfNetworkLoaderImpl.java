@@ -757,6 +757,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
+        if (report.generatorsDiscardedFromVoltageControlBecauseStarting > 0) {
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseStarting(reporter, report.generatorsDiscardedFromVoltageControlBecauseStarting);
+            LOGGER.warn("Network {}: {} starting generators have been discarded from voltage control",
+                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseStarting);
+        }
         if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall(reporter, report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",

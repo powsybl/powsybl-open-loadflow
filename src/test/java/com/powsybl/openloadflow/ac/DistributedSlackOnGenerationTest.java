@@ -152,8 +152,9 @@ class DistributedSlackOnGenerationTest {
         Network network = EurostagTutorialExample1Factory.create();
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(1000);
+        network.getGenerator("GEN").setTargetP(1000);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
-                "Failed to distribute slack bus active power mismatch, -1.4404045651214226 MW remains");
+                "Failed to distribute slack bus active power mismatch, -393.367476483181 MW remains");
     }
 
     @Test
@@ -182,6 +183,17 @@ class DistributedSlackOnGenerationTest {
         network.getGenerator("GEN").setMaxP(1000);
         network.getGenerator("GEN").setMinP(200);
         network.getGenerator("GEN").setTargetP(100);
+        network.getVoltageLevel("VLGEN").newGenerator()
+                .setId("g1")
+                .setBus("NGEN")
+                .setConnectableBus("NGEN")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(0)
+                .setTargetP(0)
+                .setTargetV(24.5)
+                .setVoltageRegulatorOn(true)
+                .add();
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
                 "Failed to distribute slack bus active power mismatch, 504.9476825313616 MW remains");
     }
