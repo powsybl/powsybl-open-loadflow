@@ -23,7 +23,9 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
 
     @Override
     protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
-        mst.addEdge(edgeAdd.v1, edgeAdd.v2, edgeAdd.e);
+        if (mst != null) {
+            mst.addEdge(edgeAdd.v1, edgeAdd.v2, edgeAdd.e);
+        }
         componentSets = null;
     }
 
@@ -44,7 +46,9 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
     @Override
     public void save() {
         super.save();
-        mst = new KruskalMinimumSpanningTrees().getSpanningTree();
+        if (mst == null) {
+            mst = new KruskalMinimumSpanningTrees().getSpanningTree();
+        }
         mstSaved.add(new SpanningTrees(mst));
     }
 
