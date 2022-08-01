@@ -10,7 +10,18 @@ import java.util.Collection;
 import java.util.Set;
 
 /**
+ * Interface for incremental and decremental connectivity computations, with a save / reset mechanism.
+ * The connectivity can be saved thanks to a call to {@link #save}. A call to {@link #reset} will then restore the
+ * connectivity state saved by undoing in reverse order all the graph modifications which occurred since last reset
+ * or last save.
+ * Two (resp. N) consecutive calls to {@link #reset} will restore the connectivity of the second to last (resp. Nth to
+ * last) save. Consecutive meaning without any graph modifications in between.
+ * Hence, USE CAUTIOUSLY the call to {@link #reset}! You should check beforehand if there are some graph modifications
+ * to undo. Indeed, if no graph modifications have occurred since last reset or last save you end up with the
+ * connectivity state corresponding to the second to last save.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 public interface GraphConnectivity<V, E> {
 
@@ -18,9 +29,6 @@ public interface GraphConnectivity<V, E> {
 
     void addEdge(V vertex1, V vertex2, E edge);
 
-    /**
-     * Cut given edge
-     */
     void removeEdge(E edge);
 
     /**
@@ -29,7 +37,8 @@ public interface GraphConnectivity<V, E> {
     void save();
 
     /**
-     * Reset to the state of last save
+     * Restore the connectivity state of last save, but ONLY IF topological changes have been made.
+     * If no topological changes have occurred, restore the connectivity state to the second to last save.
      */
     void reset();
 
