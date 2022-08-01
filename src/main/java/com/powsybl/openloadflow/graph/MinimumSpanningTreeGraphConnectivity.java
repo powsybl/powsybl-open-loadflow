@@ -6,11 +6,9 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.powsybl.commons.PowsyblException;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.util.UnionFind;
-import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -18,137 +16,57 @@ import java.util.stream.Collectors;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class MinimumSpanningTreeGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
+public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
 
     private final Deque<SpanningTrees> mstSaved = new ArrayDeque<>();
     private SpanningTrees mst;
-    private final Graph<V, E> graph;
 
-    private final Deque<Deque<GraphModification<V, E>>> graphModifications = new ArrayDeque<>();
-
-    public MinimumSpanningTreeGraphConnectivity() {
-        this.graph = new Pseudograph<>(null, null, false);
+    @Override
+    protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
+        mst.addEdge(edgeAdd.v1, edgeAdd.v2, edgeAdd.e);
+        componentSets = null;
     }
 
     @Override
-    public void addVertex(V vertex) {
-        Objects.requireNonNull(vertex);
-        graph.addVertex(vertex);
+    protected void updateConnectivity(VertexAdd<V, E> vertexAdd) {
+        mst.forest.addElement(vertexAdd.v);
+        componentSets = null;
     }
 
     @Override
-    public void addEdge(V vertex1, V vertex2, E edge) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
-        GraphModification<V, E> modif = new EdgeAdd<>(vertex1, vertex2, edge);
-        modif.apply(graph);
-        if (!graphModifications.isEmpty()) {
-            graphModifications.peekLast().add(modif);
-            mst.addEdge(vertex1, vertex2, edge);
-        }
-    }
-
-    @Override
-    public void removeEdge(E edge) {
-        if (!graph.containsEdge(edge)) {
-            throw new PowsyblException("No such edge in graph: " + edge);
-        }
-        V vertex1 = graph.getEdgeSource(edge);
-        V vertex2 = graph.getEdgeTarget(edge);
-        GraphModification<V, E> modif = new EdgeRemove<>(vertex1, vertex2, edge);
-        modif.apply(graph);
-        if (!graphModifications.isEmpty()) {
-            graphModifications.peekLast().add(modif);
-            if (mst == null || mst.getEdges().contains(edge)) {
-                invalidateMst();
-            }
+    protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
+        if (mst == null || mst.getEdges().contains(edgeRemove.e)) {
+            mst = null;
+            componentSets = null;
         }
     }
 
     @Override
     public void save() {
-        invalidateMst();
+        super.save();
         mst = new KruskalMinimumSpanningTrees().getSpanningTree();
         mstSaved.add(new SpanningTrees(mst));
-        graphModifications.add(new ArrayDeque<>());
     }
 
     @Override
-    public void reset() {
-        if (graphModifications.isEmpty()) {
-            throw new PowsyblException("Cannot reset, no remaining saved connectivity");
-        }
-        Deque<GraphModification<V, E>> m = graphModifications.pollLast();
+    protected void resetConnectivity() {
         mst = mstSaved.pollLast();
-        if (m.isEmpty()) {
-            // there are no modifications left at this level: going to lower level.
-            if (graphModifications.isEmpty()) {
-                throw new PowsyblException("Cannot reset, no remaining saved connectivity");
-            }
-            m = graphModifications.pollLast();
-            mst = mstSaved.pollLast();
+        componentSets = null;
+    }
+
+    @Override
+    protected int getQuickComponentNumber(V vertex) {
+        Set<V> cc = mst.forest.getConnectedComponent(vertex);
+        return componentSets.indexOf(cc);
+    }
+
+    @Override
+    protected void updateComponents() {
+        if (mst == null) {
+            mst = new KruskalMinimumSpanningTrees().getSpanningTree();
         }
-        graphModifications.add(new ArrayDeque<>());
-        m.descendingIterator().forEachRemaining(gm -> gm.undo(graph));
-    }
-
-    private void invalidateMst() {
-        this.mst = null;
-    }
-
-    @Override
-    public int getComponentNumber(V vertex) {
-        checkSaved();
-        checkVertex(vertex);
-        lazyCompute();
-        V root = mst.forest.getRoot(vertex);
-        Set<V> cc = mst.forest.getRootConnectedComponentMap().get(root);
-        return mst.forest.getConnectedComponents().indexOf(cc);
-    }
-
-    @Override
-    public List<Set<V>> getSmallComponents() {
-        checkSaved();
-        List<Set<V>> components = getConnectedComponents();
-        return components.subList(1, components.size());
-    }
-
-    private List<Set<V>> getConnectedComponents() {
-        checkSaved();
-        lazyCompute();
-        return mst.forest.getConnectedComponents();
-    }
-
-    @Override
-    public Set<V> getConnectedComponent(V vertex) {
-        checkSaved();
-        checkVertex(vertex);
-        return getConnectedComponents().get(getComponentNumber(vertex));
-    }
-
-    @Override
-    public Set<V> getNonConnectedVertices(V vertex) {
-        checkSaved();
-        checkVertex(vertex);
-        return getConnectedComponents().stream().filter(component -> !component.contains(vertex))
-            .flatMap(Collection::stream).collect(Collectors.toSet());
-    }
-
-    private void lazyCompute() {
-        if (this.mst == null) {
-            this.mst = new KruskalMinimumSpanningTrees().getSpanningTree();
-        }
-    }
-
-    private void checkSaved() {
-        if (graphModifications.isEmpty()) {
-            throw new PowsyblException("Cannot call connectivity computation, no remaining saved connectivity");
-        }
-    }
-
-    private void checkVertex(V vertex) {
-        if (!graph.containsVertex(vertex)) {
-            throw new AssertionError("given vertex " + vertex + " is not in the graph");
+        if (componentSets == null) {
+            componentSets = mst.forest.getConnectedComponents();
         }
     }
 
@@ -156,6 +74,7 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> implements GraphConnecti
 
         @Override
         public SpanningTrees getSpanningTree() {
+            Graph<V, E> graph = getGraph();
             MyUnionFind forest = new MyUnionFind(graph.vertexSet());
             Set<Object> edgeList = new HashSet<>();
             SpanningTrees spanningTree = new SpanningTrees(forest, edgeList, 0);
@@ -193,7 +112,6 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> implements GraphConnecti
     }
 
     private class MyUnionFind extends UnionFind<V> {
-        private List<Set<V>> connectedComponents;
         private Map<V, Set<V>> rootConnectedComponentMap;
 
         public MyUnionFind(Set<V> vs) {
@@ -204,34 +122,28 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> implements GraphConnecti
             super(other.getParentMap().keySet());
             other.getRankMap().forEach((k, v) -> getRankMap().put(k, v));
             other.getParentMap().forEach((k, v) -> getParentMap().put(k, v));
-            this.connectedComponents = other.connectedComponents;
             this.rootConnectedComponentMap = other.rootConnectedComponentMap;
         }
 
         public List<Set<V>> getConnectedComponents() {
             lazyComputeConnectedComponents();
-            return this.connectedComponents;
+            return rootConnectedComponentMap.values().stream().sorted((cc1, cc2) -> cc2.size() - cc1.size()).collect(Collectors.toList());
         }
 
-        public Map<V, Set<V>> getRootConnectedComponentMap() {
+        public Set<V> getConnectedComponent(V vertex) {
             lazyComputeConnectedComponents();
-            return rootConnectedComponentMap;
+            V root = super.getParentMap().get(vertex);
+            return rootConnectedComponentMap.get(root);
         }
 
         private void lazyComputeConnectedComponents() {
-            if (connectedComponents == null || rootConnectedComponentMap == null) {
+            if (rootConnectedComponentMap == null) {
                 rootConnectedComponentMap = new HashMap<>();
-                graph.vertexSet().forEach(vertex -> rootConnectedComponentMap.computeIfAbsent(find(vertex), k -> new HashSet<>()).add(vertex));
-                connectedComponents = rootConnectedComponentMap.values().stream().sorted((cc1, cc2) -> cc2.size() - cc1.size()).collect(Collectors.toList());
+                getGraph().vertexSet().forEach(vertex -> rootConnectedComponentMap.computeIfAbsent(find(vertex), k -> new HashSet<>()).add(vertex));
             }
         }
 
-        public V getRoot(V vertex) {
-            return super.getParentMap().get(vertex);
-        }
-
         public void invalidateConnectedComponents() {
-            connectedComponents = null;
             rootConnectedComponentMap = null;
         }
     }

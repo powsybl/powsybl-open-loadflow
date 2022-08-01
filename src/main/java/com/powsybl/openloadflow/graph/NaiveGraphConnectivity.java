@@ -6,38 +6,31 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.powsybl.commons.PowsyblException;
-import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
-import org.jgrapht.graph.Pseudograph;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NaiveGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
-
-    private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
-
-    private final Deque<Deque<GraphModification<V, E>>> graphModifications = new ArrayDeque<>();
+public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
 
     private int[] components;
 
     private final ToIntFunction<V> numGetter;
 
-    private List<Set<V>> componentSets;
-
     public NaiveGraphConnectivity(ToIntFunction<V> numGetter) {
         this.numGetter = Objects.requireNonNull(numGetter);
     }
 
-    private void updateComponents() {
+    protected void updateComponents() {
         if (components == null) {
-            components = new int[graph.vertexSet().size()];
-            componentSets = new ConnectivityInspector<>(graph)
+            components = new int[getGraph().vertexSet().size()];
+            componentSets = new ConnectivityInspector<>(getGraph())
                     .connectedSets()
                     .stream()
                     .sorted(Comparator.comparing(Set<V>::size).reversed())
@@ -51,108 +44,32 @@ public class NaiveGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         }
     }
 
-    private void invalidateComponents() {
-        components = null;
-    }
-
     @Override
-    public void addVertex(V vertex) {
-        Objects.requireNonNull(vertex);
-        graph.addVertex(vertex);
+    protected void resetConnectivity() {
         invalidateComponents();
     }
 
     @Override
-    public void addEdge(V vertex1, V vertex2, E edge) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
-        GraphModification<V, E> modif = new EdgeAdd<>(vertex1, vertex2, edge);
-        modif.apply(graph);
-        if (!graphModifications.isEmpty()) {
-            graphModifications.peekLast().add(modif);
-            invalidateComponents();
-        }
-    }
-
-    @Override
-    public void removeEdge(E edge) {
-        if (!graph.containsEdge(edge)) {
-            throw new PowsyblException("No such edge in graph: " + edge);
-        }
-        V vertex1 = graph.getEdgeSource(edge);
-        V vertex2 = graph.getEdgeTarget(edge);
-        GraphModification<V, E> modif = new EdgeRemove<>(vertex1, vertex2, edge);
-        modif.apply(graph);
-        if (!graphModifications.isEmpty()) {
-            graphModifications.peekLast().add(modif);
-            invalidateComponents();
-        }
-    }
-
-    @Override
-    public void save() {
-        graphModifications.add(new ArrayDeque<>());
-    }
-
-    @Override
-    public void reset() {
-        if (graphModifications.isEmpty()) {
-            throw new PowsyblException("Cannot reset, no remaining saved connectivity");
-        }
-        Deque<GraphModification<V, E>> m = graphModifications.pollLast();
-        if (m.isEmpty()) {
-            // there are no modifications left at this level: going to lower level.
-            if (graphModifications.isEmpty()) {
-                throw new PowsyblException("Cannot reset, no remaining saved connectivity");
-            }
-            m = graphModifications.pollLast();
-        }
-        graphModifications.add(new ArrayDeque<>());
-        m.descendingIterator().forEachRemaining(gm -> gm.undo(graph));
-        invalidateComponents();
-    }
-
-    @Override
-    public int getComponentNumber(V vertex) {
-        checkSaved();
-        checkVertex(vertex);
-        updateComponents();
+    protected int getQuickComponentNumber(V vertex) {
         return components[numGetter.applyAsInt(vertex)];
     }
 
     @Override
-    public Collection<Set<V>> getSmallComponents() {
-        checkSaved();
-        updateComponents();
-        return componentSets.subList(1, componentSets.size());
+    protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
+        invalidateComponents();
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
-        checkSaved();
-        checkVertex(vertex);
-        updateComponents();
-        return componentSets.get(components[numGetter.applyAsInt(vertex)]);
+    protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
+        invalidateComponents();
     }
 
     @Override
-    public Set<V> getNonConnectedVertices(V vertex) {
-        checkSaved();
-        checkVertex(vertex);
-        updateComponents();
-        return componentSets.stream().filter(component -> !component.contains(vertex))
-            .flatMap(Collection::stream).collect(Collectors.toSet());
+    protected void updateConnectivity(VertexAdd<V, E> vertexAdd) {
+        invalidateComponents();
     }
 
-    private void checkSaved() {
-        if (graphModifications.isEmpty()) {
-            throw new PowsyblException("Cannot call connectivity computation, no remaining saved connectivity");
-        }
-    }
-
-    private void checkVertex(V vertex) {
-        if (!graph.containsVertex(vertex)) {
-            throw new AssertionError("given vertex " + vertex + " is not in the graph");
-        }
+    private void invalidateComponents() {
+        components = null;
     }
 }

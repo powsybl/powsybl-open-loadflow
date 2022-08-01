@@ -11,8 +11,20 @@ import org.jgrapht.Graph;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public interface GraphModification<V, E>  {
-    void apply(Graph<V, E> graph);
+public class VertexAdd<V, E> implements GraphModification<V, E> {
+    protected final V v;
 
-    void undo(Graph<V, E> graph);
+    public VertexAdd(V vertex) {
+        this.v = vertex;
+    }
+
+    @Override
+    public void apply(Graph<V, E> graph) {
+        graph.addVertex(v);
+    }
+
+    @Override
+    public void undo(Graph<V, E> graph) {
+        graph.removeVertex(v);
+    }
 }
