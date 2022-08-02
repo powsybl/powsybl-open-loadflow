@@ -31,7 +31,9 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
 
     @Override
     protected void updateConnectivity(VertexAdd<V, E> vertexAdd) {
-        mst.forest.addElement(vertexAdd.v);
+        if (mst != null) {
+            mst.addVertex(vertexAdd.v);
+        }
         componentSets = null;
     }
 
@@ -113,6 +115,10 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
                 forest.invalidateConnectedComponents();
             }
         }
+
+        public void addVertex(V v) {
+            forest.addElement(v);
+        }
     }
 
     private class MyUnionFind extends UnionFind<V> {
@@ -145,6 +151,14 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
                 rootConnectedComponentMap = new HashMap<>();
                 getGraph().vertexSet().forEach(vertex -> rootConnectedComponentMap.computeIfAbsent(find(vertex), k -> new HashSet<>()).add(vertex));
             }
+        }
+
+        @Override
+        public void addElement(V v) {
+            super.addElement(v);
+            Set<V> connectedComponent = new HashSet<>();
+            connectedComponent.add(v);
+            rootConnectedComponentMap.put(find(v), connectedComponent);
         }
 
         public void invalidateConnectedComponents() {

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.commons.PowsyblException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -33,8 +34,15 @@ class ConnectivityTest {
 
     @Test
     void saveResetTest() {
-        saveResetTest(new MinimumSpanningTreeGraphConnectivity<>());
         saveResetTest(new NaiveGraphConnectivity<>(v -> v - 1));
+        saveResetTest(new MinimumSpanningTreeGraphConnectivity<>());
+    }
+
+    @Test
+    void exceptionsTest() {
+        exceptionsTest(new NaiveGraphConnectivity<>(v -> v - 1));
+        exceptionsTest(new EvenShiloachGraphDecrementalConnectivity<>());
+        exceptionsTest(new MinimumSpanningTreeGraphConnectivity<>());
     }
 
     private void circleTest(GraphConnectivity<String, String> c) {
@@ -136,10 +144,38 @@ class ConnectivityTest {
         c.addEdge(v3, v4, "3-4");
         assertTrue(c.getSmallComponents().isEmpty());
 
+        Integer v6 = 6;
+        c.addVertex(v6);
+        assertFalse(c.getSmallComponents().isEmpty());
+        assertEquals(Set.of(v6), c.getSmallComponents().iterator().next());
+
         c.reset();
         c.reset();
         assertEquals(1, c.getSmallComponents().size());
         assertEquals(Set.of(v1, v2, v3), c.getConnectedComponent(v1));
         assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
+    }
+
+    private void exceptionsTest(GraphConnectivity<Integer, String> c) {
+        Integer v1 = 1;
+        Integer v2 = 2;
+        String e12 = "1-2";
+        String e22 = "2-2";
+        c.addVertex(v1);
+        c.addVertex(v2);
+        c.addEdge(v1, v2, e12);
+        c.addEdge(v2, v2, e22);
+        c.removeEdge(e22);
+
+        PowsyblException e1 = assertThrows(PowsyblException.class, c::getSmallComponents);
+        assertEquals("Cannot compute connectivity without a saved state, please call GraphConnectivity::save at least once beforehand",
+                e1.getMessage());
+
+        PowsyblException e2 = assertThrows(PowsyblException.class, c::reset);
+        assertEquals("Cannot reset, no remaining saved connectivity", e2.getMessage());
+
+        c.save();
+        PowsyblException e3 = assertThrows(PowsyblException.class, c::reset);
+        assertEquals("Cannot reset, no remaining saved connectivity", e3.getMessage());
     }
 }

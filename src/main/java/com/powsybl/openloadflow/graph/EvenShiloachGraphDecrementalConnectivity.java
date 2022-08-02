@@ -109,6 +109,9 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
     }
 
     public void reset() {
+        if (!saved || cutEdges.isEmpty()) {
+            throw new PowsyblException("Cannot reset, no remaining saved connectivity");
+        }
         invalidateConnectedComponentCache();
         newConnectedComponents.clear();
         allSavedChangedLevels.descendingIterator().forEachRemaining(levelNeighboursMap::putAll);
@@ -237,7 +240,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphConn
 
     private void checkSaved() {
         if (!saved) {
-            throw new PowsyblException("Cannot call connectivity computation, no saved connectivity");
+            throw new PowsyblException("Cannot compute connectivity without a saved state, please call GraphConnectivity::save at least once beforehand");
         }
     }
 

@@ -134,7 +134,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     protected void checkSaved() {
         if (graphModifications.isEmpty()) {
-            throw new PowsyblException("Cannot call connectivity computation, no remaining saved connectivity");
+            throw new PowsyblException("Cannot compute connectivity without a saved state, please call GraphConnectivity::save at least once beforehand");
         }
     }
 
