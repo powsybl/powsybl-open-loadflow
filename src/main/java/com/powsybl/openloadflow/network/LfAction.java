@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.action.GenerationRedispatchAction;
 
 import java.util.Objects;
 
@@ -22,6 +23,8 @@ public class LfAction {
     private LfBranch disabledBranch; // switch to open
 
     private LfBranch enabledBranch; // switch to close
+
+    private LfGenerator redispatchGenerator; // generator on which new target is applied
 
     private LfNetwork network;
 
@@ -39,6 +42,13 @@ public class LfAction {
                     disabledBranch = branch;
                 } else {
                     enabledBranch = branch;
+                }
+                break;
+            case "GENERATION_REDISPATCH":
+                GenerationRedispatchAction generationRedispatchAction = (GenerationRedispatchAction) action;
+                LfGenerator lfGenerator = network.getGeneratorById(generationRedispatchAction.getGeneratorId());
+                if (lfGenerator == null) {
+                    throw new PowsyblException("Generator " + generationRedispatchAction.getGeneratorId() + " not found in the network");
                 }
                 break;
             default:
