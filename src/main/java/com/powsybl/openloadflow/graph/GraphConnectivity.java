@@ -57,6 +57,8 @@ public interface GraphConnectivity<V, E> {
      */
     Collection<Set<V>> getSmallComponents();
 
+    int getNbConnectedComponents();
+
     Set<V> getConnectedComponent(V vertex);
 
     Set<V> getNonConnectedVertices(V vertex);

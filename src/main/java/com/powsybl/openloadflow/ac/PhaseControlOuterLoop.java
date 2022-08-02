@@ -60,14 +60,14 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 disabledBranches.stream()
                         .filter(b -> b.getBus1() != null && b.getBus2() != null)
                         .forEach(connectivity::removeEdge);
-                int smallComponentsCountBeforePhaseShifterLoss = connectivity.getSmallComponents().size();
+                int componentsCountBeforePhaseShifterLoss = connectivity.getNbConnectedComponents();
 
                 // then the phase shifter controlled branch
                 if (controlledBranch.getBus1() != null && controlledBranch.getBus2() != null) {
                     connectivity.removeEdge(controlledBranch);
                 }
 
-                if (connectivity.getSmallComponents().size() != smallComponentsCountBeforePhaseShifterLoss) {
+                if (connectivity.getNbConnectedComponents() != componentsCountBeforePhaseShifterLoss) {
                     // phase shifter controlled branch necessary for connectivity, we switch off control
                     LOGGER.warn("Phase shifter '{}' control branch '{}' phase but is necessary for connectivity: switch off phase control",
                             controllerBranch.getId(), controlledBranch.getId());

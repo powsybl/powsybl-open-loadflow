@@ -479,7 +479,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
 
             Map<Integer, Set<Integer>> connections = new HashMap<>();
-            for (int i = 0; i < connectivity.getSmallComponents().size() + 1; i++) {
+            for (int i = 0; i < connectivity.getNbConnectedComponents(); i++) {
                 connections.put(i, Collections.singleton(i));
             }
 

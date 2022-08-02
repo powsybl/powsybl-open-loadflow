@@ -107,6 +107,13 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     protected abstract int getQuickComponentNumber(V vertex);
 
     @Override
+    public int getNbConnectedComponents() {
+        checkSaved();
+        updateComponents();
+        return componentSets.size();
+    }
+
+    @Override
     public Collection<Set<V>> getSmallComponents() {
         checkSaved();
         updateComponents();
