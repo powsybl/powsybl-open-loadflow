@@ -29,7 +29,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     private double droop;
 
     private LfGeneratorImpl(Generator generator, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                            LfNetworkLoadingReport report) {
+                            LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(generator.getTargetP());
         this.generator = generator;
         participating = true;
@@ -48,7 +48,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
 
         if (generator.isVoltageRegulatorOn()) {
-            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), breakers, reactiveLimits, report);
+            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), breakers,
+                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
         }
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
@@ -58,10 +59,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     public static LfGeneratorImpl create(Generator generator, boolean breakers, double plausibleActivePowerLimit,
-                                         boolean reactiveLimits, LfNetworkLoadingReport report) {
+                                         boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
+                                         double maxPlausibleTargetVoltage) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, breakers, plausibleActivePowerLimit, reactiveLimits, report);
+        return new LfGeneratorImpl(generator, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
     }
 
     @Override

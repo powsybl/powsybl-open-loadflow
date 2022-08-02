@@ -452,4 +452,60 @@ class AcLoadFlowShuntTest {
         assertEquals(1, shunt.getSectionCount());
         assertEquals(2, shunt2.getSectionCount());
     }
+
+    @Test
+    void testAdmittanceShift() {
+        // Test with G component on shunt
+        network = createNetwork();
+        network.getShuntCompensator("SHUNT").getTerminal().disconnect();
+        ShuntCompensator shuntG = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(1e-3)
+                .setG(1e-5)
+                .endSection()
+                .beginSection()
+                .setB(3e-3)
+                .setG(3e-5)
+                .endSection()
+                .add()
+                .add();
+
+        shuntG.setSectionCount(1);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertActivePowerEquals(102.749, l1.getTerminal(Branch.Side.ONE));
+        assertActivePowerEquals(-102.679, l1.getTerminal(Branch.Side.TWO));
+        assertReactivePowerEquals(-2.154, l1.getTerminal(Branch.Side.ONE));
+        assertReactivePowerEquals(2.362, l1.getTerminal(Branch.Side.TWO));
+        assertActivePowerEquals(-1.528, l2.getTerminal(Branch.Side.ONE));
+        assertActivePowerEquals(1.681, l2.getTerminal(Branch.Side.TWO));
+        assertReactivePowerEquals(152.82, l2.getTerminal(Branch.Side.ONE));
+        assertReactivePowerEquals(-152.362, l2.getTerminal(Branch.Side.TWO));
+        assertActivePowerEquals(1.528, shuntG.getTerminal());
+        assertReactivePowerEquals(-152.82, shuntG.getTerminal());
+
+        shuntG.setSectionCount(2);
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isOk());
+        assertActivePowerEquals(4.697, shuntG.getTerminal());
+        assertReactivePowerEquals(-469.698, shuntG.getTerminal());
+        assertVoltageEquals(395.684, shuntG.getTerminal().getBusView().getBus());
+
+        shuntG.setSectionCount(0);
+        parameters.setSimulShunt(true);
+        LoadFlowResult result4 = loadFlowRunner.run(network, parameters);
+        assertTrue(result4.isOk());
+        assertVoltageEquals(390.93, shuntG.getTerminal().getBusView().getBus());
+        assertEquals(1, shuntG.getSectionCount());
+        assertActivePowerEquals(1.528, shuntG.getTerminal());
+        assertReactivePowerEquals(-152.826, shuntG.getTerminal());
+    }
 }

@@ -22,20 +22,23 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private final double lossFactor;
 
-    public LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
+    public LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
+                                     double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(HvdcConverterStations.getConverterStationTargetP(station));
         this.station = station;
         this.lossFactor = station.getLossFactor();
 
         // local control only
         if (station.isVoltageRegulatorOn()) {
-            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), breakers, reactiveLimits, report);
+            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(),
+                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
         }
     }
 
-    public static LfVscConverterStationImpl create(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report) {
+    public static LfVscConverterStationImpl create(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
+                                                   double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         Objects.requireNonNull(station);
-        return new LfVscConverterStationImpl(station, breakers, reactiveLimits, report);
+        return new LfVscConverterStationImpl(station, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
     }
 
     @Override
