@@ -139,6 +139,10 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         return graph;
     }
 
+    protected Deque<Deque<GraphModification<V, E>>> getGraphModifications() {
+        return graphModifications;
+    }
+
     protected void checkSaved() {
         if (graphModifications.isEmpty()) {
             throw new PowsyblException("Cannot compute connectivity without a saved state, please call GraphConnectivity::save at least once beforehand");

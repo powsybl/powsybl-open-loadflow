@@ -62,9 +62,9 @@ class NetworkConnectivityTest {
     @Test
     void testDoubleCut() {
         // Testing cutting twice an edge
-        testDoubleCut(new NaiveGraphConnectivity<>(LfBus::getNum), "No such edge in graph");
-        testDoubleCut(new EvenShiloachGraphDecrementalConnectivity<>(), "Edge already cut");
-        testDoubleCut(new MinimumSpanningTreeGraphConnectivity<>(), "No such edge in graph");
+        testDoubleCut(new NaiveGraphConnectivity<>(LfBus::getNum));
+        testDoubleCut(new EvenShiloachGraphDecrementalConnectivity<>());
+        testDoubleCut(new MinimumSpanningTreeGraphConnectivity<>());
     }
 
     @Test
@@ -92,7 +92,7 @@ class NetworkConnectivityTest {
             }
         }
         PowsyblException e = assertThrows(PowsyblException.class, connectivity::save);
-        assertEquals("Algorithm not implemented for a network with several connected components at start", e.getMessage());
+        assertEquals("This implementation does not support saving a graph with several connected components", e.getMessage());
     }
 
     @Test
@@ -157,15 +157,15 @@ class NetworkConnectivityTest {
             assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
         } else {
             PowsyblException e = assertThrows(PowsyblException.class, () -> connectivity.addEdge(bus1, bus2, lfBranch));
-            assertEquals("Current implementation does not support incremental connectivity: edges cannot be added once that connectivity is saved", e.getMessage());
+            assertEquals("This implementation does not support incremental connectivity: edges cannot be added once that connectivity is saved", e.getMessage());
         }
     }
 
-    private void testDoubleCut(GraphConnectivity<LfBus, LfBranch> connectivity, String msg) {
+    private void testDoubleCut(GraphConnectivity<LfBus, LfBranch> connectivity) {
         updateConnectivity(connectivity);
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> cutBranches(connectivity, "l34", "l48", "l34"));
-        assertEquals(msg + ": l34", e.getMessage());
+        assertEquals("No such edge in graph: l34", e.getMessage());
     }
 
     private void testUnknownCut(GraphConnectivity<LfBus, LfBranch> connectivity, LfBranch unknownBranch) {
