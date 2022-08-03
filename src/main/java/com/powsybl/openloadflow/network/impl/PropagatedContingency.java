@@ -299,7 +299,8 @@ public class PropagatedContingency {
         connectivity.startTemporaryChanges();
         branches.stream()
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .forEach(connectivity::removeEdge);
+                .collect(Collectors.toList());
+        edgesRemoved.forEach(connectivity::removeEdge);
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
