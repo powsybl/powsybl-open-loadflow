@@ -7,14 +7,18 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -171,20 +175,53 @@ class NetworkConnectivityTest {
     }
 
     private void cutBranches(GraphConnectivity<LfBus, LfBranch> connectivity, String... branches) {
-        connectivity.startTemporaryChanges();
-        Arrays.stream(branches).map(lfNetwork::getBranchById).forEach(connectivity::removeEdge);
+        Arrays.stream(branches).map(lfNetwork::getBranchById)
+                .filter(Objects::nonNull)
+                .filter(branch -> branch.getBus1() != null)
+                .filter(branch -> branch.getBus2() != null)
+                .forEach(connectivity::removeEdge);
     }
 
     private void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
         for (LfBus lfBus : lfNetwork.getBuses()) {
             connectivity.addVertex(lfBus);
         }
-        for (LfBranch lfBranch : lfNetwork.getBranches()) {
-            connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
-        }
+        lfNetwork.getBranches().stream()
+                .filter(lfBranch -> lfBranch.getBus1() != null)
+                .filter(lfBranch -> lfBranch.getBus2() != null)
+                .forEach(lfBranch -> connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch));
     }
 
     private Set<LfBus> createVerticesSet(String... busIds) {
         return Arrays.stream(busIds).map(lfNetwork::getBusById).collect(Collectors.toSet());
+    }
+
+    @Test
+    void largeCase() {
+        Network network = Network.read(Path.of("largeFile.xiidm"));
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        lfNetwork = lfNetworks.get(0);
+        for (int i = 0; i < 100; i++) {
+            largeCase(network, new EvenShiloachGraphDecrementalConnectivity<>());
+        }
+        largeCase(network, new NaiveGraphConnectivity<>(LfBus::getNum));
+        largeCase(network, new MinimumSpanningTreeGraphConnectivity<>());
+    }
+
+    private void largeCase(Network network, GraphConnectivity<LfBus, LfBranch> connectivity) {
+        updateConnectivity(connectivity);
+
+        long t0 = System.currentTimeMillis();
+        network.getLineStream()
+                .filter(l -> l.getTerminal1().getVoltageLevel().getNominalV() > 340)
+                .map(Identifiable::getId)
+                .forEach(branch -> {
+                    connectivity.startTemporaryChanges();
+                    cutBranches(connectivity, branch);
+                    connectivity.getEdgesRemovedFromMainComponent();
+                    connectivity.undoTemporaryChanges();
+                });
+        long timeSpent = System.currentTimeMillis() - t0;
+        LoggerFactory.getLogger(getClass()).info("Connectivity with {}: {}ms", connectivity.getClass().getSimpleName(), timeSpent);
     }
 }
