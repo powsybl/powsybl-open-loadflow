@@ -404,8 +404,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                    GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork lfNetwork) {
             elementsToReconnect = computeElementsToReconnect(connectivity, elementsBreakingConnectivity);
             disabledBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
-            slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
-            slackConnectedComponent.removeAll(disabledBuses);
+            slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
             predefinedResultsSensi = new HashMap<>();
             predefinedResultsRef = new HashMap<>();
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {

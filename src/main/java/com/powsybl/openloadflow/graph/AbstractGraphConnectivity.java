@@ -128,10 +128,9 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     @Override
     public Set<V> getNonConnectedVertices(V vertex) {
-        checkSaved();
-        checkVertex(vertex);
-        updateComponents();
-        return componentSets.stream().filter(component -> !component.contains(vertex))
+        Set<V> connectedComponent = getConnectedComponent(vertex);
+        return componentSets.stream()
+                .filter(component -> component != connectedComponent)
                 .flatMap(Collection::stream).collect(Collectors.toSet());
     }
 

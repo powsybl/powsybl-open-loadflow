@@ -148,15 +148,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
     @Override
     public Set<V> getNonConnectedVertices(V vertex) {
-        checkSaved();
-        checkVertex(vertex);
-        computeConnectivity();
-        List<Set<V>> nonConnectedComponents = new ArrayList<>(getSmallComponents());
-        getSmallComponents().stream().filter(c -> c.contains(vertex)).findFirst().ifPresent(c -> {
+        int componentNumber = getComponentNumber(vertex);
+        if (componentNumber != 0) {
             computeMainConnectedComponent();
-            nonConnectedComponents.remove(c);
-            nonConnectedComponents.add(componentSets.get(0));
-        });
+        }
+        List<Set<V>> nonConnectedComponents = new ArrayList<>(componentSets);
+        nonConnectedComponents.remove(componentNumber);
         return nonConnectedComponents.stream().flatMap(Collection::stream).collect(Collectors.toSet());
     }
 

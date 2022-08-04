@@ -306,8 +306,7 @@ public class PropagatedContingency {
         if (useSmallComponents) {
             buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
         } else {
-            int slackBusComponent = connectivity.getComponentNumber(network.getSlackBus());
-            buses = network.getBuses().stream().filter(b -> connectivity.getComponentNumber(b) != slackBusComponent).collect(Collectors.toSet());
+            buses = connectivity.getNonConnectedVertices(network.getSlackBus());
         }
         buses.forEach(b -> branches.addAll(b.getBranches()));
 
