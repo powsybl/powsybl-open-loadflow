@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.ToIntFunction;
@@ -45,7 +46,12 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     @Override
-    protected void resetConnectivity() {
+    protected void resetConnectivityToLastSave(Deque<GraphModification<V, E>> m) {
+        invalidateComponents();
+    }
+
+    @Override
+    protected void resetConnectivityToSecondToLastSave(Deque<GraphModification<V, E>> m) {
         invalidateComponents();
     }
 

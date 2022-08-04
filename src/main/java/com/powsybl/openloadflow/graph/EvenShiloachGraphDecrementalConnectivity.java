@@ -60,10 +60,17 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     }
 
     @Override
-    protected void resetConnectivity() {
+    protected void resetConnectivityToLastSave(Deque<GraphModification<V, E>> m) {
         vertexToConnectedComponent = null;
         componentSets = null;
         newConnectedComponents.clear();
+        allSavedChangedLevels.descendingIterator().forEachRemaining(levelNeighboursMap::putAll);
+        allSavedChangedLevels.clear();
+    }
+
+    @Override
+    protected void resetConnectivityToSecondToLastSave(Deque<GraphModification<V, E>> m) {
+        // Not implemented
     }
 
     @Override
@@ -102,13 +109,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         if (!nextLevel.isEmpty()) {
             buildNextLevel(nextLevel, levelIndex + 1);
         }
-    }
-
-    @Override
-    public void reset() {
-        super.reset();
-        allSavedChangedLevels.descendingIterator().forEachRemaining(levelNeighboursMap::putAll);
-        allSavedChangedLevels.clear();
     }
 
     @Override

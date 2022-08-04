@@ -55,9 +55,18 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
     }
 
     @Override
-    protected void resetConnectivity() {
-        mst = mstSaved.pollLast();
+    protected void resetConnectivityToLastSave(Deque<GraphModification<V, E>> m) {
+        if (mstSaved.isEmpty()) {
+            throw new AssertionError("Corrupted connectivity cache");
+        }
+        mst = new SpanningTrees(mstSaved.peekLast());
         componentSets = null;
+    }
+
+    @Override
+    protected void resetConnectivityToSecondToLastSave(Deque<GraphModification<V, E>> m) {
+        mstSaved.removeLast();
+        resetConnectivityToLastSave(m);
     }
 
     @Override

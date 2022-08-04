@@ -30,7 +30,9 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     protected abstract void updateConnectivity(VertexAdd<V, E> vertexAdd);
 
-    protected abstract void resetConnectivity();
+    protected abstract void resetConnectivityToSecondToLastSave(Deque<GraphModification<V, E>> m);
+
+    protected abstract void resetConnectivityToLastSave(Deque<GraphModification<V, E>> m);
 
     protected abstract void updateComponents();
 
@@ -83,14 +85,15 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
             throw new PowsyblException("Cannot reset, no remaining saved connectivity");
         }
         Deque<GraphModification<V, E>> m = graphModifications.pollLast();
-        resetConnectivity();
         if (m.isEmpty()) {
             // there are no modifications left at this level: going to lower level.
             if (graphModifications.isEmpty()) {
                 throw new PowsyblException("Cannot reset, no remaining saved connectivity");
             }
             m = graphModifications.pollLast();
-            resetConnectivity();
+            resetConnectivityToSecondToLastSave(m);
+        } else {
+            resetConnectivityToLastSave(m);
         }
         graphModifications.add(new ArrayDeque<>());
         m.descendingIterator().forEachRemaining(gm -> gm.undo(graph));
