@@ -140,6 +140,13 @@ class ConnectivityTest {
         assertEquals(Set.of(v2, v3), c.getConnectedComponent(v2));
         assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
 
+        c.addEdge(v1, v2, e12);
+        c.reset();
+        assertEquals(2, c.getSmallComponents().size());
+        assertEquals(Set.of(v1), c.getConnectedComponent(v1));
+        assertEquals(Set.of(v2, v3), c.getConnectedComponent(v2));
+        assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
+
         c.addEdge(v1, v4, "1-4");
         c.addEdge(v3, v4, "3-4");
         assertTrue(c.getSmallComponents().isEmpty());
