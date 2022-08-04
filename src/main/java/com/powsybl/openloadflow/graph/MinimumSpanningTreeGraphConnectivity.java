@@ -65,12 +65,6 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
     }
 
     @Override
-    protected void resetConnectivityToSecondToLastSave(Deque<GraphModification<V, E>> m) {
-        mstSaved.removeLast();
-        resetConnectivityToLastSave(m);
-    }
-
-    @Override
     protected int getQuickComponentNumber(V vertex) {
         Set<V> cc = mst.forest.getConnectedComponent(vertex);
         return componentSets.indexOf(cc);

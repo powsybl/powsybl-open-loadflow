@@ -50,7 +50,6 @@ public class PhaseControlOuterLoop implements OuterLoop {
         if (!controllerBranches.isEmpty()) {
             List<LfBranch> disabledBranches = context.getNetwork().getBranches().stream()
                     .filter(LfElement::isDisabled)
-                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .collect(Collectors.toList());
             for (LfBranch controllerBranch : controllerBranches) {
                 var phaseControl = controllerBranch.getDiscretePhaseControl().orElseThrow();
@@ -59,7 +58,9 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 connectivity.startTemporaryChanges();
 
                 // apply contingency (in case we are inside a security analysis)
-                disabledBranches.forEach(connectivity::removeEdge);
+                disabledBranches.stream()
+                        .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                        .forEach(connectivity::removeEdge);
                 int componentsCountBeforePhaseShifterLoss = connectivity.getNbConnectedComponents();
 
                 // then the phase shifter controlled branch

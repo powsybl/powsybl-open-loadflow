@@ -182,7 +182,6 @@ class NetworkConnectivityTest {
         for (LfBranch lfBranch : lfNetwork.getBranches()) {
             connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
         }
-        connectivity.save();
     }
 
     private Set<LfBus> createVerticesSet(String... busIds) {

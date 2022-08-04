@@ -571,7 +571,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             getBranches().stream()
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
-            connectivity.save();
         }
         return connectivity;
     }
@@ -606,12 +605,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             if (branch.isDisabled() && branch.getBus1() != null && branch.getBus2() != null) {
                 // apply contingency (in case we are inside a security analysis)
                 getConnectivity().removeEdge(branch);
-                edgesRemoved = true;
             }
         }
         for (LfBranch branch : controllerBranches) {
             getConnectivity().removeEdge(branch);
-            edgesRemoved = true;
         }
         int disabledTransformerCount = 0;
         Map<Integer, Boolean> componentNoPVBusesMap = new HashMap<>();
