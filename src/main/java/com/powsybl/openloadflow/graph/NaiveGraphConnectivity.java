@@ -46,12 +46,7 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     @Override
-    protected void resetConnectivityToLastSave(Deque<GraphModification<V, E>> m) {
-        invalidateComponents();
-    }
-
-    @Override
-    protected void resetConnectivityToSecondToLastSave(Deque<GraphModification<V, E>> m) {
+    protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
         invalidateComponents();
     }
 

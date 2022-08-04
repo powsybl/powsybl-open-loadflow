@@ -131,12 +131,13 @@ class BridgesTest {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             if (bus1 != null && bus2 != null) {
+                connectivity.startTemporaryChanges();
                 connectivity.removeEdge(branch);
                 boolean connected = connectivity.getComponentNumber(bus1) == connectivity.getComponentNumber(bus2);
                 if (!connected) {
                     bridgesSet.add(branch.getId());
                 }
-                connectivity.reset();
+                connectivity.undoTemporaryChanges();
             }
         }
         return bridgesSet;
@@ -168,7 +169,6 @@ class BridgesTest {
                 connectivity.addEdge(bus1, bus2, branch);
             }
         }
-        connectivity.save();
     }
 
 }

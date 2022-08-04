@@ -91,7 +91,7 @@ class NetworkConnectivityTest {
                 connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
             }
         }
-        PowsyblException e = assertThrows(PowsyblException.class, connectivity::save);
+        PowsyblException e = assertThrows(PowsyblException.class, connectivity::startTemporaryChanges);
         assertEquals("This implementation does not support saving a graph with several connected components", e.getMessage());
     }
 
@@ -206,6 +206,7 @@ class NetworkConnectivityTest {
     }
 
     private void cutBranches(GraphConnectivity<LfBus, LfBranch> connectivity, String... branches) {
+        connectivity.startTemporaryChanges();
         Arrays.stream(branches).map(lfNetwork::getBranchById).forEach(connectivity::removeEdge);
     }
 
@@ -216,7 +217,6 @@ class NetworkConnectivityTest {
         for (LfBranch lfBranch : lfNetwork.getBranches()) {
             connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
         }
-        connectivity.save();
     }
 
     private Set<LfBus> createVerticesSet(String... busIds) {

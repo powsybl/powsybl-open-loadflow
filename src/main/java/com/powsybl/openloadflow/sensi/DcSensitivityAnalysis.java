@@ -512,13 +512,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> groupOfElementPotentiallyBreakingConnectivity : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
             Set<ComputedContingencyElement> breakingConnectivityCandidates = groupOfElementPotentiallyBreakingConnectivity.getKey();
             List<PropagatedContingency> contingencyList = groupOfElementPotentiallyBreakingConnectivity.getValue();
-            Collection<LfBranch> breakingConnectivityLfBranchCandidates = breakingConnectivityCandidates.stream()
+            connectivity.startTemporaryChanges();
+            breakingConnectivityCandidates.stream()
                     .map(ComputedContingencyElement::getElement)
                     .map(ContingencyElement::getId)
+                    .distinct()
                     .map(lfNetwork::getBranchById)
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-            breakingConnectivityLfBranchCandidates.forEach(connectivity::removeEdge);
+                    .forEach(connectivity::removeEdge);
 
             // filter the branches that really impacts connectivity
             Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream().filter(element -> {
@@ -537,9 +538,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork)).getContingencies().addAll(contingencyList);
                 }
             }
-            if (!breakingConnectivityLfBranchCandidates.isEmpty()) {
-                connectivity.reset();
-            }
+            connectivity.undoTemporaryChanges();
         }
         return connectivityAnalysisResults;
     }

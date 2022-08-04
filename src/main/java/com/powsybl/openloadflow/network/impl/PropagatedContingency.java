@@ -295,10 +295,10 @@ public class PropagatedContingency {
 
         // update connectivity with triggered branches
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
-        List<LfBranch> edgesRemoved = branches.stream()
+        connectivity.startTemporaryChanges();
+        branches.stream()
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .collect(Collectors.toList());
-        edgesRemoved.forEach(connectivity::removeEdge);
+                .forEach(connectivity::removeEdge);
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
@@ -311,9 +311,7 @@ public class PropagatedContingency {
         buses.forEach(b -> branches.addAll(b.getBranches()));
 
         // reset connectivity to discard triggered branches
-        if (!edgesRemoved.isEmpty()) {
-            connectivity.reset();
-        }
+        connectivity.undoTemporaryChanges();
 
         Map<LfShunt, Double> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {

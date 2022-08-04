@@ -60,7 +60,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     }
 
     @Override
-    protected void resetConnectivityToLastSave(Deque<GraphModification<V, E>> m) {
+    protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
         vertexToConnectedComponent = null;
         componentSets = null;
         newConnectedComponents.clear();
@@ -69,34 +69,27 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     }
 
     @Override
-    protected void resetConnectivityToSecondToLastSave(Deque<GraphModification<V, E>> m) {
-        // Not implemented
-    }
-
-    @Override
     protected void updateComponents() {
         computeConnectivity();
     }
 
     @Override
-    public void save() {
+    public void startTemporaryChanges() {
         if (!getGraphModifications().isEmpty()) {
-            throw new PowsyblException("This implementation supports only one single call to save");
+            throw new PowsyblException("This implementation supports only level of temporary changes");
         }
-        super.save();
-        saveLevelNeighbours();
-    }
-
-    private void saveLevelNeighbours() {
-        Set<V> vertices = getGraph().vertexSet();
-        vertices.stream().findFirst().ifPresent(v -> buildNextLevel(Collections.singleton(v), 0));
-        if (vertices.size() > levelNeighboursMap.size()) {
-            // Checking if only one connected components at start
-            throw new PowsyblException("This implementation does not support saving a graph with several connected components");
+        super.startTemporaryChanges();
+        if (levelNeighboursMap.isEmpty()) {
+            Set<V> vertices = getGraph().vertexSet();
+            vertices.stream().findFirst().ifPresent(v -> buildLevelNeighbours(Collections.singleton(v), 0));
+            if (vertices.size() > levelNeighboursMap.size()) {
+                // Checking if only one connected components at start
+                throw new PowsyblException("This implementation does not support saving a graph with several connected components");
+            }
         }
     }
 
-    private void buildNextLevel(Collection<V> level, int levelIndex) {
+    private void buildLevelNeighbours(Collection<V> level, int levelIndex) {
         Collection<V> nextLevel = new HashSet<>();
         for (V v : level) {
             LevelNeighbours neighbours = levelNeighboursMap.computeIfAbsent(v, value -> new LevelNeighbours(levelIndex));
@@ -107,7 +100,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
             nextLevel.addAll(neighbours.upperLevel);
         }
         if (!nextLevel.isEmpty()) {
-            buildNextLevel(nextLevel, levelIndex + 1);
+            buildLevelNeighbours(nextLevel, levelIndex + 1);
         }
     }
 

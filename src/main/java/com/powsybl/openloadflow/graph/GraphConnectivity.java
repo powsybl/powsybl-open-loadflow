@@ -10,15 +10,27 @@ import java.util.Collection;
 import java.util.Set;
 
 /**
- * Interface for incremental and decremental connectivity computations, with a save / reset mechanism.
- * The connectivity can be saved thanks to a call to {@link #save}. A call to {@link #reset} will then restore the
- * connectivity state saved by undoing in reverse order all the graph modifications which occurred since last reset
- * or last save.
- * Two (resp. N) consecutive calls to {@link #reset} will restore the connectivity of the second to last (resp. Nth to
- * last) save. Consecutive meaning without any graph modifications in between.
- * Hence, USE CAUTIOUSLY the call to {@link #reset}! You should check beforehand if there are some graph modifications
- * to undo. Indeed, if no graph modifications have occurred since last reset or last save you end up with the
- * connectivity state corresponding to the second to last save.
+ * Interface for incremental and decremental connectivity computations, through a mechanism which records the
+ * topological changes which later need to be undone.
+ * To start recording topological changes, call {@link #startTemporaryChanges}.
+ * A call to {@link #undoTemporaryChanges} will then undo in reverse order all the graph modifications which occurred since last
+ * call to {@link #startTemporaryChanges}.
+ * This allows several levels of temporary changes - even if some implementations might not support it.
+ * <pre>
+ *     connectivity.addVertex(v1);
+ *     connectivity.addVertex(v2);
+ *     connectivity.addEdge(v1, v2, e12);
+ *
+ *     connectivity.startTemporaryChanges();
+ *     connectivity.removeEdge(e12);
+ *
+ *        connectivity.startTemporaryChanges();
+ *        connectivity.addVertex(v3);
+ *        connectivity.addEdge(v1, v3, e13);
+ *        connectivity.undoTemporaryChanges();
+ *
+ *     connectivity.undoTemporaryChanges();
+ * </pre>
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -32,15 +44,14 @@ public interface GraphConnectivity<V, E> {
     void removeEdge(E edge);
 
     /**
-     * Save the connectivity state
+     * Start recording topological changes to undo them later by a {@link #undoTemporaryChanges} call.
      */
-    void save();
+    void startTemporaryChanges();
 
     /**
-     * Restore the connectivity state of last save, but ONLY IF topological changes have been made.
-     * If no topological changes have occurred, restore the connectivity state to the second to last save.
+     * Undo all the connectivity changes (possibly none) since last call to {@link #startTemporaryChanges}.
      */
-    void reset();
+    void undoTemporaryChanges();
 
     /**
      * Return the number of the connected component containing the given vertex, knowing that the number represents

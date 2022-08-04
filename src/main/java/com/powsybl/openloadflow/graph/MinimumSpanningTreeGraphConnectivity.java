@@ -46,27 +46,22 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
     }
 
     @Override
-    public void save() {
-        super.save();
+    public void startTemporaryChanges() {
+        super.startTemporaryChanges();
         if (mst == null) {
             mst = new KruskalMinimumSpanningTrees().getSpanningTree();
         }
-        mstSaved.add(new SpanningTrees(mst));
+        mstSaved.add(mst);
+        mst = new SpanningTrees(mst);
     }
 
     @Override
-    protected void resetConnectivityToLastSave(Deque<GraphModification<V, E>> m) {
+    protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
         if (mstSaved.isEmpty()) {
             throw new AssertionError("Corrupted connectivity cache");
         }
-        mst = new SpanningTrees(mstSaved.peekLast());
+        mst = mstSaved.pollLast();
         componentSets = null;
-    }
-
-    @Override
-    protected void resetConnectivityToSecondToLastSave(Deque<GraphModification<V, E>> m) {
-        mstSaved.removeLast();
-        resetConnectivityToLastSave(m);
     }
 
     @Override
@@ -141,7 +136,7 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
             super(other.getParentMap().keySet());
             other.getRankMap().forEach((k, v) -> getRankMap().put(k, v));
             other.getParentMap().forEach((k, v) -> getParentMap().put(k, v));
-            this.rootConnectedComponentMap = other.rootConnectedComponentMap;
+            this.rootConnectedComponentMap = null;
         }
 
         public List<Set<V>> getConnectedComponents() {
