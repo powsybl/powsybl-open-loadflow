@@ -81,7 +81,9 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         super.startTemporaryChanges();
         if (levelNeighboursMap.isEmpty()) {
             Set<V> vertices = getGraph().vertexSet();
-            vertices.stream().findFirst().ifPresent(v -> buildLevelNeighbours(Collections.singleton(v), 0));
+            vertices.stream()
+                    .max(Comparator.comparingInt(v -> getGraph().degreeOf(v)))
+                    .ifPresent(v -> buildLevelNeighbours(Collections.singleton(v), 0));
             if (vertices.size() > levelNeighboursMap.size()) {
                 // Checking if only one connected components at start
                 throw new PowsyblException("This implementation does not support saving a graph with several connected components");
