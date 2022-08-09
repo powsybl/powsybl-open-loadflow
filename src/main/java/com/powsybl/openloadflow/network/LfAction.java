@@ -50,6 +50,7 @@ public class LfAction {
                 if (lfGenerator == null) {
                     throw new PowsyblException("Generator " + generationRedispatchAction.getGeneratorId() + " not found in the network");
                 }
+                redispatchGenerator = lfGenerator;
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported action type: "  + action.getType());
