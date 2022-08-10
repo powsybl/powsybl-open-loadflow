@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +26,9 @@ class LfNetworkLoaderPostProcessorTest {
     private static final String PP_1 = "PP1";
     private static final String PP_2 = "PP2";
 
+    private Network network;
+    private LfNetworkParameters parameters;
+
     private LfNetworkLoaderPostProcessor pp1;
     private LfNetworkLoaderPostProcessor pp2;
 
@@ -33,6 +37,9 @@ class LfNetworkLoaderPostProcessorTest {
 
     @BeforeEach
     void setUp() {
+        network = EurostagTutorialExample1Factory.create();
+        parameters = new LfNetworkParameters();
+
         pp1 = new AbstractLfNetworkLoaderPostProcessor() {
             @Override
             public String getName() {
@@ -67,13 +74,14 @@ class LfNetworkLoaderPostProcessorTest {
     }
 
     @Test
-    void test() {
-        var network = EurostagTutorialExample1Factory.create();
-        LfNetworkParameters parameters = new LfNetworkParameters();
+    void test1() {
         LfNetwork.load(network, new LfNetworkLoaderImpl(() -> List.of(pp1, pp2)), parameters);
         assertTrue(pp1Activated);
         assertFalse(pp2Activated);
+    }
 
+    @Test
+    void test2() {
         parameters.setLoaderPostProcessorSelection(Set.of(PP_2));
         LfNetwork.load(network, new LfNetworkLoaderImpl(() -> List.of(pp1, pp2)), parameters);
         assertTrue(pp1Activated);
