@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -53,13 +53,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         private final Set<HvdcLine> hvdcLineSet = new LinkedHashSet<>();
     }
 
-    private final Function<Set<String>, List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
+    private final Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
 
     public LfNetworkLoaderImpl() {
         this(LfNetworkLoaderPostProcessor::findAll);
     }
 
-    public LfNetworkLoaderImpl(Function<Set<String>, List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier) {
+    public LfNetworkLoaderImpl(Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier) {
         this.postProcessorsSupplier = Objects.requireNonNull(postProcessorsSupplier);
     }
 
@@ -720,7 +720,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
-        List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.apply(parameters.getLoaderPostProcessorSelection());
+        List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
+                .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
+                        || (pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName())))
+                .collect(Collectors.toList());
 
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);

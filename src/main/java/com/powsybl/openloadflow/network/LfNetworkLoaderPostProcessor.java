@@ -10,8 +10,6 @@ import org.apache.commons.compress.utils.Lists;
 
 import java.util.List;
 import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -23,19 +21,13 @@ public interface LfNetworkLoaderPostProcessor {
         SELECTION
     }
 
-    static List<LfNetworkLoaderPostProcessor> findAll(Set<String> selection) {
-        return Lists.newArrayList(ServiceLoader.load(LfNetworkLoaderPostProcessor.class, LfNetworkLoaderPostProcessor.class.getClassLoader()).iterator())
-                .stream()
-                .filter(pp -> pp.getLoadingPolicy() == LoadingPolicy.ALWAYS
-                        || (pp.getLoadingPolicy() == LoadingPolicy.SELECTION && selection.contains(pp.getName())))
-                .collect(Collectors.toList());
+    static List<LfNetworkLoaderPostProcessor> findAll() {
+        return Lists.newArrayList(ServiceLoader.load(LfNetworkLoaderPostProcessor.class, LfNetworkLoaderPostProcessor.class.getClassLoader()).iterator());
     }
 
     String getName();
 
-    default LoadingPolicy getLoadingPolicy() {
-        return LoadingPolicy.ALWAYS;
-    }
+    LoadingPolicy getLoadingPolicy();
 
     void onBusAdded(Object element, LfBus lfBus);
 
