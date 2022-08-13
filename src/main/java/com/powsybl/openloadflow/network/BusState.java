@@ -21,7 +21,9 @@ public class BusState extends BusDcState {
     private final boolean voltageControlEnabled;
     private final Boolean shuntVoltageControlEnabled;
     private final double shuntB;
+    private final double shuntG;
     private final double controllerShuntB;
+    private final double controllerShuntG;
     private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
 
     public BusState(LfBus bus) {
@@ -34,8 +36,10 @@ public class BusState extends BusDcState {
         LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
         shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
         controllerShuntB = controllerShunt != null ? controllerShunt.getB() : Double.NaN;
+        controllerShuntG = controllerShunt != null ? controllerShunt.getG() : Double.NaN;
         LfShunt shunt = bus.getShunt().orElse(null);
         shuntB = shunt != null ? shunt.getB() : Double.NaN;
+        shuntG = shunt != null ? shunt.getG() : Double.NaN;
         this.generatorsControlType = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getGeneratorControlType));
     }
 
@@ -54,8 +58,14 @@ public class BusState extends BusDcState {
         if (!Double.isNaN(controllerShuntB)) {
             element.getControllerShunt().orElseThrow().setB(controllerShuntB);
         }
+        if (!Double.isNaN(controllerShuntG)) {
+            element.getControllerShunt().orElseThrow().setG(controllerShuntG);
+        }
         if (!Double.isNaN(shuntB)) {
             element.getShunt().orElseThrow().setB(shuntB);
+        }
+        if (!Double.isNaN(shuntG)) {
+            element.getShunt().orElseThrow().setG(shuntG);
         }
         element.getGenerators().forEach(g -> g.setGeneratorControlType(generatorsControlType.get(g.getId())));
     }

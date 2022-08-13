@@ -20,10 +20,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.SlackBusSelector;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,10 +79,11 @@ class OpenLoadFlowParametersTest {
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
-
         assertFalse(olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
         assertTrue(olfParameters.hasVoltageRemoteControl());
         assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
+        assertEquals(LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, olfParameters.getMinPlausibleTargetVoltage());
+        assertEquals(LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, olfParameters.getMaxPlausibleTargetVoltage());
     }
 
     @Test
@@ -198,6 +196,19 @@ class OpenLoadFlowParametersTest {
         LoadFlow.Runner loadFlowRunner2 = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result2 = loadFlowRunner2.run(network, parameters);
         assertEquals(-1.8703e-5, result2.getComponentResults().get(0).getSlackBusActivePowerMismatch(), DELTA_MISMATCH);
+    }
+
+    @Test
+    void testPlausibleTargetVoltage() {
+        LoadFlowParameters parameters = LoadFlowParameters.load();
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getGenerator("GEN").setTargetV(100);
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner.run(network, parameters);
+        assertEquals(28.80, network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV(), DELTA_MISMATCH);
+        parameters.getExtension(OpenLoadFlowParameters.class).setMaxPlausibleTargetVoltage(1.3);
+        loadFlowRunner.run(network, parameters);
+        assertEquals(31.2, network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV(), DELTA_MISMATCH);
     }
 
     @Test

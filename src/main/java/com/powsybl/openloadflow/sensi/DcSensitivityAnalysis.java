@@ -667,7 +667,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                           true,
                                                                           false,
                                                                           false,
-                                                                          false);
+                                                                          false,
+                                                                          lfParametersExt.getMinPlausibleTargetVoltage(),
+                                                                          lfParametersExt.getMaxPlausibleTargetVoltage());
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);

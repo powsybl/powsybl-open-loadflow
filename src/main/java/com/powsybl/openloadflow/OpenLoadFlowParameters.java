@@ -95,6 +95,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String DC_POWER_FACTOR_NAME = "dcPowerFactor";
 
+    public static final String MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME = "minPlausibleTargetVoltage";
+
+    public static final String MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME = "maxPlausibleTargetVoltage";
+
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -110,7 +114,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME,
                                                                          VOLTAGE_INIT_MODE_OVERRIDE_NAME,
                                                                          TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME,
-                                                                         DC_POWER_FACTOR_NAME);
+                                                                         DC_POWER_FACTOR_NAME,
+                                                                         MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME,
+                                                                         MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -164,6 +170,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private TransformerVoltageControlMode transformerVoltageControlMode = TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
 
     private double dcPowerFactor = DC_POWER_FACTOR_DEFAULT_VALUE;
+
+    private double minPlausibleTargetVoltage = LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
+
+    private double maxPlausibleTargetVoltage = LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -322,6 +332,24 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getMinPlausibleTargetVoltage() {
+        return minPlausibleTargetVoltage;
+    }
+
+    public OpenLoadFlowParameters setMinPlausibleTargetVoltage(double minPlausibleTargetVoltage) {
+        this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
+        return this;
+    }
+
+    public double getMaxPlausibleTargetVoltage() {
+        return maxPlausibleTargetVoltage;
+    }
+
+    public OpenLoadFlowParameters setMaxPlausibleTargetVoltage(double maxPlausibleTargetVoltage) {
+        this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -347,7 +375,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
-                .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_NAME, DC_POWER_FACTOR_DEFAULT_VALUE)));
+                .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
+                .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
+                .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -388,6 +418,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(DC_POWER_FACTOR_NAME))
                 .ifPresent(prop -> this.setDcPowerFactor(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME))
+                .ifPresent(prop -> this.setMinPlausibleTargetVoltage(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME))
+                .ifPresent(prop -> this.setMaxPlausibleTargetVoltage(Double.parseDouble(prop)));
         return this;
     }
 
@@ -410,6 +444,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", voltageInitModeOverride=" + voltageInitModeOverride +
                 ", transformerVoltageControlMode=" + transformerVoltageControlMode +
                 ", dcPowerFactor=" + dcPowerFactor +
+                ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
+                ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ')';
     }
 
@@ -472,6 +508,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
         LOGGER.info("Shunt voltage control: {}", parameters.isShuntCompensatorVoltageControlOn());
         LOGGER.info("Hvdc Ac emulation: {}", parameters.isHvdcAcEmulation());
+        LOGGER.info("Min plausible target voltage: {}", parametersExt.getMinPlausibleTargetVoltage());
+        LOGGER.info("Max plausible target voltage: {}", parametersExt.getMaxPlausibleTargetVoltage());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
@@ -531,7 +569,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                        parameters.isDc(),
                                        parameters.isShuntCompensatorVoltageControlOn(),
                                        !parameters.isNoGeneratorReactiveLimits(),
-                                       parameters.isHvdcAcEmulation());
+                                       parameters.isHvdcAcEmulation(),
+                                       parametersExt.getMinPlausibleTargetVoltage(),
+                                       parametersExt.getMaxPlausibleTargetVoltage());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -609,7 +649,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                         true,
                                                         false,
                                                         false,
-                                                        false); // FIXME
+                                                        false, // FIXME
+                                                        parametersExt.getMinPlausibleTargetVoltage(),
+                                                        parametersExt.getMaxPlausibleTargetVoltage());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,

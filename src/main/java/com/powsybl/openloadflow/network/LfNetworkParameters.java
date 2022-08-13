@@ -21,6 +21,13 @@ public class LfNetworkParameters {
 
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 5000;
 
+    /**
+     * Minimal and maximal plausible target V in p.u
+     */
+    public static final double MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 0.8;
+
+    public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
+
     private SlackBusSelector slackBusSelector;
 
     private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
@@ -59,6 +66,10 @@ public class LfNetworkParameters {
 
     private final boolean hvdcAcEmulation;
 
+    private double minPlausibleTargetVoltage;
+
+    private double maxPlausibleTargetVoltage;
+
     public LfNetworkParameters() {
         this(new FirstSlackBusSelector());
     }
@@ -70,7 +81,8 @@ public class LfNetworkParameters {
     public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this(slackBusSelector, connectivityFactory, false, false, false, false,
                 PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false, false, false, true, false);
+                true, Collections.emptySet(), false, false, false, false, false, false, false, true, false,
+                MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
     }
 
     public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
@@ -78,7 +90,8 @@ public class LfNetworkParameters {
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
                                boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl,
-                               boolean isDc, boolean shuntVoltageControl, boolean reactiveLimits, boolean hvdcAcEmulation) {
+                               boolean isDc, boolean shuntVoltageControl, boolean reactiveLimits, boolean hvdcAcEmulation, double minPlausibleTargetVoltage,
+                               double maxPlausibleTargetVoltage) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
         this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
@@ -98,6 +111,8 @@ public class LfNetworkParameters {
         this.shuntVoltageControl = shuntVoltageControl;
         this.reactiveLimits = reactiveLimits;
         this.hvdcAcEmulation = hvdcAcEmulation;
+        this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
+        this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -190,6 +205,14 @@ public class LfNetworkParameters {
         return hvdcAcEmulation;
     }
 
+    public double getMinPlausibleTargetVoltage() {
+        return minPlausibleTargetVoltage;
+    }
+
+    public double getMaxPlausibleTargetVoltage() {
+        return maxPlausibleTargetVoltage;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -211,6 +234,8 @@ public class LfNetworkParameters {
                 ", isDc=" + isDc +
                 ", reactiveLimits=" + reactiveLimits +
                 ", hvdcAcEmulation=" + hvdcAcEmulation +
+                ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
+                ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ')';
     }
 }

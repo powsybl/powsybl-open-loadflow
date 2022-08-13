@@ -152,11 +152,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     public List<LfLimit> getLimits1(final LimitType type) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, branch.getActivePowerLimits1());
+                return getLimits1(type, branch.getActivePowerLimits1().orElse(null));
             case APPARENT_POWER:
-                return getLimits1(type, branch.getApparentPowerLimits1());
+                return getLimits1(type, branch.getApparentPowerLimits1().orElse(null));
             case CURRENT:
-                return getLimits1(type, branch.getCurrentLimits1());
+                return getLimits1(type, branch.getCurrentLimits1().orElse(null));
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -167,11 +167,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     public List<LfLimit> getLimits2(final LimitType type) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, branch.getActivePowerLimits2());
+                return getLimits2(type, branch.getActivePowerLimits2().orElse(null));
             case APPARENT_POWER:
-                return getLimits2(type, branch.getApparentPowerLimits2());
+                return getLimits2(type, branch.getApparentPowerLimits2().orElse(null));
             case CURRENT:
-                return getLimits2(type, branch.getCurrentLimits2());
+                return getLimits2(type, branch.getCurrentLimits2().orElse(null));
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));

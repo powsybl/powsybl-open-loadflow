@@ -238,7 +238,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             @Override
             public void visitGenerator(Generator generator) {
-                lfBus.addGenerator(generator, parameters.isBreakers(), parameters.getPlausibleActivePowerLimit(), parameters.isReactiveLimits(), report);
+                lfBus.addGenerator(generator, parameters.isBreakers(), parameters.getPlausibleActivePowerLimit(), parameters.isReactiveLimits(),
+                        report, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage());
                 postProcessors.forEach(pp -> pp.onInjectionAdded(generator, lfBus));
             }
 
@@ -265,7 +266,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             @Override
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(), parameters.isBreakers(), parameters.isReactiveLimits(), report);
+                lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(),
+                        parameters.isBreakers(), parameters.isReactiveLimits(), report, parameters.getMinPlausibleTargetVoltage(),
+                        parameters.getMaxPlausibleTargetVoltage());
                 postProcessors.forEach(pp -> pp.onInjectionAdded(staticVarCompensator, lfBus));
             }
 
@@ -280,7 +283,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 switch (converterStation.getHvdcType()) {
                     case VSC:
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
-                        lfBus.addVscConverterStation(vscConverterStation, parameters.isBreakers(), parameters.isReactiveLimits(), report);
+                        lfBus.addVscConverterStation(vscConverterStation, parameters.isBreakers(), parameters.isReactiveLimits(),
+                                report, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage());
                         loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
                         break;
                     case LCC:
@@ -326,7 +330,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters.isReactiveLimits(), report);
+            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters.isReactiveLimits(), report,
+                    parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage());
             lfNetwork.addBus(lfBus2);
             lfBuses.add(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());

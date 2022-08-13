@@ -140,10 +140,14 @@ public final class AcEquationSystem {
         bus.getShunt().ifPresent(shunt -> {
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), false);
             equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).addTerm(q);
+            ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
+            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).addTerm(p);
         });
         bus.getControllerShunt().ifPresent(shunt -> {
             ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), shunt.hasVoltageControlCapability());
             equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).addTerm(q);
+            ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
+            equationSystem.createEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).addTerm(p);
         });
     }
 

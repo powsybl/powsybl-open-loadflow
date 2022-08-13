@@ -68,11 +68,11 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     public List<LfLimit> getLimits1(final LimitType type) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, danglingLine.getActivePowerLimits());
+                return getLimits1(type, danglingLine.getActivePowerLimits().orElse(null));
             case APPARENT_POWER:
-                return getLimits1(type, danglingLine.getApparentPowerLimits());
+                return getLimits1(type, danglingLine.getApparentPowerLimits().orElse(null));
             case CURRENT:
-                return getLimits1(type, danglingLine.getCurrentLimits());
+                return getLimits1(type, danglingLine.getCurrentLimits().orElse(null));
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
