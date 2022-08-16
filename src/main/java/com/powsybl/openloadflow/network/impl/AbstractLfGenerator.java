@@ -25,8 +25,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     private static final double POWER_EPSILON_SI = 1e-4;
 
-    private static final double TARGET_P_EPSILON = 1e-2;
-
     protected static final double DEFAULT_DROOP = 4; // why not
 
     protected double targetP;
@@ -206,12 +204,12 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                 consistency = false;
             }
         }
-        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
+        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > 0) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
             consistency = false;
         }
-        if (getTargetP() < getMinP() && getMinP() > POWER_EPSILON_SI) {
+        if (getTargetP() < getMinP() && getMinP() > 0) {
             LOGGER.trace("Discard starting generator '{}' from voltage control (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseStarting++;
             consistency = false;
@@ -281,7 +279,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected boolean checkActivePowerControl(double targetP, double minP, double maxP, double plausibleActivePowerLimit,
                                               LfNetworkLoadingReport report) {
         boolean participating = true;
-        if (Math.abs(targetP) < TARGET_P_EPSILON) {
+        if (Math.abs(targetP) < POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
                     getId(), targetP);
             report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
@@ -293,7 +291,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
             participating = false;
         }
-        if (targetP < minP && minP > POWER_EPSILON_SI) {
+        if (targetP < minP && minP > 0) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) < minP ({})",
                     getId(), targetP, minP);
             report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
@@ -305,7 +303,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             participating = false;
         }
-        if ((maxP - minP) < TARGET_P_EPSILON) {
+        if ((maxP - minP) < POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
                     getId(), maxP, minP);
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
