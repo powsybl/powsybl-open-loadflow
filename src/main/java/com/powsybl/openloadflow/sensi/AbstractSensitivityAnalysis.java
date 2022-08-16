@@ -698,10 +698,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
-            if (!contingency.getSwitchesToOpen().isEmpty()) {
-                throw new PowsyblException("Switch opening not supported in sensitivity analysis");
-            }
-
             // check ID are unique because, later contingency are indexed by their IDs
             String contingencyId = contingency.getContingency().getId();
             if (contingenciesIds.contains(contingencyId)) {
@@ -1033,6 +1029,16 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             }
         });
         return hasTransformerBusTargetVoltage.get();
+    }
+
+    public boolean hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
+        AtomicBoolean hasBusTargetVoltage = new AtomicBoolean();
+        factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
+            if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                hasBusTargetVoltage.set(true);
+            }
+        });
+        return hasBusTargetVoltage.get();
     }
 
     public static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {

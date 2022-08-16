@@ -6,11 +6,10 @@
  */
 package com.powsybl.openloadflow.sensi.ac;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.*;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -25,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -598,19 +598,20 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         runLf(network, sensiParameters.getLoadFlowParameters());
 
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                                                             network.getBranchStream().collect(Collectors.toList()),
-                                                             "L2");
+                                                             network.getBranchStream().collect(Collectors.toList()));
 
         List<Contingency> contingencies = List.of(new Contingency("L2", new BranchContingency("L2")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
-        // FIXME: contingency propagation is deactivated for the moment.
-        //Flow is around 200 on all lines
-        // result.getValues().forEach(v -> assertEquals(200, v.getFunctionReference(), 5));
+        assertEquals(200.794, result.getBranchFlow1FunctionReferenceValue("L1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(200.794, result.getBranchFlow1FunctionReferenceValue("L2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(200.794, result.getBranchFlow1FunctionReferenceValue("L3"), LoadFlowAssert.DELTA_POWER);
 
         // Propagating contingency on L2 encounters a coupler, which is not (yet) supported in sensitivity analysis
-        // assertTrue(result.getValues("L2").isEmpty());
+        assertEquals(301.864, result.getBranchFlow1FunctionReferenceValue("L2", "L1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("L2", "L2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(301.864, result.getBranchFlow1FunctionReferenceValue("L2", "L3"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1047,5 +1048,41 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         // because l45 is already open on base case
         assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("g2", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSwitchContingency() {
+        Network network = NodeBreakerNetworkFactory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL1_0");
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("L1", "LD"));
+
+        List<Contingency> contingencies = List.of(new Contingency("C", new SwitchContingency("C")));
+
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
+        assertEquals(-0.506, result.getBranchFlow1SensitivityValue("LD", "L1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.000, result.getBranchFlow1SensitivityValue("C", "LD", "L1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(301.884, result.getBranchFlow1FunctionReferenceValue("L1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(3.912, result.getBranchFlow1FunctionReferenceValue("C", "L1"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSwitchContingency2() {
+        Network network = NodeBreakerNetworkFactory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL1_0");
+
+        List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("BBS3", "G"));
+
+        List<Contingency> contingencies = List.of(new Contingency("C", new SwitchContingency("C")));
+
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Switch contingency is not yet supported with sensitivity function of type BUS_VOLTAGE", e.getCause().getMessage());
     }
 }
