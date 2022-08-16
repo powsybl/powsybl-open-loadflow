@@ -6,8 +6,11 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.apache.commons.lang3.Range;
+
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -141,7 +144,7 @@ public class PiModelArray implements PiModel {
     @Override
     public void roundR1ToClosestTap() {
         if (Double.isNaN(r1)) {
-            return; // nothing to do because a1 has not been modified
+            return; // nothing to do because r1 has not been modified
         }
 
         // find tap position with the closest r1 value
@@ -158,11 +161,13 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean updateTapPosition(Direction direction) {
+    public boolean updateTapPositionA1(Direction direction) {
+        // an increase direction means that A1 should increase.
+        // a decrease direction means that A1 should decrease.
         this.a1 = getA1();
         double previousA1 = Double.NaN;
         double nextA1 = Double.NaN;
-        boolean hasChange = false;
+        boolean hasChanged = false;
         int oldTapPosition = tapPosition;
         if (tapPosition < lowTapPosition + models.size() - 1) {
             nextA1 = models.get(tapPosition - lowTapPosition + 1).getA1(); // abs?
@@ -174,20 +179,64 @@ public class PiModelArray implements PiModel {
                 ((direction == Direction.INCREASE && previousA1 > a1) || (direction == Direction.DECREASE && previousA1 < a1))) {
             tapPosition = tapPosition - 1;
             a1 = Double.NaN;
-            hasChange = true;
+            hasChanged = true;
         }
         if (!Double.isNaN(nextA1) &&
                 ((direction == Direction.INCREASE && nextA1 > a1) || (direction == Direction.DECREASE && nextA1 < a1))) {
             tapPosition = tapPosition + 1;
             a1 = Double.NaN;
-            hasChange = true;
+            hasChanged = true;
         }
-        if (hasChange) {
+        if (hasChanged) {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onDiscretePhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
+                listener.onTransformerPhaseControlTapPositionChange(branch, oldTapPosition, tapPosition);
             }
         }
-        return hasChange;
+        return hasChanged;
+    }
+
+    private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
+        switch (allowedDirection) {
+            case INCREASE:
+                return Range.between(tapPosition - lowTapPosition, models.size());
+            case DECREASE:
+                return Range.between(0, tapPosition - lowTapPosition);
+            case BOTH:
+                return Range.between(0, models.size());
+            default:
+                throw new IllegalStateException("Unknown direction: " + allowedDirection);
+        }
+    }
+
+    @Override
+    public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
+        // an increase allowed direction means that the tap could increase.
+        // a decrease allowed direction means that the tap could decrease.
+        double newR1 = getR1() + deltaR1;
+        Range<Integer> positionRange = getAllowedPositionRange(allowedDirection);
+
+        int oldTapPosition = tapPosition;
+        // find tap position with the closest r1 value without exceeding the maximum of taps to switch.
+        double smallestDistance = Math.abs(deltaR1);
+        for (int p = positionRange.getMinimum();
+             p < positionRange.getMaximum() && Math.abs(lowTapPosition + p - oldTapPosition) <= maxTapShift;
+             p++) {
+            double distance = Math.abs(newR1 - models.get(p).getR1());
+            if (distance < smallestDistance) {
+                tapPosition = lowTapPosition + p;
+                smallestDistance = distance;
+            }
+        }
+
+        boolean hasChanged = tapPosition != oldTapPosition;
+        if (hasChanged) {
+            r1 = Double.NaN;
+            for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
+                listener.onTransformerVoltageControlTapPositionChange(branch, oldTapPosition, tapPosition);
+            }
+            return Optional.of(tapPosition - oldTapPosition > 0 ? Direction.INCREASE : Direction.DECREASE);
+        }
+        return Optional.empty();
     }
 
     @Override

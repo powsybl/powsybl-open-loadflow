@@ -18,6 +18,4 @@ public final class PlausibleValues {
 
     public static final double MIN_REACTIVE_RANGE = 1; // MVar
     public static final double MAX_REACTIVE_RANGE = 10000; // MVar
-    public static final double MIN_TARGET_VOLTAGE_PU = 0.8; // pu
-    public static final double MAX_TARGET_VOLTAGE_PU = 1.2; // pu
 }

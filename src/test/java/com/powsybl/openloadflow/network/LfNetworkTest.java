@@ -105,7 +105,9 @@ class LfNetworkTest extends AbstractConverterTest {
                                                                  false,
                                                                  false,
                                                                  true,
-                                                                 false);
+                                                                 false,
+                                                                 LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE,
+                                                                 LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(1, lfNetworks.size());

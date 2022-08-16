@@ -39,7 +39,7 @@ public class PropagatedContingency {
 
     private final Map<String, PowerShift> loadIdsToShift;
 
-    private final Map<String, Double> shuntIdsToShift;
+    private final Map<String, AdmittanceShift> shuntIdsToShift;
 
     public Contingency getContingency() {
         return contingency;
@@ -69,13 +69,13 @@ public class PropagatedContingency {
         return loadIdsToShift;
     }
 
-    public Map<String, Double> getShuntIdsToShift() {
+    public Map<String, AdmittanceShift> getShuntIdsToShift() {
         return shuntIdsToShift;
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
                                  Set<Switch> switchesToOpen, Set<String> generatorIdsToLose,
-                                 Map<String, PowerShift> loadIdsToShift, Map<String, Double> shuntIdsToShift) {
+                                 Map<String, PowerShift> loadIdsToShift, Map<String, AdmittanceShift> shuntIdsToShift) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
@@ -141,7 +141,7 @@ public class PropagatedContingency {
         Set<String> hvdcIdsToOpen = new HashSet<>();
         Set<String> generatorIdsToLose = new HashSet<>();
         Map<String, PowerShift> loadIdsToShift = new HashMap<>();
-        Map<String, Double> shuntIdsToShift = new HashMap<>();
+        Map<String, AdmittanceShift> shuntIdsToShift = new HashMap<>();
 
         // process terminals disconnected, in particular process injection power shift
         for (Terminal terminal : terminalsToDisconnect) {
@@ -168,7 +168,8 @@ public class PropagatedContingency {
                         throw new UnsupportedOperationException("Shunt compensator '" + shunt.getId() + "' with voltage control on: not supported yet");
                     }
                     double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
-                    shuntIdsToShift.put(shunt.getId(), shunt.getB() * nominalV * nominalV / PerUnit.SB);
+                    shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(-shunt.getG() * nominalV * nominalV / PerUnit.SB,
+                            shunt.getB() * nominalV * nominalV / PerUnit.SB));
                     break;
 
                 case HVDC_CONVERTER_STATION:
@@ -302,12 +303,12 @@ public class PropagatedContingency {
         // reset connectivity to discard triggered branches
         connectivity.reset();
 
-        Map<LfShunt, Double> shunts = new HashMap<>(1);
+        Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {
             LfShunt shunt = network.getShuntById(e.getKey());
             if (shunt != null) { // could be in another component
-                double oldB = shunts.getOrDefault(shunt, 0d);
-                shunts.put(shunt, oldB + e.getValue());
+                shunts.computeIfAbsent(shunt, k -> new AdmittanceShift())
+                        .add(e.getValue());
             }
         }
 

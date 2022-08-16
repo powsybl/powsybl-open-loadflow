@@ -10,7 +10,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.apache.commons.math3.util.FastMath;
+import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +38,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected boolean phaseControlEnabled = false;
 
     protected TransformerVoltageControl voltageControl;
+
+    protected double transformerVoltageControlTargetDeadband;
 
     protected boolean voltageControlEnabled = false;
 
@@ -195,6 +197,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
+    public Optional<Double> getTransformerVoltageControlTargetDeadband() {
+        return Optional.ofNullable(transformerVoltageControlTargetDeadband);
+    }
+
+    @Override
     public boolean isVoltageController() {
         return voltageControl != null;
     }
@@ -202,6 +209,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setVoltageControl(TransformerVoltageControl transformerVoltageControl) {
         this.voltageControl = transformerVoltageControl;
+    }
+
+    @Override
+    public void setTransformerVoltageControlTargetDeadband(double transformerVoltageControlTargetDeadband) {
+        this.transformerVoltageControlTargetDeadband = transformerVoltageControlTargetDeadband;
     }
 
     @Override

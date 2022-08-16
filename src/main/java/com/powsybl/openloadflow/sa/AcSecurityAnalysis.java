@@ -34,7 +34,6 @@ import com.powsybl.security.SecurityAnalysisReport;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.PostContingencyResult;
-import com.powsybl.security.results.PreContingencyResult;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -50,11 +49,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private static SecurityAnalysisResult createNoResult() {
-        return new SecurityAnalysisResult(new PreContingencyResult(new LimitViolationsResult(false, Collections.emptyList()),
-                                                                   Collections.emptyList(),
-                                                                   Collections.emptyList(),
-                                                                   Collections.emptyList()),
-                                          Collections.emptyList());
+        return new SecurityAnalysisResult(new LimitViolationsResult(false, Collections.emptyList()), Collections.emptyList());
     }
 
     @Override
@@ -184,7 +179,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                               postContingencyResults,
                                               preContingencyNetworkResult.getBranchResults(),
                                               preContingencyNetworkResult.getBusResults(),
-                                              preContingencyNetworkResult.getThreeWindingsTransformerResults());
+                                              preContingencyNetworkResult.getThreeWindingsTransformerResults(),
+                                              Collections.emptyList());
         }
     }
 

@@ -206,7 +206,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParameters.isDc(),
                                                                           lfParameters.isShuntCompensatorVoltageControlOn(),
                                                                           !lfParameters.isNoGeneratorReactiveLimits(),
-                                                                          lfParameters.isHvdcAcEmulation());
+                                                                          lfParameters.isHvdcAcEmulation(),
+                                                                          lfParametersExt.getMinPlausibleTargetVoltage(),
+                                                                          lfParametersExt.getMaxPlausibleTargetVoltage());
         List<LfNetwork> lfNetworks;
         if (breakers) {
             // create networks including all necessary switches

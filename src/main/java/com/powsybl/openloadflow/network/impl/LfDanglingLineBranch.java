@@ -19,7 +19,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
+public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
     private final DanglingLine danglingLine;
 
@@ -68,11 +68,11 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
     public List<LfLimit> getLimits1(final LimitType type) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, danglingLine.getActivePowerLimits());
+                return getLimits1(type, danglingLine.getActivePowerLimits().orElse(null));
             case APPARENT_POWER:
-                return getLimits1(type, danglingLine.getApparentPowerLimits());
+                return getLimits1(type, danglingLine.getApparentPowerLimits().orElse(null));
             case CURRENT:
-                return getLimits1(type, danglingLine.getCurrentLimits());
+                return getLimits1(type, danglingLine.getCurrentLimits().orElse(null));
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -81,12 +81,13 @@ public class LfDanglingLineBranch extends AbstractFictitiousLfBranch {
 
     @Override
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
-        if (this.isZeroImpedanceBranch(dc)) {
-            danglingLine.getTerminal().setP(-getBus2().getP().eval() * PerUnit.SB);
-            danglingLine.getTerminal().setQ(-getBus2().getQ().eval() * PerUnit.SB);
-        } else {
-            danglingLine.getTerminal().setP(p.eval() * PerUnit.SB);
-            danglingLine.getTerminal().setQ(q.eval() * PerUnit.SB);
-        }
+        updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
+    }
+
+    @Override
+    public void updateFlows(double p1, double q1, double p2, double q2) {
+        // Network side is always on side 1.
+        danglingLine.getTerminal().setP(p1 * PerUnit.SB)
+                .setQ(q1 * PerUnit.SB);
     }
 }
