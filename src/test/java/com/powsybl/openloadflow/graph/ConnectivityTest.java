@@ -181,7 +181,7 @@ class ConnectivityTest {
         c.removeEdge(e22);
 
         PowsyblException e1 = assertThrows(PowsyblException.class, c::getSmallComponents);
-        assertEquals("Cannot compute connectivity without a saved state, please call GraphConnectivity::save at least once beforehand",
+        assertEquals("Cannot compute connectivity without a saved state, please call GraphConnectivity::startTemporaryChanges at least once beforehand",
                 e1.getMessage());
 
         PowsyblException e2 = assertThrows(PowsyblException.class, c::undoTemporaryChanges);
