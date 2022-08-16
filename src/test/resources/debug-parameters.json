@@ -38,8 +38,7 @@
   },
   "extensions" : {
     "open-sensitivity-parameters" : {
-      "debugDir" : "/work",
-      "contingencyPropagation" : false
+      "debugDir" : "/work"
     }
   }
 }

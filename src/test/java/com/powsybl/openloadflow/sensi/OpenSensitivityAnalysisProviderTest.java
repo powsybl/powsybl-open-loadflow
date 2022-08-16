@@ -15,7 +15,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -33,20 +34,15 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
     @Test
     void specificParametersTest() {
         var provider = new OpenSensitivityAnalysisProvider();
-        assertEquals(2, provider.getSpecificParametersNames().size());
+        assertEquals(1, provider.getSpecificParametersNames().size());
         SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())
                 .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
         assertNull(parameters.getExtension(OpenSensitivityAnalysisParameters.class).getDebugDir());
-        assertFalse(parameters.getExtension(OpenSensitivityAnalysisParameters.class).isContingencyPropagation());
 
         provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.DEBUG_DIR_PARAM_NAME, ""))
                 .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
         assertEquals("", parameters.getExtension(OpenSensitivityAnalysisParameters.class).getDebugDir());
-
-        provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.CONTINGENCY_PROPAGATION_PARAM_NAME, "true"))
-                .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
-        assertEquals(true, parameters.getExtension(OpenSensitivityAnalysisParameters.class).isContingencyPropagation());
     }
 }
