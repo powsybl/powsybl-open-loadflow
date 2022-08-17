@@ -66,9 +66,11 @@ public class LfNetworkParameters {
 
     private final boolean hvdcAcEmulation;
 
-    private double minPlausibleTargetVoltage;
+    private final double minPlausibleTargetVoltage;
 
-    private double maxPlausibleTargetVoltage;
+    private final double maxPlausibleTargetVoltage;
+
+    private Set<String> loaderPostProcessorSelection = Collections.emptySet();
 
     public LfNetworkParameters() {
         this(new FirstSlackBusSelector());
@@ -213,6 +215,14 @@ public class LfNetworkParameters {
         return maxPlausibleTargetVoltage;
     }
 
+    public Set<String> getLoaderPostProcessorSelection() {
+        return loaderPostProcessorSelection;
+    }
+
+    public void setLoaderPostProcessorSelection(Set<String> loaderPostProcessorSelection) {
+        this.loaderPostProcessorSelection = Objects.requireNonNull(loaderPostProcessorSelection);
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -236,6 +246,7 @@ public class LfNetworkParameters {
                 ", hvdcAcEmulation=" + hvdcAcEmulation +
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
+                ", loaderPostProcessorSelection=" + loaderPostProcessorSelection +
                 ')';
     }
 }

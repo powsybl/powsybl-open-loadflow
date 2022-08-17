@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -50,6 +51,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         private final Set<ShuntCompensator> shuntSet = new LinkedHashSet<>();
 
         private final Set<HvdcLine> hvdcLineSet = new LinkedHashSet<>();
+    }
+
+    private final Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
+
+    public LfNetworkLoaderImpl() {
+        this(LfNetworkLoaderPostProcessor::findAll);
+    }
+
+    public LfNetworkLoaderImpl(Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier) {
+        this.postProcessorsSupplier = Objects.requireNonNull(postProcessorsSupplier);
     }
 
     private static void createBuses(List<Bus> buses, LfNetworkParameters parameters, LfNetwork lfNetwork, List<LfBus> lfBuses,
@@ -703,13 +714,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
+    private LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(),
                 parameters.getConnectivityFactory(), reporter);
 
         LoadingContext loadingContext = new LoadingContext();
         LfNetworkLoadingReport report = new LfNetworkLoadingReport();
-        List<LfNetworkLoaderPostProcessor> postProcessors = LfNetworkLoaderPostProcessor.findAll();
+        List<LfNetworkLoaderPostProcessor> postProcessors = postProcessorsSupplier.get().stream()
+                .filter(pp -> pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.ALWAYS
+                        || (pp.getLoadingPolicy() == LfNetworkLoaderPostProcessor.LoadingPolicy.SELECTION && parameters.getLoaderPostProcessorSelection().contains(pp.getName())))
+                .collect(Collectors.toList());
 
         List<LfBus> lfBuses = new ArrayList<>();
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
