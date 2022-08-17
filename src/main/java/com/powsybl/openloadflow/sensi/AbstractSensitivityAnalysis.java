@@ -19,7 +19,7 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
@@ -51,9 +51,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected final MatrixFactory matrixFactory;
 
-    protected final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+    protected final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }

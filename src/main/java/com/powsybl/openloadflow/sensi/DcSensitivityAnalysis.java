@@ -26,7 +26,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -165,7 +165,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+    public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         super(matrixFactory, connectivityFactory);
     }
 

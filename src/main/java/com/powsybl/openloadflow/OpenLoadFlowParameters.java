@@ -22,7 +22,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -549,7 +549,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                    SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                    SlackBusSelector slackBusSelector, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                     boolean breakers) {
         return new LfNetworkParameters(slackBusSelector,
                                        connectivityFactory,
@@ -575,13 +575,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           Reporter reporter) {
         return createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, reporter, false, false);
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           Reporter reporter, boolean breakers, boolean forceA1Var) {
         AcLoadFlowParameters acParameters = createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, reporter, breakers, forceA1Var);
         if (parameters.isReadSlackBus()) {
@@ -591,7 +591,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           Reporter reporter, boolean breakers, boolean forceA1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
 
@@ -617,7 +617,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
         var dcParameters = createDcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
         if (parameters.isReadSlackBus()) {
@@ -627,7 +627,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static DcLoadFlowParameters createDcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
 

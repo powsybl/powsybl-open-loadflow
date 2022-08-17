@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.graph;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class EvenShiloachGraphDecrementalConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
+public interface GraphConnectivityFactory<V, E> {
 
-    @Override
-    public GraphConnectivity<V, E> create() {
-        return new EvenShiloachGraphDecrementalConnectivity<>();
-    }
+    GraphConnectivity<V, E> create();
 }

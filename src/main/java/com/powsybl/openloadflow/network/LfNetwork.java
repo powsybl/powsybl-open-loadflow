@@ -12,7 +12,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
@@ -75,14 +75,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private boolean valid = true;
 
-    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+    private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
 
     private Reporter reporter;
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
-                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -91,7 +91,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
-                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this(numCC, numSC, slackBusSelector, connectivityFactory, Reporter.NO_OP);
     }
 

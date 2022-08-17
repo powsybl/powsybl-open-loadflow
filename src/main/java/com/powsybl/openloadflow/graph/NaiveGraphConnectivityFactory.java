@@ -6,13 +6,22 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import java.util.Objects;
+import java.util.function.ToIntFunction;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class MinimumSpanningTreeGraphDecrementalConnectivityFactory<V, E> implements GraphDecrementalConnectivityFactory<V, E> {
+public class NaiveGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
+
+    private final ToIntFunction<V> numGetter;
+
+    public NaiveGraphConnectivityFactory(ToIntFunction<V> numGetter) {
+        this.numGetter = Objects.requireNonNull(numGetter);
+    }
 
     @Override
     public GraphConnectivity<V, E> create() {
-        return new MinimumSpanningTreeGraphConnectivity<>();
+        return new NaiveGraphConnectivity<>(numGetter);
     }
 }
