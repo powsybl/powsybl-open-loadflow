@@ -157,7 +157,7 @@ class OpenSecurityAnalysisGraphTest {
             lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, acParameters.getNetworkParameters(), Reporter.NO_OP);
+        List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, Collections.emptySet(), acParameters.getNetworkParameters(), Reporter.NO_OP);
 
         // run simulation on each network
         start = System.currentTimeMillis();

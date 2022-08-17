@@ -17,8 +17,10 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisReport;
+import com.powsybl.security.action.Action;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
+import com.powsybl.security.strategy.OperatorStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +55,8 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     public CompletableFuture<SecurityAnalysisReport> run(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters,
-                                                         ContingenciesProvider contingenciesProvider, ComputationManager computationManager) {
+                                                         ContingenciesProvider contingenciesProvider, ComputationManager computationManager,
+                                                         List<OperatorStrategy> operatorStrategies, List<Action> actions) {
         Objects.requireNonNull(workingVariantId);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
@@ -61,7 +64,7 @@ public abstract class AbstractSecurityAnalysis {
             String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().setWorkingVariant(workingVariantId);
             try {
-                return runSync(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
+                return runSync(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager, operatorStrategies, actions);
             } finally {
                 network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
             }
@@ -69,5 +72,5 @@ public abstract class AbstractSecurityAnalysis {
     }
 
     abstract SecurityAnalysisReport runSync(String workingVariantId, SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
-                                            ComputationManager computationManager);
+                                            ComputationManager computationManager, List<OperatorStrategy> operatorStrategies, List<Action> actions);
 }
