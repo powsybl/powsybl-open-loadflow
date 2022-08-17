@@ -321,7 +321,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             List<LfAction> operatorStrategyLfActions = operatorStrategy.getActionIds().stream()
                     .map(id -> lfActionById.getOrDefault(id, null)).collect(Collectors.toList()); // FIXME: null as default value?
-            operatorStrategyLfActions.stream().limit(operatorStrategyLfActions.size() - 1).forEach(LfAction::apply);
+            operatorStrategyLfActions.stream().limit((long) (operatorStrategyLfActions.size() - 1)).forEach(LfAction::apply);
             operatorStrategyLfActions.get(operatorStrategyLfActions.size() - 1).apply(true, allSwitchesToCloseIds); // the last apply compute the final connectivity.
 
             Stopwatch stopwatch = Stopwatch.createStarted();

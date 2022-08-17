@@ -56,7 +56,7 @@ class LfActionTest extends AbstractConverterTest {
         List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(Collections.emptySet(), Set.of(network.getSwitch("C")), acParameters.getNetworkParameters(), Reporter.NO_OP);
         LfAction lfAction = new LfAction(switchAction, lfNetworks.get(0));
         assertFalse(lfNetworks.get(0).getBranchById("C").isDisabled());
-        lfAction.apply();
+        lfAction.apply(true, Collections.emptyList());
         assertTrue(lfNetworks.get(0).getBranchById("C").isDisabled());
     }
 }
