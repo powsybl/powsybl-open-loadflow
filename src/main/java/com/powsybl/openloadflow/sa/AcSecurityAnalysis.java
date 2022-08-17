@@ -186,14 +186,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.setReporter(preContSimReporter);
 
             // run pre-contingency simulation
-            // FIXME
-            // in case of switches to close, the first run is need to create the equation system and the listener
-            // needed to disabled the switches for the pre-contingency simulation. The connectivity is updated to be
-            // conform to the pre-contingency state.
-            // AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
-            //        .run();
             AcloadFlowEngine engine = new AcloadFlowEngine(context);
-            AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
+            engine.getContext().getEquationSystem();
             if (!allSwitchesToClose.isEmpty()) {
                 var connectivity = network.getConnectivity();
                 allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
@@ -203,8 +197,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                         connectivity.removeEdge(branch);
                     }
                 });
-                preContingencyLoadFlowResult = engine.run();
             }
+            AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
 
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             var preContingencyLimitViolationManager = new LimitViolationManager();
@@ -248,7 +242,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                     Optional<OperatorStrategyResult> optionalOperatorStrategyResult = runActionSimulation(network, context, propagatedContingency.getContingency(),
                                             operatorStrategyByContingencyId.get(lfContingency.getId()), preContingencyLimitViolationManager,
                                             securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
-                                            preContingencyNetworkResult, createResultExtension);
+                                            preContingencyNetworkResult, createResultExtension, allSwitchesToClose.stream().map(sw -> sw.getId()).collect(Collectors.toList()));
                                     if (optionalOperatorStrategyResult.isPresent()) {
                                         operatorStrategyResults.add(optionalOperatorStrategyResult.get());
                                     }
@@ -316,7 +310,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                  LimitViolationsResult postContingencyLimitViolations, HashMap<String, LfAction> lfActionById,
-                                                                 PreContingencyNetworkResult preContingencyNetworkResult, boolean createResultExtension) {
+                                                                 PreContingencyNetworkResult preContingencyNetworkResult, boolean createResultExtension,
+                                                                 List<String> allSwitchesToCloseIds) {
 
         Optional<OperatorStrategyResult> optionalOperatorStrategyResult = Optional.empty();
 
@@ -326,7 +321,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             List<LfAction> operatorStrategyLfActions = operatorStrategy.getActionIds().stream()
                     .map(id -> lfActionById.getOrDefault(id, null)).collect(Collectors.toList()); // FIXME: null as default value?
-            operatorStrategyLfActions.stream().forEach(LfAction::apply);
+            operatorStrategyLfActions.stream().limit(operatorStrategyLfActions.size() - 1).forEach(LfAction::apply);
+            operatorStrategyLfActions.get(operatorStrategyLfActions.size() - 1).apply(true, allSwitchesToCloseIds); // the last apply compute the final connectivity.
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 

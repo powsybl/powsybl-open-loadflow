@@ -8,10 +8,10 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.network.impl.LfSwitch;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.SwitchAction;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -64,6 +64,10 @@ public class LfAction {
     }
 
     public void apply() {
+        apply(false, Collections.emptyList());
+    }
+
+    public void apply(boolean withConnectivity, List<String> alreadyRemovedEdges) {
         if (disabledBranch != null) {
             disabledBranch.setDisabled(true);
         }
@@ -73,36 +77,38 @@ public class LfAction {
             enabledBranch.getBus2().setDisabled(false);
         }
 
-        // update connectivity with disabled branches
-        List<LfBranch> disabledBranches = network.getBranches().stream()
-                .filter(LfElement::isDisabled)
-                .collect(Collectors.toList());
-        GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
-        connectivity.startTemporaryChanges();
-        disabledBranches.stream()
-                .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .filter(b -> !(b instanceof LfSwitch)) // FIXME
-                .forEach(connectivity::removeEdge);
-        // update connectivity with enabled branches.
-        if (enabledBranch != null) {
-            connectivity.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
-        }
+        if (withConnectivity) {
+            // update connectivity with disabled branches
+            List<LfBranch> disabledBranches = network.getBranches().stream()
+                    .filter(LfElement::isDisabled)
+                    .collect(Collectors.toList());
+            GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+            connectivity.startTemporaryChanges();
+            disabledBranches.stream()
+                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                    .filter(b -> !alreadyRemovedEdges.contains(b.getId())) // FIXME
+                    .forEach(connectivity::removeEdge);
+            // update connectivity with enabled branches.
+            if (enabledBranch != null) {
+                connectivity.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
+            }
 
-        // add to contingency description buses and branches that won't be part of the main connected
-        // component in post contingency state
-        Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
-        for (LfBus bus : buses) {
-            bus.setDisabled(true);
-            bus.getBranches().forEach(branch -> branch.setDisabled(true));
-        }
-        connectivity.undoTemporaryChanges();
+            // add to contingency description buses and branches that won't be part of the main connected
+            // component in post contingency state
+            Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+            for (LfBus bus : buses) {
+                bus.setDisabled(true);
+                bus.getBranches().forEach(branch -> branch.setDisabled(true));
+            }
+            connectivity.undoTemporaryChanges();
 
-        System.out.println("Action " + id);
-        for (LfBus bus : network.getBuses()) {
-            System.out.println("Bus " + bus.getId() + " is disabled: " + bus.isDisabled());
-        }
-        for (LfBranch branch : network.getBranches()) {
-            System.out.println("Branch " + branch.getId() + " is disabled: " + branch.isDisabled());
+            System.out.println("Action " + id);
+            for (LfBus bus : network.getBuses()) {
+                System.out.println("Bus " + bus.getId() + " is disabled: " + bus.isDisabled());
+            }
+            for (LfBranch branch : network.getBranches()) {
+                System.out.println("Branch " + branch.getId() + " is disabled: " + branch.isDisabled());
+            }
         }
     }
 }

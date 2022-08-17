@@ -1751,7 +1751,7 @@ class OpenSecurityAnalysisTest {
             }
         });
 
-        List<Contingency> contingencies = Stream.of("L1", "L3")
+        List<Contingency> contingencies = Stream.of("L1", "L3", "L2")
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
@@ -1762,6 +1762,7 @@ class OpenSecurityAnalysisTest {
         List<OperatorStrategy> operatorStrategies = new ArrayList<>();
         operatorStrategies.add(new OperatorStrategy("strategyL1", "L1", new TrueCondition(), List.of("action1")));
         operatorStrategies.add(new OperatorStrategy("strategyL3", "L3", new TrueCondition(), List.of("action3")));
+        operatorStrategies.add(new OperatorStrategy("strategyL2", "L2", new TrueCondition(), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1784,5 +1785,9 @@ class OpenSecurityAnalysisTest {
         assertEquals(431.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(302.2, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(583.5, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(583.5, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(302.2, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
     }
 }
