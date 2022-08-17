@@ -11,8 +11,8 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
@@ -75,14 +75,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private boolean valid = true;
 
-    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+    private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    private GraphDecrementalConnectivity<LfBus, LfBranch> connectivity;
+    private GraphConnectivity<LfBus, LfBranch> connectivity;
 
     private Reporter reporter;
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
-                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
@@ -91,7 +91,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
-                     GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+                     GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this(numCC, numSC, slackBusSelector, connectivityFactory, Reporter.NO_OP);
     }
 
@@ -564,7 +564,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return subGraph;
     }
 
-    public GraphDecrementalConnectivity<LfBus, LfBranch> getConnectivity() {
+    public GraphConnectivity<LfBus, LfBranch> getConnectivity() {
         if (connectivity == null) {
             connectivity = Objects.requireNonNull(connectivityFactory.create());
             getBuses().forEach(connectivity::addVertex);
@@ -597,17 +597,18 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
      */
     public void fixTransformerVoltageControls() {
         List<LfBranch> controllerBranches = new ArrayList<>(1);
+        getConnectivity().startTemporaryChanges();
         for (LfBranch branch : branches) {
             if (!branch.isDisabled() && branch.isVoltageController() && branch.isVoltageControlEnabled()) {
                 controllerBranches.add(branch);
             }
             if (branch.isDisabled() && branch.getBus1() != null && branch.getBus2() != null) {
                 // apply contingency (in case we are inside a security analysis)
-                getConnectivity().cut(branch);
+                getConnectivity().removeEdge(branch);
             }
         }
         for (LfBranch branch : controllerBranches) {
-            getConnectivity().cut(branch);
+            getConnectivity().removeEdge(branch);
         }
         int disabledTransformerCount = 0;
         Map<Integer, Boolean> componentNoPVBusesMap = new HashMap<>();
@@ -630,7 +631,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                 disabledTransformerCount++;
             }
         }
-        getConnectivity().reset();
+        getConnectivity().undoTemporaryChanges();
         if (disabledTransformerCount > 0) {
             LOGGER.warn("{} transformer voltage controls have been disabled because no PV buses on not controlled side connected component",
                     disabledTransformerCount);

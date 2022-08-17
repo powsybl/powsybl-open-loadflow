@@ -17,7 +17,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -60,7 +60,7 @@ class LfContingencyTest extends AbstractConverterTest {
     void test() throws IOException {
         Network network = FourSubstationsNodeBreakerFactory.create();
 
-        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
         List<LfNetwork> lfNetworks = Networks.load(network, new LfNetworkParameters(new MostMeshedSlackBusSelector(), connectivityFactory));
         LfNetwork mainNetwork = lfNetworks.get(0);
@@ -94,7 +94,7 @@ class LfContingencyTest extends AbstractConverterTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(2, lfNetworks.size());
 
-        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
         new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), Reporter.NO_OP);
 
         String generatorId = "GEN";
@@ -110,7 +110,7 @@ class LfContingencyTest extends AbstractConverterTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(2, lfNetworks.size());
 
-        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
         new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), Reporter.NO_OP);
 
         String loadId = "LOAD";

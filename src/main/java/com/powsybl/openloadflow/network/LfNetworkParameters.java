@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
 import java.util.Collections;
 import java.util.Objects;
@@ -30,7 +30,7 @@ public class LfNetworkParameters {
 
     private SlackBusSelector slackBusSelector;
 
-    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+    private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private final boolean generatorVoltageRemoteControl;
 
@@ -78,14 +78,14 @@ public class LfNetworkParameters {
         this(slackBusSelector, new EvenShiloachGraphDecrementalConnectivityFactory<>());
     }
 
-    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this(slackBusSelector, connectivityFactory, false, false, false, false,
                 PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
                 true, Collections.emptySet(), false, false, false, false, false, false, false, true, false,
                 MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
     }
 
-    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                boolean generatorVoltageRemoteControl, boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
                                double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
                                boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
@@ -123,7 +123,7 @@ public class LfNetworkParameters {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
     }
 
-    public GraphDecrementalConnectivityFactory<LfBus, LfBranch> getConnectivityFactory() {
+    public GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory() {
         return connectivityFactory;
     }
 

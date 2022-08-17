@@ -29,7 +29,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -64,7 +64,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private final MatrixFactory matrixFactory;
 
-    private final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+    private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private boolean forcePhaseControlOffAndAddAngle1Var = false; // just for unit testing
 
@@ -76,7 +76,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         this(matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>());
     }
 
-    public OpenLoadFlowProvider(MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+    public OpenLoadFlowProvider(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
