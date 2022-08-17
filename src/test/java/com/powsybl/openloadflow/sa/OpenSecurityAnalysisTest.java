@@ -33,7 +33,9 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
+import com.powsybl.security.condition.AtLeastOneViolationCondition;
 import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
@@ -1817,7 +1819,8 @@ class OpenSecurityAnalysisTest {
         List<OperatorStrategy> operatorStrategies = new ArrayList<>();
         operatorStrategies.add(new OperatorStrategy("strategyL1", "L1", new AnyViolationCondition(), List.of("action1")));
         operatorStrategies.add(new OperatorStrategy("strategyL3", "L3", new AnyViolationCondition(), List.of("action3")));
-        operatorStrategies.add(new OperatorStrategy("strategyL2", "L2", new AnyViolationCondition(), List.of("action1", "action3")));
+        operatorStrategies.add(new OperatorStrategy("strategyL2_1", "L2", new AtLeastOneViolationCondition(List.of("L1")), List.of("action1", "action3")));
+        operatorStrategies.add(new OperatorStrategy("strategyL2_2", "L2", new AllViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1846,6 +1849,49 @@ class OpenSecurityAnalysisTest {
         assertEquals(583.5, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(302.2, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
         assertFalse(getPostContingencyResult(result, "L2").getLimitViolationsResult().getLimitViolations().isEmpty());
-        assertFalse(getOptionalOperatorStrategyResult(result, "strategyL2").isEmpty()); // CURRENT on L1
+        assertTrue(getOptionalOperatorStrategyResult(result, "strategyL2_1").isEmpty()); // several operator strategies: not supported yet.
+        assertTrue(getOptionalOperatorStrategyResult(result, "strategyL2_2").isEmpty()); // several operator strategies: not supported yet.
+    }
+
+    @Test
+    void testSecurityAnalysisWithOperatorStrategy3() {
+        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphDecrementalConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getSwitch("C1").setOpen(true);
+        network.getSwitch("C2").setOpen(true);
+        network.getLine("L1").getCurrentLimits1().orElseThrow().setPermanentLimit(580.0);
+        network.getLine("L1").getCurrentLimits2().orElseThrow().setPermanentLimit(580.0);
+        network.getLine("L2").getCurrentLimits1().orElseThrow().setPermanentLimit(500.0);
+        network.getLine("L2").getCurrentLimits2().orElseThrow().setPermanentLimit(500.0);
+
+        List<Contingency> contingencies = Stream.of("L3", "L2")
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+
+        List<Action> actions = new ArrayList<>();
+        actions.add(new SwitchAction("action1", "C1", false));
+        actions.add(new SwitchAction("action3", "C2", false));
+
+        List<OperatorStrategy> operatorStrategies = new ArrayList<>();
+        operatorStrategies.add(new OperatorStrategy("strategyL3", "L3", new AllViolationCondition(List.of("VL1", "VL2")), List.of("action3")));
+        operatorStrategies.add(new OperatorStrategy("strategyL2", "L2", new AtLeastOneViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        setSlackBusId(parameters, "VL2_0");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+        // L3 contingency
+        assertFalse(getOptionalOperatorStrategyResult(result, "strategyL3").isEmpty());
+        // L2 contingency
+        assertFalse(getOptionalOperatorStrategyResult(result, "strategyL2").isEmpty());
     }
 }
