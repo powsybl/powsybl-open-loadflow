@@ -25,6 +25,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
@@ -52,6 +55,8 @@ class LfActionTest extends AbstractConverterTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>(), Reporter.NO_OP, true, false);
         List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(Collections.emptySet(), Set.of(network.getSwitch("C")), acParameters.getNetworkParameters(), Reporter.NO_OP);
         LfAction lfAction = new LfAction(switchAction, lfNetworks.get(0));
+        assertFalse(lfNetworks.get(0).getBranchById("C").isDisabled());
         lfAction.apply();
+        assertTrue(lfNetworks.get(0).getBranchById("C").isDisabled());
     }
 }

@@ -30,10 +30,7 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
-import com.powsybl.security.LimitViolationsResult;
-import com.powsybl.security.SecurityAnalysisParameters;
-import com.powsybl.security.SecurityAnalysisReport;
-import com.powsybl.security.SecurityAnalysisResult;
+import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.SwitchAction;
 import com.powsybl.security.condition.AllViolationCondition;
@@ -370,13 +367,13 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     private boolean checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
         // FIXME: add logs.
         HashSet<String> limitViolationEquipmentIds = (HashSet<String>) limitViolationsResult.getLimitViolations().stream()
-                .map(limitViolation -> limitViolation.getSubjectId()).collect(Collectors.toSet());
+                .map(LimitViolation::getSubjectId).collect(Collectors.toSet());
         HashSet<String> commonEquipmentIds;
         switch (operatorStrategy.getCondition().getType()) {
             case "TRUE_CONDITION":
                 return true;
             case "ANY_VIOLATION_CONDITION":
-                return limitViolationEquipmentIds.size() > 0;
+                return !limitViolationEquipmentIds.isEmpty();
             case "AT_LEAST_ONE_VIOLATION":
                 AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) operatorStrategy.getCondition();
                 commonEquipmentIds = (HashSet<String>) atLeastCondition.getViolationIds().stream()
