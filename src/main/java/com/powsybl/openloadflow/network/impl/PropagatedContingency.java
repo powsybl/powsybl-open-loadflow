@@ -12,7 +12,7 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.LoadDetail;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -295,10 +295,11 @@ public class PropagatedContingency {
                 .collect(Collectors.toSet());
 
         // update connectivity with triggered branches
-        GraphDecrementalConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        connectivity.startTemporaryChanges();
         branches.stream()
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .forEach(connectivity::cut);
+                .forEach(connectivity::removeEdge);
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
@@ -306,13 +307,12 @@ public class PropagatedContingency {
         if (useSmallComponents) {
             buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
         } else {
-            int slackBusComponent = connectivity.getComponentNumber(network.getSlackBus());
-            buses = network.getBuses().stream().filter(b -> connectivity.getComponentNumber(b) != slackBusComponent).collect(Collectors.toSet());
+            buses = connectivity.getNonConnectedVertices(network.getSlackBus());
         }
         buses.forEach(b -> branches.addAll(b.getBranches()));
 
         // reset connectivity to discard triggered branches
-        connectivity.reset();
+        connectivity.undoTemporaryChanges();
 
         Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {

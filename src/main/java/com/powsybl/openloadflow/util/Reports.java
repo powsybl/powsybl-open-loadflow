@@ -129,6 +129,14 @@ public final class Reports {
                 .build());
     }
 
+    public static void reportGeneratorsDiscardedFromVoltageControlBecauseStarting(Reporter reporter, int impactedGeneratorCount) {
+        reporter.report(Report.builder()
+                .withKey("generatorsDiscardedFromVoltageControlBecauseStarting")
+                .withDefaultMessage("${impactedGeneratorCount} starting generators have been discarded from voltage control")
+                .withValue("impactedGeneratorCount", impactedGeneratorCount)
+                .build());
+    }
+
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall(Reporter reporter, int impactedGeneratorCount) {
         reporter.report(Report.builder()
                 .withKey("generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall")

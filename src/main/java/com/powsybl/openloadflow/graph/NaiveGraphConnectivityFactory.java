@@ -12,16 +12,16 @@ import java.util.function.ToIntFunction;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NaiveGraphDecrementalConnectivityFactory<V, E> implements GraphDecrementalConnectivityFactory<V, E> {
+public class NaiveGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
 
     private final ToIntFunction<V> numGetter;
 
-    public NaiveGraphDecrementalConnectivityFactory(ToIntFunction<V> numGetter) {
+    public NaiveGraphConnectivityFactory(ToIntFunction<V> numGetter) {
         this.numGetter = Objects.requireNonNull(numGetter);
     }
 
     @Override
-    public GraphDecrementalConnectivity<V, E> create() {
-        return new NaiveGraphDecrementalConnectivity<>(numGetter);
+    public GraphConnectivity<V, E> create() {
+        return new NaiveGraphConnectivity<>(numGetter);
     }
 }

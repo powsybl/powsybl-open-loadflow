@@ -6,10 +6,13 @@
  */
 package com.powsybl.openloadflow.graph;
 
-/**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- */
-public interface GraphDecrementalConnectivityFactory<V, E> {
+import org.jgrapht.Graph;
 
-    GraphDecrementalConnectivity<V, E> create();
+/**
+ * @author Florian Dupuy <florian.dupuy at rte-france.com>
+ */
+public interface GraphModification<V, E>  {
+    void apply(Graph<V, E> graph);
+
+    void undo(Graph<V, E> graph);
 }

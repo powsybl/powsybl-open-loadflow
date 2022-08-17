@@ -55,26 +55,27 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 var phaseControl = controllerBranch.getDiscretePhaseControl().orElseThrow();
                 var controlledBranch = phaseControl.getControlled();
                 var connectivity = context.getNetwork().getConnectivity();
+                connectivity.startTemporaryChanges();
 
                 // apply contingency (in case we are inside a security analysis)
                 disabledBranches.stream()
                         .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                        .forEach(connectivity::cut);
-                int smallComponentsCountBeforePhaseShifterLoss = connectivity.getSmallComponents().size();
+                        .forEach(connectivity::removeEdge);
+                int componentsCountBeforePhaseShifterLoss = connectivity.getNbConnectedComponents();
 
                 // then the phase shifter controlled branch
                 if (controlledBranch.getBus1() != null && controlledBranch.getBus2() != null) {
-                    connectivity.cut(controlledBranch);
+                    connectivity.removeEdge(controlledBranch);
                 }
 
-                if (connectivity.getSmallComponents().size() != smallComponentsCountBeforePhaseShifterLoss) {
+                if (connectivity.getNbConnectedComponents() != componentsCountBeforePhaseShifterLoss) {
                     // phase shifter controlled branch necessary for connectivity, we switch off control
                     LOGGER.warn("Phase shifter '{}' control branch '{}' phase but is necessary for connectivity: switch off phase control",
                             controllerBranch.getId(), controlledBranch.getId());
                     controllerBranch.setPhaseControlEnabled(false);
                 }
 
-                connectivity.reset();
+                connectivity.undoTemporaryChanges();
             }
         }
     }

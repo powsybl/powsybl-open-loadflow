@@ -39,7 +39,7 @@ class NetworkConnectivityTest {
 
     @Test
     void testConnectivity() {
-        testConnectivity(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        testConnectivity(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectivity(new EvenShiloachGraphDecrementalConnectivity<>());
     }
 
@@ -47,23 +47,24 @@ class NetworkConnectivityTest {
     void testReducedMainComponent() {
         // Testing the connectivity when the main component is suffering cuts so that it becomes smaller than a newly
         // created connected component.
-        testReducedMainComponent(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        testReducedMainComponent(new NaiveGraphConnectivity<>(LfBus::getNum));
         testReducedMainComponent(new EvenShiloachGraphDecrementalConnectivity<>());
     }
 
     @Test
     void testReaddEdge() {
         // Testing cutting an edge then adding it back
-        testReaddEdge(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
-        testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>());
+        testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum), true);
+        testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
+        testReaddEdge(new MinimumSpanningTreeGraphConnectivity<>(), true);
     }
 
     @Test
     void testDoubleCut() {
         // Testing cutting twice an edge
-        testDoubleCut(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        testDoubleCut(new NaiveGraphConnectivity<>(LfBus::getNum));
         testDoubleCut(new EvenShiloachGraphDecrementalConnectivity<>());
-        testDoubleCut(new MinimumSpanningTreeGraphDecrementalConnectivity<>());
+        testDoubleCut(new MinimumSpanningTreeGraphConnectivity<>());
     }
 
     @Test
@@ -73,15 +74,15 @@ class NetworkConnectivityTest {
         LfNetwork otherLfNetwork = Networks.load(otherNetwork, new FirstSlackBusSelector()).get(0);
         LfBranch otherNetworkBranch = otherLfNetwork.getBranchById("NHV1_NHV2_1");
 
-        testUnknownCut(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum), otherNetworkBranch);
+        testUnknownCut(new NaiveGraphConnectivity<>(LfBus::getNum), otherNetworkBranch);
         testUnknownCut(new EvenShiloachGraphDecrementalConnectivity<>(), otherNetworkBranch);
-        testUnknownCut(new MinimumSpanningTreeGraphDecrementalConnectivity<>(), otherNetworkBranch);
+        testUnknownCut(new MinimumSpanningTreeGraphConnectivity<>(), otherNetworkBranch);
     }
 
     @Test
     void testNonConnected() {
         // Testing with a non-connected graph
-        GraphDecrementalConnectivity<LfBus, LfBranch> connectivity = new EvenShiloachGraphDecrementalConnectivity<>();
+        GraphConnectivity<LfBus, LfBranch> connectivity = new EvenShiloachGraphDecrementalConnectivity<>();
         for (LfBus lfBus : lfNetwork.getBuses()) {
             connectivity.addVertex(lfBus);
         }
@@ -90,25 +91,25 @@ class NetworkConnectivityTest {
                 connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
             }
         }
-        PowsyblException e = assertThrows(PowsyblException.class, connectivity::getSmallComponents);
-        assertEquals("Algorithm not implemented for a network with several connected components at start", e.getMessage());
+        PowsyblException e = assertThrows(PowsyblException.class, connectivity::startTemporaryChanges);
+        assertEquals("This implementation does not support saving a graph with several connected components", e.getMessage());
     }
 
     @Test
     void testNonConnectedComponents() {
-        testNonConnectedComponents(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        testNonConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testNonConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testNonConnectedComponents(new MinimumSpanningTreeGraphDecrementalConnectivity<>());
+        testNonConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
     }
 
     @Test
     void testConnectedComponents() {
-        testConnectedComponents(new NaiveGraphDecrementalConnectivity<>(LfBus::getNum));
+        testConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testConnectedComponents(new MinimumSpanningTreeGraphDecrementalConnectivity<>());
+        testConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
     }
 
-    private void testConnectivity(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
+    private void testConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48");
 
@@ -121,7 +122,7 @@ class NetworkConnectivityTest {
         assertEquals("given vertex null is not in the graph", e.getMessage());
     }
 
-    private void testReducedMainComponent(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
+    private void testReducedMainComponent(GraphConnectivity<LfBus, LfBranch> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48", "l56", "l57", "l67");
 
@@ -131,7 +132,7 @@ class NetworkConnectivityTest {
         assertEquals(4, connectivity.getSmallComponents().size());
     }
 
-    private void testReaddEdge(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
+    private void testReaddEdge(GraphConnectivity<LfBus, LfBranch> connectivity, boolean supported) {
         updateConnectivity(connectivity);
 
         String branchId = "l34";
@@ -142,32 +143,39 @@ class NetworkConnectivityTest {
         assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
         assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
 
-        connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
-        assertEquals(0, connectivity.getSmallComponents().size());
-        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
-        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+        LfBus bus1 = lfBranch.getBus1();
+        LfBus bus2 = lfBranch.getBus2();
+        if (supported) {
+            connectivity.addEdge(bus1, bus2, lfBranch);
+            assertEquals(0, connectivity.getSmallComponents().size());
+            assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
+            assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
 
-        cutBranches(connectivity, "l48");
-        assertEquals(1, connectivity.getSmallComponents().size());
-        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
-        assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+            cutBranches(connectivity, "l48");
+            assertEquals(1, connectivity.getSmallComponents().size());
+            assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
+            assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+        } else {
+            PowsyblException e = assertThrows(PowsyblException.class, () -> connectivity.addEdge(bus1, bus2, lfBranch));
+            assertEquals("This implementation does not support incremental connectivity: edges cannot be added once that connectivity is saved", e.getMessage());
+        }
     }
 
-    private void testDoubleCut(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
+    private void testDoubleCut(GraphConnectivity<LfBus, LfBranch> connectivity) {
         updateConnectivity(connectivity);
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> cutBranches(connectivity, "l34", "l48", "l34"));
-        assertEquals("Edge already cut: l34", e.getMessage());
+        assertEquals("No such edge in graph: l34", e.getMessage());
     }
 
-    private void testUnknownCut(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, LfBranch unknownBranch) {
+    private void testUnknownCut(GraphConnectivity<LfBus, LfBranch> connectivity, LfBranch unknownBranch) {
         updateConnectivity(connectivity);
 
-        PowsyblException e = assertThrows(PowsyblException.class, () -> connectivity.cut(unknownBranch));
+        PowsyblException e = assertThrows(PowsyblException.class, () -> connectivity.removeEdge(unknownBranch));
         assertEquals("No such edge in graph: NHV1_NHV2_1", e.getMessage());
     }
 
-    private void testNonConnectedComponents(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
+    private void testNonConnectedComponents(GraphConnectivity<LfBus, LfBranch> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48");
 
@@ -182,7 +190,7 @@ class NetworkConnectivityTest {
         assertEquals("given vertex null is not in the graph", e.getMessage());
     }
 
-    private void testConnectedComponents(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
+    private void testConnectedComponents(GraphConnectivity<LfBus, LfBranch> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l56", "l57");
 
@@ -197,11 +205,12 @@ class NetworkConnectivityTest {
         assertEquals("given vertex null is not in the graph", e.getMessage());
     }
 
-    private void cutBranches(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity, String... branches) {
-        Arrays.stream(branches).map(lfNetwork::getBranchById).forEach(connectivity::cut);
+    private void cutBranches(GraphConnectivity<LfBus, LfBranch> connectivity, String... branches) {
+        connectivity.startTemporaryChanges();
+        Arrays.stream(branches).map(lfNetwork::getBranchById).forEach(connectivity::removeEdge);
     }
 
-    private void updateConnectivity(GraphDecrementalConnectivity<LfBus, LfBranch> connectivity) {
+    private void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
         for (LfBus lfBus : lfNetwork.getBuses()) {
             connectivity.addVertex(lfBus);
         }
