@@ -27,6 +27,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -1739,7 +1740,7 @@ class OpenSecurityAnalysisTest {
     @Test
     void testSecurityAnalysisWithOperatorStrategy() {
         MatrixFactory matrixFactory = new DenseMatrixFactory();
-        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphDecrementalConnectivityFactory<>(LfBus::getNum);
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
@@ -1797,7 +1798,7 @@ class OpenSecurityAnalysisTest {
     @Test
     void testSecurityAnalysisWithOperatorStrategy2() {
         MatrixFactory matrixFactory = new DenseMatrixFactory();
-        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphDecrementalConnectivityFactory<>(LfBus::getNum);
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
@@ -1856,7 +1857,7 @@ class OpenSecurityAnalysisTest {
     @Test
     void testSecurityAnalysisWithOperatorStrategy3() {
         MatrixFactory matrixFactory = new DenseMatrixFactory();
-        GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphDecrementalConnectivityFactory<>(LfBus::getNum);
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
