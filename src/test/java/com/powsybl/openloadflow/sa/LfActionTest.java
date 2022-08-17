@@ -25,8 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -58,5 +57,7 @@ class LfActionTest extends AbstractConverterTest {
         assertFalse(lfNetworks.get(0).getBranchById("C").isDisabled());
         lfAction.apply(true, Collections.emptyList());
         assertTrue(lfNetworks.get(0).getBranchById("C").isDisabled());
+        assertEquals("C", lfAction.getDisabledBranch().getId());
+        assertNull(lfAction.getEnabledBranch());
     }
 }
