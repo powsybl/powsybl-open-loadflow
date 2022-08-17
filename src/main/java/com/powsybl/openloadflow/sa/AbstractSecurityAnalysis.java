@@ -12,7 +12,7 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -37,13 +37,13 @@ public abstract class AbstractSecurityAnalysis {
 
     protected final MatrixFactory matrixFactory;
 
-    protected final GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+    protected final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     protected final StateMonitorIndex monitorIndex;
 
     protected final Reporter reporter;
 
-    protected AbstractSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+    protected AbstractSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                        List<StateMonitor> stateMonitors, Reporter reporter) {
         this.network = Objects.requireNonNull(network);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
