@@ -1759,14 +1759,12 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        List<Action> actions = new ArrayList<>();
-        actions.add(new SwitchAction("action1", "C1", false));
-        actions.add(new SwitchAction("action3", "C2", false));
+        List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
+                                       new SwitchAction("action3", "C2", false));
 
-        List<OperatorStrategy> operatorStrategies = new ArrayList<>();
-        operatorStrategies.add(new OperatorStrategy("strategyL1", "L1", new TrueCondition(), List.of("action1")));
-        operatorStrategies.add(new OperatorStrategy("strategyL3", "L3", new TrueCondition(), List.of("action3")));
-        operatorStrategies.add(new OperatorStrategy("strategyL2", "L2", new TrueCondition(), List.of("action1", "action3")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", "L1", new TrueCondition(), List.of("action1")),
+                                                            new OperatorStrategy("strategyL3", "L3", new TrueCondition(), List.of("action3")),
+                                                            new OperatorStrategy("strategyL2", "L2", new TrueCondition(), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1813,15 +1811,13 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        List<Action> actions = new ArrayList<>();
-        actions.add(new SwitchAction("action1", "C1", false));
-        actions.add(new SwitchAction("action3", "C2", false));
+        List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
+                                       new SwitchAction("action3", "C2", false));
 
-        List<OperatorStrategy> operatorStrategies = new ArrayList<>();
-        operatorStrategies.add(new OperatorStrategy("strategyL1", "L1", new AnyViolationCondition(), List.of("action1")));
-        operatorStrategies.add(new OperatorStrategy("strategyL3", "L3", new AnyViolationCondition(), List.of("action3")));
-        operatorStrategies.add(new OperatorStrategy("strategyL2_1", "L2", new AtLeastOneViolationCondition(List.of("L1")), List.of("action1", "action3")));
-        operatorStrategies.add(new OperatorStrategy("strategyL2_2", "L2", new AllViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", "L1", new AnyViolationCondition(), List.of("action1")),
+                                                            new OperatorStrategy("strategyL3", "L3", new AnyViolationCondition(), List.of("action3")),
+                                                            new OperatorStrategy("strategyL2_1", "L2", new AtLeastOneViolationCondition(List.of("L1")), List.of("action1", "action3")),
+                                                            new OperatorStrategy("strategyL2_2", "L2", new AllViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1872,13 +1868,11 @@ class OpenSecurityAnalysisTest {
                 .map(id -> new Contingency(id, new BranchContingency(id)))
                 .collect(Collectors.toList());
 
-        List<Action> actions = new ArrayList<>();
-        actions.add(new SwitchAction("action1", "C1", false));
-        actions.add(new SwitchAction("action3", "C2", false));
+        List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
+                                       new SwitchAction("action3", "C2", false));
 
-        List<OperatorStrategy> operatorStrategies = new ArrayList<>();
-        operatorStrategies.add(new OperatorStrategy("strategyL3", "L3", new AllViolationCondition(List.of("VL1", "VL2")), List.of("action3")));
-        operatorStrategies.add(new OperatorStrategy("strategyL2", "L2", new AtLeastOneViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL3", "L3", new AllViolationCondition(List.of("VL1", "VL2")), List.of("action3")),
+                                                            new OperatorStrategy("strategyL2", "L2", new AtLeastOneViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
