@@ -10,6 +10,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.SwitchAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public class LfAction {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
 
     private final String id;
 
@@ -102,13 +106,9 @@ public class LfAction {
             }
             connectivity.undoTemporaryChanges();
 
-            System.out.println("Action " + id);
-            for (LfBus bus : network.getBuses()) {
-                System.out.println("Bus " + bus.getId() + " is disabled: " + bus.isDisabled());
-            }
-            for (LfBranch branch : network.getBranches()) {
-                System.out.println("Branch " + branch.getId() + " is disabled: " + branch.isDisabled());
-            }
+            LOGGER.info("Network state after action " + id);
+            network.getBuses().stream().forEach(bus -> LOGGER.info("LfBus " + bus.getId() + " is disabled: " + bus.isDisabled()));
+            network.getBranches().stream().forEach(branch -> LOGGER.info("LfBranch " + branch.getId() + " is disabled: " + branch.isDisabled()));
         }
     }
 }

@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.AbstractConverterTest;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -59,5 +60,8 @@ class LfActionTest extends AbstractConverterTest {
         assertTrue(lfNetworks.get(0).getBranchById("C").isDisabled());
         assertEquals("C", lfAction.getDisabledBranch().getId());
         assertNull(lfAction.getEnabledBranch());
+
+        SwitchAction switchAction2 = new SwitchAction("switchAction", "S", true);
+        assertThrows(PowsyblException.class, () -> new LfAction(switchAction2, lfNetworks.get(0)), "Branch S not found in the network");
     }
 }
