@@ -16,9 +16,18 @@ import java.util.ServiceLoader;
  */
 public interface LfNetworkLoaderPostProcessor {
 
+    enum LoadingPolicy {
+        ALWAYS,
+        SELECTION
+    }
+
     static List<LfNetworkLoaderPostProcessor> findAll() {
         return Lists.newArrayList(ServiceLoader.load(LfNetworkLoaderPostProcessor.class, LfNetworkLoaderPostProcessor.class.getClassLoader()).iterator());
     }
+
+    String getName();
+
+    LoadingPolicy getLoadingPolicy();
 
     void onBusAdded(Object element, LfBus lfBus);
 

@@ -17,9 +17,9 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.GraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -73,13 +73,13 @@ class OpenSecurityAnalysisGraphTest {
     @Test
     void testMst() {
         LOGGER.info("Test Minimum Spanning Tree on test network containing {} branches", network.getBranchCount());
-        List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(new MinimumSpanningTreeGraphDecrementalConnectivityFactory<>());
+        List<List<LfContingency>> lfContingencies = getLoadFlowContingencies(new MinimumSpanningTreeGraphConnectivityFactory<>());
         printResult(lfContingencies);
         checkResult(lfContingencies, computeReference());
     }
 
     private List<List<LfContingency>> computeReference() {
-        List<List<LfContingency>> result = getLoadFlowContingencies(new NaiveGraphDecrementalConnectivityFactory<>(LfBus::getNum));
+        List<List<LfContingency>> result = getLoadFlowContingencies(new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LOGGER.info("Reference established (naive connectivity calculation) on test network containing {} branches", network.getBranchCount());
         return result;
     }
@@ -90,7 +90,7 @@ class OpenSecurityAnalysisGraphTest {
         contingenciesProvider = n -> Collections.singletonList(
             new Contingency("L1", new BranchContingency("L1")));
         List<List<LfContingency>> reference = computeReference();
-        checkResult(getLoadFlowContingencies(new MinimumSpanningTreeGraphDecrementalConnectivityFactory<>()), reference);
+        checkResult(getLoadFlowContingencies(new MinimumSpanningTreeGraphConnectivityFactory<>()), reference);
         checkResult(getLoadFlowContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>()), reference);
 
         contingenciesProvider = n -> Collections.singletonList(
@@ -98,7 +98,7 @@ class OpenSecurityAnalysisGraphTest {
         network.getSwitch("B3").setOpen(false);
         network.getSwitch("B1").setOpen(true);
         reference = computeReference();
-        checkResult(getLoadFlowContingencies(new MinimumSpanningTreeGraphDecrementalConnectivityFactory<>()), reference);
+        checkResult(getLoadFlowContingencies(new MinimumSpanningTreeGraphConnectivityFactory<>()), reference);
         checkResult(getLoadFlowContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>()), reference);
     }
 
@@ -135,7 +135,7 @@ class OpenSecurityAnalysisGraphTest {
         }
     }
 
-    List<List<LfContingency>> getLoadFlowContingencies(GraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+    List<List<LfContingency>> getLoadFlowContingencies(GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
 
         var matrixFactory = new DenseMatrixFactory();
         AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, connectivityFactory, Collections.emptyList(), Reporter.NO_OP);

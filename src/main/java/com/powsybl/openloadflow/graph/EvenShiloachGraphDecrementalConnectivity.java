@@ -7,13 +7,7 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
-import org.apache.commons.lang3.tuple.Triple;
-import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
-import org.jgrapht.graph.Pseudograph;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,231 +20,156 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecrementalConnectivity<V, E> {
+public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(EvenShiloachGraphDecrementalConnectivity.class);
+    private Map<V, Integer> vertexToConnectedComponent;
+    private final List<Set<V>> newConnectedComponents = new ArrayList<>();
 
-    private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
-
-    private final Map<V, Integer> vertexToConnectedComponent;
-
-    private final List<Set<V>> newConnectedComponents;
-    private final Map<V, LevelNeighbours> levelNeighboursMap;
-    private Set<V> mainConnectedComponent;
-
-    private final List<Triple<V, E, V>> cutEdges;
-    private final List<E> edgesToCut;
-    private final Set<V> vertices;
-
-    private final LinkedList<Map<V, LevelNeighbours>> allSavedChangedLevels;
-
-    private boolean vertexMapCacheInvalidated;
-    private boolean init;
-
-    public EvenShiloachGraphDecrementalConnectivity() {
-        this.cutEdges = new ArrayList<>();
-        this.edgesToCut = new ArrayList<>();
-        this.newConnectedComponents = new ArrayList<>();
-        this.vertexToConnectedComponent = new HashMap<>();
-        this.levelNeighboursMap = new HashMap<>();
-        this.allSavedChangedLevels = new LinkedList<>();
-        this.vertexMapCacheInvalidated = false;
-        this.vertices = new HashSet<>();
-    }
+    private final Map<V, LevelNeighbours> levelNeighboursMap = new HashMap<>();
+    private final Deque<Map<V, LevelNeighbours>> allSavedChangedLevels = new ArrayDeque<>();
 
     @Override
-    public void addVertex(V vertex) {
-        Objects.requireNonNull(vertex);
-        graph.addVertex(vertex);
-        vertices.add(vertex);
-        invalidateInit();
-    }
+    protected void updateConnectivity(EdgeRemove<V, E> edgeRemoval) {
+        vertexToConnectedComponent = null;
+        componentSets = null;
 
-    @Override
-    public void addEdge(V vertex1, V vertex2, E edge) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
-        graph.addEdge(vertex1, vertex2, edge);
-        invalidateInit();
-    }
-
-    private void invalidateInit() {
-        edgesToCut.forEach(graph::removeEdge);
-        init = false;
-        cutEdges.clear();
-        edgesToCut.clear();
-        newConnectedComponents.clear();
-        invalidateConnectedComponentCache();
-    }
-
-    @Override
-    public void cut(E edge) {
-        if (!graph.containsEdge(edge)) {
-            throw new PowsyblException("No such edge in graph: " + edge);
+        GraphProcess processA = new GraphProcessA(edgeRemoval.v1, edgeRemoval.v2, newConnectedComponents);
+        GraphProcessB processB = new GraphProcessB(edgeRemoval.v1, edgeRemoval.v2);
+        while (!processA.isHalted() && !processB.isHalted()) {
+            processA.next();
+            if (!processA.isHalted()) {
+                processB.next();
+            }
         }
-        if (edgesToCut.contains(edge)) {
-            throw new PowsyblException("Edge already cut: " + edge);
-        }
-        invalidateConnectedComponentCache();
 
-        edgesToCut.add(edge);
-    }
-
-    private void invalidateConnectedComponentCache() {
-        mainConnectedComponent = null;
-        vertexMapCacheInvalidated = true;
-        vertexToConnectedComponent.clear();
-    }
-
-    private void initConnectedComponents() {
-        // Checking if only one connected components at start as algorithm is not implemented for a network with several connected components at start
-        // Can be easily extended to the general case at the cost of slower computation
-        List<Set<V>> initialConnectedComponents = new ConnectivityInspector<>(graph).connectedSets();
-        if (initialConnectedComponents.size() > 1) {
-            throw new PowsyblException("Algorithm not implemented for a network with several connected components at start");
+        if (processA.isHalted()) {
+            processB.undoChanges();
+        } else { // processB halted
+            allSavedChangedLevels.add(processB.savedChangedLevels);
         }
     }
 
-    public void initLevels() {
-        levelNeighboursMap.clear();
-        vertices.stream().findFirst().ifPresent(
-            v -> buildNextLevel(Collections.singleton(v), 0));
+    @Override
+    protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
+        throw new PowsyblException("This implementation does not support incremental connectivity: edges cannot be added once that connectivity is saved");
     }
 
-    public void reset() {
-        invalidateConnectedComponentCache();
+    @Override
+    protected void updateConnectivity(VertexAdd<V, E> vertexAdd) {
+        throw new PowsyblException("This implementation does not support incremental connectivity: vertices cannot be added once that connectivity is saved");
+    }
+
+    @Override
+    protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
+        vertexToConnectedComponent = null;
+        componentSets = null;
         newConnectedComponents.clear();
         allSavedChangedLevels.descendingIterator().forEachRemaining(levelNeighboursMap::putAll);
         allSavedChangedLevels.clear();
+    }
 
-        for (Triple<V, E, V> cutEdge : cutEdges) {
-            graph.addEdge(cutEdge.getLeft(), cutEdge.getRight(), cutEdge.getMiddle());
+    @Override
+    protected void updateComponents() {
+        computeConnectivity();
+    }
+
+    @Override
+    public void startTemporaryChanges() {
+        if (!getGraphModifications().isEmpty()) {
+            throw new PowsyblException("This implementation supports only level of temporary changes");
         }
-        cutEdges.clear();
+        super.startTemporaryChanges();
+        if (levelNeighboursMap.isEmpty()) {
+            Set<V> vertices = getGraph().vertexSet();
+            vertices.stream()
+                    .max(Comparator.comparingInt(v -> getGraph().degreeOf(v)))
+                    .ifPresent(v -> buildLevelNeighbours(Collections.singleton(v), 0));
+            if (vertices.size() > levelNeighboursMap.size()) {
+                // Checking if only one connected components at start
+                throw new PowsyblException("This implementation does not support saving a graph with several connected components");
+            }
+        }
+    }
+
+    private void buildLevelNeighbours(Collection<V> level, int levelIndex) {
+        Collection<V> nextLevel = new HashSet<>();
+        for (V v : level) {
+            LevelNeighbours neighbours = levelNeighboursMap.computeIfAbsent(v, value -> new LevelNeighbours(levelIndex));
+            for (V adj : Graphs.neighborListOf(getGraph(), v)) {
+                LevelNeighbours adjNeighbours = levelNeighboursMap.computeIfAbsent(adj, value -> new LevelNeighbours(levelIndex + 1));
+                fillNeighbours(neighbours, adj, adjNeighbours.level);
+            }
+            nextLevel.addAll(neighbours.upperLevel);
+        }
+        if (!nextLevel.isEmpty()) {
+            buildLevelNeighbours(nextLevel, levelIndex + 1);
+        }
     }
 
     @Override
-    public int getComponentNumber(V vertex) {
-        checkVertex(vertex);
-        lazyComputeConnectivity();
-        updateVertexMapCache();
-        return vertexToConnectedComponent.get(vertex);
+    protected int getQuickComponentNumber(V vertex) {
+        Integer ccIndex = getVertexToConnectedComponentMap().get(vertex);
+        return ccIndex != null ? ccIndex : 0;
     }
 
-    @Override
-    public List<Set<V>> getSmallComponents() {
-        lazyComputeConnectivity();
-        return newConnectedComponents;
+    private Map<V, Integer> getVertexToConnectedComponentMap() {
+        if (vertexToConnectedComponent == null) {
+            vertexToConnectedComponent = new HashMap<>();
+            int i = 0;
+            for (Set<V> newConnectedComponent : getSmallComponents()) {
+                int indxCC = ++i;
+                newConnectedComponent.forEach(v -> vertexToConnectedComponent.put(v, indxCC));
+            }
+        }
+        return vertexToConnectedComponent;
     }
 
     @Override
     public Set<V> getConnectedComponent(V vertex) {
-        checkVertex(vertex);
-        lazyComputeConnectivity();
-        updateVertexMapCache();
-        int cn = vertexToConnectedComponent.get(vertex);
-        return cn == 0 ? getMainConnectedComponent() : newConnectedComponents.get(cn - 1);
+        int componentNumber = getComponentNumber(vertex);
+        if (componentNumber == 0) {
+            computeMainConnectedComponent();
+        }
+        return componentSets.get(componentNumber);
     }
 
-    private Set<V> getMainConnectedComponent() {
-        if (mainConnectedComponent == null) {
-            mainConnectedComponent = vertices.stream().filter(v -> newConnectedComponents.stream().noneMatch(cc -> cc.contains(v))).collect(Collectors.toSet());
+    private void computeMainConnectedComponent() {
+        if (componentSets.get(0) == null) {
+            Set<V> mainConnectedComponent = new HashSet<>(getGraph().vertexSet());
+            getSmallComponents().forEach(mainConnectedComponent::removeAll);
+            componentSets.set(0, mainConnectedComponent);
         }
-        return mainConnectedComponent;
     }
 
     @Override
     public Set<V> getNonConnectedVertices(V vertex) {
-        checkVertex(vertex);
-        lazyComputeConnectivity();
-        List<Set<V>> nonConnectedComponents = new ArrayList<>(newConnectedComponents);
-        newConnectedComponents.stream().filter(c -> c.contains(vertex)).findFirst().ifPresent(c -> {
-            nonConnectedComponents.remove(c);
-            nonConnectedComponents.add(getMainConnectedComponent());
-        });
+        int componentNumber = getComponentNumber(vertex);
+        if (componentNumber != 0) {
+            computeMainConnectedComponent();
+        }
+        List<Set<V>> nonConnectedComponents = new ArrayList<>(componentSets);
+        nonConnectedComponents.remove(componentNumber);
         return nonConnectedComponents.stream().flatMap(Collection::stream).collect(Collectors.toSet());
     }
 
-    private void lazyComputeConnectivity() {
-        if (init && edgesToCut.isEmpty()) {
+    private void computeConnectivity() {
+        if (componentSets != null) {
             return;
         }
 
-        init();
-        for (E edgeToCut : edgesToCut) {
-            V vertex1 = graph.getEdgeSource(edgeToCut);
-            V vertex2 = graph.getEdgeTarget(edgeToCut);
-            cutEdges.add(Triple.of(vertex1, edgeToCut, vertex2));
-            graph.removeEdge(edgeToCut);
+        componentSets = new ArrayList<>();
+        componentSets.add(null); // trying to avoid to compute main connected component
 
-            GraphProcess processA = new GraphProcessA(vertex1, vertex2);
-            GraphProcessB processB = new GraphProcessB(vertex1, vertex2);
-            while (!processA.isHalted() && !processB.isHalted()) {
-                processA.next();
-                if (!processA.isHalted()) {
-                    processB.next();
-                }
-            }
-
-            if (processA.isHalted()) {
-                processB.undoChanges();
-            } else { // processB halted
-                allSavedChangedLevels.add(processB.savedChangedLevels);
-            }
-        }
-        edgesToCut.clear();
-
-        sortComponents();
-    }
-
-    private void init() {
-        if (!init) {
-            initConnectedComponents();
-            initLevels();
-            init = true;
-        }
-    }
-
-    private void sortComponents() {
-        if (!newConnectedComponents.isEmpty()) {
-            newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
-            int nbVerticesOut = countVerticesOut();
-            int maxNewComponentsSize = newConnectedComponents.get(0).size();
-            if (vertices.size() - nbVerticesOut < maxNewComponentsSize) {
-                // The initial connected component is smaller than some new connected components
-                // That is, the biggest connected component is among the new connected components list
-                Set<V> mainComponent = new HashSet<>(vertices);
-                newConnectedComponents.forEach(mainComponent::removeAll);
-                newConnectedComponents.add(mainComponent);
-                newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
-                newConnectedComponents.remove(0);
-            }
-        }
-    }
-
-    private int countVerticesOut() {
-        int nbVerticesOut = 0;
-        for (Set<V> newConnectedComponent : newConnectedComponents) {
-            nbVerticesOut += newConnectedComponent.size();
-        }
-        return nbVerticesOut;
-    }
-
-    private void updateVertexMapCache() {
-        if (vertexMapCacheInvalidated) {
-            vertices.forEach(v -> vertexToConnectedComponent.put(v, 0));
-            int i = 0;
-            for (Set<V> newConnectedComponent : newConnectedComponents) {
-                int indxCC = ++i;
-                newConnectedComponent.forEach(v -> vertexToConnectedComponent.put(v, indxCC));
-            }
-            vertexMapCacheInvalidated = false;
-        }
-    }
-
-    private void checkVertex(V vertex) {
-        if (!graph.containsVertex(vertex)) {
-            throw new AssertionError("given vertex " + vertex + " is not in the graph");
+        newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
+        componentSets.addAll(newConnectedComponents);
+        int nbVerticesOut = newConnectedComponents.stream().mapToInt(Set::size).sum();
+        int maxNewComponentsSize = newConnectedComponents.stream().findFirst().map(Set::size).orElse(0);
+        Set<V> vertices = getGraph().vertexSet();
+        if (vertices.size() - nbVerticesOut < maxNewComponentsSize) {
+            // The initial connected component is smaller than some new connected components
+            // That is, the biggest connected component is among the new connected components list
+            computeMainConnectedComponent(); // it's therefore the initial and not the "main" connected component
+            componentSets.sort(Comparator.comparingInt(c -> -c.size()));
         }
     }
 
@@ -262,11 +181,13 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
 
     private class GraphProcessA implements GraphProcess {
 
+        private final List<Set<V>> newConnectedComponents;
         private final Traverser t1;
         private final Traverser t2;
         private boolean halted;
 
-        public GraphProcessA(V vertex1, V vertex2) {
+        public GraphProcessA(V vertex1, V vertex2, List<Set<V>> newConnectedComponents) {
+            this.newConnectedComponents = newConnectedComponents;
             Set<V> visitedVerticesT1 = new LinkedHashSet<>();
             Set<V> visitedVerticesT2 = new LinkedHashSet<>();
             this.t1 = new Traverser(vertex1, visitedVerticesT2, visitedVerticesT1);
@@ -336,7 +257,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
 
                 nLowLevel.upperLevel.remove(vertexBigLevel);
                 nBigLevel.lowerLevel.remove(vertexLowLevel);
-                if (nBigLevel.lowerLevel.isEmpty() && graph.getAllEdges(vertex1, vertex2).isEmpty()) {
+                if (nBigLevel.lowerLevel.isEmpty() && getGraph().getAllEdges(vertex1, vertex2).isEmpty()) {
                     this.verticesToUpdate.add(vertexBigLevel);
                 }
             }
@@ -413,7 +334,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
 
         public void next() {
             V v = verticesToTraverse.removeLast();
-            for (V adj : Graphs.neighborListOf(graph, v)) {
+            for (V adj : Graphs.neighborListOf(getGraph(), v)) {
                 if (visitedVertices.add(adj)) {
                     verticesToTraverse.add(adj);
                     if (vertexEnd.contains(adj)) {
@@ -454,21 +375,6 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> implements GraphDecr
             this.upperLevel.addAll(origin.upperLevel);
         }
 
-    }
-
-    private void buildNextLevel(Collection<V> level, int levelIndex) {
-        Collection<V> nextLevel = new HashSet<>();
-        for (V v : level) {
-            LevelNeighbours neighbours = levelNeighboursMap.computeIfAbsent(v, value -> new LevelNeighbours(levelIndex));
-            for (V adj : Graphs.neighborListOf(graph, v)) {
-                LevelNeighbours adjNeighbours = levelNeighboursMap.computeIfAbsent(adj, value -> new LevelNeighbours(levelIndex + 1));
-                fillNeighbours(neighbours, adj, adjNeighbours.level);
-            }
-            nextLevel.addAll(neighbours.upperLevel);
-        }
-        if (!nextLevel.isEmpty()) {
-            buildNextLevel(nextLevel, levelIndex + 1);
-        }
     }
 
     private void fillNeighbours(LevelNeighbours neighbours, V neighbour, int neighbourLevel) {
