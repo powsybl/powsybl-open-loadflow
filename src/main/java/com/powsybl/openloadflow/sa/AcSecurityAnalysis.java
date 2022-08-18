@@ -95,8 +95,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         } else {
             LfNetwork largestNetwork = lfNetworks.get(0);
             if (largestNetwork.isValid()) {
-                HashMap<String, LfAction> lfActionById = getLfActions(largestNetwork, actions);
-                HashMap<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
+                Map<String, LfAction> lfActionById = getLfActions(largestNetwork, actions);
+                Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
                 result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategiesByContingencyId, lfActionById, allSwitchesToClose);
 
             } else {
@@ -155,11 +155,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 });
     }
 
-    public static HashMap<String, LfAction> getLfActions(LfNetwork network, List<Action> actions) {
-        return new HashMap(actions.stream().collect(Collectors.toMap(Action::getId, action -> new LfAction(action, network))));
+    public static Map<String, LfAction> getLfActions(LfNetwork network, List<Action> actions) {
+        return new HashMap<>(actions.stream().collect(Collectors.toMap(Action::getId, action -> new LfAction(action, network))));
     }
 
-    public static HashMap<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
+    public static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
                                                                                                  List<OperatorStrategy> operatorStrategies) {
         List<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toList());
         HashMap<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
@@ -174,8 +174,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
-                                                  SecurityAnalysisParameters securityAnalysisParameters, HashMap<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
-                                                  HashMap<String, LfAction> lfActionById, Set<Switch> allSwitchesToClose) {
+                                                  SecurityAnalysisParameters securityAnalysisParameters, Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
+                                                  Map<String, LfAction> lfActionById, Set<Switch> allSwitchesToClose) {
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
@@ -244,7 +244,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                         Optional<OperatorStrategyResult> optionalOperatorStrategyResult = runActionSimulation(network, context, propagatedContingency.getContingency(),
                                                 operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
-                                                preContingencyNetworkResult, createResultExtension, allSwitchesToClose.stream().map(sw -> sw.getId()).collect(Collectors.toList()));
+                                                preContingencyNetworkResult, createResultExtension, allSwitchesToClose.stream().map(Switch::getId).collect(Collectors.toList()));
                                         if (optionalOperatorStrategyResult.isPresent()) {
                                             operatorStrategyResults.add(optionalOperatorStrategyResult.get());
                                         }
@@ -314,7 +314,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, AcLoadFlowContext context, Contingency contingency, OperatorStrategy operatorStrategy,
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                                                 LimitViolationsResult postContingencyLimitViolations, HashMap<String, LfAction> lfActionById,
+                                                                 LimitViolationsResult postContingencyLimitViolations, Map<String, LfAction> lfActionById,
                                                                  PreContingencyNetworkResult preContingencyNetworkResult, boolean createResultExtension,
                                                                  List<String> allSwitchesToCloseIds) {
 

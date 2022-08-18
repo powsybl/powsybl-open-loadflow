@@ -106,9 +106,9 @@ public class LfAction {
             }
             connectivity.undoTemporaryChanges();
 
-            LOGGER.info("Network state after action " + id);
-            network.getBuses().stream().forEach(bus -> LOGGER.info("LfBus " + bus.getId() + " is disabled: " + bus.isDisabled()));
-            network.getBranches().stream().forEach(branch -> LOGGER.info("LfBranch " + branch.getId() + " is disabled: " + branch.isDisabled()));
+            LOGGER.info("Network state after action {}", id);
+            network.getBuses().stream().forEach(bus -> LOGGER.info("LfBus {} is disabled: {}", bus.getId(), bus.isDisabled()));
+            network.getBranches().stream().forEach(branch -> LOGGER.info("LfBranch {} is disabled: {}", branch.getId(), branch.isDisabled()));
         }
     }
 }
