@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
@@ -34,7 +35,9 @@ import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.SwitchAction;
 import com.powsybl.security.condition.AllViolationCondition;
+import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;
+import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.NetworkResult;
 import com.powsybl.security.results.OperatorStrategyResult;
@@ -95,10 +98,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         } else {
             LfNetwork largestNetwork = lfNetworks.get(0);
             if (largestNetwork.isValid()) {
-                Map<String, LfAction> lfActionById = getLfActions(largestNetwork, actions);
+                Map<String, LfAction> lfActionsById = createLfActions(largestNetwork, actions);
                 Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
-                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategiesByContingencyId, lfActionById, allSwitchesToClose);
-
+                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategiesByContingencyId, lfActionsById, allSwitchesToClose);
             } else {
                 result = createNoResult();
             }
@@ -143,7 +145,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     public static void getAllSwitchesToOperate(Network network, List<Action> actions, Set<Switch> allSwitchesToClose, Set<Switch> allSwitchesToOpen) {
-        actions.stream().filter(action -> action.getType().equals("SWITCH"))
+        actions.stream().filter(action -> action.getType().equals(SwitchAction.NAME))
                 .map(action -> ((SwitchAction) action).getSwitchId())
                 .forEach(id -> {
                     Switch sw = network.getSwitch(id);
@@ -155,17 +157,17 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 });
     }
 
-    public static Map<String, LfAction> getLfActions(LfNetwork network, List<Action> actions) {
-        return new HashMap<>(actions.stream().collect(Collectors.toMap(Action::getId, action -> new LfAction(action, network))));
+    private static Map<String, LfAction> createLfActions(LfNetwork network, List<Action> actions) {
+        return actions.stream().collect(Collectors.toMap(Action::getId, action -> new LfAction(action, network)));
     }
 
-    public static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
-                                                                                                 List<OperatorStrategy> operatorStrategies) {
-        List<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toList());
-        HashMap<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
+    private static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
+                                                                                              List<OperatorStrategy> operatorStrategies) {
+        Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
+        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
         for (OperatorStrategy operatorStrategy : operatorStrategies) {
             if (contingencyIds.contains(operatorStrategy.getContingencyId())) {
-                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new LinkedList<>()).add(operatorStrategy);
+                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>()).add(operatorStrategy);
             } else {
                 LOGGER.warn("An operator strategy linked to Contingency {} that is not present in the list of Contingencies", operatorStrategy.getContingencyId());
             }
@@ -317,16 +319,23 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                                  LimitViolationsResult postContingencyLimitViolations, Map<String, LfAction> lfActionById,
                                                                  PreContingencyNetworkResult preContingencyNetworkResult, boolean createResultExtension,
                                                                  List<String> allSwitchesToCloseIds) {
-
-        Optional<OperatorStrategyResult> optionalOperatorStrategyResult = Optional.empty();
+        OperatorStrategyResult operatorStrategyResult = null;
 
         if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
             LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                     operatorStrategy.getContingencyId(), network);
 
             List<LfAction> operatorStrategyLfActions = operatorStrategy.getActionIds().stream()
-                    .map(id -> lfActionById.getOrDefault(id, null)).collect(Collectors.toList()); // FIXME: null as default value?
-            operatorStrategyLfActions.stream().limit((long) (operatorStrategyLfActions.size() - 1)).forEach(LfAction::apply);
+                    .map(id -> {
+                        LfAction lfAction = lfActionById.get(id);
+                        if (lfAction == null) {
+                            throw new PowsyblException("Action '" + id + "' of operator strategy '" + operatorStrategy.getId() + "' not found");
+                        }
+                        return lfAction;
+                    })
+                    .collect(Collectors.toList());
+            // FIXME to remove when connectivity will be fixed
+            operatorStrategyLfActions.stream().limit((long) operatorStrategyLfActions.size() - 1).forEach(LfAction::apply);
             operatorStrategyLfActions.get(operatorStrategyLfActions.size() - 1).apply(true, allSwitchesToCloseIds); // the last apply compute the final connectivity.
 
             Stopwatch stopwatch = Stopwatch.createStarted();
@@ -354,41 +363,43 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
                     operatorStrategy.getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-            optionalOperatorStrategyResult = Optional.of(new OperatorStrategyResult(operatorStrategy,
+            operatorStrategyResult = new OperatorStrategyResult(operatorStrategy,
                     new LimitViolationsResult(postActionsComputationOk,
                             postActionsViolationManager.getLimitViolations()),
                     new NetworkResult(postActionsNetworkResult.getBranchResults(),
                             postActionsNetworkResult.getBusResults(),
-                            postActionsNetworkResult.getThreeWindingsTransformerResults())));
+                            postActionsNetworkResult.getThreeWindingsTransformerResults()));
         }
 
-        return optionalOperatorStrategyResult;
+        return Optional.ofNullable(operatorStrategyResult);
     }
 
     private boolean checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
         // FIXME: add logs.
-        HashSet<String> limitViolationEquipmentIds = (HashSet<String>) limitViolationsResult.getLimitViolations().stream()
-                .map(LimitViolation::getSubjectId).collect(Collectors.toSet());
-        HashSet<String> commonEquipmentIds;
+        Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
+                .map(LimitViolation::getSubjectId)
+                .collect(Collectors.toSet());
         switch (operatorStrategy.getCondition().getType()) {
-            case "TRUE_CONDITION":
+            case TrueCondition.NAME:
                 return true;
-            case "ANY_VIOLATION_CONDITION":
+            case AnyViolationCondition.NAME:
                 return !limitViolationEquipmentIds.isEmpty();
-            case "AT_LEAST_ONE_VIOLATION":
+            case AtLeastOneViolationCondition.NAME: {
                 AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) operatorStrategy.getCondition();
-                commonEquipmentIds = (HashSet<String>) atLeastCondition.getViolationIds().stream()
+                Set<String> commonEquipmentIds = atLeastCondition.getViolationIds().stream()
                         .distinct()
                         .filter(limitViolationEquipmentIds::contains)
                         .collect(Collectors.toSet());
                 return !commonEquipmentIds.isEmpty();
-            case "ALL_VIOLATION":
+            }
+            case AllViolationCondition.NAME: {
                 AllViolationCondition allCondition = (AllViolationCondition) operatorStrategy.getCondition();
-                commonEquipmentIds = (HashSet<String>) allCondition.getViolationIds().stream()
+                Set<String> commonEquipmentIds = allCondition.getViolationIds().stream()
                         .distinct()
                         .filter(limitViolationEquipmentIds::contains)
                         .collect(Collectors.toSet());
-                return commonEquipmentIds.equals(allCondition.getViolationIds().stream().collect(Collectors.toSet()));
+                return commonEquipmentIds.equals(new HashSet<>(allCondition.getViolationIds()));
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported condition type: " + operatorStrategy.getCondition().getType());
         }

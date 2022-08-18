@@ -38,7 +38,7 @@ public class LfAction {
         this.id = Objects.requireNonNull(action.getId());
         this.network = Objects.requireNonNull(network);
         switch (action.getType()) {
-            case "SWITCH":
+            case SwitchAction.NAME:
                 SwitchAction switchAction = (SwitchAction) action;
                 LfBranch branch = network.getBranchById(switchAction.getSwitchId());
                 if (branch == null) {
@@ -107,8 +107,8 @@ public class LfAction {
             connectivity.undoTemporaryChanges();
 
             LOGGER.info("Network state after action {}", id);
-            network.getBuses().stream().forEach(bus -> LOGGER.info("LfBus {} is disabled: {}", bus.getId(), bus.isDisabled()));
-            network.getBranches().stream().forEach(branch -> LOGGER.info("LfBranch {} is disabled: {}", branch.getId(), branch.isDisabled()));
+            network.getBuses().forEach(bus -> LOGGER.info("LfBus {} is disabled: {}", bus.getId(), bus.isDisabled()));
+            network.getBranches().forEach(branch -> LOGGER.info("LfBranch {} is disabled: {}", branch.getId(), branch.isDisabled()));
         }
     }
 }
