@@ -1697,4 +1697,20 @@ class OpenSecurityAnalysisTest {
 
         assertEquals(refLogExport, logExport);
     }
+
+    @Test
+    void testMetrixTutorialNetwork() {
+        Network network = NodeBreakerNetworkFactory.createMetrixTutorialNetwork();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        // First use case
+        network.getLoad("SE_L1").setP0(960);
+        network.getGenerator("SO_G1").setTargetP(0);
+        network.getGenerator("SO_G2").setTargetP(960);
+        network.getLine("S_SO_2").newActivePowerLimits1().setPermanentLimit(400).add();
+        network.getLine("S_SO_2").newActivePowerLimits2().setPermanentLimit(400).add();
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        System.out.println("toto");
+    }
 }

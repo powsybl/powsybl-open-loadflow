@@ -6,10 +6,10 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Substation;
-import com.powsybl.iidm.network.TopologyKind;
-import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.import_.Importers;
+import com.powsybl.iidm.network.*;
+
+import java.io.InputStream;
 
 public final class NodeBreakerNetworkFactory {
 
@@ -331,6 +331,12 @@ public final class NodeBreakerNetworkFactory {
                 .add();
         createConnection(vl1, 1, 5);
 
+        return network;
+    }
+
+    public static Network createMetrixTutorialNetwork() {
+        InputStream is = NodeBreakerNetworkFactory.class.getClassLoader().getResourceAsStream("metrix-tutorial-6-buses-network.xiidm");
+        Network network = Importers.loadNetwork("metrix-tutorial-6-buses-network.xiidm", is);
         return network;
     }
 }
