@@ -146,12 +146,13 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
     public static void getAllSwitchesToOperate(Network network, List<Action> actions, Set<Switch> allSwitchesToClose, Set<Switch> allSwitchesToOpen) {
         actions.stream().filter(action -> action.getType().equals(SwitchAction.NAME))
-                .map(action -> ((SwitchAction) action).getSwitchId())
-                .forEach(id -> {
-                    Switch sw = network.getSwitch(id);
-                    if (sw.isOpen()) {
+                .forEach(action -> {
+                    String switchId = ((SwitchAction) action).getSwitchId();
+                    Switch sw = network.getSwitch(switchId);
+                    Boolean toOpen = ((SwitchAction) action).isOpen();
+                    if (sw.isOpen() && !toOpen) { // the switch is open and the action will close it.
                         allSwitchesToClose.add(sw);
-                    } else {
+                    } else if (!sw.isOpen() && toOpen) { // the switch is closed and the action will open it.
                         allSwitchesToOpen.add(sw);
                     }
                 });
@@ -169,7 +170,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             if (contingencyIds.contains(operatorStrategy.getContingencyId())) {
                 operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>()).add(operatorStrategy);
             } else {
-                LOGGER.warn("An operator strategy linked to Contingency {} that is not present in the list of Contingencies", operatorStrategy.getContingencyId());
+                throw new PowsyblException("An operator strategy associated to contingency '" + operatorStrategy.getContingencyId() +
+                        "' but this contingency is not present in the list of contingencies");
             }
         }
         return operatorStrategiesByContingencyId;
@@ -334,9 +336,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                         return lfAction;
                     })
                     .collect(Collectors.toList());
-            // FIXME to remove when connectivity will be fixed
+            // apply actions, the last apply compute the final connectivity.
+            // FIXME: as an edge cannot be removed twice, we need as argument allSwitchesToCloseIds.
             operatorStrategyLfActions.stream().limit((long) operatorStrategyLfActions.size() - 1).forEach(LfAction::apply);
-            operatorStrategyLfActions.get(operatorStrategyLfActions.size() - 1).apply(true, allSwitchesToCloseIds); // the last apply compute the final connectivity.
+            operatorStrategyLfActions.get(operatorStrategyLfActions.size() - 1).apply(true, allSwitchesToCloseIds);
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -347,6 +350,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             boolean postActionsComputationOk = postActionsLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             // FIXME: to be checked.
+            // the violation manager compares the post action violations with the pre-contingency violations. Is it what we want?
+            // the flow transfer is still computed for the branch in contingency and with the pre-contingency state as reference. Is it what we want?
             var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
             var postActionsNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
 
