@@ -245,10 +245,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                 if (operatorStrategiesForThisContingency != null) {
                                     // we have at least an operator strategy for this contingency.
                                     if (operatorStrategiesForThisContingency.size() == 1) {
-                                        Optional<OperatorStrategyResult> optionalOperatorStrategyResult = runActionSimulation(network, context, propagatedContingency.getContingency(),
+                                        Optional<OperatorStrategyResult> optionalOperatorStrategyResult = runActionSimulation(network, context,
                                                 operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
-                                                preContingencyNetworkResult, createResultExtension, allSwitchesToClose.stream().map(Switch::getId).collect(Collectors.toList()));
+                                                createResultExtension, allSwitchesToClose.stream().map(Switch::getId).collect(Collectors.toList()));
                                         if (optionalOperatorStrategyResult.isPresent()) {
                                             operatorStrategyResults.add(optionalOperatorStrategyResult.get());
                                         }
@@ -315,12 +315,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                          postContingencyNetworkResult.getThreeWindingsTransformerResults());
     }
 
-    private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, AcLoadFlowContext context, Contingency contingency, OperatorStrategy operatorStrategy,
+    private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, AcLoadFlowContext context, OperatorStrategy operatorStrategy,
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                  LimitViolationsResult postContingencyLimitViolations, Map<String, LfAction> lfActionById,
-                                                                 PreContingencyNetworkResult preContingencyNetworkResult, boolean createResultExtension,
-                                                                 List<String> allSwitchesToCloseIds) {
+                                                                 boolean createResultExtension, List<String> allSwitchesToCloseIds) {
         OperatorStrategyResult operatorStrategyResult = null;
 
         if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
@@ -349,11 +348,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     .run();
 
             boolean postActionsComputationOk = postActionsLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-            // FIXME: to be checked.
-            // the violation manager compares the post action violations with the pre-contingency violations. Is it what we want?
-            // the flow transfer is still computed for the branch in contingency and with the pre-contingency state as reference. Is it what we want?
             var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
-            var postActionsNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
+            var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
 
             if (postActionsComputationOk) {
                 // update network result
