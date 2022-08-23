@@ -23,7 +23,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
 
     public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, boolean reactiveLimits, LfNetworkLoadingReport report,
                              double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine));
+        super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine), false);
         this.danglingLine = Objects.requireNonNull(danglingLine);
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         loadTargetP += danglingLine.getP0();

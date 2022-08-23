@@ -222,7 +222,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report, List<LfNetworkLoaderPostProcessor> postProcessors) {
-        LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, participateToSlackDistribution(parameters, bus));
+        LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, parameters.isDistributedOnConformLoad(), participateToSlackDistribution(parameters, bus));
 
         List<ShuntCompensator> shuntCompensators = new ArrayList<>();
 
@@ -256,7 +256,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             @Override
             public void visitLoad(Load load) {
-                lfBus.addLoad(load, parameters.isDistributedOnConformLoad());
+                lfBus.addLoad(load);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(load, lfBus));
             }
 

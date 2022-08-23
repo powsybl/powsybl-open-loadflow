@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
-import com.powsybl.openloadflow.network.LfLoads;
+import com.powsybl.openloadflow.network.LfAggregatedLoads;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class LfLoadsImpl implements LfLoads {
+class LfAggregatedLoadsImpl implements LfAggregatedLoads {
 
     private final List<Load> loads = new ArrayList<>();
 
@@ -29,16 +29,24 @@ public class LfLoadsImpl implements LfLoads {
 
     private boolean distributedOnConformLoad;
 
-    private boolean isInitialized;
+    private boolean initialized;
+
+    LfAggregatedLoadsImpl(boolean distributedOnConformLoad) {
+        this.distributedOnConformLoad = distributedOnConformLoad;
+    }
+
+    List<Load> getLoads() {
+        return loads;
+    }
 
     @Override
     public List<String> getOriginalIds() {
         return loads.stream().map(Identifiable::getId).collect(Collectors.toList());
     }
 
-    void add(Load load, boolean distributedOnConformLoad) {
+    void add(Load load) {
         loads.add(load);
-        this.distributedOnConformLoad = distributedOnConformLoad; // TODO: put in constructor instead
+        initialized = false;
     }
 
     @Override
@@ -53,11 +61,12 @@ public class LfLoadsImpl implements LfLoads {
     }
 
     private void init() {
-        if (isInitialized) {
+        if (initialized) {
             return;
         }
 
         participationFactors = new double[loads.size()];
+        absVariableLoadTargetP = 0;
         for (int i = 0; i < loads.size(); i++) {
             Load load = loads.get(i);
             double value;
@@ -76,7 +85,7 @@ public class LfLoadsImpl implements LfLoads {
             }
         }
 
-        isInitialized = true;
+        initialized = true;
     }
 
     @Override
