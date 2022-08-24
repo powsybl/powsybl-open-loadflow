@@ -49,7 +49,7 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
 
         <powsybl-core.version>4.10.0-alpha-1</powsybl-core.version>
-        <!-- 1.4.0 inherited from core is buggy, removeEdge does not really remove the edge... -->
+        <!-- 1.4.0 inherited from core is buggy, adding same edge multiple times corrupts the graph... -->
         <jgrapht.version>1.5.1</jgrapht.version>
     </properties>
 
