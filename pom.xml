@@ -49,6 +49,8 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
 
         <powsybl-core.version>4.10.0-alpha-1</powsybl-core.version>
+        <!-- 1.4.0 inherited from core is buggy, removeEdge does not really remove the edge... -->
+        <jgrapht.version>1.5.1</jgrapht.version>
     </properties>
 
     <build>
@@ -99,6 +101,7 @@
         <dependency>
             <groupId>org.jgrapht</groupId>
             <artifactId>jgrapht-core</artifactId>
+            <version>${jgrapht.version}</version>
         </dependency>
         <dependency>
             <groupId>org.usefultoys</groupId>
