@@ -47,9 +47,9 @@ class ConnectivityTest {
 
     @Test
     void multipleEdgesTest() {
-        multipleEdgesTest(new NaiveGraphConnectivity<>(s -> Integer.parseInt(s) - 1));
-        multipleEdgesTest(new EvenShiloachGraphDecrementalConnectivity<>());
-        multipleEdgesTest(new MinimumSpanningTreeGraphConnectivity<>());
+        multipleEdgesTest(new NaiveGraphConnectivity<>(s -> Integer.parseInt(s) - 1), true);
+        multipleEdgesTest(new EvenShiloachGraphDecrementalConnectivity<>(), false);
+        multipleEdgesTest(new MinimumSpanningTreeGraphConnectivity<>(), true);
     }
 
     private void circleTest(GraphConnectivity<String, String> c) {
@@ -198,7 +198,7 @@ class ConnectivityTest {
         assertEquals("Cannot reset, no remaining saved connectivity", e3.getMessage());
     }
 
-    private void multipleEdgesTest(GraphConnectivity<String, String> c) {
+    private void multipleEdgesTest(GraphConnectivity<String, String> c, boolean incrementalSupport) {
         String o1 = "1";
         String o2 = "2";
         String e12 = "1-2";
@@ -209,7 +209,13 @@ class ConnectivityTest {
         c.startTemporaryChanges();
         assertEquals(1, c.getNbConnectedComponents());
         c.removeEdge(e12);
+        assertEquals(2, c.getNbConnectedComponents());
+        c.removeEdge(e12);
         c.removeEdge(e12);
         assertEquals(2, c.getNbConnectedComponents());
+        if (incrementalSupport) {
+            c.addEdge(o1, o2, e12);
+            assertEquals(1, c.getNbConnectedComponents());
+        }
     }
 }
