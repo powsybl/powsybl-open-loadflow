@@ -13,7 +13,6 @@ import com.powsybl.security.action.SwitchAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -68,10 +67,10 @@ public class LfAction {
     }
 
     public void apply() {
-        apply(false, Collections.emptyList());
+        apply(false);
     }
 
-    public void apply(boolean withConnectivity, List<String> alreadyRemovedEdges) {
+    public void apply(boolean withConnectivity) {
         if (disabledBranch != null) {
             disabledBranch.setDisabled(true);
         }
@@ -90,7 +89,6 @@ public class LfAction {
             connectivity.startTemporaryChanges();
             disabledBranches.stream()
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                    .filter(b -> !alreadyRemovedEdges.contains(b.getId())) // FIXME
                     .forEach(connectivity::removeEdge);
             // update connectivity with enabled branches.
             if (enabledBranch != null) {
