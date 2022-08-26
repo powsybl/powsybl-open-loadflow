@@ -31,11 +31,9 @@ public class LfAction {
 
     private LfBranch enabledBranch; // switch to close
 
-    private LfNetwork network;
-
     public LfAction(Action action, LfNetwork network) {
         this.id = Objects.requireNonNull(action.getId());
-        this.network = Objects.requireNonNull(network);
+        Objects.requireNonNull(network);
         switch (action.getType()) {
             case SwitchAction.NAME:
                 SwitchAction switchAction = (SwitchAction) action;
@@ -66,47 +64,40 @@ public class LfAction {
         return enabledBranch;
     }
 
-    public void apply() {
-        apply(false);
+    public static void apply(List<LfAction> actions, LfNetwork network) {
+        Objects.requireNonNull(actions);
+        Objects.requireNonNull(network);
+
+        var connectivity = network.getConnectivity();
+        connectivity.startTemporaryChanges();
+
+        for (LfAction action : actions) {
+            action.apply(connectivity);
+        }
+
+        Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+        for (LfBus bus : buses) {
+            bus.setDisabled(true);
+            bus.getBranches().forEach(branch -> branch.setDisabled(true));
+        }
+        connectivity.undoTemporaryChanges();
+
+        network.getBuses().forEach(bus -> LOGGER.info("LfBus {} is disabled: {}", bus.getId(), bus.isDisabled()));
+        network.getBranches().forEach(branch -> LOGGER.info("LfBranch {} is disabled: {}", branch.getId(), branch.isDisabled()));
     }
 
-    public void apply(boolean withConnectivity) {
+    public void apply(GraphConnectivity<LfBus, LfBranch> connectivity) {
         if (disabledBranch != null) {
             disabledBranch.setDisabled(true);
+            if (disabledBranch.getBus1() != null && disabledBranch.getBus2() != null) {
+                connectivity.removeEdge(disabledBranch);
+            }
         }
         if (enabledBranch != null) {
             enabledBranch.setDisabled(false);
             enabledBranch.getBus1().setDisabled(false);
             enabledBranch.getBus2().setDisabled(false);
-        }
-
-        if (withConnectivity) {
-            // update connectivity with disabled branches
-            List<LfBranch> disabledBranches = network.getBranches().stream()
-                    .filter(LfElement::isDisabled)
-                    .collect(Collectors.toList());
-            GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
-            connectivity.startTemporaryChanges();
-            disabledBranches.stream()
-                    .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                    .forEach(connectivity::removeEdge);
-            // update connectivity with enabled branches.
-            if (enabledBranch != null) {
-                connectivity.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
-            }
-
-            // add to contingency description buses and branches that won't be part of the main connected
-            // component in post contingency state
-            Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
-            for (LfBus bus : buses) {
-                bus.setDisabled(true);
-                bus.getBranches().forEach(branch -> branch.setDisabled(true));
-            }
-            connectivity.undoTemporaryChanges();
-
-            LOGGER.info("Network state after action {}", id);
-            network.getBuses().forEach(bus -> LOGGER.info("LfBus {} is disabled: {}", bus.getId(), bus.isDisabled()));
-            network.getBranches().forEach(branch -> LOGGER.info("LfBranch {} is disabled: {}", branch.getId(), branch.isDisabled()));
+            connectivity.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
         }
     }
 }

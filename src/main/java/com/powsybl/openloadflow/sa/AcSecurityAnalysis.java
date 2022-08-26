@@ -333,10 +333,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                         return lfAction;
                     })
                     .collect(Collectors.toList());
-            // apply actions, the last apply compute the final connectivity.
-            // FIXME: as an edge cannot be removed twice, we need as argument allSwitchesToCloseIds.
-            operatorStrategyLfActions.stream().limit((long) operatorStrategyLfActions.size() - 1).forEach(LfAction::apply);
-            operatorStrategyLfActions.get(operatorStrategyLfActions.size() - 1).apply(true);
+
+            LfAction.apply(operatorStrategyLfActions, network);
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 
