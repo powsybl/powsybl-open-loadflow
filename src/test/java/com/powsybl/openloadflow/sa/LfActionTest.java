@@ -46,7 +46,7 @@ class LfActionTest extends AbstractConverterTest {
     }
 
     @Test
-    void test() throws IOException {
+    void test() {
         Network network = NodeBreakerNetworkFactory.create();
         SwitchAction switchAction = new SwitchAction("switchAction", "C", true);
         var matrixFactory = new DenseMatrixFactory();

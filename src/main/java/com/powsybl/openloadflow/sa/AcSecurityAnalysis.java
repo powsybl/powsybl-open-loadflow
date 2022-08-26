@@ -144,12 +144,12 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         }
     }
 
-    public static void getAllSwitchesToOperate(Network network, List<Action> actions, Set<Switch> allSwitchesToClose, Set<Switch> allSwitchesToOpen) {
+    private static void getAllSwitchesToOperate(Network network, List<Action> actions, Set<Switch> allSwitchesToClose, Set<Switch> allSwitchesToOpen) {
         actions.stream().filter(action -> action.getType().equals(SwitchAction.NAME))
                 .forEach(action -> {
                     String switchId = ((SwitchAction) action).getSwitchId();
                     Switch sw = network.getSwitch(switchId);
-                    Boolean toOpen = ((SwitchAction) action).isOpen();
+                    boolean toOpen = ((SwitchAction) action).isOpen();
                     if (sw.isOpen() && !toOpen) { // the switch is open and the action will close it.
                         allSwitchesToClose.add(sw);
                     } else if (!sw.isOpen() && toOpen) { // the switch is closed and the action will open it.
@@ -245,13 +245,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                 if (operatorStrategiesForThisContingency != null) {
                                     // we have at least an operator strategy for this contingency.
                                     if (operatorStrategiesForThisContingency.size() == 1) {
-                                        Optional<OperatorStrategyResult> optionalOperatorStrategyResult = runActionSimulation(network, context,
+                                        runActionSimulation(network, context,
                                                 operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
-                                                createResultExtension, allSwitchesToClose.stream().map(Switch::getId).collect(Collectors.toList()));
-                                        if (optionalOperatorStrategyResult.isPresent()) {
-                                            operatorStrategyResults.add(optionalOperatorStrategyResult.get());
-                                        }
+                                                createResultExtension, allSwitchesToClose.stream().map(Switch::getId).collect(Collectors.toList()))
+                                                .ifPresent(operatorStrategyResults::add);
                                     } else {
                                         LOGGER.warn("A contingency has several operator strategies: not supported yet");
                                     }
