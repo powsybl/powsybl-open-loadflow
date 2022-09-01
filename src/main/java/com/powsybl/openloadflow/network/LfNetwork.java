@@ -248,8 +248,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             for (LfGenerator generator : bus.getGenerators()) {
                 generator.updateState();
             }
-            bus.getShunt().ifPresent(LfShunt::updateState);
-            bus.getControllerShunt().ifPresent(LfShunt::updateState);
+            bus.getShunt().ifPresent(shunt -> shunt.updateState(dc));
+            bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(dc));
         }
         for (LfBranch branch : branches) {
             branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn, dc);
