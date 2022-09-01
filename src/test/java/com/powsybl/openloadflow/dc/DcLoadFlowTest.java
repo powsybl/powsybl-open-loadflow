@@ -244,4 +244,20 @@ class DcLoadFlowTest {
         assertEquals(2d, l13.getTerminal1().getP(), 0.01);
         assertEquals(-2d, l13.getTerminal2().getP(), 0.01);
     }
+
+    @Test
+    void shuntCompensatorActivePowerZero() {
+        Network network = EurostagTutorialExample1Factory.create();
+        var sc = network.getVoltageLevel("VLLOAD").newShuntCompensator()
+                .setId("SC")
+                .setBus("NLOAD")
+                .setSectionCount(1)
+                .newLinearModel()
+                    .setBPerSection(0.111)
+                    .setMaximumSectionCount(1)
+                .add()
+                .add();
+        loadFlowRunner.run(network, parameters);
+        LoadFlowAssert.assertActivePowerEquals(0, sc.getTerminal());
+    }
 }
