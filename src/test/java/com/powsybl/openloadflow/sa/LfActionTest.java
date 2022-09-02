@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -16,15 +18,14 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.action.SwitchAction;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -56,10 +57,18 @@ class LfActionTest extends AbstractConverterTest {
         List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(Collections.emptySet(), Set.of(network.getSwitch("C")), acParameters.getNetworkParameters(), Reporter.NO_OP);
         LfAction lfAction = new LfAction(switchAction, lfNetworks.get(0));
         assertFalse(lfNetworks.get(0).getBranchById("C").isDisabled());
-        LfAction.apply(List.of(lfAction), lfNetworks.get(0));
-        assertTrue(lfNetworks.get(0).getBranchById("C").isDisabled());
-        assertEquals("C", lfAction.getDisabledBranch().getId());
-        assertNull(lfAction.getEnabledBranch());
+
+        String loadId = "LOAD";
+        Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
+        PropagatedContingency propagatedContingency = PropagatedContingency.createListForSecurityAnalysis(network,
+                Collections.singletonList(contingency), new HashSet<>(), false, false, false, true).get(0);
+        Optional<LfContingency> lfContingency = propagatedContingency.toLfContingency(lfNetworks.get(0), true);
+        if (lfContingency.isPresent()) {
+            LfAction.apply(List.of(lfAction), lfNetworks.get(0), lfContingency.get());
+            assertTrue(lfNetworks.get(0).getBranchById("C").isDisabled());
+            assertEquals("C", lfAction.getDisabledBranch().getId());
+            assertNull(lfAction.getEnabledBranch());
+        }
 
         SwitchAction switchAction2 = new SwitchAction("switchAction", "S", true);
         assertThrows(PowsyblException.class, () -> new LfAction(switchAction2, lfNetworks.get(0)), "Branch S not found in the network");

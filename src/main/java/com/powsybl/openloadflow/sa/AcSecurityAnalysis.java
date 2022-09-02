@@ -123,11 +123,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         try {
             network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                     .forEach(sw -> sw.setRetained(false));
-            allSwitchesToOpen.forEach(sw -> sw.setRetained(true));
-            allSwitchesToClose.forEach(sw -> {
-                sw.setRetained(true);
-                sw.setOpen(false); // in order to be present in the network.
-            });
+            allSwitchesToOpen.stream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
+                    .forEach(sw -> sw.setRetained(true));
+            allSwitchesToClose.stream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
+                    .forEach(sw -> sw.setRetained(true));
+            allSwitchesToClose.stream().forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
             lfNetworks = Networks.load(network, networkParameters, saReporter);
         } finally {
             network.getVariantManager().removeVariant(tmpVariantId);
@@ -248,7 +248,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                         runActionSimulation(network, context,
                                                 operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
-                                                createResultExtension)
+                                                createResultExtension, lfContingency)
                                                 .ifPresent(operatorStrategyResults::add);
                                     } else {
                                         LOGGER.warn("A contingency has several operator strategies: not supported yet");
@@ -317,7 +317,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                  LimitViolationsResult postContingencyLimitViolations, Map<String, LfAction> lfActionById,
-                                                                 boolean createResultExtension) {
+                                                                 boolean createResultExtension, LfContingency contingency) {
         OperatorStrategyResult operatorStrategyResult = null;
 
         if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
@@ -334,7 +334,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     })
                     .collect(Collectors.toList());
 
-            LfAction.apply(operatorStrategyLfActions, network);
+            LfAction.apply(operatorStrategyLfActions, network, contingency);
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 

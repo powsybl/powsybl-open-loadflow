@@ -64,12 +64,18 @@ public class LfAction {
         return enabledBranch;
     }
 
-    public static void apply(List<LfAction> actions, LfNetwork network) {
+    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
         var connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
+
+        contingency.getDisabledBranches().forEach(branch -> {
+            if (branch.getBus1() != null && branch.getBus2() != null) {
+                connectivity.removeEdge(branch);
+            }
+        });
 
         for (LfAction action : actions) {
             action.apply(connectivity);
