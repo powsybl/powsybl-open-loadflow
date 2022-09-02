@@ -49,6 +49,10 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     public void addEdge(V vertex1, V vertex2, E edge) {
         Objects.requireNonNull(vertex1);
         Objects.requireNonNull(vertex2);
+        Objects.requireNonNull(edge);
+        if (graph.containsEdge(edge)) {
+            return;
+        }
         EdgeAdd<V, E> edgeAdd = new EdgeAdd<>(vertex1, vertex2, edge);
         edgeAdd.apply(graph);
         if (!graphModifications.isEmpty()) {
@@ -59,8 +63,9 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     @Override
     public void removeEdge(E edge) {
+        Objects.requireNonNull(edge);
         if (!graph.containsEdge(edge)) {
-            throw new PowsyblException("No such edge in graph: " + edge);
+            return;
         }
         V vertex1 = graph.getEdgeSource(edge);
         V vertex2 = graph.getEdgeTarget(edge);
