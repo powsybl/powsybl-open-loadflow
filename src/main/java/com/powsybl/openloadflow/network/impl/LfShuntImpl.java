@@ -241,19 +241,25 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public void updateState() {
-        double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
-        if (!voltageControlCapability) {
+    public void updateState(boolean dc) {
+        if (dc) {
             for (ShuntCompensator sc : shuntCompensators) {
-                sc.getTerminal().setP(sc.getG() * vSquare);
-                sc.getTerminal().setQ(-sc.getB() * vSquare);
+                sc.getTerminal().setP(0);
             }
         } else {
-            for (int i = 0; i < shuntCompensators.size(); i++) {
-                ShuntCompensator sc = shuntCompensators.get(i);
-                sc.getTerminal().setP(controllers.get(i).getG() * vSquare / zb);
-                sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / zb);
-                sc.setSectionCount(controllers.get(i).getPosition());
+            double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
+            if (!voltageControlCapability) {
+                for (ShuntCompensator sc : shuntCompensators) {
+                    sc.getTerminal().setP(sc.getG() * vSquare);
+                    sc.getTerminal().setQ(-sc.getB() * vSquare);
+                }
+            } else {
+                for (int i = 0; i < shuntCompensators.size(); i++) {
+                    ShuntCompensator sc = shuntCompensators.get(i);
+                    sc.getTerminal().setP(controllers.get(i).getG() * vSquare / zb);
+                    sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / zb);
+                    sc.setSectionCount(controllers.get(i).getPosition());
+                }
             }
         }
     }
