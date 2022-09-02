@@ -95,7 +95,7 @@ public class LfAction {
         }
         if (enabledBranch != null) {
             enabledBranch.setDisabled(false);
-            enabledBranch.getBus1().setDisabled(false);
+            enabledBranch.getBus1().setDisabled(false); // FIXME, not enough several buses ard branches can be reconnected.
             enabledBranch.getBus2().setDisabled(false);
             connectivity.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
         }

@@ -248,7 +248,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                         runActionSimulation(network, context,
                                                 operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
-                                                createResultExtension, allSwitchesToClose.stream().map(Switch::getId).collect(Collectors.toList()))
+                                                createResultExtension)
                                                 .ifPresent(operatorStrategyResults::add);
                                     } else {
                                         LOGGER.warn("A contingency has several operator strategies: not supported yet");
@@ -317,7 +317,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                  LimitViolationsResult postContingencyLimitViolations, Map<String, LfAction> lfActionById,
-                                                                 boolean createResultExtension, List<String> allSwitchesToCloseIds) {
+                                                                 boolean createResultExtension) {
         OperatorStrategyResult operatorStrategyResult = null;
 
         if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
