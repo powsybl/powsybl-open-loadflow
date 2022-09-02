@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.test.BatteryNetworkFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,26 +56,6 @@ class NetworkConnectivityTest {
         testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum), true);
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
         testReaddEdge(new MinimumSpanningTreeGraphConnectivity<>(), true);
-    }
-
-    @Test
-    void testDoubleCut() {
-        // Testing cutting twice an edge
-        testDoubleCut(new NaiveGraphConnectivity<>(LfBus::getNum));
-        testDoubleCut(new EvenShiloachGraphDecrementalConnectivity<>());
-        testDoubleCut(new MinimumSpanningTreeGraphConnectivity<>());
-    }
-
-    @Test
-    void testUnknownCut() {
-        // Testing cutting unknown edge
-        Network otherNetwork = BatteryNetworkFactory.create();
-        LfNetwork otherLfNetwork = Networks.load(otherNetwork, new FirstSlackBusSelector()).get(0);
-        LfBranch otherNetworkBranch = otherLfNetwork.getBranchById("NHV1_NHV2_1");
-
-        testUnknownCut(new NaiveGraphConnectivity<>(LfBus::getNum), otherNetworkBranch);
-        testUnknownCut(new EvenShiloachGraphDecrementalConnectivity<>(), otherNetworkBranch);
-        testUnknownCut(new MinimumSpanningTreeGraphConnectivity<>(), otherNetworkBranch);
     }
 
     @Test
@@ -159,20 +138,6 @@ class NetworkConnectivityTest {
             PowsyblException e = assertThrows(PowsyblException.class, () -> connectivity.addEdge(bus1, bus2, lfBranch));
             assertEquals("This implementation does not support incremental connectivity: edges cannot be added once that connectivity is saved", e.getMessage());
         }
-    }
-
-    private void testDoubleCut(GraphConnectivity<LfBus, LfBranch> connectivity) {
-        updateConnectivity(connectivity);
-
-        PowsyblException e = assertThrows(PowsyblException.class, () -> cutBranches(connectivity, "l34", "l48", "l34"));
-        assertEquals("No such edge in graph: l34", e.getMessage());
-    }
-
-    private void testUnknownCut(GraphConnectivity<LfBus, LfBranch> connectivity, LfBranch unknownBranch) {
-        updateConnectivity(connectivity);
-
-        PowsyblException e = assertThrows(PowsyblException.class, () -> connectivity.removeEdge(unknownBranch));
-        assertEquals("No such edge in graph: NHV1_NHV2_1", e.getMessage());
     }
 
     private void testNonConnectedComponents(GraphConnectivity<LfBus, LfBranch> connectivity) {

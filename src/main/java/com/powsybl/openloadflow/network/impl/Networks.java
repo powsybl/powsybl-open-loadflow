@@ -53,7 +53,8 @@ public final class Networks {
                     .setQ(Double.NaN);
         }
         for (ShuntCompensator sc : network.getShuntCompensators()) {
-            sc.getTerminal().setQ(Double.NaN);
+            sc.getTerminal().setP(Double.NaN)
+                    .setQ(Double.NaN);
         }
         resetInjectionsState(network.getGenerators());
         resetInjectionsState(network.getStaticVarCompensators());
