@@ -27,7 +27,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.sensitivity.SensitivityFactorReader;
-import com.powsybl.sensitivity.SensitivityValueWriter;
+import com.powsybl.sensitivity.SensitivityResultWriter;
 import com.powsybl.sensitivity.SensitivityVariableSet;
 import com.powsybl.sensitivity.SensitivityVariableType;
 import org.apache.commons.lang3.NotImplementedException;
@@ -48,13 +48,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     private void calculateSensitivityValues(List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors, List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups, DenseMatrix factorsState,
-                                            int contingencyIndex, SensitivityValueWriter valueWriter) {
+                                            int contingencyIndex, SensitivityResultWriter valueWriter) {
         Set<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactorsSet = new HashSet<>(lfFactors);
 
         // VALID_ONLY_FOR_FUNCTION status is for factors where variable element is not in the main connected component but reference element is.
         // Therefore, the sensitivity is known to value 0 and the reference value can be computed.
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
-                .forEach(factor -> valueWriter.write(factor.getIndex(), contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference())));
+                .forEach(factor -> valueWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference())));
 
         for (SensitivityFactorGroup<AcVariableType, AcEquationType> factorGroup : factorGroups) {
             for (LfSensitivityFactor<AcVariableType, AcEquationType> factor : factorGroup.getFactors()) {
@@ -90,7 +90,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     ref = factor.getFunctionReference();
                 }
 
-                valueWriter.write(factor.getIndex(), contingencyIndex, unscaleSensitivity(factor, sensi), unscaleFunction(factor, ref));
+                valueWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, unscaleSensitivity(factor, sensi), unscaleFunction(factor, ref));
             }
         }
     }
@@ -109,7 +109,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            LfNetwork lfNetwork, AcLoadFlowContext context, List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups,
                                                            Map<LfBus, Double> participationByBus,
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
-                                                           int contingencyIndex, SensitivityValueWriter valueWriter,
+                                                           int contingencyIndex, SensitivityResultWriter valueWriter,
                                                            boolean hasTransformerBusTargetVoltage, boolean hasMultiVariables) {
         if (lfParameters.isDistributedSlack() && Math.abs(lfContingency.getActivePowerLoss()) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant());
@@ -162,7 +162,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
      */
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
-                        SensitivityValueWriter valueWriter, Reporter reporter) {
+                        SensitivityResultWriter valueWriter, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(lfParameters);

@@ -200,7 +200,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     private void createBranchSensitivityValue(LfSensitivityFactor<DcVariableType, DcEquationType> factor, DenseMatrix contingenciesStates,
                                               Collection<ComputedContingencyElement> contingencyElements,
-                                              PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
+                                              PropagatedContingency contingency, SensitivityResultWriter valueWriter) {
         boolean predefSensiValue = factor.getSensitivityValuePredefinedResult() != null;
         boolean predefFlowValue = factor.getFunctionPredefinedResult() != null;
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
@@ -239,7 +239,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
-        valueWriter.write(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, unscaleSensitivity(factor, zeroSensiValue ? 0d : sensiValue), unscaleFunction(factor, flowValue));
+        valueWriter.writeSensitivityValue(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, unscaleSensitivity(factor, zeroSensiValue ? 0d : sensiValue), unscaleFunction(factor, flowValue));
     }
 
     protected void setBaseCaseSensitivityValues(List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups, DenseMatrix factorsState) {
@@ -252,7 +252,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     protected void calculateSensitivityValues(List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors, DenseMatrix factorStates,
                                               DenseMatrix contingenciesStates, DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements,
-                                              PropagatedContingency contingency, SensitivityValueWriter valueWriter) {
+                                              PropagatedContingency contingency, SensitivityResultWriter valueWriter) {
         if (lfFactors.isEmpty()) {
             return;
         }
@@ -559,7 +559,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     public void calculateContingencySensitivityValues(PropagatedContingency contingency, List<SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroups, boolean hasMultiVariables, DenseMatrix factorStates, DenseMatrix contingenciesStates,
-                                                      DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements, SensitivityValueWriter valueWriter,
+                                                      DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements, SensitivityResultWriter valueWriter,
                                                       LfNetwork lfNetwork, DcLoadFlowParameters lfParameters,  OpenLoadFlowParameters lfParametersExt, JacobianMatrix<DcVariableType, DcEquationType> j, EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                       SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder, List<ParticipatingElement> participatingElements,
                                                       Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
@@ -636,7 +636,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
-                        SensitivityValueWriter valueWriter, Reporter reporter) {
+                        SensitivityResultWriter valueWriter, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);

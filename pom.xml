@@ -48,7 +48,7 @@
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
 
-        <powsybl-core.version>4.10.0-alpha-1</powsybl-core.version>
+        <powsybl-core.version>4.10.0-SNAPSHOT</powsybl-core.version>
         <!-- 1.4.0 inherited from core is buggy, adding same edge multiple times corrupts the graph... -->
         <jgrapht.version>1.5.1</jgrapht.version>
     </properties>
@@ -201,6 +201,12 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-iidm-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <version>1.7.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
