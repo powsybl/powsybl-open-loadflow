@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi.dc;
 
+import com.powsybl.commons.ComparisonUtils;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.reporter.Reporter;
@@ -1590,19 +1591,19 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertNotNull(parametersFile);
         assertNotNull(variableSetsFile);
         try (InputStream is = Files.newInputStream(contingenciesFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-contingencies.json")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-contingencies.json")), is);
         }
         try (InputStream is = Files.newInputStream(factorsFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
         }
         try (InputStream is = Files.newInputStream(networkFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
         }
         try (InputStream is = Files.newInputStream(parametersFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
         }
         try (InputStream is = Files.newInputStream(variableSetsFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
         }
 
         String fileName = contingenciesFile.getFileName().toString();
