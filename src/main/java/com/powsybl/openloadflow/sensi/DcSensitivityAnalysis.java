@@ -567,6 +567,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency, valueWriter);
+            // write contingency status
+            SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
+                    = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency.getContingency(), SensitivityAnalysisResult.Status.CONVERGED);
+            valueWriter.writeContingencyStatus(contingencyStatus);
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
@@ -600,6 +604,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (participatingElementsChanged || rhsChanged) {
                     newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
                 }
+                // write contingency status
+                SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
+                        = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency.getContingency(), SensitivityAnalysisResult.Status.CONVERGED);
+                valueWriter.writeContingencyStatus(contingencyStatus);
+            } else {
+                // write contingency status
+                SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
+                        = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency.getContingency(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                valueWriter.writeContingencyStatus(contingencyStatus);
             }
 
             DenseMatrix newFlowStates = setReferenceActivePowerFlows(lfNetwork, lfParameters, equationSystem, j, factors,

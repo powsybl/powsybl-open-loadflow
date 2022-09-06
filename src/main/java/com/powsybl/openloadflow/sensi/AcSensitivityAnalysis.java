@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
@@ -15,8 +16,10 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -26,10 +29,7 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
-import com.powsybl.sensitivity.SensitivityFactorReader;
-import com.powsybl.sensitivity.SensitivityResultWriter;
-import com.powsybl.sensitivity.SensitivityVariableSet;
-import com.powsybl.sensitivity.SensitivityVariableType;
+import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
@@ -110,15 +110,21 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            Map<LfBus, Double> participationByBus,
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
                                                            int contingencyIndex, SensitivityResultWriter valueWriter,
-                                                           boolean hasTransformerBusTargetVoltage, boolean hasMultiVariables) {
+                                                           boolean hasTransformerBusTargetVoltage, boolean hasMultiVariables, Contingency contingency) {
         if (lfParameters.isDistributedSlack() && Math.abs(lfContingency.getActivePowerLoss()) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant());
             activePowerDistribution.run(lfNetwork, lfContingency.getActivePowerLoss());
         }
 
         context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-        new AcloadFlowEngine(context)
+        AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
+
+        // write contingency status
+        SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
+                = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency, (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) ?
+                SensitivityAnalysisResult.Status.CONVERGED : SensitivityAnalysisResult.Status.FAILED);
+        valueWriter.writeContingencyStatus(contingencyStatus);
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
@@ -321,13 +327,18 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         postContingencySlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
                     }
                     calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, postContingencySlackParticipationByBus,
-                            lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, hasTransformerBusTargetVoltage, hasMultiVariables);
+                            lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, hasTransformerBusTargetVoltage, hasMultiVariables, contingency.getContingency());
 
                     networkState.restore();
-                }, () ->
+                }, () -> {
                     // It means that the contingency has no impact.
-                    calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingency.getIndex(), valueWriter)
-                ));
+                    calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingency.getIndex(), valueWriter);
+
+                    // write contingency status
+                    SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
+                            = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency.getContingency(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                    valueWriter.writeContingencyStatus(contingencyStatus);
+                }));
         }
     }
 }
