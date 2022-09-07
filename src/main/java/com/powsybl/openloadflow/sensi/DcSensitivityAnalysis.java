@@ -568,9 +568,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency, valueWriter);
             // write contingency status
-            SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
-                    = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency.getContingency(), SensitivityAnalysisResult.Status.CONVERGED);
-            valueWriter.writeContingencyStatus(contingencyStatus);
+            valueWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.CONVERGED); // FIXME
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
@@ -605,14 +603,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     newFactorStates = calculateStates(j, equationSystem, factorGroups, newParticipatingElements);
                 }
                 // write contingency status
-                SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
-                        = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency.getContingency(), SensitivityAnalysisResult.Status.CONVERGED);
-                valueWriter.writeContingencyStatus(contingencyStatus);
+                valueWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.CONVERGED); // FIXME
             } else {
                 // write contingency status
-                SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
-                        = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency.getContingency(), SensitivityAnalysisResult.Status.NO_IMPACT);
-                valueWriter.writeContingencyStatus(contingencyStatus);
+                valueWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
             }
 
             DenseMatrix newFlowStates = setReferenceActivePowerFlows(lfNetwork, lfParameters, equationSystem, j, factors,

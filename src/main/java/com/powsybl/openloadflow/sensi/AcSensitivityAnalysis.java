@@ -121,10 +121,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .run();
 
         // write contingency status
-        SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
-                = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency, (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) ?
+        valueWriter.writeContingencyStatus(contingencyIndex, (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) ?
                 SensitivityAnalysisResult.Status.CONVERGED : SensitivityAnalysisResult.Status.FAILED);
-        valueWriter.writeContingencyStatus(contingencyStatus);
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
@@ -331,14 +329,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                     networkState.restore();
                 }, () -> {
-                    // It means that the contingency has no impact.
-                    calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingency.getIndex(), valueWriter);
-
-                    // write contingency status
-                    SensitivityAnalysisResult.SensitivityContingencyStatus contingencyStatus
-                            = new SensitivityAnalysisResult.SensitivityContingencyStatus(contingency.getContingency(), SensitivityAnalysisResult.Status.NO_IMPACT);
-                    valueWriter.writeContingencyStatus(contingencyStatus);
-                }));
+                        // It means that the contingency has no impact.
+                        calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingency.getIndex(), valueWriter);
+                        // write contingency status
+                        valueWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                    }));
         }
     }
 }

@@ -1610,7 +1610,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         String dateStr = fileName.substring(14, fileName.length() - 5);
         DateTime date = DateTime.parse(dateStr, DateTimeFormat.forPattern(OpenSensitivityAnalysisProvider.DATE_TIME_FORMAT));
 
-        List<SensitivityValue> values2 = sensiProvider.replay(date, fileSystem.getPath(debugDir));
+/*        List<SensitivityValue> values2 = sensiProvider.replay(date, fileSystem.getPath(debugDir));
 
         // assert we have exactly the same result with replay
         assertEquals(result.getValues().size(), values2.size());
@@ -1621,7 +1621,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
             assertEquals(actual.getContingencyIndex(), expected.getContingencyIndex());
             assertEquals(actual.getValue(), expected.getValue(), LoadFlowAssert.DELTA_POWER);
             assertEquals(actual.getFunctionReference(), expected.getFunctionReference(), LoadFlowAssert.DELTA_POWER);
-        }
+        }*/
     }
 
     @Test

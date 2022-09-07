@@ -258,8 +258,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return replay(date, debugDir, valueWriter, Reporter.NO_OP);
     }
 
-    public List<SensitivityValue> replay(DateTime date, Path debugDir) {
+/*    public List<SensitivityValue> replay(DateTime date, Path debugDir) {
         SensitivityResultModelWriter valueWriter = replay(date, debugDir, new SensitivityResultModelWriter());
         return valueWriter.getValues();
-    }
+    }*/
 }
