@@ -650,7 +650,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
      * IMPORTANT: this is only a base case test (factor status only deal with base case). We do not output anything
      * on post contingency if factor is already invalid (skip o zero) on base case.
      */
-    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, SensitivityResultWriter valueWriter) {
+    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder, SensitivityResultWriter resultWriter) {
         Set<String> skippedVariables = new LinkedHashSet<>();
         SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
         for (var factor : factorHolder.getAllFactors()) {
@@ -658,9 +658,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
                 // ZERO status is for factors where variable element is in the main connected component and reference element is not.
                 // Therefore, the sensitivity is known to value 0, but the reference cannot be known and is set to NaN.
-                valueWriter.writeSensitivityValue(factor.getIndex(), -1, 0, Double.NaN);
+                resultWriter.writeSensitivityValue(factor.getIndex(), -1, 0, Double.NaN);
             } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
-                valueWriter.writeSensitivityValue(factor.getIndex(), -1, Double.NaN, Double.NaN);
+                resultWriter.writeSensitivityValue(factor.getIndex(), -1, Double.NaN, Double.NaN);
                 skippedVariables.add(factor.getVariableId());
             } else {
                 validFactorHolder.addFactor(factor);
