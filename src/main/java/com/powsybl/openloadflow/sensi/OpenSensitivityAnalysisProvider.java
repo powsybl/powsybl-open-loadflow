@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -205,10 +206,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }, computationManager.getExecutor());
     }
 
-    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, T valueWriter, Reporter reporter) {
+    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> valueWriterProvider, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
-        Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(valueWriterProvider);
         Objects.requireNonNull(reporter);
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
@@ -247,6 +248,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             sensiParametersExt.setDebugDir(null);
         }
 
+        var valueWriter = Objects.requireNonNull(valueWriterProvider.apply(contingencies));
+
         run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), valueWriter,
                 contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter)
                 .join();
@@ -254,12 +257,12 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return valueWriter;
     }
 
-    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, T valueWriter) {
-        return replay(date, debugDir, valueWriter, Reporter.NO_OP);
+    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> valueWriterProvider) {
+        return replay(date, debugDir, valueWriterProvider, Reporter.NO_OP);
     }
 
-/*    public List<SensitivityValue> replay(DateTime date, Path debugDir) {
-        SensitivityResultModelWriter valueWriter = replay(date, debugDir, new SensitivityResultModelWriter());
+    public List<SensitivityValue> replay(DateTime date, Path debugDir) {
+        SensitivityResultModelWriter valueWriter = replay(date, debugDir, SensitivityResultModelWriter::new);
         return valueWriter.getValues();
-    }*/
+    }
 }
