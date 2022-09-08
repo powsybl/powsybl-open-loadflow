@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.AbstractConverterTest;
+import com.powsybl.commons.ComparisonUtils;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.BranchContingency;
@@ -84,7 +85,7 @@ class LfContingencyTest extends AbstractConverterTest {
         }
 
         try (InputStream is = Files.newInputStream(file)) {
-            compareTxt(getClass().getResourceAsStream("/lfc.json"), is);
+            ComparisonUtils.compareTxt(getClass().getResourceAsStream("/lfc.json"), is);
         }
     }
 

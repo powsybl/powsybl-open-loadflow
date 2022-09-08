@@ -48,7 +48,7 @@
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
 
-        <powsybl-core.version>4.10.0-alpha-1</powsybl-core.version>
+        <powsybl-core.version>4.10.0-RC1</powsybl-core.version>
         <!-- 1.4.0 inherited from core is buggy, adding same edge multiple times corrupts the graph... -->
         <jgrapht.version>1.5.1</jgrapht.version>
     </properties>
