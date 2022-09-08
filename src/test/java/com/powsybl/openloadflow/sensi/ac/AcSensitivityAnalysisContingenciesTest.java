@@ -880,6 +880,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(SensitivityAnalysisResult.Status.CONVERGED, result.getContingencyStatus("l23"));
 
         network.getLine("l23").getTerminal1().disconnect();
         network.getLine("l23").getTerminal2().disconnect();
@@ -1048,6 +1049,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         // because l45 is already open on base case
         assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("g2", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("l45", "g2", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("l45"));
     }
 
     @Test

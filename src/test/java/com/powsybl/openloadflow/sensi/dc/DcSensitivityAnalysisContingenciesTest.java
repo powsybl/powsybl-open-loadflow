@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi.dc;
 
+import com.powsybl.commons.ComparisonUtils;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.reporter.Reporter;
@@ -1590,19 +1591,19 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertNotNull(parametersFile);
         assertNotNull(variableSetsFile);
         try (InputStream is = Files.newInputStream(contingenciesFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-contingencies.json")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-contingencies.json")), is);
         }
         try (InputStream is = Files.newInputStream(factorsFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-factors.json")), is);
         }
         try (InputStream is = Files.newInputStream(networkFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-network.xiidm")), is);
         }
         try (InputStream is = Files.newInputStream(parametersFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-parameters.json")), is);
         }
         try (InputStream is = Files.newInputStream(variableSetsFile)) {
-            compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/debug-variable-sets.json")), is);
         }
 
         String fileName = contingenciesFile.getFileName().toString();
@@ -2039,6 +2040,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         assertEquals(0.0, result.getBranchFlow1SensitivityValue("l34+l12", "g3", "l12"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l34+l12", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(SensitivityAnalysisResult.Status.CONVERGED, result.getContingencyStatus("l34+l12"));
     }
 
     @Test
@@ -2060,6 +2062,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(SensitivityAnalysisResult.Status.CONVERGED, result.getContingencyStatus("hvdc34"));
 
         network.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
         network.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
