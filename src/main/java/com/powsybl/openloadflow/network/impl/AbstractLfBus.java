@@ -60,8 +60,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final LfAggregatedLoadsImpl lfAggregatedLoads;
 
-    protected List<LfLoad> lfLoads;
-
     protected boolean ensurePowerFactorConstantByLoad = false;
 
     protected final List<LccConverterStation> lccCss = new ArrayList<>();
@@ -209,7 +207,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             ensurePowerFactorConstantByLoad = true;
         }
         lfAggregatedLoads.add(load);
-        lfLoads = null;
     }
 
     void addLccConverterStation(LccConverterStation lccCs) {
@@ -405,17 +402,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public LfAggregatedLoads getAggregatedLoads() {
         return lfAggregatedLoads;
-    }
-
-    @Override
-    public List<LfLoad> getLoads() {
-        if (lfLoads == null) {
-            lfLoads = new ArrayList<>(lfAggregatedLoads.getLoads().size());
-            for (Load load : lfAggregatedLoads.getLoads()) {
-                lfLoads.add(new LfLoadImpl(load));
-            }
-        }
-        return lfLoads;
     }
 
     @Override

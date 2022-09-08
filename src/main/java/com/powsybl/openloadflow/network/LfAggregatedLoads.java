@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public interface LfAggregatedLoads {
+public interface LfAggregatedLoads extends PropertyBag {
 
     List<String> getOriginalIds();
 

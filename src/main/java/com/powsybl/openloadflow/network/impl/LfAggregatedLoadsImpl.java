@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
+import com.powsybl.openloadflow.network.AbstractPropertyBag;
 import com.powsybl.openloadflow.network.LfAggregatedLoads;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-class LfAggregatedLoadsImpl implements LfAggregatedLoads {
+class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedLoads {
 
     private final List<Load> loads = new ArrayList<>();
 
@@ -33,10 +34,6 @@ class LfAggregatedLoadsImpl implements LfAggregatedLoads {
 
     LfAggregatedLoadsImpl(boolean distributedOnConformLoad) {
         this.distributedOnConformLoad = distributedOnConformLoad;
-    }
-
-    List<Load> getLoads() {
-        return loads;
     }
 
     @Override
