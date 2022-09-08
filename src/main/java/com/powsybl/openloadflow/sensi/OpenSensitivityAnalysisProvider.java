@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -132,7 +133,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public CompletableFuture<Void> run(Network network,
                                        String workingVariantId,
                                        SensitivityFactorReader factorReader,
-                                       SensitivityValueWriter valueWriter,
+                                       SensitivityResultWriter resultWriter,
                                        List<Contingency> contingencies,
                                        List<SensitivityVariableSet> variableSets,
                                        SensitivityAnalysisParameters sensitivityAnalysisParameters,
@@ -143,7 +144,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(variableSets);
         Objects.requireNonNull(sensitivityAnalysisParameters);
         Objects.requireNonNull(factorReader);
-        Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(resultWriter);
         Objects.requireNonNull(computationManager);
         Objects.requireNonNull(reporter);
 
@@ -195,9 +196,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 }
 
                 if (lfParameters.isDc()) {
-                    dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, sensiReporter);
+                    dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter);
                 } else {
-                    acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, sensiReporter);
+                    acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter);
                 }
             } finally {
                 network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
@@ -205,10 +206,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }, computationManager.getExecutor());
     }
 
-    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, T valueWriter, Reporter reporter) {
+    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
-        Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(resultWriterProvider);
         Objects.requireNonNull(reporter);
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
@@ -247,19 +248,21 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             sensiParametersExt.setDebugDir(null);
         }
 
-        run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), valueWriter,
+        var resultWriter = Objects.requireNonNull(resultWriterProvider.apply(contingencies));
+
+        run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), resultWriter,
                 contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter)
                 .join();
 
-        return valueWriter;
+        return resultWriter;
     }
 
-    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, T valueWriter) {
-        return replay(date, debugDir, valueWriter, Reporter.NO_OP);
+    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
+        return replay(date, debugDir, resultWriterProvider, Reporter.NO_OP);
     }
 
     public List<SensitivityValue> replay(DateTime date, Path debugDir) {
-        SensitivityValueModelWriter valueWriter = replay(date, debugDir, new SensitivityValueModelWriter());
-        return valueWriter.getValues();
+        SensitivityResultModelWriter resultWriter = replay(date, debugDir, SensitivityResultModelWriter::new);
+        return resultWriter.getValues();
     }
 }
