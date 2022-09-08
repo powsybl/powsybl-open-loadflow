@@ -241,12 +241,13 @@ class OpenSecurityAnalysisTest {
         List<Contingency> contingencies = Stream.of("L1", "L2")
             .map(id -> new Contingency(id, new BranchContingency(id)))
             .collect(Collectors.toList());
+        contingencies.add(new Contingency("LD", new LoadContingency("LD")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
 
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
         assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(2, result.getPostContingencyResults().size());
+        assertEquals(3, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
