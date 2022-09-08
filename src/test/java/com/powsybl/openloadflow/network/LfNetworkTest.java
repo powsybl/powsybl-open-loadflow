@@ -136,7 +136,6 @@ class LfNetworkTest extends AbstractConverterTest {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());
-        assertTrue(lfNetwork.getBusById("DL_BUS").getConfiguredBusesIds().isEmpty());
     }
 
     @Test

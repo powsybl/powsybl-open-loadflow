@@ -9,9 +9,10 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.security.results.BusResult;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -29,8 +30,6 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final boolean participating;
 
-    private final Set<String> configuredBusesIds;
-
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean participating) {
         super(network, v, angle);
         this.bus = bus;
@@ -38,8 +37,6 @@ public class LfBusImpl extends AbstractLfBus {
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
-        this.configuredBusesIds = bus.getConnectedTerminalStream()
-                .map(terminal -> terminal.getBusBreakerView().getBus().getId()).collect(Collectors.toSet());
     }
 
     public static LfBusImpl create(Bus bus, LfNetwork network, boolean participating) {
@@ -55,11 +52,6 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public String getVoltageLevelId() {
         return bus.getVoltageLevel().getId();
-    }
-
-    @Override
-    public Set<String> getConfiguredBusesIds() {
-        return configuredBusesIds;
     }
 
     @Override
@@ -97,5 +89,11 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public boolean isParticipating() {
         return participating;
+    }
+
+    @Override
+    public List<BusResult> createBusResults() {
+        return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
+                .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, getAngle())).collect(Collectors.toList());
     }
 }

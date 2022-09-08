@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BusResult;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -20,8 +17,6 @@ import java.util.Set;
 public interface LfBus extends LfElement {
 
     String getVoltageLevelId();
-
-    Set<String> getConfiguredBusesIds();
 
     boolean isFictitious();
 
@@ -154,7 +149,9 @@ public interface LfBus extends LfElement {
         return false;
     }
 
-    List<BusResult> createBusResults();
+    default List<BusResult> createBusResults() {
+        return Collections.emptyList();
+    }
 
     /**
      * Find bus + parallel branches neighbors.
