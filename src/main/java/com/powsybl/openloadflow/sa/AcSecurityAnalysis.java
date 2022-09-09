@@ -79,14 +79,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, saReporter, breakers, false);
 
-        List<LfNetwork> lfNetworks;
-        if (breakers) {
-            // create networks including all necessary switches
-            lfNetworks = Networks.createNetworks(network, allSwitchesToOpen, acParameters.getNetworkParameters(), saReporter);
-        } else {
-            // networks come from the bus/view
-            lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), saReporter);
-        }
+        // create networks including all necessary switches
+        List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, saReporter);
 
         // run simulation on largest network
         SecurityAnalysisResult result;

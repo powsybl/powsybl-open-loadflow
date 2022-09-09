@@ -679,14 +679,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                           false,
                                                                           lfParametersExt.getMinPlausibleTargetVoltage(),
                                                                           lfParametersExt.getMaxPlausibleTargetVoltage());
-        List<LfNetwork> lfNetworks;
-        if (breakers) {
-            // create networks including all necessary switches
-            lfNetworks = Networks.createNetworks(network, allSwitchesToOpen, lfNetworkParameters, reporter);
-        } else {
-            // networks come from the bus/view
-            lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
-        }
+        // create networks including all necessary switches
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
