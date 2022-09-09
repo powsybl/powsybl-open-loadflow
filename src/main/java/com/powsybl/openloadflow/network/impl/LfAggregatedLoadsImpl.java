@@ -26,9 +26,9 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
 
     private double[] participationFactors;
 
-    private double absVariableLoadTargetP = 0;
+    private double absVariableLoadTargetP;
 
-    private boolean distributedOnConformLoad;
+    private final boolean distributedOnConformLoad;
 
     private boolean initialized;
 
