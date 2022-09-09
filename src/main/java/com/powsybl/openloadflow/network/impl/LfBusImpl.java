@@ -30,18 +30,23 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final boolean participating;
 
-    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean distributedOnConformLoad, boolean participating) {
+    private final boolean breakers;
+
+    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean distributedOnConformLoad,
+                        boolean participating, boolean breakers) {
         super(network, v, angle, distributedOnConformLoad);
         this.bus = bus;
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
+        this.breakers = breakers;
     }
 
-    public static LfBusImpl create(Bus bus, LfNetwork network, boolean distributedOnConformLoad, boolean participating) {
+    public static LfBusImpl create(Bus bus, LfNetwork network, boolean distributedOnConformLoad, boolean participating,
+                                   boolean breakers) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), distributedOnConformLoad, participating);
+        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), distributedOnConformLoad, participating, breakers);
     }
 
     @Override
@@ -93,7 +98,11 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public List<BusResult> createBusResults() {
-        return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
-                .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, getAngle())).collect(Collectors.toList());
+        if (breakers) {
+            return List.of(new BusResult(getVoltageLevelId(), bus.getId(), v, getAngle()));
+        } else {
+            return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
+                    .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, getAngle())).collect(Collectors.toList());
+        }
     }
 }
