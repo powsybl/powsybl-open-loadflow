@@ -237,13 +237,18 @@ class OpenSecurityAnalysisTest {
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         setSlackBusId(lfParameters, "VL1_1");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
         List<Contingency> contingencies = Stream.of("L1", "L2")
-            .map(id -> new Contingency(id, new BranchContingency(id)))
-            .collect(Collectors.toList());
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
         contingencies.add(new Contingency("LD", new LoadContingency("LD")));
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
+        StateMonitor stateMonitor = new StateMonitor(ContingencyContext.all(), Collections.emptySet(),
+                network.getVoltageLevelStream().map(Identifiable::getId).collect(Collectors.toSet()), Collections.emptySet());
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, List.of(stateMonitor), securityAnalysisParameters);
 
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
         assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
@@ -252,6 +257,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "LD");
+        assertEquals(398.0, postContingencyResult.getNetworkResult().getBusResult("VL1_0").getV(), LoadFlowAssert.DELTA_V);
     }
 
     @Test
