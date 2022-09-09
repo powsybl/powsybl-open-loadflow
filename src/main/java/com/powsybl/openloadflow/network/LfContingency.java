@@ -115,7 +115,7 @@ public class LfContingency {
             PowerShift shift = e.getValue();
             bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, balanceType, shift.getActive(), shift.getVariableActive()));
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
-            bus.getLoads().setAbsVariableLoadTargetP(bus.getLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+            bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
         }
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
@@ -138,11 +138,11 @@ public class LfContingency {
 
     public static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
         double factor = 0.0;
-        if (bus.getLoads().getLoadCount() > 0) {
+        if (bus.getAggregatedLoads().getLoadCount() > 0) {
             if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                factor = Math.abs(initialP0) / (bus.getLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+                factor = Math.abs(initialP0) / (bus.getAggregatedLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
             } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                factor = initialVariableActivePower / (bus.getLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+                factor = initialVariableActivePower / (bus.getAggregatedLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
             }
         }
         return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;

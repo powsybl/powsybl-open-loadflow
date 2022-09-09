@@ -30,8 +30,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final boolean participating;
 
-    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean participating) {
-        super(network, v, angle);
+    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean distributedOnConformLoad, boolean participating) {
+        super(network, v, angle, distributedOnConformLoad);
         this.bus = bus;
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
@@ -39,9 +39,9 @@ public class LfBusImpl extends AbstractLfBus {
         this.participating = participating;
     }
 
-    public static LfBusImpl create(Bus bus, LfNetwork network, boolean participating) {
+    public static LfBusImpl create(Bus bus, LfNetwork network, boolean distributedOnConformLoad, boolean participating) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), participating);
+        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), distributedOnConformLoad, participating);
     }
 
     @Override

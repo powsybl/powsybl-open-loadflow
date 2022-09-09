@@ -24,7 +24,7 @@ public class BusDcState extends ElementState<LfBus> {
         this.loadTargetP = bus.getLoadTargetP();
         this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.participatingGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
-        this.absVariableLoadTargetP = bus.getLoads().getAbsVariableLoadTargetP();
+        this.absVariableLoadTargetP = bus.getAggregatedLoads().getAbsVariableLoadTargetP();
     }
 
     @Override
@@ -33,7 +33,7 @@ public class BusDcState extends ElementState<LfBus> {
         element.setLoadTargetP(loadTargetP);
         element.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
         element.getGenerators().forEach(g -> g.setParticipating(participatingGenerators.get(g.getId())));
-        element.getLoads().setAbsVariableLoadTargetP(absVariableLoadTargetP);
+        element.getAggregatedLoads().setAbsVariableLoadTargetP(absVariableLoadTargetP);
     }
 
     public static BusDcState save(LfBus bus) {
