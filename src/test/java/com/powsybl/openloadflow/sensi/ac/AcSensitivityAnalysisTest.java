@@ -1074,16 +1074,16 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testNullInjection() {
+    void testNullBusInjection() {
         Network network = EurostagTutorialExample1Factory.create();
+        network.getLoad("LOAD").getTerminal().disconnect();
 
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
-        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLGEN_0");
 
-        List<SensitivityFactor> factors = List.of(createBranchIntensityPerInjectionIncrease("NHV1_NHV2_1", "g4"));
+        List<SensitivityFactor> factors = List.of(createBranchIntensityPerInjectionIncrease("NHV1_NHV2_1", "LOAD"));
 
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
-        assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Injection 'g4' not found", e.getCause().getMessage());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(92.0836, result.getBranchCurrent1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_I);
     }
 }
