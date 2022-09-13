@@ -1072,4 +1072,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(0.0, result.getBusVoltageSensitivityValue("g4", "b3"));
     }
+
+    @Test
+    void testNullInjection() {
+        Network network = EurostagTutorialExample1Factory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
+        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+
+        List<SensitivityFactor> factors = List.of(createBranchIntensityPerInjectionIncrease("NHV1_NHV2_1", "g4"));
+
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Injection 'g4' not found", e.getCause().getMessage());
+    }
 }
