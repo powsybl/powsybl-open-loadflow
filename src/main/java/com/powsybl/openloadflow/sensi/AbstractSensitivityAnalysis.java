@@ -790,7 +790,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     private static void checkBranch(Network network, String branchId) {
         Branch<?> branch = network.getBranch(branchId);
-        if (branch == null) {
+        DanglingLine danglingLine = network.getDanglingLine(branchId);
+        if (branch == null && danglingLine == null) {
             throw new PowsyblException("Branch '" + branchId + "' not found");
         }
     }
@@ -982,6 +983,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             checkPhaseShifter(network, variableId);
                             LfBranch twt = lfNetwork.getBranchById(variableId);
                             variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
+                        } else if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
+                            String injectionBusId = getInjectionBusId(network, variableId);
+                            variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }

@@ -158,6 +158,15 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return createBranchFlowPerPSTAngle(functionId, variableId, null, Branch.Side.ONE);
     }
 
+    protected static SensitivityFactor createBranchIntensityPerInjectionIncrease(String functionId, String variableId, Branch.Side side) {
+        SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+        return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
+    }
+
+    protected static SensitivityFactor createBranchIntensityPerInjectionIncrease(String functionId, String variableId) {
+        return createBranchIntensityPerInjectionIncrease(functionId, variableId, Branch.Side.ONE);
+    }
+
     protected static SensitivityFactor createBranchIntensityPerPSTAngle(String functionId, String variableId, Branch.Side side) {
         SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.TRANSFORMER_PHASE, variableId, false, ContingencyContext.all());
