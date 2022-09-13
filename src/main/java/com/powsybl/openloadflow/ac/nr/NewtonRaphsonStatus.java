@@ -13,5 +13,6 @@ public enum NewtonRaphsonStatus {
     CONVERGED,
     MAX_ITERATION_REACHED,
     SOLVER_FAILED,
-    NO_CALCULATION
+    NO_CALCULATION,
+    INVALID_SOLUTION
 }
