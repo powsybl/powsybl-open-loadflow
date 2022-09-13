@@ -20,7 +20,7 @@
            Iteration 0: failed to distribute slack bus active power mismatch, 4.366500677028373 MW remains
         + Outer loop Reactive limits
       + Post-contingency simulation 'NGEN_NHV1'
-         AC load flow complete with NR status 'INVALID_SOLUTION'
+         AC load flow complete with NR status 'UNREALISTIC_STATE'
       + Post-contingency simulation 'NHV2_NLOAD'
          AC load flow complete with NR status 'CONVERGED'
         + Outer loop Distributed slack on generation

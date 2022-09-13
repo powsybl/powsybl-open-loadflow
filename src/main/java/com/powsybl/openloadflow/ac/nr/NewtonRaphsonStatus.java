@@ -14,5 +14,5 @@ public enum NewtonRaphsonStatus {
     MAX_ITERATION_REACHED,
     SOLVER_FAILED,
     NO_CALCULATION,
-    INVALID_SOLUTION
+    UNREALISTIC_STATE
 }

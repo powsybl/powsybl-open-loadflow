@@ -179,20 +179,20 @@ public class NewtonRaphson {
         }
     }
 
-    private boolean checkSolutionValidity() {
-        List<String> busesOutOfNormalVoltageMagRange = new ArrayList<>();
+    private boolean isStateUnrealistic() {
+        List<String> busesOutOfNormalVoltageRange = new ArrayList<>();
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             if (v.getType() == AcVariableType.BUS_V) {
                 double value = equationSystem.getStateVector().get(v.getRow());
-                if (value < 0.5 || value > 1.5) {
-                    busesOutOfNormalVoltageMagRange.add(network.getBus(v.getElementNum()).getId());
+                if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
+                    busesOutOfNormalVoltageRange.add(network.getBus(v.getElementNum()).getId());
                 }
             }
         }
-        if (!busesOutOfNormalVoltageMagRange.isEmpty()) {
-            LOGGER.warn("{} buses have a voltage magnitude out of range [0.5, 1.5]: {}", busesOutOfNormalVoltageMagRange.size(), busesOutOfNormalVoltageMagRange);
+        if (!busesOutOfNormalVoltageRange.isEmpty()) {
+            LOGGER.warn("{} buses have a voltage magnitude out of range [0.5, 1.5]: {}", busesOutOfNormalVoltageRange.size(), busesOutOfNormalVoltageRange);
         }
-        return !busesOutOfNormalVoltageMagRange.isEmpty();
+        return !busesOutOfNormalVoltageRange.isEmpty();
     }
 
     public NewtonRaphsonResult run(VoltageInitializer voltageInitializer) {
@@ -218,8 +218,8 @@ public class NewtonRaphson {
 
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
-            if (checkSolutionValidity()) {
-                status = NewtonRaphsonStatus.INVALID_SOLUTION;
+            if (isStateUnrealistic()) {
+                status = NewtonRaphsonStatus.UNREALISTIC_STATE;
             }
 
             updateNetwork();

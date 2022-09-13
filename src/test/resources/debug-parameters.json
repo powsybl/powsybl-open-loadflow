@@ -34,7 +34,9 @@
         "transformerVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
         "dcPowerFactor" : 1.0,
         "minPlausibleTargetVoltage" : 0.8,
-        "maxPlausibleTargetVoltage" : 1.2
+        "maxPlausibleTargetVoltage" : 1.2,
+        "minRealisticVoltage" : 0.5,
+        "maxRealisticVoltage" : 1.5
       }
     }
   },
