@@ -790,9 +790,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     private static void checkBranch(Network network, String branchId) {
         Branch<?> branch = network.getBranch(branchId);
-        DanglingLine danglingLine = network.getDanglingLine(branchId);
-        if (branch == null && danglingLine == null) {
-            throw new PowsyblException("Branch '" + branchId + "' not found");
+        if (branch == null) {
+            DanglingLine danglingLine = network.getDanglingLine(branchId);
+            if (danglingLine == null) {
+                throw new PowsyblException("Branch '" + branchId + "' not found");
+            }
         }
     }
 
