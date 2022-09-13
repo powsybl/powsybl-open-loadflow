@@ -2126,4 +2126,22 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(100.369, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(100.184, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testContingencyPropagation() {
+        var network = NodeBreakerNetworkFactory.create3barsAndJustOneVoltageLevel();
+        for (Bus bus : network.getBusBreakerView().getBuses()) {
+            System.out.println("bus: " + bus.getId());
+        }
+        List<Contingency> contingencies = List.of(new Contingency("G1", new GeneratorContingency("G1")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setSlackBusSelectionMode(SlackBusSelectionMode.NAME).setSlackBusId("VL1_1");
+        securityAnalysisParameters.getLoadFlowParameters().addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, Reporter.NO_OP);
+        for (BusResult busResult : result.getPreContingencyResult().getNetworkResult().getBusResults()) {
+            System.out.println("busResult: " + busResult.getBusId());
+        }
+    }
 }
