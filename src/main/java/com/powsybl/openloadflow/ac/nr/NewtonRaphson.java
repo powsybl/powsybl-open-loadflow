@@ -190,7 +190,8 @@ public class NewtonRaphson {
             }
         }
         if (!busesOutOfNormalVoltageRange.isEmpty()) {
-            LOGGER.warn("{} buses have a voltage magnitude out of range [0.5, 1.5]: {}", busesOutOfNormalVoltageRange.size(), busesOutOfNormalVoltageRange);
+            LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
+                    busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
         }
         return !busesOutOfNormalVoltageRange.isEmpty();
     }
