@@ -990,7 +990,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             LfBranch twt = lfNetwork.getBranchById(variableId);
                             variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
                         } else if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
-                            String injectionBusId = getInjectionBusId(network, variableId);
+                            String injectionBusId = getInjectionBusId(network, variableId, breakers);
                             variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
