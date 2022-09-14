@@ -17,10 +17,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -182,6 +179,23 @@ public class NewtonRaphson {
         }
     }
 
+    private boolean isStateUnrealistic() {
+        List<String> busesOutOfNormalVoltageRange = new ArrayList<>();
+        for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
+            if (v.getType() == AcVariableType.BUS_V) {
+                double value = equationSystem.getStateVector().get(v.getRow());
+                if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
+                    busesOutOfNormalVoltageRange.add(network.getBus(v.getElementNum()).getId());
+                }
+            }
+        }
+        if (!busesOutOfNormalVoltageRange.isEmpty()) {
+            LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
+                    busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
+        }
+        return !busesOutOfNormalVoltageRange.isEmpty();
+    }
+
     public NewtonRaphsonResult run(VoltageInitializer voltageInitializer) {
 
         // initialize state vector
@@ -205,6 +219,10 @@ public class NewtonRaphson {
 
         // update network state variable
         if (status == NewtonRaphsonStatus.CONVERGED) {
+            if (isStateUnrealistic()) {
+                status = NewtonRaphsonStatus.UNREALISTIC_STATE;
+            }
+
             updateNetwork();
         }
 
