@@ -806,11 +806,13 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "dl1"));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "dl1"),
+                createBranchFlowPerInjectionIncrease("dl1", "load3"));
 
         // dangling line is connected
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(-0.812d, result.getBranchFlow1SensitivityValue("dl1", "l1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(91.0, result.getBranchFlow1FunctionReferenceValue("dl1"), LoadFlowAssert.DELTA_POWER);
 
         // dangling line is connected on base case but will be disconnected by a contingency => 0
         List<Contingency> contingencies = List.of(new Contingency("c", new DanglingLineContingency("dl1")));
