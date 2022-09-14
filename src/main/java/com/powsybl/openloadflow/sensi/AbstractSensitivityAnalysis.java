@@ -1026,7 +1026,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return hasTransformerBusTargetVoltage.get();
     }
 
-    public boolean hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
+    public boolean hasBusTargetVoltage(SensitivityFactorReader factorReader) {
         AtomicBoolean hasBusTargetVoltage = new AtomicBoolean();
         factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {

@@ -176,7 +176,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         Objects.requireNonNull(reporter);
 
         boolean breakers = !allSwitchesToOpen.isEmpty();
-        if (breakers && hasBusTargetVoltage(factorReader, network)) {
+        if (breakers && hasBusTargetVoltage(factorReader)) {
             // FIXME
             // a bus voltage function works only on a bus/branch topology and a switch contingency only works on a
             // bus/breaker topology. It is not compatible and must be fixed in the API.
