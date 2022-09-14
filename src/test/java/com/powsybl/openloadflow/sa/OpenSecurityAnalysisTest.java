@@ -458,7 +458,7 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
 
-        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+        assertFalse(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
     }
 
     @Test
