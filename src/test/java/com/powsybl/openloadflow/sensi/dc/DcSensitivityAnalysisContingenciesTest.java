@@ -2103,4 +2103,23 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(72.224, result2.getBranchFlow1FunctionReferenceValue(null, "L1-5-1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(69.850, result2.getBranchFlow1FunctionReferenceValue(null, "L2-3-1"), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testSwitchContingency() {
+        Network network = NodeBreakerNetworkFactory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0");
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("L1", "LD"));
+
+        List<Contingency> contingencies = List.of(new Contingency("C", new SwitchContingency("C")));
+
+        List<SensitivityVariableSet> variableSets = Collections.emptyList();
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
+        assertEquals(-0.500, result.getBranchFlow1SensitivityValue("LD", "L1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.000, result.getBranchFlow1SensitivityValue("C", "LD", "L1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(300.0, result.getBranchFlow1FunctionReferenceValue("L1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-3.770, result.getBranchFlow1FunctionReferenceValue("C", "L1"), LoadFlowAssert.DELTA_POWER);
+    }
 }

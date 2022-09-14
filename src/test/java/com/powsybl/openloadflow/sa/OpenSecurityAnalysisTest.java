@@ -237,20 +237,28 @@ class OpenSecurityAnalysisTest {
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         setSlackBusId(lfParameters, "VL1_1");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
         List<Contingency> contingencies = Stream.of("L1", "L2")
-            .map(id -> new Contingency(id, new BranchContingency(id)))
-            .collect(Collectors.toList());
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+        contingencies.add(new Contingency("LD", new LoadContingency("LD")));
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
+        StateMonitor stateMonitor = new StateMonitor(ContingencyContext.all(), Collections.emptySet(),
+                network.getVoltageLevelStream().map(Identifiable::getId).collect(Collectors.toSet()), Collections.emptySet());
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, List.of(stateMonitor), securityAnalysisParameters);
 
         assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
         assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(2, result.getPostContingencyResults().size());
+        assertEquals(3, result.getPostContingencyResults().size());
         assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
         assertTrue(result.getPostContingencyResults().get(1).getLimitViolationsResult().isComputationOk());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "LD");
+        assertEquals(398.0, postContingencyResult.getNetworkResult().getBusResult("VL1_0").getV(), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -600,7 +608,7 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDc(true);
-        setSlackBusId(lfParameters, "b1_vl_0");
+        setSlackBusId(lfParameters, "b1_vl");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
         List<Contingency> contingencies = createAllBranchesContingencies(fourBusNetwork);
@@ -658,7 +666,7 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDc(true);
-        setSlackBusId(lfParameters, "b1_vl_0");
+        setSlackBusId(lfParameters, "b1_vl");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
         SecurityAnalysisParameters.IncreasedViolationsParameters increasedViolationsParameters = new SecurityAnalysisParameters.IncreasedViolationsParameters();
         increasedViolationsParameters.setFlowProportionalThreshold(0);
@@ -1553,7 +1561,7 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDc(true);
-        setSlackBusId(lfParameters, "b1_vl_0");
+        setSlackBusId(lfParameters, "b1_vl");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
         List<Contingency> contingencies = createAllBranchesContingencies(network);
@@ -1602,7 +1610,7 @@ class OpenSecurityAnalysisTest {
                 .setDc(true);
         OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters().setDcPowerFactor(Math.tan(0.4));
         lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
-        setSlackBusId(lfParameters, "b1_vl_0");
+        setSlackBusId(lfParameters, "b1_vl");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
         List<Contingency> contingencies = createAllBranchesContingencies(network);
@@ -1643,7 +1651,7 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDistributedSlack(false);
-        setSlackBusId(parameters, "BUS_1");
+        setSlackBusId(parameters, "VL_1");
         securityAnalysisParameters.setLoadFlowParameters(parameters);
         List<Contingency> contingencies = List.of(new Contingency("T3wT", new ThreeWindingsTransformerContingency("T3wT")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
@@ -1652,7 +1660,7 @@ class OpenSecurityAnalysisTest {
         network.getThreeWindingsTransformer("T3wT").getLeg1().getTerminal().disconnect();
         network.getThreeWindingsTransformer("T3wT").getLeg2().getTerminal().disconnect();
         network.getThreeWindingsTransformer("T3wT").getLeg3().getTerminal().disconnect();
-        setSlackBusId(parameters, "VL_1_0");
+        setSlackBusId(parameters, "VL_1");
         LoadFlow.run(network, parameters);
 
         PostContingencyResult contingencyResult = getPostContingencyResult(result, "T3wT");

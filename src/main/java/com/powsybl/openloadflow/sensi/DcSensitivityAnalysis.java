@@ -643,7 +643,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
-                        SensitivityResultWriter resultWriter, Reporter reporter) {
+                        SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);
@@ -654,6 +654,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
+        boolean breakers = !allSwitchesToOpen.isEmpty();
+
         // create the network (we only manage main connected component)
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(), lfParametersExt.getPlausibleActivePowerLimit());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector,
@@ -661,7 +663,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                           false,
                                                                           true,
                                                                           lfParameters.isTwtSplitShuntAdmittance(),
-                                                                          false,
+                                                                          breakers,
                                                                           lfParametersExt.getPlausibleActivePowerLimit(),
                                                                           lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                           true,
@@ -677,13 +679,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                           false,
                                                                           lfParametersExt.getMinPlausibleTargetVoltage(),
                                                                           lfParametersExt.getMaxPlausibleTargetVoltage());
-        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
+        // create networks including all necessary switches
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
 
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
-        SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork);
+        SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> allLfFactors = allFactorHolder.getAllFactors();
 
         allLfFactors.stream()

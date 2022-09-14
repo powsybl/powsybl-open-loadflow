@@ -22,6 +22,7 @@ import com.powsybl.contingency.ContingencyList;
 import com.powsybl.contingency.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.xml.NetworkXml;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -48,10 +49,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -154,13 +152,18 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             try {
                 Reporter sensiReporter = Reports.createSensitivityAnalysis(reporter, network.getId());
 
-                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc());
-
                 LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
                 OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
+
+                // We only support switch contingency for the moment. Contingency propagation is not supported yet.
+                // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
+                // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
+                Set<Switch> allSwitchesToOpen = new HashSet<>();
+                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false,
+                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc(),
+                        false);
 
                 SensitivityFactorReader decoratedFactorReader = factorReader;
 
@@ -196,9 +199,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 }
 
                 if (lfParameters.isDc()) {
-                    dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter);
+                    dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
                 } else {
-                    acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter);
+                    acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
                 }
             } finally {
                 network.getVariantManager().setWorkingVariant(oldWorkingVariantId);

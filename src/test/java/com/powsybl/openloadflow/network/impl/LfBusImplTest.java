@@ -132,7 +132,7 @@ class LfBusImplTest {
         List<LfNetwork> networks = Networks.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = networks.get(0);
 
-        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, false, true);
+        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, false, true, false);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
         lfBus.addStaticVarCompensator(svc1, false, true, true, lfNetworkLoadingReport, 0.8, 1.2);
         lfBus.addStaticVarCompensator(svc2, false, true, true, lfNetworkLoadingReport, 0.8, 1.2);
