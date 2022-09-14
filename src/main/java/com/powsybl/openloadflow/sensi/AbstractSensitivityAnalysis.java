@@ -1019,27 +1019,20 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return factorHolder;
     }
 
-    public boolean hasTransformerBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
-        AtomicBoolean hasTransformerBusTargetVoltage = new AtomicBoolean();
+    public Pair<Boolean, Boolean> hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
+        // Left value if we find a BUS_TARGET_VOLTAGE factor and right value if it is linked to a transformer.
+        AtomicBoolean hasBusTargetVoltage = new AtomicBoolean(false);
+        AtomicBoolean hasTransformerBusTargetVoltage = new AtomicBoolean(false);
         factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                hasBusTargetVoltage.set(true);
                 Identifiable<?> equipment = network.getIdentifiable(variableId);
                 if (equipment instanceof TwoWindingsTransformer || equipment instanceof ThreeWindingsTransformer) {
                     hasTransformerBusTargetVoltage.set(true);
                 }
             }
         });
-        return hasTransformerBusTargetVoltage.get();
-    }
-
-    public boolean hasBusTargetVoltage(SensitivityFactorReader factorReader) {
-        AtomicBoolean hasBusTargetVoltage = new AtomicBoolean();
-        factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
-            if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
-                hasBusTargetVoltage.set(true);
-            }
-        });
-        return hasBusTargetVoltage.get();
+        return Pair.of(hasBusTargetVoltage.get(), hasTransformerBusTargetVoltage.get());
     }
 
     public static boolean isDistributedSlackOnGenerators(DcLoadFlowParameters lfParameters) {

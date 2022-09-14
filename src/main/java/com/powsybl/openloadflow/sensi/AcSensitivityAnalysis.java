@@ -31,6 +31,7 @@ import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Function;
@@ -175,8 +176,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         Objects.requireNonNull(resultWriter);
         Objects.requireNonNull(reporter);
 
+        Pair<Boolean, Boolean> hasBusTargetVoltage = hasBusTargetVoltage(factorReader, network);
         boolean breakers = !allSwitchesToOpen.isEmpty();
-        if (breakers && hasBusTargetVoltage(factorReader)) {
+        if (breakers && hasBusTargetVoltage.getLeft()) {
             // FIXME
             // a bus voltage function works only on a bus/branch topology and a switch contingency only works on a
             // bus/breaker topology. It is not compatible and must be fixed in the API.
@@ -184,8 +186,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
 
         // create LF network (we only manage main connected component)
-        boolean hasTransformerBusTargetVoltage = hasTransformerBusTargetVoltage(factorReader, network);
-        if (hasTransformerBusTargetVoltage) {
+        if (hasBusTargetVoltage.getRight()) {
             // if we have at least one bus target voltage linked to a ratio tap changer, we activate the transformer
             // voltage control for the AC load flow engine.
             lfParameters.setTransformerVoltageControlOn(true);
@@ -258,7 +259,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
             // system obtained just before the transformer steps rounding.
-            if (hasTransformerBusTargetVoltage) {
+            if (hasBusTargetVoltage.getRight()) {
                 // switch on regulating transformers
                 for (LfBranch branch : lfNetwork.getBranches()) {
                     branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
@@ -334,7 +335,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         postContingencySlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
                     }
                     calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, postContingencySlackParticipationByBus,
-                            lfParameters, lfParametersExt, lfContingency.getIndex(), resultWriter, hasTransformerBusTargetVoltage, hasMultiVariables);
+                            lfParameters, lfParametersExt, lfContingency.getIndex(), resultWriter, hasBusTargetVoltage.getRight(), hasMultiVariables);
 
                     networkState.restore();
                 }, () -> {
