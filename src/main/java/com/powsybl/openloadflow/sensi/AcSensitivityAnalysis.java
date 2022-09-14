@@ -123,7 +123,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         // write contingency status
         resultWriter.writeContingencyStatus(contingencyIndex, (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) ?
-                SensitivityAnalysisResult.Status.CONVERGED : SensitivityAnalysisResult.Status.FAILED);
+                SensitivityAnalysisResult.Status.SUCCESS : SensitivityAnalysisResult.Status.FAILURE);
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
