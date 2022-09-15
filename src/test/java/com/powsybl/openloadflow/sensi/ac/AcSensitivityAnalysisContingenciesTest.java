@@ -880,7 +880,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
-        assertEquals(SensitivityAnalysisResult.Status.CONVERGED, result.getContingencyStatus("l23"));
+        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getContingencyStatus("l23"));
 
         network.getLine("l23").getTerminal1().disconnect();
         network.getLine("l23").getTerminal2().disconnect();
