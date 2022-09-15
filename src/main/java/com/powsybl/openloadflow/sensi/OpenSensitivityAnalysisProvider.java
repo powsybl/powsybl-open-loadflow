@@ -22,6 +22,7 @@ import com.powsybl.contingency.ContingencyList;
 import com.powsybl.contingency.DefaultContingencyList;
 import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.xml.NetworkXml;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -48,11 +49,9 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -132,7 +131,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public CompletableFuture<Void> run(Network network,
                                        String workingVariantId,
                                        SensitivityFactorReader factorReader,
-                                       SensitivityValueWriter valueWriter,
+                                       SensitivityResultWriter resultWriter,
                                        List<Contingency> contingencies,
                                        List<SensitivityVariableSet> variableSets,
                                        SensitivityAnalysisParameters sensitivityAnalysisParameters,
@@ -143,7 +142,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(variableSets);
         Objects.requireNonNull(sensitivityAnalysisParameters);
         Objects.requireNonNull(factorReader);
-        Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(resultWriter);
         Objects.requireNonNull(computationManager);
         Objects.requireNonNull(reporter);
 
@@ -153,13 +152,18 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             try {
                 Reporter sensiReporter = Reports.createSensitivityAnalysis(reporter, network.getId());
 
-                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSensitivityAnalysis(network, contingencies,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc());
-
                 LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
                 OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
                 OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
+
+                // We only support switch contingency for the moment. Contingency propagation is not supported yet.
+                // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
+                // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
+                Set<Switch> allSwitchesToOpen = new HashSet<>();
+                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false,
+                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc(),
+                        false);
 
                 SensitivityFactorReader decoratedFactorReader = factorReader;
 
@@ -195,9 +199,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 }
 
                 if (lfParameters.isDc()) {
-                    dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, sensiReporter);
+                    dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
                 } else {
-                    acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, valueWriter, sensiReporter);
+                    acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
                 }
             } finally {
                 network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
@@ -205,10 +209,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }, computationManager.getExecutor());
     }
 
-    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, T valueWriter, Reporter reporter) {
+    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, Reporter reporter) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
-        Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(resultWriterProvider);
         Objects.requireNonNull(reporter);
 
         String dateStr = date.toString(DATE_TIME_FORMAT);
@@ -247,19 +251,21 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             sensiParametersExt.setDebugDir(null);
         }
 
-        run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), valueWriter,
+        var resultWriter = Objects.requireNonNull(resultWriterProvider.apply(contingencies));
+
+        run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), resultWriter,
                 contingencies, variableSets, sensitivityAnalysisParameters, LocalComputationManager.getDefault(), reporter)
                 .join();
 
-        return valueWriter;
+        return resultWriter;
     }
 
-    public <T extends SensitivityValueWriter> T replay(DateTime date, Path debugDir, T valueWriter) {
-        return replay(date, debugDir, valueWriter, Reporter.NO_OP);
+    public <T extends SensitivityResultWriter> T replay(DateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
+        return replay(date, debugDir, resultWriterProvider, Reporter.NO_OP);
     }
 
     public List<SensitivityValue> replay(DateTime date, Path debugDir) {
-        SensitivityValueModelWriter valueWriter = replay(date, debugDir, new SensitivityValueModelWriter());
-        return valueWriter.getValues();
+        SensitivityResultModelWriter resultWriter = replay(date, debugDir, SensitivityResultModelWriter::new);
+        return resultWriter.getValues();
     }
 }

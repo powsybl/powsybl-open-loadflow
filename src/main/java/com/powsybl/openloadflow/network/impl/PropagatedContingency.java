@@ -103,27 +103,15 @@ public class PropagatedContingency {
                               load.getQ0() / PerUnit.SB);
     }
 
-    public static List<PropagatedContingency> createListForSensitivityAnalysis(Network network, List<Contingency> contingencies,
-                                                                               boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
-        List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
-        for (int index = 0; index < contingencies.size(); index++) {
-            Contingency contingency = contingencies.get(index);
-            PropagatedContingency propagatedContingency = PropagatedContingency.create(network, contingency, index, false, false,
-                    slackDistributionOnConformLoad, hvdcAcEmulation, false);
-            propagatedContingencies.add(propagatedContingency);
-        }
-        return propagatedContingencies;
-    }
-
-    public static List<PropagatedContingency> createListForSecurityAnalysis(Network network, List<Contingency> contingencies,
-                                                                            Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
-                                                                            boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
-                                                                            boolean contingencyPropagation) {
+    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies,
+                                                         Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
+                                                         boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
+                                                         boolean contingencyPropagation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, true, slackDistributionOnConformLoad, hvdcAcEmulation, contingencyPropagation);
+                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, contingencyPropagation);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
@@ -131,8 +119,7 @@ public class PropagatedContingency {
     }
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn,
-                                                boolean withBreakers, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
-                                                boolean contingencyPropagation) {
+                                                boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation, boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect =  new HashSet<>();
 
@@ -147,6 +134,8 @@ public class PropagatedContingency {
                 switchesToOpen.add((Switch) identifiable);
             }
         }
+
+        boolean breakers = !switchesToOpen.isEmpty();
 
         Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
@@ -170,7 +159,7 @@ public class PropagatedContingency {
 
                 case LOAD:
                     Load load = (Load) connectable;
-                    addPowerShift(load.getTerminal(), loadIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), withBreakers);
+                    addPowerShift(load.getTerminal(), loadIdsToShift, getLoadPowerShift(load, slackDistributionOnConformLoad), breakers);
                     break;
 
                 case SHUNT_COMPENSATOR:
@@ -195,7 +184,7 @@ public class PropagatedContingency {
                         LccConverterStation lcc = (LccConverterStation) connectable;
                         PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc) / PerUnit.SB, 0,
                                 HvdcConverterStations.getLccConverterStationLoadTargetQ(lcc) / PerUnit.SB);
-                        addPowerShift(lcc.getTerminal(), loadIdsToShift, lccPowerShift, withBreakers);
+                        addPowerShift(lcc.getTerminal(), loadIdsToShift, lccPowerShift, breakers);
                     }
                     break;
 
@@ -219,8 +208,8 @@ public class PropagatedContingency {
                                          generatorIdsToLose, loadIdsToShift, shuntIdsToShift);
     }
 
-    private static void addPowerShift(Terminal terminal, Map<String, PowerShift> loadIdsToShift, PowerShift powerShift, boolean withBreakers) {
-        Bus bus = withBreakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+    private static void addPowerShift(Terminal terminal, Map<String, PowerShift> loadIdsToShift, PowerShift powerShift, boolean breakers) {
+        Bus bus = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
         if (bus != null) {
             loadIdsToShift.computeIfAbsent(bus.getId(), k -> new PowerShift()).add(powerShift);
         }

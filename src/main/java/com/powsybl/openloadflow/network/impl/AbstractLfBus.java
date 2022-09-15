@@ -11,7 +11,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.security.results.BusResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +57,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt controllerShunt;
 
-    protected final LfLoadsImpl lfLoads = new LfLoadsImpl();
+    protected final LfAggregatedLoadsImpl lfAggregatedLoads;
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -82,8 +81,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double remoteVoltageControlReactivePercent = Double.NaN;
 
-    protected AbstractLfBus(LfNetwork network, double v, double angle) {
+    protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
+        lfAggregatedLoads = new LfAggregatedLoadsImpl(distributedOnConformLoad);
         this.v = v;
         this.angle = angle;
     }
@@ -197,7 +197,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.voltageControlSwitchOffCount = voltageControlSwitchOffCount;
     }
 
-    void addLoad(Load load, boolean distributedOnConformLoad) {
+    void addLoad(Load load) {
         double p0 = load.getP0();
         loadTargetP += p0;
         initialLoadTargetP += p0;
@@ -205,7 +205,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (p0 < 0) {
             ensurePowerFactorConstantByLoad = true;
         }
-        lfLoads.add(load, distributedOnConformLoad);
+        lfAggregatedLoads.add(load);
     }
 
     void addLccConverterStation(LccConverterStation lccCs) {
@@ -399,8 +399,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public LfLoads getLoads() {
-        return lfLoads;
+    public LfAggregatedLoads getAggregatedLoads() {
+        return lfAggregatedLoads;
     }
 
     @Override
@@ -468,7 +468,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(voltageControlEnabled ? q.eval() * PerUnit.SB + loadTargetQ : generationTargetQ, reactiveLimits);
 
         // update load power
-        lfLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
+        lfAggregatedLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
 
         // update lcc converter station power
         for (LccConverterStation lccCs : lccCss) {
@@ -539,11 +539,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public Evaluable getQ() {
         return q;
-    }
-
-    @Override
-    public BusResult createBusResult() {
-        return new BusResult(getVoltageLevelId(), getId(), v, getAngle());
     }
 
     @Override

@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.AbstractConverterTest;
+import com.powsybl.commons.ComparisonUtils;
 import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
@@ -71,7 +72,7 @@ class LfNetworkTest extends AbstractConverterTest {
         Path file = fileSystem.getPath("/work/n.json");
         mainNetwork.writeJson(file);
         try (InputStream is = Files.newInputStream(file)) {
-            compareTxt(getClass().getResourceAsStream("/n.json"), is);
+            ComparisonUtils.compareTxt(getClass().getResourceAsStream("/n.json"), is);
         }
     }
 
@@ -114,7 +115,7 @@ class LfNetworkTest extends AbstractConverterTest {
         Path file = fileSystem.getPath("/work/n2.json");
         mainNetwork.writeJson(file);
         try (InputStream is = Files.newInputStream(file)) {
-            compareTxt(getClass().getResourceAsStream("/n2.json"), is);
+            ComparisonUtils.compareTxt(getClass().getResourceAsStream("/n2.json"), is);
         }
     }
 
@@ -135,6 +136,7 @@ class LfNetworkTest extends AbstractConverterTest {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());
+        assertTrue(lfNetwork.getBusById("DL_BUS").createBusResults().isEmpty());
     }
 
     @Test

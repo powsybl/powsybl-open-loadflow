@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.SecurityAnalysisParameters;
 import org.junit.jupiter.api.BeforeEach;
@@ -148,7 +149,7 @@ class OpenSecurityAnalysisGraphTest {
         // try to find all switches impacted by at least one contingency
         long start = System.currentTimeMillis();
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createListForSecurityAnalysis(network, contingencies, allSwitchesToOpen,
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen,
                 lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 lfParameters.isHvdcAcEmulation() && !lfParameters.isDc(), true);
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
@@ -157,7 +158,7 @@ class OpenSecurityAnalysisGraphTest {
             lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(allSwitchesToOpen, Collections.emptySet(), acParameters.getNetworkParameters(), Reporter.NO_OP);
+        List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, Collections.emptySet(), Reporter.NO_OP);
 
         // run simulation on each network
         start = System.currentTimeMillis();

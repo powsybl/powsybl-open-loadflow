@@ -14,8 +14,14 @@ import java.util.Objects;
 public class NewtonRaphsonParameters {
 
     public static final int DEFAULT_MAX_ITERATION = 30;
+    public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
+    public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
 
     private int maxIteration = DEFAULT_MAX_ITERATION;
+
+    private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
+
+    private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
 
     public int getMaxIteration() {
         return maxIteration;
@@ -35,6 +41,24 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
+    public double getMinRealisticVoltage() {
+        return minRealisticVoltage;
+    }
+
+    public NewtonRaphsonParameters setMinRealisticVoltage(double minRealisticVoltage) {
+        this.minRealisticVoltage = minRealisticVoltage;
+        return this;
+    }
+
+    public double getMaxRealisticVoltage() {
+        return maxRealisticVoltage;
+    }
+
+    public NewtonRaphsonParameters setMaxRealisticVoltage(double maxRealisticVoltage) {
+        this.maxRealisticVoltage = maxRealisticVoltage;
+        return this;
+    }
+
     public NewtonRaphsonStoppingCriteria getStoppingCriteria() {
         return stoppingCriteria;
     }
@@ -48,6 +72,8 @@ public class NewtonRaphsonParameters {
     public String toString() {
         return "NewtonRaphsonParameters(" +
                 "maxIteration=" + maxIteration +
+                ", minRealisticVoltage=" + minRealisticVoltage +
+                ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ')';
     }

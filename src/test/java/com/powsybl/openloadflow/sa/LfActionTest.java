@@ -18,6 +18,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.action.SwitchAction;
 import org.junit.jupiter.api.Test;
@@ -51,16 +52,16 @@ class LfActionTest extends AbstractConverterTest {
         Network network = NodeBreakerNetworkFactory.create();
         SwitchAction switchAction = new SwitchAction("switchAction", "C", true);
         var matrixFactory = new DenseMatrixFactory();
-        AcSecurityAnalysis securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>(), Collections.emptyList(), Reporter.NO_OP);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>(), Reporter.NO_OP, true, false);
-        List<LfNetwork> lfNetworks = securityAnalysis.createNetworks(Collections.emptySet(), Set.of(network.getSwitch("C")), acParameters.getNetworkParameters(), Reporter.NO_OP);
+        List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP);
         LfAction lfAction = new LfAction(switchAction, lfNetworks.get(0));
-        assertFalse(lfNetworks.get(0).getBranchById("C").isDisabled());
+        lfAction.apply(lfNetworks.get(0).getConnectivity());
+        assertTrue(lfNetworks.get(0).getBranchById("C").isDisabled());
 
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
-        PropagatedContingency propagatedContingency = PropagatedContingency.createListForSecurityAnalysis(network,
+        PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
                 Collections.singletonList(contingency), new HashSet<>(), false, false, false, true).get(0);
         Optional<LfContingency> lfContingency = propagatedContingency.toLfContingency(lfNetworks.get(0), true);
         if (lfContingency.isPresent()) {

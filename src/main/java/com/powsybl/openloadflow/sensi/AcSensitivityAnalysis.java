@@ -9,14 +9,17 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -26,11 +29,9 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
-import com.powsybl.sensitivity.SensitivityFactorReader;
-import com.powsybl.sensitivity.SensitivityValueWriter;
-import com.powsybl.sensitivity.SensitivityVariableSet;
-import com.powsybl.sensitivity.SensitivityVariableType;
+import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Function;
@@ -48,13 +49,13 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     private void calculateSensitivityValues(List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors, List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups, DenseMatrix factorsState,
-                                            int contingencyIndex, SensitivityValueWriter valueWriter) {
+                                            int contingencyIndex, SensitivityResultWriter resultWriter) {
         Set<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactorsSet = new HashSet<>(lfFactors);
 
         // VALID_ONLY_FOR_FUNCTION status is for factors where variable element is not in the main connected component but reference element is.
         // Therefore, the sensitivity is known to value 0 and the reference value can be computed.
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
-                .forEach(factor -> valueWriter.write(factor.getIndex(), contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference())));
+                .forEach(factor -> resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference())));
 
         for (SensitivityFactorGroup<AcVariableType, AcEquationType> factorGroup : factorGroups) {
             for (LfSensitivityFactor<AcVariableType, AcEquationType> factor : factorGroup.getFactors()) {
@@ -90,7 +91,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     ref = factor.getFunctionReference();
                 }
 
-                valueWriter.write(factor.getIndex(), contingencyIndex, unscaleSensitivity(factor, sensi), unscaleFunction(factor, ref));
+                resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, unscaleSensitivity(factor, sensi), unscaleFunction(factor, ref));
             }
         }
     }
@@ -109,7 +110,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                            LfNetwork lfNetwork, AcLoadFlowContext context, List<SensitivityFactorGroup<AcVariableType, AcEquationType>> factorGroups,
                                                            Map<LfBus, Double> participationByBus,
                                                            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt,
-                                                           int contingencyIndex, SensitivityValueWriter valueWriter,
+                                                           int contingencyIndex, SensitivityResultWriter resultWriter,
                                                            boolean hasTransformerBusTargetVoltage, boolean hasMultiVariables) {
         if (lfParameters.isDistributedSlack() && Math.abs(lfContingency.getActivePowerLoss()) > 0) {
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(lfParameters.getBalanceType(), lfParametersExt.isLoadPowerFactorConstant());
@@ -117,8 +118,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
 
         context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-        new AcloadFlowEngine(context)
+        AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
+
+        // write contingency status
+        resultWriter.writeContingencyStatus(contingencyIndex, (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) ?
+                SensitivityAnalysisResult.Status.SUCCESS : SensitivityAnalysisResult.Status.FAILURE);
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
@@ -143,7 +148,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         setFunctionReferences(lfFactors);
 
         // calculate sensitivity values
-        calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, valueWriter);
+        calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, resultWriter);
     }
 
     @Override
@@ -162,18 +167,26 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
      */
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
-                        SensitivityValueWriter valueWriter, Reporter reporter) {
+                        SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(lfParameters);
         Objects.requireNonNull(lfParametersExt);
         Objects.requireNonNull(factorReader);
-        Objects.requireNonNull(valueWriter);
+        Objects.requireNonNull(resultWriter);
         Objects.requireNonNull(reporter);
 
+        Pair<Boolean, Boolean> hasBusTargetVoltage = hasBusTargetVoltage(factorReader, network);
+        boolean breakers = !allSwitchesToOpen.isEmpty();
+        if (breakers && Boolean.TRUE.equals(hasBusTargetVoltage.getLeft())) {
+            // FIXME
+            // a bus voltage function works only on a bus/branch topology and a switch contingency only works on a
+            // bus/breaker topology. It is not compatible and must be fixed in the API.
+            throw new PowsyblException("Switch contingency is not yet supported with sensitivity function of type BUS_VOLTAGE");
+        }
+
         // create LF network (we only manage main connected component)
-        boolean hasTransformerBusTargetVoltage = hasTransformerBusTargetVoltage(factorReader, network);
-        if (hasTransformerBusTargetVoltage) {
+        if (Boolean.TRUE.equals(hasBusTargetVoltage.getRight())) {
             // if we have at least one bus target voltage linked to a ratio tap changer, we activate the transformer
             // voltage control for the AC load flow engine.
             lfParameters.setTransformerVoltageControlOn(true);
@@ -184,7 +197,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParametersExt.hasVoltageRemoteControl(),
                                                                           true,
                                                                           lfParameters.isTwtSplitShuntAdmittance(),
-                                                                          false,
+                                                                          breakers,
                                                                           lfParametersExt.getPlausibleActivePowerLimit(),
                                                                           lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
                                                                           true,
@@ -200,22 +213,23 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                                                           lfParameters.isHvdcAcEmulation(),
                                                                           lfParametersExt.getMinPlausibleTargetVoltage(),
                                                                           lfParametersExt.getMaxPlausibleTargetVoltage());
-        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reporter);
+        // create networks including all necessary switches
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, Collections.emptySet(), reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
 
         Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
-        SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork);
+        SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
         List<LfSensitivityFactor<AcVariableType, AcEquationType>> allLfFactors = allFactorHolder.getAllFactors();
         LOGGER.info("Running AC sensitivity analysis with {} factors and {} contingencies",  allLfFactors.size(), contingencies.size());
 
         // next we only work with valid and valid only for function factors
-        var validFactorHolder = writeInvalidFactors(allFactorHolder, valueWriter);
+        var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter);
         var validLfFactors = validFactorHolder.getAllFactors();
 
         // create AC engine
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, reporter, false, true);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, reporter, breakers, true);
 
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
@@ -245,7 +259,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
             // system obtained just before the transformer steps rounding.
-            if (hasTransformerBusTargetVoltage) {
+            if (Boolean.TRUE.equals(hasBusTargetVoltage.getRight())) {
                 // switch on regulating transformers
                 for (LfBranch branch : lfNetwork.getBranches()) {
                     branch.getVoltageControl().ifPresent(vc -> branch.setVoltageControlEnabled(true));
@@ -268,7 +282,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             // calculate sensitivity values
             setFunctionReferences(validLfFactors);
-            calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, valueWriter);
+            calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, -1, resultWriter);
 
             NetworkState networkState = NetworkState.save(lfNetwork);
 
@@ -321,13 +335,15 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         postContingencySlackParticipationByBus = Collections.singletonMap(lfNetwork.getSlackBus(), -1d);
                     }
                     calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, postContingencySlackParticipationByBus,
-                            lfParameters, lfParametersExt, lfContingency.getIndex(), valueWriter, hasTransformerBusTargetVoltage, hasMultiVariables);
+                            lfParameters, lfParametersExt, lfContingency.getIndex(), resultWriter, Boolean.TRUE.equals(hasBusTargetVoltage.getRight()), hasMultiVariables);
 
                     networkState.restore();
-                }, () ->
-                    // It means that the contingency has no impact.
-                    calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingency.getIndex(), valueWriter)
-                ));
+                }, () -> {
+                        // It means that the contingency has no impact.
+                        calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingency.getIndex(), resultWriter);
+                        // write contingency status
+                        resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+                    }));
         }
     }
 }
