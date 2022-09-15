@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -59,5 +60,14 @@ class NonImpedantBranchDisablingTest {
             assertEquals(0, l1.getP1().eval(), 10e-5);
             assertEquals(6.07782, l2.getP1().eval(), 10e-5);
         }
+    }
+
+    @Test
+    void testOpenBranch() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getLine("L2").setR(0.0).setX(0.0);
+        network.getLine("L1").getTerminal1().disconnect();
+        network.getLine("L2").getTerminal1().disconnect();
+        LoadFlow.run(network);
     }
 }
