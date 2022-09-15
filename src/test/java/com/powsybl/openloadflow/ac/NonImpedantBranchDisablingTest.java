@@ -67,7 +67,6 @@ class NonImpedantBranchDisablingTest {
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getLine("L2").setR(0.0).setX(0.0);
         network.getLine("L1").getTerminal1().disconnect();
-        network.getLine("L2").getTerminal1().disconnect();
         LoadFlow.run(network);
     }
 }
