@@ -882,8 +882,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     setBaseCaseSensitivityValues(factorGroups, factorStateForThisConnectivity); // use this state to compute the base sensitivity (without +1-1)
                 }
 
-                Set<String> elementsToReconnect = connectivityAnalysisResult.getElementsToReconnect();
-
                 if (!lfFactorsForContingencies.isEmpty()) {
                     flowStates = setReferenceActivePowerFlows(lfNetwork, dcLoadFlowParameters, equationSystem, j, lfFactorsForContingencies,
                             participatingElementsForThisConnectivity, disabledBuses, Collections.emptyList(), reporter);
@@ -892,7 +890,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 calculateContingenciesSensitivityValues(lfNetwork, lfParametersExt, dcLoadFlowParameters, equationSystem,
                         validFactorHolder, factorGroups, j, factorStateForThisConnectivity, contingenciesStates,
                         flowStates, connectivityAnalysisResult.getContingencies(), contingencyElementByBranch, disabledBuses,
-                        participatingElementsForThisConnectivity, elementsToReconnect, resultWriter, reporter);
+                        participatingElementsForThisConnectivity, connectivityAnalysisResult.getElementsToReconnect(), resultWriter, reporter);
 
                 if (rhsChanged) {
                     setBaseCaseSensitivityValues(factorGroups, factorsStates); // we modified the rhs, we need to restore previous state
