@@ -818,28 +818,25 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // for example, if in the network, loosing line L1 breaks connectivity, and loosing L2 and L3 together breaks connectivity,
             // the index would be: {L1, L2, L3}
             // a contingency involving a phase tap changer loss has to be treated separately
-            Collection<PropagatedContingency> nonLosingConnectivityContingencies = new LinkedList<>();
+            Collection<PropagatedContingency> nonBreakingConnectivityContingencies = new LinkedList<>();
             Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsPotentiallyBreakingConnectivity = new LinkedHashMap<>();
 
             // this first method based on sensitivity criteria is able to detect some contingencies that do not break
             // connectivity and other contingencies that potentially break connectivity
             detectPotentialConnectivityLoss(lfNetwork, contingenciesStates, contingencies, contingencyElementByBranch, equationSystem,
-                    nonLosingConnectivityContingencies, contingenciesByGroupOfElementsPotentiallyBreakingConnectivity);
+                    nonBreakingConnectivityContingencies, contingenciesByGroupOfElementsPotentiallyBreakingConnectivity);
 
-            // this second method process all contingencies that potentially break connectivity and using graph algorithm
-            // to find remaining contingencies that do not break connectivity
+            // this second method process all contingencies that potentially break connectivity and using graph algorithms
+            // find remaining contingencies that do not break connectivity
             Map<Set<ComputedContingencyElement>, ConnectivityAnalysisResult> connectivityAnalysisResults
-                    = computeConnectivityData(lfNetwork, validFactorHolder, contingenciesByGroupOfElementsPotentiallyBreakingConnectivity, nonLosingConnectivityContingencies);
+                    = computeConnectivityData(lfNetwork, validFactorHolder, contingenciesByGroupOfElementsPotentiallyBreakingConnectivity, nonBreakingConnectivityContingencies);
 
+            // process contingencies with no connectivity breaking
             calculateContingenciesSensitivityValues(lfNetwork, lfParametersExt, dcLoadFlowParameters, equationSystem, validFactorHolder, factorGroups,
-                    j, factorsStates, contingenciesStates, flowStates, nonLosingConnectivityContingencies, contingencyElementByBranch,
+                    j, factorsStates, contingenciesStates, flowStates, nonBreakingConnectivityContingencies, contingencyElementByBranch,
                     Collections.emptySet(), participatingElements, Collections.emptySet(), resultWriter, reporter);
 
-            if (contingenciesByGroupOfElementsPotentiallyBreakingConnectivity.isEmpty()) {
-                return;
-            }
-
-            // compute the contingencies with loss of connectivity
+            // process contingencies with connectivity breaking
             for (ConnectivityAnalysisResult connectivityAnalysisResult : connectivityAnalysisResults.values()) {
                 List<String> contingenciesIds = connectivityAnalysisResult.getContingencies().stream().map(c -> c.getContingency().getId()).collect(Collectors.toList());
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactorsForContingencies = validFactorHolder.getFactorsForContingencies(contingenciesIds);
