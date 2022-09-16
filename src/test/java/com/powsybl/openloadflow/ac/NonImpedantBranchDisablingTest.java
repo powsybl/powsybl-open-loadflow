@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -19,6 +20,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.NameSlackBusSelector;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,5 +61,23 @@ class NonImpedantBranchDisablingTest {
             assertEquals(0, l1.getP1().eval(), 10e-5);
             assertEquals(6.07782, l2.getP1().eval(), 10e-5);
         }
+    }
+
+    @Test
+    void testOpenBranch() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getLine("L2").setR(0.0).setX(0.0);
+        network.getLine("L1").getTerminal1().disconnect();
+        LoadFlow.run(network);
+        assertEquals(600.0, network.getLine("L2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-600.0, network.getLine("L2").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, network.getLine("L1").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+
+        network.getLine("L1").getTerminal1().connect();
+        network.getLine("L1").getTerminal2().disconnect();
+        LoadFlow.run(network);
+        assertEquals(600.0, network.getLine("L2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-600.0, network.getLine("L2").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, network.getLine("L1").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
     }
 }
