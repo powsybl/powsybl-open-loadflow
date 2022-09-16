@@ -340,7 +340,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     networkState.restore();
                 }, () -> {
                         // It means that the contingency has no impact.
-                        calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorGroups, factorsStates, contingency.getIndex(), resultWriter);
+                        List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors = validFactorHolder.getFactorsForBaseNetwork();
+                        if (lfFactors.isEmpty()) {
+                            lfFactors = validFactorHolder.getFactorsForContingency(contingency.getContingency().getId());
+                        }
+                        calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingency.getIndex(), resultWriter);
                         // write contingency status
                         resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
                     }));
