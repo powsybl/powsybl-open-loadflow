@@ -148,7 +148,7 @@ public class ZeroImpedanceFlows {
         }
 
         private void updateBranchFlows(LfBranch branch, LfBus bus, PQ pqBus, PQ pqOtherBus) {
-            if (branch.getBus1().equals(bus)) {
+            if (branch.getBus1() != null && branch.getBus1().equals(bus)) {
                 branch.updateFlows(pqBus.p, pqBus.q, pqOtherBus.p, pqOtherBus.q);
             } else {
                 branch.updateFlows(pqOtherBus.p, pqOtherBus.q, pqBus.p, pqBus.q);
@@ -156,8 +156,11 @@ public class ZeroImpedanceFlows {
         }
 
         private PQ getBranchFlow(LfBranch branch, LfBus bus) {
-            return branch.getBus1().equals(bus) ? new PQ(branch.getP1().eval(), branch.getQ1().eval())
-                : new PQ(branch.getP2().eval(), branch.getQ2().eval());
+            if (branch.getBus1() != null && branch.getBus1().equals(bus)) {
+                return new PQ(branch.getP1().eval(), branch.getQ1().eval());
+            } else {
+                return new PQ(branch.getP2().eval(), branch.getQ2().eval());
+            }
         }
     }
 
