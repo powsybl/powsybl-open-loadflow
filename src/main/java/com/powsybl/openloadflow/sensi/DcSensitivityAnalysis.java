@@ -271,8 +271,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    private void setAlphas(Collection<ComputedContingencyElement> contingencyElements, DenseMatrix states,
-                           DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
+    private static void setAlphas(Collection<ComputedContingencyElement> contingencyElements, DenseMatrix states,
+                                  DenseMatrix contingenciesStates, int columnState, ObjDoubleConsumer<ComputedContingencyElement> setValue) {
         if (contingencyElements.size() == 1) {
             ComputedContingencyElement element = contingencyElements.iterator().next();
             LfBranch lfBranch = element.getLfBranch();
@@ -310,9 +310,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    private Set<ComputedContingencyElement> getGroupOfElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix contingenciesStates,
-                                                                                   Collection<ComputedContingencyElement> contingencyElements,
-                                                                                   EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+    private static Set<ComputedContingencyElement> getGroupOfElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix contingenciesStates,
+                                                                                          Collection<ComputedContingencyElement> contingencyElements,
+                                                                                          EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         // use a sensitivity-criterion to detect the loss of connectivity after a contingency
         // we consider a +1 -1 on a line, and we observe the sensitivity of these injections on the other contingency elements
         // if the sum of the sensitivities (in absolute value) is 1, it means that all the flow is going through the lines with a non-zero sensitivity
@@ -374,11 +374,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return contingenciesStates;
     }
 
-    private void detectPotentialConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
-                                                 Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                 EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                                 Collection<PropagatedContingency> nonLosingConnectivityContingencies,
-                                                 Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
+    private static void detectPotentialConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
+                                                        Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                        EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                        Collection<PropagatedContingency> nonLosingConnectivityContingencies,
+                                                        Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity) {
         for (PropagatedContingency contingency : contingencies) {
             List<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream().map(contingencyElementByBranch::get).collect(Collectors.toList());
             Set<ComputedContingencyElement> groupOfElementsBreakingConnectivity = getGroupOfElementsBreakingConnectivity(lfNetwork, states, contingencyElements, equationSystem);
@@ -504,9 +504,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    private List<ConnectivityAnalysisResult> computeConnectivityData(LfNetwork lfNetwork, SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder,
-                                                                     Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity,
-                                                                     Collection<PropagatedContingency> nonLosingConnectivityContingencies) {
+    private static List<ConnectivityAnalysisResult> computeConnectivityData(LfNetwork lfNetwork, SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder,
+                                                                            Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsBreakingConnectivity,
+                                                                            Collection<PropagatedContingency> nonLosingConnectivityContingencies) {
         if (contingenciesByGroupOfElementsBreakingConnectivity.isEmpty()) {
             return Collections.emptyList();
         }
