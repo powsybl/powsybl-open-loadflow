@@ -11,7 +11,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingencyElement;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
@@ -28,7 +29,8 @@ import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.*;
+import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -130,17 +132,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     static class PhaseTapChangerContingenciesIndexing {
 
-        private Collection<PropagatedContingency> contingenciesWithoutTransformers;
-        private Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByPhaseTapChangers;
-
-        public PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies, Map<String, ComputedContingencyElement> contingencyElementByBranch) {
-            this(contingencies, contingencyElementByBranch, Collections.emptySet());
-        }
+        private final List<PropagatedContingency> contingenciesWithoutTransformers = new ArrayList<>();
+        private final Map<Set<LfBranch>, Collection<PropagatedContingency>> contingenciesIndexedByPhaseTapChangers = new LinkedHashMap<>();
 
         public PhaseTapChangerContingenciesIndexing(Collection<PropagatedContingency> contingencies, Map<String,
                 ComputedContingencyElement> contingencyElementByBranch, Collection<String> elementIdsToSkip) {
-            contingenciesIndexedByPhaseTapChangers = new LinkedHashMap<>();
-            contingenciesWithoutTransformers = new ArrayList<>();
             for (PropagatedContingency contingency : contingencies) {
                 Set<LfBranch> lostTransformers = contingency.getBranchIdsToOpen().stream()
                         .filter(element -> !elementIdsToSkip.contains(element))
@@ -341,8 +337,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return groupOfElementsBreakingConnectivity;
     }
 
-    protected void fillRhsContingency(final LfNetwork lfNetwork, final EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                      final Collection<ComputedContingencyElement> contingencyElements, final Matrix rhs) {
+    protected static void fillRhsContingency(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                             Collection<ComputedContingencyElement> contingencyElements, Matrix rhs) {
         for (ComputedContingencyElement element : contingencyElements) {
             LfBranch lfBranch = lfNetwork.getBranchById(element.getElement().getId());
             if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
@@ -365,10 +361,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    protected DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
+    protected static DenseMatrix initContingencyRhs(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<ComputedContingencyElement> contingencyElements) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), contingencyElements.size());
         fillRhsContingency(lfNetwork, equationSystem, contingencyElements, rhs);
         return rhs;
+    }
+
+    private static DenseMatrix calculateContingenciesStates(LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem, Map<String, ComputedContingencyElement> contingencyElementByBranch, JacobianMatrix<DcVariableType, DcEquationType> j) {
+        DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingencyElementByBranch.values()); // rhs with +1 -1 on contingency elements
+        j.solveTransposed(contingenciesStates);
+        return contingenciesStates;
     }
 
     private void detectPotentialConnectivityLoss(LfNetwork lfNetwork, DenseMatrix states, List<PropagatedContingency> contingencies,
@@ -859,24 +861,26 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 ? getParticipatingElements(lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt)
                 : Collections.emptyList();
 
-        // prepare management of contingencies
+        // index contingency elements by branch id
         Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies, lfNetwork, equationSystem);
 
         // create jacobian matrix either using calculated voltages from pre-contingency network or nominal voltages
         VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES
                 ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
+
         try (JacobianMatrix<DcVariableType, DcEquationType> j = createJacobianMatrix(lfNetwork, equationSystem, voltageInitializer)) {
 
             // run DC load on pre-contingency network
             DenseMatrix flowStates = calculateReferenceActivePowerFlows(lfNetwork, dcLoadFlowParameters, equationSystem, j, validLfFactors, participatingElements, Collections.emptyList(), Collections.emptyList(), reporter);
 
-            // compute the pre-contingency sensitivity values + the states with +1 -1 to model the contingencies
+            // compute the pre-contingency sensitivity values
             DenseMatrix factorsStates = calculateFactorStates(lfNetwork, equationSystem, factorGroups, j, participatingElements);
 
-            DenseMatrix contingenciesStates = initContingencyRhs(lfNetwork, equationSystem, contingencyElementByBranch.values()); // rhs with +1 -1 on contingency elements
-            j.solveTransposed(contingenciesStates); // states for the +1 -1 of contingencies
+            // compute states with +1 -1 to model the contingencies
+            DenseMatrix contingenciesStates = calculateContingenciesStates(lfNetwork, equationSystem, contingencyElementByBranch, j);
 
+            // calculate sensitivity values for pre-contingency network
             calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorsStates, contingenciesStates, flowStates,
                     Collections.emptyList(), null, resultWriter);
 
