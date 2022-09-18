@@ -762,6 +762,23 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
+    private static Map<String, ComputedContingencyElement> createContingencyElementsIndexByBranchId(List<PropagatedContingency> contingencies,
+                                                                                                    LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        Map<String, ComputedContingencyElement> contingencyElementByBranch =
+                contingencies.stream()
+                        .flatMap(contingency -> contingency.getBranchIdsToOpen().stream())
+                        .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
+                        .filter(element -> element.getLfBranchEquation() != null)
+                        .collect(Collectors.toMap(
+                            computedContingencyElement -> computedContingencyElement.getElement().getId(),
+                            computedContingencyElement -> computedContingencyElement,
+                            (existing, replacement) -> existing,
+                            LinkedHashMap::new
+                        ));
+        ComputedContingencyElement.setContingencyIndexes(contingencyElementByBranch.values());
+        return contingencyElementByBranch;
+    }
+
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
                         SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen) {
@@ -843,21 +860,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 : Collections.emptyList();
 
         // prepare management of contingencies
-        Map<String, ComputedContingencyElement> contingencyElementByBranch =
-            contingencies.stream()
-                             .flatMap(contingency -> contingency.getBranchIdsToOpen().stream())
-                             .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
-                             .filter(element -> element.getLfBranchEquation() != null)
-                             .collect(Collectors.toMap(
-                                 computedContingencyElement -> computedContingencyElement.getElement().getId(),
-                                 computedContingencyElement -> computedContingencyElement,
-                                 (existing, replacement) -> existing,
-                                 LinkedHashMap::new
-                             ));
-        ComputedContingencyElement.setContingencyIndexes(contingencyElementByBranch.values());
+        Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies, lfNetwork, equationSystem);
 
         // create jacobian matrix either using calculated voltages from pre-contingency network or nominal voltages
-        VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES ? new PreviousValueVoltageInitializer()
+        VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES
+                ? new PreviousValueVoltageInitializer()
                 : new UniformValueVoltageInitializer();
         try (JacobianMatrix<DcVariableType, DcEquationType> j = createJacobianMatrix(lfNetwork, equationSystem, voltageInitializer)) {
 
