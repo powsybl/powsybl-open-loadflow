@@ -907,7 +907,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             List<ConnectivityAnalysisResult> connectivityAnalysisResults
                     = computeConnectivityData(lfNetwork, validFactorHolder, contingenciesByGroupOfElementsPotentiallyBreakingConnectivity, nonBreakingConnectivityContingencies);
             LOGGER.info("After graph based connectivity analysis, {} contingencies do not break connectivity, {} contingencies break connectivity",
-                    nonBreakingConnectivityContingencies.size(), connectivityAnalysisResults.stream().mapToInt(x -> x.getContingencies().size()).count());
+                    nonBreakingConnectivityContingencies.size(), connectivityAnalysisResults.stream().mapToInt(results -> results.getContingencies().size()).count());
 
             LOGGER.info("Processing contingencies with no connectivity break");
 
