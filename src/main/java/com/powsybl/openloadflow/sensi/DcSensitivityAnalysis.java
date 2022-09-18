@@ -303,8 +303,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     matrix.set(element.getLocalIndex(), element2.getLocalIndex(), value);
                 }
             }
-            LUDecomposition lu = matrix.decomposeLU();
-            lu.solve(rhs); // rhs now contains state matrix
+            try (LUDecomposition lu = matrix.decomposeLU()) {
+                lu.solve(rhs); // rhs now contains state matrix
+            }
             contingencyElements.forEach(element -> setValue.accept(element, rhs.get(element.getLocalIndex(), 0)));
         }
     }
@@ -889,7 +890,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // so, we will index contingencies by a list of branch that may break connectivity
             // for example, if in the network, loosing line L1 breaks connectivity, and loosing L2 and L3 together breaks connectivity,
             // the index would be: {L1, L2, L3}
-            // a contingency involving a phase tap changer loss has to be treated separately
+            // a contingency involving a phase tap changer loss has to be processed separately
             List<PropagatedContingency> nonBreakingConnectivityContingencies = new ArrayList<>();
             Map<Set<ComputedContingencyElement>, List<PropagatedContingency>> contingenciesByGroupOfElementsPotentiallyBreakingConnectivity = new LinkedHashMap<>();
 
