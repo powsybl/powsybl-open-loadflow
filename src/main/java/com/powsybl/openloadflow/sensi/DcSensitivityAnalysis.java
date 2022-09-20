@@ -879,12 +879,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // compute the pre-contingency sensitivity values
             DenseMatrix factorsStates = calculateFactorStates(lfNetwork, equationSystem, factorGroups, j, participatingElements);
 
+            // calculate sensitivity values for pre-contingency network
+            calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorsStates, null, flowStates,
+                    Collections.emptyList(), null, resultWriter);
+
             // compute states with +1 -1 to model the contingencies
             DenseMatrix contingenciesStates = calculateContingenciesStates(lfNetwork, equationSystem, contingencyElementByBranch, j);
-
-            // calculate sensitivity values for pre-contingency network
-            calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), factorsStates, contingenciesStates, flowStates,
-                    Collections.emptyList(), null, resultWriter);
 
             // connectivity analysis by contingency
             // we have to compute sensitivities and reference functions in a different way depending on either or not the contingency breaks connectivity
