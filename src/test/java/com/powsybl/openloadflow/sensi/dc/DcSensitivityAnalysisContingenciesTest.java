@@ -2138,5 +2138,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<Contingency> contingencies = List.of(new Contingency("C", List.of(new BranchContingency("l24"), new BranchContingency("l35"))));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getContingencyStatus("C"));
     }
 }
