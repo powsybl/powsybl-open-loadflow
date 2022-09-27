@@ -73,4 +73,12 @@ public interface GraphConnectivity<V, E> {
     Set<V> getConnectedComponent(V vertex);
 
     Set<V> getNonConnectedVertices(V vertex);
+
+    Set<V> getVerticesRemovedFromMainComponent();
+
+    Set<E> getEdgesRemovedFromMainComponent();
+
+    Set<V> getVerticesAddedToMainComponent();
+
+    Set<E> getEdgesAddedToMainComponent();
 }

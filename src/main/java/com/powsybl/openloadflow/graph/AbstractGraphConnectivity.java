@@ -20,7 +20,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
 
-    private final Deque<Deque<GraphModification<V, E>>> graphModifications = new ArrayDeque<>();
+    private final Deque<ModificationsContext<V, E>> modificationsContexts = new ArrayDeque<>();
 
     protected List<Set<V>> componentSets;
 
@@ -39,8 +39,9 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         Objects.requireNonNull(vertex);
         VertexAdd<V, E> vertexAdd = new VertexAdd<>(vertex);
         vertexAdd.apply(graph);
-        if (!graphModifications.isEmpty()) {
-            graphModifications.peekLast().add(vertexAdd);
+        if (!modificationsContexts.isEmpty()) {
+            ModificationsContext<V, E> modificationsContext = modificationsContexts.peekLast();
+            modificationsContext.add(vertexAdd);
             updateConnectivity(vertexAdd);
         }
     }
@@ -55,8 +56,9 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         }
         EdgeAdd<V, E> edgeAdd = new EdgeAdd<>(vertex1, vertex2, edge);
         edgeAdd.apply(graph);
-        if (!graphModifications.isEmpty()) {
-            graphModifications.peekLast().add(edgeAdd);
+        if (!modificationsContexts.isEmpty()) {
+            ModificationsContext<V, E> modificationsContext = modificationsContexts.peekLast();
+            modificationsContext.add(edgeAdd);
             updateConnectivity(edgeAdd);
         }
     }
@@ -71,25 +73,29 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         V vertex2 = graph.getEdgeTarget(edge);
         EdgeRemove<V, E> edgeRemove = new EdgeRemove<>(vertex1, vertex2, edge);
         edgeRemove.apply(graph);
-        if (!graphModifications.isEmpty()) {
-            graphModifications.peekLast().add(edgeRemove);
+        if (!modificationsContexts.isEmpty()) {
+            ModificationsContext<V, E> modificationsContext = modificationsContexts.peekLast();
+            modificationsContext.add(edgeRemove);
             updateConnectivity(edgeRemove);
         }
     }
 
     @Override
     public void startTemporaryChanges() {
-        graphModifications.add(new ArrayDeque<>());
+        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>();
+        modificationsContexts.add(modificationsContext);
+        modificationsContext.setVerticesInitiallyNotInMainComponent(getSmallComponents());
     }
 
     @Override
     public void undoTemporaryChanges() {
-        if (graphModifications.isEmpty()) {
+        if (modificationsContexts.isEmpty()) {
             throw new PowsyblException("Cannot reset, no remaining saved connectivity");
         }
-        Deque<GraphModification<V, E>> m = graphModifications.pollLast();
-        resetConnectivity(m);
-        m.descendingIterator().forEachRemaining(gm -> gm.undo(graph));
+        ModificationsContext<V, E> m = modificationsContexts.pollLast();
+        Deque<GraphModification<V, E>> modifications = m.getModifications();
+        resetConnectivity(modifications);
+        modifications.descendingIterator().forEachRemaining(gm -> gm.undo(graph));
     }
 
     @Override
@@ -134,12 +140,12 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         return graph;
     }
 
-    protected Deque<Deque<GraphModification<V, E>>> getGraphModifications() {
-        return graphModifications;
+    protected Deque<ModificationsContext<V, E>> getModificationsContexts() {
+        return modificationsContexts;
     }
 
     protected void checkSaved() {
-        if (graphModifications.isEmpty()) {
+        if (modificationsContexts.isEmpty()) {
             throw new PowsyblException("Cannot compute connectivity without a saved state, please call GraphConnectivity::startTemporaryChanges at least once beforehand");
         }
     }
@@ -148,5 +154,33 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         if (!graph.containsVertex(vertex)) {
             throw new AssertionError("given vertex " + vertex + " is not in the graph");
         }
+    }
+
+    @Override
+    public Set<V> getVerticesAddedToMainComponent() {
+        List<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
+        return modificationsContexts.peekLast().getVerticesAddedToMainComponent(verticesNotInMainComponent);
+    }
+
+    @Override
+    public Set<E> getEdgesAddedToMainComponent() {
+        List<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
+        return modificationsContexts.peekLast().getEdgesAddedToMainComponent(verticesNotInMainComponent, graph);
+    }
+
+    @Override
+    public Set<V> getVerticesRemovedFromMainComponent() {
+        List<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
+        return modificationsContexts.peekLast().getVerticesRemovedFromMainComponent(verticesNotInMainComponent);
+    }
+
+    @Override
+    public Set<E> getEdgesRemovedFromMainComponent() {
+        List<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
+        return modificationsContexts.peekLast().getEdgesRemovedFromMainComponent(verticesNotInMainComponent, graph);
+    }
+
+    private List<V> getVerticesNotInMainComponent() {
+        return getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toList());
     }
 }
