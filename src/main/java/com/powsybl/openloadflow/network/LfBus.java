@@ -167,4 +167,6 @@ public interface LfBus extends LfElement {
      * Only make sens for slack bus.
      */
     double getMismatchP();
+
+    ExponentialLoadModel getLoadModel();
 }

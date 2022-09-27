@@ -81,6 +81,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double remoteVoltageControlReactivePercent = Double.NaN;
 
+    protected ExponentialLoadModel loadModel = new ExponentialLoadModel();
+
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
         lfAggregatedLoads = new LfAggregatedLoadsImpl(distributedOnConformLoad);
@@ -567,5 +569,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getMismatchP() {
         return p.eval() - getTargetP(); // slack bus can also have real injection connected
+    }
+
+    @Override
+    public ExponentialLoadModel getLoadModel() {
+        return loadModel;
     }
 }

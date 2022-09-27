@@ -98,6 +98,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return terms;
     }
 
+    public void clearTerms() {
+
+    }
+
     @Override
     public double eval() {
         double value = 0;

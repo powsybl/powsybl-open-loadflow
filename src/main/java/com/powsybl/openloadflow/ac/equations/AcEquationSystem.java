@@ -46,6 +46,17 @@ public final class AcEquationSystem {
 
         createShuntVoltageControlEquations(bus, equationSystem);
 
+        // create load model
+        ExponentialLoadModel loadModel = bus.getLoadModel();
+        if (loadModel != null) {
+            if (loadModel.getAlpha() != 0) {
+
+            }
+            if (loadModel.getBeta() != 0) {
+
+            }
+        }
+
         // maybe to fix later, but there is so part of OLF (like sensitivity) that needs a voltage target equation
         // deactivated
         if (!equationSystem.hasEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)) {
