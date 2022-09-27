@@ -46,7 +46,12 @@ public class ModificationsContext<V, E> {
     public Set<E> getEdgesRemovedFromMainComponent(List<V> verticesNotInMainComponent, Graph<V, E> graph) {
         if (edgesRemovedFromMainComponent == null) {
             Set<V> verticesAdded = getVerticesRemovedFromMainComponent(verticesNotInMainComponent);
-            edgesRemovedFromMainComponent = verticesAdded.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
+            Set<E> result = verticesAdded.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
+            if (!result.isEmpty()) {
+                // remove edges added in between
+                modifications.stream().filter(EdgeAdd.class::isInstance).map(m -> ((EdgeAdd<V, E>) m).e).forEach(result::remove);
+            }
+            edgesRemovedFromMainComponent = result;
         }
         return edgesRemovedFromMainComponent;
     }
@@ -55,6 +60,10 @@ public class ModificationsContext<V, E> {
         if (verticesRemovedFromMainComponent == null) {
             Set<V> result = new HashSet<>(verticesNotInMainComponentAfter);
             result.removeAll(new HashSet<>(verticesNotInMainComponentBefore));
+            if (!result.isEmpty()) {
+                // remove vertices added in between
+                modifications.stream().filter(VertexAdd.class::isInstance).map(m -> ((VertexAdd<V, E>) m).v).forEach(result::remove);
+            }
             verticesRemovedFromMainComponent = result;
         }
         return verticesRemovedFromMainComponent;
