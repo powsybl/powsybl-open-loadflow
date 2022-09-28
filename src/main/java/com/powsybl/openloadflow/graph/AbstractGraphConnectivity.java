@@ -37,6 +37,9 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     @Override
     public void addVertex(V vertex) {
         Objects.requireNonNull(vertex);
+        if (graph.containsVertex(vertex)) {
+            return;
+        }
         VertexAdd<V, E> vertexAdd = new VertexAdd<>(vertex);
         vertexAdd.apply(graph);
         if (!modificationsContexts.isEmpty()) {
