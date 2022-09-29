@@ -23,7 +23,7 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private static double p2(double p0, double k, double ph1, double ph2) {
-        return -(isController(ph1, ph2) ? 1 :  getLossMultiplier(ph1, ph2)) * (p0 + k * (ph1 - ph2));
+        return -(isController(ph1, ph2) ? 1 : getLossMultiplier(ph1, ph2)) * (p0 + k * (ph1 - ph2));
     }
 
     private static boolean isController(double ph1, double ph2) {
@@ -31,7 +31,7 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     private static double dp2dph1(double k, double ph1, double ph2) {
-        return -(isController(ph1, ph2) ? 1 :  getLossMultiplier(ph1, ph2)) * k;
+        return -(isController(ph1, ph2) ? 1 : getLossMultiplier(ph1, ph2)) * k;
     }
 
     private static double dp2dph2(double k, double ph1, double ph2) {

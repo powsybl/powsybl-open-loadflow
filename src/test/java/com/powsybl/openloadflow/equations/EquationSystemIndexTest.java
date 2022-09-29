@@ -100,12 +100,12 @@ class EquationSystemIndexTest {
         var b = equationSystem.getVariableSet().getVariable(0, TestVariableType.B);
         var c = equationSystem.getVariableSet().getVariable(0, TestVariableType.C);
         EquationTerm<TestVariableType, TestEquationType> aTerm = a.createTerm();
-        EquationTerm<TestVariableType, TestEquationType>  bTerm = b.createTerm();
+        EquationTerm<TestVariableType, TestEquationType> bTerm = b.createTerm();
         var x = equationSystem.createEquation(0, TestEquationType.X)
                 .addTerm(aTerm)
                 .addTerm(bTerm);
         EquationTerm<TestVariableType, TestEquationType> aTerm2 = a.createTerm();
-        EquationTerm<TestVariableType, TestEquationType>  cTerm = c.createTerm();
+        EquationTerm<TestVariableType, TestEquationType> cTerm = c.createTerm();
         var y = equationSystem.createEquation(0, TestEquationType.Y)
                 .addTerm(aTerm2)
                 .addTerm(cTerm);

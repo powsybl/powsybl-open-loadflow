@@ -1302,7 +1302,7 @@ class OpenSecurityAnalysisTest {
     @Test
     void testViolationsWeakenedOrEquivalent() {
         LimitViolation violation1 = new LimitViolation("voltageLevel1", LimitViolationType.HIGH_VOLTAGE, 420, 1, 421);
-        LimitViolation violation2 =  new LimitViolation("voltageLevel1", LimitViolationType.HIGH_VOLTAGE, 420, 1, 425.20);
+        LimitViolation violation2 = new LimitViolation("voltageLevel1", LimitViolationType.HIGH_VOLTAGE, 420, 1, 425.20);
         SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters = new SecurityAnalysisParameters.IncreasedViolationsParameters();
         violationsParameters.setFlowProportionalThreshold(1.5);
         violationsParameters.setHighVoltageProportionalThreshold(0.1);
@@ -1313,7 +1313,7 @@ class OpenSecurityAnalysisTest {
         assertTrue(LimitViolationManager.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
 
         LimitViolation violation3 = new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 375);
-        LimitViolation violation4 =  new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 371.26);
+        LimitViolation violation4 = new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 371.26);
         violationsParameters.setFlowProportionalThreshold(1.5);
         violationsParameters.setLowVoltageProportionalThreshold(0.1);
         violationsParameters.setLowVoltageAbsoluteThreshold(3);

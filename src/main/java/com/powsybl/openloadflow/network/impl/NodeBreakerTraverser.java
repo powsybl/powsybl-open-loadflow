@@ -85,7 +85,7 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
             if (endNodeAfter) { // check that there isn't another (closed) switch or internal connection at node after
                 VoltageLevel.NodeBreakerView nbv = sw.getVoltageLevel().getNodeBreakerView();
                 return noInternalConnectionAtNode(nodeAfter, nbv)
-                    && nbv.getSwitchStream(nodeAfter).noneMatch(s -> s != sw  && !s.isOpen());
+                    && nbv.getSwitchStream(nodeAfter).noneMatch(s -> s != sw && !s.isOpen());
             }
         }
         return false;

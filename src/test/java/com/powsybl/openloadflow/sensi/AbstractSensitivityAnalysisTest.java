@@ -204,7 +204,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
     }
 
     protected void runDcLf(Network network, Reporter reporter) {
-        LoadFlowParameters parameters =  new LoadFlowParameters().setDc(true);
+        LoadFlowParameters parameters = new LoadFlowParameters().setDc(true);
         LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
                 .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, parameters, reporter)
                 .join();
@@ -404,7 +404,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
 
-        List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("l56",  "glsk"));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("l56", "glsk"));
 
         List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", List.of(new WeightedSensitivityVariable("g6", 1f),
                                                                                                        new WeightedSensitivityVariable("g3", 2f))));

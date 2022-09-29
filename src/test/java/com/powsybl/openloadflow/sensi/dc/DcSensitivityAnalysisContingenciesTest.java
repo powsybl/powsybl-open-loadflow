@@ -1232,7 +1232,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         Contingency contingency78 = new Contingency("l78", new BranchContingency("l78"));
         Contingency contingency12 = new Contingency("l12", new BranchContingency("l12"));
-        Contingency contingency35and56and57 = new Contingency("l35+l56+l57", new BranchContingency("l35"),  new BranchContingency("l56"),  new BranchContingency("l57"));
+        Contingency contingency35and56and57 = new Contingency("l35+l56+l57", new BranchContingency("l35"), new BranchContingency("l56"), new BranchContingency("l57"));
 
         Function<List<Contingency>, SensitivityAnalysisResult> resultProvider = contingencies -> sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
@@ -1263,7 +1263,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         Contingency contingency78 = new Contingency("l78", new BranchContingency("l78"));
         Contingency contingency12 = new Contingency("l12", new BranchContingency("l12"));
-        Contingency contingency35and56and57 = new Contingency("l35+l56+l57", new BranchContingency("l35"),  new BranchContingency("l56"),  new BranchContingency("l57"));
+        Contingency contingency35and56and57 = new Contingency("l35+l56+l57", new BranchContingency("l35"), new BranchContingency("l56"), new BranchContingency("l57"));
 
         Function<List<Contingency>, SensitivityAnalysisResult> resultProvider = contingencies -> sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
@@ -1295,7 +1295,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         Contingency contingency78 = new Contingency("l78", new BranchContingency("l78"));
         Contingency contingency12 = new Contingency("l12", new BranchContingency("l12")); // change distribution
-        Contingency contingency35and56and57 = new Contingency("l35+l56+l57", new BranchContingency("l35"),  new BranchContingency("l56"),  new BranchContingency("l57"));
+        Contingency contingency35and56and57 = new Contingency("l35+l56+l57", new BranchContingency("l35"), new BranchContingency("l56"), new BranchContingency("l57"));
 
         Function<List<Contingency>, SensitivityAnalysisResult> resultProvider = contingencies -> sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 

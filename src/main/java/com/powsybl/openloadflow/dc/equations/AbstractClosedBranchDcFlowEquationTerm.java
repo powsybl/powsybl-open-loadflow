@@ -44,7 +44,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
         ph1Var = variableSet.getVariable(bus1.getNum(), DcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
-        power =  1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
+        power = 1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
         if (a1Var != null) {
             variables = List.of(ph1Var, ph2Var, a1Var);
         } else {

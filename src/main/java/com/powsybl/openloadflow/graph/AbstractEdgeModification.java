@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.graph;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public abstract class AbstractEdgeModification<V, E>  implements GraphModification<V, E>  {
+public abstract class AbstractEdgeModification<V, E> implements GraphModification<V, E> {
     protected final E e;
     protected final V v1;
     protected final V v2;

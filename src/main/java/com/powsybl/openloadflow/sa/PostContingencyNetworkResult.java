@@ -45,7 +45,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     public void addResults(StateMonitor monitor) {
         addResults(monitor, branch -> {
             var preContingencyBranchResult = preContingencyMonitorInfos.getBranchResult(branch.getId());
-            double preContingencyBranchP1 =  preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
+            double preContingencyBranchP1 = preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
             double preContingencyBranchOfContingencyP1 = Double.NaN;
             if (contingency.getElements().size() == 1) {
                 ContingencyElement contingencyElement = contingency.getElements().get(0);
