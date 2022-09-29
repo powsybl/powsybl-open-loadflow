@@ -23,9 +23,10 @@ public class ModificationsContext<V, E> {
     private Set<V> verticesRemovedFromMainComponent;
     private Set<E> edgesAddedToMainComponent;
     private Set<E> edgesRemovedFromMainComponent;
+    private Map<E, AbstractEdgeModification<V, E>> edgeFirstModificationMap;
 
     public void setVerticesInitiallyNotInMainComponent(Collection<Set<V>> smallComponents) {
-        smallComponents.forEach(this.verticesNotInMainComponentBefore::addAll);
+        smallComponents.forEach(verticesNotInMainComponentBefore::addAll);
     }
 
     public void add(GraphModification<V, E> graphModification) {
@@ -38,6 +39,7 @@ public class ModificationsContext<V, E> {
         edgesAddedToMainComponent = null;
         verticesRemovedFromMainComponent = null;
         edgesRemovedFromMainComponent = null;
+        edgeFirstModificationMap = null;
     }
 
     public Deque<GraphModification<V, E>> getModifications() {
@@ -49,33 +51,6 @@ public class ModificationsContext<V, E> {
             edgesRemovedFromMainComponent = computeEdgesRemovedFromMainComponent(verticesNotInMainComponent, graph);
         }
         return edgesRemovedFromMainComponent;
-    }
-
-    private Set<E> computeEdgesRemovedFromMainComponent(List<V> verticesNotInMainComponent, Graph<V, E> graph) {
-        Set<V> verticesRemoved = getVerticesRemovedFromMainComponent(verticesNotInMainComponent);
-        Set<E> result = verticesRemoved.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
-        // We need to look in modifications to adjust the computation of the edges above, indeed:
-        //  - result is missing the edges removed in main component with an EdgeRemove modification
-        //  - result contains the edges which were added in the small components
-        for (GraphModification<V, E> m : modifications) {
-            if (m instanceof EdgeAdd) {
-                E edgeAdded = ((EdgeAdd<V, E>) m).e;
-                if (graph.containsEdge(edgeAdded)) {
-                    // edge was added and not removed afterwards as it is now in the graph
-                    // if that edge is in result, it means that it is not now in the main component
-                    // BUT it was not in the main component before either
-                    result.remove(edgeAdded);
-                }
-            } else if (m instanceof EdgeRemove) {
-                EdgeRemove<V, E> removeEdge = (EdgeRemove<V, E>) m;
-                if (!graph.containsEdge(removeEdge.e) && !verticesNotInMainComponentBefore.contains(removeEdge.v1)) {
-                    // edge was removed and not added afterwards: this edge should be in result if it was before in the main component
-                    // one end of the edge was not in the main component before <=> the edge was not in the main component before
-                    result.add(removeEdge.e);
-                }
-            }
-        }
-        return result;
     }
 
     public Set<V> getVerticesRemovedFromMainComponent(List<V> verticesNotInMainComponentAfter) {
@@ -92,20 +67,9 @@ public class ModificationsContext<V, E> {
         return verticesRemovedFromMainComponent;
     }
 
-    private Stream<V> getAddedVertexStream() {
-        return modifications.stream().filter(VertexAdd.class::isInstance).map(m -> ((VertexAdd<V, E>) m).v);
-    }
-
     public Set<E> getEdgesAddedToMainComponent(List<V> verticesNotInMainComponentAfter, Graph<V, E> graph) {
         if (edgesAddedToMainComponent == null) {
-            Set<V> verticesAdded = getVerticesAddedToMainComponent(verticesNotInMainComponentAfter);
-            Set<E> result = verticesAdded.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
-            // Add edges added to main component in between
-            modifications.stream().filter(EdgeAdd.class::isInstance).map(m -> (EdgeAdd<V, E>) m)
-                    .filter(edgeAdd -> graph.containsEdge(edgeAdd.e)) // edge was not removed afterwards
-                    .filter(edgeAdd -> !verticesNotInMainComponentAfter.contains(edgeAdd.v1)) // edge is in the main component at the end
-                    .forEach(edgeAdd -> result.add(edgeAdd.e));
-            edgesAddedToMainComponent = result;
+            edgesAddedToMainComponent = computeEdgesAddedToMainComponent(verticesNotInMainComponentAfter, graph);
         }
         return edgesAddedToMainComponent;
     }
@@ -115,10 +79,74 @@ public class ModificationsContext<V, E> {
             Set<V> result = new HashSet<>(verticesNotInMainComponentBefore);
             result.removeAll(new HashSet<>(verticesNotInMainComponentAfter));
             // add vertices added to main component in between
-            // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph in the end
+            // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph before / in the end
             getAddedVertexStream().filter(addedVertex -> !verticesNotInMainComponentAfter.contains(addedVertex)).forEach(result::add);
             verticesAddedToMainComponent = result;
         }
         return verticesAddedToMainComponent;
+    }
+
+    private Set<E> computeEdgesRemovedFromMainComponent(List<V> verticesNotInMainComponent, Graph<V, E> graph) {
+        Set<V> verticesRemoved = getVerticesRemovedFromMainComponent(verticesNotInMainComponent);
+        Set<E> result = verticesRemoved.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
+
+        // We need to look in modifications to adjust the computation of the edges above, indeed:
+        //  - result contains the edges which were added in the small components
+        //  - result is missing the edges removed in main component with an EdgeRemove modification
+
+        computeEdgeFirstModificationMap();
+
+        // Remove the new edges
+        modifications.stream().filter(EdgeAdd.class::isInstance).map(m -> ((EdgeAdd<V, E>) m).e)
+                .filter(graph::containsEdge) // the edge is in the graph: it was not removed afterwards
+                .filter(edgeAdded -> !graphContainedEdgeBefore(edgeAdded)) // the edge did not exist in the graph before the modifications
+                .forEach(result::remove);
+
+        // Add edges explicitly removed (with an EdgeRemove modification)
+        modifications.stream().filter(EdgeRemove.class::isInstance).map(m -> ((EdgeRemove<V, E>) m).e)
+                .filter(edgeRemoved -> !graph.containsEdge(edgeRemoved)) // the edge was not added afterwards
+                .filter(this::graphContainedEdgeBefore) // the edge was in the graph before the modifications
+                .filter(edgeRemoved -> !verticesNotInMainComponentBefore.contains((edgeFirstModificationMap.get(edgeRemoved)).v1)) // one of the original vertices of the edge was in the main component
+                .forEach(result::add);
+
+        return result;
+    }
+
+    private Set<E> computeEdgesAddedToMainComponent(List<V> verticesNotInMainComponentAfter, Graph<V, E> graph) {
+        Set<V> verticesAdded = getVerticesAddedToMainComponent(verticesNotInMainComponentAfter);
+        Set<E> result = verticesAdded.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
+
+        // We need to look in modifications to adjust the computation of the edges above
+        // Indeed result is missing the edges added in main component with an EdgeAdd modification
+
+        computeEdgeFirstModificationMap();
+
+        // Add edges added to main component in between
+        modifications.stream().filter(EdgeAdd.class::isInstance).map(m -> ((EdgeAdd<V, E>) m).e)
+                .filter(graph::containsEdge) // the edge is in the graph: it was not removed afterwards
+                .filter(edgeAdded -> !graphContainedEdgeBefore(edgeAdded)) // the edge did not exist in the graph before the modifications
+                .filter(edgeAdded -> !verticesNotInMainComponentAfter.contains(graph.getEdgeSource(edgeAdded))) // one of the final vertices of the edge is in the main component
+                .forEach(result::add);
+
+        return result;
+    }
+
+    private void computeEdgeFirstModificationMap() {
+        if (edgeFirstModificationMap == null) {
+            edgeFirstModificationMap = modifications.stream()
+                    .filter(AbstractEdgeModification.class::isInstance)
+                    .map(m -> (AbstractEdgeModification<V, E>) m)
+                    .collect(Collectors.toMap(m -> m.e, m -> m, (m1, m2) -> m1));
+        }
+    }
+
+    private boolean graphContainedEdgeBefore(E edge) {
+        // If first modification is a EdgeRemove, knowing that the non-effective modifications are not added in the queue,
+        // we can conclude that the graph contained the edge before the modifications were applied
+        return edgeFirstModificationMap.get(edge) instanceof EdgeRemove;
+    }
+
+    private Stream<V> getAddedVertexStream() {
+        return modifications.stream().filter(VertexAdd.class::isInstance).map(m -> ((VertexAdd<V, E>) m).v);
     }
 }
