@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 public class ModificationsContext<V, E> {
 
     private final Deque<GraphModification<V, E>> modifications = new ArrayDeque<>();
-    private final List<V> verticesNotInMainComponentBefore = new ArrayList<>();
+    private final Set<V> verticesNotInMainComponentBefore = new HashSet<>();
     private Set<V> verticesAddedToMainComponent;
     private Set<V> verticesRemovedFromMainComponent;
     private Set<E> edgesAddedToMainComponent;
@@ -46,17 +46,17 @@ public class ModificationsContext<V, E> {
         return modifications;
     }
 
-    public Set<E> getEdgesRemovedFromMainComponent(List<V> verticesNotInMainComponent, Graph<V, E> graph) {
+    public Set<E> getEdgesRemovedFromMainComponent(Set<V> verticesNotInMainComponent, Graph<V, E> graph) {
         if (edgesRemovedFromMainComponent == null) {
             edgesRemovedFromMainComponent = computeEdgesRemovedFromMainComponent(verticesNotInMainComponent, graph);
         }
         return edgesRemovedFromMainComponent;
     }
 
-    public Set<V> getVerticesRemovedFromMainComponent(List<V> verticesNotInMainComponentAfter) {
+    public Set<V> getVerticesRemovedFromMainComponent(Set<V> verticesNotInMainComponentAfter) {
         if (verticesRemovedFromMainComponent == null) {
             Set<V> result = new HashSet<>(verticesNotInMainComponentAfter);
-            result.removeAll(new HashSet<>(verticesNotInMainComponentBefore));
+            result.removeAll(verticesNotInMainComponentBefore);
             if (!result.isEmpty()) {
                 // remove vertices added in between
                 // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph in the end
@@ -67,17 +67,17 @@ public class ModificationsContext<V, E> {
         return verticesRemovedFromMainComponent;
     }
 
-    public Set<E> getEdgesAddedToMainComponent(List<V> verticesNotInMainComponentAfter, Graph<V, E> graph) {
+    public Set<E> getEdgesAddedToMainComponent(Set<V> verticesNotInMainComponentAfter, Graph<V, E> graph) {
         if (edgesAddedToMainComponent == null) {
             edgesAddedToMainComponent = computeEdgesAddedToMainComponent(verticesNotInMainComponentAfter, graph);
         }
         return edgesAddedToMainComponent;
     }
 
-    public Set<V> getVerticesAddedToMainComponent(List<V> verticesNotInMainComponentAfter) {
+    public Set<V> getVerticesAddedToMainComponent(Set<V> verticesNotInMainComponentAfter) {
         if (verticesAddedToMainComponent == null) {
             Set<V> result = new HashSet<>(verticesNotInMainComponentBefore);
-            result.removeAll(new HashSet<>(verticesNotInMainComponentAfter));
+            result.removeAll(verticesNotInMainComponentAfter);
             // add vertices added to main component in between
             // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph before / in the end
             getAddedVertexStream().filter(addedVertex -> !verticesNotInMainComponentAfter.contains(addedVertex)).forEach(result::add);
@@ -86,7 +86,7 @@ public class ModificationsContext<V, E> {
         return verticesAddedToMainComponent;
     }
 
-    private Set<E> computeEdgesRemovedFromMainComponent(List<V> verticesNotInMainComponent, Graph<V, E> graph) {
+    private Set<E> computeEdgesRemovedFromMainComponent(Set<V> verticesNotInMainComponent, Graph<V, E> graph) {
         Set<V> verticesRemoved = getVerticesRemovedFromMainComponent(verticesNotInMainComponent);
         Set<E> result = verticesRemoved.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
 
@@ -112,7 +112,7 @@ public class ModificationsContext<V, E> {
         return result;
     }
 
-    private Set<E> computeEdgesAddedToMainComponent(List<V> verticesNotInMainComponentAfter, Graph<V, E> graph) {
+    private Set<E> computeEdgesAddedToMainComponent(Set<V> verticesNotInMainComponentAfter, Graph<V, E> graph) {
         Set<V> verticesAdded = getVerticesAddedToMainComponent(verticesNotInMainComponentAfter);
         Set<E> result = verticesAdded.stream().map(graph::edgesOf).flatMap(Set::stream).collect(Collectors.toSet());
 

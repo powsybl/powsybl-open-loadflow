@@ -161,29 +161,29 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     @Override
     public Set<V> getVerticesAddedToMainComponent() {
-        List<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
+        Set<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
         return modificationsContexts.peekLast().getVerticesAddedToMainComponent(verticesNotInMainComponent);
     }
 
     @Override
     public Set<E> getEdgesAddedToMainComponent() {
-        List<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
+        Set<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
         return modificationsContexts.peekLast().getEdgesAddedToMainComponent(verticesNotInMainComponent, graph);
     }
 
     @Override
     public Set<V> getVerticesRemovedFromMainComponent() {
-        List<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
+        Set<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
         return modificationsContexts.peekLast().getVerticesRemovedFromMainComponent(verticesNotInMainComponent);
     }
 
     @Override
     public Set<E> getEdgesRemovedFromMainComponent() {
-        List<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
+        Set<V> verticesNotInMainComponent = getVerticesNotInMainComponent(); // exception thrown if modificationsContexts empty
         return modificationsContexts.peekLast().getEdgesRemovedFromMainComponent(verticesNotInMainComponent, graph);
     }
 
-    private List<V> getVerticesNotInMainComponent() {
-        return getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toList());
+    private Set<V> getVerticesNotInMainComponent() {
+        return getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
     }
 }
