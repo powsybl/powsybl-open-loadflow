@@ -308,14 +308,11 @@ class ConnectivityTest {
         assertEquals(Set.of(e12), c.getEdgesRemovedFromMainComponent());
         // 1   2---3
 
+        // Non-effective modifications
         c.removeEdge(e12);
         c.removeEdge(e12);
+        c.addVertex(o1);
         assertEquals(2, c.getNbConnectedComponents());
-        assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
-        assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
-        assertEquals(Set.of(o1), c.getVerticesRemovedFromMainComponent());
-        assertEquals(Set.of(e12), c.getEdgesRemovedFromMainComponent());
-        // 1   2---3
 
         if (incrementalSupport) {
             c.addEdge(o1, o2, e12);
