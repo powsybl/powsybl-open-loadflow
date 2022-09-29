@@ -192,7 +192,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double q = controllerCapableBus.getGenerationTargetQ();
         double distanceToMaxQ = Math.abs(q - maxQ);
         double distanceToMinQ = Math.abs(q - minQ);
-        if (distanceToMaxQ < distanceToMinQ  && controllerCapableBus.getV() > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
+        if (distanceToMaxQ < distanceToMinQ && controllerCapableBus.getV() > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
         }
         if (distanceToMaxQ > distanceToMinQ && controllerCapableBus.getV() < getBusTargetV(controllerCapableBus)) { // bus absorb too much reactive power

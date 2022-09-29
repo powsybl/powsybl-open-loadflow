@@ -394,9 +394,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(4, result.getValues().size());
         assertEquals(0.04997d, result.getBusVoltageSensitivityValue("g1", "b1"), LoadFlowAssert.DELTA_V);
-        assertEquals(0.0507d,  result.getBusVoltageSensitivityValue("g1", "b2"), LoadFlowAssert.DELTA_V);
-        assertEquals(0.0525d,  result.getBusVoltageSensitivityValue("g1", "b3"), LoadFlowAssert.DELTA_V);
-        assertEquals(1d,  result.getBusVoltageSensitivityValue("g1", "b4"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.0507d, result.getBusVoltageSensitivityValue("g1", "b2"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.0525d, result.getBusVoltageSensitivityValue("g1", "b3"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d, result.getBusVoltageSensitivityValue("g1", "b4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -414,9 +414,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(4, result.getValues().size());
         assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b1"), LoadFlowAssert.DELTA_V); // no impact on a pv
-        assertEquals(1d,  result.getBusVoltageSensitivityValue("g2", "b2"), LoadFlowAssert.DELTA_V); // 1 on itself
-        assertEquals(0.3423d,  result.getBusVoltageSensitivityValue("g2", "b3"), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
-        assertEquals(0d,  result.getBusVoltageSensitivityValue("g2", "b4"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d, result.getBusVoltageSensitivityValue("g2", "b2"), LoadFlowAssert.DELTA_V); // 1 on itself
+        assertEquals(0.3423d, result.getBusVoltageSensitivityValue("g2", "b3"), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
+        assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -475,9 +475,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(4, result.getValues().size());
         assertEquals(0d, result.getBusVoltageSensitivityValue("T2wT", "BUS_1"), LoadFlowAssert.DELTA_V);
-        assertEquals(0.035205d,  result.getBusVoltageSensitivityValue("T2wT", "BUS_2"), LoadFlowAssert.DELTA_V);
-        assertEquals(1d,  result.getBusVoltageSensitivityValue("T2wT", "BUS_3"), LoadFlowAssert.DELTA_V);
-        assertEquals(1.055117d,  result.getBusVoltageSensitivityValue("T2wT", "BUS_4"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.035205d, result.getBusVoltageSensitivityValue("T2wT", "BUS_2"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d, result.getBusVoltageSensitivityValue("T2wT", "BUS_3"), LoadFlowAssert.DELTA_V);
+        assertEquals(1.055117d, result.getBusVoltageSensitivityValue("T2wT", "BUS_4"), LoadFlowAssert.DELTA_V);
 
         t2wt.getRatioTapChanger()
                 .setTargetDeadband(0)
@@ -490,14 +490,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(4, result2.getValues().size());
         assertEquals(0d, result2.getBusVoltageSensitivityValue("T2wT", "BUS_1"), LoadFlowAssert.DELTA_V);
-        assertEquals(0d,  result2.getBusVoltageSensitivityValue("T2wT", "BUS_2"), LoadFlowAssert.DELTA_V);
-        assertEquals(0d,  result2.getBusVoltageSensitivityValue("T2wT", "BUS_3"), LoadFlowAssert.DELTA_V);
-        assertEquals(0d,  result2.getBusVoltageSensitivityValue("T2wT", "BUS_4"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d, result2.getBusVoltageSensitivityValue("T2wT", "BUS_2"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d, result2.getBusVoltageSensitivityValue("T2wT", "BUS_3"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d, result2.getBusVoltageSensitivityValue("T2wT", "BUS_4"), LoadFlowAssert.DELTA_V);
 
         assertEquals(135.0, result2.getBusVoltageFunctionReferenceValue("BUS_1"), LoadFlowAssert.DELTA_V);
-        assertEquals(133.77,  result2.getBusVoltageFunctionReferenceValue("BUS_2"), LoadFlowAssert.DELTA_V);
-        assertEquals(25.88,  result2.getBusVoltageFunctionReferenceValue("BUS_3"), LoadFlowAssert.DELTA_V);
-        assertEquals(25.16,  result2.getBusVoltageFunctionReferenceValue("BUS_4"), LoadFlowAssert.DELTA_V);
+        assertEquals(133.77, result2.getBusVoltageFunctionReferenceValue("BUS_2"), LoadFlowAssert.DELTA_V);
+        assertEquals(25.88, result2.getBusVoltageFunctionReferenceValue("BUS_3"), LoadFlowAssert.DELTA_V);
+        assertEquals(25.16, result2.getBusVoltageFunctionReferenceValue("BUS_4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -539,9 +539,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(4, result.getValues().size());
         assertEquals(0d, result.getBusVoltageSensitivityValue("T3wT", "BUS_1"), LoadFlowAssert.DELTA_V);
-        assertEquals(0d,  result.getBusVoltageSensitivityValue("T3wT", "BUS_2"), LoadFlowAssert.DELTA_V);
-        assertEquals(1d,  result.getBusVoltageSensitivityValue("T3wT", "BUS_3"), LoadFlowAssert.DELTA_V);
-        assertEquals(0d,  result.getBusVoltageSensitivityValue("T3wT", "BUS_4"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d, result.getBusVoltageSensitivityValue("T3wT", "BUS_2"), LoadFlowAssert.DELTA_V);
+        assertEquals(1d, result.getBusVoltageSensitivityValue("T3wT", "BUS_3"), LoadFlowAssert.DELTA_V);
+        assertEquals(0d, result.getBusVoltageSensitivityValue("T3wT", "BUS_4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
