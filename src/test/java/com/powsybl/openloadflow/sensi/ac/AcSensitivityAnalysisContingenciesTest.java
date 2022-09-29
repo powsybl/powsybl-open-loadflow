@@ -328,7 +328,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
                                                              network.getBranchStream().collect(Collectors.toList()));
 
-        List<Contingency> contingencies = List.of(new Contingency("l23+l34", new BranchContingency("l23"),  new BranchContingency("l34")));
+        List<Contingency> contingencies = List.of(new Contingency("l23+l34", new BranchContingency("l23"), new BranchContingency("l34")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
@@ -711,9 +711,9 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(1.0d, result.getBusVoltageSensitivityValue("NHV2_NLOAD", "NLOAD"), LoadFlowAssert.DELTA_V);
 
         assertEquals(0d, result.getBusVoltageSensitivityValue("NHV1_NHV2_2", "NHV2_NLOAD", "NGEN"), LoadFlowAssert.DELTA_V);
-        assertEquals(0.026329d,  result.getBusVoltageSensitivityValue("NHV1_NHV2_2", "NHV2_NLOAD", "NHV1"), LoadFlowAssert.DELTA_V);
-        assertEquals(0.103981d,  result.getBusVoltageSensitivityValue("NHV1_NHV2_2", "NHV2_NLOAD", "NHV2"), LoadFlowAssert.DELTA_V);
-        assertEquals(1.0d,  result.getBusVoltageSensitivityValue("NHV1_NHV2_2", "NHV2_NLOAD", "NLOAD"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.026329d, result.getBusVoltageSensitivityValue("NHV1_NHV2_2", "NHV2_NLOAD", "NHV1"), LoadFlowAssert.DELTA_V);
+        assertEquals(0.103981d, result.getBusVoltageSensitivityValue("NHV1_NHV2_2", "NHV2_NLOAD", "NHV2"), LoadFlowAssert.DELTA_V);
+        assertEquals(1.0d, result.getBusVoltageSensitivityValue("NHV1_NHV2_2", "NHV2_NLOAD", "NLOAD"), LoadFlowAssert.DELTA_V);
     }
 
     @Test

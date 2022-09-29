@@ -137,7 +137,7 @@ public class NewtonRaphson {
                     break;
 
                 default:
-                    throw new IllegalStateException("Unknown variable type "  + v.getType());
+                    throw new IllegalStateException("Unknown variable type " + v.getType());
             }
         }
         equationSystem.getStateVector().set(x);
@@ -174,7 +174,7 @@ public class NewtonRaphson {
                     break;
 
                 default:
-                    throw new IllegalStateException("Unknown variable type "  + v.getType());
+                    throw new IllegalStateException("Unknown variable type " + v.getType());
             }
         }
     }

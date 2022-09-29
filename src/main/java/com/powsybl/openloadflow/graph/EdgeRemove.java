@@ -11,7 +11,7 @@ import org.jgrapht.Graph;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class EdgeRemove<V, E>  extends AbstractEdgeModification<V, E>  {
+public class EdgeRemove<V, E> extends AbstractEdgeModification<V, E> {
 
     public EdgeRemove(V vertex1, V vertex2, E e) {
         super(vertex1, vertex2, e);

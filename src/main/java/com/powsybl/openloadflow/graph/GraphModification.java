@@ -11,7 +11,7 @@ import org.jgrapht.Graph;
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public interface GraphModification<V, E>  {
+public interface GraphModification<V, E> {
     void apply(Graph<V, E> graph);
 
     void undo(Graph<V, E> graph);
