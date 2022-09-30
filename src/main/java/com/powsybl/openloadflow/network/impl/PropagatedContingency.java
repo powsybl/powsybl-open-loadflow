@@ -121,7 +121,7 @@ public class PropagatedContingency {
     private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn,
                                                 boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation, boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
-        Set<Terminal> terminalsToDisconnect =  new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
 
         // process elements of the contingency
         for (ContingencyElement element : contingency.getElements()) {

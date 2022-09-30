@@ -126,7 +126,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             default:
-                throw new IllegalStateException("Unknown state variable type: "  + equation.getType());
+                throw new IllegalStateException("Unknown state variable type: " + equation.getType());
         }
 
         for (EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()) {

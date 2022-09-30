@@ -42,8 +42,8 @@ class DcLoadFlowMatrixTest {
     private final MatrixFactory matrixFactory = new DenseMatrixFactory();
 
     private static void logNetwork(Network network) {
-        network.getLoads().forEach(l ->  LOGGER.info("{} : p = {}.", l.getId(), l.getP0()));
-        network.getGenerators().forEach(g ->  LOGGER.info("{} : p = {}.", g.getId(), g.getTargetP()));
+        network.getLoads().forEach(l -> LOGGER.info("{} : p = {}.", l.getId(), l.getP0()));
+        network.getGenerators().forEach(g -> LOGGER.info("{} : p = {}.", g.getId(), g.getTargetP()));
         network.getBranchStream().forEach(b -> LOGGER.info("{} : p1 = {}, p2 = {}.",
                 b.getId(), b.getTerminal1().getP(), b.getTerminal2().getP()));
     }

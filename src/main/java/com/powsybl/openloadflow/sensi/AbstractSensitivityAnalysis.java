@@ -559,7 +559,27 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    protected List<SensitivityFactorGroup<V, E>> createFactorGroups(List<LfSensitivityFactor<V, E>> factors) {
+    protected static class SensitivityFactorGroupList<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+
+        private final List<SensitivityFactorGroup<V, E>> list;
+
+        private final boolean multiVariables;
+
+        public SensitivityFactorGroupList(List<SensitivityFactorGroup<V, E>> list) {
+            this.list = Objects.requireNonNull(list);
+            multiVariables = list.stream().anyMatch(MultiVariablesFactorGroup.class::isInstance);
+        }
+
+        public List<SensitivityFactorGroup<V, E>> getList() {
+            return list;
+        }
+
+        public boolean hasMultiVariables() {
+            return multiVariables;
+        }
+    }
+
+    protected SensitivityFactorGroupList<V, E> createFactorGroups(List<LfSensitivityFactor<V, E>> factors) {
         Map<Pair<SensitivityVariableType, String>, SensitivityFactorGroup<V, E>> groupIndexedById = new LinkedHashMap<>(factors.size());
         // index factors by variable config
         for (LfSensitivityFactor<V, E> factor : factors) {
@@ -582,7 +602,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             factorGroup.setIndex(index++);
         }
 
-        return new ArrayList<>(groupIndexedById.values());
+        return new SensitivityFactorGroupList<>(new ArrayList<>(groupIndexedById.values()));
     }
 
     protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
@@ -592,14 +612,14 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return participatingElements;
     }
 
-    protected DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, List<SensitivityFactorGroup<V, E>> factorsGroups, Map<LfBus, Double> participationByBus) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), factorsGroups.size());
+    protected DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
+        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), factorsGroups.getList().size());
         fillRhsSensitivityVariable(factorsGroups, rhs, participationByBus);
         return rhs;
     }
 
-    protected void fillRhsSensitivityVariable(List<SensitivityFactorGroup<V, E>> factorGroups, Matrix rhs, Map<LfBus, Double> participationByBus) {
-        for (SensitivityFactorGroup<V, E> factorGroup : factorGroups) {
+    protected void fillRhsSensitivityVariable(SensitivityFactorGroupList<V, E> factorGroups, Matrix rhs, Map<LfBus, Double> participationByBus) {
+        for (SensitivityFactorGroup<V, E> factorGroup : factorGroups.getList()) {
             factorGroup.fillRhs(rhs, participationByBus);
         }
     }
@@ -633,10 +653,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    protected boolean rescaleGlsk(List<SensitivityFactorGroup<V, E>> factorGroups, Set<LfBus> nonConnectedBuses) {
+    protected boolean rescaleGlsk(SensitivityFactorGroupList<V, E> factorGroups, Set<LfBus> nonConnectedBuses) {
         boolean rescaled = false;
         // compute the corresponding injection (with participation) for each factor
-        for (SensitivityFactorGroup<V, E> factorGroup : factorGroups) {
+        for (SensitivityFactorGroup<V, E> factorGroup : factorGroups.getList()) {
             if (factorGroup instanceof MultiVariablesFactorGroup) {
                 MultiVariablesFactorGroup<V, E> multiVariablesFactorGroup = (MultiVariablesFactorGroup<V, E>) factorGroup;
                 rescaled |= multiVariablesFactorGroup.updateConnectivityWeights(nonConnectedBuses);
@@ -1043,7 +1063,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     public static boolean isDistributedSlackOnLoads(DcLoadFlowParameters lfParameters) {
         return lfParameters.isDistributedSlack()
-                &&  (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                && (lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
                 || lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
     }
 

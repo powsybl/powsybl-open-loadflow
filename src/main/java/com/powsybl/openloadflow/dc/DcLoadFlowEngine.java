@@ -95,7 +95,7 @@ public class DcLoadFlowEngine {
                     break;
 
                 default:
-                    throw new IllegalStateException("Unknown variable type "  + v.getType());
+                    throw new IllegalStateException("Unknown variable type " + v.getType());
             }
         }
         equationSystem.getStateVector().set(x);
@@ -118,7 +118,7 @@ public class DcLoadFlowEngine {
                     break;
 
                 default:
-                    throw new IllegalStateException("Unknown variable type "  + v.getType());
+                    throw new IllegalStateException("Unknown variable type " + v.getType());
             }
         }
     }
@@ -146,7 +146,7 @@ public class DcLoadFlowEngine {
                 break;
 
             default:
-                throw new IllegalStateException("Unknown state variable type: "  + equation.getType());
+                throw new IllegalStateException("Unknown state variable type: " + equation.getType());
         }
 
         for (EquationTerm<DcVariableType, DcEquationType> term : equation.getTerms()) {

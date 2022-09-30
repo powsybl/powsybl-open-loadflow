@@ -37,7 +37,7 @@ public class NewtonRaphsonParameters {
     }
 
     public NewtonRaphsonParameters setMaxIteration(int maxIteration) {
-        this.maxIteration =  checkMaxIteration(maxIteration);
+        this.maxIteration = checkMaxIteration(maxIteration);
         return this;
     }
 

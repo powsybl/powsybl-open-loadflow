@@ -192,7 +192,7 @@ class AcEquationsTest {
         var bus = Mockito.mock(LfBus.class, ANSWER);
         Mockito.doReturn(0).when(bus).getNum();
 
-        VariableSet<AcVariableType>  variableSet = new VariableSet<>();
+        VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var vVar = variableSet.getVariable(0, AcVariableType.BUS_V);
         var bVar = variableSet.getVariable(0, AcVariableType.SHUNT_B);
 
@@ -224,7 +224,7 @@ class AcEquationsTest {
         Mockito.doReturn(0).when(bus1).getNum();
         Mockito.doReturn(1).when(bus2).getNum();
 
-        VariableSet<AcVariableType>  variableSet = new VariableSet<>();
+        VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var hvdcPh1Var = variableSet.getVariable(0, AcVariableType.BUS_PHI);
         var hvdcPh2Var = variableSet.getVariable(1, AcVariableType.BUS_PHI);
 

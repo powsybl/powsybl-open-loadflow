@@ -39,7 +39,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final class ControllerContext {
 
-        private final MutableInt directionChangeCount =  new MutableInt();
+        private final MutableInt directionChangeCount = new MutableInt();
 
         private PiModel.AllowedDirection allowedDirection = PiModel.AllowedDirection.BOTH;
 

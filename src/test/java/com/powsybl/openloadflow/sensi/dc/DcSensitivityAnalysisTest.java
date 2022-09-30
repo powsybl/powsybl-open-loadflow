@@ -675,8 +675,8 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
 
-        List<SensitivityFactor> factors =  createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
-                                                              network.getBranchStream().collect(Collectors.toList()));
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
 
         List<Contingency> contingencies = Collections.emptyList();
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
