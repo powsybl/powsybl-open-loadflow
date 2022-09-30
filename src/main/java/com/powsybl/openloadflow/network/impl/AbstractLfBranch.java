@@ -39,7 +39,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected TransformerVoltageControl voltageControl;
 
-    protected double transformerVoltageControlTargetDeadband;
+    protected Double transformerVoltageControlTargetDeadband;
 
     protected boolean voltageControlEnabled = false;
 
