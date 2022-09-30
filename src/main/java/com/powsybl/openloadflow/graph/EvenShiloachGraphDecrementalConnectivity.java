@@ -33,7 +33,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         vertexToConnectedComponent = null;
         componentSets = null;
 
-        GraphProcess processA = new GraphProcessA(edgeRemoval.v1, edgeRemoval.v2, newConnectedComponents);
+        GraphProcessA processA = new GraphProcessA(edgeRemoval.v1, edgeRemoval.v2);
         GraphProcessB processB = new GraphProcessB(edgeRemoval.v1, edgeRemoval.v2);
         while (!processA.isHalted() && !processB.isHalted()) {
             processA.next();
@@ -44,9 +44,16 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
         if (processA.isHalted()) {
             processB.undoChanges();
+            updateNewConnectedComponents(processA.verticesOut);
         } else { // processB halted
             allSavedChangedLevels.add(processB.savedChangedLevels);
         }
+    }
+
+    private void updateNewConnectedComponents(Set<V> verticesOut) {
+        // the removed edge can be in a new connected component!
+        newConnectedComponents.forEach(cc -> cc.removeAll(verticesOut));
+        newConnectedComponents.add(verticesOut);
     }
 
     @Override
@@ -75,8 +82,8 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
     @Override
     public void startTemporaryChanges() {
-        if (!getGraphModifications().isEmpty()) {
-            throw new PowsyblException("This implementation supports only level of temporary changes");
+        if (!getModificationsContexts().isEmpty()) {
+            throw new PowsyblException("This implementation supports only one level of temporary changes");
         }
         super.startTemporaryChanges();
         if (levelNeighboursMap.isEmpty()) {
@@ -181,36 +188,32 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
     private class GraphProcessA implements GraphProcess {
 
-        private final List<Set<V>> newConnectedComponents;
         private final Traverser t1;
         private final Traverser t2;
-        private boolean halted;
+        private Set<V> verticesOut;
 
-        public GraphProcessA(V vertex1, V vertex2, List<Set<V>> newConnectedComponents) {
-            this.newConnectedComponents = newConnectedComponents;
+        public GraphProcessA(V vertex1, V vertex2) {
             Set<V> visitedVerticesT1 = new LinkedHashSet<>();
             Set<V> visitedVerticesT2 = new LinkedHashSet<>();
             this.t1 = new Traverser(vertex1, visitedVerticesT2, visitedVerticesT1);
             this.t2 = new Traverser(vertex2, visitedVerticesT1, visitedVerticesT2);
-            this.halted = false;
+            this.verticesOut = null;
         }
 
         @Override
         public void next() {
-            if (t1.hasEnded() || t2.hasEnded() || halted) {
+            if (t1.hasEnded() || t2.hasEnded() || isHalted()) {
                 return;
             }
 
             if (t1.componentBreakDetected()) {
-                updateConnectedComponents(t1.visitedVertices);
-                halted = true;
+                verticesOut = t1.visitedVertices;
                 return;
             }
             t1.next();
 
             if (t2.componentBreakDetected()) {
-                updateConnectedComponents(t2.visitedVertices);
-                halted = true;
+                verticesOut = t2.visitedVertices;
                 return;
             }
             t2.next();
@@ -218,12 +221,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
         @Override
         public boolean isHalted() {
-            return halted;
-        }
-
-        private void updateConnectedComponents(Set<V> verticesOut) {
-            newConnectedComponents.forEach(cc -> cc.removeAll(verticesOut));
-            newConnectedComponents.add(verticesOut);
+            return verticesOut != null;
         }
     }
 
