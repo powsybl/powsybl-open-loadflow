@@ -75,7 +75,7 @@ class LfContingencyTest extends AbstractConverterTest {
             PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), false, false, false, true);
 
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
-                .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(mainNetwork, true).stream())
+                .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(mainNetwork).stream())
                 .collect(Collectors.toList());
         assertEquals(1, lfContingencies.size());
 

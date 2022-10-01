@@ -284,7 +284,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             NetworkState networkState = NetworkState.save(lfNetwork);
 
-            contingencies.forEach(contingency -> contingency.toLfContingency(lfNetwork, false)
+            contingencies.forEach(contingency -> contingency.toLfContingency(lfNetwork)
                 .ifPresentOrElse(lfContingency -> {
                     List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfContingency.getId());
                     contingencyFactors.forEach(lfFactor -> {

@@ -276,7 +276,7 @@ public class PropagatedContingency {
         return identifiable;
     }
 
-    public Optional<LfContingency> toLfContingency(LfNetwork network, boolean useSmallComponents) {
+    public Optional<LfContingency> toLfContingency(LfNetwork network) {
         // find contingency branches that are part of this network
         Set<LfBranch> branches = branchIdsToOpen.stream()
                 .map(network::getBranchById)
@@ -292,13 +292,8 @@ public class PropagatedContingency {
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
-        Set<LfBus> buses;
-        if (useSmallComponents) {
-            buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
-        } else {
-            buses = connectivity.getNonConnectedVertices(network.getSlackBus());
-        }
-        buses.forEach(b -> branches.addAll(b.getBranches()));
+        Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
+        branches.addAll(connectivity.getEdgesRemovedFromMainComponent());
 
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
