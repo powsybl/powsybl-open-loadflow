@@ -10,7 +10,6 @@ import com.powsybl.math.matrix.DenseMatrix;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -25,7 +24,7 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     @Override
     public void setStateVector(StateVector sv) {
-        this.sv = Objects.requireNonNull(sv);
+        this.sv = sv;
     }
 
     @Override
@@ -35,7 +34,7 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     @Override
     public void setEquation(Equation<V, E> equation) {
-        this.equation = Objects.requireNonNull(equation);
+        this.equation = equation;
     }
 
     @Override

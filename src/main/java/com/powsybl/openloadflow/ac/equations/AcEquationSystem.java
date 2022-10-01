@@ -46,9 +46,6 @@ public final class AcEquationSystem {
 
         createShuntVoltageControlEquations(bus, equationSystem);
 
-        // create load model
-        createLoadModel(bus, equationSystem, p, q);
-
         // maybe to fix later, but there is so part of OLF (like sensitivity) that needs a voltage target equation
         // deactivated
         if (!equationSystem.hasEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)) {
@@ -60,25 +57,22 @@ public final class AcEquationSystem {
         }
     }
 
-    private static void createLoadModel(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                        Equation<AcVariableType, AcEquationType> p, Equation<AcVariableType, AcEquationType> q) {
+    private static void createLoadModel(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         ExponentialLoadModel loadModel = bus.getLoadModel();
         if (loadModel != null) {
             if (loadModel.getAlpha() != 0) {
-                var terms = p.getTerms();
-                if (!terms.isEmpty()) {
-                    p.removeAllTerms();
-                    p.addTerm(EquationTerm.sum(terms)
-                            .multiply(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getAlpha())));
-                }
+                Equation<AcVariableType, AcEquationType> p = equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow();
+                var terms = new ArrayList<>(p.getTerms());
+                p.removeAllTerms();
+                p.addTerm(EquationTerm.sum(terms)
+                        .multiply(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getAlpha())));
             }
             if (loadModel.getBeta() != 0) {
-                var terms = q.getTerms();
-                if (!terms.isEmpty()) {
-                    q.removeAllTerms();
-                    q.addTerm(EquationTerm.sum(terms)
-                            .multiply(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getBeta())));
-                }
+                Equation<AcVariableType, AcEquationType> q = equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow();
+                var terms = new ArrayList<>(q.getTerms());
+                q.removeAllTerms();
+                q.addTerm(EquationTerm.sum(terms)
+                        .multiply(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getBeta())));
             }
         }
     }
@@ -798,6 +792,11 @@ public final class AcEquationSystem {
 
         for (LfHvdc hvdc : network.getHvdcs()) {
             createHvdcAcEmulationEquations(hvdc, equationSystem);
+        }
+
+        for (LfBus bus : network.getBuses()) {
+            // create load model
+            createLoadModel(bus, equationSystem);
         }
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
