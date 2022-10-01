@@ -11,28 +11,20 @@ package com.powsybl.openloadflow.network;
  */
 public class ExponentialLoadModel {
 
-    public static final double DEFAULT_ALPHA = 0;
-    public static final double DEFAULT_BETA = 0;
+    private final double alpha;
 
-    private double alpha = DEFAULT_ALPHA;
+    private final double beta;
 
-    private double beta = DEFAULT_BETA;
+    public ExponentialLoadModel(double alpha, double beta) {
+        this.alpha = alpha;
+        this.beta = beta;
+    }
 
     public double getAlpha() {
         return alpha;
     }
 
-    public ExponentialLoadModel setAlpha(double alpha) {
-        this.alpha = alpha;
-        return this;
-    }
-
     public double getBeta() {
         return beta;
-    }
-
-    public ExponentialLoadModel setBeta(double beta) {
-        this.beta = beta;
-        return this;
     }
 }

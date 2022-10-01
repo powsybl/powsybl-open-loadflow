@@ -169,4 +169,6 @@ public interface LfBus extends LfElement {
     double getMismatchP();
 
     ExponentialLoadModel getLoadModel();
+
+    void setLoadModel(ExponentialLoadModel loadModel);
 }

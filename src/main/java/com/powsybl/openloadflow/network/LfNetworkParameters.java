@@ -28,6 +28,10 @@ public class LfNetworkParameters {
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
 
+    public static final double LOAD_ALPHA_DEFAULT_VALUE = 0;
+
+    public static final double LOAD_BETA_DEFAULT_VALUE = 0;
+
     private SlackBusSelector slackBusSelector;
 
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
@@ -71,6 +75,10 @@ public class LfNetworkParameters {
     private final double maxPlausibleTargetVoltage;
 
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
+
+    private double loadAlpha = LOAD_ALPHA_DEFAULT_VALUE;
+
+    private double loadBeta = LOAD_BETA_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
         this(new FirstSlackBusSelector());
@@ -223,6 +231,24 @@ public class LfNetworkParameters {
         this.loaderPostProcessorSelection = Objects.requireNonNull(loaderPostProcessorSelection);
     }
 
+    public double getLoadAlpha() {
+        return loadAlpha;
+    }
+
+    public LfNetworkParameters setLoadAlpha(double loadAlpha) {
+        this.loadAlpha = loadAlpha;
+        return this;
+    }
+
+    public double getLoadBeta() {
+        return loadBeta;
+    }
+
+    public LfNetworkParameters setLoadBeta(double loadBeta) {
+        this.loadBeta = loadBeta;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -247,6 +273,8 @@ public class LfNetworkParameters {
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", loaderPostProcessorSelection=" + loaderPostProcessorSelection +
+                ", loadAlpha=" + loadAlpha +
+                ", loadBeta=" + loadBeta +
                 ')';
     }
 }

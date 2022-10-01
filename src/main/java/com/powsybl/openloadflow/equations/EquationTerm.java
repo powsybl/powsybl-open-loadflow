@@ -37,7 +37,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         MultiplyByScalarEquationTerm(EquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
             this.term = Objects.requireNonNull(term);
             this.scalarSupplier = Objects.requireNonNull(scalarSupplier);
-            term.setSelf(this);
         }
 
         @Override
@@ -58,11 +57,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         @Override
         public boolean isActive() {
             return term.isActive();
-        }
-
-        @Override
-        public void setSelf(EquationTerm<V, E> self) {
-            term.setSelf(self);
         }
 
         @Override
@@ -115,6 +109,11 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
             writer.write(Double.toString(scalarSupplier.getAsDouble()));
             writer.write(" * ");
             term.write(writer);
+        }
+
+        @Override
+        public List<EquationTerm<V, E>> getChildren() {
+            return List.of(term);
         }
     }
 
@@ -216,12 +215,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void setSelf(EquationTerm<V, E> self) {
-            term1.setSelf(self);
-            term2.setSelf(self);
-        }
-
-        @Override
         public ElementType getElementType() {
             return null;
         }
@@ -268,6 +261,11 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
+        public List<EquationTerm<V, E>> getChildren() {
+            return List.of(term1, term2);
+        }
+
+        @Override
         public void write(Writer writer) throws IOException {
             writer.write("multiply(");
             term1.write(writer);
@@ -281,7 +279,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         return new MultiplyEquationTerm<>(term1, term2);
     }
 
-    class AddEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
+    class SumEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
         private final List<EquationTerm<V, E>> terms;
 
@@ -289,7 +287,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         private final boolean hasRhs;
 
-        AddEquationTerm(List<EquationTerm<V, E>> terms) {
+        SumEquationTerm(List<EquationTerm<V, E>> terms) {
             this.terms = Objects.requireNonNull(terms);
             if (terms.isEmpty()) {
                 throw new IllegalArgumentException("Empty term list");
@@ -323,13 +321,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         public void setActive(boolean active) {
             for (var term : terms) {
                 term.setActive(active);
-            }
-        }
-
-        @Override
-        public void setSelf(EquationTerm<V, E> self) {
-            for (var term : terms) {
-                term.setSelf(self);
             }
         }
 
@@ -393,6 +384,11 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
+        public List<EquationTerm<V, E>> getChildren() {
+            return terms;
+        }
+
+        @Override
         public void write(Writer writer) throws IOException {
             writer.write("add(");
             terms.get(0).write(writer);
@@ -404,8 +400,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
     }
 
-    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> EquationTerm<V, E> add(List<EquationTerm<V, E>> terms) {
-        return new AddEquationTerm<>(terms);
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> EquationTerm<V, E> sum(List<EquationTerm<V, E>> terms) {
+        return new SumEquationTerm<>(terms);
     }
 
     Equation<V, E> getEquation();
@@ -415,8 +411,6 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
     boolean isActive();
 
     void setActive(boolean active);
-
-    void setSelf(EquationTerm<V, E> self);
 
     ElementType getElementType();
 
@@ -465,12 +459,18 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     void write(Writer writer) throws IOException;
 
+    List<EquationTerm<V, E>> getChildren();
+
     default EquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
         return multiply(this, scalarSupplier);
     }
 
     default EquationTerm<V, E> multiply(double scalar) {
         return multiply(this, scalar);
+    }
+
+    default EquationTerm<V, E> multiply(EquationTerm<V, E> other) {
+        return multiply(this, other);
     }
 
     default EquationTerm<V, E> minus() {

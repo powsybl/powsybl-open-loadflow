@@ -73,14 +73,41 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equations.values();
     }
 
-    void addEquationTerm(EquationTerm<V, E> equationTerm) {
-        if (indexTerms) {
-            Objects.requireNonNull(equationTerm);
+    private void indexTerm(EquationTerm<V, E> equationTerm) {
+        if (equationTerm.getElementType() != null && equationTerm.getElementNum() != -1) {
             Pair<ElementType, Integer> element = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
             equationTermsByElement.computeIfAbsent(element, k -> new ArrayList<>())
                     .add(equationTerm);
         }
+        for (EquationTerm<V, E> child : equationTerm.getChildren()) {
+            indexTerm(child);
+        }
+    }
+
+    void addEquationTerm(EquationTerm<V, E> equationTerm) {
+        Objects.requireNonNull(equationTerm);
+        if (indexTerms) {
+            indexTerm(equationTerm);
+        }
         attach(equationTerm);
+    }
+
+    private void deindexTerm(EquationTerm<V, E> equationTerm) {
+        if (equationTerm.getElementType() != null && equationTerm.getElementNum() != -1) {
+            Pair<ElementType, Integer> element = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
+            equationTermsByElement.remove(element).remove(equationTerm);
+        }
+        for (EquationTerm<V, E> child : equationTerm.getChildren()) {
+            deindexTerm(child);
+        }
+    }
+
+    void removeEquationTerm(EquationTerm<V, E> equationTerm) {
+        Objects.requireNonNull(equationTerm);
+        if (indexTerms) {
+            deindexTerm(equationTerm);
+            equationTerm.setStateVector(null);
+        }
     }
 
     public List<EquationTerm<V, E>> getEquationTerms(ElementType elementType, int elementNum) {

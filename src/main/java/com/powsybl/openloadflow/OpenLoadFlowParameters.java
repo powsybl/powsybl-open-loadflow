@@ -103,6 +103,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_REALISTIC_VOLTAGE_NAME = "maxRealisticVoltage";
 
+    public static final String LOAD_ALPHA_NAME = "loadAlpha";
+
+    public static final String LOAD_BETA_NAME = "loadBeta";
+
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -122,7 +126,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MIN_REALISTIC_VOLTAGE_NAME,
-                                                                         MAX_REALISTIC_VOLTAGE_NAME);
+                                                                         MAX_REALISTIC_VOLTAGE_NAME,
+                                                                         LOAD_ALPHA_NAME,
+                                                                         LOAD_BETA_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -184,6 +190,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double minRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
+
+    private double loadAlpha = LfNetworkParameters.LOAD_ALPHA_DEFAULT_VALUE;
+
+    private double loadBeta = LfNetworkParameters.LOAD_BETA_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -378,6 +388,24 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getLoadAlpha() {
+        return loadAlpha;
+    }
+
+    public OpenLoadFlowParameters setLoadAlpha(double loadAlpha) {
+        this.loadAlpha = loadAlpha;
+        return this;
+    }
+
+    public double getLoadBeta() {
+        return loadBeta;
+    }
+
+    public OpenLoadFlowParameters setLoadBeta(double loadBeta) {
+        this.loadBeta = loadBeta;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -407,7 +435,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
-                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE)));
+                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
+                .setLoadAlpha(config.getDoubleProperty(LOAD_ALPHA_NAME, LfNetworkParameters.LOAD_ALPHA_DEFAULT_VALUE))
+                .setLoadBeta(config.getDoubleProperty(LOAD_BETA_NAME, LfNetworkParameters.LOAD_BETA_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -456,6 +486,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMinRealisticVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_NAME))
                 .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(LOAD_ALPHA_NAME))
+                .ifPresent(prop -> this.setLoadAlpha(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(LOAD_BETA_NAME))
+                .ifPresent(prop -> this.setLoadBeta(Double.parseDouble(prop)));
         return this;
     }
 
@@ -482,6 +516,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
+                ", loadAlpha=" + loadAlpha +
+                ", loadBeta=" + loadBeta +
                 ')';
     }
 
@@ -548,6 +584,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Max plausible target voltage: {}", parametersExt.getMaxPlausibleTargetVoltage());
         LOGGER.info("Min realistic voltage: {}", parametersExt.getMinRealisticVoltage());
         LOGGER.info("Max realistic voltage: {}", parametersExt.getMaxRealisticVoltage());
+        LOGGER.info("Load alpha beta: {}, {}", parametersExt.getLoadAlpha(), parametersExt.getLoadBeta());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
@@ -609,7 +646,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                        !parameters.isNoGeneratorReactiveLimits(),
                                        parameters.isHvdcAcEmulation(),
                                        parametersExt.getMinPlausibleTargetVoltage(),
-                                       parametersExt.getMaxPlausibleTargetVoltage());
+                                       parametersExt.getMaxPlausibleTargetVoltage())
+                .setLoadAlpha(parametersExt.getLoadAlpha())
+                .setLoadBeta(parametersExt.getLoadBeta());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

@@ -313,6 +313,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             lfBus.setShuntCompensators(shuntCompensators, parameters.isShuntVoltageControl());
         }
 
+        if (parameters.getLoadAlpha() != 0 || parameters.getLoadBeta() != 0) {
+            lfBus.setLoadModel(new ExponentialLoadModel(parameters.getLoadAlpha(), parameters.getLoadBeta()));
+        }
+
         return lfBus;
     }
 

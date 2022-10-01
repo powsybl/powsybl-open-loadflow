@@ -98,8 +98,13 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return terms;
     }
 
-    public void clearTerms() {
-
+    public void removeAllTerms() {
+        for (EquationTerm<V, E> term : terms) {
+            equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_REMOVED);
+            equationSystem.removeEquationTerm(term);
+            term.setEquation(null);
+        }
+        terms.clear();
     }
 
     @Override
