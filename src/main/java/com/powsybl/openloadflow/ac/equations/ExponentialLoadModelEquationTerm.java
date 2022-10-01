@@ -61,7 +61,7 @@ public class ExponentialLoadModelEquationTerm extends AbstractBusEquationTerm<Ac
         if (variable.equals(vVar)) {
             return dcdv(v(), exponent);
         } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+            return 0;
         }
     }
 

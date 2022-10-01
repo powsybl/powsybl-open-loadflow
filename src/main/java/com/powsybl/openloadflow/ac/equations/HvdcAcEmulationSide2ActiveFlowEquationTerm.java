@@ -51,7 +51,7 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
         } else if (variable.equals(ph2Var)) {
             return dp2dph2(k, ph1(), ph2());
         } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+            return 0;
         }
     }
 

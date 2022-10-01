@@ -89,7 +89,7 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
         if (variable.equals(v2Var)) {
             return di2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v2(), ph2());
         } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+            return 0;
         }
     }
 

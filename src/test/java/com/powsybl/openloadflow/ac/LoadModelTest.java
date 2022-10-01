@@ -44,8 +44,8 @@ class LoadModelTest {
         var bus2 = network.getBusBreakerView().getBus("NHV2");
         var loadBus = network.getBusBreakerView().getBus("NLOAD");
         assertVoltageEquals(24.5, genBus);
-        assertVoltageEquals(402.143, bus1);
-        assertVoltageEquals(389.953, bus2);
-        assertVoltageEquals(147.578, loadBus);
+        assertVoltageEquals(402.03, bus1);
+        assertVoltageEquals(389.653, bus2);
+        assertVoltageEquals(147.384, loadBus);
     }
 }

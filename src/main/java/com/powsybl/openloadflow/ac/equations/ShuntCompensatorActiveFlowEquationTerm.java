@@ -54,7 +54,7 @@ public class ShuntCompensatorActiveFlowEquationTerm extends AbstractShuntCompens
         if (variable.equals(vVar)) {
             return dpdv(v(), g());
         } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+            return 0;
         }
     }
 
