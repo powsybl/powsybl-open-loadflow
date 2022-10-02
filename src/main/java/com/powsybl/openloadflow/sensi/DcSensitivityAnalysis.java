@@ -830,27 +830,28 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         // create the network (we only manage main connected component)
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(), lfParametersExt.getPlausibleActivePowerLimit());
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector,
-                                                                          connectivityFactory,
-                                                                          false,
-                                                                          true,
-                                                                          lfParameters.isTwtSplitShuntAdmittance(),
-                                                                          breakers,
-                                                                          lfParametersExt.getPlausibleActivePowerLimit(),
-                                                                          lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                                                          true,
-                                                                          lfParameters.getCountriesToBalance(),
-                                                                          lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                                                          false,
-                                                                          false,
-                                                                          false,
-                                                                          false,
-                                                                          true,
-                                                                          false,
-                                                                          false,
-                                                                          false,
-                                                                          lfParametersExt.getMinPlausibleTargetVoltage(),
-                                                                          lfParametersExt.getMaxPlausibleTargetVoltage());
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(slackBusSelector)
+                .setConnectivityFactory(connectivityFactory)
+                .setGeneratorVoltageRemoteControl(false)
+                .setMinImpedance(true)
+                .setTwtSplitShuntAdmittance(lfParameters.isTwtSplitShuntAdmittance())
+                .setBreakers(breakers)
+                .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
+                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds())
+                .setComputeMainConnectedComponentOnly(true)
+                .setCountriesToBalance(lfParameters.getCountriesToBalance())
+                .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setPhaseControl(false)
+                .setTransformerVoltageControl(false)
+                .setVoltagePerReactivePowerControl(false)
+                .setReactivePowerRemoteControl(false)
+                .setDc(true)
+                .setShuntVoltageControl(false)
+                .setReactiveLimits(false)
+                .setHvdcAcEmulation(false)
+                .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
+                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage());
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);

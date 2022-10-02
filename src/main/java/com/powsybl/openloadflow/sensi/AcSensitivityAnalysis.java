@@ -192,27 +192,29 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             lfParameters.setTransformerVoltageControlOn(true);
         }
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(), lfParametersExt.getPlausibleActivePowerLimit());
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector,
-                                                                          connectivityFactory,
-                                                                          lfParametersExt.hasVoltageRemoteControl(),
-                                                                          true,
-                                                                          lfParameters.isTwtSplitShuntAdmittance(),
-                                                                          breakers,
-                                                                          lfParametersExt.getPlausibleActivePowerLimit(),
-                                                                          lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                                                          true,
-                                                                          lfParameters.getCountriesToBalance(),
-                                                                          lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                                                          lfParameters.isPhaseShifterRegulationOn(),
-                                                                          lfParameters.isTransformerVoltageControlOn(),
-                                                                          lfParametersExt.isVoltagePerReactivePowerControl(),
-                                                                          lfParametersExt.hasReactivePowerRemoteControl(),
-                                                                          lfParameters.isDc(),
-                                                                          lfParameters.isShuntCompensatorVoltageControlOn(),
-                                                                          !lfParameters.isNoGeneratorReactiveLimits(),
-                                                                          lfParameters.isHvdcAcEmulation(),
-                                                                          lfParametersExt.getMinPlausibleTargetVoltage(),
-                                                                          lfParametersExt.getMaxPlausibleTargetVoltage());
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(slackBusSelector)
+                .setConnectivityFactory(connectivityFactory)
+                .setGeneratorVoltageRemoteControl(lfParametersExt.hasVoltageRemoteControl())
+                .setMinImpedance(true)
+                .setTwtSplitShuntAdmittance(lfParameters.isTwtSplitShuntAdmittance())
+                .setBreakers(breakers)
+                .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
+                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds())
+                .setComputeMainConnectedComponentOnly(true)
+                .setCountriesToBalance(lfParameters.getCountriesToBalance())
+                .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setPhaseControl(lfParameters.isPhaseShifterRegulationOn())
+                .setTransformerVoltageControl(lfParameters.isTransformerVoltageControlOn())
+                .setVoltagePerReactivePowerControl(lfParametersExt.isVoltagePerReactivePowerControl())
+                .setReactivePowerRemoteControl(lfParametersExt.hasReactivePowerRemoteControl())
+                .setDc(lfParameters.isDc())
+                .setShuntVoltageControl(lfParameters.isShuntCompensatorVoltageControlOn())
+                .setReactiveLimits(!lfParameters.isNoGeneratorReactiveLimits())
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
+                .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
+                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage());
+
         // create networks including all necessary switches
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
