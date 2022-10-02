@@ -401,6 +401,9 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
     }
 
     static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> EquationTerm<V, E> sum(List<EquationTerm<V, E>> terms) {
+        if (terms.size() == 1) {
+            return terms.get(0);
+        }
         return new SumEquationTerm<>(terms);
     }
 

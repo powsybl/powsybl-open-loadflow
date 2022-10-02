@@ -225,6 +225,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, parameters.isDistributedOnConformLoad(), participateToSlackDistribution(parameters, bus), parameters.isBreakers());
 
         List<ShuntCompensator> shuntCompensators = new ArrayList<>();
+        int[] loadCount = new int[1];
 
         bus.visitConnectedEquipments(new DefaultTopologyVisitor() {
 
@@ -257,6 +258,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             @Override
             public void visitLoad(Load load) {
                 lfBus.addLoad(load);
+                loadCount[0]++;
                 postProcessors.forEach(pp -> pp.onInjectionAdded(load, lfBus));
             }
 
@@ -313,7 +315,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             lfBus.setShuntCompensators(shuntCompensators, parameters.isShuntVoltageControl());
         }
 
-        if (parameters.getLoadAlpha() != 0 || parameters.getLoadBeta() != 0) {
+        if (loadCount[0] > 0 && (parameters.getLoadAlpha() != 0 || parameters.getLoadBeta() != 0)) {
             lfBus.setLoadModel(new ExponentialLoadModel(parameters.getLoadAlpha(), parameters.getLoadBeta()));
         }
 
