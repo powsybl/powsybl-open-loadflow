@@ -133,7 +133,7 @@ public interface LfBranch extends LfElement {
 
     void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
-    void setTransformerVoltageControlTargetDeadband(double transformerVoltageControlTargetDeadband);
+    void setTransformerVoltageControlTargetDeadband(Double transformerVoltageControlTargetDeadband);
 
     BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
 
