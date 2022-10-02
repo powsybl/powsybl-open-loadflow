@@ -60,9 +60,8 @@ public class ExponentialLoadModelEquationTerm extends AbstractBusEquationTerm<Ac
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
             return dcdv(v(), exponent);
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     @Override

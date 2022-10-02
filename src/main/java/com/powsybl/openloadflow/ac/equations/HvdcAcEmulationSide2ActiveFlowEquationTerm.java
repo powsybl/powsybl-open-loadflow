@@ -50,9 +50,8 @@ public class HvdcAcEmulationSide2ActiveFlowEquationTerm extends AbstractHvdcAcEm
             return dp2dph1(k, ph1(), ph2());
         } else if (variable.equals(ph2Var)) {
             return dp2dph2(k, ph1(), ph2());
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     @Override

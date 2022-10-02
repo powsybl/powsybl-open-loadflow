@@ -89,9 +89,8 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
             return dp2da1(y, v1(), r1(), v2(), FastMath.cos(theta));
         } else if (variable.equals(r1Var)) {
             return dp2dr1(y, v1(), v2(), FastMath.sin(theta));
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     @Override

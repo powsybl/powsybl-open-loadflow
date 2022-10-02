@@ -53,9 +53,8 @@ public class ShuntCompensatorActiveFlowEquationTerm extends AbstractShuntCompens
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
             return dpdv(v(), g());
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     @Override

@@ -53,9 +53,8 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
             return dp2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, v2());
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     @Override
