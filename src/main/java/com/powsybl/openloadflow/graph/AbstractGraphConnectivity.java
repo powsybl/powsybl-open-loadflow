@@ -120,8 +120,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         return componentSets.size();
     }
 
-    @Override
-    public Collection<Set<V>> getSmallComponents() {
+    protected Collection<Set<V>> getSmallComponents() {
         checkSaved();
         updateComponents();
         return componentSets.subList(1, componentSets.size());
