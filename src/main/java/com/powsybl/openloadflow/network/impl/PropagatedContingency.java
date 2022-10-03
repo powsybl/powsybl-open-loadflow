@@ -285,6 +285,7 @@ public class PropagatedContingency {
 
         // update connectivity with triggered branches
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        connectivity.setMainComponentVertex(network.getSlackBus());
         connectivity.startTemporaryChanges();
         branches.stream()
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
