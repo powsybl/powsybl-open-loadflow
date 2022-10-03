@@ -39,7 +39,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected TransformerVoltageControl voltageControl;
 
-    protected double transformerVoltageControlTargetDeadband;
+    protected Double transformerVoltageControlTargetDeadband;
 
     protected boolean voltageControlEnabled = false;
 
@@ -212,7 +212,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public void setTransformerVoltageControlTargetDeadband(double transformerVoltageControlTargetDeadband) {
+    public void setTransformerVoltageControlTargetDeadband(Double transformerVoltageControlTargetDeadband) {
         this.transformerVoltageControlTargetDeadband = transformerVoltageControlTargetDeadband;
     }
 
