@@ -277,24 +277,20 @@ public class PropagatedContingency {
     }
 
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
-        // find contingency branches that are part of this network
-        Set<LfBranch> branches = branchIdsToOpen.stream()
-                .map(network::getBranchById)
-                .filter(Objects::nonNull) // could be in another component
-                .collect(Collectors.toSet());
-
-        // update connectivity with triggered branches
+        // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.setMainComponentVertex(network.getSlackBus());
         connectivity.startTemporaryChanges();
-        branches.stream()
+        branchIdsToOpen.stream()
+                .map(network::getBranchById)
+                .filter(Objects::nonNull) // could be in another component
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
                 .forEach(connectivity::removeEdge);
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
-        branches.addAll(connectivity.getEdgesRemovedFromMainComponent());
+        Set<LfBranch> branches = connectivity.getEdgesRemovedFromMainComponent();
 
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
