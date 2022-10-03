@@ -194,8 +194,8 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     }
 
     public void setMainComponentVertex(V mainComponentVertex) {
-        if (!modificationsContexts.isEmpty()) {
-            throw new PowsyblException("Cannot set main component vertex after starting temporary changes");
+        if (!modificationsContexts.isEmpty() && mainComponentVertex != this.mainComponentVertex) {
+            throw new PowsyblException("Cannot change main component vertex after starting temporary changes");
         }
         this.mainComponentVertex = mainComponentVertex;
     }
