@@ -63,6 +63,14 @@ public interface GraphConnectivity<V, E> {
     int getComponentNumber(V vertex);
 
     /**
+     * Set the main component with given vertex.
+     * The connected component relative to this vertex is considered as being the main component.
+     * This main component cannot be changed if any temporary changes are ongoing.
+     * @param mainComponentVertex vertex defining main component
+     */
+    void setMainComponentVertex(V mainComponentVertex);
+
+    /**
      * Return the collection of "small" connected components, meaning all the connected components except the biggest one (size-wise).
      * @return the collection of small connected components
      */
