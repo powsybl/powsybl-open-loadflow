@@ -296,26 +296,27 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                     lfContingency.apply(lfParameters.getBalanceType());
 
-                    // Sensitivity values 0 and function reference NaN in case of a sensitivity on a disabled branch
-                    contingencyFactors.stream()
-                            .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
-                            .filter(lfFactor -> lfContingency.getDisabledBranches().contains(lfFactor.getFunctionElement()))
-                            .forEach(lfFactor -> {
-                                lfFactor.setSensitivityValuePredefinedResult(0d);
-                                lfFactor.setFunctionPredefinedResult(Double.NaN);
-                            });
-                    // Sensitivity values 0 in case of a sensitivity from the transformer phase of a disabled transformer
-                    contingencyFactors.stream()
-                            .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
-                            .filter(lfFactor -> lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
-                            .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
-
                     Map<LfBus, Double> postContingencySlackParticipationByBus;
                     Set<LfBus> slackConnectedComponent;
                     if (lfContingency.getDisabledBuses().isEmpty()) {
                         // contingency not breaking connectivity
                         LOGGER.debug("Contingency {} without loss of connectivity", lfContingency.getId());
                         slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
+
+                        // Sensitivity values 0 and function reference NaN in case of a sensitivity on a disabled branch
+                        contingencyFactors.stream()
+                                .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
+                                .filter(lfFactor -> lfContingency.getDisabledBranches().contains(lfFactor.getFunctionElement()))
+                                .forEach(lfFactor -> {
+                                    lfFactor.setSensitivityValuePredefinedResult(0d);
+                                    lfFactor.setFunctionPredefinedResult(Double.NaN);
+                                });
+
+                        // Sensitivity values 0 in case of a sensitivity from the transformer phase of a disabled transformer
+                        contingencyFactors.stream()
+                                .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
+                                .filter(lfFactor -> lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
+                                .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
                     } else {
                         // contingency breaking connectivity
                         LOGGER.debug("Contingency {} with loss of connectivity", lfContingency.getId());
