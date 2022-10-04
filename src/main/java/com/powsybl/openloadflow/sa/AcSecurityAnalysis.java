@@ -146,7 +146,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    propagatedContingency.toLfContingency(network, true)
+                    propagatedContingency.toLfContingency(network)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
                                 Reporter postContSimReporter = Reports.createPostContingencySimulation(networkReporter, lfContingency.getId());
                                 network.setReporter(postContSimReporter);

@@ -178,15 +178,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         ConnectivityAnalysisResult(Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, Set<ComputedContingencyElement> elementsBreakingConnectivity,
                                    GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork lfNetwork) {
             elementsToReconnect = computeElementsToReconnect(connectivity, elementsBreakingConnectivity);
-            disabledBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
             slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
+            disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
+            Set<LfBranch> disabledBranches = connectivity.getEdgesRemovedFromMainComponent();
             predefinedResultsSensi = new HashMap<>();
             predefinedResultsRef = new HashMap<>();
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
                 if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                     // after a contingency, we check if the factor function and the variable are in different connected components
-                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(slackConnectedComponent);
-                    boolean functionConnected = factor.isFunctionConnectedToSlackComponent(slackConnectedComponent);
+                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches);
+                    boolean functionConnected = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
                     if (!variableConnected && functionConnected) {
                         // VALID_ONLY_FOR_FUNCTION status
                         predefinedResultsSensi.put(factor, 0d);
@@ -204,7 +205,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
                     // Sensitivity equals 0 for VALID_REFERENCE factors
                     predefinedResultsSensi.put(factor, 0d);
-                    if (!factor.isFunctionConnectedToSlackComponent(slackConnectedComponent)) {
+                    if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
                         // The reference is not in the main componant of the post contingency network.
                         // Therefore, its value cannot be computed.
                         predefinedResultsRef.put(factor, Double.NaN);
@@ -579,6 +580,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Map<Set<ComputedContingencyElement>, ConnectivityAnalysisResult> connectivityAnalysisResults = new LinkedHashMap<>();
 
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
+        connectivity.setMainComponentVertex(lfNetwork.getSlackBus());
         for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> e : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
             Set<ComputedContingencyElement> breakingConnectivityCandidates = e.getKey();
             List<PropagatedContingency> contingencyList = e.getValue();
@@ -591,12 +593,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(connectivity::removeEdge);
 
-            // filter the branches that really impacts connectivity
-            Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream().filter(element -> {
-                LfBranch lfBranch = element.getLfBranch();
-                return connectivity.getComponentNumber(lfBranch.getBus1()) != connectivity.getComponentNumber(lfBranch.getBus2());
-            }).collect(Collectors.toCollection(LinkedHashSet::new));
-            if (breakingConnectivityElements.isEmpty()) {
+            Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
+            if (removedBuses.isEmpty()) {
                 // we did not break any connectivity
                 nonLosingConnectivityContingencies.addAll(contingencyList);
             } else {
@@ -605,7 +603,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds);
                 if (!lfFactors.isEmpty()) {
-                    connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork)).getContingencies().addAll(contingencyList);
+                    // filter the branches that really impacts connectivity
+                    Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
+                            .filter(element -> removedBuses.contains(element.getLfBranch().getBus1()) ^ removedBuses.contains(element.getLfBranch().getBus2()))
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
+                    connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork))
+                            .getContingencies().addAll(contingencyList);
                 } else {
                     // write contingency status
                     for (PropagatedContingency propagatedContingency : contingencyList) {
@@ -638,7 +641,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
             NetworkState networkState = NetworkState.save(lfNetwork);
-            LfContingency lfContingency = contingency.toLfContingency(lfNetwork, true).orElse(null);
+            LfContingency lfContingency = contingency.toLfContingency(lfNetwork).orElse(null);
             DenseMatrix newFactorStates = factorStates;
             List<ParticipatingElement> newParticipatingElements = participatingElements;
             boolean participatingElementsChanged = false;

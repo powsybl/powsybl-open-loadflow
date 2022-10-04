@@ -95,7 +95,7 @@ class NetworkConnectivityTest {
         assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b3_vl_0")));
         assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
         assertEquals(2, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
-        assertEquals(2, connectivity.getSmallComponents().size());
+        assertEquals(3, connectivity.getNbConnectedComponents());
 
         AssertionError e = assertThrows(AssertionError.class, () -> connectivity.getComponentNumber(null));
         assertEquals("given vertex null is not in the graph", e.getMessage());
@@ -108,7 +108,7 @@ class NetworkConnectivityTest {
         assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b3_vl_0")));
         assertEquals(2, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
         assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
-        assertEquals(4, connectivity.getSmallComponents().size());
+        assertEquals(5, connectivity.getNbConnectedComponents());
     }
 
     private void testReaddEdge(GraphConnectivity<LfBus, LfBranch> connectivity, boolean supported) {
@@ -118,7 +118,7 @@ class NetworkConnectivityTest {
         LfBranch lfBranch = lfNetwork.getBranchById(branchId);
         cutBranches(connectivity, branchId);
 
-        assertEquals(1, connectivity.getSmallComponents().size());
+        assertEquals(2, connectivity.getNbConnectedComponents());
         assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
         assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
 
@@ -126,12 +126,12 @@ class NetworkConnectivityTest {
         LfBus bus2 = lfBranch.getBus2();
         if (supported) {
             connectivity.addEdge(bus1, bus2, lfBranch);
-            assertEquals(0, connectivity.getSmallComponents().size());
+            assertEquals(1, connectivity.getNbConnectedComponents());
             assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b1_vl_0")));
             assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
 
             cutBranches(connectivity, "l48");
-            assertEquals(1, connectivity.getSmallComponents().size());
+            assertEquals(2, connectivity.getNbConnectedComponents());
             assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
             assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
         } else {
@@ -140,7 +140,7 @@ class NetworkConnectivityTest {
         }
     }
 
-    private void testNonConnectedComponents(GraphConnectivity<LfBus, LfBranch> connectivity) {
+    private void testNonConnectedComponents(AbstractGraphConnectivity<LfBus, LfBranch> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48");
 
