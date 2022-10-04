@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -68,41 +67,49 @@ public class LfAction {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
-        var connectivity = network.getConnectivity();
+        GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        connectivity.setMainComponentVertex(network.getSlackBus());
         connectivity.startTemporaryChanges();
-
-        contingency.getDisabledBranches().forEach(branch -> {
-            if (branch.getBus1() != null && branch.getBus2() != null) {
-                connectivity.removeEdge(branch);
-            }
-        });
+        contingency.getDisabledBranches().stream()
+                .filter(Objects::nonNull) // could be in another component
+                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .forEach(connectivity::removeEdge);
+        Set<LfBus> postContingencyRemovedBuses = connectivity.getVerticesRemovedFromMainComponent();
+        postContingencyRemovedBuses.stream().forEach(bus -> bus.setDisabled(false)); // undo.
+        Set<LfBranch> postContingencyRemovedBranches = connectivity.getEdgesRemovedFromMainComponent();
+        postContingencyRemovedBranches.stream().forEach(branch -> branch.setDisabled(false)); // undo.
 
         for (LfAction action : actions) {
-            action.apply(connectivity);
+            action.updateConnectivity(connectivity);
         }
 
-        Set<LfBus> buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
-        for (LfBus bus : buses) {
-            bus.setDisabled(true);
-            bus.getBranches().forEach(branch -> branch.setDisabled(true));
-        }
+        // add to action description buses and branches that won't be part of the main connected
+        // component in post action state.
+        Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
+        removedBuses.stream().forEach(bus -> bus.setDisabled(true));
+        Set<LfBranch> removedBranches = connectivity.getEdgesRemovedFromMainComponent();
+        removedBranches.stream() .forEach(branch -> branch.setDisabled(true));
+        // add to action description buses and branches that will be part of the main connected
+        // component in post action state.
+        Set<LfBus> addedBuses = connectivity.getVerticesAddedToMainComponent();
+        addedBuses.stream().forEach(bus -> bus.setDisabled(false));
+        Set<LfBranch> addedBranches = connectivity.getEdgesAddedToMainComponent();
+        addedBranches.stream().forEach(branch -> branch.setDisabled(false));
+
+        // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
 
         network.getBuses().forEach(bus -> LOGGER.info("LfBus {} is disabled: {}", bus.getId(), bus.isDisabled()));
         network.getBranches().forEach(branch -> LOGGER.info("LfBranch {} is disabled: {}", branch.getId(), branch.isDisabled()));
     }
 
-    public void apply(GraphConnectivity<LfBus, LfBranch> connectivity) {
+    public void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
         if (disabledBranch != null) {
-            disabledBranch.setDisabled(true);
             if (disabledBranch.getBus1() != null && disabledBranch.getBus2() != null) {
                 connectivity.removeEdge(disabledBranch);
             }
         }
         if (enabledBranch != null) {
-            enabledBranch.setDisabled(false);
-            enabledBranch.getBus1().setDisabled(false); // FIXME, not enough several buses ard branches can be reconnected.
-            enabledBranch.getBus2().setDisabled(false);
             connectivity.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
         }
     }

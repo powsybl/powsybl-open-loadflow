@@ -56,14 +56,11 @@ class LfActionTest extends AbstractConverterTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>(), Reporter.NO_OP, true, false);
         List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP);
         LfAction lfAction = new LfAction(switchAction, lfNetworks.get(0));
-        lfAction.apply(lfNetworks.get(0).getConnectivity());
-        assertTrue(lfNetworks.get(0).getBranchById("C").isDisabled());
-
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
         PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
                 Collections.singletonList(contingency), new HashSet<>(), false, false, false, true).get(0);
-        Optional<LfContingency> lfContingency = propagatedContingency.toLfContingency(lfNetworks.get(0), true);
+        Optional<LfContingency> lfContingency = propagatedContingency.toLfContingency(lfNetworks.get(0));
         if (lfContingency.isPresent()) {
             LfAction.apply(List.of(lfAction), lfNetworks.get(0), lfContingency.get());
             assertTrue(lfNetworks.get(0).getBranchById("C").isDisabled());
