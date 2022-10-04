@@ -48,7 +48,7 @@ public class LfAction {
                 }
                 break;
             default:
-                throw new UnsupportedOperationException("Unsupported action type: "  + action.getType());
+                throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         }
     }
 
