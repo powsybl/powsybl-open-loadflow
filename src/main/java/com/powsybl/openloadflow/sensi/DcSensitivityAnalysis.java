@@ -593,12 +593,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(connectivity::removeEdge);
 
-            // filter the branches that really impacts connectivity
-            Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream().filter(element -> {
-                LfBranch lfBranch = element.getLfBranch();
-                return connectivity.getComponentNumber(lfBranch.getBus1()) != connectivity.getComponentNumber(lfBranch.getBus2());
-            }).collect(Collectors.toCollection(LinkedHashSet::new));
-            if (breakingConnectivityElements.isEmpty()) {
+            Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
+            if (removedBuses.isEmpty()) {
                 // we did not break any connectivity
                 nonLosingConnectivityContingencies.addAll(contingencyList);
             } else {
@@ -607,7 +603,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds);
                 if (!lfFactors.isEmpty()) {
-                    connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork)).getContingencies().addAll(contingencyList);
+                    // filter the branches that really impacts connectivity
+                    Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
+                            .filter(element -> removedBuses.contains(element.getLfBranch().getBus1()) ^ removedBuses.contains(element.getLfBranch().getBus2()))
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
+                    connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork))
+                            .getContingencies().addAll(contingencyList);
                 } else {
                     // write contingency status
                     for (PropagatedContingency propagatedContingency : contingencyList) {
