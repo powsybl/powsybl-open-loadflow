@@ -63,7 +63,9 @@ class LfContingencyTest extends AbstractConverterTest {
 
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
-        List<LfNetwork> lfNetworks = Networks.load(network, new LfNetworkParameters(new MostMeshedSlackBusSelector(), connectivityFactory));
+        List<LfNetwork> lfNetworks = Networks.load(network, new LfNetworkParameters()
+                .setConnectivityFactory(connectivityFactory)
+                .setSlackBusSelector(new MostMeshedSlackBusSelector()));
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 

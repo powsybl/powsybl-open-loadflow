@@ -509,7 +509,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
-        return load(network, networkLoader, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP);
+        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), Reporter.NO_OP);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters) {
@@ -517,7 +517,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, networkLoader, new LfNetworkParameters(slackBusSelector), reporter);
+        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), reporter);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {

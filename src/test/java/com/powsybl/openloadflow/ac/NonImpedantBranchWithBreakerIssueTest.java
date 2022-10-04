@@ -14,8 +14,6 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
@@ -37,29 +35,8 @@ class NonImpedantBranchWithBreakerIssueTest {
         Network network = NodeBreakerNetworkFactory.create3barsAndJustOneVoltageLevel();
         network.getGenerator("G1").newMinMaxReactiveLimits().setMaxQ(100).setMinQ(-100).add();
         network.getGenerator("G2").newMinMaxReactiveLimits().setMaxQ(100).setMinQ(-100).add();
-        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        boolean breakers = true;
-        LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector,
-                                                                        new EvenShiloachGraphDecrementalConnectivityFactory<>(),
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        breakers,
-                                                                        LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
-                                                                        false,
-                                                                        true,
-                                                                        Collections.emptySet(),
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        true,
-                                                                        false,
-                                                                        LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE,
-                                                                        LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
+        LfNetworkParameters networkParameters = new LfNetworkParameters()
+                .setBreakers(true);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
@@ -82,29 +59,7 @@ class NonImpedantBranchWithBreakerIssueTest {
     @Test
     void busBreakerAndNonImpedantBranchIssueRef() {
         Network network = NodeBreakerNetworkFactory.create3barsAndJustOneVoltageLevel();
-        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        boolean breakers = false;
-        LfNetworkParameters networkParameters = new LfNetworkParameters(slackBusSelector,
-                                                                        new EvenShiloachGraphDecrementalConnectivityFactory<>(),
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        breakers,
-                                                                        LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
-                                                                        false,
-                                                                        true,
-                                                                        Collections.emptySet(),
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        false,
-                                                                        true,
-                                                                        false,
-                                                                        LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE,
-                                                                        LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
+        LfNetworkParameters networkParameters = new LfNetworkParameters();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();

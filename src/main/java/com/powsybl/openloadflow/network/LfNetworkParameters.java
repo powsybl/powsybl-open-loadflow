@@ -28,117 +28,93 @@ public class LfNetworkParameters {
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
 
-    private SlackBusSelector slackBusSelector;
+    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
 
-    private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
+    private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
-    private final boolean generatorVoltageRemoteControl;
+    private boolean generatorVoltageRemoteControl = false;
 
-    private final boolean minImpedance;
+    private boolean minImpedance = false;
 
-    private final boolean twtSplitShuntAdmittance;
+    private boolean twtSplitShuntAdmittance = false;
 
-    private boolean breakers;
+    private boolean breakers = false;
 
-    private final double plausibleActivePowerLimit;
+    private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
-    private final boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+    private boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds = false;
 
-    private final boolean computeMainConnectedComponentOnly;
+    private boolean computeMainConnectedComponentOnly = true;
 
-    private final Set<Country> countriesToBalance;
+    private Set<Country> countriesToBalance = Collections.emptySet();
 
-    private final boolean distributedOnConformLoad;
+    private boolean distributedOnConformLoad = false;
 
-    private final boolean phaseControl;
+    private boolean phaseControl = false;
 
-    private boolean transformerVoltageControl;
+    private boolean transformerVoltageControl = false;
 
-    private final boolean voltagePerReactivePowerControl;
+    private boolean voltagePerReactivePowerControl = false;
 
-    private final boolean reactivePowerRemoteControl;
+    private boolean reactivePowerRemoteControl = false;
 
-    private final boolean isDc;
+    private boolean dc = false;
 
-    private final boolean shuntVoltageControl;
+    private boolean shuntVoltageControl = false;
 
-    private final boolean reactiveLimits;
+    private boolean reactiveLimits = true;
 
-    private final boolean hvdcAcEmulation;
+    private boolean hvdcAcEmulation = false;
 
-    private final double minPlausibleTargetVoltage;
+    private double minPlausibleTargetVoltage = MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
-    private final double maxPlausibleTargetVoltage;
+    private double maxPlausibleTargetVoltage = MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
-
-    public LfNetworkParameters() {
-        this(new FirstSlackBusSelector());
-    }
-
-    public LfNetworkParameters(SlackBusSelector slackBusSelector) {
-        this(slackBusSelector, new EvenShiloachGraphDecrementalConnectivityFactory<>());
-    }
-
-    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        this(slackBusSelector, connectivityFactory, false, false, false, false,
-                PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, false,
-                true, Collections.emptySet(), false, false, false, false, false, false, false, true, false,
-                MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
-    }
-
-    public LfNetworkParameters(SlackBusSelector slackBusSelector, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                               boolean generatorVoltageRemoteControl, boolean minImpedance, boolean twtSplitShuntAdmittance, boolean breakers,
-                               double plausibleActivePowerLimit, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
-                               boolean computeMainConnectedComponentOnly, Set<Country> countriesToBalance, boolean distributedOnConformLoad,
-                               boolean phaseControl, boolean transformerVoltageControl, boolean voltagePerReactivePowerControl, boolean reactivePowerRemoteControl,
-                               boolean isDc, boolean shuntVoltageControl, boolean reactiveLimits, boolean hvdcAcEmulation, double minPlausibleTargetVoltage,
-                               double maxPlausibleTargetVoltage) {
-        this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
-        this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
-        this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
-        this.minImpedance = minImpedance;
-        this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
-        this.breakers = breakers;
-        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
-        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
-        this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
-        this.countriesToBalance = countriesToBalance;
-        this.distributedOnConformLoad = distributedOnConformLoad;
-        this.phaseControl = phaseControl;
-        this.transformerVoltageControl = transformerVoltageControl;
-        this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
-        this.reactivePowerRemoteControl = reactivePowerRemoteControl;
-        this.isDc = isDc;
-        this.shuntVoltageControl = shuntVoltageControl;
-        this.reactiveLimits = reactiveLimits;
-        this.hvdcAcEmulation = hvdcAcEmulation;
-        this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
-        this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
-    }
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
     }
 
-    public void setSlackBusSelector(SlackBusSelector slackBusSelector) {
+    public LfNetworkParameters setSlackBusSelector(SlackBusSelector slackBusSelector) {
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+        return this;
     }
 
     public GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory() {
         return connectivityFactory;
     }
 
+    public LfNetworkParameters setConnectivityFactory(GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+        this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
+        return this;
+    }
+
     public boolean isGeneratorVoltageRemoteControl() {
         return generatorVoltageRemoteControl;
+    }
+
+    public LfNetworkParameters setGeneratorVoltageRemoteControl(boolean generatorVoltageRemoteControl) {
+        this.generatorVoltageRemoteControl = generatorVoltageRemoteControl;
+        return this;
     }
 
     public boolean isMinImpedance() {
         return minImpedance;
     }
 
+    public LfNetworkParameters setMinImpedance(boolean minImpedance) {
+        this.minImpedance = minImpedance;
+        return this;
+    }
+
     public boolean isTwtSplitShuntAdmittance() {
         return twtSplitShuntAdmittance;
+    }
+
+    public LfNetworkParameters setTwtSplitShuntAdmittance(boolean twtSplitShuntAdmittance) {
+        this.twtSplitShuntAdmittance = twtSplitShuntAdmittance;
+        return this;
     }
 
     public boolean isBreakers() {
@@ -154,24 +130,54 @@ public class LfNetworkParameters {
         return plausibleActivePowerLimit;
     }
 
+    public LfNetworkParameters setPlausibleActivePowerLimit(double plausibleActivePowerLimit) {
+        this.plausibleActivePowerLimit = plausibleActivePowerLimit;
+        return this;
+    }
+
     public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
         return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+    }
+
+    public LfNetworkParameters setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
+        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
+        return this;
     }
 
     public boolean isComputeMainConnectedComponentOnly() {
         return computeMainConnectedComponentOnly;
     }
 
+    public LfNetworkParameters setComputeMainConnectedComponentOnly(boolean computeMainConnectedComponentOnly) {
+        this.computeMainConnectedComponentOnly = computeMainConnectedComponentOnly;
+        return this;
+    }
+
     public Set<Country> getCountriesToBalance() {
         return Collections.unmodifiableSet(countriesToBalance);
+    }
+
+    public LfNetworkParameters setCountriesToBalance(Set<Country> countriesToBalance) {
+        this.countriesToBalance = Objects.requireNonNull(countriesToBalance);
+        return this;
     }
 
     public boolean isDistributedOnConformLoad() {
         return distributedOnConformLoad;
     }
 
+    public LfNetworkParameters setDistributedOnConformLoad(boolean distributedOnConformLoad) {
+        this.distributedOnConformLoad = distributedOnConformLoad;
+        return this;
+    }
+
     public boolean isPhaseControl() {
         return phaseControl;
+    }
+
+    public LfNetworkParameters setPhaseControl(boolean phaseControl) {
+        this.phaseControl = phaseControl;
+        return this;
     }
 
     public boolean isTransformerVoltageControl() {
@@ -187,40 +193,81 @@ public class LfNetworkParameters {
         return voltagePerReactivePowerControl;
     }
 
+    public LfNetworkParameters setVoltagePerReactivePowerControl(boolean voltagePerReactivePowerControl) {
+        this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
+        return this;
+    }
+
     public boolean isReactivePowerRemoteControl() {
         return reactivePowerRemoteControl;
     }
 
+    public LfNetworkParameters setReactivePowerRemoteControl(boolean reactivePowerRemoteControl) {
+        this.reactivePowerRemoteControl = reactivePowerRemoteControl;
+        return this;
+    }
+
     public boolean isDc() {
-        return isDc;
+        return dc;
+    }
+
+    public LfNetworkParameters setDc(boolean dc) {
+        this.dc = dc;
+        return this;
     }
 
     public boolean isShuntVoltageControl() {
         return shuntVoltageControl;
     }
 
+    public LfNetworkParameters setShuntVoltageControl(boolean shuntVoltageControl) {
+        this.shuntVoltageControl = shuntVoltageControl;
+        return this;
+    }
+
     public boolean isReactiveLimits() {
         return reactiveLimits;
+    }
+
+    public LfNetworkParameters setReactiveLimits(boolean reactiveLimits) {
+        this.reactiveLimits = reactiveLimits;
+        return this;
     }
 
     public boolean isHvdcAcEmulation() {
         return hvdcAcEmulation;
     }
 
+    public LfNetworkParameters setHvdcAcEmulation(boolean hvdcAcEmulation) {
+        this.hvdcAcEmulation = hvdcAcEmulation;
+        return this;
+    }
+
     public double getMinPlausibleTargetVoltage() {
         return minPlausibleTargetVoltage;
+    }
+
+    public LfNetworkParameters setMinPlausibleTargetVoltage(double minPlausibleTargetVoltage) {
+        this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
+        return this;
     }
 
     public double getMaxPlausibleTargetVoltage() {
         return maxPlausibleTargetVoltage;
     }
 
+    public LfNetworkParameters setMaxPlausibleTargetVoltage(double maxPlausibleTargetVoltage) {
+        this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
+        return this;
+    }
+
     public Set<String> getLoaderPostProcessorSelection() {
         return loaderPostProcessorSelection;
     }
 
-    public void setLoaderPostProcessorSelection(Set<String> loaderPostProcessorSelection) {
+    public LfNetworkParameters setLoaderPostProcessorSelection(Set<String> loaderPostProcessorSelection) {
         this.loaderPostProcessorSelection = Objects.requireNonNull(loaderPostProcessorSelection);
+        return this;
     }
 
     @Override
@@ -241,7 +288,7 @@ public class LfNetworkParameters {
                 ", transformerVoltageControl=" + transformerVoltageControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
-                ", isDc=" + isDc +
+                ", dc=" + dc +
                 ", reactiveLimits=" + reactiveLimits +
                 ", hvdcAcEmulation=" + hvdcAcEmulation +
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +

@@ -589,27 +589,28 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     static LfNetworkParameters getNetworkParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                     SlackBusSelector slackBusSelector, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                     boolean breakers) {
-        return new LfNetworkParameters(slackBusSelector,
-                                       connectivityFactory,
-                                       parametersExt.hasVoltageRemoteControl(),
-                                       parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                                       parameters.isTwtSplitShuntAdmittance(),
-                                       breakers,
-                                       parametersExt.getPlausibleActivePowerLimit(),
-                                       parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                       parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                                       parameters.getCountriesToBalance(),
-                                       parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                       parameters.isPhaseShifterRegulationOn(),
-                                       parameters.isTransformerVoltageControlOn(),
-                                       parametersExt.isVoltagePerReactivePowerControl(),
-                                       parametersExt.hasReactivePowerRemoteControl(),
-                                       parameters.isDc(),
-                                       parameters.isShuntCompensatorVoltageControlOn(),
-                                       !parameters.isNoGeneratorReactiveLimits(),
-                                       parameters.isHvdcAcEmulation(),
-                                       parametersExt.getMinPlausibleTargetVoltage(),
-                                       parametersExt.getMaxPlausibleTargetVoltage());
+        return new LfNetworkParameters()
+                .setSlackBusSelector(slackBusSelector)
+                .setConnectivityFactory(connectivityFactory)
+                .setGeneratorVoltageRemoteControl(parametersExt.hasVoltageRemoteControl())
+                .setMinImpedance(parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE)
+                .setTwtSplitShuntAdmittance(parameters.isTwtSplitShuntAdmittance())
+                .setBreakers(breakers)
+                .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
+                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds())
+                .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
+                .setCountriesToBalance(parameters.getCountriesToBalance())
+                .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setPhaseControl(parameters.isPhaseShifterRegulationOn())
+                .setTransformerVoltageControl(parameters.isTransformerVoltageControlOn())
+                .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
+                .setReactivePowerRemoteControl(parametersExt.hasReactivePowerRemoteControl())
+                .setDc(parameters.isDc())
+                .setShuntVoltageControl(parameters.isShuntCompensatorVoltageControlOn())
+                .setReactiveLimits(!parameters.isNoGeneratorReactiveLimits())
+                .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
+                .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
+                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -671,27 +672,28 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
 
-        var networkParameters = new LfNetworkParameters(slackBusSelector,
-                                                        connectivityFactory,
-                                                        false,
-                                                        parametersExt.getLowImpedanceBranchMode() == LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE,
-                                                        false,
-                                                        false,
-                                                        parametersExt.getPlausibleActivePowerLimit(),
-                                                        parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                                        parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN,
-                                                        parameters.getCountriesToBalance(),
-                                                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                                        false,
-                                                        false,
-                                                        false,
-                                                        false,
-                                                        true,
-                                                        false,
-                                                        false,
-                                                        false, // FIXME
-                                                        parametersExt.getMinPlausibleTargetVoltage(),
-                                                        parametersExt.getMaxPlausibleTargetVoltage());
+        var networkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(slackBusSelector)
+                .setConnectivityFactory(connectivityFactory)
+                .setGeneratorVoltageRemoteControl(false)
+                .setMinImpedance(parametersExt.getLowImpedanceBranchMode() == OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE)
+                .setTwtSplitShuntAdmittance(false)
+                .setBreakers(false)
+                .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
+                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds())
+                .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
+                .setCountriesToBalance(parameters.getCountriesToBalance())
+                .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setPhaseControl(false)
+                .setTransformerVoltageControl(false)
+                .setVoltagePerReactivePowerControl(false)
+                .setReactivePowerRemoteControl(false)
+                .setDc(true)
+                .setShuntVoltageControl(false)
+                .setReactiveLimits(false)
+                .setHvdcAcEmulation(false) // FIXME
+                .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
+                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,
