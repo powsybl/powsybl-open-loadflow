@@ -86,7 +86,7 @@ class ConnectivityTest {
 
         c.startTemporaryChanges();
         c.removeEdge(e12);
-        assertTrue(c.getSmallComponents().isEmpty());
+        assertEquals(1, c.getNbConnectedComponents());
         assertTrue(c.getEdgesAddedToMainComponent().isEmpty());
         assertEquals(Set.of(e12), c.getEdgesRemovedFromMainComponent());
         assertTrue(c.getVerticesAddedToMainComponent().isEmpty());
@@ -111,7 +111,7 @@ class ConnectivityTest {
 
         c.startTemporaryChanges();
         c.removeEdge(e11);
-        assertTrue(c.getSmallComponents().isEmpty());
+        assertEquals(1, c.getNbConnectedComponents());
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
@@ -120,14 +120,14 @@ class ConnectivityTest {
         c.undoTemporaryChanges();
         c.startTemporaryChanges();
         c.removeEdge(e12);
-        assertTrue(c.getSmallComponents().isEmpty());
+        assertEquals(1, c.getNbConnectedComponents());
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of(e12), c.getEdgesRemovedFromMainComponent());
 
         c.removeEdge(e31);
-        assertFalse(c.getSmallComponents().isEmpty());
+        assertEquals(2, c.getNbConnectedComponents());
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(o1), c.getVerticesRemovedFromMainComponent());
@@ -162,7 +162,7 @@ class ConnectivityTest {
         c.startTemporaryChanges();
         c.removeEdge(e12);
         c.removeEdge(e31);
-        assertEquals(2, c.getSmallComponents().size());
+        assertEquals(3, c.getNbConnectedComponents());
         assertEquals(Set.of(v1), c.getConnectedComponent(v1));
         assertEquals(Set.of(v2, v3), c.getConnectedComponent(v2));
         assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
@@ -179,7 +179,7 @@ class ConnectivityTest {
         c.removeEdge(e11);
         String e34 = "3-4";
         c.addEdge(v3, v4, e34);
-        assertEquals(1, c.getSmallComponents().size());
+        assertEquals(2, c.getNbConnectedComponents());
         assertEquals(Set.of(v1, v2), c.getConnectedComponent(v1));
         assertEquals(Set.of(v3, v4, v5), c.getConnectedComponent(v5));
         assertEquals(Set.of(e34, e45), c.getEdgesAddedToMainComponent());
@@ -189,7 +189,7 @@ class ConnectivityTest {
         //  1---2   3---4---5
 
         c.undoTemporaryChanges();
-        assertEquals(2, c.getSmallComponents().size());
+        assertEquals(3, c.getNbConnectedComponents());
         assertEquals(Set.of(v1), c.getConnectedComponent(v1));
         assertEquals(Set.of(v2, v3), c.getConnectedComponent(v2));
         assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
@@ -202,7 +202,7 @@ class ConnectivityTest {
 
         c.startTemporaryChanges();
         c.addEdge(v1, v2, e12);
-        assertEquals(1, c.getSmallComponents().size());
+        assertEquals(2, c.getNbConnectedComponents());
         assertEquals(Set.of(v1, v2, v3), c.getConnectedComponent(v2));
         assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
         assertEquals(Set.of(e11, e12), c.getEdgesAddedToMainComponent());
@@ -213,7 +213,7 @@ class ConnectivityTest {
         // |_|
 
         c.undoTemporaryChanges();
-        assertEquals(2, c.getSmallComponents().size());
+        assertEquals(3, c.getNbConnectedComponents());
         assertEquals(Set.of(v1), c.getConnectedComponent(v1));
         assertEquals(Set.of(v2, v3), c.getConnectedComponent(v2));
         assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
@@ -228,7 +228,7 @@ class ConnectivityTest {
         String e14 = "1-4";
         c.addEdge(v1, v4, e14);
         c.addEdge(v3, v4, e34);
-        assertTrue(c.getSmallComponents().isEmpty());
+        assertEquals(1, c.getNbConnectedComponents());
         assertEquals(Set.of(e11, e14, e34, e45), c.getEdgesAddedToMainComponent());
         assertEquals(Set.of(v1, v4, v5), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
@@ -239,8 +239,8 @@ class ConnectivityTest {
 
         Integer v6 = 6;
         c.addVertex(v6);
-        assertFalse(c.getSmallComponents().isEmpty());
-        assertEquals(Set.of(v6), c.getSmallComponents().iterator().next());
+        assertEquals(2, c.getNbConnectedComponents());
+        assertEquals(Set.of(v6), c.getConnectedComponent(v6));
         assertEquals(Set.of(e11, e14, e34, e45), c.getEdgesAddedToMainComponent());
         assertEquals(Set.of(v1, v4, v5), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
@@ -253,7 +253,7 @@ class ConnectivityTest {
         c.undoTemporaryChanges();
 
         c.startTemporaryChanges();
-        assertEquals(1, c.getSmallComponents().size());
+        assertEquals(2, c.getNbConnectedComponents());
         assertEquals(Set.of(v1, v2, v3), c.getConnectedComponent(v1));
         assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
@@ -364,7 +364,7 @@ class ConnectivityTest {
         c.addEdge(v2, v2, e22);
         c.removeEdge(e22);
 
-        PowsyblException e1 = assertThrows(PowsyblException.class, c::getSmallComponents);
+        PowsyblException e1 = assertThrows(PowsyblException.class, c::getNbConnectedComponents);
         assertEquals("Cannot compute connectivity without a saved state, please call GraphConnectivity::startTemporaryChanges at least once beforehand",
                 e1.getMessage());
 

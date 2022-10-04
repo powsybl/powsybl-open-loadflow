@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -72,12 +71,6 @@ public interface GraphConnectivity<V, E> {
     void setMainComponentVertex(V mainComponentVertex);
 
     /**
-     * Return the collection of "small" connected components, meaning all the connected components except the biggest one (size-wise).
-     * @return the collection of small connected components
-     */
-    Collection<Set<V>> getSmallComponents();
-
-    /**
      * Return the number of connected components
      */
     int getNbConnectedComponents();
@@ -86,11 +79,6 @@ public interface GraphConnectivity<V, E> {
      * Return the connected component set of given vertex
      */
     Set<V> getConnectedComponent(V vertex);
-
-    /**
-     * Return all vertices which are not in the connected component of given vertex
-     */
-    Set<V> getNonConnectedVertices(V vertex);
 
     /**
      * Return the vertices which were removed from main component by last temporary changes.
