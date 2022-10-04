@@ -321,7 +321,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         LOGGER.debug("Contingency {} with loss of connectivity", lfContingency.getId());
                         // we check if factors are still in the main component
                         slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
-                        setPredefinedResults(contingencyFactors, slackConnectedComponent);
+                        setPredefinedResults(contingencyFactors, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches());
                         // we recompute GLSK weights if needed
                         rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
                     }

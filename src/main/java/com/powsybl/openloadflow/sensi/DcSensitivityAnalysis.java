@@ -178,15 +178,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         ConnectivityAnalysisResult(Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, Set<ComputedContingencyElement> elementsBreakingConnectivity,
                                    GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork lfNetwork) {
             elementsToReconnect = computeElementsToReconnect(connectivity, elementsBreakingConnectivity);
-            disabledBuses = connectivity.getNonConnectedVertices(lfNetwork.getSlackBus());
             slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
+            disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
+            Set<LfBranch> disabledBranches = connectivity.getEdgesRemovedFromMainComponent();
             predefinedResultsSensi = new HashMap<>();
             predefinedResultsRef = new HashMap<>();
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
                 if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                     // after a contingency, we check if the factor function and the variable are in different connected components
-                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(slackConnectedComponent);
-                    boolean functionConnected = factor.isFunctionConnectedToSlackComponent(slackConnectedComponent);
+                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches);
+                    boolean functionConnected = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
                     if (!variableConnected && functionConnected) {
                         // VALID_ONLY_FOR_FUNCTION status
                         predefinedResultsSensi.put(factor, 0d);
@@ -204,7 +205,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
                     // Sensitivity equals 0 for VALID_REFERENCE factors
                     predefinedResultsSensi.put(factor, 0d);
-                    if (!factor.isFunctionConnectedToSlackComponent(slackConnectedComponent)) {
+                    if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
                         // The reference is not in the main componant of the post contingency network.
                         // Therefore, its value cannot be computed.
                         predefinedResultsRef.put(factor, Double.NaN);
@@ -579,6 +580,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Map<Set<ComputedContingencyElement>, ConnectivityAnalysisResult> connectivityAnalysisResults = new LinkedHashMap<>();
 
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
+        connectivity.setMainComponentVertex(lfNetwork.getSlackBus());
         for (Map.Entry<Set<ComputedContingencyElement>, List<PropagatedContingency>> e : contingenciesByGroupOfElementsBreakingConnectivity.entrySet()) {
             Set<ComputedContingencyElement> breakingConnectivityCandidates = e.getKey();
             List<PropagatedContingency> contingencyList = e.getValue();
