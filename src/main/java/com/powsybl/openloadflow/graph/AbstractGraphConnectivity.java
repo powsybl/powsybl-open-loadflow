@@ -24,6 +24,8 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     protected List<Set<V>> componentSets;
 
+    private V mainComponentVertex;
+
     protected abstract void updateConnectivity(EdgeRemove<V, E> edgeRemove);
 
     protected abstract void updateConnectivity(EdgeAdd<V, E> edgeAdd);
@@ -87,7 +89,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     public void startTemporaryChanges() {
         ModificationsContext<V, E> modificationsContext = new ModificationsContext<>();
         modificationsContexts.add(modificationsContext);
-        modificationsContext.setVerticesInitiallyNotInMainComponent(getSmallComponents());
+        modificationsContext.setVerticesInitiallyNotInMainComponent(getVerticesNotInMainComponent());
     }
 
     @Override
@@ -184,6 +186,17 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     }
 
     private Set<V> getVerticesNotInMainComponent() {
-        return getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+        if (mainComponentVertex != null) {
+            return getNonConnectedVertices(mainComponentVertex);
+        } else {
+            return getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+        }
+    }
+
+    public void setMainComponentVertex(V mainComponentVertex) {
+        if (!modificationsContexts.isEmpty() && mainComponentVertex != this.mainComponentVertex) {
+            throw new PowsyblException("Cannot change main component vertex after starting temporary changes");
+        }
+        this.mainComponentVertex = mainComponentVertex;
     }
 }
