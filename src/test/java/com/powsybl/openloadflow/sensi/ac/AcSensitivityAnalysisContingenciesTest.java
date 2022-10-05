@@ -1128,10 +1128,10 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
-        List<Contingency> contingencies = List.of(new Contingency("l34", new GeneratorContingency("g3")));
-        List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b4", "g3", "g3"));
+        List<Contingency> contingencies = List.of(new Contingency("g2", new GeneratorContingency("g2")));
+        List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b4", "g2", "g2"));
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
-        assertEquals(0, result.getBusVoltageSensitivityValue("g3", "g3", "b4"), LoadFlowAssert.DELTA_V);
+        assertEquals(0, result.getBusVoltageSensitivityValue("g2", "g2", "b4"), LoadFlowAssert.DELTA_V);
     }
 
     @Test
