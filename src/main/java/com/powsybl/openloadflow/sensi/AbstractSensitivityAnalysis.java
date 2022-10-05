@@ -136,9 +136,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         void setStatus(Status status);
 
-        boolean isVariableConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches, PropagatedContingency propagatedContingency);
+        boolean isVariableConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
 
         boolean isFunctionConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
+
+        boolean isVariableInContingency(PropagatedContingency propagatedContingency);
 
         SensitivityFactorGroup<V, E> getGroup();
 
@@ -302,7 +304,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
         }
 
-        protected boolean isVariableInContingency(PropagatedContingency contingency) {
+        @Override
+        public boolean isVariableInContingency(PropagatedContingency contingency) {
             if (contingency != null) {
                 switch (variableType) {
                     case INJECTION_ACTIVE_POWER:
@@ -369,8 +372,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
-            return isElementConnectedToSlackComponent(variableElement, disabledBuses, disabledBranches) && !isVariableInContingency(propagatedContingency);
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+            return isElementConnectedToSlackComponent(variableElement, disabledBuses, disabledBranches);
         }
 
         @Override
@@ -403,8 +406,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
-            // FIXME
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
             if (!isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches)) {
                 return false; // FIXME: not sure to understand.
             }
@@ -419,6 +421,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         @Override
         public boolean isFunctionConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
             return isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches);
+        }
+
+        @Override
+        public boolean isVariableInContingency(PropagatedContingency contingency) {
+            // TODO
+            return false;
         }
     }
 
@@ -644,33 +652,53 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> disabledBuses,
+                                        Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
-                // after a contingency, we check if the factor function and the variable are in different connected components
-                boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches, propagatedContingency);
-                boolean functionConnected = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
-                if (!variableConnected && functionConnected) {
-                    // VALID_ONLY_FOR_FUNCTION status
-                    factor.setSensitivityValuePredefinedResult(0d);
-                } else if (!variableConnected && !functionConnected) {
-                    // SKIP status
-                    factor.setSensitivityValuePredefinedResult(Double.NaN);
-                    factor.setFunctionPredefinedResult(Double.NaN);
-                } else if (variableConnected && !functionConnected) {
-                    // ZERO status
-                    factor.setSensitivityValuePredefinedResult(0d);
-                    factor.setFunctionPredefinedResult(Double.NaN);
-                }
-            } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
-                factor.setSensitivityValuePredefinedResult(0d);
-                if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
-                    factor.setFunctionPredefinedResult(Double.NaN);
-                }
-            } else {
-                throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledBuses, disabledBranches, propagatedContingency);
+            if (predefinedResults.getLeft().isPresent()) {
+                factor.setSensitivityValuePredefinedResult(predefinedResults.getLeft().get());
+            }
+            if (predefinedResults.getRight().isPresent()) {
+                factor.setFunctionPredefinedResult(predefinedResults.getRight().get());
             }
         }
+    }
+
+    protected Pair<Optional<Double>, Optional<Double>> getPredefinedResults(LfSensitivityFactor<V, E> factor, Set<LfBus> disabledBuses,
+                                                                            Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+        Double sensitivityValuePredefinedResult = null;
+        Double functionPredefinedResult = null;
+        if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
+            // after a contingency, we check if the factor function and the variable are in different connected components
+            // or if the variable is in contingency.
+            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches) & !factor.isVariableInContingency(propagatedContingency);
+            boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
+            if (variableConnected) {
+                if (!functionConnectedToSlackComponent) {
+                    // ZERO status
+                    sensitivityValuePredefinedResult = 0d;
+                    functionPredefinedResult = Double.NaN;
+                }
+            } else {
+                if (functionConnectedToSlackComponent) {
+                    // VALID_ONLY_FOR_FUNCTION status
+                    sensitivityValuePredefinedResult = 0d;
+                } else {
+                    // SKIP status
+                    sensitivityValuePredefinedResult = Double.NaN;
+                    functionPredefinedResult = Double.NaN;
+                }
+            }
+        } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
+            sensitivityValuePredefinedResult = 0d;
+            if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
+                functionPredefinedResult = Double.NaN;
+            }
+        } else {
+            throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
+        }
+        return Pair.of(Optional.ofNullable(sensitivityValuePredefinedResult), Optional.ofNullable(functionPredefinedResult));
     }
 
     protected boolean rescaleGlsk(SensitivityFactorGroupList<V, E> factorGroups, Set<LfBus> nonConnectedBuses) {

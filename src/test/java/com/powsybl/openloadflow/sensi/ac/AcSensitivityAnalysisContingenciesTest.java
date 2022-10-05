@@ -1104,8 +1104,9 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testPredefinedResults2() {
+        // FIXME: pourquoi ça fonctionne ? à cause de updateConnectivityWeights.
         // LCC line in contingency
-        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(3 * gen.getMaxP()));
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
@@ -1116,7 +1117,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(0, result.getBranchFlow1SensitivityValue("hvdc34", "hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
         // VSC line in contingency
-        Network network2 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+        Network network2 = HvdcNetworkFactory.createNetworkWithGenerators2();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         SensitivityAnalysisResult result2 = sensiRunner.run(network2, factors, contingencies, Collections.emptyList(), sensiParameters);
         assertEquals(0, result2.getBranchFlow1SensitivityValue("hvdc34", "hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
