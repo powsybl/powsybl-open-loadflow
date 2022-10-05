@@ -1087,4 +1087,63 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Switch contingency is not yet supported with sensitivity function of type BUS_VOLTAGE", e.getCause().getMessage());
     }
+
+    @Test
+    void testPredefinedResults() {
+        // Load and generator in contingency
+        Network network = FourBusNetworkFactory.create();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l14", "g1"),
+                createBranchFlowPerInjectionIncrease("l14", "d2"));
+        List<Contingency> contingencies = List.of(new Contingency("g1", new GeneratorContingency("g1")), new Contingency("d2", new LoadContingency("d2")));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("g1", "g1", "l14"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("d2", "d2", "l14"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testPredefinedResults2() {
+        // LCC line in contingency
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(3 * gen.getMaxP()));
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001);
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12"),
+                SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                false, ContingencyContext.all());
+        List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("hvdc34", "hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
+        // VSC line in contingency
+        Network network2 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        SensitivityAnalysisResult result2 = sensiRunner.run(network2, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0, result2.getBranchFlow1SensitivityValue("hvdc34", "hvdc34", "l12"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testPredefinedResults3() {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorOnOneSide();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        List<Contingency> contingencies = List.of(new Contingency("l34", new GeneratorContingency("g3")));
+        List<SensitivityFactor> factors = List.of(createBusVoltagePerTargetV("b4", "g3", "g3"));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0, result.getBusVoltageSensitivityValue("g3", "g3", "b4"), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testPredefinedResults4() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerPSTAngle("l12", "l23", "l23"),
+                createBranchFlowPerPSTAngle("l23", "l23", "l23"));
+        List<Contingency> contingencies = Collections.singletonList(new Contingency("l23", new BranchContingency("l23")));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("l23", "l23", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("l23", "l23", "l23"), LoadFlowAssert.DELTA_POWER);
+    }
 }

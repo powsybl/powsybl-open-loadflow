@@ -20,10 +20,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -139,7 +136,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         void setStatus(Status status);
 
-        boolean isVariableConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
+        boolean isVariableConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches, PropagatedContingency propagatedContingency);
 
         boolean isFunctionConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
 
@@ -305,6 +302,29 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             throw new PowsyblException("Cannot compute connectivity for variable element of class: " + element.getClass().getSimpleName());
         }
 
+        protected boolean isVariableInContingency(PropagatedContingency contingency) {
+            if (contingency != null) {
+                switch (variableType) {
+                    case INJECTION_ACTIVE_POWER:
+                    case HVDC_LINE_ACTIVE_POWER:
+                        // a load, a generator, a dangling line, an LCC or a VSC converter station.
+                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getOriginalPowerShiftIds().contains(variableId);
+                    case BUS_TARGET_VOLTAGE:
+                        // a generator or a two windings transformer.
+                        // shunt contingency not supported yet.
+                        // phase shifter in a three windings transformer not supported yet.
+                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getBranchIdsToOpen().contains(variableId);
+                    case TRANSFORMER_PHASE:
+                        // a phase shifter on a two windings transformer.
+                        return contingency.getBranchIdsToOpen().contains(variableId);
+                    default:
+                        return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
         @Override
         public SensitivityFactorGroup<V, E> getGroup() {
             return group;
@@ -349,8 +369,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            return isElementConnectedToSlackComponent(variableElement, disabledBuses, disabledBranches);
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+            return isElementConnectedToSlackComponent(variableElement, disabledBuses, disabledBranches) && !isVariableInContingency(propagatedContingency);
         }
 
         @Override
@@ -383,9 +403,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
 
         @Override
-        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+        public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+            // FIXME
             if (!isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches)) {
-                return false;
+                return false; // FIXME: not sure to understand.
             }
             for (LfElement lfElement : getVariableElements()) {
                 if (isElementConnectedToSlackComponent(lfElement, disabledBuses, disabledBranches)) {
@@ -623,11 +644,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                 // after a contingency, we check if the factor function and the variable are in different connected components
-                boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches);
+                boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches, propagatedContingency);
                 boolean functionConnected = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
                 if (!variableConnected && functionConnected) {
                     // VALID_ONLY_FOR_FUNCTION status

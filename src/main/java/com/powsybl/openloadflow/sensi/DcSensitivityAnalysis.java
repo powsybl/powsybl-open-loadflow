@@ -186,7 +186,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
                 if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                     // after a contingency, we check if the factor function and the variable are in different connected components
-                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches);
+                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches, null);
                     boolean functionConnected = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
                     if (!variableConnected && functionConnected) {
                         // VALID_ONLY_FOR_FUNCTION status
