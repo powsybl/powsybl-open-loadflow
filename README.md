@@ -113,7 +113,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>0.23.1</version>
+    <version>0.23.2</version>
 </dependency>
 ```
 
