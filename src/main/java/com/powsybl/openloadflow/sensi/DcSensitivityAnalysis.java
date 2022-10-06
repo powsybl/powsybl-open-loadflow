@@ -305,11 +305,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         factor.setSensitivityValuePredefinedResult(null);
         factor.setFunctionPredefinedResult(null);
         Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledBuses, disabledBranches, contingency);
-        if (predefinedResults.getLeft().isPresent()) {
-            factor.setSensitivityValuePredefinedResult(predefinedResults.getLeft().get());
+        Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
+        Optional<Double> functionPredefinedResults = predefinedResults.getRight();
+        if (sensitivityValuePredefinedResult.isPresent()) {
+            factor.setSensitivityValuePredefinedResult(sensitivityValuePredefinedResult.get());
         }
-        if (predefinedResults.getRight().isPresent()) {
-            factor.setFunctionPredefinedResult(predefinedResults.getRight().get());
+        if (functionPredefinedResults.isPresent()) {
+            factor.setFunctionPredefinedResult(functionPredefinedResults.get());
         }
         boolean predefSensiValue = factor.getSensitivityValuePredefinedResult() != null;
         boolean predefFlowValue = factor.getFunctionPredefinedResult() != null;
