@@ -656,11 +656,13 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                                         Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledBuses, disabledBranches, propagatedContingency);
-            if (predefinedResults.getLeft().isPresent()) {
-                factor.setSensitivityValuePredefinedResult(predefinedResults.getLeft().get());
+            Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
+            Optional<Double> functionPredefinedResults = predefinedResults.getRight();
+            if (sensitivityValuePredefinedResult.isPresent()) {
+                factor.setSensitivityValuePredefinedResult(sensitivityValuePredefinedResult.get());
             }
-            if (predefinedResults.getRight().isPresent()) {
-                factor.setFunctionPredefinedResult(predefinedResults.getRight().get());
+            if (functionPredefinedResults.isPresent()) {
+                factor.setFunctionPredefinedResult(functionPredefinedResults.get());
             }
         }
     }
@@ -671,7 +673,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         Double functionPredefinedResult = null;
         if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
             // after a contingency, we check if the factor function and the variable are in different connected components
-            // or if the variable is in contingency.
+            // or if the variable is in contingency. Note that a branch in contingency is considered as not connected to the slack component.
             boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches) & !factor.isVariableInContingency(propagatedContingency);
             boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
             if (variableConnected) {
