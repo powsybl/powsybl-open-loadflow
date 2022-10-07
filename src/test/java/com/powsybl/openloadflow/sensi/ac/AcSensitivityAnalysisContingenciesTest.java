@@ -1104,7 +1104,6 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testPredefinedResults2() {
-        // FIXME: pourquoi ça fonctionne ? à cause de updateConnectivityWeights.
         // LCC line in contingency
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(3 * gen.getMaxP()));

@@ -2157,7 +2157,6 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
     @Test
     void testPredefinedResults2() {
-        // FIXME: pourquoi ça fonctionne ? à cause de updateConnectivityWeights.
         // LCC line in contingency
         Network network = HvdcNetworkFactory.createNetworkWithGenerators();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(3 * gen.getMaxP()));
@@ -2168,7 +2167,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 false, ContingencyContext.all());
         List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")));
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
-        // assertEquals(0.999, result.getBranchFlow1SensitivityValue("hvdc34", "l25"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.9889, result.getBranchFlow1SensitivityValue("hvdc34", "l25"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0, result.getBranchFlow1SensitivityValue("hvdc34", "hvdc34", "l25"), LoadFlowAssert.DELTA_POWER);
         // VSC line in contingency
         Network network2 = HvdcNetworkFactory.createNetworkWithGenerators2();
