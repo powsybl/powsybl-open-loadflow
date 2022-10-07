@@ -683,7 +683,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
             // after a contingency, we check if the factor function and the variable are in different connected components
             // or if the variable is in contingency. Note that a branch in contingency is considered as not connected to the slack component.
-            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches) & !factor.isVariableInContingency(propagatedContingency);
+            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches) && !factor.isVariableInContingency(propagatedContingency);
             boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
             if (variableConnected) {
                 if (!functionConnectedToSlackComponent) {
