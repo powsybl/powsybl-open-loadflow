@@ -810,7 +810,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsWithInconsistentTargetVoltage > 0) {
-            LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been limited to a min/max value",
+            LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been discarded from voltage control",
                     lfNetwork, report.generatorsWithInconsistentTargetVoltage);
         }
 

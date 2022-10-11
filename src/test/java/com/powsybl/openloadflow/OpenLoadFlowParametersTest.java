@@ -202,13 +202,13 @@ class OpenLoadFlowParametersTest {
     void testPlausibleTargetVoltage() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         Network network = EurostagTutorialExample1Factory.create();
-        network.getGenerator("GEN").setTargetV(100);
+        network.getGenerator("GEN").setTargetV(30.0);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         loadFlowRunner.run(network, parameters);
-        assertEquals(28.80, network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV(), DELTA_MISMATCH);
+        assertEquals(Double.NaN, network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV(), DELTA_MISMATCH); // no calculation
         parameters.getExtension(OpenLoadFlowParameters.class).setMaxPlausibleTargetVoltage(1.3);
         loadFlowRunner.run(network, parameters);
-        assertEquals(31.2, network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV(), DELTA_MISMATCH);
+        assertEquals(30.0, network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV(), DELTA_MISMATCH);
     }
 
     @Test
