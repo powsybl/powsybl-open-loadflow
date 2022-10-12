@@ -223,7 +223,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected boolean checkTargetV(double targetV, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
                                 double maxPlausibleTargetVoltage) {
         // check that targetV has a plausible value (wrong nominal voltage issue)
-        System.out.println(targetV);
         if (targetV < minPlausibleTargetVoltage) {
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
                 getId(), targetV, minPlausibleTargetVoltage);
