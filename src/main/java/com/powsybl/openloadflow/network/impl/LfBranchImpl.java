@@ -37,19 +37,31 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
         double r1 = 1;
+        double r = line.getR();
+        double x = line.getX();
+        double g1 = line.getG1();
+        double g2 = line.getG2();
+        double b1 = line.getB1();
+        double b2 = line.getB2();
         if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
             LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ratio", line.getId(), nominalV1, nominalV2);
             report.linesWithDifferentNominalVoltageAtBothEnds++;
             r1 = 1 / Transformers.getRatioPerUnitBase(line);
+            r /= r1;
+            x /= r1;
+            g1 *= r1;
+            g2 *= r1;
+            b1 *= r1;
+            b2 *= r1;
         }
         PiModel piModel = new SimplePiModel()
                 .setR1(r1)
-                .setR(line.getR() / zb)
-                .setX(line.getX() / zb)
-                .setG1(line.getG1() * zb)
-                .setG2(line.getG2() * zb)
-                .setB1(line.getB1() * zb)
-                .setB2(line.getB2() * zb);
+                .setR(r / zb)
+                .setX(x / zb)
+                .setG1(g1 * zb)
+                .setG2(g2 * zb)
+                .setB1(b1 * zb)
+                .setB2(b2 * zb);
 
         return new LfBranchImpl(network, bus1, bus2, piModel, line);
     }
