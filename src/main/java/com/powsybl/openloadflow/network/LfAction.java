@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.security.action.Action;
+import com.powsybl.security.action.LineConnectionAction;
 import com.powsybl.security.action.SwitchAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,10 +34,11 @@ public class LfAction {
     public LfAction(Action action, LfNetwork network) {
         this.id = Objects.requireNonNull(action.getId());
         Objects.requireNonNull(network);
+        LfBranch branch;
         switch (action.getType()) {
             case SwitchAction.NAME:
                 SwitchAction switchAction = (SwitchAction) action;
-                LfBranch branch = network.getBranchById(switchAction.getSwitchId());
+                branch = network.getBranchById(switchAction.getSwitchId());
                 if (branch == null) {
                     throw new PowsyblException("Branch " + switchAction.getSwitchId() + " not found in the network");
                 }
@@ -44,6 +46,16 @@ public class LfAction {
                     disabledBranch = branch;
                 } else {
                     enabledBranch = branch;
+                }
+                break;
+            case LineConnectionAction.NAME:
+                LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
+                branch = network.getBranchById(lineConnectionAction.getLineId());
+                if (branch == null) {
+                    throw new PowsyblException("Branch " + lineConnectionAction.getLineId() + " not found in the network");
+                }
+                if (lineConnectionAction.isOpenSide1() && lineConnectionAction.isOpenSide2()) {
+                    disabledBranch = branch;
                 }
                 break;
             default:
