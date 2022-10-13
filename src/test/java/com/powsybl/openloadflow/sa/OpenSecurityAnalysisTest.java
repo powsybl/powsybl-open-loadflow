@@ -1825,7 +1825,7 @@ class OpenSecurityAnalysisTest {
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", "L1", new AnyViolationCondition(), List.of("action1")),
                                                             new OperatorStrategy("strategyL3", "L3", new AnyViolationCondition(), List.of("action3")),
                                                             new OperatorStrategy("strategyL2_1", "L2", new AtLeastOneViolationCondition(List.of("L1")), List.of("action1", "action3")),
-                                                            new OperatorStrategy("strategyL2_2", "L2", new AllViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
+                                                            new OperatorStrategy("strategyL2_2", "L2", new AllViolationCondition(List.of("L1")), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1853,9 +1853,8 @@ class OpenSecurityAnalysisTest {
         // L2 contingency
         assertEquals(583.5, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(302.2, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        assertFalse(getPostContingencyResult(result, "L2").getLimitViolationsResult().getLimitViolations().isEmpty());
-        assertTrue(getOptionalOperatorStrategyResult(result, "strategyL2_1").isEmpty()); // several operator strategies: not supported yet.
-        assertTrue(getOptionalOperatorStrategyResult(result, "strategyL2_2").isEmpty()); // several operator strategies: not supported yet.
+        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2_1").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2_2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
     }
 
     @Test

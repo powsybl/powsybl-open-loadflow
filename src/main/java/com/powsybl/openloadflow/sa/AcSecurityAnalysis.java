@@ -230,7 +230,16 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                 createResultExtension, lfContingency)
                                                 .ifPresent(operatorStrategyResults::add);
                                     } else {
-                                        LOGGER.warn("A contingency has several operator strategies: not supported yet");
+                                        // save post contingency state for later restoration after action
+                                        NetworkState postContingencyNetworkState = NetworkState.save(network);
+                                        for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
+                                            runActionSimulation(network, context,
+                                                    operatorStrategy, preContingencyLimitViolationManager,
+                                                    securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
+                                                    createResultExtension, lfContingency)
+                                                    .ifPresent(operatorStrategyResults::add);
+                                            postContingencyNetworkState.restore();
+                                        }
                                     }
                                 }
 
