@@ -205,7 +205,7 @@ class OpenLoadFlowParametersTest {
         network.getGenerator("GEN").setTargetV(30.0);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         loadFlowRunner.run(network, parameters);
-        assertEquals(Double.NaN, network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV(), DELTA_MISMATCH); // no calculation
+        assertTrue(Double.isNaN(network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV())); // no calculation
         parameters.getExtension(OpenLoadFlowParameters.class).setMaxPlausibleTargetVoltage(1.3);
         loadFlowRunner.run(network, parameters);
         assertEquals(30.0, network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV(), DELTA_MISMATCH);
