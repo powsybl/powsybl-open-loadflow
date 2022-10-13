@@ -39,9 +39,7 @@ public class LfAction {
             case SwitchAction.NAME:
                 SwitchAction switchAction = (SwitchAction) action;
                 branch = network.getBranchById(switchAction.getSwitchId());
-                if (branch == null) {
-                    throw new PowsyblException("Branch " + switchAction.getSwitchId() + " not found in the network");
-                }
+                checkBranch(branch, switchAction.getSwitchId());
                 if (switchAction.isOpen()) {
                     disabledBranch = branch;
                 } else {
@@ -51,11 +49,11 @@ public class LfAction {
             case LineConnectionAction.NAME:
                 LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
                 branch = network.getBranchById(lineConnectionAction.getLineId());
-                if (branch == null) {
-                    throw new PowsyblException("Branch " + lineConnectionAction.getLineId() + " not found in the network");
-                }
+                checkBranch(branch, lineConnectionAction.getLineId());
                 if (lineConnectionAction.isOpenSide1() && lineConnectionAction.isOpenSide2()) {
                     disabledBranch = branch;
+                } else {
+                    throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
                 }
                 break;
             default:
@@ -123,4 +121,11 @@ public class LfAction {
             connectivity.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
         }
     }
+
+    private void checkBranch(LfBranch branch, String branchId) {
+        if (branch == null) {
+            throw new PowsyblException("Branch " + branchId + " not found in the network");
+        }
+    }
+
 }
