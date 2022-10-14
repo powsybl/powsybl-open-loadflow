@@ -208,7 +208,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         LfNetwork mainNetwork = networkList.get(0);
         LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
         assertEquals("g2", generator.getId());
-        assertEquals(LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, generator.getTargetV());
+        assertTrue(Double.isNaN(generator.getTargetV()));
     }
 
     @Test

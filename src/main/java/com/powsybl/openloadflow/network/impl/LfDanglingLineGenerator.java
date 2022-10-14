@@ -29,10 +29,12 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
         // local control only
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(reactiveLimits, report)) {
             // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
-            this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
-            setTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(),
-                    report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
-            this.generatorControlType = GeneratorControlType.VOLTAGE;
+            if (checkTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(),
+                    report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage)) {
+                this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
+                this.targetV = danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV();
+                this.generatorControlType = GeneratorControlType.VOLTAGE;
+            }
         }
     }
 

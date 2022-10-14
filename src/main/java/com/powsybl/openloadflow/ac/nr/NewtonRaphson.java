@@ -182,7 +182,7 @@ public class NewtonRaphson {
     private boolean isStateUnrealistic() {
         List<String> busesOutOfNormalVoltageRange = new ArrayList<>();
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
-            if (v.getType() == AcVariableType.BUS_V) {
+            if (v.getType() == AcVariableType.BUS_V && !network.getBus(v.getElementNum()).isFictitious()) {
                 double value = equationSystem.getStateVector().get(v.getRow());
                 if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
                     busesOutOfNormalVoltageRange.add(network.getBus(v.getElementNum()).getId());
