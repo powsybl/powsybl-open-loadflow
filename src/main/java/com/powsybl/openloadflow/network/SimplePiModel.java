@@ -145,11 +145,6 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public void updateA1(int tapPosition, boolean delta) {
-        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
-    }
-
-    @Override
     public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
@@ -180,5 +175,15 @@ public class SimplePiModel implements PiModel {
     @Override
     public void setBranch(LfBranch branch) {
         // nothing to set
+    }
+
+    @Override
+    public int getTapPosition() {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
+    @Override
+    public PiModel setTapPosition(int tapPosition) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 }

@@ -15,12 +15,16 @@ public class BranchState extends ElementState<LfBranch> {
     private final double r1;
     private final boolean phaseControlEnabled;
     private final boolean voltageControlEnabled;
+    private int tapPosition;
 
     public BranchState(LfBranch branch) {
         super(branch);
         PiModel piModel = branch.getPiModel();
         a1 = piModel.getA1();
         r1 = piModel.getR1();
+        if (piModel instanceof PiModelArray) {
+            tapPosition = piModel.getTapPosition();
+        }
         phaseControlEnabled = branch.isPhaseControlEnabled();
         voltageControlEnabled = branch.isVoltageControlEnabled();
     }
@@ -29,6 +33,9 @@ public class BranchState extends ElementState<LfBranch> {
     public void restore() {
         super.restore();
         PiModel piModel = element.getPiModel();
+        if (piModel instanceof PiModelArray) {
+            piModel.setTapPosition(tapPosition);
+        }
         piModel.setA1(a1);
         piModel.setR1(r1);
         element.setPhaseControlEnabled(phaseControlEnabled);

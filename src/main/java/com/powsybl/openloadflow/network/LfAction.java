@@ -140,7 +140,10 @@ public class LfAction {
     public void apply() {
         if (branchAndTapPosition != null) {
             LfBranch branch = branchAndTapPosition.getLeft();
-            branch.getPiModel().updateA1(branchAndTapPosition.getRight().getLeft(), branchAndTapPosition.getRight().getRight());
+            int tapPosition = branch.getPiModel().getTapPosition();
+            int value = branchAndTapPosition.getRight().getLeft();
+            int newTapPosition = branchAndTapPosition.getRight().getRight() ? tapPosition + value : value;
+            branch.getPiModel().setTapPosition(newTapPosition);
         }
     }
 

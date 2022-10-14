@@ -76,11 +76,13 @@ public interface PiModel {
 
     boolean updateTapPositionA1(Direction direction);
 
-    void updateA1(int tapPosition, boolean delta);
-
     Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection);
 
     boolean setMinZ(double minZ, boolean dc);
 
     void setBranch(LfBranch branch);
+
+    int getTapPosition();
+
+    PiModel setTapPosition(int tapPosition);
 }

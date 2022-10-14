@@ -1950,10 +1950,12 @@ class OpenSecurityAnalysisTest {
 
         List<Action> actions = List.of(new SwitchAction("openSwitchS0", "SOO1_SOO1_DJ_OMN", true),
                 new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
-                new PhaseTapChangerTapPositionAction("pst", "NE_NO_1", false, 1));
+                new PhaseTapChangerTapPositionAction("pst", "NE_NO_1", false, 1), // PST at tap position 17.
+                new PhaseTapChangerTapPositionAction("pst2", "NE_NO_1", true, -16));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitchS0")),
                 new OperatorStrategy("strategy2", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
-                new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")));
+                new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")),
+                new OperatorStrategy("strategy4", "S_SO_1", new TrueCondition(), List.of("pst2")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, Reporter.NO_OP);
@@ -1967,6 +1969,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(4, getOperatorStrategyResult(result, "strategy2").getLimitViolationsResult().getLimitViolations().size());
         assertEquals(732.726, getOperatorStrategyResult(result, "strategy3").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(2, getOperatorStrategyResult(result, "strategy3").getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(732.726, getOperatorStrategyResult(result, "strategy4").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(2, getOperatorStrategyResult(result, "strategy4").getLimitViolationsResult().getLimitViolations().size());
     }
 
 }
