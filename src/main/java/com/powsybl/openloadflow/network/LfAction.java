@@ -91,21 +91,30 @@ public class LfAction {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
+        // first process connectivity part of actions
+        updateConnectivity(actions, network, contingency);
+
+        // then process remaining changes of actions
+        for (LfAction action : actions) {
+            action.apply();
+        }
+
+        network.getBuses().forEach(bus -> LOGGER.info("LfBus {} is disabled: {}", bus.getId(), bus.isDisabled()));
+        network.getBranches().forEach(branch -> LOGGER.info("LfBranch {} is disabled: {}", branch.getId(), branch.isDisabled()));
+    }
+
+    private static void updateConnectivity(List<LfAction> actions, LfNetwork network, LfContingency contingency) {
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.setMainComponentVertex(network.getSlackBus());
-        connectivity.startTemporaryChanges();
-        contingency.getDisabledBranches().stream()
-                .filter(Objects::nonNull) // could be in another component
-                .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .forEach(connectivity::removeEdge);
-        Set<LfBus> postContingencyRemovedBuses = connectivity.getVerticesRemovedFromMainComponent();
-        postContingencyRemovedBuses.forEach(bus -> bus.setDisabled(false)); // undo.
-        Set<LfBranch> postContingencyRemovedBranches = connectivity.getEdgesRemovedFromMainComponent();
-        postContingencyRemovedBranches.forEach(branch -> branch.setDisabled(false)); // undo.
 
+        // re-update connectivity according to post contingency state (revert after LfContingency apply)
+        connectivity.startTemporaryChanges();
+        contingency.getDisabledBranches().forEach(connectivity::removeEdge);
+
+        // update connectivity according to post action state
+        connectivity.startTemporaryChanges();
         for (LfAction action : actions) {
             action.updateConnectivity(connectivity);
-            action.apply();
         }
 
         // add to action description buses and branches that won't be part of the main connected
@@ -114,6 +123,7 @@ public class LfAction {
         removedBuses.forEach(bus -> bus.setDisabled(true));
         Set<LfBranch> removedBranches = connectivity.getEdgesRemovedFromMainComponent();
         removedBranches.forEach(branch -> branch.setDisabled(true));
+
         // add to action description buses and branches that will be part of the main connected
         // component in post action state.
         Set<LfBus> addedBuses = connectivity.getVerticesAddedToMainComponent();
@@ -121,11 +131,9 @@ public class LfAction {
         Set<LfBranch> addedBranches = connectivity.getEdgesAddedToMainComponent();
         addedBranches.forEach(branch -> branch.setDisabled(false));
 
-        // reset connectivity to discard triggered branches
+        // reset connectivity to discard post contingency connectivity and post action connectivity
         connectivity.undoTemporaryChanges();
-
-        network.getBuses().forEach(bus -> LOGGER.info("LfBus {} is disabled: {}", bus.getId(), bus.isDisabled()));
-        network.getBranches().forEach(branch -> LOGGER.info("LfBranch {} is disabled: {}", branch.getId(), branch.isDisabled()));
+        connectivity.undoTemporaryChanges();
     }
 
     public void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
@@ -147,7 +155,7 @@ public class LfAction {
         }
     }
 
-    private void checkBranch(LfBranch branch, String branchId) {
+    private static void checkBranch(LfBranch branch, String branchId) {
         if (branch == null) {
             throw new PowsyblException("Branch " + branchId + " not found in the network");
         }
