@@ -130,7 +130,7 @@ public final class Networks {
                         .forEach(sw -> sw.setRetained(true));
                 switchesToClose.stream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                         .forEach(sw -> sw.setRetained(true));
-                switchesToClose.stream().forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
+                switchesToClose.forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
                 return load(network, networkParameters, reporter);
             } finally {
                 network.getVariantManager().removeVariant(tmpVariantId);
