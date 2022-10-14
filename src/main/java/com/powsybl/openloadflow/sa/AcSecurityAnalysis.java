@@ -184,10 +184,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.setReporter(preContSimReporter);
 
             // run pre-contingency simulation
-            AcloadFlowEngine engine = new AcloadFlowEngine(context);
-            engine.getContext().getEquationSystem();
             restoreInitialTopology(network, allSwitchesToClose);
-            AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
+            AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
+                    .run();
 
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             var preContingencyLimitViolationManager = new LimitViolationManager();
