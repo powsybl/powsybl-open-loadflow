@@ -12,9 +12,6 @@ import com.powsybl.security.action.Action;
 import com.powsybl.security.action.LineConnectionAction;
 import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
-import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -25,7 +22,32 @@ import java.util.Set;
  */
 public class LfAction {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
+    private static final class TapPositionChange {
+
+        private final LfBranch branch;
+
+        private final int value;
+
+        private final boolean relative;
+
+        private TapPositionChange(LfBranch branch, int value, boolean relative) {
+            this.branch = Objects.requireNonNull(branch);
+            this.value = value;
+            this.relative = relative;
+        }
+
+        public LfBranch getBranch() {
+            return branch;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        public boolean isRelative() {
+            return relative;
+        }
+    }
 
     private final String id;
 
@@ -33,7 +55,7 @@ public class LfAction {
 
     private LfBranch enabledBranch; // switch to close
 
-    private Pair<LfBranch, Pair<Integer, Boolean>> branchAndTapPosition;
+    private TapPositionChange tapPositionChange;
 
     public LfAction(Action action, LfNetwork network) {
         this.id = Objects.requireNonNull(action.getId());
@@ -67,7 +89,7 @@ public class LfAction {
                 if (branch.getPiModel() instanceof SimplePiModel) {
                     throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + phaseTapChangerTapPositionAction.getTransformerId() + "}");
                 } else {
-                    branchAndTapPosition = Pair.of(branch, Pair.of(phaseTapChangerTapPositionAction.getValue(), phaseTapChangerTapPositionAction.isRelativeValue()));
+                    tapPositionChange = new TapPositionChange(branch, phaseTapChangerTapPositionAction.getValue(), phaseTapChangerTapPositionAction.isRelativeValue());
                 }
                 break;
             default:
@@ -98,9 +120,6 @@ public class LfAction {
         for (LfAction action : actions) {
             action.apply();
         }
-
-        network.getBuses().forEach(bus -> LOGGER.info("LfBus {} is disabled: {}", bus.getId(), bus.isDisabled()));
-        network.getBranches().forEach(branch -> LOGGER.info("LfBranch {} is disabled: {}", branch.getId(), branch.isDisabled()));
     }
 
     private static void updateConnectivity(List<LfAction> actions, LfNetwork network, LfContingency contingency) {
@@ -146,11 +165,11 @@ public class LfAction {
     }
 
     public void apply() {
-        if (branchAndTapPosition != null) {
-            LfBranch branch = branchAndTapPosition.getLeft();
+        if (tapPositionChange != null) {
+            LfBranch branch = tapPositionChange.getBranch();
             int tapPosition = branch.getPiModel().getTapPosition();
-            int value = branchAndTapPosition.getRight().getLeft();
-            int newTapPosition = Boolean.TRUE.equals(branchAndTapPosition.getRight().getRight()) ? tapPosition + value : value;
+            int value = tapPositionChange.getValue();
+            int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
             branch.getPiModel().setTapPosition(newTapPosition);
         }
     }
@@ -160,5 +179,4 @@ public class LfAction {
             throw new PowsyblException("Branch " + branchId + " not found in the network");
         }
     }
-
 }
