@@ -362,7 +362,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private boolean checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
-        // FIXME: add logs.
         Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
                 .map(LimitViolation::getSubjectId)
                 .collect(Collectors.toSet());
