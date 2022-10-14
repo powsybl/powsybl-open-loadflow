@@ -161,13 +161,13 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             return;
         }
         var connectivity = network.getConnectivity();
+        connectivity.startTemporaryChanges();
         allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
             LfBranch branch = network.getBranchById(id);
-            branch.setDisabled(true);
-            if (branch.getBus1() != null && branch.getBus2() != null) {
-                connectivity.removeEdge(branch);
-            }
+            connectivity.removeEdge(branch);
         });
+        connectivity.getEdgesRemovedFromMainComponent().forEach(branch -> branch.setDisabled(true));
+        connectivity.getVerticesRemovedFromMainComponent().forEach(bus -> bus.setDisabled(true));
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,

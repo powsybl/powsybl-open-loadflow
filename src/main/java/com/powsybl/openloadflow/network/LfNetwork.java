@@ -546,6 +546,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             getBranches().stream()
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
+            connectivity.setMainComponentVertex(getSlackBus());
         }
         return connectivity;
     }
