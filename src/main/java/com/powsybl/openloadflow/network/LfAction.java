@@ -10,7 +10,9 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.LineConnectionAction;
+import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +32,8 @@ public class LfAction {
     private LfBranch disabledBranch; // switch to open
 
     private LfBranch enabledBranch; // switch to close
+
+    private Pair<LfBranch, Pair<Integer, Boolean>> branchAndTapPosition;
 
     public LfAction(Action action, LfNetwork network) {
         this.id = Objects.requireNonNull(action.getId());
@@ -54,6 +58,16 @@ public class LfAction {
                     disabledBranch = branch;
                 } else {
                     throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
+                }
+                break;
+            case PhaseTapChangerTapPositionAction.NAME:
+                PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
+                branch = network.getBranchById(phaseTapChangerTapPositionAction.getTransformerId()); // only two windings transformer for the moment.
+                checkBranch(branch, phaseTapChangerTapPositionAction.getTransformerId()); // how to check that it is really a phase tap changer?
+                if (branch.getPiModel() instanceof SimplePiModel) {
+                    throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + phaseTapChangerTapPositionAction.getTransformerId() + "}");
+                } else {
+                    branchAndTapPosition = Pair.of(branch, Pair.of(phaseTapChangerTapPositionAction.getValue(), phaseTapChangerTapPositionAction.isRelativeValue()));
                 }
                 break;
             default:
@@ -91,6 +105,7 @@ public class LfAction {
 
         for (LfAction action : actions) {
             action.updateConnectivity(connectivity);
+            action.apply(network);
         }
 
         // add to action description buses and branches that won't be part of the main connected
@@ -119,6 +134,13 @@ public class LfAction {
         }
         if (enabledBranch != null) {
             connectivity.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
+        }
+    }
+
+    public void apply(LfNetwork network) {
+        if (branchAndTapPosition != null) {
+            LfBranch branch = branchAndTapPosition.getLeft();
+            branch.getPiModel().updateA1(branchAndTapPosition.getRight().getLeft(), branchAndTapPosition.getRight().getRight());
         }
     }
 

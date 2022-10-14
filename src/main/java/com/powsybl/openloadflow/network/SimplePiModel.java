@@ -143,6 +143,11 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
+    public void updateA1(int tapPosition, boolean delta) {
+        throw new IllegalStateException("No tap position change in simple Pi model implementation");
+    }
+
+    @Override
     public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
         throw new IllegalStateException("No tap position change in simple Pi model implementation");
     }

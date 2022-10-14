@@ -195,6 +195,12 @@ public class PiModelArray implements PiModel {
         return hasChanged;
     }
 
+    @Override
+    public void updateA1(int tapPosition, boolean delta) {
+        this.tapPosition = delta ? this.tapPosition + tapPosition : tapPosition;
+        a1 = Double.NaN;
+    }
+
     private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
         switch (allowedDirection) {
             case INCREASE:

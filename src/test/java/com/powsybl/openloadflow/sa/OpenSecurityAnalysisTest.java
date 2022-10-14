@@ -35,6 +35,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.LineConnectionAction;
+import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
@@ -1948,17 +1949,24 @@ class OpenSecurityAnalysisTest {
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
         List<Action> actions = List.of(new SwitchAction("openSwitchS0", "SOO1_SOO1_DJ_OMN", true),
-                new LineConnectionAction("openLineSSO2", "S_SO_2", true, true));
+                new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
+                new PhaseTapChangerTapPositionAction("pst", "NE_NO_1", false, 1));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitchS0")),
-                new OperatorStrategy("strategy2", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")));
+                new OperatorStrategy("strategy2", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
+                new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, Reporter.NO_OP);
         assertEquals(395.413, result.getPreContingencyResult().getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(735.862, getPostContingencyResult(result, "S_SO_1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(2, getPostContingencyResult(result, "S_SO_1").getLimitViolationsResult().getLimitViolations().size());
         assertEquals(287.129, getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(1938.36, getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("SO_NO_1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(4, getOperatorStrategyResult(result, "strategy1").getLimitViolationsResult().getLimitViolations().size());
         assertEquals(683.392, getOperatorStrategyResult(result, "strategy2").getNetworkResult().getBranchResult("SO_NO_1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(4, getOperatorStrategyResult(result, "strategy2").getLimitViolationsResult().getLimitViolations().size());
+        assertEquals(732.726, getOperatorStrategyResult(result, "strategy3").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(2, getOperatorStrategyResult(result, "strategy3").getLimitViolationsResult().getLimitViolations().size());
     }
 
 }
