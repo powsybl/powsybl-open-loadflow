@@ -105,7 +105,7 @@ public class LfAction {
 
         for (LfAction action : actions) {
             action.updateConnectivity(connectivity);
-            action.apply(network);
+            action.apply();
         }
 
         // add to action description buses and branches that won't be part of the main connected
@@ -137,7 +137,7 @@ public class LfAction {
         }
     }
 
-    public void apply(LfNetwork network) {
+    public void apply() {
         if (branchAndTapPosition != null) {
             LfBranch branch = branchAndTapPosition.getLeft();
             branch.getPiModel().updateA1(branchAndTapPosition.getRight().getLeft(), branchAndTapPosition.getRight().getRight());
