@@ -190,7 +190,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         controlledBranch.setReactivePowerControl(control);
     }
 
-    private static void createReactivePowerControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
+    private static void createReactivePowerControls(List<LfBus> lfBuses) {
         for (LfBus controllerBus : lfBuses) {
             List<LfGenerator> generators = controllerBus.getGenerators().stream()
                     .filter(LfGenerator::hasRemoteReactivePowerControl).collect(Collectors.toList());
@@ -732,7 +732,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!parameters.isDc()) {
             createVoltageControls(lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
             if (parameters.isReactivePowerRemoteControl()) {
-                createReactivePowerControls(lfNetwork, lfBuses);
+                createReactivePowerControls(lfBuses);
             }
             if (parameters.isTransformerVoltageControl()) {
                 // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
