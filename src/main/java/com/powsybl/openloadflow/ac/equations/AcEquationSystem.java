@@ -313,10 +313,12 @@ public final class AcEquationSystem {
 
     private static void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        Optional<Equation<AcVariableType, AcEquationType>> v1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_V);
-        Optional<Equation<AcVariableType, AcEquationType>> v2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_V);
-        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive if the equation has been created for sensitivity
-        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive if the equation has been created for sensitivity
+        boolean hasV1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_V)
+                .filter(Equation::isActive)
+                .isPresent();
+        boolean hasV2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_V)
+                .filter(Equation::isActive)
+                .isPresent();
         if (!(hasV1 && hasV2)) {
             // create voltage magnitude coupling equation
             // 0 = v1 - v2 * rho
@@ -352,8 +354,12 @@ public final class AcEquationSystem {
             // target v are equals.
         }
 
-        boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), AcEquationType.BUS_TARGET_PHI);
-        boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), AcEquationType.BUS_TARGET_PHI);
+        boolean hasPhi1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_PHI)
+                .filter(Equation::isActive)
+                .isPresent();
+        boolean hasPhi2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_PHI)
+                .filter(Equation::isActive)
+                .isPresent();
         if (!(hasPhi1 && hasPhi2)) {
             // create voltage angle coupling equation
             // alpha = phi1 - phi2
