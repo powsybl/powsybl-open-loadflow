@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfVscConverterStation;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -22,9 +23,9 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private final double lossFactor;
 
-    public LfVscConverterStationImpl(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
+    public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                      double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        super(HvdcConverterStations.getConverterStationTargetP(station));
+        super(network, HvdcConverterStations.getConverterStationTargetP(station));
         this.station = station;
         this.lossFactor = station.getLossFactor();
 
@@ -35,10 +36,10 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         }
     }
 
-    public static LfVscConverterStationImpl create(VscConverterStation station, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
+    public static LfVscConverterStationImpl create(VscConverterStation station, LfNetwork network, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         Objects.requireNonNull(station);
-        return new LfVscConverterStationImpl(station, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+        return new LfVscConverterStationImpl(station, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
     }
 
     @Override

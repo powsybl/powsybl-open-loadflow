@@ -83,11 +83,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (!voltageControlGenerators.isEmpty()) {
 
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
-                LfBus controlledBus = lfGenerator0.getControlledBus(lfNetwork);
+                LfBus controlledBus = lfGenerator0.getControlledBus();
                 double controllerTargetV = lfGenerator0.getTargetV();
 
                 voltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
-                    LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
+                    LfBus generatorControlledBus = lfGenerator.getControlledBus();
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
                     if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus)) {
@@ -202,12 +202,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
                 if (generators.size() == 1) {
                     LfGenerator lfGenerator = generators.get(0);
-                    LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
+                    LfBranch controlledBranch = lfGenerator.getControlledBranch();
                     Optional<ReactivePowerControl> control = controlledBranch.getReactivePowerControl();
                     if (control.isPresent()) {
                         LOGGER.warn("Branch {} is remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
                     } else {
-                        createRemoteReactivePowerControl(lfGenerator.getControlledBranch(lfNetwork), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
+                        createRemoteReactivePowerControl(lfGenerator.getControlledBranch(), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
                     }
                 } else { // generators.size() > 1 (as > 0 and not equal to 1)
                     LOGGER.warn("Bus {} has more than one generator controlling reactive power remotely: not yet supported", controllerBus.getId());

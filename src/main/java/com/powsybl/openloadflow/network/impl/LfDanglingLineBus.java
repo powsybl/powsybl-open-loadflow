@@ -30,7 +30,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
         loadTargetQ += danglingLine.getQ0();
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
-            add(new LfDanglingLineGenerator(danglingLine, getId(), reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage));
+            add(new LfDanglingLineGenerator(danglingLine, network, getId(), reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage));
         }
     }
 
