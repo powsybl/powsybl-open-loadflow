@@ -73,7 +73,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses, boolean voltageRemoteControl, boolean voltagePerReactivePowerControl) {
+    private static void createVoltageControls(List<LfBus> lfBuses, boolean voltageRemoteControl, boolean voltagePerReactivePowerControl) {
         List<VoltageControl> voltageControls = new ArrayList<>();
 
         // set controller -> controlled link
@@ -730,7 +730,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
 
         if (!parameters.isDc()) {
-            createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
+            createVoltageControls(lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
             if (parameters.isReactivePowerRemoteControl()) {
                 createReactivePowerControls(lfNetwork, lfBuses);
             }
