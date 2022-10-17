@@ -1940,9 +1940,13 @@ class OpenSecurityAnalysisTest {
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = MetrixTutorialSixBusesFactory.create();
-        network.getGenerator("SO_G2").setTargetP(960);
-        network.getGenerator("SO_G1").setTargetP(0);
-        network.getLoad("SE_L1").setP0(960);
+        network.getGenerator("SO_G2").setTargetP(628);
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parameters.setHvdcAcEmulation(false);
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
 
         List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
 
@@ -1957,20 +1961,28 @@ class OpenSecurityAnalysisTest {
                 new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")),
                 new OperatorStrategy("strategy4", "S_SO_1", new TrueCondition(), List.of("pst2")));
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
-        assertEquals(395.413, result.getPreContingencyResult().getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(735.862, getPostContingencyResult(result, "S_SO_1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(2, getPostContingencyResult(result, "S_SO_1").getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(287.129, getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(1938.36, getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("SO_NO_1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(4, getOperatorStrategyResult(result, "strategy1").getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(683.392, getOperatorStrategyResult(result, "strategy2").getNetworkResult().getBranchResult("SO_NO_1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(4, getOperatorStrategyResult(result, "strategy2").getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(732.726, getOperatorStrategyResult(result, "strategy3").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(2, getOperatorStrategyResult(result, "strategy3").getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(732.726, getOperatorStrategyResult(result, "strategy4").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(2, getOperatorStrategyResult(result, "strategy4").getLimitViolationsResult().getLimitViolations().size());
-    }
+        assertEquals(271.99, result.getPreContingencyResult().getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(504.40, getPostContingencyResult(result, "S_SO_1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(298.70, getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(488.99, getOperatorStrategyResult(result, "strategy2").getNetworkResult().getBranchResult("SO_NO_1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(499.984, getOperatorStrategyResult(result, "strategy3").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(499.984, getOperatorStrategyResult(result, "strategy4").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
 
+        network.getGenerator("SO_G2").setTargetP(628);
+        network.getLine("S_SO_1").getTerminal1().disconnect();
+        network.getLine("S_SO_1").getTerminal2().disconnect();
+
+        LoadFlowParameters parameters2 = new LoadFlowParameters();
+        parameters2.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        parameters2.setHvdcAcEmulation(false);
+
+        LoadFlow.run(network, parameters);
+        assertEquals(504.40, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().setTapPosition(1);
+        LoadFlow.run(network, parameters);
+        assertEquals(499.989, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+    }
 }
