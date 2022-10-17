@@ -1879,10 +1879,10 @@ class OpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
 
         List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
-                                       new SwitchAction("action3", "C2", false));
+                new SwitchAction("action3", "C2", false));
 
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL3", "L3", new AllViolationCondition(List.of("VL1", "VL2")), List.of("action3")),
-                                                            new OperatorStrategy("strategyL2", "L2", new AtLeastOneViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
+                new OperatorStrategy("strategyL2", "L2", new AtLeastOneViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1953,13 +1953,13 @@ class OpenSecurityAnalysisTest {
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
         List<Action> actions = List.of(new SwitchAction("openSwitchS0", "SOO1_SOO1_DJ_OMN", true),
-                new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
-                new PhaseTapChangerTapPositionAction("pst", "NE_NO_1", false, 1), // PST at tap position 17.
-                new PhaseTapChangerTapPositionAction("pst2", "NE_NO_1", true, -16));
+                                       new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
+                                       new PhaseTapChangerTapPositionAction("pst", "NE_NO_1", false, 1), // PST at tap position 17.
+                                       new PhaseTapChangerTapPositionAction("pst2", "NE_NO_1", true, -16));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitchS0")),
-                new OperatorStrategy("strategy2", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
-                new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")),
-                new OperatorStrategy("strategy4", "S_SO_1", new TrueCondition(), List.of("pst2")));
+                                                            new OperatorStrategy("strategy2", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
+                                                            new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")),
+                                                            new OperatorStrategy("strategy4", "S_SO_1", new TrueCondition(), List.of("pst2")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
