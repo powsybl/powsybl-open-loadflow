@@ -294,7 +294,7 @@ public class PropagatedContingency {
 
         // we should manage branches open at one side.
         for (LfBus bus : buses) {
-            bus.getBranches().stream().filter(b -> b.getOtherBus(bus) == null).forEach(b -> branches.add(b));
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(b -> branches.add(b));
         }
 
         // reset connectivity to discard triggered branches
