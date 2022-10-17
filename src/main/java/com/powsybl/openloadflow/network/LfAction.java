@@ -124,7 +124,6 @@ public class LfAction {
 
     private static void updateConnectivity(List<LfAction> actions, LfNetwork network, LfContingency contingency) {
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
-        connectivity.setMainComponentVertex(network.getSlackBus());
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
         connectivity.startTemporaryChanges();
