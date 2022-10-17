@@ -86,50 +86,72 @@ public class LimitViolationManager {
         // detect violation limits on a branch
         // Only detect the most serious one (findFirst) : limit violations are ordered by severity
         if (branch.getBus1() != null) {
-            branch.getLimits1(LimitType.CURRENT).stream()
-                    .filter(temporaryLimit1 -> branch.getI1().eval() > temporaryLimit1.getValue())
-                    .findFirst()
-                    .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus1().getNominalV()), branch.getI1().eval()))
-                    .ifPresent(this::addLimitViolation);
-
-            branch.getLimits1(LimitType.ACTIVE_POWER).stream()
-                    .filter(temporaryLimit1 -> branch.getP1().eval() > temporaryLimit1.getValue())
-                    .findFirst()
-                    .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.ACTIVE_POWER, PerUnit.SB, branch.getP1().eval()))
-                    .ifPresent(this::addLimitViolation);
-
-            //Apparent power is not relevant for fictitious branches and may be NaN
-            double apparentPower1 = branch.computeApparentPower1();
-            if (!Double.isNaN(apparentPower1)) {
-                branch.getLimits1(LimitType.APPARENT_POWER).stream()
-                        .filter(temporaryLimit1 -> apparentPower1 > temporaryLimit1.getValue())
+            List<LfBranch.LfLimit> limits1 = branch.getLimits1(LimitType.CURRENT);
+            if (!limits1.isEmpty()) {
+                double i1 = branch.getI1().eval();
+                limits1.stream()
+                        .filter(temporaryLimit1 -> i1 > temporaryLimit1.getValue())
                         .findFirst()
-                        .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower1))
+                        .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus1().getNominalV()), i1))
                         .ifPresent(this::addLimitViolation);
             }
 
-        }
-        if (branch.getBus2() != null) {
-            branch.getLimits2(LimitType.CURRENT).stream()
-                    .filter(temporaryLimit2 -> branch.getI2().eval() > temporaryLimit2.getValue())
-                    .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
-                    .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus2().getNominalV()), branch.getI2().eval()))
-                    .ifPresent(this::addLimitViolation);
-
-            branch.getLimits2(LimitType.ACTIVE_POWER).stream()
-                    .filter(temporaryLimit2 -> branch.getP2().eval() > temporaryLimit2.getValue())
-                    .findFirst()
-                    .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.ACTIVE_POWER, PerUnit.SB, branch.getP2().eval()))
-                    .ifPresent(this::addLimitViolation);
-
-            //Apparent power is not relevant for fictitious branches and may be NaN
-            double apparentPower2 = branch.computeApparentPower2();
-            if (!Double.isNaN(apparentPower2)) {
-                branch.getLimits2(LimitType.APPARENT_POWER).stream()
-                        .filter(temporaryLimit2 -> apparentPower2 > temporaryLimit2.getValue())
+            limits1 = branch.getLimits1(LimitType.ACTIVE_POWER);
+            if (!limits1.isEmpty()) {
+                double p1 = branch.getP1().eval();
+                limits1.stream()
+                        .filter(temporaryLimit1 -> p1 > temporaryLimit1.getValue())
                         .findFirst()
-                        .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.APPARENT_POWER, PerUnit.SB, apparentPower2))
+                        .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p1))
                         .ifPresent(this::addLimitViolation);
+            }
+
+            limits1 = branch.getLimits1(LimitType.APPARENT_POWER);
+            if (!limits1.isEmpty()) {
+                //Apparent power is not relevant for fictitious branches and may be NaN
+                double s1 = branch.computeApparentPower1();
+                if (!Double.isNaN(s1)) {
+                    limits1.stream()
+                            .filter(temporaryLimit1 -> s1 > temporaryLimit1.getValue())
+                            .findFirst()
+                            .map(temporaryLimit1 -> createLimitViolation1(branch, temporaryLimit1, LimitViolationType.APPARENT_POWER, PerUnit.SB, s1))
+                            .ifPresent(this::addLimitViolation);
+                }
+            }
+        }
+
+        if (branch.getBus2() != null) {
+            List<LfBranch.LfLimit> limits2 = branch.getLimits2(LimitType.CURRENT);
+            if (!limits2.isEmpty()) {
+                double i2 = branch.getI2().eval();
+                limits2.stream()
+                        .filter(temporaryLimit2 -> i2 > temporaryLimit2.getValue())
+                        .findFirst() // only the most serious violation is added (the limits are sorted in descending gravity)
+                        .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.CURRENT, PerUnit.ib(branch.getBus2().getNominalV()), i2))
+                        .ifPresent(this::addLimitViolation);
+            }
+
+            limits2 = branch.getLimits2(LimitType.ACTIVE_POWER);
+            if (!limits2.isEmpty()) {
+                double p2 = branch.getP2().eval();
+                limits2.stream()
+                        .filter(temporaryLimit2 -> p2 > temporaryLimit2.getValue())
+                        .findFirst()
+                        .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p2))
+                        .ifPresent(this::addLimitViolation);
+            }
+
+            limits2 = branch.getLimits2(LimitType.APPARENT_POWER);
+            if (!limits2.isEmpty()) {
+                //Apparent power is not relevant for fictitious branches and may be NaN
+                double s2 = branch.computeApparentPower2();
+                if (!Double.isNaN(s2)) {
+                    limits2.stream()
+                            .filter(temporaryLimit2 -> s2 > temporaryLimit2.getValue())
+                            .findFirst()
+                            .map(temporaryLimit2 -> createLimitViolation2(branch, temporaryLimit2, LimitViolationType.APPARENT_POWER, PerUnit.SB, s2))
+                            .ifPresent(this::addLimitViolation);
+                }
             }
         }
     }
