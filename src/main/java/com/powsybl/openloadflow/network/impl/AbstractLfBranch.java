@@ -292,4 +292,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), LOW_IMPEDANCE_THRESHOLD);
         }
     }
+
+    @Override
+    public LfBus getOtherBus(LfBus bus) {
+        return (bus1 != null && bus1 == bus) ? bus2 : bus1;
+    }
 }

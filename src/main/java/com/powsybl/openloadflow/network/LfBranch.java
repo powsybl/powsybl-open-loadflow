@@ -177,4 +177,6 @@ public interface LfBranch extends LfElement {
     boolean isConnectedAtBothSides();
 
     void setMinZ(boolean dc);
+
+    LfBus getOtherBus(LfBus bus);
 }

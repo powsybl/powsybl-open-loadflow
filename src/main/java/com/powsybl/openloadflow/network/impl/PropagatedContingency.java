@@ -292,6 +292,11 @@ public class PropagatedContingency {
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
         Set<LfBranch> branches = connectivity.getEdgesRemovedFromMainComponent();
 
+        // we should manage branches open at one side.
+        for (LfBus bus : buses) {
+            bus.getBranches().stream().filter(b -> b.getOtherBus(bus) == null).forEach(b -> branches.add(b));
+        }
+
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
 
