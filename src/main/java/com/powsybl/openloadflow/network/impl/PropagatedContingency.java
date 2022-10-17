@@ -279,7 +279,6 @@ public class PropagatedContingency {
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
-        connectivity.setMainComponentVertex(network.getSlackBus());
         connectivity.startTemporaryChanges();
         branchIdsToOpen.stream()
                 .map(network::getBranchById)

@@ -147,64 +147,59 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         Objects.requireNonNull(reporter);
 
         return CompletableFuture.runAsync(() -> {
-            String oldWorkingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().setWorkingVariant(workingVariantId);
-            try {
-                Reporter sensiReporter = Reports.createSensitivityAnalysis(reporter, network.getId());
+            Reporter sensiReporter = Reports.createSensitivityAnalysis(reporter, network.getId());
 
-                LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
-                OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
-                OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
+            LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+            OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
+            OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
-                // We only support switch contingency for the moment. Contingency propagation is not supported yet.
-                // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
-                // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
-                Set<Switch> allSwitchesToOpen = new HashSet<>();
-                List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                        sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc(),
-                        false);
+            // We only support switch contingency for the moment. Contingency propagation is not supported yet.
+            // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
+            // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
+            Set<Switch> allSwitchesToOpen = new HashSet<>();
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false,
+                    sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                    sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc(),
+                    false);
 
-                SensitivityFactorReader decoratedFactorReader = factorReader;
+            SensitivityFactorReader decoratedFactorReader = factorReader;
 
-                // debugging
-                if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
-                    Path debugDir = PlatformConfig.defaultConfig().getConfigDir()
-                            .map(dir -> dir.getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir()))
-                            .orElseThrow(() -> new PowsyblException("Cannot write to debug directory as no configuration directory has been defined"));
-                    String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
+            // debugging
+            if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
+                Path debugDir = PlatformConfig.defaultConfig().getConfigDir()
+                        .map(dir -> dir.getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir()))
+                        .orElseThrow(() -> new PowsyblException("Cannot write to debug directory as no configuration directory has been defined"));
+                String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
 
-                    NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
+                NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
 
-                    ObjectWriter objectWriter = createObjectMapper()
-                            .writerWithDefaultPrettyPrinter();
-                    try {
-                        try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                            ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
-                            objectWriter.writeValue(writer, contingencyList);
-                        }
-
-                        try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                            objectWriter.writeValue(writer, variableSets);
-                        }
-
-                        try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
-                            objectWriter.writeValue(writer, sensitivityAnalysisParameters);
-                        }
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
+                ObjectWriter objectWriter = createObjectMapper()
+                        .writerWithDefaultPrettyPrinter();
+                try {
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("contingencies-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                        ContingencyList contingencyList = new DefaultContingencyList("default", contingencies);
+                        objectWriter.writeValue(writer, contingencyList);
                     }
 
-                    decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                        objectWriter.writeValue(writer, variableSets);
+                    }
+
+                    try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("parameters-" + dateStr + ".json"), StandardCharsets.UTF_8)) {
+                        objectWriter.writeValue(writer, sensitivityAnalysisParameters);
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
                 }
 
-                if (lfParameters.isDc()) {
-                    dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
-                } else {
-                    acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
-                }
-            } finally {
-                network.getVariantManager().setWorkingVariant(oldWorkingVariantId);
+                decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
+            }
+
+            if (lfParameters.isDc()) {
+                dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+            } else {
+                acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
             }
         }, computationManager.getExecutor());
     }

@@ -151,8 +151,8 @@ public class SimplePiModel implements PiModel {
 
     private void rescaleZ(double z) {
         double ksi = getKsi();
-        r = z * FastMath.cos(ksi);
-        x = z * FastMath.sin(ksi);
+        r = z * FastMath.sin(ksi);
+        x = z * FastMath.cos(ksi);
     }
 
     @Override

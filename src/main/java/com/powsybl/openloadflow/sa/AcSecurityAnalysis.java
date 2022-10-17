@@ -86,7 +86,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         // try for find all switches to be operated as actions.
         Set<Switch> allSwitchesToClose = new HashSet<>();
-        getAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
+        findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, saReporter, breakers, false);
 
@@ -123,7 +123,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         }
     }
 
-    private static void getAllSwitchesToOperate(Network network, List<Action> actions, Set<Switch> allSwitchesToClose, Set<Switch> allSwitchesToOpen) {
+    private static void findAllSwitchesToOperate(Network network, List<Action> actions, Set<Switch> allSwitchesToClose, Set<Switch> allSwitchesToOpen) {
         actions.stream().filter(action -> action.getType().equals(SwitchAction.NAME))
                 .forEach(action -> {
                     String switchId = ((SwitchAction) action).getSwitchId();
@@ -156,6 +156,20 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         return operatorStrategiesByContingencyId;
     }
 
+    private static void restoreInitialTopology(LfNetwork network, Set<Switch> allSwitchesToClose) {
+        if (allSwitchesToClose.isEmpty()) {
+            return;
+        }
+        var connectivity = network.getConnectivity();
+        connectivity.startTemporaryChanges();
+        allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
+            LfBranch branch = network.getBranchById(id);
+            connectivity.removeEdge(branch);
+        });
+        connectivity.getEdgesRemovedFromMainComponent().forEach(branch -> branch.setDisabled(true));
+        connectivity.getVerticesRemovedFromMainComponent().forEach(bus -> bus.setDisabled(true));
+    }
+
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
                                                   SecurityAnalysisParameters securityAnalysisParameters, Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
                                                   Map<String, LfAction> lfActionById, Set<Switch> allSwitchesToClose) {
@@ -170,19 +184,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.setReporter(preContSimReporter);
 
             // run pre-contingency simulation
-            AcloadFlowEngine engine = new AcloadFlowEngine(context);
-            engine.getContext().getEquationSystem();
-            if (!allSwitchesToClose.isEmpty()) {
-                var connectivity = network.getConnectivity();
-                allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
-                    LfBranch branch = network.getBranchById(id);
-                    branch.setDisabled(true);
-                    if (branch.getBus1() != null && branch.getBus2() != null) {
-                        connectivity.removeEdge(branch);
-                    }
-                });
-            }
-            AcLoadFlowResult preContingencyLoadFlowResult = engine.run();
+            restoreInitialTopology(network, allSwitchesToClose);
+            AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
+                    .run();
 
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             var preContingencyLimitViolationManager = new LimitViolationManager();
@@ -358,7 +362,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private boolean checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
-        // FIXME: add logs.
         Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
                 .map(LimitViolation::getSubjectId)
                 .collect(Collectors.toSet());
