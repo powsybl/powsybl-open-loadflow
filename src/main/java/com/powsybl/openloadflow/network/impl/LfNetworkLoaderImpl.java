@@ -73,7 +73,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createVoltageControls(LfNetwork lfNetwork, List<LfBus> lfBuses, boolean voltageRemoteControl, boolean voltagePerReactivePowerControl) {
+    private static void createVoltageControls(List<LfBus> lfBuses, boolean voltageRemoteControl, boolean voltagePerReactivePowerControl) {
         List<VoltageControl> voltageControls = new ArrayList<>();
 
         // set controller -> controlled link
@@ -83,11 +83,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (!voltageControlGenerators.isEmpty()) {
 
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
-                LfBus controlledBus = lfGenerator0.getControlledBus(lfNetwork);
+                LfBus controlledBus = lfGenerator0.getControlledBus();
                 double controllerTargetV = lfGenerator0.getTargetV();
 
                 voltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
-                    LfBus generatorControlledBus = lfGenerator.getControlledBus(lfNetwork);
+                    LfBus generatorControlledBus = lfGenerator.getControlledBus();
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
                     if (checkUniqueControlledBus(controlledBus, generatorControlledBus, controllerBus)) {
@@ -190,7 +190,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         controlledBranch.setReactivePowerControl(control);
     }
 
-    private static void createReactivePowerControls(LfNetwork lfNetwork, List<LfBus> lfBuses) {
+    private static void createReactivePowerControls(List<LfBus> lfBuses) {
         for (LfBus controllerBus : lfBuses) {
             List<LfGenerator> generators = controllerBus.getGenerators().stream()
                     .filter(LfGenerator::hasRemoteReactivePowerControl).collect(Collectors.toList());
@@ -202,12 +202,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
                 if (generators.size() == 1) {
                     LfGenerator lfGenerator = generators.get(0);
-                    LfBranch controlledBranch = lfGenerator.getControlledBranch(lfNetwork);
+                    LfBranch controlledBranch = lfGenerator.getControlledBranch();
                     Optional<ReactivePowerControl> control = controlledBranch.getReactivePowerControl();
                     if (control.isPresent()) {
                         LOGGER.warn("Branch {} is remotely controlled by a generator: no new remote reactive control created", controlledBranch.getId());
                     } else {
-                        createRemoteReactivePowerControl(lfGenerator.getControlledBranch(lfNetwork), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
+                        createRemoteReactivePowerControl(lfGenerator.getControlledBranch(), lfGenerator.getControlledBranchSide(), controllerBus, lfGenerator.getRemoteTargetQ());
                     }
                 } else { // generators.size() > 1 (as > 0 and not equal to 1)
                     LOGGER.warn("Bus {} has more than one generator controlling reactive power remotely: not yet supported", controllerBus.getId());
@@ -736,9 +736,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
 
         if (!parameters.isDc()) {
-            createVoltageControls(lfNetwork, lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
+            createVoltageControls(lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
             if (parameters.isReactivePowerRemoteControl()) {
-                createReactivePowerControls(lfNetwork, lfBuses);
+                createReactivePowerControls(lfBuses);
             }
             if (parameters.isTransformerVoltageControl()) {
                 // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
@@ -816,7 +816,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsWithInconsistentTargetVoltage > 0) {
-            LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been limited to a min/max value",
+            LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been discarded from voltage control",
                     lfNetwork, report.generatorsWithInconsistentTargetVoltage);
         }
 

@@ -276,29 +276,25 @@ public class PropagatedContingency {
         return identifiable;
     }
 
-    public Optional<LfContingency> toLfContingency(LfNetwork network, boolean useSmallComponents) {
-        // find contingency branches that are part of this network
-        Set<LfBranch> branches = branchIdsToOpen.stream()
-                .map(network::getBranchById)
-                .filter(Objects::nonNull) // could be in another component
-                .collect(Collectors.toSet());
-
-        // update connectivity with triggered branches
+    public Optional<LfContingency> toLfContingency(LfNetwork network) {
+        // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
-        branches.stream()
+        branchIdsToOpen.stream()
+                .map(network::getBranchById)
+                .filter(Objects::nonNull) // could be in another component
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
                 .forEach(connectivity::removeEdge);
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
-        Set<LfBus> buses;
-        if (useSmallComponents) {
-            buses = connectivity.getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
-        } else {
-            buses = connectivity.getNonConnectedVertices(network.getSlackBus());
+        Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
+        Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
+
+        // we should manage branches open at one side.
+        for (LfBus bus : buses) {
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
         }
-        buses.forEach(b -> branches.addAll(b.getBranches()));
 
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();

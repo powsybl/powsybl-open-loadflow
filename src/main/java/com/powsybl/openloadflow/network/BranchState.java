@@ -11,16 +11,21 @@ package com.powsybl.openloadflow.network;
  */
 public class BranchState extends ElementState<LfBranch> {
 
-    private final double a1;
-    private final double r1;
+    private double a1 = Double.NaN;
+    private double r1 = Double.NaN;
     private final boolean phaseControlEnabled;
     private final boolean voltageControlEnabled;
+    private Integer tapPosition;
 
     public BranchState(LfBranch branch) {
         super(branch);
         PiModel piModel = branch.getPiModel();
-        a1 = piModel.getA1();
-        r1 = piModel.getR1();
+        if (piModel instanceof PiModelArray) {
+            tapPosition = piModel.getTapPosition();
+        } else {
+            a1 = piModel.getA1();
+            r1 = piModel.getR1();
+        }
         phaseControlEnabled = branch.isPhaseControlEnabled();
         voltageControlEnabled = branch.isVoltageControlEnabled();
     }
@@ -29,8 +34,15 @@ public class BranchState extends ElementState<LfBranch> {
     public void restore() {
         super.restore();
         PiModel piModel = element.getPiModel();
-        piModel.setA1(a1);
-        piModel.setR1(r1);
+        if (tapPosition != null) {
+            piModel.setTapPosition(tapPosition);
+        }
+        if (!Double.isNaN(a1)) {
+            piModel.setA1(a1);
+        }
+        if (!Double.isNaN(r1)) {
+            piModel.setR1(r1);
+        }
         element.setPhaseControlEnabled(phaseControlEnabled);
         element.setVoltageControlEnabled(voltageControlEnabled);
     }

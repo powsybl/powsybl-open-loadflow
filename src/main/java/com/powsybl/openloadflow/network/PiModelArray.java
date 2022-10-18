@@ -252,4 +252,17 @@ public class PiModelArray implements PiModel {
     public void setBranch(LfBranch branch) {
         this.branch = Objects.requireNonNull(branch);
     }
+
+    @Override
+    public int getTapPosition() {
+        return this.tapPosition;
+    }
+
+    @Override
+    public PiModel setTapPosition(int tapPosition) {
+        this.tapPosition = tapPosition;
+        r1 = Double.NaN;
+        a1 = Double.NaN;
+        return this;
+    }
 }

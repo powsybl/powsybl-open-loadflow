@@ -9,13 +9,11 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.base.Stopwatch;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
-import net.jafama.FastMath;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
@@ -256,7 +254,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
 
         stopwatch.stop();
-        LOGGER.debug(PERFORMANCE_MARKER, "IIDM network updated in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        LOGGER.debug(PERFORMANCE_MARKER, "Network {}, IIDM network updated in {} ms", this, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     public void writeJson(Path file) {
@@ -478,38 +476,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    private void validateBranches(boolean minImpedance, boolean dc) {
-        if (minImpedance) {
-            return;
-        }
-        for (LfBranch branch : branches) {
-            if (branch.isZeroImpedanceBranch(dc)) { // will be transformed to non impedant branch
-                PiModel piModel = branch.getPiModel();
-                LfBus bus1 = branch.getBus1();
-                LfBus bus2 = branch.getBus2();
-                // ensure target voltages are consistent
-                if (bus1 != null && bus2 != null) {
-                    Optional<VoltageControl> vc1 = bus1.getVoltageControl();
-                    Optional<VoltageControl> vc2 = bus2.getVoltageControl();
-                    if (vc1.isPresent() && vc2.isPresent() && bus1.isVoltageControlEnabled() && bus2.isVoltageControlEnabled()
-                        && FastMath.abs((vc1.get().getTargetValue() / vc2.get().getTargetValue()) - piModel.getR1() / PiModel.R2) > TARGET_VOLTAGE_EPSILON) {
-                        throw new PowsyblException("Non impedant branch '" + branch.getId() + "' is connected to PV buses '"
-                                + bus1.getId() + "' and '" + bus2.getId() + "' with inconsistent target voltages: "
-                                + vc1.get().getTargetValue() + " and " + vc2.get().getTargetValue());
-                    }
-                }
-            }
-        }
-    }
-
-    public void validate(boolean minImpedance, boolean dc, Reporter reporter) {
+    public void validate(boolean dc, Reporter reporter) {
         valid = true;
         validateBuses(dc, reporter);
-        validateBranches(minImpedance, dc);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
-        return load(network, networkLoader, new LfNetworkParameters(slackBusSelector), Reporter.NO_OP);
+        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), Reporter.NO_OP);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters) {
@@ -517,7 +490,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return load(network, networkLoader, new LfNetworkParameters(slackBusSelector), reporter);
+        return load(network, networkLoader, new LfNetworkParameters().setSlackBusSelector(slackBusSelector), reporter);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, LfNetworkParameters parameters, Reporter reporter) {
@@ -528,10 +501,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.isDc());
-            lfNetwork.validate(parameters.isMinImpedance(), parameters.isDc(), reporterNetwork);
+            lfNetwork.validate(parameters.isDc(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
                 lfNetwork.reportBalance(reporterNetwork);
+            } else {
+                LOGGER.info("Network {} is invalid, no calculation will be done", lfNetwork);
             }
         }
         return lfNetworks;
@@ -571,6 +546,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             getBranches().stream()
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
+            connectivity.setMainComponentVertex(getSlackBus());
         }
         return connectivity;
     }

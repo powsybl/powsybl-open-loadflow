@@ -81,4 +81,8 @@ public interface PiModel {
     boolean setMinZ(double minZ, boolean dc);
 
     void setBranch(LfBranch branch);
+
+    int getTapPosition();
+
+    PiModel setTapPosition(int tapPosition);
 }

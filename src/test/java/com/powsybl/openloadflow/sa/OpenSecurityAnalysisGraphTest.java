@@ -158,14 +158,14 @@ class OpenSecurityAnalysisGraphTest {
             lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, Reporter.NO_OP);
+        List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, Collections.emptySet(), Reporter.NO_OP);
 
         // run simulation on each network
         start = System.currentTimeMillis();
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();
         for (LfNetwork lfNetwork : lfNetworks) {
             listLfContingencies.add(propagatedContingencies.stream()
-                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork, true).stream())
+                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork).stream())
                     .collect(Collectors.toList()));
         }
         LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);

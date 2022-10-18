@@ -192,29 +192,31 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             lfParameters.setTransformerVoltageControlOn(true);
         }
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(), lfParametersExt.getPlausibleActivePowerLimit());
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters(slackBusSelector,
-                                                                          connectivityFactory,
-                                                                          lfParametersExt.hasVoltageRemoteControl(),
-                                                                          true,
-                                                                          lfParameters.isTwtSplitShuntAdmittance(),
-                                                                          breakers,
-                                                                          lfParametersExt.getPlausibleActivePowerLimit(),
-                                                                          lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(),
-                                                                          true,
-                                                                          lfParameters.getCountriesToBalance(),
-                                                                          lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                                                          lfParameters.isPhaseShifterRegulationOn(),
-                                                                          lfParameters.isTransformerVoltageControlOn(),
-                                                                          lfParametersExt.isVoltagePerReactivePowerControl(),
-                                                                          lfParametersExt.hasReactivePowerRemoteControl(),
-                                                                          lfParameters.isDc(),
-                                                                          lfParameters.isShuntCompensatorVoltageControlOn(),
-                                                                          !lfParameters.isNoGeneratorReactiveLimits(),
-                                                                          lfParameters.isHvdcAcEmulation(),
-                                                                          lfParametersExt.getMinPlausibleTargetVoltage(),
-                                                                          lfParametersExt.getMaxPlausibleTargetVoltage());
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(slackBusSelector)
+                .setConnectivityFactory(connectivityFactory)
+                .setGeneratorVoltageRemoteControl(lfParametersExt.hasVoltageRemoteControl())
+                .setMinImpedance(true)
+                .setTwtSplitShuntAdmittance(lfParameters.isTwtSplitShuntAdmittance())
+                .setBreakers(breakers)
+                .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
+                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(lfParametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds())
+                .setComputeMainConnectedComponentOnly(true)
+                .setCountriesToBalance(lfParameters.getCountriesToBalance())
+                .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setPhaseControl(lfParameters.isPhaseShifterRegulationOn())
+                .setTransformerVoltageControl(lfParameters.isTransformerVoltageControlOn())
+                .setVoltagePerReactivePowerControl(lfParametersExt.isVoltagePerReactivePowerControl())
+                .setReactivePowerRemoteControl(lfParametersExt.hasReactivePowerRemoteControl())
+                .setDc(lfParameters.isDc())
+                .setShuntVoltageControl(lfParameters.isShuntCompensatorVoltageControlOn())
+                .setReactiveLimits(!lfParameters.isNoGeneratorReactiveLimits())
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
+                .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
+                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage());
+
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, reporter);
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, Collections.emptySet(), reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);
@@ -284,7 +286,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             NetworkState networkState = NetworkState.save(lfNetwork);
 
-            contingencies.forEach(contingency -> contingency.toLfContingency(lfNetwork, false)
+            contingencies.forEach(contingency -> contingency.toLfContingency(lfNetwork)
                 .ifPresentOrElse(lfContingency -> {
                     List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfContingency.getId());
                     contingencyFactors.forEach(lfFactor -> {
@@ -294,32 +296,33 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                     lfContingency.apply(lfParameters.getBalanceType());
 
-                    // Sensitivity values 0 and function reference NaN in case of a sensitivity on a disabled branch
-                    contingencyFactors.stream()
-                            .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
-                            .filter(lfFactor -> lfContingency.getDisabledBranches().contains(lfFactor.getFunctionElement()))
-                            .forEach(lfFactor -> {
-                                lfFactor.setSensitivityValuePredefinedResult(0d);
-                                lfFactor.setFunctionPredefinedResult(Double.NaN);
-                            });
-                    // Sensitivity values 0 in case of a sensitivity from the transformer phase of a disabled transformer
-                    contingencyFactors.stream()
-                            .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
-                            .filter(lfFactor -> lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
-                            .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
-
                     Map<LfBus, Double> postContingencySlackParticipationByBus;
                     Set<LfBus> slackConnectedComponent;
                     if (lfContingency.getDisabledBuses().isEmpty()) {
                         // contingency not breaking connectivity
                         LOGGER.debug("Contingency {} without loss of connectivity", lfContingency.getId());
                         slackConnectedComponent = new HashSet<>(lfNetwork.getBuses());
+
+                        // Sensitivity values 0 and function reference NaN in case of a sensitivity on a disabled branch
+                        contingencyFactors.stream()
+                                .filter(lfFactor -> lfFactor.getFunctionElement() instanceof LfBranch)
+                                .filter(lfFactor -> lfContingency.getDisabledBranches().contains(lfFactor.getFunctionElement()))
+                                .forEach(lfFactor -> {
+                                    lfFactor.setSensitivityValuePredefinedResult(0d);
+                                    lfFactor.setFunctionPredefinedResult(Double.NaN);
+                                });
+
+                        // Sensitivity values 0 in case of a sensitivity from the transformer phase of a disabled transformer
+                        contingencyFactors.stream()
+                                .filter(lfFactor -> lfFactor.getVariableType().equals(SensitivityVariableType.TRANSFORMER_PHASE))
+                                .filter(lfFactor -> lfContingency.getDisabledBranches().contains(lfNetwork.getBranchById(lfFactor.getVariableId())))
+                                .forEach(lfFactor -> lfFactor.setSensitivityValuePredefinedResult(0d));
                     } else {
                         // contingency breaking connectivity
                         LOGGER.debug("Contingency {} with loss of connectivity", lfContingency.getId());
                         // we check if factors are still in the main component
                         slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
-                        setPredefinedResults(contingencyFactors, slackConnectedComponent);
+                        setPredefinedResults(contingencyFactors, lfContingency.getDisabledBuses(), lfContingency.getDisabledBranches());
                         // we recompute GLSK weights if needed
                         rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
                     }

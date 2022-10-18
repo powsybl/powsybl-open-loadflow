@@ -7,12 +7,10 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -200,28 +198,8 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector,
-                                                                 new EvenShiloachGraphDecrementalConnectivityFactory<>(),
-                                                                 true,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
-                                                                 false,
-                                                                 true,
-                                                                 Collections.emptySet(),
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 true,
-                                                                 false,
-                                                                 LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE,
-                                                                 LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setGeneratorVoltageRemoteControl(true);
 
         Generator g = network.getGenerator("g2");
         assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
@@ -230,7 +208,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         LfNetwork mainNetwork = networkList.get(0);
         LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
         assertEquals("g2", generator.getId());
-        assertEquals(LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, generator.getTargetV());
+        assertTrue(Double.isNaN(generator.getTargetV()));
     }
 
     @Test
@@ -329,28 +307,8 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setB2(0)
                 .add();
 
-        FirstSlackBusSelector slackBusSelector = new FirstSlackBusSelector();
-        LfNetworkParameters parameters = new LfNetworkParameters(slackBusSelector,
-                                                                 new EvenShiloachGraphDecrementalConnectivityFactory<>(),
-                                                                 true,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE,
-                                                                 false,
-                                                                 true,
-                                                                 Collections.emptySet(),
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 false,
-                                                                 true,
-                                                                 false,
-                                                                 LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE,
-                                                                 LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE);
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setGeneratorVoltageRemoteControl(true);
 
         assertEquals(412, network.getGenerator("g1").getTargetV());
         assertEquals(413, g2.getTargetV());

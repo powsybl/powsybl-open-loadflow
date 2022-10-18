@@ -75,7 +75,8 @@ class NameSlackBusSelectorTest {
                 .setP0(10)
                 .setQ0(10)
                 .add();
-        LfNetworkParameters parameters = new LfNetworkParameters(new NameSlackBusSelector("VLGEN"))
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setSlackBusSelector(new NameSlackBusSelector("VLGEN"))
                 .setBreakers(true);
         lfNetworks = Networks.load(network, parameters);
         lfNetwork = lfNetworks.get(0);

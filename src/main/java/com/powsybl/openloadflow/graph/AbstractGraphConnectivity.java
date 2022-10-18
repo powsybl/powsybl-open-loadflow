@@ -24,6 +24,8 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     protected List<Set<V>> componentSets;
 
+    private V mainComponentVertex;
+
     protected abstract void updateConnectivity(EdgeRemove<V, E> edgeRemove);
 
     protected abstract void updateConnectivity(EdgeAdd<V, E> edgeAdd);
@@ -87,7 +89,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     public void startTemporaryChanges() {
         ModificationsContext<V, E> modificationsContext = new ModificationsContext<>();
         modificationsContexts.add(modificationsContext);
-        modificationsContext.setVerticesInitiallyNotInMainComponent(getSmallComponents());
+        modificationsContext.setVerticesInitiallyNotInMainComponent(getVerticesNotInMainComponent());
     }
 
     @Override
@@ -118,8 +120,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         return componentSets.size();
     }
 
-    @Override
-    public Collection<Set<V>> getSmallComponents() {
+    protected Collection<Set<V>> getSmallComponents() {
         checkSaved();
         updateComponents();
         return componentSets.subList(1, componentSets.size());
@@ -131,8 +132,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         return componentSets.get(componentNumber);
     }
 
-    @Override
-    public Set<V> getNonConnectedVertices(V vertex) {
+    protected Set<V> getNonConnectedVertices(V vertex) {
         Set<V> connectedComponent = getConnectedComponent(vertex);
         return componentSets.stream()
                 .filter(component -> component != connectedComponent)
@@ -184,6 +184,17 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     }
 
     private Set<V> getVerticesNotInMainComponent() {
-        return getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+        if (mainComponentVertex != null) {
+            return getNonConnectedVertices(mainComponentVertex);
+        } else {
+            return getSmallComponents().stream().flatMap(Set::stream).collect(Collectors.toSet());
+        }
+    }
+
+    public void setMainComponentVertex(V mainComponentVertex) {
+        if (!modificationsContexts.isEmpty() && mainComponentVertex != this.mainComponentVertex) {
+            throw new PowsyblException("Cannot change main component vertex after starting temporary changes");
+        }
+        this.mainComponentVertex = mainComponentVertex;
     }
 }

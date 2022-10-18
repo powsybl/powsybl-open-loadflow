@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -63,22 +62,45 @@ public interface GraphConnectivity<V, E> {
     int getComponentNumber(V vertex);
 
     /**
-     * Return the collection of "small" connected components, meaning all the connected components except the biggest one (size-wise).
-     * @return the collection of small connected components
+     * Set the main component with given vertex.
+     * The connected component relative to this vertex is considered as being the main component.
+     * If not set, the main component is considered to be the biggest component.
+     * This main component cannot be changed if any temporary changes are ongoing.
+     * @param mainComponentVertex vertex defining main component
      */
-    Collection<Set<V>> getSmallComponents();
+    void setMainComponentVertex(V mainComponentVertex);
 
+    /**
+     * Return the number of connected components
+     */
     int getNbConnectedComponents();
 
+    /**
+     * Return the connected component set of given vertex
+     */
     Set<V> getConnectedComponent(V vertex);
 
-    Set<V> getNonConnectedVertices(V vertex);
-
+    /**
+     * Return the vertices which were removed from main component by last temporary changes.
+     * The main component is set by calling setMainComponentVertex, or if not set it is the biggest connected component.
+     */
     Set<V> getVerticesRemovedFromMainComponent();
 
+    /**
+     * Return the edges which were removed from main component by last temporary changes.
+     * The main component is set by calling setMainComponentVertex, or if not set it is the biggest connected component.
+     */
     Set<E> getEdgesRemovedFromMainComponent();
 
+    /**
+     * Return the vertices which were added to main component by last temporary changes.
+     * The main component is set by calling setMainComponentVertex, or if not set it is the biggest connected component.
+     */
     Set<V> getVerticesAddedToMainComponent();
 
+    /**
+     * Return the edges which were added to main component by last temporary changes.
+     * The main component is set by calling setMainComponentVertex, or if not set it is the biggest connected component.
+     */
     Set<E> getEdgesAddedToMainComponent();
 }

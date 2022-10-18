@@ -15,6 +15,10 @@ import java.util.Iterator;
  */
 public abstract class AbstractNamedEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
 
+    protected AbstractNamedEquationTerm(boolean active) {
+        super(active);
+    }
+
     protected abstract String getName();
 
     @Override

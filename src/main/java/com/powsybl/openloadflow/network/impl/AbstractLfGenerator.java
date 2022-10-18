@@ -27,13 +27,15 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected static final double DEFAULT_DROOP = 4; // why not
 
+    protected final LfNetwork network;
+
     protected double targetP;
 
     protected LfBus bus;
 
     protected double calculatedQ = Double.NaN;
 
-    private double targetV = Double.NaN;
+    protected double targetV = Double.NaN;
 
     protected GeneratorControlType generatorControlType = GeneratorControlType.OFF;
 
@@ -45,7 +47,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected double remoteTargetQ = Double.NaN;
 
-    protected AbstractLfGenerator(double targetP) {
+    protected AbstractLfGenerator(LfNetwork network, double targetP) {
+        this.network = Objects.requireNonNull(network);
         this.targetP = targetP;
     }
 
@@ -167,8 +170,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     }
 
     @Override
-    public LfBus getControlledBus(LfNetwork lfNetwork) {
-        return lfNetwork.getBusById(controlledBusId);
+    public LfBus getControlledBus() {
+        return network.getBusById(controlledBusId);
     }
 
     protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
@@ -189,8 +192,11 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
         }
+        if (!checkTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage)) {
+            return;
+        }
         this.controlledBusId = controlledBus.getId();
-        setTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+        this.targetV = targetV / regulatingTerminal.getVoltageLevel().getNominalV();
         this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
@@ -217,22 +223,21 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         return consistency;
     }
 
-    protected void setTargetV(double targetV, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                              double maxPlausibleTargetVoltage) {
-        double newTargetV = targetV;
+    protected boolean checkTargetV(double targetV, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
+                                   double maxPlausibleTargetVoltage) {
         // check that targetV has a plausible value (wrong nominal voltage issue)
         if (targetV < minPlausibleTargetVoltage) {
-            newTargetV = minPlausibleTargetVoltage;
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
                 getId(), targetV, minPlausibleTargetVoltage);
             report.generatorsWithInconsistentTargetVoltage++;
+            return false;
         } else if (targetV > maxPlausibleTargetVoltage) {
-            newTargetV = maxPlausibleTargetVoltage;
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu. The target voltage is limited to {}",
                 getId(), targetV, maxPlausibleTargetVoltage);
             report.generatorsWithInconsistentTargetVoltage++;
+            return false;
         }
-        this.targetV = newTargetV;
+        return true;
     }
 
     protected void setReactivePowerControl(Terminal regulatingTerminal, double targetQ) {
@@ -257,8 +262,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     }
 
     @Override
-    public LfBranch getControlledBranch(LfNetwork lfNetwork) {
-        return lfNetwork.getBranchById(controlledBranchId);
+    public LfBranch getControlledBranch() {
+        return network.getBranchById(controlledBranchId);
     }
 
     @Override

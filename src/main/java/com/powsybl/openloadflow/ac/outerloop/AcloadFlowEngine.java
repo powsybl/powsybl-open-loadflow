@@ -167,7 +167,7 @@ public class AcloadFlowEngine {
                                     .run();
                         }
                     }
-                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, 0);
+                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, Double.NaN);
                 })
                 .collect(Collectors.toList());
     }
