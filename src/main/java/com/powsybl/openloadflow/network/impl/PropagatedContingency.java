@@ -290,7 +290,12 @@ public class PropagatedContingency {
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
-        Set<LfBranch> branches = connectivity.getEdgesRemovedFromMainComponent();
+        Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
+
+        // we should manage branches open at one side.
+        for (LfBus bus : buses) {
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
+        }
 
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
