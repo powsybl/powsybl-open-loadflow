@@ -335,7 +335,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             Stopwatch stopwatch = Stopwatch.createStarted();
 
             // restart LF on post contingency and post actions equation system
-            context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+            context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
             AcLoadFlowResult postActionsLoadFlowResult = new AcloadFlowEngine(context)
                     .run();
 
