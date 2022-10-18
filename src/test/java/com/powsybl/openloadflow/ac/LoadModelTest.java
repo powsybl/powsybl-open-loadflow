@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,9 +43,12 @@ class LoadModelTest {
         var bus1 = network.getBusBreakerView().getBus("NHV1");
         var bus2 = network.getBusBreakerView().getBus("NHV2");
         var loadBus = network.getBusBreakerView().getBus("NLOAD");
+        var load = network.getLoad("LOAD");
         assertVoltageEquals(24.5, genBus);
-        assertVoltageEquals(402.03, bus1);
-        assertVoltageEquals(389.653, bus2);
+        assertVoltageEquals(402.018, bus1);
+        assertVoltageEquals(389.64, bus2);
         assertVoltageEquals(147.384, loadBus);
+        assertActivePowerEquals(600, load.getTerminal()); // FIXME
+        assertReactivePowerEquals(200, load.getTerminal()); // FIXME
     }
 }
