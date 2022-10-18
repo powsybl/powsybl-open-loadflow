@@ -216,7 +216,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage());
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, reporter);
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, Collections.emptySet(), reporter);
         LfNetwork lfNetwork = lfNetworks.get(0);
         checkContingencies(lfNetwork, contingencies);
         checkLoadFlowParameters(lfParameters);

@@ -18,6 +18,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
@@ -27,6 +28,8 @@ import com.powsybl.security.action.Action;
 import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.strategy.OperatorStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -36,6 +39,8 @@ import java.util.concurrent.CompletableFuture;
  */
 @AutoService(SecurityAnalysisProvider.class)
 public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OpenSecurityAnalysisProvider.class);
 
     private final MatrixFactory matrixFactory;
 
@@ -58,20 +63,33 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
                                                          List<StateMonitor> stateMonitors, Reporter reporter) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(workingVariantId);
+        Objects.requireNonNull(limitViolationDetector);
         Objects.requireNonNull(computationManager);
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
+        Objects.requireNonNull(interceptors);
+        Objects.requireNonNull(operatorStrategies);
+        Objects.requireNonNull(actions);
         Objects.requireNonNull(stateMonitors);
         Objects.requireNonNull(reporter);
 
-        AbstractSecurityAnalysis securityAnalysis;
-        if (securityAnalysisParameters.getLoadFlowParameters().isDc()) {
-            securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
+        // FIXME implement a fast incremental connectivity algorithm
+        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
+        if (operatorStrategies.isEmpty()) {
+            selectedConnectivityFactory = connectivityFactory;
         } else {
-            securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, connectivityFactory, stateMonitors, reporter);
+            LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
+            selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         }
 
-        return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager);
+        AbstractSecurityAnalysis securityAnalysis;
+        if (securityAnalysisParameters.getLoadFlowParameters().isDc()) {
+            securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reporter);
+        } else {
+            securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, stateMonitors, reporter);
+        }
+
+        return securityAnalysis.run(workingVariantId, securityAnalysisParameters, contingenciesProvider, computationManager, operatorStrategies, actions);
     }
 
     @Override
