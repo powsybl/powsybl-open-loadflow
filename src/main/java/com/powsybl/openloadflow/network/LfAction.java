@@ -13,6 +13,7 @@ import com.powsybl.security.action.LineConnectionAction;
 import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -139,14 +140,22 @@ public class LfAction {
         // component in post action state.
         Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
         removedBuses.forEach(bus -> bus.setDisabled(true));
-        Set<LfBranch> removedBranches = connectivity.getEdgesRemovedFromMainComponent();
+        Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
+        // we should manage branches open at one side.
+        for (LfBus bus : removedBuses) {
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
+        }
         removedBranches.forEach(branch -> branch.setDisabled(true));
 
         // add to action description buses and branches that will be part of the main connected
         // component in post action state.
         Set<LfBus> addedBuses = connectivity.getVerticesAddedToMainComponent();
         addedBuses.forEach(bus -> bus.setDisabled(false));
-        Set<LfBranch> addedBranches = connectivity.getEdgesAddedToMainComponent();
+        Set<LfBranch> addedBranches = new HashSet<>(connectivity.getEdgesAddedToMainComponent());
+        // we should manage branches open at one side.
+        for (LfBus bus : addedBuses) {
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(addedBranches::add);
+        }
         addedBranches.forEach(branch -> branch.setDisabled(false));
 
         // reset connectivity to discard post contingency connectivity and post action connectivity

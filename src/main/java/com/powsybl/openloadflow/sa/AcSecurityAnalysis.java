@@ -166,8 +166,14 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             LfBranch branch = network.getBranchById(id);
             connectivity.removeEdge(branch);
         });
-        connectivity.getEdgesRemovedFromMainComponent().forEach(branch -> branch.setDisabled(true));
-        connectivity.getVerticesRemovedFromMainComponent().forEach(bus -> bus.setDisabled(true));
+        Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
+        removedBuses.forEach(bus -> bus.setDisabled(true));
+        Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
+        // we should manage branches open at one side.
+        for (LfBus bus : removedBuses) {
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
+        }
+        removedBranches.forEach(branch -> branch.setDisabled(true));
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
