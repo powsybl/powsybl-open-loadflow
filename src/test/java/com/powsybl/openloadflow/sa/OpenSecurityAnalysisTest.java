@@ -1705,4 +1705,14 @@ class OpenSecurityAnalysisTest {
 
         assertEquals(refLogExport, logExport);
     }
+
+    @Test
+    void testBranchOpenAtOneSideLoss() {
+        var network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+        network.getLine("l46").getTerminal1().disconnect();
+        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), Reporter.NO_OP);
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().isComputationOk());
+        assertTrue(result.getPostContingencyResults().get(0).getLimitViolationsResult().isComputationOk());
+    }
 }
