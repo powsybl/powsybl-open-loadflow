@@ -19,7 +19,8 @@ public abstract class AbstractBusEquationTerm<V extends Enum<V> & Quantity, E ex
     protected final LfBus bus;
 
     protected AbstractBusEquationTerm(LfBus bus) {
-        this.bus = Objects.requireNonNull(bus);
+        super(!Objects.requireNonNull(bus).isDisabled());
+        this.bus = bus;
     }
 
     @Override

@@ -25,7 +25,8 @@ public abstract class AbstractShuntCompensatorEquationTerm extends AbstractNamed
     protected final Variable<AcVariableType> vVar;
 
     protected AbstractShuntCompensatorEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet) {
-        this.shunt = Objects.requireNonNull(shunt);
+        super(!Objects.requireNonNull(shunt).isDisabled());
+        this.shunt = shunt;
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);

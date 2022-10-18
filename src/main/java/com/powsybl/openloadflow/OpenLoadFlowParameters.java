@@ -15,9 +15,11 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.ac.equations.DisymAcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.outerloop.DisymAcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
@@ -613,6 +615,50 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage());
     }
 
+    public static DisymAcLoadFlowParameters createDisymAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                          Reporter reporter) {
+        return createDisymAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, reporter, false, false);
+    }
+
+    public static DisymAcLoadFlowParameters createDisymAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                          Reporter reporter, boolean breakers, boolean forceA1Var) {
+        DisymAcLoadFlowParameters acParameters = createDisymAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, reporter, breakers, forceA1Var);
+        if (parameters.isReadSlackBus()) {
+            acParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, acParameters.getNetworkParameters().getSlackBusSelector()));
+        }
+        return acParameters;
+    }
+
+    public static DisymAcLoadFlowParameters createDisymAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                                                    MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                                                    Reporter reporter, boolean breakers, boolean forceA1Var) {
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
+
+        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
+
+        var equationSystemCreationParameters = new DisymAcEquationSystemCreationParameters(forceA1Var);
+
+        VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory, reporter);
+
+        var newtonRaphsonParameters = new NewtonRaphsonParameters()
+                .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
+                .setMaxIteration(parametersExt.getMaxIteration())
+                .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
+                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage());
+
+        OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
+        List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
+
+        return new DisymAcLoadFlowParameters(networkParameters,
+                                        equationSystemCreationParameters,
+                                        newtonRaphsonParameters,
+                                        outerLoops,
+                                        matrixFactory,
+                                        voltageInitializer);
+    }
+
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           Reporter reporter) {
@@ -650,11 +696,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
 
         return new AcLoadFlowParameters(networkParameters,
-                                        equationSystemCreationParameters,
-                                        newtonRaphsonParameters,
-                                        outerLoops,
-                                        matrixFactory,
-                                        voltageInitializer);
+                equationSystemCreationParameters,
+                newtonRaphsonParameters,
+                outerLoops,
+                matrixFactory,
+                voltageInitializer);
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

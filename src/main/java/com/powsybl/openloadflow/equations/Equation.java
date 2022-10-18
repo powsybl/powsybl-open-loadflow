@@ -66,11 +66,12 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return active;
     }
 
-    public void setActive(boolean active) {
+    public Equation<V, E> setActive(boolean active) {
         if (active != this.active) {
             this.active = active;
             equationSystem.notifyEquationChange(this, active ? EquationEventType.EQUATION_ACTIVATED : EquationEventType.EQUATION_DEACTIVATED);
         }
+        return this;
     }
 
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {

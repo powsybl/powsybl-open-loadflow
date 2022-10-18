@@ -10,6 +10,7 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.Extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -133,7 +134,17 @@ public class NewtonRaphson {
 
                 case DUMMY_P:
                 case DUMMY_Q:
+                //case BUS_V_HOMOPOLAR: // when balanced, homopolar and inverse sequence should be zero
+                case BUS_PHI_HOMOPOLAR:
+                //case BUS_V_INVERSE:
+                case BUS_PHI_INVERSE:
                     x[v.getRow()] = 0;
+                    break;
+
+                case BUS_V_HOMOPOLAR: // when balanced, homopolar and inverse sequence should be zero
+                case BUS_V_INVERSE:
+                    // TODO : check if this has an influence on init [J]
+                    x[v.getRow()] = 1;
                     break;
 
                 default:
@@ -150,10 +161,33 @@ public class NewtonRaphson {
             switch (v.getType()) {
                 case BUS_V:
                     network.getBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
+                    //System.out.println(">>>>>>>> UPDATE V(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI:
                     network.getBus(v.getElementNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
+                    break;
+
+                case BUS_V_HOMOPOLAR:
+                    AsymBus asymBusVh = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                    asymBusVh.setvHomopolar(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
+                    //System.out.println(">>>>>>>> UPDATE V_H(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_PHI_HOMOPOLAR:
+                    AsymBus asymBusPhiH = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                    asymBusPhiH.setAngleHompolar(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
+                    break;
+
+                case BUS_V_INVERSE:
+                    AsymBus asymBusVi = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                    asymBusVi.setvInverse(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
+                    //System.out.println(">>>>>>>> UPDATE V_I(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_PHI_INVERSE:
+                    AsymBus asymBusPhiI = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                    asymBusPhiI.setAngleInverse(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
                     break;
 
                 case SHUNT_B:

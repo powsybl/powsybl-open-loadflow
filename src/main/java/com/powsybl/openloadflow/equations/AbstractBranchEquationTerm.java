@@ -19,7 +19,8 @@ public abstract class AbstractBranchEquationTerm<V extends Enum<V> & Quantity, E
     protected final LfBranch branch;
 
     protected AbstractBranchEquationTerm(LfBranch branch) {
-        this.branch = Objects.requireNonNull(branch);
+        super(!Objects.requireNonNull(branch).isDisabled());
+        this.branch = branch;
     }
 
     @Override

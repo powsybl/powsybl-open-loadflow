@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.Extensions.AsymLine;
+import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
@@ -51,7 +53,27 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, line);
+        LfBranchImpl lfBranchImpl = new LfBranchImpl(network, bus1, bus2, piModel, line);
+
+        // TODO : add here the building of the LfBranch extension when it is a Line with an extension
+        var extension = line.getExtension(LineAsymmetrical.class);
+        if (extension != null) {
+            double rA = extension.getPhaseA().getrPhase() / zb;
+            double xA = extension.getPhaseA().getxPhase() / zb;
+            boolean isOpenA = extension.getPhaseA().isPhaseOpen();
+            double rB = extension.getPhaseB().getrPhase() / zb;
+            double xB = extension.getPhaseB().getxPhase() / zb;
+            boolean isOpenB = extension.getPhaseB().isPhaseOpen();
+            double rC = extension.getPhaseC().getrPhase() / zb;
+            double xC = extension.getPhaseC().getxPhase() / zb;
+            boolean isOpenC = extension.getPhaseC().isPhaseOpen();
+            AsymLine asymLine = new AsymLine(rA, xA, isOpenA, rB, xB, isOpenB, rC, xC, isOpenC);
+
+            lfBranchImpl.setProperty(AsymLine.PROPERTY_ASYMMETRICAL, asymLine);
+
+        }
+
+        return lfBranchImpl;
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean twtSplitShuntAdmittance) {

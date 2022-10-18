@@ -26,6 +26,8 @@ public class OuterLoopContextImpl implements OuterLoopContext {
 
     private AcLoadFlowContext acLoadFlowContext;
 
+    private DisymAcLoadFlowContext disymAcLoadFlowContext;
+
     OuterLoopContextImpl(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
     }
@@ -71,5 +73,15 @@ public class OuterLoopContextImpl implements OuterLoopContext {
     @Override
     public void setAcLoadFlowContext(AcLoadFlowContext acLoadFlowContext) {
         this.acLoadFlowContext = acLoadFlowContext;
+    }
+
+    @Override
+    public DisymAcLoadFlowContext getDisymAcLoadFlowContext() {
+        return disymAcLoadFlowContext;
+    }
+
+    @Override
+    public void setDisymAcLoadFlowContext(DisymAcLoadFlowContext disymAcLoadFlowContext) {
+        this.disymAcLoadFlowContext = disymAcLoadFlowContext;
     }
 }

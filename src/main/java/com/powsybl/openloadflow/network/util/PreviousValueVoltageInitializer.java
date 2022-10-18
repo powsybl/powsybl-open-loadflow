@@ -15,6 +15,18 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class PreviousValueVoltageInitializer implements VoltageInitializer {
 
+    private final UniformValueVoltageInitializer defaultVoltageInitializer = new UniformValueVoltageInitializer();
+
+    private final boolean defaultToUniformValue;
+
+    public PreviousValueVoltageInitializer() {
+        this(false);
+    }
+
+    public PreviousValueVoltageInitializer(boolean defaultToUniformValue) {
+        this.defaultToUniformValue = defaultToUniformValue;
+    }
+
     @Override
     public void prepare(LfNetwork network) {
         // nothing to do
@@ -24,7 +36,11 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
     public double getMagnitude(LfBus bus) {
         double v = bus.getV();
         if (Double.isNaN(v)) {
-            throw new PowsyblException("Voltage magnitude is undefined for bus '" + bus.getId() + "'");
+            if (defaultToUniformValue) {
+                return defaultVoltageInitializer.getMagnitude(bus);
+            } else {
+                throw new PowsyblException("Voltage magnitude is undefined for bus '" + bus.getId() + "'");
+            }
         }
         return v;
     }
@@ -33,7 +49,11 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
     public double getAngle(LfBus bus) {
         double angle = bus.getAngle();
         if (Double.isNaN(angle)) {
-            throw new PowsyblException("Voltage angle is undefined for bus '" + bus.getId() + "'");
+            if (defaultToUniformValue) {
+                return defaultVoltageInitializer.getAngle(bus);
+            } else {
+                throw new PowsyblException("Voltage angle is undefined for bus '" + bus.getId() + "'");
+            }
         }
         return angle;
     }
