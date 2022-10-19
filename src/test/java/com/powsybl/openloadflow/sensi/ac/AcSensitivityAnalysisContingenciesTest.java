@@ -1110,5 +1110,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = List.of(factor);
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(0.0735, result.getBranchFlow1SensitivityValue("l13", "d1", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("l13"));
     }
 }
