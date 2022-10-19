@@ -29,6 +29,10 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private boolean variablesIndexValid = false;
 
+    private final List<Equation<V, E>> equationsByColumn = new ArrayList<>();
+
+    private final List<Variable<V>> variablesByRow = new ArrayList<>();
+
     private final List<EquationSystemIndexListener<V, E>> listeners = new ArrayList<>();
 
     public EquationSystemIndex(EquationSystem<V, E> equationSystem) {
@@ -58,8 +62,10 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     private void update() {
         if (!equationsIndexValid) {
             int columnCount = 0;
+            equationsByColumn.clear();
             for (Equation<V, E> equation : sortedEquationsToSolve) {
                 equation.setColumn(columnCount++);
+                equationsByColumn.add(equation);
             }
             equationsIndexValid = true;
             LOGGER.debug("Equations index updated ({} columns)", columnCount);
@@ -67,8 +73,10 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
         if (!variablesIndexValid) {
             int rowCount = 0;
+            variablesByRow.clear();
             for (Variable<V> variable : sortedVariablesToFindRefCount.keySet()) {
                 variable.setRow(rowCount++);
+                variablesByRow.add(variable);
             }
             variablesIndexValid = true;
             LOGGER.debug("Variables index updated ({} rows)", rowCount);
@@ -189,5 +197,25 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     public NavigableSet<Variable<V>> getSortedVariablesToFind() {
         update();
         return sortedVariablesToFindRefCount.navigableKeySet();
+    }
+
+    public int getColumnCount() {
+        update();
+        return equationsByColumn.size();
+    }
+
+    public Equation<V, E> getEquation(int column) {
+        update();
+        return equationsByColumn.get(column);
+    }
+
+    public int getRowCount() {
+        update();
+        return variablesByRow.size();
+    }
+
+    public Variable<V> getVariable(int row) {
+        update();
+        return variablesByRow.get(row);
     }
 }
