@@ -1113,4 +1113,16 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0.0735, result.getBranchFlow1SensitivityValue("l13", "d1", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getContingencyStatus("l13"));
     }
+
+    @Test
+    void testMaxIterationReachedAfterContingency() {
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getLine("NHV1_NHV2_1").setX(1000);
+        List<Contingency> contingencies = List.of(new Contingency("NHV1_NHV2_2", List.of(new BranchContingency("NHV1_NHV2_2"))));
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "LOAD"));
+        SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
+        parameters.getLoadFlowParameters().setDistributedSlack(false);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), parameters);
+        assertEquals(SensitivityAnalysisResult.Status.FAILURE, result.getContingencyStatus("NHV1_NHV2_2"));
+    }
 }
