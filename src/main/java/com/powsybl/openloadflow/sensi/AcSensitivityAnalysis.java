@@ -340,6 +340,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                     networkState.restore();
                 }, () -> {
+                        new AcloadFlowEngine(context).run();
                         // It means that the contingency has no impact.
                         calculateSensitivityValues(validFactorHolder.getFactorsForContingency(contingency.getContingency().getId()), factorGroups, factorsStates, contingency.getIndex(), resultWriter);
                         // write contingency status
