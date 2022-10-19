@@ -195,7 +195,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     .run();
 
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-            var preContingencyLimitViolationManager = new LimitViolationManager();
+            var preContingencyLimitViolationManager = new LimitViolationManager(context.getEquationEvaluator());
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
             var preContingencyNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
@@ -287,7 +287,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 .run();
 
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-        var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
+        var postContingencyLimitViolationManager = new LimitViolationManager(context.getEquationEvaluator(), preContingencyLimitViolationManager, violationsParameters);
         var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
 
         if (postContingencyComputationOk) {
@@ -340,7 +340,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     .run();
 
             boolean postActionsComputationOk = postActionsLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-            var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
+            var postActionsViolationManager = new LimitViolationManager(context.getEquationEvaluator(), preContingencyLimitViolationManager, violationsParameters);
             var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
 
             if (postActionsComputationOk) {

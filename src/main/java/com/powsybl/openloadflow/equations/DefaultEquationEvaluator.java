@@ -16,9 +16,38 @@ import java.util.*;
 public class DefaultEquationEvaluator<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
         implements EquationEvaluator {
 
+    static final class Derivative<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+
+        private final EquationTerm<V, E> equationTerm;
+
+        private final int elementIndex;
+
+        private final Variable<V> variable;
+
+        Derivative(EquationTerm<V, E> equationTerm, int elementIndex, Variable<V> variable) {
+            this.equationTerm = Objects.requireNonNull(equationTerm);
+            this.elementIndex = elementIndex;
+            this.variable = Objects.requireNonNull(variable);
+        }
+
+        EquationTerm<V, E> getEquationTerm() {
+            return equationTerm;
+        }
+
+        public int getElementIndex() {
+            return elementIndex;
+        }
+
+        Variable<V> getVariable() {
+            return variable;
+        }
+    }
+
     private final LfNetwork network;
 
     private final EquationSystem<V, E> equationSystem;
+
+    private final List<Derivative<V, E>> derivatives = new ArrayList<>();
 
     public DefaultEquationEvaluator(LfNetwork network, EquationSystem<V, E> equationSystem) {
         this.network = Objects.requireNonNull(network);
@@ -43,6 +72,26 @@ public class DefaultEquationEvaluator<V extends Enum<V> & Quantity, E extends En
     @Override
     public double getQ2(int branchNum) {
         return network.getBranch(branchNum).getQ2().eval();
+    }
+
+    @Override
+    public double getI1(int branchNum) {
+        return network.getBranch(branchNum).getI1().eval();
+    }
+
+    @Override
+    public double getI2(int branchNum) {
+        return network.getBranch(branchNum).getI2().eval();
+    }
+
+    @Override
+    public double getS1(int branchNum) {
+        return network.getBranch(branchNum).computeApparentPower1();
+    }
+
+    @Override
+    public double getS2(int branchNum) {
+        return network.getBranch(branchNum).computeApparentPower2();
     }
 
     @Override
@@ -72,19 +121,35 @@ public class DefaultEquationEvaluator<V extends Enum<V> & Quantity, E extends En
     }
 
     @Override
-    public void der(int column, DerivativeHandler handler) {
-        Equation<V, E> equation = equationSystem.getIndex().getEquation(column);
-        Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = indexTermsByVariable(equation);
-        for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
-            Variable<V> v = e.getKey();
-            int row = v.getRow();
-            if (row != -1) {
-                for (EquationTerm<V, E> term : e.getValue()) {
-                    // create a derivative for all terms including de-activated ones because could be reactivated
-                    // at jacobian update stage without any equation or variable index change
-                    double value = term.isActive() ? term.der(v) : 0;
-                    handler.onRow(row, value);
+    public void initDer(DerivativeInitHandler handler) {
+        derivatives.clear();
+        for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+            int column = eq.getColumn();
+            Equation<V, E> equation = equationSystem.getIndex().getEquation(column);
+            Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = indexTermsByVariable(equation);
+            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
+                Variable<V> v = e.getKey();
+                int row = v.getRow();
+                if (row != -1) {
+                    for (EquationTerm<V, E> term : e.getValue()) {
+                        // create a derivative for all terms including de-activated ones because could be reactivated
+                        // at jacobian update stage without any equation or variable index change
+                        double value = term.isActive() ? term.der(v) : 0;
+                        int elementIndex = handler.onValue(column, row, value);
+                        derivatives.add(new Derivative<>(term, elementIndex, v));
+                    }
                 }
+            }
+        }
+    }
+
+    @Override
+    public void updateDer(DerivativeUpdateHandler handler) {
+        for (Derivative<V, E> derivative : derivatives) {
+            EquationTerm<V, E> term = derivative.getEquationTerm();
+            if (term.isActive()) {
+                Variable<V> v = derivative.getVariable();
+                handler.onValue(derivative.getElementIndex(), term.der(v));
             }
         }
     }

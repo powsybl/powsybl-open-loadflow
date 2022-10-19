@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -23,9 +24,12 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EquationVector.class);
 
-    public EquationVector(EquationSystem<V, E> equationSystem) {
+    private final EquationEvaluator evaluator;
+
+    public EquationVector(EquationSystem<V, E> equationSystem, EquationEvaluator evaluator) {
         super(equationSystem);
         equationSystem.getStateVector().addListener(this);
+        this.evaluator = Objects.requireNonNull(evaluator);
     }
 
     @Override
@@ -44,15 +48,15 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     protected void updateArray(double[] array) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        var equations = equationSystem.getIndex().getSortedEquationsToSolve();
+        int columnCount = equationSystem.getIndex().getColumnCount();
 
-        if (array.length != equations.size()) {
+        if (array.length != columnCount) {
             throw new IllegalArgumentException("Bad equation vector length: " + array.length);
         }
 
         Arrays.fill(array, 0); // necessary?
-        for (Equation<V, E> equation : equations) {
-            array[equation.getColumn()] = equation.eval();
+        for (int column = 0; column < columnCount; column++) {
+            array[column] = evaluator.eval(column);
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Equation vector updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));

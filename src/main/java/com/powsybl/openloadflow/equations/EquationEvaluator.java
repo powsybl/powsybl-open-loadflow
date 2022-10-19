@@ -19,16 +19,31 @@ public interface EquationEvaluator {
 
     double getQ2(int branchNum);
 
+    double getI1(int branchNum);
+
+    double getI2(int branchNum);
+
+    double getS1(int branchNum);
+
+    double getS2(int branchNum);
+
     double getV(int busNum);
 
     double getAngle(int busNum);
 
     double eval(int column);
 
-    interface DerivativeHandler {
+    interface DerivativeInitHandler {
 
-        void onRow(int row, double value);
+        int onValue(int column, int row, double value);
     }
 
-    void der(int column, DerivativeHandler handler);
+    void initDer(DerivativeInitHandler handler);
+
+    interface DerivativeUpdateHandler {
+
+        void onValue(int elementIndex, double value);
+    }
+
+    void updateDer(DerivativeUpdateHandler handler);
 }

@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.equations.TargetVector;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Objects;
@@ -33,6 +30,8 @@ public class AcLoadFlowContext implements AutoCloseable {
     private AcTargetVector targetVector;
 
     private EquationVector<AcVariableType, AcEquationType> equationVector;
+
+    private EquationEvaluator equationEvaluator;
 
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
         this.network = Objects.requireNonNull(network);
@@ -56,7 +55,7 @@ public class AcLoadFlowContext implements AutoCloseable {
 
     public JacobianMatrix<AcVariableType, AcEquationType> getJacobianMatrix() {
         if (jacobianMatrix == null) {
-            jacobianMatrix = new JacobianMatrix<>(getEquationSystem(), parameters.getMatrixFactory());
+            jacobianMatrix = new JacobianMatrix<>(getEquationSystem(), getEquationEvaluator(), parameters.getMatrixFactory());
         }
         return jacobianMatrix;
     }
@@ -68,9 +67,16 @@ public class AcLoadFlowContext implements AutoCloseable {
         return targetVector;
     }
 
+    public EquationEvaluator getEquationEvaluator() {
+        if (equationEvaluator == null) {
+            equationEvaluator = new DefaultEquationEvaluator<>(network, getEquationSystem());
+        }
+        return equationEvaluator;
+    }
+
     public EquationVector<AcVariableType, AcEquationType> getEquationVector() {
         if (equationVector == null) {
-            equationVector = new EquationVector<>(getEquationSystem());
+            equationVector = new EquationVector<>(getEquationSystem(), getEquationEvaluator());
         }
         return equationVector;
     }

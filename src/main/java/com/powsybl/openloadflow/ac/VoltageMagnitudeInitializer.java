@@ -207,7 +207,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             }
         }
 
-        try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
+        try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, new DefaultEquationEvaluator<>(network, equationSystem), matrixFactory)) {
             double[] targets = TargetVector.createArray(network, equationSystem, VoltageMagnitudeInitializer::initTarget);
 
             j.solveTransposed(targets);

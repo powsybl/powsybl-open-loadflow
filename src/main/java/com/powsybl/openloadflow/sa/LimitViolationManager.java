@@ -8,10 +8,10 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.LimitType;
+import com.powsybl.openloadflow.equations.EquationEvaluator;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
@@ -19,7 +19,8 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.function.*;
+import java.util.function.BiFunction;
+import java.util.function.IntToDoubleFunction;
 
 /**
  * Limit violation manager. A reference limit violation manager could be specified to only report violations that
@@ -35,15 +36,19 @@ public class LimitViolationManager {
 
     private final Map<Pair<String, Branch.Side>, LimitViolation> violations = new LinkedHashMap<>();
 
-    public LimitViolationManager(LimitViolationManager reference, SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
+    private final EquationEvaluator equationEvaluator;
+
+    public LimitViolationManager(EquationEvaluator equationEvaluator, LimitViolationManager reference,
+                                 SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
         this.reference = reference;
         if (reference != null) {
             this.parameters = Objects.requireNonNull(parameters);
         }
+        this.equationEvaluator = Objects.requireNonNull(equationEvaluator);
     }
 
-    public LimitViolationManager() {
-        this(null, null);
+    public LimitViolationManager(EquationEvaluator equationEvaluator) {
+        this(equationEvaluator, null, null);
     }
 
     public List<LimitViolation> getLimitViolations() {
@@ -82,13 +87,13 @@ public class LimitViolationManager {
 
     private void detectBranchSideViolations(LfBranch branch, LfBus bus,
                                             BiFunction<LfBranch, LimitType, List<LfBranch.LfLimit>> limitsGetter,
-                                            Function<LfBranch, Evaluable> iGetter,
-                                            Function<LfBranch, Evaluable> pGetter,
-                                            ToDoubleFunction<LfBranch> sGetter,
+                                            IntToDoubleFunction iGetter,
+                                            IntToDoubleFunction pGetter,
+                                            IntToDoubleFunction sGetter,
                                             Branch.Side side) {
         List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT);
         if (!limits.isEmpty()) {
-            double i = iGetter.apply(branch).eval();
+            double i = iGetter.applyAsDouble(branch.getNum());
             limits.stream()
                     .filter(temporaryLimit -> i > temporaryLimit.getValue())
                     .findFirst()
@@ -98,7 +103,7 @@ public class LimitViolationManager {
 
         limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER);
         if (!limits.isEmpty()) {
-            double p = pGetter.apply(branch).eval();
+            double p = pGetter.applyAsDouble(branch.getNum());
             limits.stream()
                     .filter(temporaryLimit -> p > temporaryLimit.getValue())
                     .findFirst()
@@ -109,7 +114,7 @@ public class LimitViolationManager {
         limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER);
         if (!limits.isEmpty()) {
             //Apparent power is not relevant for fictitious branches and may be NaN
-            double s = sGetter.applyAsDouble(branch);
+            double s = sGetter.applyAsDouble(branch.getNum());
             if (!Double.isNaN(s)) {
                 limits.stream()
                         .filter(temporaryLimit -> s > temporaryLimit.getValue())
@@ -128,11 +133,11 @@ public class LimitViolationManager {
         // detect violation limits on a branch
         // Only detect the most serious one (findFirst) : limit violations are ordered by severity
         if (branch.getBus1() != null) {
-            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, Branch.Side.ONE);
+            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, equationEvaluator::getI1, equationEvaluator::getP1, equationEvaluator::getS1, Branch.Side.ONE);
         }
 
         if (branch.getBus2() != null) {
-            detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, LfBranch::getI2, LfBranch::getP2, LfBranch::computeApparentPower2, Branch.Side.TWO);
+            detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, equationEvaluator::getI2, equationEvaluator::getP2, equationEvaluator::getS2, Branch.Side.TWO);
         }
     }
 

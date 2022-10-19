@@ -59,6 +59,7 @@ class DcLoadFlowMatrixTest {
 
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
         EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters);
+        EquationEvaluator equationEvaluator = new DefaultEquationEvaluator<>(mainNetwork, equationSystem);
 
         for (LfBus b : mainNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), DcEquationType.BUS_TARGET_P);
@@ -72,31 +73,32 @@ class DcLoadFlowMatrixTest {
                     .print(ps, equationSystem.getColumnNames(mainNetwork), null);
         }
 
-        Matrix j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
-        try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
-            ps.println("J=");
-            j.print(ps, equationSystem.getRowNames(mainNetwork), equationSystem.getColumnNames(mainNetwork));
+        try (JacobianMatrix<DcVariableType, DcEquationType> j = new JacobianMatrix<>(equationSystem, equationEvaluator, matrixFactory)) {
+            try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
+                ps.println("J=");
+                j.getMatrix().print(ps, equationSystem.getRowNames(mainNetwork), equationSystem.getColumnNames(mainNetwork));
+            }
+
+            double[] targets = TargetVector.createArray(mainNetwork, equationSystem, DcLoadFlowEngine::initTarget);
+            try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
+                ps.println("TGT=");
+                Matrix.createFromColumn(targets, matrixFactory)
+                        .print(ps, equationSystem.getRowNames(mainNetwork), null);
+            }
+
+            double[] dx = Arrays.copyOf(targets, targets.length);
+            try (LUDecomposition lu = j.getMatrix().decomposeLU()) {
+                lu.solveTransposed(dx);
+            }
+
+            assertEquals(0d, dx[0], 1E-14d);
+            assertEquals(-0.04383352433493455d, dx[1], 1E-14d);
+            assertEquals(-0.11239308112163815d, dx[2], 1E-14d);
+            assertEquals(-0.2202418845341654d, dx[3], 1E-14d);
+
+            Networks.resetState(network);
+            DcLoadFlowEngine.updateNetwork(mainNetwork, equationSystem, dx);
         }
-
-        double[] targets = TargetVector.createArray(mainNetwork, equationSystem, DcLoadFlowEngine::initTarget);
-        try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
-            ps.println("TGT=");
-            Matrix.createFromColumn(targets, matrixFactory)
-                    .print(ps, equationSystem.getRowNames(mainNetwork), null);
-        }
-
-        double[] dx = Arrays.copyOf(targets, targets.length);
-        try (LUDecomposition lu = j.decomposeLU()) {
-            lu.solveTransposed(dx);
-        }
-
-        assertEquals(0d, dx[0], 1E-14d);
-        assertEquals(-0.04383352433493455d, dx[1], 1E-14d);
-        assertEquals(-0.11239308112163815d, dx[2], 1E-14d);
-        assertEquals(-0.2202418845341654d, dx[3], 1E-14d);
-
-        Networks.resetState(network);
-        DcLoadFlowEngine.updateNetwork(mainNetwork, equationSystem, dx);
 
         logNetwork(network);
 
@@ -108,15 +110,17 @@ class DcLoadFlowMatrixTest {
 
         equationSystem = DcEquationSystem.create(mainNetwork, creationParameters);
 
-        j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
+        try (JacobianMatrix<DcVariableType, DcEquationType> j = new JacobianMatrix<>(equationSystem, equationEvaluator, matrixFactory)) {
 
-        dx = Arrays.copyOf(targets, targets.length);
-        try (LUDecomposition lu = j.decomposeLU()) {
-            lu.solveTransposed(dx);
+            double[] targets = TargetVector.createArray(mainNetwork, equationSystem, DcLoadFlowEngine::initTarget);
+            double[] dx = Arrays.copyOf(targets, targets.length);
+            try (LUDecomposition lu = j.getMatrix().decomposeLU()) {
+                lu.solveTransposed(dx);
+            }
+
+            Networks.resetState(network);
+            DcLoadFlowEngine.updateNetwork(mainNetwork, equationSystem, dx);
         }
-
-        Networks.resetState(network);
-        DcLoadFlowEngine.updateNetwork(mainNetwork, equationSystem, dx);
 
         logNetwork(network);
     }
