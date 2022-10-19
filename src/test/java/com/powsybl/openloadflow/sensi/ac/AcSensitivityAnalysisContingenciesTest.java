@@ -1092,21 +1092,21 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     void testNoImpactContingencyAfterNormalContingency() {
         Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
         // we open l45 at both sides
-        Line l45 = network.getLine("l13");
-        l45.getTerminal1().disconnect();
-        l45.getTerminal2().disconnect();
+        Line l13 = network.getLine("l13");
+        l13.getTerminal1().disconnect();
+        l13.getTerminal2().disconnect();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
 
         List<Contingency> contingencies = List.of(new Contingency("lines", List.of(new BranchContingency("l46"), new BranchContingency("l56"))),
-                new Contingency("l13", new BranchContingency("l13")));
+                                                  new Contingency("l13", new BranchContingency("l13")));
 
         ContingencyContext contingencyContext = new ContingencyContext("l13", ContingencyContextType.SPECIFIC);
         SensitivityFactor factor = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "l46",
-                SensitivityVariableType.INJECTION_ACTIVE_POWER,
-                "d1", false,
-                contingencyContext);
+                                                         SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                                                         "d1", false,
+                                                         contingencyContext);
         List<SensitivityFactor> factors = List.of(factor);
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
