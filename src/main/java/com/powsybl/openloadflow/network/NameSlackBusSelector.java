@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.PowsyblException;
-
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -55,6 +53,7 @@ public class NameSlackBusSelector implements SlackBusSelector {
                 }
             }
         }
-        throw new PowsyblException("None of the buses or voltage levels " + busesOrVoltageLevelsIds + " have been found");
+        // fallback to automatic selection among all buses
+        return secondLevelSelector.select(buses);
     }
 }

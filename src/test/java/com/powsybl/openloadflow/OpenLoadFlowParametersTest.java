@@ -8,7 +8,6 @@ package com.powsybl.openloadflow;
 
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
@@ -35,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Jérémy Labous <jlabous at silicom.fr>
@@ -154,8 +154,7 @@ class OpenLoadFlowParametersTest {
         assertEquals(SlackBusSelectionMode.NAME, olfParameters.getSlackBusSelectionMode());
         List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), SlackBusSelector.fromMode(olfParameters.getSlackBusSelectionMode(), olfParameters.getSlackBusesIds(), olfParameters.getPlausibleActivePowerLimit()));
         LfNetwork lfNetwork = lfNetworks.get(0);
-        PowsyblException thrown = assertThrows(PowsyblException.class, lfNetwork::getSlackBus);
-        assertEquals("None of the buses or voltage levels [???] have been found", thrown.getMessage());
+        assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId()); // fallback to automatic method.
     }
 
     @Test
