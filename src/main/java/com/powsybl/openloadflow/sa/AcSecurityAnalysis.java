@@ -253,8 +253,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                     operatorStrategy, preContingencyLimitViolationManager,
                                                     securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
                                                     createResultExtension, lfContingency)
-                                                    .ifPresent(e -> {
-                                                        operatorStrategyResults.add(e);
+                                                    .ifPresent(result -> {
+                                                        operatorStrategyResults.add(result);
                                                         postContingencyNetworkState.restore();
                                                     });
                                         }
