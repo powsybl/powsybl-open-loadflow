@@ -13,15 +13,12 @@ import com.powsybl.security.action.LineConnectionAction;
 import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class LfAction {
+public final class LfAction {
 
     private static final class TapPositionChange {
 
@@ -52,47 +49,66 @@ public class LfAction {
 
     private final String id;
 
-    private LfBranch disabledBranch; // switch to open
+    private final LfBranch disabledBranch; // switch to open
 
-    private LfBranch enabledBranch; // switch to close
+    private final LfBranch enabledBranch; // switch to close
 
-    private TapPositionChange tapPositionChange;
+    private final TapPositionChange tapPositionChange;
 
-    public LfAction(Action action, LfNetwork network) {
-        this.id = Objects.requireNonNull(action.getId());
+    private LfAction(String id, LfBranch disabledBranch, LfBranch enabledBranch, TapPositionChange tapPositionChange) {
+        this.id = Objects.requireNonNull(id);
+        this.disabledBranch = disabledBranch;
+        this.enabledBranch = enabledBranch;
+        this.tapPositionChange = tapPositionChange;
+    }
+
+    public static Optional<LfAction> create(Action action, LfNetwork network) {
+        Objects.requireNonNull(action);
         Objects.requireNonNull(network);
-        LfBranch branch;
         switch (action.getType()) {
-            case SwitchAction.NAME:
+            case SwitchAction.NAME: {
                 SwitchAction switchAction = (SwitchAction) action;
-                branch = network.getBranchById(switchAction.getSwitchId());
-                checkBranch(branch, switchAction.getSwitchId());
-                if (switchAction.isOpen()) {
-                    disabledBranch = branch;
-                } else {
-                    enabledBranch = branch;
+                LfBranch branch = network.getBranchById(switchAction.getSwitchId());
+                if (branch != null) {
+                    LfBranch disabledBranch = null;
+                    LfBranch enabledBranch = null;
+                    if (switchAction.isOpen()) {
+                        disabledBranch = branch;
+                    } else {
+                        enabledBranch = branch;
+                    }
+                    return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null));
                 }
-                break;
-            case LineConnectionAction.NAME:
+                return Optional.empty();
+            }
+
+            case LineConnectionAction.NAME: {
                 LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
-                branch = network.getBranchById(lineConnectionAction.getLineId());
-                checkBranch(branch, lineConnectionAction.getLineId());
-                if (lineConnectionAction.isOpenSide1() && lineConnectionAction.isOpenSide2()) {
-                    disabledBranch = branch;
-                } else {
-                    throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
+                LfBranch branch = network.getBranchById(lineConnectionAction.getLineId());
+                if (branch != null) {
+                    if (lineConnectionAction.isOpenSide1() && lineConnectionAction.isOpenSide2()) {
+                        return Optional.of(new LfAction(action.getId(), branch, null, null));
+                    } else {
+                        throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
+                    }
                 }
-                break;
-            case PhaseTapChangerTapPositionAction.NAME:
+                return Optional.empty();
+            }
+
+            case PhaseTapChangerTapPositionAction.NAME: {
                 PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
-                branch = network.getBranchById(phaseTapChangerTapPositionAction.getTransformerId()); // only two windings transformer for the moment.
-                checkBranch(branch, phaseTapChangerTapPositionAction.getTransformerId()); // how to check that it is really a phase tap changer?
-                if (branch.getPiModel() instanceof SimplePiModel) {
-                    throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + phaseTapChangerTapPositionAction.getTransformerId() + "}");
-                } else {
-                    tapPositionChange = new TapPositionChange(branch, phaseTapChangerTapPositionAction.getValue(), phaseTapChangerTapPositionAction.isRelativeValue());
+                LfBranch branch = network.getBranchById(phaseTapChangerTapPositionAction.getTransformerId()); // only two windings transformer for the moment.
+                if (branch != null) {
+                    if (branch.getPiModel() instanceof SimplePiModel) {
+                        throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + phaseTapChangerTapPositionAction.getTransformerId() + "}");
+                    } else {
+                        var tapPositionChange = new TapPositionChange(branch, phaseTapChangerTapPositionAction.getValue(), phaseTapChangerTapPositionAction.isRelativeValue());
+                        return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange));
+                    }
                 }
-                break;
+                return Optional.empty();
+            }
+
             default:
                 throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         }

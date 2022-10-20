@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.AbstractConverterTest;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
@@ -62,7 +61,7 @@ class LfActionTest extends AbstractConverterTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), Reporter.NO_OP, true, false);
         List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP);
         LfNetwork lfNetwork = lfNetworks.get(0);
-        LfAction lfAction = new LfAction(switchAction, lfNetwork);
+        LfAction lfAction = LfAction.create(switchAction, lfNetwork).orElseThrow();
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
         PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
@@ -75,6 +74,6 @@ class LfActionTest extends AbstractConverterTest {
         });
 
         SwitchAction switchAction2 = new SwitchAction("switchAction", "S", true);
-        assertThrows(PowsyblException.class, () -> new LfAction(switchAction2, lfNetwork), "Branch S not found in the network");
+        assertTrue(LfAction.create(switchAction2, lfNetwork).isEmpty());
     }
 }

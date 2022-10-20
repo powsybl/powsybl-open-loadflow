@@ -45,6 +45,7 @@ import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -128,17 +129,22 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 .forEach(action -> {
                     String switchId = ((SwitchAction) action).getSwitchId();
                     Switch sw = network.getSwitch(switchId);
-                    boolean toOpen = ((SwitchAction) action).isOpen();
-                    if (sw.isOpen() && !toOpen) { // the switch is open and the action will close it.
-                        allSwitchesToClose.add(sw);
-                    } else if (!sw.isOpen() && toOpen) { // the switch is closed and the action will open it.
-                        allSwitchesToOpen.add(sw);
+                    if (sw != null) {
+                        boolean toOpen = ((SwitchAction) action).isOpen();
+                        if (sw.isOpen() && !toOpen) { // the switch is open and the action will close it.
+                            allSwitchesToClose.add(sw);
+                        } else if (!sw.isOpen() && toOpen) { // the switch is closed and the action will open it.
+                            allSwitchesToOpen.add(sw);
+                        }
                     }
                 });
     }
 
     private static Map<String, LfAction> createLfActions(LfNetwork network, List<Action> actions) {
-        return actions.stream().collect(Collectors.toMap(Action::getId, action -> new LfAction(action, network)));
+        return actions.stream()
+                .map(action -> LfAction.create(action, network))
+                .flatMap(Optional::stream)
+                .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
 
     private static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
@@ -247,8 +253,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                     operatorStrategy, preContingencyLimitViolationManager,
                                                     securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
                                                     createResultExtension, lfContingency)
-                                                    .ifPresent(operatorStrategyResults::add);
-                                            postContingencyNetworkState.restore();
+                                                    .ifPresent(e -> {
+                                                        operatorStrategyResults.add(e);
+                                                        postContingencyNetworkState.restore();
+                                                    });
                                         }
                                     }
                                 }
