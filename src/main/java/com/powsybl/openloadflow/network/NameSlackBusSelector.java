@@ -54,7 +54,6 @@ public class NameSlackBusSelector implements SlackBusSelector {
             }
         }
         // fallback to automatic selection among all buses
-        var slackBusSelector = secondLevelSelector.select(buses);
-        return new SelectedSlackBus(slackBusSelector.getBus(), SELECTION_METHOD + " + " + slackBusSelector.getSelectionMethod());
+        return secondLevelSelector.select(buses);
     }
 }
