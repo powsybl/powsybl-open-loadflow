@@ -426,13 +426,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         @Override
         public boolean isVariableInContingency(PropagatedContingency contingency) {
             if (contingency != null) {
-                Set<String> contingencyInjectionIds = contingency.getGeneratorIdsToLose();
-                contingencyInjectionIds.addAll(contingency.getOriginalPowerShiftIds());
-                Set<String> commonIds = contingencyInjectionIds.stream()
+                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getOriginalPowerShiftIds().stream())
                         .distinct()
                         .filter(originalVariableSetIds::contains)
-                        .collect(Collectors.toSet());
-                return commonIds.equals(new HashSet<>(originalVariableSetIds));
+                        .count();
+                return sizeCommonIds == originalVariableSetIds.size();
             } else {
                 return false;
             }
@@ -665,14 +663,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                                         Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
             Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledBuses, disabledBranches, propagatedContingency);
-            Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
-            Optional<Double> functionPredefinedResults = predefinedResults.getRight();
-            if (sensitivityValuePredefinedResult.isPresent()) {
-                factor.setSensitivityValuePredefinedResult(sensitivityValuePredefinedResult.get());
-            }
-            if (functionPredefinedResults.isPresent()) {
-                factor.setFunctionPredefinedResult(functionPredefinedResults.get());
-            }
+            predefinedResults.getLeft().ifPresent(factor::setSensitivityValuePredefinedResult);
+            predefinedResults.getRight().ifPresent(factor::setFunctionPredefinedResult);
         }
     }
 

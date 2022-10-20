@@ -305,17 +305,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledBuses, disabledBranches, contingency);
         Optional<Double> sensitivityValuePredefinedResult = predefinedResults.getLeft();
         Optional<Double> functionPredefinedResults = predefinedResults.getRight();
-        double sensitivityValue = sensitivityValuePredefinedResult.isPresent() ? sensitivityValuePredefinedResult.get() : factor.getBaseSensitivityValue();
-        double functionValue = functionPredefinedResults.isPresent() ? functionPredefinedResults.get() : factor.getFunctionReference();
+        double sensitivityValue = sensitivityValuePredefinedResult.orElseGet(factor::getBaseSensitivityValue);
+        double functionValue = functionPredefinedResults.orElseGet(factor::getFunctionReference);
         EquationTerm<DcVariableType, DcEquationType> p1 = factor.getFunctionEquationTerm();
 
         if (!(functionPredefinedResults.isPresent() && sensitivityValuePredefinedResult.isPresent())) {
             for (ComputedContingencyElement contingencyElement : contingencyElements) {
                 double contingencySensitivity = p1.calculateSensi(contingenciesStates, contingencyElement.getContingencyIndex());
-                if (!functionPredefinedResults.isPresent()) {
+                if (functionPredefinedResults.isEmpty()) {
                     functionValue += contingencyElement.getAlphaForFunctionReference() * contingencySensitivity;
                 }
-                if (!sensitivityValuePredefinedResult.isPresent()) {
+                if (sensitivityValuePredefinedResult.isEmpty()) {
                     sensitivityValue += contingencyElement.getAlphaForSensitivityValue() * contingencySensitivity;
                 }
             }
@@ -573,11 +573,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                       DenseMatrix flowStates, Collection<ComputedContingencyElement> contingencyElements, SensitivityResultWriter resultWriter,
                                                       LfNetwork lfNetwork, DcLoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, JacobianMatrix<DcVariableType, DcEquationType> j, EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                       SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder, List<ParticipatingElement> participatingElements,
-                                                      Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches, Reporter reporter) {
+                                                      Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
         if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
-                    contingency, resultWriter, disabledBuses.stream().collect(Collectors.toSet()), disabledBranches.stream().collect(Collectors.toSet()));
+                    contingency, resultWriter, disabledBuses, disabledBranches);
             // write contingency status
             resultWriter.writeContingencyStatus(contingency.getIndex(), SensitivityAnalysisResult.Status.SUCCESS);
         } else {
@@ -624,7 +624,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     newParticipatingElements, disabledBuses, disabledBranches, reporter);
 
             calculateSensitivityValues(factors, newFactorStates, contingenciesStates, newFlowStates, contingencyElements,
-                    contingency, resultWriter, disabledBuses.stream().collect(Collectors.toSet()), disabledBranches.stream().collect(Collectors.toSet()));
+                    contingency, resultWriter, disabledBuses, disabledBranches);
 
             networkState.restore();
             if (participatingElementsChanged || rhsChanged) {
