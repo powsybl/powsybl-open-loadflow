@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.LineConnectionAction;
@@ -195,12 +194,6 @@ public final class LfAction {
             int value = tapPositionChange.getValue();
             int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
             branch.getPiModel().setTapPosition(newTapPosition);
-        }
-    }
-
-    private static void checkBranch(LfBranch branch, String branchId) {
-        if (branch == null) {
-            throw new PowsyblException("Branch " + branchId + " not found in the network");
         }
     }
 }
