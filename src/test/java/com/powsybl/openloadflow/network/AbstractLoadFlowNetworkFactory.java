@@ -43,6 +43,13 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .add();
     }
 
+    protected static Bus createOtherBus(Network network, String id, String voltageLevelId) {
+        VoltageLevel vl = network.getVoltageLevel(voltageLevelId);
+        return vl.getBusBreakerView().newBus()
+                .setId(id)
+                .add();
+    }
+
     protected static Generator createGenerator(Bus b, String id, double p) {
         return createGenerator(b, id, p, 1);
     }
@@ -108,6 +115,15 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setG2(0)
                 .setB1(0)
                 .setB2(0)
+                .add();
+    }
+
+    protected static Switch createSwitch(Network network, Bus b1, Bus b2, String id) {
+        return network.getVoltageLevel(b1.getVoltageLevel().getId()).getBusBreakerView().newSwitch()
+                .setId(id)
+                .setBus1(b1.getId())
+                .setBus2(b2.getId())
+                .setOpen(false)
                 .add();
     }
 

@@ -69,7 +69,7 @@ public interface LfGenerator extends PropertyBag {
 
     void updateState();
 
-    LfBus getControlledBus(LfNetwork lfNetwork);
+    LfBus getControlledBus();
 
     default double getSlope() {
         return 0;
@@ -79,7 +79,7 @@ public interface LfGenerator extends PropertyBag {
         // nothing to do
     }
 
-    LfBranch getControlledBranch(LfNetwork lfNetwork);
+    LfBranch getControlledBranch();
 
     ReactivePowerControl.ControlledSide getControlledBranchSide();
 

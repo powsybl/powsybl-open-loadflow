@@ -97,6 +97,7 @@ class AcEquationsTest {
     void branchTest() {
         var branch = Mockito.mock(LfBranch.class, ANSWER);
         Mockito.doReturn(0).when(branch).getNum();
+        Mockito.doReturn(false).when(branch).isDisabled();
         PiModel piModel = Mockito.mock(PiModel.class, ANSWER);
         Mockito.doReturn(piModel).when(branch).getPiModel();
         Mockito.doReturn(R).when(piModel).getR();
@@ -188,6 +189,7 @@ class AcEquationsTest {
     void shuntTest() {
         var shunt = Mockito.mock(LfShunt.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(shunt).getNum();
+        Mockito.doReturn(false).when(shunt).isDisabled();
 
         var bus = Mockito.mock(LfBus.class, ANSWER);
         Mockito.doReturn(0).when(bus).getNum();
@@ -210,6 +212,7 @@ class AcEquationsTest {
     void hvdcTest() {
         var hvdc = Mockito.mock(LfHvdc.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(hvdc).getNum();
+        Mockito.doReturn(false).when(hvdc).isDisabled();
         Mockito.doReturn(DROOP).when(hvdc).getDroop();
         Mockito.doReturn(P_0).when(hvdc).getP0();
         LfVscConverterStationImpl station1 = Mockito.mock(LfVscConverterStationImpl.class, new RuntimeExceptionAnswer());

@@ -24,6 +24,8 @@ public class SimplePiModel implements PiModel {
     private double r1 = 1;
     private double a1 = 0;
 
+    private static final String NO_TAP_POSITION_ERROR = "No tap position change in simple Pi model implementation";
+
     @Override
     public double getR() {
         return r;
@@ -139,18 +141,18 @@ public class SimplePiModel implements PiModel {
 
     @Override
     public boolean updateTapPositionA1(Direction direction) {
-        throw new IllegalStateException("No tap position change in simple Pi model implementation");
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 
     @Override
     public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
-        throw new IllegalStateException("No tap position change in simple Pi model implementation");
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 
     private void rescaleZ(double z) {
         double ksi = getKsi();
-        r = z * FastMath.cos(ksi);
-        x = z * FastMath.sin(ksi);
+        r = z * FastMath.sin(ksi);
+        x = z * FastMath.cos(ksi);
     }
 
     @Override
@@ -173,5 +175,15 @@ public class SimplePiModel implements PiModel {
     @Override
     public void setBranch(LfBranch branch) {
         // nothing to set
+    }
+
+    @Override
+    public int getTapPosition() {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
+    @Override
+    public PiModel setTapPosition(int tapPosition) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 }

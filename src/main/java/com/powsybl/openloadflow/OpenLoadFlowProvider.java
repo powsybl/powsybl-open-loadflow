@@ -145,11 +145,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     status = LoadFlowResult.ComponentResult.Status.FAILED;
                     break;
             }
+            // FIXME a null slack bus ID should be allowed
+            String slackBusId = result.getNetwork().isValid() ? result.getNetwork().getSlackBus().getId() : "";
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
                                                                             result.getNetwork().getNumSC(),
                                                                             status,
                                                                             result.getNewtonRaphsonIterations(),
-                                                                            result.getNetwork().getSlackBus().getId(),
+                                                                            slackBusId,
                                                                             result.getSlackBusActivePowerMismatch() * PerUnit.SB,
                                                                             result.getDistributedActivePower() * PerUnit.SB));
         }

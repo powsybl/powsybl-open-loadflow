@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -21,18 +22,20 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final DanglingLine danglingLine;
 
-    public LfDanglingLineGenerator(DanglingLine danglingLine, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report,
+    public LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report,
                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        super(danglingLine.getGeneration().getTargetP());
+        super(network, danglingLine.getGeneration().getTargetP());
         this.danglingLine = danglingLine;
 
         // local control only
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(reactiveLimits, report)) {
             // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
-            this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
-            setTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(),
-                    report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
-            this.generatorControlType = GeneratorControlType.VOLTAGE;
+            if (checkTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(),
+                    report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage)) {
+                this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
+                this.targetV = danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV();
+                this.generatorControlType = GeneratorControlType.VOLTAGE;
+            }
         }
     }
 
