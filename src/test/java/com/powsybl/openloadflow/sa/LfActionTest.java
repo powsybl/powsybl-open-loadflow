@@ -22,6 +22,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.security.action.LineConnectionAction;
+import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,5 +77,11 @@ class LfActionTest extends AbstractConverterTest {
 
         SwitchAction switchAction2 = new SwitchAction("switchAction", "S", true);
         assertTrue(LfAction.create(switchAction2, lfNetwork).isEmpty());
+
+        LineConnectionAction lineConnectionAction = new LineConnectionAction("A line action", "x", true);
+        assertTrue(LfAction.create(lineConnectionAction, lfNetwork).isEmpty());
+
+        PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3);
+        assertTrue(LfAction.create(phaseTapChangerTapPositionAction, lfNetwork).isEmpty());
     }
 }
