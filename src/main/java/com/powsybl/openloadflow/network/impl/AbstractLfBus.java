@@ -568,4 +568,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public double getMismatchP() {
         return p.eval() - getTargetP(); // slack bus can also have real injection connected
     }
+
+    @Override
+    public void addShunt(LfShunt shunt) {
+        if (this.shunt == null) {
+            this.shunt = shunt;
+        } else {
+            throw new IllegalStateException("LfBus '" + getId() + "'already has a shunt."); // FIXME.
+        }
+    }
 }

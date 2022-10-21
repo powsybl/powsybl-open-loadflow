@@ -79,7 +79,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // set controller -> controlled link
         for (LfBus controllerBus : lfBuses) {
 
-            List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).collect(Collectors.toList());
+            List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream()
+                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ||
+                            gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
+                    .collect(Collectors.toList());
             if (!voltageControlGenerators.isEmpty()) {
 
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
@@ -122,6 +125,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         controlledBus.setVoltageControl(voltageControl);
         if (voltagePerReactivePowerControl) {
             voltageControls.add(voltageControl);
+        }
+        if (controllerBus.getGenerators().stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE).findAny().isPresent()) {
+            controllerBus.setVoltageControlEnabled(false);
         }
     }
 
@@ -312,7 +318,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!shuntCompensators.isEmpty()) {
             lfBus.setShuntCompensators(shuntCompensators, parameters.isShuntVoltageControl());
         }
-
+        lfBus.getGenerators().stream()
+                .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
+                .forEach(gen -> {
+                    Optional<Double> b0 = ((LfStaticVarCompensatorImpl) gen).getB0();
+                    if (b0.isPresent()) {
+                        if (lfBus.getShunt().isPresent()) {
+                            double zb = lfBus.getNominalV() * lfBus.getNominalV() / PerUnit.SB;
+                            lfBus.getShunt().get().setB(lfBus.getShunt().get().getB() + b0.get() * zb);
+                        } else {
+                            lfBus.addShunt(new LfShuntImpl(b0.get(), lfBus.getNominalV(), lfBus.getNetwork(), lfBus));
+                        }
+                    }
+                });
         return lfBus;
     }
 
