@@ -75,13 +75,10 @@ class LfActionTest extends AbstractConverterTest {
             assertNull(lfAction.getEnabledBranch());
         });
 
-        SwitchAction switchAction2 = new SwitchAction("switchAction", "S", true);
-        assertTrue(LfAction.create(switchAction2, lfNetwork).isEmpty());
-
-        LineConnectionAction lineConnectionAction = new LineConnectionAction("A line action", "x", true);
-        assertTrue(LfAction.create(lineConnectionAction, lfNetwork).isEmpty());
-
-        PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3);
-        assertTrue(LfAction.create(phaseTapChangerTapPositionAction, lfNetwork).isEmpty());
+        assertTrue(LfAction.create(new SwitchAction("switchAction", "S", true), lfNetwork).isEmpty());
+        assertTrue(LfAction.create(new LineConnectionAction("A line action", "x", true), lfNetwork).isEmpty());
+        assertTrue(LfAction.create(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3), lfNetwork).isEmpty());
+        var lineAction = new LineConnectionAction("A line action", "L1", true, false);
+        assertEquals("Line connection action: only open line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork)).getMessage());
     }
 }
