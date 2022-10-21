@@ -65,52 +65,58 @@ public final class LfAction {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         switch (action.getType()) {
-            case SwitchAction.NAME: {
-                SwitchAction switchAction = (SwitchAction) action;
-                LfBranch branch = network.getBranchById(switchAction.getSwitchId());
-                if (branch != null) {
-                    LfBranch disabledBranch = null;
-                    LfBranch enabledBranch = null;
-                    if (switchAction.isOpen()) {
-                        disabledBranch = branch;
-                    } else {
-                        enabledBranch = branch;
-                    }
-                    return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null));
-                }
-                return Optional.empty();
-            }
+            case SwitchAction.NAME:
+                return create((SwitchAction) action, network);
 
-            case LineConnectionAction.NAME: {
-                LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
-                LfBranch branch = network.getBranchById(lineConnectionAction.getLineId());
-                if (branch != null) {
-                    if (lineConnectionAction.isOpenSide1() && lineConnectionAction.isOpenSide2()) {
-                        return Optional.of(new LfAction(action.getId(), branch, null, null));
-                    } else {
-                        throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
-                    }
-                }
-                return Optional.empty();
-            }
+            case LineConnectionAction.NAME:
+                return create((LineConnectionAction) action, network);
 
-            case PhaseTapChangerTapPositionAction.NAME: {
-                PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
-                LfBranch branch = network.getBranchById(phaseTapChangerTapPositionAction.getTransformerId()); // only two windings transformer for the moment.
-                if (branch != null) {
-                    if (branch.getPiModel() instanceof SimplePiModel) {
-                        throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + phaseTapChangerTapPositionAction.getTransformerId() + "}");
-                    } else {
-                        var tapPositionChange = new TapPositionChange(branch, phaseTapChangerTapPositionAction.getValue(), phaseTapChangerTapPositionAction.isRelativeValue());
-                        return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange));
-                    }
-                }
-                return Optional.empty();
-            }
+            case PhaseTapChangerTapPositionAction.NAME:
+                return create((PhaseTapChangerTapPositionAction) action, network);
 
             default:
                 throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         }
+    }
+
+    private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork network) {
+        LfBranch branch = network.getBranchById(action.getTransformerId()); // only two windings transformer for the moment.
+        if (branch != null) {
+            if (branch.getPiModel() instanceof SimplePiModel) {
+                throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + action.getTransformerId() + "}");
+            } else {
+                var tapPositionChange = new TapPositionChange(branch, action.getValue(), action.isRelativeValue());
+                return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<LfAction> create(LineConnectionAction action, LfNetwork network) {
+        LfBranch branch = network.getBranchById(action.getLineId());
+        if (branch != null) {
+            if (action.isOpenSide1() && action.isOpenSide2()) {
+                return Optional.of(new LfAction(action.getId(), branch, null, null));
+            } else {
+                throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<LfAction> create(SwitchAction action, LfNetwork network) {
+        LfBranch branch = network.getBranchById(action.getSwitchId());
+        if (branch != null) {
+            LfBranch disabledBranch = null;
+            LfBranch enabledBranch = null;
+            if (action.isOpen()) {
+                disabledBranch = branch;
+            } else {
+                enabledBranch = branch;
+            }
+            return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null));
+        }
+        return Optional.empty();
     }
 
     public String getId() {
