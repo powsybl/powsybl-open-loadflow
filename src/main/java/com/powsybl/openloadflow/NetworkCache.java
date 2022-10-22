@@ -117,9 +117,9 @@ public enum NetworkCache {
     private void evictDeadNetworks() {
         Reference<? extends Network> networkRef;
         while ((networkRef = queue.poll()) != null) {
-            LOGGER.info("Remove dead network from cache");
             NetworkEntry entry = entries.remove(networkRef);
             entry.close();
+            LOGGER.info("Dead network removed from cache ({} remains)", entries.size());
         }
     }
 
@@ -146,6 +146,7 @@ public enum NetworkCache {
         // invalid cache if parameters have changed
         // TODO to refine later
         if (mapEntry != null && !equals(parameters, mapEntry.getValue().getParameters())) {
+            mapEntry.getValue().close();
             entries.remove(mapEntry.getKey());
             mapEntry = null;
         }
