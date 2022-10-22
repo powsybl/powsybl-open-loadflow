@@ -185,6 +185,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
 
+    private boolean networkCacheEnabled = false;
+
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -375,6 +377,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxRealisticVoltage(double maxRealisticVoltage) {
         this.maxRealisticVoltage = maxRealisticVoltage;
+        return this;
+    }
+
+    public boolean isNetworkCacheEnabled() {
+        return networkCacheEnabled;
+    }
+
+    public OpenLoadFlowParameters setNetworkCacheEnabled(boolean networkCacheEnabled) {
+        this.networkCacheEnabled = networkCacheEnabled;
         return this;
     }
 

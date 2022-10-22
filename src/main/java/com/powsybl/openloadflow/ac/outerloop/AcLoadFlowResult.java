@@ -17,6 +17,10 @@ import java.util.Objects;
  */
 public class AcLoadFlowResult {
 
+    public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
+        return new AcLoadFlowResult(network, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, Double.NaN);
+    }
+
     private final LfNetwork network;
 
     private final int outerLoopIterations;

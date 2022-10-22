@@ -22,10 +22,7 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -35,14 +32,9 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.util.*;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
-import com.powsybl.openloadflow.util.Markers;
-import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
-import com.powsybl.openloadflow.util.ProviderConstants;
+import com.powsybl.openloadflow.util.*;
 import com.powsybl.tools.PowsyblCoreVersion;
-
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
@@ -95,6 +87,23 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
+    private static List<AcLoadFlowResult> runAcFromCache(Network network, LoadFlowParameters parameters, Reporter reporter,
+                                                         AcLoadFlowParameters acParameters) {
+        NetworkCache.NetworkEntry networkEntry = NetworkCache.INSTANCE.get(network, parameters);
+        List<AcLoadFlowContext> contexts = networkEntry.getContexts();
+        if (contexts == null) {
+            contexts = LfNetwork.load(network, new LfNetworkLoaderImpl(), acParameters.getNetworkParameters(), reporter)
+                    .stream()
+                    .map(n -> new AcLoadFlowContext(n, acParameters))
+                    .collect(Collectors.toList());
+            networkEntry.setContexts(contexts);
+        }
+        return contexts.stream()
+                .map(context -> context.getNetwork().isValid() ? new AcloadFlowEngine(context).run()
+                        : AcLoadFlowResult.createNoCalculationResult(context.getNetwork()))
+                .collect(Collectors.toList());
+    }
+
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, Reporter reporter) {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         OpenLoadFlowParameters.logAc(parameters, parametersExt);
@@ -105,7 +114,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getType).collect(Collectors.toList()));
         }
 
-        List<AcLoadFlowResult> results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
+        List<AcLoadFlowResult> results;
+        if (parametersExt.isNetworkCacheEnabled()) {
+            results = runAcFromCache(network, parameters, reporter, acParameters);
+        } else {
+            results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
+        }
 
         Networks.resetState(network);
 
