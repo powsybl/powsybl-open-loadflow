@@ -17,6 +17,8 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.TimeUnit;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -26,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class AcLoadFlowWithCachingTest {
 
     @Test
-    void test() {
+    void test() throws InterruptedException {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var load = network.getLoad("LOAD");
         var gen = network.getGenerator("GEN");
@@ -57,7 +59,8 @@ class AcLoadFlowWithCachingTest {
         do {
             System.gc();
             retry++;
-        } while (NetworkCache.INSTANCE.getEntryCount() > 0 && retry < 100);
+            TimeUnit.MILLISECONDS.sleep(100);
+        } while (NetworkCache.INSTANCE.getEntryCount() > 0 && retry < 10);
         assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
     }
 }
