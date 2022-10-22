@@ -56,54 +56,85 @@ public enum NetworkCache {
             return parameters;
         }
 
+        private void reset() {
+            for (AcLoadFlowContext context : contexts) {
+                context.close();
+            }
+            contexts = null;
+        }
+
+        private void onStructureChange() {
+            // too difficult to update LfNetwork incrementally
+            reset();
+        }
+
         @Override
         public void onCreation(Identifiable identifiable) {
+            onStructureChange();
         }
 
         @Override
         public void beforeRemoval(Identifiable identifiable) {
+            // we don't care
         }
 
         @Override
         public void afterRemoval(String s) {
+            onStructureChange();
         }
 
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
+            // TODO
         }
 
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
+            // TODO
+        }
+
+        private void onPropertyChange() {
+            // nothing to do there could not have any impact on LF calculation
         }
 
         @Override
         public void onElementAdded(Identifiable identifiable, String attribute, Object newValue) {
+            onPropertyChange();
         }
 
         @Override
         public void onElementReplaced(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
+            onPropertyChange();
         }
 
         @Override
         public void onElementRemoved(Identifiable identifiable, String attribute, Object oldValue) {
+            onPropertyChange();
+        }
+
+        private void onVariantChange() {
+            // we reset
+            // TODO to study later if we can do better
+            reset();
         }
 
         @Override
         public void onVariantCreated(String sourceVariantId, String targetVariantId) {
+            onVariantChange();
         }
 
         @Override
         public void onVariantOverwritten(String sourceVariantId, String targetVariantId) {
+            onVariantChange();
         }
 
         @Override
         public void onVariantRemoved(String variantId) {
+            onVariantChange();
         }
 
         public void close() {
-            for (AcLoadFlowContext context : contexts) {
-                context.close();
-            }
+            reset();
         }
     }
 
