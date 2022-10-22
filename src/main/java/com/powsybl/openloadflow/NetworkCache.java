@@ -89,11 +89,34 @@ public enum NetworkCache {
             // seems to be not called anymore
         }
 
+        private void onLoadUpdate(Load load, String attribute, Object oldValue, Object newValue) {
+            for (AcLoadFlowContext context : contexts) {
+                Bus bus = context.getParameters().getNetworkParameters().isBreakers()
+                        ? load.getTerminal().getBusBreakerView().getBus()
+                        : load.getTerminal().getBusView().getBus();
+                if (bus != null) {
+                    LfNetwork lfNetwork = context.getNetwork();
+                    LfBus lfBus = lfNetwork.getBusById(bus.getId());
+                    if (lfBus != null) {
+                        if (attribute.equals("p0")) {
+                            double loadShiftP = (double) newValue - (double) oldValue;
+                            double newLoadP = lfBus.getLoadTargetP() + loadShiftP / PerUnit.SB;
+                            lfBus.setInitialLoadTargetP(newLoadP);
+                            lfBus.setLoadTargetP(newLoadP);
+                        } else {
+                            throw new IllegalStateException("Unsupported load attribute: " + attribute);
+                        }
+                    }
+                }
+            }
+        }
+
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null) {
                 return;
             }
+            boolean done = false;
             switch (attribute) {
                 case "v":
                 case "angle":
@@ -104,34 +127,22 @@ public enum NetworkCache {
                 case "p2":
                 case "q2":
                     // ignore because it is related to state update and won't affect LF calculation
+                    done = true;
                     break;
 
                 default:
                     if (identifiable.getType() == IdentifiableType.LOAD) {
                         Load load = (Load) identifiable;
                         if (attribute.equals("p0")) {
-                            for (AcLoadFlowContext context : contexts) {
-                                Bus bus = context.getParameters().getNetworkParameters().isBreakers()
-                                        ? load.getTerminal().getBusBreakerView().getBus()
-                                        : load.getTerminal().getBusView().getBus();
-                                if (bus != null) {
-                                    LfNetwork lfNetwork = context.getNetwork();
-                                    LfBus lfBus = lfNetwork.getBusById(bus.getId());
-                                    if (lfBus != null) {
-                                        double loadShiftP = (double) newValue - (double) oldValue;
-                                        double newLoadP = lfBus.getLoadTargetP() + loadShiftP / PerUnit.SB;
-                                        lfBus.setInitialLoadTargetP(newLoadP);
-                                        lfBus.setLoadTargetP(newLoadP);
-                                    }
-                                }
-                            }
-                        } else {
-                            reset();
+                            onLoadUpdate(load, attribute, oldValue, newValue);
+                            done = true;
                         }
-                    } else {
-                        reset();
                     }
                     break;
+            }
+
+            if (!done) {
+                reset();
             }
         }
 
