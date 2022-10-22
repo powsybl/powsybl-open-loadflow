@@ -10,7 +10,9 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
+import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -19,7 +21,7 @@ import java.util.Optional;
  */
 public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
-    private final StaticVarCompensator svc;
+    private final WeakReference<StaticVarCompensator> svcRef;
 
     private final ReactiveLimits reactiveLimits;
 
@@ -31,7 +33,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                                        boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                        double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(network, 0);
-        this.svc = svc;
+        this.svcRef = new WeakReference<>(svc);
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
         this.reactiveLimits = new MinMaxReactiveLimits() {
 
@@ -80,14 +82,18 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                 report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
     }
 
+    private StaticVarCompensator getSvc() {
+        return WeakReferenceUtil.get(svcRef);
+    }
+
     @Override
     public String getId() {
-        return svc.getId();
+        return getSvc().getId();
     }
 
     @Override
     public double getTargetQ() {
-        return -svc.getReactivePowerSetpoint() / PerUnit.SB;
+        return -getSvc().getReactivePowerSetpoint() / PerUnit.SB;
     }
 
     @Override
@@ -107,6 +113,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public void updateState() {
+        var svc = getSvc();
         svc.getTerminal()
                 .setP(0)
                 .setQ(Double.isNaN(calculatedQ) ? svc.getReactivePowerSetpoint() : -calculatedQ);

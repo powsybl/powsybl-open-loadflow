@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -36,7 +37,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
     }
 
     private DanglingLine getDanglingLine() {
-        return Objects.requireNonNull(danglingLineRef.get(), "Reference has been garbage collected");
+        return WeakReferenceUtil.get(danglingLineRef);
     }
 
     public static String getId(DanglingLine danglingLine) {

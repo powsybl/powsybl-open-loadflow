@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import com.powsybl.security.results.BranchResult;
 
 import java.lang.ref.WeakReference;
@@ -49,7 +50,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     private DanglingLine getDanglingLine() {
-        return Objects.requireNonNull(danglingLineRef.get(), "Reference has been garbage collected");
+        return WeakReferenceUtil.get(danglingLineRef);
     }
 
     @Override

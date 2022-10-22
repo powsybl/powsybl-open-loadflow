@@ -11,8 +11,10 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import com.powsybl.security.results.BranchResult;
 
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -24,16 +26,20 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public class LfSwitch extends AbstractLfBranch {
 
-    private final Switch aSwitch;
+    private final WeakReference<Switch> switchRef;
 
     public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch) {
         super(network, bus1, bus2, new SimplePiModel());
-        this.aSwitch = Objects.requireNonNull(aSwitch);
+        this.switchRef = new WeakReference<>(Objects.requireNonNull(aSwitch));
+    }
+
+    private Switch getSwitch() {
+        return WeakReferenceUtil.get(switchRef);
     }
 
     @Override
     public String getId() {
-        return aSwitch.getId();
+        return getSwitch().getId();
     }
 
     @Override
@@ -108,7 +114,7 @@ public class LfSwitch extends AbstractLfBranch {
 
     @Override
     public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
-        throw new PowsyblException("Unsupported type of branch for branch result: " + aSwitch.getId());
+        throw new PowsyblException("Unsupported type of branch for branch result: " + getSwitch().getId());
     }
 
     public List<LfLimit> getLimits1(final LimitType type) {

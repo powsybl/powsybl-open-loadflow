@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
 import java.lang.ref.WeakReference;
 import java.util.Objects;
@@ -41,7 +42,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     private DanglingLine getDanglingLine() {
-        return Objects.requireNonNull(danglingLineRef.get(), "Reference has been garbage collected");
+        return WeakReferenceUtil.get(danglingLineRef);
     }
 
     @Override

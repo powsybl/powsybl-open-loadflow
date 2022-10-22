@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import com.powsybl.security.results.BusResult;
 
 import java.lang.ref.WeakReference;
@@ -51,7 +52,7 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     private Bus getBus() {
-        return Objects.requireNonNull(busRef.get(), "Reference has been garbage collected");
+        return WeakReferenceUtil.get(busRef);
     }
 
     @Override

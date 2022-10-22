@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
 import java.lang.ref.WeakReference;
 import java.util.Objects;
@@ -69,7 +70,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     private Generator getGenerator() {
-        return Objects.requireNonNull(generatorRef.get(), "Reference has been garbage collected");
+        return WeakReferenceUtil.get(generatorRef);
     }
 
     @Override

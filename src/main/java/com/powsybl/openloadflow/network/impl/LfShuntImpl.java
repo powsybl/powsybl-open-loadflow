@@ -9,9 +9,11 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,7 +25,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
 
-    private final List<ShuntCompensator> shuntCompensators;
+    private final List<WeakReference<ShuntCompensator>> shuntCompensatorsRefs;
 
     private final LfBus bus;
 
@@ -97,7 +99,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
         super(network);
-        this.shuntCompensators = Objects.requireNonNull(shuntCompensators);
+        shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream().map(WeakReference::new).collect(Collectors.toList());
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
@@ -152,7 +154,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public List<String> getOriginalIds() {
-        return shuntCompensators.stream().map(ShuntCompensator::getId).collect(Collectors.toList());
+        return shuntCompensatorsRefs.stream().map(scRef -> WeakReferenceUtil.get(scRef).getId()).collect(Collectors.toList());
     }
 
     @Override
@@ -243,19 +245,21 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public void updateState(boolean dc) {
         if (dc) {
-            for (ShuntCompensator sc : shuntCompensators) {
+            for (var scRef : shuntCompensatorsRefs) {
+                var sc = WeakReferenceUtil.get(scRef);
                 sc.getTerminal().setP(0);
             }
         } else {
             double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
             if (!voltageControlCapability) {
-                for (ShuntCompensator sc : shuntCompensators) {
+                for (var scRef : shuntCompensatorsRefs) {
+                    var sc = WeakReferenceUtil.get(scRef);
                     sc.getTerminal().setP(sc.getG() * vSquare);
                     sc.getTerminal().setQ(-sc.getB() * vSquare);
                 }
             } else {
-                for (int i = 0; i < shuntCompensators.size(); i++) {
-                    ShuntCompensator sc = shuntCompensators.get(i);
+                for (int i = 0; i < shuntCompensatorsRefs.size(); i++) {
+                    ShuntCompensator sc = WeakReferenceUtil.get(shuntCompensatorsRefs.get(i));
                     sc.getTerminal().setP(controllers.get(i).getG() * vSquare / zb);
                     sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / zb);
                     sc.setSectionCount(controllers.get(i).getPosition());

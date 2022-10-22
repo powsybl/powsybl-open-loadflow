@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
 import java.lang.ref.WeakReference;
 import java.util.Objects;
@@ -101,12 +102,12 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public LfVscConverterStation getConverterStation1() {
-        return Objects.requireNonNull(converterStation1Ref.get(), "Reference has been garbage collected");
+        return WeakReferenceUtil.get(converterStation1Ref);
     }
 
     @Override
     public LfVscConverterStation getConverterStation2() {
-        return Objects.requireNonNull(converterStation2Ref.get(), "Reference has been garbage collected");
+        return WeakReferenceUtil.get(converterStation2Ref);
     }
 
     @Override
