@@ -106,36 +106,74 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters);
     }
 
-    public static List<LfNetwork> load(Network network, SlackBusSelector slackBusSelector, Reporter reporter) {
-        return LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector, reporter);
-    }
-
     public static List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
     }
 
-    public static List<LfNetwork> load(Network network, LfNetworkParameters networkParameters,
-                                       Set<Switch> switchesToOpen, Set<Switch> switchesToClose, Reporter reporter) {
+    static class LfNetworkListImpl implements LfNetworkList {
+
+        private final List<LfNetwork> list;
+
+        LfNetworkListImpl(List<LfNetwork> list) {
+            this.list = Objects.requireNonNull(list);
+        }
+
+        @Override
+        public List<LfNetwork> getList() {
+            return list;
+        }
+
+        @Override
+        public void close() {
+            // nothing to clean
+        }
+    }
+
+    static class LfNetworkListWithVariantRemoval implements LfNetworkList {
+
+        private final Network network;
+
+        private final String workingVariantId;
+
+        private final String tmpVariantId;
+
+        private final List<LfNetwork> list;
+
+        LfNetworkListWithVariantRemoval(Network network, String workingVariantId, String tmpVariantId, List<LfNetwork> list) {
+            this.network = Objects.requireNonNull(network);
+            this.workingVariantId = Objects.requireNonNull(workingVariantId);
+            this.tmpVariantId = Objects.requireNonNull(tmpVariantId);
+            this.list = Objects.requireNonNull(list);
+        }
+
+        public List<LfNetwork> getList() {
+            return list;
+        }
+
+        @Override
+        public void close() {
+            network.getVariantManager().removeVariant(tmpVariantId);
+            network.getVariantManager().setWorkingVariant(workingVariantId);
+        }
+    }
+
+    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
+                                     Set<Switch> switchesToOpen, Set<Switch> switchesToClose, Reporter reporter) {
         if (switchesToOpen.isEmpty() && switchesToClose.isEmpty()) {
-            return load(network, networkParameters, reporter);
+            return new LfNetworkListImpl(load(network, networkParameters, reporter));
         } else {
             String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
-            String variantId = network.getVariantManager().getWorkingVariantId();
+            String workingVariantId = network.getVariantManager().getWorkingVariantId();
             network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
             network.getVariantManager().setWorkingVariant(tmpVariantId);
-            try {
-                network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
-                        .forEach(sw -> sw.setRetained(false));
-                switchesToOpen.stream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
-                        .forEach(sw -> sw.setRetained(true));
-                switchesToClose.stream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
-                        .forEach(sw -> sw.setRetained(true));
-                switchesToClose.forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
-                return load(network, networkParameters, reporter);
-            } finally {
-                network.getVariantManager().removeVariant(tmpVariantId);
-                network.getVariantManager().setWorkingVariant(variantId);
-            }
+            network.getSwitchStream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
+                    .forEach(sw -> sw.setRetained(false));
+            switchesToOpen.stream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
+                    .forEach(sw -> sw.setRetained(true));
+            switchesToClose.stream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
+                    .forEach(sw -> sw.setRetained(true));
+            switchesToClose.forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
+            return new LfNetworkListWithVariantRemoval(network, workingVariantId, tmpVariantId, load(network, networkParameters, reporter));
         }
     }
 }
