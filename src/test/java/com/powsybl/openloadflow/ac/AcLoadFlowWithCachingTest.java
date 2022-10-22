@@ -57,7 +57,7 @@ class AcLoadFlowWithCachingTest {
         do {
             System.gc();
             retry++;
-        } while (NetworkCache.INSTANCE.getEntryCount() > 0 && retry < 10);
+        } while (NetworkCache.INSTANCE.getEntryCount() > 0 && retry < 100);
         assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
     }
 }
