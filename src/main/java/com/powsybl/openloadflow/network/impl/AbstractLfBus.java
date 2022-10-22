@@ -304,11 +304,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void setInitialLoadTargetP(double initialLoadTargetP) {
+        this.initialLoadTargetP = initialLoadTargetP * PerUnit.SB;
+    }
+
+    @Override
     public void setLoadTargetP(double loadTargetP) {
         double newLoadTargetP = loadTargetP * PerUnit.SB;
         if (newLoadTargetP != this.loadTargetP) {
             double oldLoadTargetP = this.loadTargetP;
             this.loadTargetP = newLoadTargetP;
+            lfAggregatedLoads.invalidate();
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, newLoadTargetP);
             }

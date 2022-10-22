@@ -7,12 +7,14 @@
 package com.powsybl.openloadflow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.iidm.network.Identifiable;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.NetworkListener;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,10 +59,12 @@ public enum NetworkCache {
         }
 
         private void reset() {
-            for (AcLoadFlowContext context : contexts) {
-                context.close();
+            if (contexts != null) {
+                for (AcLoadFlowContext context : contexts) {
+                    context.close();
+                }
+                contexts = null;
             }
-            contexts = null;
         }
 
         private void onStructureChange() {
@@ -85,12 +89,53 @@ public enum NetworkCache {
 
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
-            // TODO
+            // seems to be not called anymore
         }
 
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
-            // TODO
+            if (contexts == null) {
+                return;
+            }
+            switch (attribute) {
+                case "v":
+                case "angle":
+                case "p":
+                case "q":
+                case "p1":
+                case "q1":
+                case "p2":
+                case "q2":
+                    // ignore because it is related to state update and won't affect LF calculation
+                    break;
+
+                default:
+                    if (identifiable.getType() == IdentifiableType.LOAD) {
+                        Load load = (Load) identifiable;
+                        if (attribute.equals("p0")) {
+                            for (AcLoadFlowContext context : contexts) {
+                                Bus bus = context.getParameters().getNetworkParameters().isBreakers()
+                                        ? load.getTerminal().getBusBreakerView().getBus()
+                                        : load.getTerminal().getBusView().getBus();
+                                if (bus != null) {
+                                    LfNetwork lfNetwork = context.getNetwork();
+                                    LfBus lfBus = lfNetwork.getBusById(bus.getId());
+                                    if (lfBus != null) {
+                                        double loadShiftP = (double) newValue - (double) oldValue;
+                                        double newLoadP = lfBus.getLoadTargetP() + loadShiftP / PerUnit.SB;
+                                        lfBus.setInitialLoadTargetP(newLoadP);
+                                        lfBus.setLoadTargetP(newLoadP);
+                                    }
+                                }
+                            }
+                        } else {
+                            reset();
+                        }
+                    } else {
+                        reset();
+                    }
+                    break;
+            }
         }
 
         private void onPropertyChange() {
@@ -180,14 +225,27 @@ public enum NetworkCache {
             mapEntry.getValue().close();
             entries.remove(mapEntry.getKey());
             mapEntry = null;
+            LOGGER.info("Network cache evicted because of parameters differences");
         }
 
         if (mapEntry == null) {
             var networkEntry = new NetworkEntry(parameters);
             entries.put(new WeakReference<>(network, queue), networkEntry);
+            network.addListener(networkEntry);
+
+            LOGGER.info("Network cache created for network '{}'", network.getId());
+
             return networkEntry;
         } else {
-            return mapEntry.getValue();
+            LOGGER.info("Network cache reused for network '{}'", network.getId());
+
+            // restart from previous state
+            NetworkEntry networkEntry = mapEntry.getValue();
+            for (AcLoadFlowContext context : networkEntry.getContexts()) {
+                context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+            }
+
+            return networkEntry;
         }
     }
 }
