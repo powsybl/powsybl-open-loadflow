@@ -9,10 +9,14 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.LimitType;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Objects;
 
@@ -21,11 +25,11 @@ import java.util.Objects;
  */
 public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
-    private final DanglingLine danglingLine;
+    private final WeakReference<DanglingLine> danglingLineRef;
 
     protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine) {
         super(network, bus1, bus2, piModel);
-        this.danglingLine = danglingLine;
+        this.danglingLineRef = new WeakReference<>(danglingLine);
     }
 
     public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2) {
@@ -44,9 +48,13 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
         return new LfDanglingLineBranch(network, bus1, bus2, piModel, danglingLine);
     }
 
+    private DanglingLine getDanglingLine() {
+        return Objects.requireNonNull(danglingLineRef.get(), "Reference has been garbage collected");
+    }
+
     @Override
     public String getId() {
-        return danglingLine.getId();
+        return getDanglingLine().getId();
     }
 
     @Override
@@ -66,6 +74,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type) {
+        var danglingLine = getDanglingLine();
         switch (type) {
             case ACTIVE_POWER:
                 return getLimits1(type, danglingLine.getActivePowerLimits().orElse(null));
@@ -87,7 +96,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     @Override
     public void updateFlows(double p1, double q1, double p2, double q2) {
         // Network side is always on side 1.
-        danglingLine.getTerminal().setP(p1 * PerUnit.SB)
+        getDanglingLine().getTerminal().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
     }
 }

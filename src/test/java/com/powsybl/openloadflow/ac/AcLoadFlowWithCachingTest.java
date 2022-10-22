@@ -11,6 +11,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
@@ -47,5 +48,16 @@ class AcLoadFlowWithCachingTest {
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(620, load.getTerminal());
         assertActivePowerEquals(-625.895, gen.getTerminal());
+
+        // check that cache entry could be correctly garbage collected
+        network = null;
+        load = null;
+        gen = null;
+        int retry = 0;
+        do {
+            System.gc();
+            retry++;
+        } while (NetworkCache.INSTANCE.getEntryCount() > 0 && retry < 10);
+        assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
     }
 }

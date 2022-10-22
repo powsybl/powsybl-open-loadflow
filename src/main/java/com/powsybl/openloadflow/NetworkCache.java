@@ -23,10 +23,7 @@ import java.io.UncheckedIOException;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -208,16 +205,24 @@ public enum NetworkCache {
         }
     }
 
+    public int getEntryCount() {
+        evictDeadNetworks();
+        return entries.size();
+    }
+
+    private Optional<Map.Entry<WeakReference<Network>, NetworkEntry>> findMapEntry(Network network) {
+        return entries.entrySet().stream()
+                .filter(e -> e.getKey().get() == network)
+                .findFirst();
+    }
+
     public NetworkEntry get(Network network, LoadFlowParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
         evictDeadNetworks();
 
-        var mapEntry = entries.entrySet().stream()
-                .filter(e -> e.getKey().get() == network)
-                .findFirst()
-                .orElse(null);
+        var mapEntry = findMapEntry(network).orElse(null);
 
         // invalid cache if parameters have changed
         // TODO to refine later

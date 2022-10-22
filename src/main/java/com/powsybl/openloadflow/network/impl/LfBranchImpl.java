@@ -14,6 +14,7 @@ import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -25,11 +26,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
-    private final Branch<?> branch;
+    private final WeakReference<Branch<?>> branchRef;
 
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
-        this.branch = branch;
+        this.branchRef = new WeakReference<>(branch);
     }
 
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
@@ -116,24 +117,30 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         }
     }
 
+    private Branch<?> getBranch() {
+        return Objects.requireNonNull(branchRef.get(), "Reference has been garbage collected");
+    }
+
     @Override
     public String getId() {
-        return branch.getId();
+        return getBranch().getId();
     }
 
     @Override
     public BranchType getBranchType() {
-        return branch instanceof Line ? BranchType.LINE : BranchType.TRANSFO_2;
+        return getBranch() instanceof Line ? BranchType.LINE : BranchType.TRANSFO_2;
     }
 
     @Override
     public boolean hasPhaseControlCapability() {
+        var branch = getBranch();
         return branch.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER
                 && ((TwoWindingsTransformer) branch).getPhaseTapChanger() != null;
     }
 
     @Override
     public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        var branch = getBranch();
         double flowTransfer = Double.NaN;
         if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
             flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
@@ -150,6 +157,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type) {
+        var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
                 return getLimits1(type, branch.getActivePowerLimits1().orElse(null));
@@ -165,6 +173,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits2(final LimitType type) {
+        var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
                 return getLimits2(type, branch.getActivePowerLimits2().orElse(null));
@@ -180,6 +189,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+        var branch = getBranch();
+
         updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
 
         if (phaseShifterRegulationOn && isPhaseController()) {
@@ -202,6 +213,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public void updateFlows(double p1, double q1, double p2, double q2) {
+        var branch = getBranch();
         branch.getTerminal1().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
         branch.getTerminal2().setP(p2 * PerUnit.SB)

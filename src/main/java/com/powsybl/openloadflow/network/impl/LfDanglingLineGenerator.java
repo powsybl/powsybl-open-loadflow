@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -20,12 +21,12 @@ import java.util.OptionalDouble;
  */
 public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
-    private final DanglingLine danglingLine;
+    private final WeakReference<DanglingLine> danglingLineRef;
 
     public LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report,
                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(network, danglingLine.getGeneration().getTargetP());
-        this.danglingLine = danglingLine;
+        this.danglingLineRef = new WeakReference<>(danglingLine);
 
         // local control only
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(reactiveLimits, report)) {
@@ -39,14 +40,18 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
         }
     }
 
+    private DanglingLine getDanglingLine() {
+        return Objects.requireNonNull(danglingLineRef.get(), "Reference has been garbage collected");
+    }
+
     @Override
     public String getId() {
-        return danglingLine.getId() + "_GEN";
+        return getDanglingLine().getId() + "_GEN";
     }
 
     @Override
     public String getOriginalId() {
-        return danglingLine.getId();
+        return getDanglingLine().getId();
     }
 
     @Override
@@ -56,22 +61,22 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return danglingLine.getGeneration().getTargetQ() / PerUnit.SB;
+        return getDanglingLine().getGeneration().getTargetQ() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return danglingLine.getGeneration().getMinP() / PerUnit.SB;
+        return getDanglingLine().getGeneration().getMinP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return danglingLine.getGeneration().getMaxP() / PerUnit.SB;
+        return getDanglingLine().getGeneration().getMaxP() / PerUnit.SB;
     }
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.ofNullable(danglingLine.getGeneration().getReactiveLimits());
+        return Optional.ofNullable(getDanglingLine().getGeneration().getReactiveLimits());
     }
 
     @Override

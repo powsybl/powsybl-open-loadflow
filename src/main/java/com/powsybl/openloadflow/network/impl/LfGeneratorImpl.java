@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -23,7 +24,7 @@ import java.util.OptionalDouble;
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
 
-    private final Generator generator;
+    private final WeakReference<Generator> generatorRef;
 
     private boolean participating;
 
@@ -32,7 +33,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     private LfGeneratorImpl(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
                             LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(network, generator.getTargetP());
-        this.generator = generator;
+        this.generatorRef = new WeakReference<>(generator);
         participating = true;
         droop = DEFAULT_DROOP;
         // get participation factor from extension
@@ -67,19 +68,23 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         return new LfGeneratorImpl(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
     }
 
+    private Generator getGenerator() {
+        return Objects.requireNonNull(generatorRef.get(), "Reference has been garbage collected");
+    }
+
     @Override
     public String getId() {
-        return generator.getId();
+        return getGenerator().getId();
     }
 
     @Override
     public boolean isFictitious() {
-        return generator.isFictitious();
+        return getGenerator().isFictitious();
     }
 
     @Override
     public OptionalDouble getRemoteControlReactiveKey() {
-        CoordinatedReactiveControl coordinatedReactiveControl = generator.getExtension(CoordinatedReactiveControl.class);
+        CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
         if (coordinatedReactiveControl == null) {
             return OptionalDouble.empty();
         }
@@ -88,22 +93,22 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return generator.getTargetQ() / PerUnit.SB;
+        return getGenerator().getTargetQ() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return generator.getMinP() / PerUnit.SB;
+        return getGenerator().getMinP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return generator.getMaxP() / PerUnit.SB;
+        return getGenerator().getMaxP() / PerUnit.SB;
     }
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.of(generator.getReactiveLimits());
+        return Optional.of(getGenerator().getReactiveLimits());
     }
 
     @Override
@@ -123,6 +128,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public void updateState() {
+        var generator = getGenerator();
         generator.getTerminal()
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
