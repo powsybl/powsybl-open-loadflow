@@ -129,7 +129,7 @@ public final class Networks {
         }
     }
 
-    static class LfNetworkListWithVariantRemoval implements LfNetworkList {
+    static class LfNetworkListVariantCleanupImpl implements LfNetworkList {
 
         private final Network network;
 
@@ -139,7 +139,7 @@ public final class Networks {
 
         private final List<LfNetwork> list;
 
-        LfNetworkListWithVariantRemoval(Network network, String workingVariantId, String tmpVariantId, List<LfNetwork> list) {
+        LfNetworkListVariantCleanupImpl(Network network, String workingVariantId, String tmpVariantId, List<LfNetwork> list) {
             this.network = Objects.requireNonNull(network);
             this.workingVariantId = Objects.requireNonNull(workingVariantId);
             this.tmpVariantId = Objects.requireNonNull(tmpVariantId);
@@ -173,7 +173,7 @@ public final class Networks {
             switchesToClose.stream().filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                     .forEach(sw -> sw.setRetained(true));
             switchesToClose.forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
-            return new LfNetworkListWithVariantRemoval(network, workingVariantId, tmpVariantId, load(network, networkParameters, reporter));
+            return new LfNetworkListVariantCleanupImpl(network, workingVariantId, tmpVariantId, load(network, networkParameters, reporter));
         }
     }
 }
