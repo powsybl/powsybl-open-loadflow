@@ -63,6 +63,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final double DC_POWER_FACTOR_DEFAULT_VALUE = 1.0;
 
+    private static final boolean NETWORK_CACHE_ENABLED_DEFAULT_VALUE = false;
+
     public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -103,6 +105,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_REALISTIC_VOLTAGE_NAME = "maxRealisticVoltage";
 
+    public static final String NETWORK_CACHE_ENABLED_NAME = "networkCacheEnabled";
+
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -122,7 +126,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MIN_REALISTIC_VOLTAGE_NAME,
-                                                                         MAX_REALISTIC_VOLTAGE_NAME);
+                                                                         MAX_REALISTIC_VOLTAGE_NAME,
+                                                                         NETWORK_CACHE_ENABLED_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -185,7 +190,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
 
-    private boolean networkCacheEnabled = false;
+    private boolean networkCacheEnabled = NETWORK_CACHE_ENABLED_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -418,7 +423,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
-                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE)));
+                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -467,6 +473,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMinRealisticVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_NAME))
                 .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_NAME))
+                .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -493,6 +501,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
+                ", networkCacheEnabled=" + networkCacheEnabled +
                 ')';
     }
 
