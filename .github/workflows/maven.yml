@@ -22,6 +22,9 @@ jobs:
           repository: powsybl/powsybl-core
           ref: refs/heads/stand-by-automaton
 
+      - name: Build and install powsybl-core with Maven
+          run: mvn --batch-mode -DskipTests=true --file ../powsybl-core/pom.xml install
+
       - name: Checkout sources
         uses: actions/checkout@v1
 
