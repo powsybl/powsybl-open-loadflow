@@ -340,13 +340,13 @@ class AcLoadFlowSvcTest {
                 .withLowVoltageThreshold(383)
                 .withLowVoltageSetpoint(384)
                 .withHighVoltageSetpoint(395)
-                .withB0(-0.005f)
+                .withB0(-0.005)
                 .withStandbyStatus(true)
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
-        assertReactivePowerEquals(584.132, svc1.getTerminal());
+        assertReactivePowerEquals(584.129, svc1.getTerminal());
         assertVoltageEquals(384.0, bus2);
     }
 
