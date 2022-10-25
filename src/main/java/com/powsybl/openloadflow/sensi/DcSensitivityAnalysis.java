@@ -604,7 +604,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (!lfFactors.isEmpty()) {
                     // filter the branches that really impacts connectivity
                     Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
-                            .filter(element -> removedBuses.contains(element.getLfBranch().getBus1()) ^ removedBuses.contains(element.getLfBranch().getBus2()))
+                            .filter(element -> removedBuses.contains(element.getLfBranch().getBus1()) || removedBuses.contains(element.getLfBranch().getBus2()))
                             .collect(Collectors.toCollection(LinkedHashSet::new));
                     connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork))
                             .getContingencies().addAll(contingencyList);
