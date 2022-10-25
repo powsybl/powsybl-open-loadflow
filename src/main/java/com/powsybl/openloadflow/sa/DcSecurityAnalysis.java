@@ -11,6 +11,7 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -86,7 +87,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 violation -> preContingencyLimitViolationsMap.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
         }
 
-        LimitViolationsResult preContingencyResult = new LimitViolationsResult(true,
+        LimitViolationsResult preContingencyResult = new LimitViolationsResult(
                 new ArrayList<>(preContingencyLimitViolationsMap.values()));
 
         List<PostContingencyResult> postContingencyResults = new ArrayList<>();
@@ -125,11 +126,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                     violations.remove(subjectSideId);
                 }
             });
-            postContingencyResults.add(new PostContingencyResult(contingency, true, new ArrayList<>(violations.values()),
-                    new ArrayList<>(postContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList()));
+            postContingencyResults.add(new PostContingencyResult(contingency, new ArrayList<>(violations.values()),
+                    new ArrayList<>(postContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList(), PostContingencyComputationStatus.CONVERGED));
         }
 
-        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults,
+        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, LoadFlowResult.ComponentResult.Status.CONVERGED, postContingencyResults,
                 new ArrayList<>(preContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList(), Collections.emptyList()));
     }
 

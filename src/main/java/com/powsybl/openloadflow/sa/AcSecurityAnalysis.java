@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -41,6 +42,7 @@ import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.NetworkResult;
 import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.results.PostContingencyResult;
+import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.*;
@@ -58,7 +60,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private static SecurityAnalysisResult createNoResult() {
-        return new SecurityAnalysisResult(new LimitViolationsResult(false, Collections.emptyList()), Collections.emptyList());
+        return new SecurityAnalysisResult(new LimitViolationsResult(Collections.emptyList()), LoadFlowResult.ComponentResult.Status.FAILED, Collections.emptyList());
     }
 
     @Override
@@ -261,12 +263,12 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 }
             }
 
-            return new SecurityAnalysisResult(new LimitViolationsResult(preContingencyComputationOk, preContingencyLimitViolationManager.getLimitViolations()),
-                                              postContingencyResults,
-                                              preContingencyNetworkResult.getBranchResults(),
-                                              preContingencyNetworkResult.getBusResults(),
-                                              preContingencyNetworkResult.getThreeWindingsTransformerResults(),
-                                              operatorStrategyResults);
+            LoadFlowResult.ComponentResult.Status status = loadFlowResultStatusFromNRStatus(preContingencyLoadFlowResult.getNewtonRaphsonStatus());
+            return new SecurityAnalysisResult(
+                    new PreContingencyResult(new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
+                            preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
+                            preContingencyNetworkResult.getThreeWindingsTransformerResults(), status),
+                    postContingencyResults, operatorStrategyResults);
         }
     }
 
@@ -287,6 +289,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 .run();
 
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+        PostContingencyComputationStatus status = postContingencyStatusFromNRStatus(postContingencyLoadFlowResult.getNewtonRaphsonStatus());
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
         var postContingencyNetworkResult = new PostContingencyNetworkResult(network, monitorIndex, createResultExtension, preContingencyNetworkResult, contingency);
 
@@ -303,10 +306,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new PostContingencyResult(contingency,
-                                         new LimitViolationsResult(postContingencyComputationOk, postContingencyLimitViolationManager.getLimitViolations()),
+                                         new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
                                          postContingencyNetworkResult.getBranchResults(),
                                          postContingencyNetworkResult.getBusResults(),
-                                         postContingencyNetworkResult.getThreeWindingsTransformerResults());
+                                         postContingencyNetworkResult.getThreeWindingsTransformerResults(), status);
     }
 
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, AcLoadFlowContext context, OperatorStrategy operatorStrategy,
@@ -340,6 +343,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     .run();
 
             boolean postActionsComputationOk = postActionsLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
+            LoadFlowResult.ComponentResult.Status status = loadFlowResultStatusFromNRStatus(postActionsLoadFlowResult.getNewtonRaphsonStatus());
             var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
             var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
 
@@ -357,8 +361,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     operatorStrategy.getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             operatorStrategyResult = new OperatorStrategyResult(operatorStrategy,
-                    new LimitViolationsResult(postActionsComputationOk,
-                            postActionsViolationManager.getLimitViolations()),
+                    new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
+                    status,
                     new NetworkResult(postActionsNetworkResult.getBranchResults(),
                             postActionsNetworkResult.getBusResults(),
                             postActionsNetworkResult.getThreeWindingsTransformerResults()));
