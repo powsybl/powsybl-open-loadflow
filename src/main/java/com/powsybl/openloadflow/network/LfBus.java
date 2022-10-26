@@ -65,7 +65,7 @@ public interface LfBus extends LfElement {
 
     double getInitialLoadTargetP();
 
-    void setInitialLoadTargetP(double initialLoadTargetP);
+    void reInitLoadTargetP(double newInitialLoadTargetP);
 
     void setLoadTargetP(double loadTargetP);
 

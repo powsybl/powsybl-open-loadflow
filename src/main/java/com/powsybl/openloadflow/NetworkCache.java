@@ -101,8 +101,7 @@ public enum NetworkCache {
                         if (attribute.equals("p0")) {
                             double loadShiftP = (double) newValue - (double) oldValue;
                             double newLoadP = lfBus.getLoadTargetP() + loadShiftP / PerUnit.SB;
-                            lfBus.setInitialLoadTargetP(newLoadP);
-                            lfBus.setLoadTargetP(newLoadP);
+                            lfBus.reInitLoadTargetP(newLoadP);
                         } else {
                             throw new IllegalStateException("Unsupported load attribute: " + attribute);
                         }
