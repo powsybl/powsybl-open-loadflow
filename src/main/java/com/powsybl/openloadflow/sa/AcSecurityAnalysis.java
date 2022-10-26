@@ -96,10 +96,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             // run simulation on largest network
             SecurityAnalysisResult result;
-            if (lfNetworks.getList().isEmpty()) {
+            LfNetwork largestNetwork = lfNetworks.getLargest().orElse(null);
+            if (largestNetwork == null) {
                 result = createNoResult();
             } else {
-                LfNetwork largestNetwork = lfNetworks.getList().get(0);
                 if (largestNetwork.isValid()) {
                     Map<String, LfAction> lfActionsById = createLfActions(largestNetwork, actions);
                     Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
