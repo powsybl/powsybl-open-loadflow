@@ -41,6 +41,10 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
         return loads.stream().map(Identifiable::getId).collect(Collectors.toList());
     }
 
+    void invalidate() {
+        initialized = false;
+    }
+
     void add(Load load) {
         loads.add(load);
         initialized = false;
