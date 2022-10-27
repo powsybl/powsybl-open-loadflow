@@ -95,19 +95,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {
 
             // run simulation on largest network
-            SecurityAnalysisResult result;
-            LfNetwork largestNetwork = lfNetworks.getLargest().orElse(null);
-            if (largestNetwork == null) {
-                result = createNoResult();
-            } else {
-                if (largestNetwork.isValid()) {
-                    Map<String, LfAction> lfActionsById = createLfActions(largestNetwork, actions);
-                    Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
-                    result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategiesByContingencyId, lfActionsById, allSwitchesToClose);
-                } else {
-                    result = createNoResult();
-                }
-            }
+            SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
+                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategies, actions, allSwitchesToClose))
+                    .orElse(createNoResult());
 
             stopwatch.stop();
             LOGGER.info("Security analysis {} in {} ms", Thread.currentThread().isInterrupted() ? "cancelled" : "done",
@@ -179,8 +169,12 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
-                                                  SecurityAnalysisParameters securityAnalysisParameters, Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
-                                                  Map<String, LfAction> lfActionById, Set<Switch> allSwitchesToClose) {
+                                                  SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
+                                                  List<Action> actions, Set<Switch> allSwitchesToClose) {
+
+        Map<String, LfAction> lfActionById = createLfActions(network, actions);
+        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
+
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
