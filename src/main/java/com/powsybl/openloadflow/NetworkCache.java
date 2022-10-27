@@ -24,6 +24,8 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -194,6 +196,8 @@ public enum NetworkCache {
 
     private final Map<WeakReference<Network>, NetworkEntry> entries = new HashMap<>();
 
+    private final Lock lock = new ReentrantLock();
+
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new LoadFlowParametersJsonModule());
 
@@ -216,8 +220,13 @@ public enum NetworkCache {
     }
 
     public int getEntryCount() {
-        evictDeadNetworks();
-        return entries.size();
+        lock.lock();
+        try {
+            evictDeadNetworks();
+            return entries.size();
+        } finally {
+            lock.unlock();
+        }
     }
 
     private Optional<Map.Entry<WeakReference<Network>, NetworkEntry>> findMapEntry(Network network) {
@@ -230,37 +239,42 @@ public enum NetworkCache {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
-        evictDeadNetworks();
+        lock.lock();
+        try {
+            evictDeadNetworks();
 
-        var mapEntry = findMapEntry(network).orElse(null);
+            var mapEntry = findMapEntry(network).orElse(null);
 
-        // invalid cache if parameters have changed
-        // TODO to refine later
-        if (mapEntry != null && !equals(parameters, mapEntry.getValue().getParameters())) {
-            mapEntry.getValue().close();
-            entries.remove(mapEntry.getKey());
-            mapEntry = null;
-            LOGGER.info("Network cache evicted because of parameters differences");
-        }
-
-        if (mapEntry == null) {
-            var networkEntry = new NetworkEntry(parameters);
-            entries.put(new WeakReference<>(network, queue), networkEntry);
-            network.addListener(networkEntry);
-
-            LOGGER.info("Network cache created for network '{}'", network.getId());
-
-            return networkEntry;
-        } else {
-            LOGGER.info("Network cache reused for network '{}'", network.getId());
-
-            // restart from previous state
-            NetworkEntry networkEntry = mapEntry.getValue();
-            for (AcLoadFlowContext context : networkEntry.getContexts()) {
-                context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+            // invalid cache if parameters have changed
+            // TODO to refine later
+            if (mapEntry != null && !equals(parameters, mapEntry.getValue().getParameters())) {
+                mapEntry.getValue().close();
+                entries.remove(mapEntry.getKey());
+                mapEntry = null;
+                LOGGER.info("Network cache evicted because of parameters differences");
             }
 
-            return networkEntry;
+            if (mapEntry == null) {
+                var networkEntry = new NetworkEntry(parameters);
+                entries.put(new WeakReference<>(network, queue), networkEntry);
+                network.addListener(networkEntry);
+
+                LOGGER.info("Network cache created for network '{}'", network.getId());
+
+                return networkEntry;
+            } else {
+                LOGGER.info("Network cache reused for network '{}'", network.getId());
+
+                // restart from previous state
+                NetworkEntry networkEntry = mapEntry.getValue();
+                for (AcLoadFlowContext context : networkEntry.getContexts()) {
+                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                }
+
+                return networkEntry;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 }
