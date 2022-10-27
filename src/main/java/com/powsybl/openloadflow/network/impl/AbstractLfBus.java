@@ -315,7 +315,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (newLoadTargetP != this.loadTargetP) {
             double oldLoadTargetP = this.loadTargetP;
             this.loadTargetP = newLoadTargetP;
-            lfAggregatedLoads.invalidate();
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, newLoadTargetP);
             }

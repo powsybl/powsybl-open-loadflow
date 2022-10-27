@@ -47,10 +47,6 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
         initialized = false;
     }
 
-    void invalidate() {
-        initialized = false;
-    }
-
     @Override
     public double getAbsVariableLoadTargetP() {
         init();
