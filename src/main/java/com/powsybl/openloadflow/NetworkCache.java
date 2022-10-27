@@ -20,8 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -35,14 +33,21 @@ public enum NetworkCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
-    public static class NetworkEntry implements NetworkListener {
+    public static class Entry implements NetworkListener {
+
+        private final WeakReference<Network> networkRef;
 
         private final LoadFlowParameters parameters;
 
         private List<AcLoadFlowContext> contexts;
 
-        public NetworkEntry(LoadFlowParameters parameters) {
+        public Entry(WeakReference<Network> networkRef, LoadFlowParameters parameters) {
+            this.networkRef = Objects.requireNonNull(networkRef);
             this.parameters = parameters;
+        }
+
+        public WeakReference<Network> getNetworkRef() {
+            return networkRef;
         }
 
         public List<AcLoadFlowContext> getContexts() {
@@ -192,21 +197,23 @@ public enum NetworkCache {
         }
     }
 
-    private final ReferenceQueue<Network> queue = new ReferenceQueue<>();
-
-    private final Map<WeakReference<Network>, NetworkEntry> entries = new HashMap<>();
+    private final List<Entry> entries = new ArrayList<>();
 
     private final Lock lock = new ReentrantLock();
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new LoadFlowParametersJsonModule());
 
-    private void evictDeadNetworks() {
-        Reference<? extends Network> networkRef;
-        while ((networkRef = queue.poll()) != null) {
-            NetworkEntry entry = entries.remove(networkRef);
-            entry.close();
-            LOGGER.info("Dead network removed from cache ({} remains)", entries.size());
+    private void evictDeadEntries() {
+        Iterator<Entry> it = entries.iterator();
+        while (it.hasNext()) {
+            Entry entry = it.next();
+            if (entry.getNetworkRef().get() == null) {
+                // release all resources
+                entry.close();
+                it.remove();
+                LOGGER.info("Dead network removed from cache ({} remains)", entries.size());
+            }
         }
     }
 
@@ -222,56 +229,56 @@ public enum NetworkCache {
     public int getEntryCount() {
         lock.lock();
         try {
-            evictDeadNetworks();
+            evictDeadEntries();
             return entries.size();
         } finally {
             lock.unlock();
         }
     }
 
-    private Optional<Map.Entry<WeakReference<Network>, NetworkEntry>> findMapEntry(Network network) {
-        return entries.entrySet().stream()
-                .filter(e -> e.getKey().get() == network)
+    private Optional<Entry> findEntry(Network network) {
+        return entries.stream()
+                .filter(e -> e.getNetworkRef().get() == network)
                 .findFirst();
     }
 
-    public NetworkEntry get(Network network, LoadFlowParameters parameters) {
+    public Entry get(Network network, LoadFlowParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
         lock.lock();
         try {
-            evictDeadNetworks();
+            evictDeadEntries();
 
-            var mapEntry = findMapEntry(network).orElse(null);
+            var entry = findEntry(network).orElse(null);
 
             // invalid cache if parameters have changed
-            // TODO to refine later
-            if (mapEntry != null && !equals(parameters, mapEntry.getValue().getParameters())) {
-                mapEntry.getValue().close();
-                entries.remove(mapEntry.getKey());
-                mapEntry = null;
-                LOGGER.info("Network cache evicted because of parameters differences");
+            // TODO to refine later by comparing in detail parameters that have changed
+            if (entry != null && !equals(parameters, entry.getParameters())) {
+                // release all resources
+                entry.close();
+                entries.remove(entry);
+                entry = null;
+                LOGGER.info("Network cache evicted because of parameters change");
             }
 
-            if (mapEntry == null) {
-                var networkEntry = new NetworkEntry(parameters);
-                entries.put(new WeakReference<>(network, queue), networkEntry);
-                network.addListener(networkEntry);
+            if (entry == null) {
+                entry = new Entry(new WeakReference<>(network), parameters);
+                entries.add(entry);
+                network.addListener(entry);
 
                 LOGGER.info("Network cache created for network '{}'", network.getId());
 
-                return networkEntry;
+                return entry;
             } else {
                 LOGGER.info("Network cache reused for network '{}'", network.getId());
 
                 // restart from previous state
-                NetworkEntry networkEntry = mapEntry.getValue();
-                for (AcLoadFlowContext context : networkEntry.getContexts()) {
+                for (AcLoadFlowContext context : entry.getContexts()) {
                     context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
                 }
 
-                return networkEntry;
+                return entry;
             }
         } finally {
             lock.unlock();

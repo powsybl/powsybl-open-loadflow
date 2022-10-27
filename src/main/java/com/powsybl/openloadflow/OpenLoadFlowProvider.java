@@ -89,14 +89,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private static List<AcLoadFlowResult> runAcFromCache(Network network, LoadFlowParameters parameters, Reporter reporter,
                                                          AcLoadFlowParameters acParameters) {
-        NetworkCache.NetworkEntry networkEntry = NetworkCache.INSTANCE.get(network, parameters);
-        List<AcLoadFlowContext> contexts = networkEntry.getContexts();
+        NetworkCache.Entry entry = NetworkCache.INSTANCE.get(network, parameters);
+        List<AcLoadFlowContext> contexts = entry.getContexts();
         if (contexts == null) {
             contexts = LfNetwork.load(network, new LfNetworkLoaderImpl(), acParameters.getNetworkParameters(), reporter)
                     .stream()
                     .map(n -> new AcLoadFlowContext(n, acParameters))
                     .collect(Collectors.toList());
-            networkEntry.setContexts(contexts);
+            entry.setContexts(contexts);
         }
         return contexts.stream()
                 .map(context -> context.getNetwork().isValid() ? new AcloadFlowEngine(context).run()
