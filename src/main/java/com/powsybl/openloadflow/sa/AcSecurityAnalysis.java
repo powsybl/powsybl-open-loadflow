@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
@@ -91,28 +92,19 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, saReporter, breakers, false);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {
 
-        // run simulation on largest network
-        SecurityAnalysisResult result;
-        if (lfNetworks.isEmpty()) {
-            result = createNoResult();
-        } else {
-            LfNetwork largestNetwork = lfNetworks.get(0);
-            if (largestNetwork.isValid()) {
-                Map<String, LfAction> lfActionsById = createLfActions(largestNetwork, actions);
-                Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
-                result = runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategiesByContingencyId, lfActionsById, allSwitchesToClose);
-            } else {
-                result = createNoResult();
-            }
+            // run simulation on largest network
+            SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
+                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategies, actions, allSwitchesToClose))
+                    .orElse(createNoResult());
+
+            stopwatch.stop();
+            LOGGER.info("Security analysis {} in {} ms", Thread.currentThread().isInterrupted() ? "cancelled" : "done",
+                    stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+            return new SecurityAnalysisReport(result);
         }
-
-        stopwatch.stop();
-        LOGGER.info("Security analysis {} in {} ms", Thread.currentThread().isInterrupted() ? "cancelled" : "done",
-                stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
-        return new SecurityAnalysisReport(result);
     }
 
     public static void distributedMismatch(LfNetwork network, double mismatch, LoadFlowParameters loadFlowParameters,
@@ -177,8 +169,12 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
-                                                  SecurityAnalysisParameters securityAnalysisParameters, Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId,
-                                                  Map<String, LfAction> lfActionById, Set<Switch> allSwitchesToClose) {
+                                                  SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
+                                                  List<Action> actions, Set<Switch> allSwitchesToClose) {
+
+        Map<String, LfAction> lfActionById = createLfActions(network, actions);
+        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
+
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);

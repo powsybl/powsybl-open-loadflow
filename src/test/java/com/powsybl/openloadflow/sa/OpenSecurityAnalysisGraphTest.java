@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -158,19 +159,20 @@ class OpenSecurityAnalysisGraphTest {
             lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
 
         // create networks including all necessary switches
-        List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, Collections.emptySet(), Reporter.NO_OP);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, Collections.emptySet(), Reporter.NO_OP)) {
 
-        // run simulation on each network
-        start = System.currentTimeMillis();
-        List<List<LfContingency>> listLfContingencies = new ArrayList<>();
-        for (LfNetwork lfNetwork : lfNetworks) {
-            listLfContingencies.add(propagatedContingencies.stream()
-                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork).stream())
-                    .collect(Collectors.toList()));
+            // run simulation on each network
+            start = System.currentTimeMillis();
+            List<List<LfContingency>> listLfContingencies = new ArrayList<>();
+            for (LfNetwork lfNetwork : lfNetworks.getList()) {
+                listLfContingencies.add(propagatedContingencies.stream()
+                        .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork).stream())
+                        .collect(Collectors.toList()));
+            }
+            LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);
+
+            return listLfContingencies;
         }
-        LOGGER.info("LoadFlow contingencies calculated from contingency contexts in {} ms", System.currentTimeMillis() - start);
-
-        return listLfContingencies;
     }
 
 }
