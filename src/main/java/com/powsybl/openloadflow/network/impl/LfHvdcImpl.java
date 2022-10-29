@@ -10,9 +10,7 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.Objects;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
@@ -36,9 +34,9 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private final double p0;
 
-    private WeakReference<LfVscConverterStation> converterStation1Ref;
+    private LfVscConverterStation converterStation1;
 
-    private WeakReference<LfVscConverterStation> converterStation2Ref;
+    private LfVscConverterStation converterStation2;
 
     public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcAngleDroopActivePowerControl control) {
         super(network);
@@ -102,30 +100,30 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public LfVscConverterStation getConverterStation1() {
-        return WeakReferenceUtil.get(converterStation1Ref);
+        return converterStation1;
     }
 
     @Override
     public LfVscConverterStation getConverterStation2() {
-        return WeakReferenceUtil.get(converterStation2Ref);
+        return converterStation2;
     }
 
     @Override
     public void setConverterStation1(LfVscConverterStation converterStation1) {
-        this.converterStation1Ref = new WeakReference<>(Objects.requireNonNull(converterStation1));
+        this.converterStation1 = Objects.requireNonNull(converterStation1);
         converterStation1.setTargetP(0);
     }
 
     @Override
     public void setConverterStation2(LfVscConverterStation converterStation2) {
-        this.converterStation2Ref = new WeakReference<>(Objects.requireNonNull(converterStation2));
+        this.converterStation2 = Objects.requireNonNull(converterStation2);
         converterStation2.setTargetP(0);
     }
 
     @Override
     public void updateState() {
         // Should be done before updating state of generators.
-        getConverterStation1().setTargetP(-p1.eval());
-        getConverterStation2().setTargetP(-p2.eval());
+        converterStation1.setTargetP(-p1.eval());
+        converterStation2.setTargetP(-p2.eval());
     }
 }
