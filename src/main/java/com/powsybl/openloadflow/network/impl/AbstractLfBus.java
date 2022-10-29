@@ -11,9 +11,11 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
@@ -61,7 +63,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
-    protected final List<LccConverterStation> lccCss = new ArrayList<>();
+    protected final List<WeakReference<LccConverterStation>> lccCsRefs = new ArrayList<>();
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
@@ -210,7 +212,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addLccConverterStation(LccConverterStation lccCs) {
         // note that LCC converter station are out of the slack distribution.
-        lccCss.add(lccCs);
+        lccCsRefs.add(new WeakReference<>(lccCs));
         double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs);
         loadTargetP += targetP;
         initialLoadTargetP += targetP;
@@ -477,7 +479,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         lfAggregatedLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
 
         // update lcc converter station power
-        for (LccConverterStation lccCs : lccCss) {
+        for (WeakReference<LccConverterStation> lccCsRef : lccCsRefs) {
+            LccConverterStation lccCs = WeakReferenceUtil.get(lccCsRef);
             double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs); // A LCC station has active losses.
             double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs); // A LCC station always consumes reactive power.
             lccCs.getTerminal()

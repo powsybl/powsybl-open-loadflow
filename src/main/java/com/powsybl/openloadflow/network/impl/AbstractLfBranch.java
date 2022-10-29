@@ -10,10 +10,12 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.ref.WeakReference;
 import java.util.*;
 
 /**
@@ -23,9 +25,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
 
-    private final LfBus bus1;
+    private final WeakReference<LfBus> bus1Ref;
 
-    private final LfBus bus2;
+    private final WeakReference<LfBus> bus2Ref;
 
     private final Map<LimitType, List<LfLimit>> limits1 = new EnumMap<>(LimitType.class);
 
@@ -51,8 +53,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
         super(network);
-        this.bus1 = bus1;
-        this.bus2 = bus2;
+        this.bus1Ref = bus1 != null ? new WeakReference<>(bus1) : null;
+        this.bus2Ref = bus2 != null ? new WeakReference<>(bus2) : null;
         this.piModel = Objects.requireNonNull(piModel);
         this.piModel.setBranch(this);
     }
@@ -91,20 +93,20 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public LfBus getBus1() {
-        return bus1;
+        return bus1Ref != null ? WeakReferenceUtil.get(bus1Ref) : null;
     }
 
     @Override
     public LfBus getBus2() {
-        return bus2;
+        return bus2Ref != null ? WeakReferenceUtil.get(bus2Ref) : null;
     }
 
     public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits) {
-        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1));
+        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, getBus1()));
     }
 
     public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits) {
-        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2));
+        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, getBus2()));
     }
 
     @Override
@@ -283,7 +285,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public boolean isConnectedAtBothSides() {
-        return bus1 != null && bus2 != null;
+        return getBus1() != null && getBus2() != null;
     }
 
     @Override
