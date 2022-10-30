@@ -9,10 +9,8 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import com.powsybl.security.results.BusResult;
 
-import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -22,7 +20,7 @@ import java.util.stream.Collectors;
  */
 public class LfBusImpl extends AbstractLfBus {
 
-    private final WeakReference<Bus> busRef;
+    private final Ref<Bus> busRef;
 
     private final double nominalV;
 
@@ -37,7 +35,7 @@ public class LfBusImpl extends AbstractLfBus {
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean distributedOnConformLoad,
                         boolean participating, boolean breakers) {
         super(network, v, angle, distributedOnConformLoad);
-        this.busRef = new WeakReference<>(bus);
+        this.busRef = new Ref<>(bus);
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
@@ -52,7 +50,7 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     private Bus getBus() {
-        return WeakReferenceUtil.get(busRef);
+        return busRef.get();
     }
 
     @Override

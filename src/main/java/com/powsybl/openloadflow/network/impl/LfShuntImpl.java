@@ -6,14 +6,15 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.ShuntCompensator;
+import com.powsybl.iidm.network.ShuntCompensatorLinearModel;
+import com.powsybl.iidm.network.ShuntCompensatorModel;
+import com.powsybl.iidm.network.ShuntCompensatorNonLinearModel;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,7 +26,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
 
-    private final List<WeakReference<ShuntCompensator>> shuntCompensatorsRefs;
+    private final List<Ref<ShuntCompensator>> shuntCompensatorsRefs;
 
     private final LfBus bus;
 
@@ -99,7 +100,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
         super(network);
-        shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream().map(WeakReference::new).collect(Collectors.toList());
+        shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream().map(Ref::new).collect(Collectors.toList());
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
@@ -154,7 +155,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public List<String> getOriginalIds() {
-        return shuntCompensatorsRefs.stream().map(scRef -> WeakReferenceUtil.get(scRef).getId()).collect(Collectors.toList());
+        return shuntCompensatorsRefs.stream().map(scRef -> scRef.get().getId()).collect(Collectors.toList());
     }
 
     @Override
@@ -246,20 +247,20 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     public void updateState(boolean dc) {
         if (dc) {
             for (var scRef : shuntCompensatorsRefs) {
-                var sc = WeakReferenceUtil.get(scRef);
+                var sc = scRef.get();
                 sc.getTerminal().setP(0);
             }
         } else {
             double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
             if (!voltageControlCapability) {
                 for (var scRef : shuntCompensatorsRefs) {
-                    var sc = WeakReferenceUtil.get(scRef);
+                    var sc = scRef.get();
                     sc.getTerminal().setP(sc.getG() * vSquare);
                     sc.getTerminal().setQ(-sc.getB() * vSquare);
                 }
             } else {
                 for (int i = 0; i < shuntCompensatorsRefs.size(); i++) {
-                    ShuntCompensator sc = WeakReferenceUtil.get(shuntCompensatorsRefs.get(i));
+                    ShuntCompensator sc = shuntCompensatorsRefs.get(i).get();
                     sc.getTerminal().setP(controllers.get(i).getG() * vSquare / zb);
                     sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / zb);
                     sc.setSectionCount(controllers.get(i).getPosition());

@@ -11,9 +11,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -22,7 +20,7 @@ import java.util.Optional;
  */
 public final class LfBatteryImpl extends AbstractLfGenerator {
 
-    private final WeakReference<Battery> batteryRef;
+    private final Ref<Battery> batteryRef;
 
     private boolean participating;
 
@@ -30,7 +28,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private LfBatteryImpl(Battery battery, LfNetwork network, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
         super(network, battery.getTargetP());
-        this.batteryRef = new WeakReference<>(battery);
+        this.batteryRef = new Ref<>(battery);
         participating = true;
         droop = DEFAULT_DROOP;
         // get participation factor from extension
@@ -54,7 +52,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     }
 
     private Battery getBattery() {
-        return WeakReferenceUtil.get(batteryRef);
+        return batteryRef.get();
     }
 
     @Override

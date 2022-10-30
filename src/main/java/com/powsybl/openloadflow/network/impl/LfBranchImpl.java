@@ -10,12 +10,10 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -27,11 +25,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
-    private final WeakReference<Branch<?>> branchRef;
+    private final Ref<Branch<?>> branchRef;
 
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
         super(network, bus1, bus2, piModel);
-        this.branchRef = new WeakReference<>(branch);
+        this.branchRef = new Ref<>(branch);
     }
 
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
@@ -119,7 +117,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     private Branch<?> getBranch() {
-        return WeakReferenceUtil.get(branchRef);
+        return branchRef.get();
     }
 
     @Override

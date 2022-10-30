@@ -8,25 +8,22 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfDanglingLineBus extends AbstractLfBus {
 
-    private final WeakReference<DanglingLine> danglingLineRef;
+    private final Ref<DanglingLine> danglingLineRef;
 
     private final double nominalV;
 
     public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, boolean reactiveLimits, LfNetworkLoadingReport report,
                              double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine), false);
-        this.danglingLineRef = new WeakReference<>(Objects.requireNonNull(danglingLine));
+        this.danglingLineRef = new Ref<>(danglingLine);
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         loadTargetP += danglingLine.getP0();
         loadTargetQ += danglingLine.getQ0();
@@ -37,7 +34,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
     }
 
     private DanglingLine getDanglingLine() {
-        return WeakReferenceUtil.get(danglingLineRef);
+        return danglingLineRef.get();
     }
 
     public static String getId(DanglingLine danglingLine) {

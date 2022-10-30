@@ -11,9 +11,7 @@ import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.AbstractPropertyBag;
 import com.powsybl.openloadflow.network.LfAggregatedLoads;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,7 +21,7 @@ import java.util.stream.Collectors;
  */
 class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedLoads {
 
-    private final List<WeakReference<Load>> loadsRefs = new ArrayList<>();
+    private final List<Ref<Load>> loadsRefs = new ArrayList<>();
 
     private double[] participationFactors;
 
@@ -39,11 +37,11 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
 
     @Override
     public List<String> getOriginalIds() {
-        return loadsRefs.stream().map(r -> WeakReferenceUtil.get(r).getId()).collect(Collectors.toList());
+        return loadsRefs.stream().map(r -> r.get().getId()).collect(Collectors.toList());
     }
 
     void add(Load load) {
-        loadsRefs.add(new WeakReference<>(load));
+        loadsRefs.add(new Ref<>(load));
         initialized = false;
     }
 
@@ -66,7 +64,7 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
         participationFactors = new double[loadsRefs.size()];
         absVariableLoadTargetP = 0;
         for (int i = 0; i < loadsRefs.size(); i++) {
-            Load load = WeakReferenceUtil.get(loadsRefs.get(i));
+            Load load = loadsRefs.get(i).get();
             double value;
             if (distributedOnConformLoad) {
                 value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
@@ -94,7 +92,7 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
     void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
         init();
         for (int i = 0; i < loadsRefs.size(); i++) {
-            Load load = WeakReferenceUtil.get(loadsRefs.get(i));
+            Load load = loadsRefs.get(i).get();
             double updatedP0 = (load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i]) * PerUnit.SB;
             double updatedQ0 = loadPowerFactorConstant ? getPowerFactor(load) * updatedP0 : load.getQ0();
             load.getTerminal().setP(updatedP0);
@@ -107,7 +105,7 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
         init();
         double newLoadTargetQ = 0;
         for (int i = 0; i < loadsRefs.size(); i++) {
-            Load load = WeakReferenceUtil.get(loadsRefs.get(i));
+            Load load = loadsRefs.get(i).get();
             double updatedP0 = load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i];
             newLoadTargetQ += getPowerFactor(load) * updatedP0;
         }

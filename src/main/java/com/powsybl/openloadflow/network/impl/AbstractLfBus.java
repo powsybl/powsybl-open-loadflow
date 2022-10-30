@@ -11,11 +11,9 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
@@ -63,7 +61,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
-    protected final List<WeakReference<LccConverterStation>> lccCsRefs = new ArrayList<>();
+    protected final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
@@ -212,7 +210,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addLccConverterStation(LccConverterStation lccCs) {
         // note that LCC converter station are out of the slack distribution.
-        lccCsRefs.add(new WeakReference<>(lccCs));
+        lccCsRefs.add(new Ref<>(lccCs));
         double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs);
         loadTargetP += targetP;
         initialLoadTargetP += targetP;
@@ -479,8 +477,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         lfAggregatedLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
 
         // update lcc converter station power
-        for (WeakReference<LccConverterStation> lccCsRef : lccCsRefs) {
-            LccConverterStation lccCs = WeakReferenceUtil.get(lccCsRef);
+        for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
+            LccConverterStation lccCs = lccCsRef.get();
             double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs); // A LCC station has active losses.
             double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs); // A LCC station always consumes reactive power.
             lccCs.getTerminal()

@@ -10,9 +10,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -21,7 +19,7 @@ import java.util.Optional;
  */
 public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
-    private final WeakReference<StaticVarCompensator> svcRef;
+    private final Ref<StaticVarCompensator> svcRef;
 
     private final ReactiveLimits reactiveLimits;
 
@@ -33,20 +31,20 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                                        boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                        double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(network, 0);
-        this.svcRef = new WeakReference<>(svc);
+        this.svcRef = new Ref<>(svc);
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
         this.reactiveLimits = new MinMaxReactiveLimits() {
 
             @Override
             public double getMinQ() {
                 double v = bus.getV() * nominalV;
-                return WeakReferenceUtil.get(svcRef).getBmin() * v * v;
+                return svcRef.get().getBmin() * v * v;
             }
 
             @Override
             public double getMaxQ() {
                 double v = bus.getV() * nominalV;
-                return WeakReferenceUtil.get(svcRef).getBmax() * v * v;
+                return svcRef.get().getBmax() * v * v;
             }
 
             @Override
@@ -83,7 +81,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     }
 
     private StaticVarCompensator getSvc() {
-        return WeakReferenceUtil.get(svcRef);
+        return svcRef.get();
     }
 
     @Override

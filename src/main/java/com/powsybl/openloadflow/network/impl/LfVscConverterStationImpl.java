@@ -10,9 +10,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfVscConverterStation;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -21,14 +19,14 @@ import java.util.Optional;
  */
 public class LfVscConverterStationImpl extends AbstractLfGenerator implements LfVscConverterStation {
 
-    private final WeakReference<VscConverterStation> stationRef;
+    private final Ref<VscConverterStation> stationRef;
 
     private final double lossFactor;
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                      double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(network, HvdcConverterStations.getConverterStationTargetP(station));
-        this.stationRef = new WeakReference<>(station);
+        this.stationRef = new Ref<>(station);
         this.lossFactor = station.getLossFactor();
 
         // local control only
@@ -45,7 +43,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     }
 
     private VscConverterStation getStation() {
-        return WeakReferenceUtil.get(stationRef);
+        return stationRef.get();
     }
 
     @Override

@@ -10,10 +10,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import com.powsybl.security.results.BranchResult;
 
-import java.lang.ref.WeakReference;
 import java.util.*;
 
 /**
@@ -21,22 +19,22 @@ import java.util.*;
  */
 public class LfLegBranch extends AbstractImpedantLfBranch {
 
-    private final WeakReference<ThreeWindingsTransformer> twtRef;
+    private final Ref<ThreeWindingsTransformer> twtRef;
 
-    private final WeakReference<ThreeWindingsTransformer.Leg> legRef;
+    private final Ref<ThreeWindingsTransformer.Leg> legRef;
 
     protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(network, bus1, bus0, piModel);
-        this.twtRef = new WeakReference<>(twt);
-        this.legRef = new WeakReference<>(leg);
+        this.twtRef = new Ref<>(twt);
+        this.legRef = new Ref<>(leg);
     }
 
     private ThreeWindingsTransformer getTwt() {
-        return WeakReferenceUtil.get(twtRef);
+        return twtRef.get();
     }
 
     private ThreeWindingsTransformer.Leg getLeg() {
-        return WeakReferenceUtil.get(legRef);
+        return legRef.get();
     }
 
     public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,

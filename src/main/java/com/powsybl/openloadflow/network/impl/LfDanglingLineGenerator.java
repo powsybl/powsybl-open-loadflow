@@ -10,9 +10,7 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -22,12 +20,12 @@ import java.util.OptionalDouble;
  */
 public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
-    private final WeakReference<DanglingLine> danglingLineRef;
+    private final Ref<DanglingLine> danglingLineRef;
 
     public LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report,
                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(network, danglingLine.getGeneration().getTargetP());
-        this.danglingLineRef = new WeakReference<>(danglingLine);
+        this.danglingLineRef = new Ref<>(danglingLine);
 
         // local control only
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(reactiveLimits, report)) {
@@ -42,7 +40,7 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     private DanglingLine getDanglingLine() {
-        return WeakReferenceUtil.get(danglingLineRef);
+        return danglingLineRef.get();
     }
 
     @Override

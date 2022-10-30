@@ -14,10 +14,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 import com.powsybl.security.results.BranchResult;
 
-import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,11 +24,11 @@ import java.util.Objects;
  */
 public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
-    private final WeakReference<DanglingLine> danglingLineRef;
+    private final Ref<DanglingLine> danglingLineRef;
 
     protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine) {
         super(network, bus1, bus2, piModel);
-        this.danglingLineRef = new WeakReference<>(danglingLine);
+        this.danglingLineRef = new Ref<>(danglingLine);
     }
 
     public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2) {
@@ -50,7 +48,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     private DanglingLine getDanglingLine() {
-        return WeakReferenceUtil.get(danglingLineRef);
+        return danglingLineRef.get();
     }
 
     @Override

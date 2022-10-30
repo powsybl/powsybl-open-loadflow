@@ -8,9 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.List;
 
 /**
@@ -18,18 +16,18 @@ import java.util.List;
  */
 public class LfStarBus extends AbstractLfBus {
 
-    private final WeakReference<ThreeWindingsTransformer> t3wtRef;
+    private final Ref<ThreeWindingsTransformer> t3wtRef;
 
     private final double nominalV;
 
     public LfStarBus(LfNetwork network, ThreeWindingsTransformer t3wt) {
         super(network, Networks.getPropertyV(t3wt), Networks.getPropertyAngle(t3wt), false);
-        this.t3wtRef = new WeakReference<>(t3wt);
+        this.t3wtRef = new Ref<>(t3wt);
         nominalV = t3wt.getRatedU0();
     }
 
     private ThreeWindingsTransformer getT3wt() {
-        return WeakReferenceUtil.get(t3wtRef);
+        return t3wtRef.get();
     }
 
     public static String getId(String id) {

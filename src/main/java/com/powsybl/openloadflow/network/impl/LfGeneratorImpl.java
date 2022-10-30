@@ -13,9 +13,7 @@ import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.WeakReferenceUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -25,7 +23,7 @@ import java.util.OptionalDouble;
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
 
-    private final WeakReference<Generator> generatorRef;
+    private final Ref<Generator> generatorRef;
 
     private boolean participating;
 
@@ -34,7 +32,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     private LfGeneratorImpl(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
                             LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         super(network, generator.getTargetP());
-        this.generatorRef = new WeakReference<>(generator);
+        this.generatorRef = new Ref<>(generator);
         participating = true;
         droop = DEFAULT_DROOP;
         // get participation factor from extension
@@ -70,7 +68,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     private Generator getGenerator() {
-        return WeakReferenceUtil.get(generatorRef);
+        return generatorRef.get();
     }
 
     @Override
