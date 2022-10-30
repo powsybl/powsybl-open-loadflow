@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.LimitType;
-import com.powsybl.iidm.network.LoadingLimits;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.RatioTapChanger;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -103,11 +100,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     public List<LfLimit> getLimits1(LimitType type, LoadingLimits loadingLimits) {
-        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, getBus1()));
+        return limits1.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus1));
     }
 
     public List<LfLimit> getLimits2(LimitType type, LoadingLimits loadingLimits) {
-        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, getBus2()));
+        return limits2.computeIfAbsent(type, v -> createSortedLimitsList(loadingLimits, bus2));
     }
 
     @Override
@@ -286,7 +283,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public boolean isConnectedAtBothSides() {
-        return getBus1() != null && getBus2() != null;
+        return bus1 != null && bus2 != null;
     }
 
     @Override
