@@ -704,6 +704,31 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
+    void testSaDcModeSpecificContingencies() {
+        Network fourBusNetwork = FourBusNetworkFactory.create();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setDc(true);
+        setSlackBusId(lfParameters, "b1_vl");
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        List<Contingency> contingencies = createAllBranchesContingencies(fourBusNetwork);
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.specificContingency("l14"), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
+
+        assertEquals(5, result.getPostContingencyResults().size());
+        for (PostContingencyResult pcResult : result.getPostContingencyResults()) {
+            if (pcResult.getContingency().getId().equals("l14")) {
+                assertEquals(5, pcResult.getNetworkResult().getBranchResults().size());
+            } else {
+                assertEquals(0, pcResult.getNetworkResult().getBranchResults().size());
+            }
+        }
+    }
+
+    @Test
     void testSaDcModeWithIncreasedParameters() {
         Network fourBusNetwork = FourBusNetworkFactory.create();
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
