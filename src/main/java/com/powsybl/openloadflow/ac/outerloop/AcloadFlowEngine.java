@@ -11,8 +11,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
@@ -155,20 +153,5 @@ public class AcloadFlowEngine {
         Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name());
 
         return result;
-    }
-
-    public static <T> List<AcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, AcLoadFlowParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter)
-                .stream()
-                .map(n -> {
-                    if (n.isValid()) {
-                        try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {
-                            return new AcloadFlowEngine(context)
-                                    .run();
-                        }
-                    }
-                    return AcLoadFlowResult.createNoCalculationResult(n);
-                })
-                .collect(Collectors.toList());
     }
 }
