@@ -89,7 +89,7 @@ public final class LfAction {
                 return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange));
             }
         }
-        return Optional.empty();
+        return Optional.empty(); // could be in another component
     }
 
     private static Optional<LfAction> create(LineConnectionAction action, LfNetwork network) {
@@ -101,7 +101,7 @@ public final class LfAction {
                 throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
             }
         }
-        return Optional.empty();
+        return Optional.empty(); // could be in another component
     }
 
     private static Optional<LfAction> create(SwitchAction action, LfNetwork network) {
@@ -116,7 +116,7 @@ public final class LfAction {
             }
             return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null));
         }
-        return Optional.empty();
+        return Optional.empty(); // could be in another component
     }
 
     public String getId() {
