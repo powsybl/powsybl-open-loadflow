@@ -126,8 +126,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                     violations.remove(subjectSideId);
                 }
             });
-            postContingencyResults.add(new PostContingencyResult(contingency, new ArrayList<>(violations.values()),
-                    new ArrayList<>(postContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList(), PostContingencyComputationStatus.CONVERGED));
+            postContingencyResults.add(new PostContingencyResult(contingency, PostContingencyComputationStatus.CONVERGED, new ArrayList<>(violations.values()),
+                    new ArrayList<>(postContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList()));
         }
 
         return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, LoadFlowResult.ComponentResult.Status.CONVERGED, postContingencyResults,

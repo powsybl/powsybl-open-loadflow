@@ -295,9 +295,9 @@ class OpenSecurityAnalysisTest {
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(3, result.getPostContingencyResults().size());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
         assertEquals(2, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "LD");
         assertEquals(398.0, postContingencyResult.getNetworkResult().getBusResult("VL1_0").getV(), LoadFlowAssert.DELTA_V);
@@ -315,7 +315,7 @@ class OpenSecurityAnalysisTest {
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(1, result.getPostContingencyResults().size());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(2, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
     }
 
@@ -336,7 +336,7 @@ class OpenSecurityAnalysisTest {
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(3, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
 
         List<LimitViolation> limitViolations = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
@@ -349,7 +349,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(0, limitViolationL22.get().getAcceptableDuration());
         assertEquals(970, limitViolationL22.get().getLimit());
 
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
         assertEquals(3, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
 
         List<LimitViolation> limitViolations1 = result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations();
@@ -375,10 +375,10 @@ class OpenSecurityAnalysisTest {
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
         assertEquals(1, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
         assertEquals(2, result.getPostContingencyResults().size());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
 
         assertEquals(0, result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations().size());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(1).getStatus());
         assertEquals(0, result.getPostContingencyResults().get(1).getLimitViolationsResult().getLimitViolations().size());
     }
 
@@ -500,7 +500,7 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
 
-        assertNotSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getContingencyStatus());
+        assertNotSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
     }
 
     @Test
@@ -515,7 +515,7 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, lfParameters);
 
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
     }
 
     @Test
@@ -1389,7 +1389,7 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
         assertEquals(3, result.getPostContingencyResults().size());
         PostContingencyResult l1ContingencyResult = getPostContingencyResult(result, "L1");
-        assertSame(PostContingencyComputationStatus.CONVERGED, l1ContingencyResult.getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, l1ContingencyResult.getStatus());
         assertEquals(100.3689, l1ContingencyResult.getNetworkResult().getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-100.1844, l1ContingencyResult.getNetworkResult().getBranchResult("PS1").getP2(), LoadFlowAssert.DELTA_POWER);
     }
@@ -1548,7 +1548,7 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
 
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
 
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
@@ -1755,7 +1755,7 @@ class OpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), Reporter.NO_OP);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getContingencyStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
     }
 
     @Test

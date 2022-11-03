@@ -265,9 +265,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             LoadFlowResult.ComponentResult.Status status = loadFlowResultStatusFromNRStatus(preContingencyLoadFlowResult.getNewtonRaphsonStatus());
             return new SecurityAnalysisResult(
-                    new PreContingencyResult(new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
+                    new PreContingencyResult(status, new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
-                            preContingencyNetworkResult.getThreeWindingsTransformerResults(), status),
+                            preContingencyNetworkResult.getThreeWindingsTransformerResults()),
                     postContingencyResults, operatorStrategyResults);
         }
     }
@@ -305,11 +305,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         LOGGER.info("Post contingency '{}' simulation done on network {} in {} ms", lfContingency.getId(),
                 network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        return new PostContingencyResult(contingency,
+        return new PostContingencyResult(contingency, status,
                                          new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
                                          postContingencyNetworkResult.getBranchResults(),
                                          postContingencyNetworkResult.getBusResults(),
-                                         postContingencyNetworkResult.getThreeWindingsTransformerResults(), status);
+                                         postContingencyNetworkResult.getThreeWindingsTransformerResults());
     }
 
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, AcLoadFlowContext context, OperatorStrategy operatorStrategy,
@@ -343,7 +343,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     .run();
 
             boolean postActionsComputationOk = postActionsLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
-            LoadFlowResult.ComponentResult.Status status = loadFlowResultStatusFromNRStatus(postActionsLoadFlowResult.getNewtonRaphsonStatus());
+            PostContingencyComputationStatus status = postContingencyStatusFromNRStatus(postActionsLoadFlowResult.getNewtonRaphsonStatus());
             var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
             var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
 
@@ -360,9 +360,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
                     operatorStrategy.getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-            operatorStrategyResult = new OperatorStrategyResult(operatorStrategy,
+            operatorStrategyResult = new OperatorStrategyResult(operatorStrategy, status,
                     new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
-                    status,
                     new NetworkResult(postActionsNetworkResult.getBranchResults(),
                             postActionsNetworkResult.getBusResults(),
                             postActionsNetworkResult.getThreeWindingsTransformerResults()));
