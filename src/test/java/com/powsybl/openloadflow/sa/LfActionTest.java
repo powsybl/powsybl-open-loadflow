@@ -63,7 +63,7 @@ class LfActionTest extends AbstractConverterTest {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), Reporter.NO_OP, true, false);
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
-            LfNetwork lfNetwork = lfNetworks.get(0);
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfAction.create(switchAction, lfNetwork).orElseThrow();
             String loadId = "LOAD";
             Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
