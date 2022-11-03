@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.network.LfAction;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.action.LineConnectionAction;
@@ -61,24 +62,25 @@ class LfActionTest extends AbstractConverterTest {
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), Reporter.NO_OP, true, false);
-        List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP);
-        LfNetwork lfNetwork = lfNetworks.get(0);
-        LfAction lfAction = LfAction.create(switchAction, lfNetwork).orElseThrow();
-        String loadId = "LOAD";
-        Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
-        PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
-                Collections.singletonList(contingency), new HashSet<>(), false, false, false, true).get(0);
-        propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
-            LfAction.apply(List.of(lfAction), lfNetwork, lfContingency);
-            assertTrue(lfNetwork.getBranchById("C").isDisabled());
-            assertEquals("C", lfAction.getDisabledBranch().getId());
-            assertNull(lfAction.getEnabledBranch());
-        });
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.get(0);
+            LfAction lfAction = LfAction.create(switchAction, lfNetwork).orElseThrow();
+            String loadId = "LOAD";
+            Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
+            PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
+                    Collections.singletonList(contingency), new HashSet<>(), false, false, false, true).get(0);
+            propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
+                LfAction.apply(List.of(lfAction), lfNetwork, lfContingency);
+                assertTrue(lfNetwork.getBranchById("C").isDisabled());
+                assertEquals("C", lfAction.getDisabledBranch().getId());
+                assertNull(lfAction.getEnabledBranch());
+            });
 
-        assertTrue(LfAction.create(new SwitchAction("switchAction", "S", true), lfNetwork).isEmpty());
-        assertTrue(LfAction.create(new LineConnectionAction("A line action", "x", true), lfNetwork).isEmpty());
-        assertTrue(LfAction.create(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3), lfNetwork).isEmpty());
-        var lineAction = new LineConnectionAction("A line action", "L1", true, false);
-        assertEquals("Line connection action: only open line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork)).getMessage());
+            assertTrue(LfAction.create(new SwitchAction("switchAction", "S", true), lfNetwork).isEmpty());
+            assertTrue(LfAction.create(new LineConnectionAction("A line action", "x", true), lfNetwork).isEmpty());
+            assertTrue(LfAction.create(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3), lfNetwork).isEmpty());
+            var lineAction = new LineConnectionAction("A line action", "L1", true, false);
+            assertEquals("Line connection action: only open line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork)).getMessage());
+        }
     }
 }
