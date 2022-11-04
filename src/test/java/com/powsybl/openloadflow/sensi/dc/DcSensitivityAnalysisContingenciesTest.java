@@ -1190,6 +1190,29 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testContingencyAllLines() {
+        Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
+
+        List<String> branchesId = network.getLineStream().map(Line::getId).collect(Collectors.toList());
+        List<Contingency> contingencies = List.of(new Contingency(
+                String.join("+", branchesId),
+                branchesId.stream().map(BranchContingency::new).collect(Collectors.toList())));
+        String contingency1Id = contingencies.get(0).getId();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true);
+
+        String variableId = "d4";
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), variableId)).collect(Collectors.toList());
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(11, result.getValues(contingency1Id).size());
+        for (Line line : network.getLines()) {
+            assertEquals(0, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, line.getId()), LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    @Test
     void testFunctionRefWithMultipleReconnections() {
         Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
         runDcLf(network);
