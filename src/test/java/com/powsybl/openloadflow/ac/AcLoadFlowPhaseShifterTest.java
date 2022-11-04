@@ -464,4 +464,23 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(100.3689, t2wt.getTerminal1());
         assertActivePowerEquals(-100.1844, t2wt.getTerminal2());
     }
+
+    @Test
+    void flowControlAndNonImpedantTransformerTest() {
+        selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
+        parameters.setPhaseShifterRegulationOn(true);
+        t2wt.setR(0).setX(0);
+        t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(83);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(83.587, line2.getTerminal1());
+        assertActivePowerEquals(-83.486, line2.getTerminal2());
+        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+    }
 }
