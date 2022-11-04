@@ -34,6 +34,10 @@ public class AcLoadFlowContext implements AutoCloseable {
 
     private EquationVector<AcVariableType, AcEquationType> equationVector;
 
+    private AcLoadFlowResult result;
+
+    private boolean networkUpdated = true;
+
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
@@ -73,6 +77,22 @@ public class AcLoadFlowContext implements AutoCloseable {
             equationVector = new EquationVector<>(getEquationSystem());
         }
         return equationVector;
+    }
+
+    public AcLoadFlowResult getResult() {
+        return result;
+    }
+
+    public void setResult(AcLoadFlowResult result) {
+        this.result = result;
+    }
+
+    public boolean isNetworkUpdated() {
+        return networkUpdated;
+    }
+
+    public void setNetworkUpdated(boolean networkUpdated) {
+        this.networkUpdated = networkUpdated;
     }
 
     @Override

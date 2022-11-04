@@ -187,8 +187,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             // run pre-contingency simulation
             restoreInitialTopology(network, allSwitchesToClose);
-            AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
+            new AcloadFlowEngine(context)
                     .run();
+            AcLoadFlowResult preContingencyLoadFlowResult = context.getResult();
 
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             var preContingencyLimitViolationManager = new LimitViolationManager();
@@ -279,8 +280,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         // restart LF on post contingency equation system
         context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-        AcLoadFlowResult postContingencyLoadFlowResult = new AcloadFlowEngine(context)
+        new AcloadFlowEngine(context)
                 .run();
+        AcLoadFlowResult postContingencyLoadFlowResult = context.getResult();
 
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
@@ -332,8 +334,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             // restart LF on post contingency and post actions equation system
             context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
-            AcLoadFlowResult postActionsLoadFlowResult = new AcloadFlowEngine(context)
+            new AcloadFlowEngine(context)
                     .run();
+            AcLoadFlowResult postActionsLoadFlowResult = context.getResult();
 
             boolean postActionsComputationOk = postActionsLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);

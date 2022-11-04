@@ -93,8 +93,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 .map(n -> {
                     if (n.isValid()) {
                         try (AcLoadFlowContext context = new AcLoadFlowContext(n, acParameters)) {
-                            return new AcloadFlowEngine(context)
+                            new AcloadFlowEngine(context)
                                     .run();
+                            return context.getResult();
                         }
                     }
                     return AcLoadFlowResult.createNoCalculationResult(n);
@@ -102,8 +103,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 .collect(Collectors.toList());
     }
 
-    private static List<AcLoadFlowResult> runAcFromCache(Network network, LoadFlowParameters parameters, Reporter reporter,
-                                                         AcLoadFlowParameters acParameters) {
+    private static List<AcLoadFlowResult> runAcUsingCache(Network network, LoadFlowParameters parameters, Reporter reporter,
+                                                          AcLoadFlowParameters acParameters) {
         NetworkCache.Entry entry = NetworkCache.INSTANCE.get(network, parameters);
         List<AcLoadFlowContext> contexts = entry.getContexts();
         if (contexts == null) {
@@ -114,8 +115,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             entry.setContexts(contexts);
         }
         return contexts.stream()
-                .map(context -> context.getNetwork().isValid() ? new AcloadFlowEngine(context).run()
-                        : AcLoadFlowResult.createNoCalculationResult(context.getNetwork()))
+                .map(context -> {
+                    if (context.getNetwork().isValid()) {
+                        if (context.isNetworkUpdated()) {
+                            new AcloadFlowEngine(context)
+                                    .run();
+                            context.setNetworkUpdated(false);
+                        }
+                        return context.getResult();
+                    }
+                    return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
+                })
                 .collect(Collectors.toList());
     }
 
@@ -131,7 +141,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         List<AcLoadFlowResult> results;
         if (parametersExt.isNetworkCacheEnabled()) {
-            results = runAcFromCache(network, parameters, reporter, acParameters);
+            results = runAcUsingCache(network, parameters, reporter, acParameters);
         } else {
             results = runAc(network, reporter, acParameters);
         }

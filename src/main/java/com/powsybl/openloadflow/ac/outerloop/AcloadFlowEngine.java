@@ -77,7 +77,7 @@ public class AcloadFlowEngine {
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE);
     }
 
-    public AcLoadFlowResult run() {
+    public void run() {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
         VoltageInitializer voltageInitializer = context.getParameters().getVoltageInitializer();
@@ -152,6 +152,6 @@ public class AcloadFlowEngine {
 
         Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name());
 
-        return result;
+        context.setResult(result);
     }
 }

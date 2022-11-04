@@ -10,7 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
@@ -109,6 +111,7 @@ public enum NetworkCache {
                             double loadShiftP = (double) newValue - (double) oldValue;
                             double newLoadP = lfBus.getLoadTargetP() + loadShiftP / PerUnit.SB;
                             lfBus.reInitLoadTargetP(newLoadP);
+                            context.setNetworkUpdated(true);
                         } else {
                             throw new IllegalStateException("Unsupported load attribute: " + attribute);
                         }
@@ -275,7 +278,10 @@ public enum NetworkCache {
 
                 // restart from previous state
                 for (AcLoadFlowContext context : entry.getContexts()) {
-                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                    AcLoadFlowResult result = context.getResult();
+                    if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
+                        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                    }
                 }
 
                 return entry;
