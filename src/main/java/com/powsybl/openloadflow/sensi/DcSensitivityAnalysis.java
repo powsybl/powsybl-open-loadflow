@@ -517,25 +517,26 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity, Set<DcSensitivityAnalysis.ComputedContingencyElement> breakingConnectivityElements) {
         Set<String> elementsToReconnect = new LinkedHashSet<>();
 
-        // For each element breaking connectivity, we look if the two corresponding connected components are still separated
-        // If they are still separated, we mark the element as needed to reconnect the connected components, and we update the map of grouped connected component
-        Map<Integer, Collection<Integer>> reconnectedCc = new HashMap<>();
+        // We suppose we're reconnecting one by one each element breaking connectivity.
+        // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
+        List<Set<Integer>> reconnectedCc = new ArrayList<>();
         for (DcSensitivityAnalysis.ComputedContingencyElement element : breakingConnectivityElements) {
             int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
             int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
 
-            Collection<Integer> recCc1 = reconnectedCc.computeIfAbsent(cc1, i -> new HashSet<>(List.of(i)));
-            Collection<Integer> recCc2 = reconnectedCc.getOrDefault(cc2, List.of(cc2));
+            Set<Integer> recCc1 = reconnectedCc.stream().filter(s -> s.contains(cc1)).findFirst().orElseGet(() -> new HashSet<>(List.of(cc1)));
+            Set<Integer> recCc2 = reconnectedCc.stream().filter(s -> s.contains(cc2)).findFirst().orElseGet(() -> Set.of(cc2));
             if (recCc1 != recCc2) {
                 // cc1 and cc2 are still separated:
                 // - mark the element as needed to reconnect all connected components together
-                // - update group of connected component
-                // - update the map of grouped connected component
+                // - update the list of grouped connected components
                 elementsToReconnect.add(element.getElement().getId());
-                for (int cc : recCc2) {
-                    recCc1.add(cc);
-                    reconnectedCc.put(cc, recCc1);
+                reconnectedCc.remove(recCc2);
+                if (recCc1.size() == 1) {
+                    // adding the new set (the list of grouped connected components is not initialized with the singleton sets)
+                    reconnectedCc.add(recCc1);
                 }
+                recCc1.addAll(recCc2);
             }
         }
 
