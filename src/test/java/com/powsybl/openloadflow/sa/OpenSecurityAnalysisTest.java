@@ -26,6 +26,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
@@ -2014,5 +2015,30 @@ class OpenSecurityAnalysisTest {
                 operatorStrategies, actions, Reporter.NO_OP);
         assertEquals(-2.996, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-3.000, getOperatorStrategyResult(result, "strategy").getNetworkResult().getBranchResult("l45").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testStatusConversion() {
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED,
+                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.CONVERGED));
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
+                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.MAX_ITERATION_REACHED));
+        assertEquals(LoadFlowResult.ComponentResult.Status.SOLVER_FAILED,
+                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.SOLVER_FAILED));
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
+                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.NO_CALCULATION));
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED,
+                AbstractSecurityAnalysis.loadFlowResultStatusFromNRStatus(NewtonRaphsonStatus.UNREALISTIC_STATE));
+
+        assertEquals(PostContingencyComputationStatus.CONVERGED,
+                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.CONVERGED));
+        assertEquals(PostContingencyComputationStatus.MAX_ITERATION_REACHED,
+                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.MAX_ITERATION_REACHED));
+        assertEquals(PostContingencyComputationStatus.SOLVER_FAILED,
+                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.SOLVER_FAILED));
+        assertEquals(PostContingencyComputationStatus.NO_IMPACT,
+                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.NO_CALCULATION));
+        assertEquals(PostContingencyComputationStatus.FAILED,
+                AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.UNREALISTIC_STATE));
     }
 }
