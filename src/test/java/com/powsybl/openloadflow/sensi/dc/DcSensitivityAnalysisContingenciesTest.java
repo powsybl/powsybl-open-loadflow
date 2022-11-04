@@ -1152,6 +1152,44 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testBreakingConnectivityOutsideMainComponent() {
+        Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
+
+        // Create contingencies containing a branch contingency on l12 which breaks the connectivity outside the main
+        // component and which leaves a connected component with a single bus
+        // Connected components after these contingencies are: {b1}, {b2, b3, b4}, {b5, b6, b7, b8}
+        // The two contingencies should be grouped together for computing the sensitivities (shared ConnectivityAnalysisResult)
+        List<List<String>> contingencyBranchesIds = List.of(
+                List.of("l12", "l36", "l35", "l46"),
+                List.of("l12", "l36", "l35", "l34", "l46"));
+        List<Contingency> contingencies = contingencyBranchesIds.stream()
+                .map(branchesIds -> new Contingency(String.join("+", branchesIds),
+                        branchesIds.stream().map(BranchContingency::new).collect(Collectors.toList())))
+                .collect(Collectors.toList());
+        String contingency1Id = contingencies.get(0).getId();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b6_vl_0", true);
+
+        String variableId = "d6";
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), variableId)).collect(Collectors.toList());
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+
+        assertEquals(11, result.getValues(contingency1Id).size());
+        assertEquals(0, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l24"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l35"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l36"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1/3., result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1/3., result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l57"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(2/3., result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l67"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue(contingency1Id, variableId, "l78"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testFunctionRefWithMultipleReconnections() {
         Network network = ConnectedComponentNetworkFactory.createHighlyConnectedNetwork();
         runDcLf(network);
