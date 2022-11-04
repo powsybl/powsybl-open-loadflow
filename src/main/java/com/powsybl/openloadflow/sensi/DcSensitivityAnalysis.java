@@ -36,7 +36,6 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.sensitivity.*;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -515,29 +514,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity, Set<DcSensitivityAnalysis.ComputedContingencyElement> breakingConnectivityCandidates) {
         Set<String> elementsToReconnect = new LinkedHashSet<>();
 
-        Map<Pair<Integer, Integer>, DcSensitivityAnalysis.ComputedContingencyElement> elementByConnectedComponents = new LinkedHashMap<>();
-        for (DcSensitivityAnalysis.ComputedContingencyElement element : breakingConnectivityCandidates) {
-            int bus1Cc = connectivity.getComponentNumber(element.getLfBranch().getBus1());
-            int bus2Cc = connectivity.getComponentNumber(element.getLfBranch().getBus2());
-
-            Pair<Integer, Integer> pairOfCc = bus1Cc > bus2Cc ? Pair.of(bus2Cc, bus1Cc) : Pair.of(bus1Cc, bus2Cc);
-            // we only keep one line as we only need to reconnect one to restore connectivity
-            elementByConnectedComponents.put(pairOfCc, element);
-        }
-
         Map<Integer, Set<Integer>> connections = new HashMap<>();
         for (int i = 0; i < connectivity.getNbConnectedComponents(); i++) {
             connections.put(i, Collections.singleton(i));
         }
+        for (DcSensitivityAnalysis.ComputedContingencyElement element : breakingConnectivityCandidates) {
+            int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
+            int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
 
-        for (Map.Entry<Pair<Integer, Integer>, DcSensitivityAnalysis.ComputedContingencyElement> elementsByCc : elementByConnectedComponents.entrySet()) {
-            Integer cc1 = elementsByCc.getKey().getLeft();
-            Integer cc2 = elementsByCc.getKey().getRight();
             if (connections.get(cc1).contains(cc2)) {
                 // cc are already connected
                 continue;
             }
-            elementsToReconnect.add(elementsByCc.getValue().getElement().getId());
+
+            elementsToReconnect.add(element.getElement().getId());
             Set<Integer> newCc = new HashSet<>();
             newCc.addAll(connections.get(cc1));
             newCc.addAll(connections.get(cc2));
