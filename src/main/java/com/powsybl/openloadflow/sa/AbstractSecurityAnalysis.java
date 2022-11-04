@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
@@ -85,7 +86,7 @@ public abstract class AbstractSecurityAnalysis {
             case UNREALISTIC_STATE:
                 return PostContingencyComputationStatus.FAILED;
             default:
-                return PostContingencyComputationStatus.CONVERGED;
+                throw new PowsyblException("Unsupported Newton Raphson status : " + status);
         }
     }
 
@@ -97,8 +98,11 @@ public abstract class AbstractSecurityAnalysis {
                 return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
             case SOLVER_FAILED:
                 return LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-            default:
+            case NO_CALCULATION:
+            case UNREALISTIC_STATE:
                 return LoadFlowResult.ComponentResult.Status.FAILED;
+            default:
+                throw new PowsyblException("Unsupported Newton Raphson status : " + status);
         }
     }
 }
