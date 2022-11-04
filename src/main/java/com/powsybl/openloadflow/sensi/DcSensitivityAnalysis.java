@@ -514,24 +514,19 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity, Set<DcSensitivityAnalysis.ComputedContingencyElement> breakingConnectivityCandidates) {
         Set<String> elementsToReconnect = new LinkedHashSet<>();
 
-        Map<Integer, Set<Integer>> connections = new HashMap<>();
-        for (int i = 0; i < connectivity.getNbConnectedComponents(); i++) {
-            connections.put(i, Collections.singleton(i));
-        }
+        Map<Integer, Set<Integer>> reconnectedCc = new HashMap<>();
         for (DcSensitivityAnalysis.ComputedContingencyElement element : breakingConnectivityCandidates) {
             int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
             int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
 
-            if (connections.get(cc1).contains(cc2)) {
-                // cc are already connected
-                continue;
+            Set<Integer> recCc1 = reconnectedCc.computeIfAbsent(cc1, i -> new HashSet<>(Set.of(i)));
+            if (!recCc1.contains(cc2)) {
+                elementsToReconnect.add(element.getElement().getId());
+                for (int cc : reconnectedCc.getOrDefault(cc2, Set.of(cc2))) {
+                    recCc1.add(cc);
+                    reconnectedCc.put(cc, recCc1);
+                }
             }
-
-            elementsToReconnect.add(element.getElement().getId());
-            Set<Integer> newCc = new HashSet<>();
-            newCc.addAll(connections.get(cc1));
-            newCc.addAll(connections.get(cc2));
-            newCc.forEach(integer -> connections.put(integer, newCc));
         }
 
         return elementsToReconnect;
