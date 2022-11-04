@@ -540,6 +540,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
+        if (reconnectedCc.size() != 1 || reconnectedCc.get(0).size() != connectivity.getNbConnectedComponents()) {
+            LOGGER.error("Elements to reconnect computed do not reconnect all connected components together");
+        }
+
         return elementsToReconnect;
     }
 
