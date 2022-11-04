@@ -466,7 +466,7 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    void flowControlAndNonImpedantTransformerTest() {
+    void activePowerflowControlAndNonImpedantPhaseShifterTest() {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
         parameters.setPhaseShifterRegulationOn(true);
         t2wt.setR(0).setX(0);
