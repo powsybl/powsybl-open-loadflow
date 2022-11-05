@@ -696,7 +696,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
-                                                                                      false,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
                                                                                       parameters.isDcUseTransformerRatio());
 

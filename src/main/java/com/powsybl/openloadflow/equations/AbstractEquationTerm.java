@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -20,8 +22,6 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     private boolean active;
 
     protected StateVector sv;
-
-    protected EquationTerm<V, E> self = this;
 
     protected AbstractEquationTerm() {
         this(true);
@@ -50,7 +50,7 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     public void setActive(boolean active) {
         if (this.active != active) {
             this.active = active;
-            equation.getEquationSystem().notifyEquationTermChange(self, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
+            equation.getEquationSystem().notifyEquationTermChange(this, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
                                                                                : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
     }
@@ -58,11 +58,6 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     @Override
     public boolean isActive() {
         return active;
-    }
-
-    @Override
-    public void setSelf(EquationTerm<V, E> self) {
-        this.self = Objects.requireNonNull(self);
     }
 
     @Override
@@ -78,5 +73,10 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     @Override
     public double rhs() {
         return 0;
+    }
+
+    @Override
+    public List<EquationTerm<V, E>> getChildren() {
+        return Collections.emptyList();
     }
 }
