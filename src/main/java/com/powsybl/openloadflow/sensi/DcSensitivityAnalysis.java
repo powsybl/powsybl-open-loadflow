@@ -37,7 +37,6 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.sensitivity.*;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -164,9 +163,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     static class ConnectivityAnalysisResult {
 
-        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsSensi;
+        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsSensi = new HashMap<>();
 
-        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsRef;
+        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsRef = new HashMap<>();
 
         private final Collection<PropagatedContingency> contingencies = new HashSet<>();
 
@@ -176,14 +175,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         private final Set<LfBus> slackConnectedComponent;
 
-        ConnectivityAnalysisResult(Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors, Set<ComputedContingencyElement> elementsBreakingConnectivity,
-                                   GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork lfNetwork) {
-            elementsToReconnect = computeElementsToReconnect(connectivity, elementsBreakingConnectivity);
+        protected ConnectivityAnalysisResult(Set<String> elementsToReconnect, Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors,
+                                             GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork lfNetwork) {
+            this.elementsToReconnect = elementsToReconnect;
             slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
             disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
+            fillPredefinedResults(factors, connectivity);
+        }
+
+        private void fillPredefinedResults(Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors,
+                                           GraphConnectivity<LfBus, LfBranch> connectivity) {
             Set<LfBranch> disabledBranches = connectivity.getEdgesRemovedFromMainComponent();
-            predefinedResultsSensi = new HashMap<>();
-            predefinedResultsRef = new HashMap<>();
             for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
                 if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
                     // after a contingency, we check if the factor function and the variable are in different connected components
@@ -239,41 +241,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         public Set<LfBus> getSlackConnectedComponent() {
             return slackConnectedComponent;
-        }
-
-        private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity, Set<ComputedContingencyElement> breakingConnectivityCandidates) {
-            Set<String> elementsToReconnect = new LinkedHashSet<>();
-
-            Map<Pair<Integer, Integer>, ComputedContingencyElement> elementByConnectedComponents = new LinkedHashMap<>();
-            for (ComputedContingencyElement element : breakingConnectivityCandidates) {
-                int bus1Cc = connectivity.getComponentNumber(element.getLfBranch().getBus1());
-                int bus2Cc = connectivity.getComponentNumber(element.getLfBranch().getBus2());
-
-                Pair<Integer, Integer> pairOfCc = bus1Cc > bus2Cc ? Pair.of(bus2Cc, bus1Cc) : Pair.of(bus1Cc, bus2Cc);
-                // we only need to reconnect one line to restore connectivity
-                elementByConnectedComponents.put(pairOfCc, element);
-            }
-
-            Map<Integer, Set<Integer>> connections = new HashMap<>();
-            for (int i = 0; i < connectivity.getNbConnectedComponents(); i++) {
-                connections.put(i, Collections.singleton(i));
-            }
-
-            for (Map.Entry<Pair<Integer, Integer>, ComputedContingencyElement> elementsByCc : elementByConnectedComponents.entrySet()) {
-                Integer cc1 = elementsByCc.getKey().getKey();
-                Integer cc2 = elementsByCc.getKey().getValue();
-                if (connections.get(cc1).contains(cc2)) {
-                    // cc are already connected
-                    continue;
-                }
-                elementsToReconnect.add(elementsByCc.getValue().getElement().getId());
-                Set<Integer> newCc = new HashSet<>();
-                newCc.addAll(connections.get(cc1));
-                newCc.addAll(connections.get(cc2));
-                newCc.forEach(integer -> connections.put(integer, newCc));
-            }
-
-            return elementsToReconnect;
         }
     }
 
@@ -593,8 +560,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
                     .forEach(connectivity::removeEdge);
 
-            Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
-            if (removedBuses.isEmpty()) {
+            // filter the branches that really impacts connectivity
+            Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
+                    .filter(element -> isBreakingConnectivity(connectivity, element))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            if (breakingConnectivityElements.isEmpty()) {
                 // we did not break any connectivity
                 nonLosingConnectivityContingencies.addAll(contingencyList);
             } else {
@@ -603,12 +573,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = factorHolder.getFactorsForContingencies(contingenciesIds);
                 if (!lfFactors.isEmpty()) {
-                    // filter the branches that really impacts connectivity
-                    Set<ComputedContingencyElement> breakingConnectivityElements = breakingConnectivityCandidates.stream()
-                            .filter(element -> removedBuses.contains(element.getLfBranch().getBus1()) ^ removedBuses.contains(element.getLfBranch().getBus2()))
-                            .collect(Collectors.toCollection(LinkedHashSet::new));
-                    connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, branches -> new ConnectivityAnalysisResult(lfFactors, branches, connectivity, lfNetwork))
-                            .getContingencies().addAll(contingencyList);
+                    ConnectivityAnalysisResult connectivityAnalysisResult = connectivityAnalysisResults.computeIfAbsent(breakingConnectivityElements, k -> {
+                        Set<String> elementsToReconnect = computeElementsToReconnect(connectivity, breakingConnectivityElements);
+                        return new ConnectivityAnalysisResult(elementsToReconnect, lfFactors, connectivity, lfNetwork);
+                    });
+                    connectivityAnalysisResult.getContingencies().addAll(contingencyList);
                 } else {
                     // write contingency status
                     for (PropagatedContingency propagatedContingency : contingencyList) {
@@ -619,6 +588,47 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             connectivity.undoTemporaryChanges();
         }
         return new ArrayList<>(connectivityAnalysisResults.values());
+    }
+
+    private static boolean isBreakingConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity, ComputedContingencyElement element) {
+        LfBranch lfBranch = element.getLfBranch();
+        return connectivity.getComponentNumber(lfBranch.getBus1()) != connectivity.getComponentNumber(lfBranch.getBus2());
+    }
+
+    /**
+     * Given the elements breaking the connectivity, extract the minimum number of elements which reconnect all connected components together
+     */
+    private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity, Set<DcSensitivityAnalysis.ComputedContingencyElement> breakingConnectivityElements) {
+        Set<String> elementsToReconnect = new LinkedHashSet<>();
+
+        // We suppose we're reconnecting one by one each element breaking connectivity.
+        // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
+        List<Set<Integer>> reconnectedCc = new ArrayList<>();
+        for (DcSensitivityAnalysis.ComputedContingencyElement element : breakingConnectivityElements) {
+            int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
+            int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+
+            Set<Integer> recCc1 = reconnectedCc.stream().filter(s -> s.contains(cc1)).findFirst().orElseGet(() -> new HashSet<>(List.of(cc1)));
+            Set<Integer> recCc2 = reconnectedCc.stream().filter(s -> s.contains(cc2)).findFirst().orElseGet(() -> Set.of(cc2));
+            if (recCc1 != recCc2) {
+                // cc1 and cc2 are still separated:
+                // - mark the element as needed to reconnect all connected components together
+                // - update the list of grouped connected components
+                elementsToReconnect.add(element.getElement().getId());
+                reconnectedCc.remove(recCc2);
+                if (recCc1.size() == 1) {
+                    // adding the new set (the list of grouped connected components is not initialized with the singleton sets)
+                    reconnectedCc.add(recCc1);
+                }
+                recCc1.addAll(recCc2);
+            }
+        }
+
+        if (reconnectedCc.size() != 1 || reconnectedCc.get(0).size() != connectivity.getNbConnectedComponents()) {
+            LOGGER.error("Elements to reconnect computed do not reconnect all connected components together");
+        }
+
+        return elementsToReconnect;
     }
 
     /**
@@ -703,7 +713,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // first we compute the ones without loss of phase tap changers (because we reuse the load flows from the pre contingency network for all of them)
         for (PropagatedContingency contingency : phaseTapChangerContingenciesIndexing.getContingenciesWithoutPhaseTapChangerLoss()) {
             Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream()
-                    .filter(element -> elementsToReconnect.isEmpty() || !elementsToReconnect.contains(element))
+                    .filter(element -> !elementsToReconnect.contains(element))
                     .map(contingencyElementByBranch::get)
                     .collect(Collectors.toList());
 
@@ -725,7 +735,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
             for (PropagatedContingency contingency : propagatedContingencies) {
                 Collection<ComputedContingencyElement> contingencyElements = contingency.getBranchIdsToOpen().stream()
-                        .filter(element -> elementsToReconnect.isEmpty() || !elementsToReconnect.contains(element))
+                        .filter(element -> !elementsToReconnect.contains(element))
                         .map(contingencyElementByBranch::get)
                         .collect(Collectors.toList());
 
