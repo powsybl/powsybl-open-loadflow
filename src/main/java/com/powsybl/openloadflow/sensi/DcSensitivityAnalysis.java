@@ -161,6 +161,89 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
+    static class ConnectivityAnalysisResult {
+
+        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsSensi = new HashMap<>();
+
+        private final Map<LfSensitivityFactor<DcVariableType, DcEquationType>, Double> predefinedResultsRef = new HashMap<>();
+
+        private final Collection<PropagatedContingency> contingencies = new HashSet<>();
+
+        private final Set<String> elementsToReconnect;
+
+        private final Set<LfBus> disabledBuses;
+
+        private final Set<LfBus> slackConnectedComponent;
+
+        protected ConnectivityAnalysisResult(Set<String> elementsToReconnect, Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors,
+                                             GraphConnectivity<LfBus, LfBranch> connectivity, LfNetwork lfNetwork) {
+            this.elementsToReconnect = elementsToReconnect;
+            slackConnectedComponent = connectivity.getConnectedComponent(lfNetwork.getSlackBus());
+            disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
+            fillPredefinedResults(factors, connectivity);
+        }
+
+        private void fillPredefinedResults(Collection<LfSensitivityFactor<DcVariableType, DcEquationType>> factors,
+                                           GraphConnectivity<LfBus, LfBranch> connectivity) {
+            Set<LfBranch> disabledBranches = connectivity.getEdgesRemovedFromMainComponent();
+            for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
+                if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
+                    // after a contingency, we check if the factor function and the variable are in different connected components
+                    boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches);
+                    boolean functionConnected = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
+                    if (!variableConnected && functionConnected) {
+                        // VALID_ONLY_FOR_FUNCTION status
+                        predefinedResultsSensi.put(factor, 0d);
+                    }
+                    if (!variableConnected && !functionConnected) {
+                        // SKIP status
+                        predefinedResultsSensi.put(factor, Double.NaN);
+                        predefinedResultsRef.put(factor, Double.NaN);
+                    }
+                    if (variableConnected && !functionConnected) {
+                        // ZERO status
+                        predefinedResultsSensi.put(factor, 0d);
+                        predefinedResultsRef.put(factor, Double.NaN);
+                    }
+                } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
+                    // Sensitivity equals 0 for VALID_REFERENCE factors
+                    predefinedResultsSensi.put(factor, 0d);
+                    if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
+                        // The reference is not in the main componant of the post contingency network.
+                        // Therefore, its value cannot be computed.
+                        predefinedResultsRef.put(factor, Double.NaN);
+                    }
+                } else {
+                    throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
+                }
+            }
+        }
+
+        void setSensitivityValuePredefinedResults() {
+            predefinedResultsSensi.forEach(LfSensitivityFactor::setSensitivityValuePredefinedResult);
+        }
+
+        void setFunctionPredefinedResults() {
+            predefinedResultsRef.forEach(LfSensitivityFactor::setFunctionPredefinedResult);
+        }
+
+        public Collection<PropagatedContingency> getContingencies() {
+            return contingencies;
+        }
+
+        public Set<String> getElementsToReconnect() {
+            return elementsToReconnect;
+        }
+
+        public Set<LfBus> getDisabledBuses() {
+            return disabledBuses;
+        }
+
+        public Set<LfBus> getSlackConnectedComponent() {
+            return slackConnectedComponent;
+        }
+    }
+
     public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         super(matrixFactory, connectivityFactory);
     }
