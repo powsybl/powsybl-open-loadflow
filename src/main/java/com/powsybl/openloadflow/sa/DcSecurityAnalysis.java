@@ -79,21 +79,28 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     public PreContingencyResult buildPreContingencyResults(DcSecurityAnalysisContext ctx, SensitivityAnalysisResult res) {
+
+        List<BranchResult> branchResults = new ArrayList<>();
+
         for (SensitivityValue sensValue : res.getValues(null)) {
             SensitivityFactor factor = ctx.getFactors().get(sensValue.getFactorIndex());
             String branchId = factor.getFunctionId();
             Branch<?> branch = network.getBranch(branchId);
             double i1 = currentActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal1().getVoltageLevel().getNominalV(), ctx.getDcPowerFactor());
             double i2 = currentActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal2().getVoltageLevel().getNominalV(), ctx.getDcPowerFactor());
-            ctx.getPreContingencyBranchResults().put(branchId, new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, i1, -sensValue.getFunctionReference(), Double.NaN, i2, Double.NaN));
+            BranchResult result = new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, i1, -sensValue.getFunctionReference(), Double.NaN, i2, Double.NaN);
+            ctx.getPreContingencyBranchResults().put(branchId, result);
             ctx.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), violation -> ctx.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
             ctx.getDetector().checkCurrent(branch, Branch.Side.ONE, i1, violation -> ctx.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
             ctx.getDetector().checkCurrent(branch, Branch.Side.TWO, i2, violation -> ctx.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+
+            if (isBranchMonitored(branchId, null)) {
+                branchResults.add(result);
+            }
         }
 
         LimitViolationsResult limitViolations = new LimitViolationsResult(new ArrayList<>(ctx.getPreContingencyLimitViolationsMap().values()));
-
-        return new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED, limitViolations, new ArrayList<>(ctx.getPreContingencyBranchResults().values()), Collections.emptyList(), Collections.emptyList());
+        return new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED, limitViolations, branchResults, Collections.emptyList(), Collections.emptyList());
     }
 
     public List<PostContingencyResult> buildPostContingencyResults(DcSecurityAnalysisContext ctx, SensitivityAnalysisResult res) {
@@ -139,7 +146,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
     private boolean isBranchMonitored(String branchId, Contingency c) {
         boolean allMonitored = monitorIndex.getAllStateMonitor().getBranchIds().contains(branchId);
         boolean specificMonitored = false;
-        StateMonitor specificMonitor = monitorIndex.getSpecificStateMonitors().get(c.getId());
+        StateMonitor specificMonitor = null;
+        if (c != null) {
+            specificMonitor = monitorIndex.getSpecificStateMonitors().get(c.getId());
+        }
         if (specificMonitor != null) {
             specificMonitored = specificMonitor.getBranchIds().contains(branchId);
         }

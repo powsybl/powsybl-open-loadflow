@@ -714,16 +714,22 @@ class OpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = createAllBranchesContingencies(fourBusNetwork);
 
-        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.specificContingency("l14"), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12"), Collections.emptySet(), Collections.emptySet()),
+                new StateMonitor(ContingencyContext.specificContingency("l14"), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
 
         SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
+
+        assertEquals(2, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
+        assertEquals("l14", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0).getBranchId());
+        assertEquals("l12", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(1).getBranchId());
 
         assertEquals(5, result.getPostContingencyResults().size());
         for (PostContingencyResult pcResult : result.getPostContingencyResults()) {
             if (pcResult.getContingency().getId().equals("l14")) {
                 assertEquals(5, pcResult.getNetworkResult().getBranchResults().size());
             } else {
-                assertEquals(0, pcResult.getNetworkResult().getBranchResults().size());
+                assertEquals(2, pcResult.getNetworkResult().getBranchResults().size());
             }
         }
     }
