@@ -35,10 +35,6 @@ import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.action.SwitchAction;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.NetworkResult;
 import com.powsybl.security.results.OperatorStrategyResult;
@@ -129,25 +125,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                         allSwitchesToOpen.add(sw);
                     }
                 });
-    }
-
-    private static Map<String, LfAction> createLfActions(LfNetwork network, List<Action> actions) {
-        return actions.stream().collect(Collectors.toMap(Action::getId, action -> new LfAction(action, network)));
-    }
-
-    private static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
-                                                                                              List<OperatorStrategy> operatorStrategies) {
-        Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
-        for (OperatorStrategy operatorStrategy : operatorStrategies) {
-            if (contingencyIds.contains(operatorStrategy.getContingencyId())) {
-                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>()).add(operatorStrategy);
-            } else {
-                throw new PowsyblException("An operator strategy associated to contingency '" + operatorStrategy.getContingencyId() +
-                        "' but this contingency is not present in the list of contingencies");
-            }
-        }
-        return operatorStrategiesByContingencyId;
     }
 
     private static void restoreInitialTopology(LfNetwork network, Set<Switch> allSwitchesToClose) {
@@ -364,35 +341,5 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         }
 
         return Optional.ofNullable(operatorStrategyResult);
-    }
-
-    private boolean checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
-        Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
-                .map(LimitViolation::getSubjectId)
-                .collect(Collectors.toSet());
-        switch (operatorStrategy.getCondition().getType()) {
-            case TrueCondition.NAME:
-                return true;
-            case AnyViolationCondition.NAME:
-                return !limitViolationEquipmentIds.isEmpty();
-            case AtLeastOneViolationCondition.NAME: {
-                AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) operatorStrategy.getCondition();
-                Set<String> commonEquipmentIds = atLeastCondition.getViolationIds().stream()
-                        .distinct()
-                        .filter(limitViolationEquipmentIds::contains)
-                        .collect(Collectors.toSet());
-                return !commonEquipmentIds.isEmpty();
-            }
-            case AllViolationCondition.NAME: {
-                AllViolationCondition allCondition = (AllViolationCondition) operatorStrategy.getCondition();
-                Set<String> commonEquipmentIds = allCondition.getViolationIds().stream()
-                        .distinct()
-                        .filter(limitViolationEquipmentIds::contains)
-                        .collect(Collectors.toSet());
-                return commonEquipmentIds.equals(new HashSet<>(allCondition.getViolationIds()));
-            }
-            default:
-                throw new UnsupportedOperationException("Unsupported condition type: " + operatorStrategy.getCondition().getType());
-        }
     }
 }

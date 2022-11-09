@@ -1946,7 +1946,7 @@ class OpenSecurityAnalysisTest {
     void testDCSecurityAnalysisWithOperatorStrategy() {
         // IMPORTANT: This is juste a copy paste from the
         //    void testSecurityAnalysisWithOperatorStrategy() function.
-        // It will be adapted as we move forward in the implementation of the issue 
+        //It will be adapted as we move forward in the implementation of the issue
         MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
