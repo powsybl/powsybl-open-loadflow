@@ -248,9 +248,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private Optional<Pair<Double, Double>> getControlledBusVoltageLimits(LfBus bus) {
+    private Optional<Pair<Double, Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {
         Pair<Double, Double> limits = null;
-        LfGenerator generator = bus.getGenerators().stream()
+        LfGenerator generator = controllerCapableBus.getGenerators().stream()
                 .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
                 .findFirst().orElse(null);
         if (generator != null) {

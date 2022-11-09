@@ -103,12 +103,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         };
 
         StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
-        if (standbyAutomaton != null) {
-            if (standbyAutomaton.getB0() != 0.0) {
-                // a static var compensator with an extension stand by automaton includes an offset of B0,
-                // whatever it is in stand by or not. FIXME: should be verified.
-                this.b0 = standbyAutomaton.getB0();
-            }
+        if (standbyAutomaton != null && standbyAutomaton.getB0() != 0.0) {
+            // a static var compensator with an extension stand by automaton includes an offset of B0,
+            // whatever it is in stand by or not. FIXME: should be verified.
+            this.b0 = standbyAutomaton.getB0();
         }
 
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
@@ -127,7 +125,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         }
         // FIXME: if slope and b0, not supported.
 
-        targetQ = -svc.getReactivePowerSetPoint();
+        targetQ = -svc.getReactivePowerSetpoint();
     }
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
@@ -166,9 +164,11 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     @Override
     public void updateState() {
         double vSquare = bus.getV() * bus.getV() * nominalV * nominalV;
+        double newTargetQ = Double.isNaN(targetQ) ? 0 : -targetQ;
+        double q = Double.isNaN(calculatedQ) ? newTargetQ : -calculatedQ;
         svc.getTerminal()
                 .setP(0)
-                .setQ((Double.isNaN(calculatedQ) ? (Double.isNaN(targetQ) ? 0 : -targetQ) : -calculatedQ) - (b0 != null ? b0 : 0.0) * vSquare);
+                .setQ(q - (b0 != null ? b0 : 0.0) * vSquare);
     }
 
     @Override

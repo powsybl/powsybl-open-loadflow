@@ -313,7 +313,7 @@ class AcLoadFlowSvcTest {
     }
 
     @Test
-    public void testStandByAutomaton() {
+    void testStandByAutomaton() {
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(StandbyAutomatonAdder.class)
@@ -332,7 +332,7 @@ class AcLoadFlowSvcTest {
     }
 
     @Test
-    public void testStandByAutomaton2() {
+    void testStandByAutomaton2() {
         svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(StandbyAutomatonAdder.class)
@@ -351,7 +351,7 @@ class AcLoadFlowSvcTest {
     }
 
     @Test
-    public void testStandByAutomaton3() {
+    void testStandByAutomaton3() {
         svc1.setVoltageSetPoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         network.getGenerator("g1").setTargetV(405);

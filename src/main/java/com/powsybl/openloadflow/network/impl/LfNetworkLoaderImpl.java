@@ -126,7 +126,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (voltagePerReactivePowerControl) {
             voltageControls.add(voltageControl);
         }
-        if (controllerBus.getGenerators().stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE).findAny().isPresent()) {
+        if (controllerBus.getGenerators().stream().anyMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)) {
             controllerBus.setVoltageControlEnabled(false);
         }
     }
