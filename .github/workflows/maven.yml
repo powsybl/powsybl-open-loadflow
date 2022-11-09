@@ -16,15 +16,6 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - name: Checkout powsybl-core sources
-        uses: actions/checkout@v1
-        with:
-          repository: powsybl/powsybl-core
-          ref: refs/heads/stand-by-automaton
-
-      - name: Build and install powsybl-core with Maven
-        run: mvn --batch-mode -DskipTests=true --file ../powsybl-core/pom.xml install
-
       - name: Checkout sources
         uses: actions/checkout@v1
 

@@ -210,7 +210,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     /**
      * A PQ bus can be switched to PV in 2 cases:
      *  - if Q is equal to Qmin and V is less than targetV: it means that the PQ bus can be unlocked in order to increase the reactive power and reach its targetV.
-     *  - if Q is equal to Qmax and V is greater than targetV: it means that the PQ bus can be unlocked in order to decrease the reactive power and reach its target V.
+     *  - if Q is equal to Qmax and V is greater than targetV: it means that the PQ bus can be unlocked in order to decrease the reactive power and reach its targetV.
      */
     private void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses) {
         double minQ = controllerCapableBus.getMinQ();
@@ -218,10 +218,10 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         double q = controllerCapableBus.getGenerationTargetQ();
         double distanceToMaxQ = Math.abs(q - maxQ);
         double distanceToMinQ = Math.abs(q - minQ);
-        if (distanceToMaxQ < distanceToMinQ && controllerCapableBus.getV() > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
+        if (distanceToMaxQ < distanceToMinQ && getBusV(controllerCapableBus) > getBusTargetV(controllerCapableBus)) { // bus produce too much reactive power
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MAX));
         }
-        if (distanceToMaxQ > distanceToMinQ && controllerCapableBus.getV() < getBusTargetV(controllerCapableBus)) { // bus absorb too much reactive power
+        if (distanceToMaxQ > distanceToMinQ && getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus)) { // bus absorb too much reactive power
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, ReactiveLimitDirection.MIN));
         }
     }
