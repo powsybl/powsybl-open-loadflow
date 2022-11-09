@@ -2072,4 +2072,34 @@ class OpenSecurityAnalysisTest {
         assertEquals(PostContingencyComputationStatus.FAILED,
                 AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.UNREALISTIC_STATE));
     }
+
+    @Test
+    void testCheckActions() {
+        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = MetrixTutorialSixBusesFactory.create();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
+
+        List<Action> actions = List.of(new SwitchAction("openSwitch", "switch", true));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")));
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP));
+        assertEquals("Switch 'switch' not found", exception.getCause().getMessage());
+
+        List<Action> actions2 = List.of(new LineConnectionAction("openLine", "line", true, true));
+        List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLine")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies2, actions2, Reporter.NO_OP));
+        assertEquals("Branch 'line' not found", exception.getCause().getMessage());
+
+        List<Action> actions3 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst1", false, 1));
+        List<OperatorStrategy> operatorStrategies3 = List.of(new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies3, actions3, Reporter.NO_OP));
+        assertEquals("Branch 'pst1' not found", exception.getCause().getMessage());
+    }
 }
