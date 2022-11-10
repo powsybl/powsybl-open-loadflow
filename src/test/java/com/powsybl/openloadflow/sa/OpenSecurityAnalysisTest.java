@@ -1940,6 +1940,21 @@ class OpenSecurityAnalysisTest {
         // IMPORTANT: This is juste a copy paste from the
         //    void testSecurityAnalysisWithOperatorStrategy() function.
         // It will be adapted as we move forward in the implementation of the issue #622
+
+        /*
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        network.getGenerator("g2").setTargetV(400).setVoltageRegulatorOn(true);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        parameters.setDc(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("g1", new GeneratorContingency("g1")),
+                new Contingency("l34", new BranchContingency("l34")),
+                new Contingency("g2", new GeneratorContingency("g2")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+         */
         MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
@@ -1970,6 +1985,7 @@ class OpenSecurityAnalysisTest {
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
         LoadFlowParameters parameters = new LoadFlowParameters();
+        // TODO: Uncomment: parameters.setDc(true);
         parameters.setDistributedSlack(false);
         setSlackBusId(parameters, "VL2_0");
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();

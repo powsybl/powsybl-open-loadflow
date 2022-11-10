@@ -23,6 +23,7 @@ import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
+import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
@@ -70,7 +71,14 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         List<PostContingencyResult> postContingencyResults = buildPostContingencyResults(ctx, res);
 
-        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, Collections.emptyList()));
+        // TODO: Probably need to add the operator strategies to the ctx, and use a similar format to the 2 above.
+        List<OperatorStrategyResult> operatorStrategyResults = computeOperatorStrategyResults(ctx, operatorStrategies);
+
+        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, operatorStrategyResults));
+    }
+
+    private List<OperatorStrategyResult> computeOperatorStrategyResults(DcSecurityAnalysisContext ctx, List<OperatorStrategy> operatorStrategies) {
+        return Collections.emptyList();
     }
 
     public static double currentActivePower(double activePower, double voltage, double cosPhi) {
