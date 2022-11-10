@@ -454,23 +454,4 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
         assertVoltageEquals(147.57, network.getBusBreakerView().getBus("NLOAD"));
     }
-
-    @Test
-    void testWithStartingGenerator() {
-        loadFlowRunner.run(network, parameters);
-        gen.getTerminal().disconnect();
-        loadBus.getVoltageLevel().newGenerator()
-                .setId("g1")
-                .setBus(loadBus.getId())
-                .setConnectableBus(loadBus.getId())
-                .setEnergySource(EnergySource.THERMAL)
-                .setMinP(10)
-                .setMaxP(200)
-                .setTargetP(1)
-                .setTargetV(150)
-                .setVoltageRegulatorOn(true)
-                .add();
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk()); // no voltage controlled bus
-    }
 }
