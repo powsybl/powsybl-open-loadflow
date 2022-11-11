@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -14,7 +13,6 @@ import com.powsybl.openloadflow.util.Evaluable;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -34,12 +32,14 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
      */
     private boolean active = true;
 
-    private final List<EquationTerm<V, E>> terms = new ArrayList<>();
+    private EquationTerm<V, E> rootTerm = new EquationTerm.SumEquationTerm<>();
 
     Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
         this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
         this.equationSystem = Objects.requireNonNull(equationSystem);
+        rootTerm.setEquation(this);
+        rootTerm.setStateVector(equationSystem.getStateVector());
     }
 
     public int getElementNum() {
@@ -74,43 +74,35 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return this;
     }
 
+    public EquationTerm<V, E> getRootTerm() {
+        return rootTerm;
+    }
+
+    public void setRootTerm(EquationTerm<V, E> rootTerm) {
+        this.rootTerm = Objects.requireNonNull(rootTerm);
+    }
+
+    private EquationTerm.SumEquationTerm<V, E> getSum() {
+        return (EquationTerm.SumEquationTerm<V, E>) rootTerm;
+    }
+
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
-        Objects.requireNonNull(term);
-        if (term.getEquation() != null) {
-            throw new PowsyblException("Equation term already added to another equation: "
-                    + term.getEquation());
-        }
-        terms.add(term);
-        term.setEquation(this);
-        equationSystem.addEquationTerm(term);
-        equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
+        getSum().addTerm(term);
         return this;
     }
 
     public Equation<V, E> addTerms(List<EquationTerm<V, E>> terms) {
-        Objects.requireNonNull(terms);
-        for (EquationTerm<V, E> term : terms) {
-            addTerm(term);
-        }
+        getSum().addTerms(terms);
         return this;
     }
 
     public List<EquationTerm<V, E>> getTerms() {
-        return terms;
+        return getSum().getChildren();
     }
 
     @Override
     public double eval() {
-        double value = 0;
-        for (EquationTerm<V, E> term : terms) {
-            if (term.isActive()) {
-                value += term.eval();
-                if (term.hasRhs()) {
-                    value -= term.rhs();
-                }
-            }
-        }
-        return value;
+        return rootTerm.eval();
     }
 
     @Override
@@ -145,20 +137,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         writer.append(type.getSymbol())
                 .append(Integer.toString(elementNum))
                 .append(" = ");
-        List<EquationTerm<V, E>> activeTerms = writeInactiveTerms ? terms : terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
-        for (Iterator<EquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
-            EquationTerm<V, E> term = it.next();
-            if (!term.isActive()) {
-                writer.write("[ ");
-            }
-            term.write(writer);
-            if (!term.isActive()) {
-                writer.write(" ]");
-            }
-            if (it.hasNext()) {
-                writer.append(" + ");
-            }
-        }
+        rootTerm.write(writer, writeInactiveTerms);
     }
 
     public Optional<LfElement> getElement(LfNetwork network) {

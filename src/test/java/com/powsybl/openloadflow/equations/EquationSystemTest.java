@@ -128,14 +128,14 @@ class EquationSystemTest {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(network);
         String ref = String.join(System.lineSeparator(),
-                "bus_target_v0 = v0",
-                "bus_target_φ0 = φ0",
-                "bus_target_p1 = ac_p_closed_2(v0, v1, φ0, φ1) + ac_p_closed_1(v1, v2, φ1, φ2) + ac_p_closed_1(v1, v2, φ1, φ2)",
-                "bus_target_q1 = ac_q_closed_2(v0, v1, φ0, φ1) + ac_q_closed_1(v1, v2, φ1, φ2) + ac_q_closed_1(v1, v2, φ1, φ2)",
-                "bus_target_p2 = ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_1(v2, v3, φ2, φ3)",
-                "bus_target_q2 = ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_1(v2, v3, φ2, φ3)",
-                "bus_target_p3 = ac_p_closed_2(v2, v3, φ2, φ3)",
-                "bus_target_q3 = ac_q_closed_2(v2, v3, φ2, φ3)")
+                "bus_target_v0 = sum(v0)",
+                "bus_target_φ0 = sum(φ0)",
+                "bus_target_p1 = sum(ac_p_closed_2(v0, v1, φ0, φ1) + ac_p_closed_1(v1, v2, φ1, φ2) + ac_p_closed_1(v1, v2, φ1, φ2))",
+                "bus_target_q1 = sum(ac_q_closed_2(v0, v1, φ0, φ1) + ac_q_closed_1(v1, v2, φ1, φ2) + ac_q_closed_1(v1, v2, φ1, φ2))",
+                "bus_target_p2 = sum(ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_1(v2, v3, φ2, φ3))",
+                "bus_target_q2 = sum(ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_1(v2, v3, φ2, φ3))",
+                "bus_target_p3 = sum(ac_p_closed_2(v2, v3, φ2, φ3))",
+                "bus_target_q3 = sum(ac_q_closed_2(v2, v3, φ2, φ3))")
                 + System.lineSeparator();
         assertEquals(ref, equationSystem.writeToString());
     }
@@ -151,19 +151,19 @@ class EquationSystemTest {
             equationTerm.setActive(false);
         }
         String ref = String.join(System.lineSeparator(),
-                "[ bus_target_p0 = ac_p_closed_1(v0, v1, φ0, φ1) ]",
-                "[ bus_target_q0 = ac_q_closed_1(v0, v1, φ0, φ1) ]",
-                "bus_target_v0 = v0",
-                "bus_target_φ0 = φ0",
-                "bus_target_p1 = ac_p_closed_2(v0, v1, φ0, φ1) + [ ac_p_closed_1(v1, v2, φ1, φ2) ] + ac_p_closed_1(v1, v2, φ1, φ2)",
-                "bus_target_q1 = ac_q_closed_2(v0, v1, φ0, φ1) + [ ac_q_closed_1(v1, v2, φ1, φ2) ] + ac_q_closed_1(v1, v2, φ1, φ2)",
-                "[ bus_target_v1 = v1 ]",
-                "bus_target_p2 = [ ac_p_closed_2(v1, v2, φ1, φ2) ] + ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_1(v2, v3, φ2, φ3)",
-                "bus_target_q2 = [ ac_q_closed_2(v1, v2, φ1, φ2) ] + ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_1(v2, v3, φ2, φ3)",
-                "[ bus_target_v2 = v2 ]",
-                "bus_target_p3 = ac_p_closed_2(v2, v3, φ2, φ3)",
-                "bus_target_q3 = ac_q_closed_2(v2, v3, φ2, φ3)",
-                "[ bus_target_v3 = v3 ]")
+                "[ bus_target_p0 = sum(ac_p_closed_1(v0, v1, φ0, φ1)) ]",
+                "[ bus_target_q0 = sum(ac_q_closed_1(v0, v1, φ0, φ1)) ]",
+                "bus_target_v0 = sum(v0)",
+                "bus_target_φ0 = sum(φ0)",
+                "bus_target_p1 = sum(ac_p_closed_2(v0, v1, φ0, φ1) + [ ac_p_closed_1(v1, v2, φ1, φ2) ] + ac_p_closed_1(v1, v2, φ1, φ2))",
+                "bus_target_q1 = sum(ac_q_closed_2(v0, v1, φ0, φ1) + [ ac_q_closed_1(v1, v2, φ1, φ2) ] + ac_q_closed_1(v1, v2, φ1, φ2))",
+                "[ bus_target_v1 = sum(v1) ]",
+                "bus_target_p2 = sum([ ac_p_closed_2(v1, v2, φ1, φ2) ] + ac_p_closed_2(v1, v2, φ1, φ2) + ac_p_closed_1(v2, v3, φ2, φ3))",
+                "bus_target_q2 = sum([ ac_q_closed_2(v1, v2, φ1, φ2) ] + ac_q_closed_2(v1, v2, φ1, φ2) + ac_q_closed_1(v2, v3, φ2, φ3))",
+                "[ bus_target_v2 = sum(v2) ]",
+                "bus_target_p3 = sum(ac_p_closed_2(v2, v3, φ2, φ3))",
+                "bus_target_q3 = sum(ac_q_closed_2(v2, v3, φ2, φ3))",
+                "[ bus_target_v3 = sum(v3) ]")
                 + System.lineSeparator();
         assertEquals(ref, equationSystem.writeToString(true));
     }
@@ -175,10 +175,10 @@ class EquationSystemTest {
 
         EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, true));
         String ref = String.join(System.lineSeparator(),
-                "bus_target_φ0 = φ0",
-                "bus_target_p1 = dc_p_2(φ0, φ1) + dc_p_1(φ1, φ2) + dc_p_1(φ1, φ2)",
-                "bus_target_p2 = dc_p_2(φ1, φ2) + dc_p_2(φ1, φ2) + dc_p_1(φ2, φ3)",
-                "bus_target_p3 = dc_p_2(φ2, φ3)")
+                "bus_target_φ0 = sum(φ0)",
+                "bus_target_p1 = sum(dc_p_2(φ0, φ1) + dc_p_1(φ1, φ2) + dc_p_1(φ1, φ2))",
+                "bus_target_p2 = sum(dc_p_2(φ1, φ2) + dc_p_2(φ1, φ2) + dc_p_1(φ2, φ3))",
+                "bus_target_p3 = sum(dc_p_2(φ2, φ3))")
                 + System.lineSeparator();
         assertEquals(ref, equationSystem.writeToString());
     }

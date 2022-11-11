@@ -22,7 +22,7 @@ public abstract class AbstractNamedEquationTerm<V extends Enum<V> & Quantity, E 
     protected abstract String getName();
 
     @Override
-    public void write(Writer writer) throws IOException {
+    public void write(Writer writer, boolean writeInactiveTerms) throws IOException {
         writer.write(getName());
         writer.write("(");
         for (Iterator<Variable<V>> it = getVariables().iterator(); it.hasNext();) {

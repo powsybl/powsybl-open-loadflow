@@ -17,7 +17,9 @@ import java.util.Objects;
  */
 public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
-    private Equation<V, E> equation;
+    protected Equation<V, E> equation;
+
+    private EquationTerm<V, E> parent;
 
     private boolean active;
 
@@ -33,17 +35,32 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     @Override
     public void setStateVector(StateVector sv) {
-        this.sv = Objects.requireNonNull(sv);
+        this.sv = sv;
     }
 
     @Override
-    public Equation<V, E> getEquation() {
-        return equation;
+    public void setParent(EquationTerm<V, E> parent) {
+        this.parent = Objects.requireNonNull(parent);
+    }
+
+    @Override
+    public EquationTerm<V, E> getParent() {
+        return parent;
+    }
+
+    @Override
+    public List<EquationTerm<V, E>> getChildren() {
+        return Collections.emptyList();
     }
 
     @Override
     public void setEquation(Equation<V, E> equation) {
         this.equation = Objects.requireNonNull(equation);
+    }
+
+    @Override
+    public Equation<V, E> getEquation() {
+        return equation;
     }
 
     @Override
@@ -73,10 +90,5 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     @Override
     public double rhs() {
         return 0;
-    }
-
-    @Override
-    public List<EquationTerm<V, E>> getChildren() {
-        return Collections.emptyList();
     }
 }

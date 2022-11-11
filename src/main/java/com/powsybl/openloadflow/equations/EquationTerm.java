@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
 import java.util.function.DoubleSupplier;
+import java.util.stream.Collectors;
 
 /**
  * An equation term, i.e part of the equation sum.
@@ -22,7 +24,7 @@ import java.util.function.DoubleSupplier;
  */
 public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable {
 
-    class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
+    class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
 
         private final EquationTerm<V, E> term;
 
@@ -34,27 +36,24 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         MultiplyByScalarEquationTerm(EquationTerm<V, E> term, DoubleSupplier scalarSupplier) {
             this.term = Objects.requireNonNull(term);
+            term.setParent(this);
             this.scalarSupplier = Objects.requireNonNull(scalarSupplier);
         }
 
         @Override
-        public Equation<V, E> getEquation() {
-            return term.getEquation();
-        }
-
-        @Override
         public void setEquation(Equation<V, E> equation) {
+            super.setEquation(equation);
             term.setEquation(equation);
         }
 
         @Override
-        public void setActive(boolean active) {
-            term.setActive(active);
+        public List<EquationTerm<V, E>> getChildren() {
+            return List.of(term);
         }
 
         @Override
         public boolean isActive() {
-            return term.isActive();
+            return super.isActive() && term.isActive();
         }
 
         @Override
@@ -74,6 +73,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public void setStateVector(StateVector sv) {
+            super.setStateVector(sv);
             term.setStateVector(sv);
         }
 
@@ -103,15 +103,10 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void write(Writer writer) throws IOException {
+        public void write(Writer writer, boolean writeInactiveTerms) throws IOException {
             writer.write(Double.toString(scalarSupplier.getAsDouble()));
             writer.write(" * ");
-            term.write(writer);
-        }
-
-        @Override
-        public List<EquationTerm<V, E>> getChildren() {
-            return List.of(term);
+            term.write(writer, writeInactiveTerms);
         }
     }
 
@@ -166,54 +161,46 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void write(Writer writer) throws IOException {
+        public void write(Writer writer, boolean writeInactiveTerms) throws IOException {
             getVariable().write(writer);
         }
     }
 
-    class SumEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
+    class SumEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
 
-        private final List<EquationTerm<V, E>> terms;
+        private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
-        private final List<Variable<V>> variables;
+        private final Set<Variable<V>> variables = new HashSet<>();
 
-        private final boolean hasRhs;
+        private boolean hasRhs = false;
 
-        SumEquationTerm(List<EquationTerm<V, E>> terms) {
-            this.terms = Objects.requireNonNull(terms);
-            if (terms.isEmpty()) {
-                throw new IllegalArgumentException("Empty term list");
+        public SumEquationTerm<V, E> addTerm(EquationTerm<V, E> term) {
+            Objects.requireNonNull(term);
+            if (term.getParent() != null) {
+                throw new PowsyblException("Equation term already added to another parent: "
+                        + term.getParent());
             }
-            Set<Variable<V>> distinctVariables = new HashSet<>();
-            for (var term : terms) {
-                distinctVariables.addAll(term.getVariables());
+            terms.add(term);
+            term.setEquation(equation);
+            term.setParent(this);
+            term.setStateVector(sv);
+            variables.addAll(term.getVariables());
+            hasRhs |= term.hasRhs();
+            equation.getEquationSystem().notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
+            return this;
+        }
+
+        public SumEquationTerm<V, E> addTerms(List<EquationTerm<V, E>> terms) {
+            Objects.requireNonNull(terms);
+            for (EquationTerm<V, E> term : terms) {
+                addTerm(term);
             }
-            variables = new ArrayList<>(distinctVariables);
-            hasRhs = terms.stream().anyMatch(term -> hasRhs());
+            return this;
         }
 
         @Override
-        public Equation<V, E> getEquation() {
-            return terms.get(0).getEquation();
-        }
-
-        @Override
-        public void setEquation(Equation<V, E> equation) {
-            for (var term : terms) {
-                term.setEquation(equation);
-            }
-        }
-
-        @Override
-        public boolean isActive() {
-            return terms.get(0).isActive();
-        }
-
-        @Override
-        public void setActive(boolean active) {
-            for (var term : terms) {
-                term.setActive(active);
-            }
+        public List<EquationTerm<V, E>> getChildren() {
+            return terms;
         }
 
         @Override
@@ -228,23 +215,21 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public List<Variable<V>> getVariables() {
-            return variables;
-        }
-
-        @Override
-        public void setStateVector(StateVector sv) {
-            for (var term : terms) {
-                term.setStateVector(sv);
-            }
+            return new ArrayList<>(variables);
         }
 
         @Override
         public double eval() {
-            double val = 0;
-            for (var term : terms) {
-                val += term.eval();
+            double value = 0;
+            for (EquationTerm<V, E> term : terms) {
+                if (term.isActive()) {
+                    value += term.eval();
+                    if (term.hasRhs()) {
+                        value -= term.rhs();
+                    }
+                }
             }
-            return val;
+            return value;
         }
 
         @Override
@@ -276,28 +261,31 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public List<EquationTerm<V, E>> getChildren() {
-            return terms;
-        }
-
-        @Override
-        public void write(Writer writer) throws IOException {
+        public void write(Writer writer, boolean writeInactiveTerms) throws IOException {
             writer.write("sum(");
-            terms.get(0).write(writer);
-            for (int i = 1; i < terms.size(); i++) {
-                writer.write(", ");
-                terms.get(i).write(writer);
+            List<EquationTerm<V, E>> activeTerms = writeInactiveTerms ? terms : terms.stream().filter(EquationTerm::isActive).collect(Collectors.toList());
+            for (Iterator<EquationTerm<V, E>> it = activeTerms.iterator(); it.hasNext();) {
+                EquationTerm<V, E> term = it.next();
+                if (!term.isActive()) {
+                    writer.write("[ ");
+                }
+                term.write(writer, writeInactiveTerms);
+                if (!term.isActive()) {
+                    writer.write(" ]");
+                }
+                if (it.hasNext()) {
+                    writer.append(" + ");
+                }
             }
             writer.write(")");
         }
     }
 
-    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> EquationTerm<V, E> sum(List<EquationTerm<V, E>> terms) {
-        if (terms.size() == 1) {
-            return terms.get(0);
-        }
-        return new SumEquationTerm<>(terms);
-    }
+    List<EquationTerm<V, E>> getChildren();
+
+    void setParent(EquationTerm<V, E> parent);
+
+    EquationTerm<V, E> getParent();
 
     Equation<V, E> getEquation();
 
@@ -352,9 +340,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     double calculateSensi(DenseMatrix x, int column);
 
-    void write(Writer writer) throws IOException;
-
-    List<EquationTerm<V, E>> getChildren();
+    void write(Writer writer, boolean writeInactiveTerms) throws IOException;
 
     default EquationTerm<V, E> multiply(DoubleSupplier scalarSupplier) {
         return multiply(this, scalarSupplier);
