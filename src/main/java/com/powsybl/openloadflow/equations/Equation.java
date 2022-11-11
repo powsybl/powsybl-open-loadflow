@@ -35,7 +35,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
      */
     private boolean active = true;
 
-    private EquationTerm<V, E> rootTerm = new EquationTerm.SumEquationTerm<>();
+    private EquationTerm<V, E> rootTerm = new SumEquationTerm<>();
 
     Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
         this.elementNum = elementNum;
@@ -85,11 +85,11 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         this.rootTerm = Objects.requireNonNull(rootTerm);
     }
 
-    private EquationTerm.SumEquationTerm<V, E> getSum() {
-        if (!(rootTerm instanceof EquationTerm.SumEquationTerm)) {
+    private SumEquationTerm<V, E> getSum() {
+        if (!(rootTerm instanceof SumEquationTerm)) {
             throw new PowsyblException("Root equation term is not a sum anymore");
         }
-        return (EquationTerm.SumEquationTerm<V, E>) rootTerm;
+        return (SumEquationTerm<V, E>) rootTerm;
     }
 
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
