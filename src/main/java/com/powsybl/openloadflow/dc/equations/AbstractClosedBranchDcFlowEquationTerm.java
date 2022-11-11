@@ -14,8 +14,8 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
 
-import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
@@ -30,7 +30,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
 
     protected final Variable<DcVariableType> a1Var;
 
-    protected final List<Variable<DcVariableType>> variables;
+    protected final Set<Variable<DcVariableType>> variables;
 
     protected final double power;
 
@@ -46,9 +46,9 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1) : null;
         power = 1 / piModel.getX() * (useTransformerRatio ? piModel.getR1() * R2 : 1);
         if (a1Var != null) {
-            variables = List.of(ph1Var, ph2Var, a1Var);
+            variables = Set.of(ph1Var, ph2Var, a1Var);
         } else {
-            variables = List.of(ph1Var, ph2Var);
+            variables = Set.of(ph1Var, ph2Var);
         }
     }
 
@@ -84,7 +84,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
     }
 
     @Override
-    public List<Variable<DcVariableType>> getVariables() {
+    public Set<Variable<DcVariableType>> getVariables() {
         return variables;
     }
 

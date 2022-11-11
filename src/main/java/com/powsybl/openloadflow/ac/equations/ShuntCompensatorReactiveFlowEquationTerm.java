@@ -11,8 +11,8 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
-import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -21,20 +21,20 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
 
     private Variable<AcVariableType> bVar;
 
-    private final List<Variable<AcVariableType>> variables;
+    private final Set<Variable<AcVariableType>> variables;
 
     public ShuntCompensatorReactiveFlowEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet, boolean deriveB) {
         super(shunt, bus, variableSet);
         if (deriveB) {
             bVar = variableSet.getVariable(shunt.getNum(), AcVariableType.SHUNT_B);
-            variables = List.of(vVar, bVar);
+            variables = Set.of(vVar, bVar);
         } else {
-            variables = List.of(vVar);
+            variables = Set.of(vVar);
         }
     }
 
     @Override
-    public List<Variable<AcVariableType>> getVariables() {
+    public Set<Variable<AcVariableType>> getVariables() {
         return variables;
     }
 

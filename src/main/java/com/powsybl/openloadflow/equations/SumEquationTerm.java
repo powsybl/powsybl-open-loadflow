@@ -66,8 +66,8 @@ public class SumEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Q
     }
 
     @Override
-    public List<Variable<V>> getVariables() {
-        return new ArrayList<>(variables);
+    public Set<Variable<V>> getVariables() {
+        return variables;
     }
 
     @Override

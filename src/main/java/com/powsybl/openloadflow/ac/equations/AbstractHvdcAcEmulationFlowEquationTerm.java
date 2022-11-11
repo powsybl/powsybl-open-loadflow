@@ -13,8 +13,8 @@ import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfHvdc;
 
-import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -27,7 +27,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
 
     protected final Variable<AcVariableType> ph2Var;
 
-    protected final List<Variable<AcVariableType>> variables;
+    protected final Set<Variable<AcVariableType>> variables;
 
     protected final double k;
 
@@ -42,7 +42,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
         this.hvdc = hvdc;
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
-        variables = List.of(ph1Var, ph2Var);
+        variables = Set.of(ph1Var, ph2Var);
         k = hvdc.getDroop() * 180 / Math.PI;
         p0 = hvdc.getP0();
         lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
@@ -62,7 +62,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
     }
 
     @Override
-    public List<Variable<AcVariableType>> getVariables() {
+    public Set<Variable<AcVariableType>> getVariables() {
         return variables;
     }
 

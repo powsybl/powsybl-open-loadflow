@@ -16,10 +16,7 @@ import gnu.trove.list.array.TDoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -129,8 +126,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         @Override
-        public List<Variable<InitVmVariableType>> getVariables() {
-            return variables;
+        public Set<Variable<InitVmVariableType>> getVariables() {
+            return new HashSet<>(variables);
         }
 
         @Override

@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.DoubleSupplier;
 
 /**
@@ -66,7 +67,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public List<Variable<V>> getVariables() {
+        public Set<Variable<V>> getVariables() {
             return term.getVariables();
         }
 
@@ -119,14 +120,17 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     class VariableEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
 
-        private final List<Variable<V>> variables;
+        private final Variable<V> variable;
+
+        private final Set<Variable<V>> variables;
 
         VariableEquationTerm(Variable<V> variable) {
-            this.variables = List.of(Objects.requireNonNull(variable));
+            this.variable = Objects.requireNonNull(variable);
+            this.variables = Set.of(variable);
         }
 
         private Variable<V> getVariable() {
-            return variables.get(0);
+            return variable;
         }
 
         @Override
@@ -140,7 +144,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public List<Variable<V>> getVariables() {
+        public Set<Variable<V>> getVariables() {
             return variables;
         }
 
@@ -187,7 +191,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * Get the list of variable this equation term depends on.
      * @return the list of variable this equation term depends on.
      */
-    List<Variable<V>> getVariables();
+    Set<Variable<V>> getVariables();
 
     /**
      * Set state vector to use for term evaluation.
