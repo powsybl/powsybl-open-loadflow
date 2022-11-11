@@ -6,13 +6,16 @@
  */
 package com.powsybl.openloadflow.equations;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -83,6 +86,9 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
     }
 
     private EquationTerm.SumEquationTerm<V, E> getSum() {
+        if (!(rootTerm instanceof EquationTerm.SumEquationTerm)) {
+            throw new PowsyblException("Root equation term is not a sum anymore");
+        }
         return (EquationTerm.SumEquationTerm<V, E>) rootTerm;
     }
 
