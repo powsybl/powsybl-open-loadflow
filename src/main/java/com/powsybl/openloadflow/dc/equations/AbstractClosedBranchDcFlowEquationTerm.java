@@ -52,6 +52,14 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
         }
     }
 
+    public Variable<DcVariableType> getPh1Var() {
+        return ph1Var;
+    }
+
+    public Variable<DcVariableType> getPh2Var() {
+        return ph2Var;
+    }
+
     @Override
     public double calculateSensi(DenseMatrix dx, int column) {
         Objects.requireNonNull(dx);

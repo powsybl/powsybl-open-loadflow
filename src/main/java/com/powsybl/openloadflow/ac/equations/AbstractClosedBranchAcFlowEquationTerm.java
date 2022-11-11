@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.powsybl.openloadflow.network.PiModel.A2;
 
@@ -59,6 +60,10 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         if (r1Var != null) {
             variables.add(r1Var);
         }
+    }
+
+    public Optional<Variable<AcVariableType>> getA1Var() {
+        return Optional.ofNullable(a1Var);
     }
 
     protected double v1() {

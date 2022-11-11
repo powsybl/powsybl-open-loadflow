@@ -151,11 +151,11 @@ public class PhaseControlOuterLoop implements OuterLoop {
     private boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, DiscretePhaseControl.ControlledSide controlledSide) {
         if (controlledSide == DiscretePhaseControl.ControlledSide.ONE) {
             ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = (ClosedBranchSide1CurrentMagnitudeEquationTerm) controllerBranch.getI1();
-            Variable<AcVariableType> a1Var = i1.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
+            Variable<AcVariableType> a1Var = i1.getA1Var().orElseThrow();
             return i1.der(a1Var) > 0;
         } else {
             ClosedBranchSide2CurrentMagnitudeEquationTerm i2 = (ClosedBranchSide2CurrentMagnitudeEquationTerm) controllerBranch.getI2();
-            Variable<AcVariableType> a1Var = i2.getVariables().stream().filter(v -> v.getType() == AcVariableType.BRANCH_ALPHA1).findFirst().orElseThrow();
+            Variable<AcVariableType> a1Var = i2.getA1Var().orElseThrow();
             return i2.der(a1Var) > 0;
         }
     }
