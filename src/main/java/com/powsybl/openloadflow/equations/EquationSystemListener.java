@@ -12,6 +12,4 @@ package com.powsybl.openloadflow.equations;
 public interface EquationSystemListener<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
     void onEquationChange(Equation<V, E> equation, EquationEventType eventType);
-
-    void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType);
 }

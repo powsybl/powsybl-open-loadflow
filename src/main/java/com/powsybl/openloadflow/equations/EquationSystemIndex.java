@@ -20,7 +20,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystemIndex.class);
 
-    private final TreeSet<Equation<V, E>> sortedEquationsToSolve = new TreeSet<>();
+    private final TreeMap<Equation<V, E>, Set<Variable<V>>> sortedEquationsToSolve = new TreeMap<>();
 
     // variable reference counting in equation terms
     private final NavigableMap<Variable<V>, MutableInt> sortedVariablesToFindRefCount = new TreeMap<>();
@@ -51,14 +51,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         listeners.forEach(listener -> listener.onVariableChange(variable, changeType));
     }
 
-    private void notifyEquationTermChange(EquationTerm<V, E> term) {
-        listeners.forEach(listener -> listener.onEquationTermChange(term));
+    private void notifyEquationUpdated() {
+        listeners.forEach(EquationSystemIndexListener::onEquationUpdated);
     }
 
     private void update() {
         if (!equationsIndexValid) {
             int columnCount = 0;
-            for (Equation<V, E> equation : sortedEquationsToSolve) {
+            for (Equation<V, E> equation : sortedEquationsToSolve.keySet()) {
                 equation.setColumn(columnCount++);
             }
             equationsIndexValid = true;
@@ -75,9 +75,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
-    private void addTerm(EquationTerm<V, E> term) {
-        notifyEquationTermChange(term);
-        for (Variable<V> variable : term.getVariables()) {
+    private void addEquation(Equation<V, E> equation) {
+        Set<Variable<V>> variables = equation.getRootTerm().getActiveVariables();
+        sortedEquationsToSolve.put(equation, new HashSet<>(variables));
+        equationsIndexValid = false;
+        for (Variable<V> variable : variables) {
             MutableInt variableRefCount = sortedVariablesToFindRefCount.get(variable);
             if (variableRefCount == null) {
                 variableRefCount = new MutableInt(1);
@@ -88,22 +90,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                 variableRefCount.increment();
             }
         }
-    }
-
-    private void addEquation(Equation<V, E> equation) {
-        sortedEquationsToSolve.add(equation);
-        equationsIndexValid = false;
-        for (EquationTerm<V, E> term : equation.getTerms()) {
-            if (term.isActive()) {
-                addTerm(term);
-            }
-        }
         notifyEquationChange(equation, EquationSystemIndexListener.ChangeType.ADDED);
     }
 
-    private void removeTerm(EquationTerm<V, E> term) {
-        notifyEquationTermChange(term);
-        for (Variable<V> variable : term.getVariables()) {
+    private void removeEquation(Equation<V, E> equation) {
+        equation.setColumn(-1);
+        Set<Variable<V>> oldVariables = sortedEquationsToSolve.remove(equation);
+        equationsIndexValid = false;
+        for (Variable<V> variable : oldVariables) {
             MutableInt variableRefCount = sortedVariablesToFindRefCount.get(variable);
             if (variableRefCount != null) {
                 variableRefCount.decrement();
@@ -113,17 +107,6 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                     variablesIndexValid = false;
                     notifyVariableChange(variable, EquationSystemIndexListener.ChangeType.REMOVED);
                 }
-            }
-        }
-    }
-
-    private void removeEquation(Equation<V, E> equation) {
-        equation.setColumn(-1);
-        sortedEquationsToSolve.remove(equation);
-        equationsIndexValid = false;
-        for (EquationTerm<V, E> term : equation.getTerms()) {
-            if (term.isActive()) {
-                removeTerm(term);
             }
         }
         notifyEquationChange(equation, EquationSystemIndexListener.ChangeType.REMOVED);
@@ -152,38 +135,22 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                 addEquation(equation);
                 break;
 
+            case EQUATION_CHANGED:
+                notifyEquationUpdated();
+                if (equation.isActive()) {
+                    removeEquation(equation);
+                    addEquation(equation);
+                }
+                break;
+
             default:
                 throw new IllegalStateException("Event type not supported: " + eventType);
         }
     }
 
-    @Override
-    public void onEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
-        if (term.getEquation().isActive()) {
-            switch (eventType) {
-                case EQUATION_TERM_ADDED:
-                    if (term.isActive()) {
-                        addTerm(term);
-                    }
-                    break;
-
-                case EQUATION_TERM_ACTIVATED:
-                    addTerm(term);
-                    break;
-
-                case EQUATION_TERM_DEACTIVATED:
-                    removeTerm(term);
-                    break;
-
-                default:
-                    throw new IllegalStateException("Event type not supported: " + eventType);
-            }
-        }
-    }
-
     public NavigableSet<Equation<V, E>> getSortedEquationsToSolve() {
         update();
-        return sortedEquationsToSolve;
+        return sortedEquationsToSolve.navigableKeySet();
     }
 
     public NavigableSet<Variable<V>> getSortedVariablesToFind() {

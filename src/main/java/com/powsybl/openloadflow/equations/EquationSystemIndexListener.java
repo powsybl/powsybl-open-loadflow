@@ -27,7 +27,7 @@ public interface EquationSystemIndexListener<V extends Enum<V> & Quantity, E ext
     void onEquationChange(Equation<V, E> equation, ChangeType changeType);
 
     /**
-     * Called when a term is added or removed from an equation.
+     * Called when a term is added/removed/activated/deactivated from an equation.
      */
-    void onEquationTermChange(EquationTerm<V, E> term);
+    void onEquationUpdated();
 }

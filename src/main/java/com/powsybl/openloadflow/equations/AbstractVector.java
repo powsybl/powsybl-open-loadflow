@@ -38,7 +38,7 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
         }
 
         @Override
-        public void onEquationTermChange(EquationTerm<V, E> term) {
+        public void onEquationUpdated() {
             // nothing to do
         }
     };

@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -69,6 +70,11 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         @Override
         public Set<Variable<V>> getVariables() {
             return term.getVariables();
+        }
+
+        @Override
+        public Set<Variable<V>> getActiveVariables() {
+            return active ? getVariables() : Collections.emptySet();
         }
 
         @Override
@@ -192,6 +198,8 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      * @return the list of variable this equation term depends on.
      */
     Set<Variable<V>> getVariables();
+
+    Set<Variable<V>> getActiveVariables();
 
     /**
      * Set state vector to use for term evaluation.

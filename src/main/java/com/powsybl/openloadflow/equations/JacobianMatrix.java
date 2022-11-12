@@ -98,7 +98,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public void onEquationTermChange(EquationTerm<V, E> term) {
+    public void onEquationUpdated() {
         updateStatus(Status.VALUES_AND_ZEROS_INVALID);
     }
 

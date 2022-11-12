@@ -89,7 +89,7 @@ class EquationSystemIndexTest {
             }
 
             @Override
-            public void onEquationTermChange(EquationTerm<TestVariableType, TestEquationType> term) {
+            public void onEquationUpdated() {
                 // nothing to do
             }
         });

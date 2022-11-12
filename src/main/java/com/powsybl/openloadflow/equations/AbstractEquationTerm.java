@@ -11,6 +11,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -21,7 +22,7 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
 
     private EquationTerm<V, E> parent;
 
-    private boolean active;
+    protected boolean active;
 
     protected StateVector sv;
 
@@ -34,13 +35,21 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     }
 
     @Override
+    public Set<Variable<V>> getActiveVariables() {
+        return getVariables();
+    }
+
+    @Override
     public void setStateVector(StateVector sv) {
         this.sv = sv;
     }
 
     @Override
     public void setParent(EquationTerm<V, E> parent) {
-        this.parent = Objects.requireNonNull(parent);
+        if (parent != null && equation != null) {
+            this.parent = Objects.requireNonNull(parent);
+            equation.getEquationSystem().notifyEquationChange(equation, EquationEventType.EQUATION_CHANGED);
+        }
     }
 
     @Override
@@ -67,8 +76,7 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     public void setActive(boolean active) {
         if (this.active != active) {
             this.active = active;
-            equation.getEquationSystem().notifyEquationTermChange(this, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED
-                                                                               : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
+            equation.getEquationSystem().notifyEquationChange(equation, EquationEventType.EQUATION_CHANGED);
         }
     }
 

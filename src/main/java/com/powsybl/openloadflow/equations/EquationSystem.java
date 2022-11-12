@@ -206,12 +206,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         listeners.forEach(listener -> listener.onEquationChange(equation, eventType));
     }
 
-    void notifyEquationTermChange(EquationTerm<V, E> term, EquationTermEventType eventType) {
-        Objects.requireNonNull(term);
-        Objects.requireNonNull(eventType);
-        listeners.forEach(listener -> listener.onEquationTermChange(term, eventType));
-    }
-
     public void write(Writer writer, boolean writeInactiveEquations) {
         try {
             for (Equation<V, E> equation : equations.values().stream().sorted().collect(Collectors.toList())) {

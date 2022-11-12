@@ -38,7 +38,7 @@ public class SumEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Q
         term.setStateVector(sv);
         variables.addAll(term.getVariables());
         hasRhs |= term.hasRhs();
-        equation.getEquationSystem().notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
+        equation.getEquationSystem().notifyEquationChange(equation, EquationEventType.EQUATION_CHANGED);
         return this;
     }
 
@@ -48,6 +48,14 @@ public class SumEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Q
             addTerm(term);
         }
         return this;
+    }
+
+    @Override
+    public Set<Variable<V>> getActiveVariables() {
+        return terms.stream()
+                .filter(EquationTerm::isActive)
+                .flatMap(term -> term.getVariables().stream())
+                .collect(Collectors.toSet());
     }
 
     @Override
