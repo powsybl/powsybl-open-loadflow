@@ -174,23 +174,46 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 });
     }
 
-    private static Map<String, LfAction> createLfActions(LfNetwork network, List<Action> actions) {
+    private static Map<String, LfAction> createLfActions(LfNetwork network, Set<Action> actions) {
         return actions.stream()
                 .map(action -> LfAction.create(action, network))
                 .flatMap(Optional::stream)
                 .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
 
+    private static Map<String, Action> indexActionsById(List<Action> actions) {
+        return actions.stream()
+                .collect(Collectors.toMap(
+                    Action::getId,
+                    Function.identity(),
+                    (action1, action2) -> {
+                        throw new PowsyblException("An action '" + action1.getId() + "' already exist");
+                    }
+                ));
+    }
+
     private static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
-                                                                                              List<OperatorStrategy> operatorStrategies) {
+                                                                                              List<OperatorStrategy> operatorStrategies,
+                                                                                              Map<String, Action> actionsById,
+                                                                                              Set<Action> neededActions) {
         Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
         for (OperatorStrategy operatorStrategy : operatorStrategies) {
             if (contingencyIds.contains(operatorStrategy.getContingencyId())) {
-                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>()).add(operatorStrategy);
+                // check actions IDs exists
+                for (String actionId : operatorStrategy.getActionIds()) {
+                    Action action = actionsById.get(actionId);
+                    if (action == null) {
+                        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to action '"
+                                + actionId + "' but this action is not present in the list");
+                    }
+                    neededActions.add(action);
+                }
+                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>())
+                        .add(operatorStrategy);
             } else {
-                throw new PowsyblException("An operator strategy associated to contingency '" + operatorStrategy.getContingencyId() +
-                        "' but this contingency is not present in the list of contingencies");
+                throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to contingency '"
+                        + operatorStrategy.getContingencyId() + "' but this contingency is not present in the list");
             }
         }
         return operatorStrategiesByContingencyId;
@@ -219,9 +242,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
                                                   SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                   List<Action> actions, Set<Switch> allSwitchesToClose) {
-
-        Map<String, LfAction> lfActionById = createLfActions(network, actions);
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
+        Map<String, Action> actionsById = indexActionsById(actions);
+        Set<Action> neededActions = new HashSet<>(actionsById.size());
+        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
+        Map<String, LfAction> lfActionById = createLfActions(network, neededActions); // only convert needed actions
 
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
@@ -367,14 +391,12 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                     operatorStrategy.getContingencyId(), network);
 
+            // get LF action for this operator strategy, as all actions have been previously checked against IIDM
+            // network, an empty LF action means it is for another component (so another LF network) so we can
+            // skip it
             List<LfAction> operatorStrategyLfActions = operatorStrategy.getActionIds().stream()
-                    .map(id -> {
-                        LfAction lfAction = lfActionById.get(id);
-                        if (lfAction == null) {
-                            throw new PowsyblException("Action '" + id + "' of operator strategy '" + operatorStrategy.getId() + "' not found");
-                        }
-                        return lfAction;
-                    })
+                    .map(lfActionById::get)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             LfAction.apply(operatorStrategyLfActions, network, contingency);
