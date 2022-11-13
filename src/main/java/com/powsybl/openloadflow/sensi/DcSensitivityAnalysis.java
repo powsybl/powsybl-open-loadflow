@@ -423,9 +423,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             LfBranch lfBranch = element.getLfBranch();
             ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
             // we solve a*alpha = b
-            double a = lfBranch.getPiModel().getX() - (contingenciesStates.get(p1.getVariables().get(0).getRow(), element.getContingencyIndex())
-                    - contingenciesStates.get(p1.getVariables().get(1).getRow(), element.getContingencyIndex()));
-            double b = states.get(p1.getVariables().get(0).getRow(), columnState) - states.get(p1.getVariables().get(1).getRow(), columnState);
+            double a = lfBranch.getPiModel().getX() - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getContingencyIndex())
+                    - contingenciesStates.get(p1.getPh2Var().getRow(), element.getContingencyIndex()));
+            double b = states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState);
             setValue.accept(element, b / a);
         } else {
             // FIXME: direct resolution if contingencyElements.size() == 2
@@ -435,16 +435,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             for (ComputedContingencyElement element : contingencyElements) {
                 LfBranch lfBranch = element.getLfBranch();
                 ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
-                rhs.set(element.getLocalIndex(), 0, states.get(p1.getVariables().get(0).getRow(), columnState)
-                        - states.get(p1.getVariables().get(1).getRow(), columnState)
+                rhs.set(element.getLocalIndex(), 0, states.get(p1.getPh1Var().getRow(), columnState)
+                        - states.get(p1.getPh2Var().getRow(), columnState)
                 );
                 for (ComputedContingencyElement element2 : contingencyElements) {
                     double value = 0d;
                     if (element.equals(element2)) {
                         value = lfBranch.getPiModel().getX();
                     }
-                    value = value - (contingenciesStates.get(p1.getVariables().get(0).getRow(), element2.getContingencyIndex())
-                            - contingenciesStates.get(p1.getVariables().get(1).getRow(), element2.getContingencyIndex()));
+                    value = value - (contingenciesStates.get(p1.getPh1Var().getRow(), element2.getContingencyIndex())
+                            - contingenciesStates.get(p1.getPh2Var().getRow(), element2.getContingencyIndex()));
                     matrix.set(element.getLocalIndex(), element2.getLocalIndex(), value);
                 }
             }
