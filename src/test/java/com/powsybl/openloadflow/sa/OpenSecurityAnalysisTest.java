@@ -2075,10 +2075,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testCheckActions() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
-        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
-
         Network network = MetrixTutorialSixBusesFactory.create();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
@@ -2101,5 +2097,17 @@ class OpenSecurityAnalysisTest {
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies3, actions3, Reporter.NO_OP));
         assertEquals("Branch 'pst1' not found", exception.getCause().getMessage());
+
+        List<Action> actions4 = Collections.emptyList();
+        List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", "S_SO_1", new TrueCondition(), List.of("x")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies4, actions4, Reporter.NO_OP));
+        assertEquals("Operator strategy 'strategy4' is associated to action 'x' but this action is not present in the list", exception.getCause().getMessage());
+
+        List<Action> actions5 = List.of(new SwitchAction("openSwitch", "NOD1_NOD1  NE1  1_SC5_0", true));
+        List<OperatorStrategy> operatorStrategies5 = List.of(new OperatorStrategy("strategy5", "y", new TrueCondition(), List.of("openSwitch")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies5, actions5, Reporter.NO_OP));
+        assertEquals("Operator strategy 'strategy5' is associated to contingency 'y' but this contingency is not present in the list", exception.getCause().getMessage());
     }
 }
