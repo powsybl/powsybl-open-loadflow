@@ -59,8 +59,8 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         }
     }
 
-    public Optional<Variable<AcVariableType>> getA1Var() {
-        return Optional.ofNullable(a1Var);
+    public Variable<AcVariableType> getA1Var() {
+        return a1Var;
     }
 
     protected double v1() {
