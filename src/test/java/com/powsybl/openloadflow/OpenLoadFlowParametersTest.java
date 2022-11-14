@@ -104,6 +104,7 @@ class OpenLoadFlowParametersTest {
         assertEquals(OpenLoadFlowParameters.SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, olfParameters.getSlackBusPMaxMismatch(), 0.0);
         assertEquals(OpenLoadFlowParameters.REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasReactivePowerRemoteControl());
         assertEquals(OpenLoadFlowParameters.DC_POWER_FACTOR_DEFAULT_VALUE, olfParameters.getDcPowerFactor());
+        assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, olfParameters.getLowImpedanceThreshold());
     }
 
     @Test

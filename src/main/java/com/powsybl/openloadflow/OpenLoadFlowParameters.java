@@ -63,7 +63,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final double DC_POWER_FACTOR_DEFAULT_VALUE = 1.0;
 
-    public static final double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
+    public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
 
     public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
@@ -97,6 +97,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String DC_POWER_FACTOR_NAME = "dcPowerFactor";
 
+    public static final String LOW_IMPEDANCE_THRESHOLD_NAME = "lowImpedanceThreshold";
+
     public static final String MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME = "minPlausibleTargetVoltage";
 
     public static final String MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME = "maxPlausibleTargetVoltage";
@@ -121,6 +123,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          VOLTAGE_INIT_MODE_OVERRIDE_NAME,
                                                                          TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME,
                                                                          DC_POWER_FACTOR_NAME,
+                                                                         LOW_IMPEDANCE_THRESHOLD_NAME,
                                                                          MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MIN_REALISTIC_VOLTAGE_NAME,
@@ -178,6 +181,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private TransformerVoltageControlMode transformerVoltageControlMode = TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
 
     private double dcPowerFactor = DC_POWER_FACTOR_DEFAULT_VALUE;
+
+    private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
     private double minPlausibleTargetVoltage = LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
@@ -344,6 +349,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getLowImpedanceThreshold() {
+        return lowImpedanceThreshold;
+    }
+
+    public OpenLoadFlowParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
+        return this;
+    }
+
     public double getMinPlausibleTargetVoltage() {
         return minPlausibleTargetVoltage;
     }
@@ -406,6 +420,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
+                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
@@ -450,6 +465,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(DC_POWER_FACTOR_NAME))
                 .ifPresent(prop -> this.setDcPowerFactor(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_NAME))
+                .ifPresent(prop -> this.setDcPowerFactor(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME))
                 .ifPresent(prop -> this.setMinPlausibleTargetVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME))
@@ -480,6 +497,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", voltageInitModeOverride=" + voltageInitModeOverride +
                 ", transformerVoltageControlMode=" + transformerVoltageControlMode +
                 ", dcPowerFactor=" + dcPowerFactor +
+                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", minRealisticVoltage=" + minRealisticVoltage +
@@ -520,6 +538,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("DC power factor: {}", parametersExt.getDcPowerFactor());
+        LOGGER.info("Low impedance threshold: {}", parametersExt.getLowImpedanceThreshold());
     }
 
     /**

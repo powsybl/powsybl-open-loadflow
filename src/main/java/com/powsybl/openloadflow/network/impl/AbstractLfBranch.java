@@ -247,9 +247,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public boolean isZeroImpedanceBranch(boolean dc) {
         if (dc) {
-            return FastMath.abs(piModel.getX()) < OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD;
+            return FastMath.abs(piModel.getX()) < OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
         } else {
-            return piModel.getZ() < OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD;
+            return piModel.getZ() < OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
         }
     }
 
@@ -289,8 +289,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public void setMinZ(boolean dc) {
-        if (piModel.setMinZ(OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD, dc)) {
-            LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD);
+        if (piModel.setMinZ(OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, dc)) {
+            LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
         }
     }
 }

@@ -67,7 +67,7 @@ class LfSwitchTest {
 
     @Test
     void setterTest() {
-        lfSwitch.getPiModel().setX(OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD); //FIXME
+        lfSwitch.getPiModel().setX(OpenLoadFlowParameters.load().getLowImpedanceThreshold()); //FIXME
 
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         EquationTerm<AcVariableType, AcEquationType> p1 = new ClosedBranchSide1ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
