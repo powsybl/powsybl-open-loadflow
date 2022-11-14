@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -246,10 +245,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public boolean isZeroImpedanceBranch(boolean dc) {
+        double lowImpedanceThreshold = new LfNetworkParameters().getLowImpedanceThreshold();
         if (dc) {
-            return FastMath.abs(piModel.getX()) < OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
+            return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
         } else {
-            return piModel.getZ() < OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
+            return piModel.getZ() < lowImpedanceThreshold;
         }
     }
 
@@ -289,8 +289,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public void setMinZ(boolean dc) {
-        if (piModel.setMinZ(OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, dc)) {
-            LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
+        double lowImpedanceThreshold = new LfNetworkParameters().getLowImpedanceThreshold();
+        if (piModel.setMinZ(lowImpedanceThreshold, dc)) {
+            LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), lowImpedanceThreshold);
         }
     }
 }

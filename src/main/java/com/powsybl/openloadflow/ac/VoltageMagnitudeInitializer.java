@@ -11,7 +11,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import gnu.trove.list.array.TDoubleArrayList;
 import org.slf4j.Logger;
@@ -99,6 +98,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             variables = new ArrayList<>(neighbors.size());
             der = new TDoubleArrayList(neighbors.size());
             double bs = 0; // neighbor branches susceptance sum
+            double lowImpedanceThreshold = new LfNetworkParameters().getLowImpedanceThreshold();
             for (Map.Entry<LfBus, List<LfBranch>> e : neighbors.entrySet()) {
                 LfBus neighborBus = e.getKey();
                 List<LfBranch> neighborBranches = e.getValue();
@@ -109,7 +109,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 double r = 0;
                 for (LfBranch neighborBranch : neighborBranches) {
                     PiModel piModel = neighborBranch.getPiModel();
-                    double x = Math.max(Math.abs(piModel.getX()), OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE); // to void issue with negative reactances
+                    double x = Math.max(Math.abs(piModel.getX()), lowImpedanceThreshold); // to avoid issues with negative reactances
                     b += 1 / x;
                     r += neighborBranch.getBus1() == bus ? 1 / piModel.getR1() : piModel.getR1();
                 }

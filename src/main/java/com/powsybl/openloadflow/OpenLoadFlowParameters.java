@@ -63,7 +63,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final double DC_POWER_FACTOR_DEFAULT_VALUE = 1.0;
 
-    public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
+    public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
     public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
@@ -420,7 +420,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
-                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
+                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
@@ -627,6 +627,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
                 .setReactivePowerRemoteControl(parametersExt.hasReactivePowerRemoteControl())
                 .setDc(parameters.isDc())
+                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setShuntVoltageControl(parameters.isShuntCompensatorVoltageControlOn())
                 .setReactiveLimits(!parameters.isNoGeneratorReactiveLimits())
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())

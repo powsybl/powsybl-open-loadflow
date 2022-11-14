@@ -28,6 +28,8 @@ public class LfNetworkParameters {
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
 
+    public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
+
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
@@ -69,6 +71,8 @@ public class LfNetworkParameters {
     private double minPlausibleTargetVoltage = MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
     private double maxPlausibleTargetVoltage = MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
+
+    private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
 
@@ -258,6 +262,15 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setMaxPlausibleTargetVoltage(double maxPlausibleTargetVoltage) {
         this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
+        return this;
+    }
+
+    public double getLowImpedanceThreshold() {
+        return lowImpedanceThreshold;
+    }
+
+    public LfNetworkParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
         return this;
     }
 
