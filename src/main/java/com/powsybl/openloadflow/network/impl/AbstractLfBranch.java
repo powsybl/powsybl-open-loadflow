@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -246,9 +247,9 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public boolean isZeroImpedanceBranch(boolean dc) {
         if (dc) {
-            return FastMath.abs(piModel.getX()) < LOW_IMPEDANCE_THRESHOLD;
+            return FastMath.abs(piModel.getX()) < OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD;
         } else {
-            return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
+            return piModel.getZ() < OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD;
         }
     }
 
@@ -288,8 +289,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public void setMinZ(boolean dc) {
-        if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD, dc)) {
-            LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), LOW_IMPEDANCE_THRESHOLD);
+        if (piModel.setMinZ(OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD, dc)) {
+            LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), OpenLoadFlowParameters.LOW_IMPEDANCE_THRESHOLD);
         }
     }
 }

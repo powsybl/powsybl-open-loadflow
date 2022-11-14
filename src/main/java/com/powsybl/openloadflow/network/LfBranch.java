@@ -21,8 +21,6 @@ import java.util.Optional;
  */
 public interface LfBranch extends LfElement {
 
-    double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
-
     enum BranchType {
         LINE,
         TRANSFO_2,
