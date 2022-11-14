@@ -704,6 +704,37 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
+    void testSaDcModeSpecificContingencies() {
+        Network fourBusNetwork = FourBusNetworkFactory.create();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setDc(true);
+        setSlackBusId(lfParameters, "b1_vl");
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        List<Contingency> contingencies = createAllBranchesContingencies(fourBusNetwork);
+
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12"), Collections.emptySet(), Collections.emptySet()),
+                new StateMonitor(ContingencyContext.specificContingency("l14"), Set.of("l14", "l12", "l23", "l34", "l13"), Collections.emptySet(), Collections.emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
+
+        assertEquals(2, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
+        assertEquals("l14", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0).getBranchId());
+        assertEquals("l12", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(1).getBranchId());
+
+        assertEquals(5, result.getPostContingencyResults().size());
+        for (PostContingencyResult pcResult : result.getPostContingencyResults()) {
+            if (pcResult.getContingency().getId().equals("l14")) {
+                assertEquals(5, pcResult.getNetworkResult().getBranchResults().size());
+            } else {
+                assertEquals(2, pcResult.getNetworkResult().getBranchResults().size());
+            }
+        }
+    }
+
+    @Test
     void testSaDcModeWithIncreasedParameters() {
         Network fourBusNetwork = FourBusNetworkFactory.create();
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
@@ -2040,5 +2071,43 @@ class OpenSecurityAnalysisTest {
                 AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.NO_CALCULATION));
         assertEquals(PostContingencyComputationStatus.FAILED,
                 AbstractSecurityAnalysis.postContingencyStatusFromNRStatus(NewtonRaphsonStatus.UNREALISTIC_STATE));
+    }
+
+    @Test
+    void testCheckActions() {
+        Network network = MetrixTutorialSixBusesFactory.create();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
+
+        List<Action> actions = List.of(new SwitchAction("openSwitch", "switch", true));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")));
+        CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP));
+        assertEquals("Switch 'switch' not found", exception.getCause().getMessage());
+
+        List<Action> actions2 = List.of(new LineConnectionAction("openLine", "line", true, true));
+        List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLine")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies2, actions2, Reporter.NO_OP));
+        assertEquals("Branch 'line' not found", exception.getCause().getMessage());
+
+        List<Action> actions3 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst1", false, 1));
+        List<OperatorStrategy> operatorStrategies3 = List.of(new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies3, actions3, Reporter.NO_OP));
+        assertEquals("Branch 'pst1' not found", exception.getCause().getMessage());
+
+        List<Action> actions4 = Collections.emptyList();
+        List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", "S_SO_1", new TrueCondition(), List.of("x")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies4, actions4, Reporter.NO_OP));
+        assertEquals("Operator strategy 'strategy4' is associated to action 'x' but this action is not present in the list", exception.getCause().getMessage());
+
+        List<Action> actions5 = List.of(new SwitchAction("openSwitch", "NOD1_NOD1  NE1  1_SC5_0", true));
+        List<OperatorStrategy> operatorStrategies5 = List.of(new OperatorStrategy("strategy5", "y", new TrueCondition(), List.of("openSwitch")));
+        exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies5, actions5, Reporter.NO_OP));
+        assertEquals("Operator strategy 'strategy5' is associated to contingency 'y' but this contingency is not present in the list", exception.getCause().getMessage());
     }
 }

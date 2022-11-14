@@ -210,14 +210,9 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                 consistency = false;
             }
         }
-        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > 0) {
+        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
-            consistency = false;
-        }
-        if (getTargetP() < getMinP() && getMinP() > 0) {
-            LOGGER.trace("Discard starting generator '{}' from voltage control (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
-            report.generatorsDiscardedFromVoltageControlBecauseStarting++;
             consistency = false;
         }
         return consistency;
