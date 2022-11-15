@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +42,7 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
-    void test() throws InterruptedException {
+    void testLoadP() throws InterruptedException {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var load = network.getLoad("LOAD");
         var gen = network.getGenerator("GEN");
@@ -71,5 +72,20 @@ class AcLoadFlowWithCachingTest {
             TimeUnit.MILLISECONDS.sleep(100);
         } while (NetworkCache.INSTANCE.getEntryCount() > 0 && retry < 10);
         assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
+    }
+
+    @Test
+    void testSwitchOpen() {
+        var network = NodeBreakerNetworkFactory.create();
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+
+        network.getSwitch("C").setOpen(true);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
     }
 }

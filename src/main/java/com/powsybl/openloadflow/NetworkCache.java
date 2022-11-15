@@ -274,14 +274,18 @@ public enum NetworkCache {
 
                 return entry;
             } else {
-                LOGGER.info("Network cache reused for network '{}'", network.getId());
-
                 // restart from previous state
-                for (AcLoadFlowContext context : entry.getContexts()) {
-                    AcLoadFlowResult result = context.getResult();
-                    if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                if (entry.getContexts() != null) {
+                    LOGGER.info("Network cache reused for network '{}'", network.getId());
+
+                    for (AcLoadFlowContext context : entry.getContexts()) {
+                        AcLoadFlowResult result = context.getResult();
+                        if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
+                            context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                        }
                     }
+                } else {
+                    LOGGER.info("Network cache cannot be reused for network '{}' because invalided", network.getId());
                 }
 
                 return entry;
