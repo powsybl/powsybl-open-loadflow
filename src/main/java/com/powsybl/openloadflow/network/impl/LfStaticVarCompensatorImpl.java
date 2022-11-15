@@ -29,7 +29,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                        boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                       double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+                                       double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, RangeMode rangeMode) {
         super(network, 0);
         this.svc = svc;
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
@@ -65,7 +65,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
             setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), breakers,
-                              reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                              reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, rangeMode);
             if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
                 this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
             }
@@ -74,10 +74,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                                     boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+                                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, RangeMode rangeMode) {
         Objects.requireNonNull(svc);
         return new LfStaticVarCompensatorImpl(svc, network, bus, voltagePerReactivePowerControl, breakers, reactiveLimits,
-                report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, rangeMode);
     }
 
     @Override

@@ -226,16 +226,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addGenerator(Generator generator, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                      LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        add(LfGeneratorImpl.create(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage));
+                      LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, LfGenerator.RangeMode rangeMode) {
+        add(LfGeneratorImpl.create(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, rangeMode));
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl,
                                  boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                 double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+                                 double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, LfGenerator.RangeMode rangeMode) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, voltagePerReactivePowerControl,
-                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, rangeMode);
             add(lfSvc);
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
@@ -244,8 +244,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addVscConverterStation(VscConverterStation vscCs, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
-        add(LfVscConverterStationImpl.create(vscCs, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage));
+                                double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, LfGenerator.RangeMode rangeMode) {
+        add(LfVscConverterStationImpl.create(vscCs, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, rangeMode));
     }
 
     void addBattery(Battery generator, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {

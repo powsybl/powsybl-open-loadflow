@@ -72,6 +72,8 @@ public class LfNetworkParameters {
 
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
 
+    private LfGenerator.RangeMode rangeMode = LfGenerator.RangeMode.MAX;
+
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
     }
@@ -261,6 +263,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LfGenerator.RangeMode getRangeMode() {
+        return rangeMode;
+    }
+
+    public LfNetworkParameters setRangeMode(LfGenerator.RangeMode rangeMode) {
+        this.rangeMode = rangeMode;
+        return this;
+    }
+
     public Set<String> getLoaderPostProcessorSelection() {
         return loaderPostProcessorSelection;
     }
@@ -294,6 +305,7 @@ public class LfNetworkParameters {
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", loaderPostProcessorSelection=" + loaderPostProcessorSelection +
+                ", rangeMode=" + rangeMode +
                 ')';
     }
 }
