@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.StandbyAutomaton;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -28,11 +29,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private double slope = 0;
 
-    private Double b0;
-
     double targetQ;
 
+    private LfShunt shunt;
+
     private StandByAutomaton standByAutomaton;
+
+    private double b0 = 0.0;
 
     public static class StandByAutomaton {
         // if the static var compensator has an automaton in stand by, this object must be field.
@@ -77,13 +80,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
             @Override
             public double getMinQ() {
                 double v = bus.getV() * nominalV;
-                return (svc.getBmin() + (b0 != null ? b0 : 0)) * v * v;
+                return (svc.getBmin() + b0) * v * v;
             }
 
             @Override
             public double getMaxQ() {
                 double v = bus.getV() * nominalV;
-                return (svc.getBmax() + (b0 != null ? b0 : 0)) * v * v;
+                return (svc.getBmax() + b0) * v * v;
             }
 
             @Override
@@ -105,7 +108,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
         if (standbyAutomaton != null && standbyAutomaton.getB0() != 0.0) {
             // a static var compensator with an extension stand by automaton includes an offset of B0,
-            // whatever it is in stand by or not. FIXME: should be verified.
+            // whatever it is in stand by or not.
+            this.shunt = new LfShuntImpl(standbyAutomaton.getB0(), this.nominalV, network, bus);
             this.b0 = standbyAutomaton.getB0();
         }
 
@@ -168,7 +172,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         double q = Double.isNaN(calculatedQ) ? newTargetQ : -calculatedQ;
         svc.getTerminal()
                 .setP(0)
-                .setQ(q - (b0 != null ? b0 : 0.0) * vSquare);
+                .setQ(q - b0 * vSquare);
     }
 
     @Override
@@ -181,8 +185,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         this.slope = slope;
     }
 
-    public Optional<Double> getB0() {
-        return Optional.ofNullable(b0);
+    public Optional<LfShunt> getShunt() {
+        return Optional.ofNullable(shunt);
     }
 
     public Optional<StandByAutomaton> getStandByAutomaton() {

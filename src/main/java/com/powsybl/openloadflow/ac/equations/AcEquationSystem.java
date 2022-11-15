@@ -149,6 +149,12 @@ public final class AcEquationSystem {
             ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
         });
+        bus.getSvcShunt().ifPresent(shunt -> {
+            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), false);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
+            ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
+        });
     }
 
     private static void createRemoteVoltageControlEquations(VoltageControl voltageControl,

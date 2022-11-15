@@ -115,6 +115,8 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getControllerShunt();
 
+    Optional<LfShunt> getSvcShunt();
+
     LfAggregatedLoads getAggregatedLoads();
 
     List<LfBranch> getBranches();
@@ -167,6 +169,4 @@ public interface LfBus extends LfElement {
      * Only make sens for slack bus.
      */
     double getMismatchP();
-
-    void addShunt(LfShunt shunt);
 }

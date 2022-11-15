@@ -22,6 +22,10 @@ public final class PerUnit {
         return BASE_CURRENT_FACTOR / nominalV;
     }
 
+    public static double zb(double nominalV) {
+        return nominalV * nominalV / SB;
+    }
+
     private PerUnit() {
     }
 }

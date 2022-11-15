@@ -57,6 +57,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt controllerShunt;
 
+    protected LfShunt svcShunt;
+
     protected final LfAggregatedLoadsImpl lfAggregatedLoads;
 
     protected boolean ensurePowerFactorConstantByLoad = false;
@@ -240,6 +242,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
             }
+            if (lfSvc.getShunt().isPresent()) {
+                svcShunt = lfSvc.getShunt().get();
+            }
         }
     }
 
@@ -391,6 +396,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public Optional<LfShunt> getControllerShunt() {
         return Optional.ofNullable(controllerShunt);
+    }
+
+    @Override
+    public Optional<LfShunt> getSvcShunt() {
+        return Optional.ofNullable(svcShunt);
     }
 
     @Override
@@ -567,14 +577,5 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getMismatchP() {
         return p.eval() - getTargetP(); // slack bus can also have real injection connected
-    }
-
-    @Override
-    public void addShunt(LfShunt shunt) {
-        if (this.shunt == null) {
-            this.shunt = shunt;
-        } else {
-            throw new IllegalStateException("LfBus '" + getId() + "'already has a shunt."); // FIXME.
-        }
     }
 }

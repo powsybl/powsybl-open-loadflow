@@ -105,7 +105,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                                       boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, LfNetworkLoadingReport report) {
         Objects.requireNonNull(branch);
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
-        double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        double zb = PerUnit.zb(nominalV2);
         if (branch instanceof Line) {
             return createLine((Line) branch, network, bus1, bus2, zb, addRatioToLinesWithDifferentNominalVoltageAtBothEnds, report);
         } else if (branch instanceof TwoWindingsTransformer) {
