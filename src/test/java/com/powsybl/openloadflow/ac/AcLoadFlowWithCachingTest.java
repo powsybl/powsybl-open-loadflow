@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -27,15 +28,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class AcLoadFlowWithCachingTest {
 
+    private LoadFlow.Runner loadFlowRunner;
+
+    private LoadFlowParameters parameters;
+
+    @BeforeEach
+    void setUp() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setNetworkCacheEnabled(true);
+    }
+
     @Test
     void test() throws InterruptedException {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var load = network.getLoad("LOAD");
         var gen = network.getGenerator("GEN");
-        var loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        var parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
-                        .setNetworkCacheEnabled(true);
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
