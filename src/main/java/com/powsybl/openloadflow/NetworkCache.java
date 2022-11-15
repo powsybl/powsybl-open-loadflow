@@ -13,6 +13,7 @@ import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
@@ -98,7 +99,8 @@ public enum NetworkCache {
             // seems to be not called anymore
         }
 
-        private void onLoadUpdate(Load load, String attribute, Object oldValue, Object newValue) {
+        private boolean onLoadUpdate(Load load, String attribute, Object oldValue, Object newValue) {
+            boolean found = false;
             for (AcLoadFlowContext context : contexts) {
                 Bus bus = context.getParameters().getNetworkParameters().isBreakers()
                         ? load.getTerminal().getBusBreakerView().getBus()
@@ -112,12 +114,34 @@ public enum NetworkCache {
                             double newLoadP = lfBus.getLoadTargetP() + loadShiftP / PerUnit.SB;
                             lfBus.reInitLoadTargetP(newLoadP);
                             context.setNetworkUpdated(true);
+                            found = true;
+                            break;
                         } else {
                             throw new IllegalStateException("Unsupported load attribute: " + attribute);
                         }
                     }
                 }
             }
+            if (!found) {
+                LOGGER.warn("Cannot update {} of load '{}'", attribute, load.getId());
+            }
+            return found;
+        }
+
+        private boolean onSwitchOpen(String switchId) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                LfNetwork lfNetwork = context.getNetwork();
+                LfBranch lfBranch = lfNetwork.getBranchById(switchId);
+                if (lfBranch != null) {
+                    // TODO
+                    found = true;
+                }
+            }
+            if (!found) {
+                LOGGER.warn("Cannot open switch '{}'", switchId);
+            }
+            return found;
         }
 
         @Override
@@ -143,7 +167,13 @@ public enum NetworkCache {
                     if (identifiable.getType() == IdentifiableType.LOAD) {
                         Load load = (Load) identifiable;
                         if (attribute.equals("p0")) {
-                            onLoadUpdate(load, attribute, oldValue, newValue);
+                            if (onLoadUpdate(load, attribute, oldValue, newValue)) {
+                                done = true;
+                            }
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.SWITCH
+                            && attribute.equals("open")) {
+                        if (onSwitchOpen(identifiable.getId())) {
                             done = true;
                         }
                     }
