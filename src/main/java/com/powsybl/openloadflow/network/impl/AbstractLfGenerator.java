@@ -141,18 +141,18 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             switch (reactiveLimits.getKind()) {
                 case CURVE:
                     ReactiveCapabilityCurve reactiveCapabilityCurve = (ReactiveCapabilityCurve) reactiveLimits;
-                    for (ReactiveCapabilityCurve.Point point : reactiveCapabilityCurve.getPoints()) {
-                        if (Double.isNaN(rangeQ)) {
-                            rangeQ = point.getMaxQ() - point.getMinQ();
-                        } else {
-                            if (rangeMode == ReactiveRangeMode.MAX) {
-                                rangeQ = Math.max(rangeQ, point.getMaxQ() - point.getMinQ());
-                            } else if (rangeMode == ReactiveRangeMode.MIN) {
-                                rangeQ = Math.min(rangeQ, point.getMaxQ() - point.getMinQ());
+                    if (rangeMode == ReactiveRangeMode.MIN || rangeMode == ReactiveRangeMode.MAX) {
+                        for (ReactiveCapabilityCurve.Point point : reactiveCapabilityCurve.getPoints()) {
+                            if (Double.isNaN(rangeQ)) {
+                                rangeQ = point.getMaxQ() - point.getMinQ();
                             } else {
-                                throw new PowsyblException("Unsupported range mode: " + rangeMode);
+                                rangeQ = (rangeMode == ReactiveRangeMode.MAX) ? Math.max(rangeQ, point.getMaxQ() - point.getMinQ()) : Math.min(rangeQ, point.getMaxQ() - point.getMinQ());
                             }
                         }
+                    } else if (rangeMode == ReactiveRangeMode.TARGET_P) {
+                        rangeQ = reactiveLimits.getMaxQ(targetP) - reactiveLimits.getMinQ(targetP);
+                    } else {
+                        throw new PowsyblException("Unsupported reactive range mode: " + rangeMode);
                     }
                     break;
 
@@ -225,9 +225,15 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                     }
                     break;
                 case TARGET_P:
+                    double rangeQ = getRangeQ(ReactiveRangeMode.TARGET_P);
+                    if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                        LOGGER.trace("Discard generator '{}' from voltage control because ({}) reactive range at targetP ({}) is too small", getId(), rangeQ);
+                        report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
+                        consistency = false;
+                    }
                     break;
                 default:
-                    throw new IllegalStateException("Unknown reactive range mode check: " + reactiveRangeCheckMode);
+                    throw new IllegalStateException("Unknown reactive range check mode: " + reactiveRangeCheckMode);
             }
         }
         if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
