@@ -1095,7 +1095,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
         List<SensitivityFactor> factors = List.of(factorActivePower1Twt);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-        assertEquals(2, result.getValues().size());
+        assertEquals(1, result.getValues().size());
         SensitivityValue v = result.getValues().get(0);
         assertEquals(-1.001, v.getValue(), LoadFlowAssert.DELTA_POWER);
     }
