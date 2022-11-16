@@ -41,7 +41,7 @@ class FullVoltageInitializerTest {
                                                                                                       true,
                                                                                                       matrixFactory,
                                                                                                       Reporter.NO_OP));
-        initializer.prepare(lfNetwork);
+        initializer.prepare(lfNetwork, new LfNetworkParameters().getLowImpedanceThreshold());
         assertBusVoltage(lfNetwork, initializer, "VLGEN_0", 1.020833, 0);
         assertBusVoltage(lfNetwork, initializer, "VLHV1_0", 1.074561, -2.511475);
         assertBusVoltage(lfNetwork, initializer, "VLHV2_0", 1.074561, -6.439649);

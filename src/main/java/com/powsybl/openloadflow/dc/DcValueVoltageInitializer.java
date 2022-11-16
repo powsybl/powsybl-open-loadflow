@@ -46,7 +46,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public void prepare(LfNetwork network) {
+    public void prepare(LfNetwork network, double lowImpedanceThreshold) {
         // in case of distributed slack, we need to save and restore generators and loads target p which might have been
         // modified by slack distribution, so that AC load flow can restart from original state
         List<BusDcState> busStates = distributedSlack ? ElementState.save(network.getBuses(), BusDcState::save) : null;
