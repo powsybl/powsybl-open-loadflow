@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
@@ -28,7 +29,7 @@ public class LfNetworkParameters {
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
 
-    public static final LfGenerator.RangeMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = LfGenerator.RangeMode.MAX;
+    public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MIN_MAX;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
 
@@ -74,7 +75,7 @@ public class LfNetworkParameters {
 
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
 
-    private LfGenerator.RangeMode rangeMode = LfGenerator.RangeMode.MAX;
+    private OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -265,12 +266,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public LfGenerator.RangeMode getRangeMode() {
-        return rangeMode;
+    public OpenLoadFlowParameters.ReactiveRangeCheckMode getReactiveRangeCheckMode() {
+        return reactiveRangeCheckMode;
     }
 
-    public LfNetworkParameters setRangeMode(LfGenerator.RangeMode rangeMode) {
-        this.rangeMode = rangeMode;
+    public LfNetworkParameters setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+        this.reactiveRangeCheckMode = reactiveRangeCheckMode;
         return this;
     }
 
@@ -307,7 +308,7 @@ public class LfNetworkParameters {
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", loaderPostProcessorSelection=" + loaderPostProcessorSelection +
-                ", rangeMode=" + rangeMode +
+                ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ')';
     }
 }

@@ -17,8 +17,8 @@ public interface LfGenerator extends PropertyBag {
         OFF, REMOTE_REACTIVE_POWER, VOLTAGE
     }
 
-    enum RangeMode {
-        MIN, MAX
+    enum ReactiveRangeMode {
+        MIN, MAX, TARGET_P
     }
 
     String getId();
@@ -55,7 +55,7 @@ public interface LfGenerator extends PropertyBag {
 
     double getMaxQ();
 
-    double getRangeQ(RangeMode rangeMode);
+    double getRangeQ(ReactiveRangeMode reactiveRangeMode);
 
     default boolean isParticipating() {
         return false;
