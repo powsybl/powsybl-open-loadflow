@@ -33,8 +33,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected double targetP;
 
-    protected double initialTargetP;
-
     protected LfBus bus;
 
     protected double calculatedQ = Double.NaN;
@@ -54,7 +52,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
         this.network = Objects.requireNonNull(network);
         this.targetP = targetP;
-        this.initialTargetP = targetP;
     }
 
     @Override
@@ -219,7 +216,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                     double minRangeQ = getRangeQ(ReactiveRangeMode.MIN);
                     double maxRangeQ = getRangeQ(ReactiveRangeMode.MAX);
                     if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || minRangeQ == 0.0) {
-                        LOGGER.trace("Discard generator '{}' from voltage control because ({}) min or max reactive ranges (min: {} and max: {}) are too small", getId(), minRangeQ, maxRangeQ);
+                        LOGGER.trace("Discard generator '{}' from voltage control because min or max reactive ranges (min: {} and max: {}) are too small", getId(), minRangeQ, maxRangeQ);
                         report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
                         consistency = false;
                     }
@@ -227,7 +224,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                 case TARGET_P:
                     double rangeQ = getRangeQ(ReactiveRangeMode.TARGET_P);
                     if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-                        LOGGER.trace("Discard generator '{}' from voltage control because ({}) reactive range at targetP ({}) is too small", getId(), rangeQ);
+                        LOGGER.trace("Discard generator '{}' from voltage control because reactive range at targetP ({}) is too small", getId(), rangeQ);
                         report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
                         consistency = false;
                     }
