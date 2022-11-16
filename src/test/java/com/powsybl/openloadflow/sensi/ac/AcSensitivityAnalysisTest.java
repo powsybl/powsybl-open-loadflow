@@ -1085,4 +1085,32 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(92.0836, result.getBranchCurrent1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_I);
     }
+
+    @Test
+    void testThreeWindingsTransformerAsFunction() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        SensitivityFactor factorActivePower1Twt = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "T3wT",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
+        List<SensitivityFactor> factors = List.of(factorActivePower1Twt);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(2, result.getValues().size());
+        SensitivityValue v = result.getValues().get(0);
+        assertEquals(-1.001, v.getValue(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testThreeWindingsTransformerAsVariable() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = PhaseControlFactory.createNetworkWithT3wt();
+        SensitivityFactor factorActivePower1Line = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "L1",
+                SensitivityVariableType.TRANSFORMER_PHASE_2, "PS1", false, ContingencyContext.all());
+        List<SensitivityFactor> factors = List.of(factorActivePower1Line);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+        assertEquals(1, result.getValues().size());
+        SensitivityValue v = result.getValues().get(0);
+        assertEquals(5.421, v.getValue(), LoadFlowAssert.DELTA_POWER);
+    }
 }
