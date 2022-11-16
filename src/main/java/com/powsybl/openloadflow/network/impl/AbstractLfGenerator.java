@@ -32,6 +32,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected double targetP;
 
+    protected double initialTargetP;
+
     protected LfBus bus;
 
     protected double calculatedQ = Double.NaN;
@@ -51,6 +53,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
         this.network = Objects.requireNonNull(network);
         this.targetP = targetP;
+        this.initialTargetP = targetP;
     }
 
     @Override
@@ -210,9 +213,10 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected boolean checkVoltageControlConsistency(boolean reactiveLimits, LfNetworkLoadingReport report, RangeMode rangeMode) {
         boolean consistency = true;
         if (reactiveLimits) {
-            double rangeQ = getRangeQ(rangeMode);
-            if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-                LOGGER.trace("Discard generator '{}' from voltage control because ({}) reactive range ({}) is too small", getId(), rangeMode, rangeQ);
+            double minRangeQ = getRangeQ(RangeMode.MIN);
+            double maxRangeQ = getRangeQ(RangeMode.MAX);
+            if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || minRangeQ == 0.0) {
+                LOGGER.trace("Discard generator '{}' from voltage control because ({}) reactive range ({}) is too small", getId(), rangeMode, maxRangeQ);
                 report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
                 consistency = false;
             }
