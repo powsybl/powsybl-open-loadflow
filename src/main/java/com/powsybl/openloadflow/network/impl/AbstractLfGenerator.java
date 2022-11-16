@@ -143,7 +143,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                             if (Double.isNaN(rangeQ)) {
                                 rangeQ = point.getMaxQ() - point.getMinQ();
                             } else {
-                                rangeQ = (rangeMode == ReactiveRangeMode.MAX) ? Math.max(rangeQ, point.getMaxQ() - point.getMinQ()) : Math.min(rangeQ, point.getMaxQ() - point.getMinQ());
+                                rangeQ = rangeMode == ReactiveRangeMode.MAX ? Math.max(rangeQ, point.getMaxQ() - point.getMinQ())
+                                                                            : Math.min(rangeQ, point.getMaxQ() - point.getMinQ());
                             }
                         }
                     } else if (rangeMode == ReactiveRangeMode.TARGET_P) {
