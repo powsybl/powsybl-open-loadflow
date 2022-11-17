@@ -28,7 +28,7 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public void prepare(LfNetwork network) {
+    public void prepare(LfNetwork network, double lowImpedanceThreshold) {
         // nothing to do
     }
 

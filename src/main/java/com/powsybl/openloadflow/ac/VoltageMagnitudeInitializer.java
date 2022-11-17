@@ -87,7 +87,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         private final TDoubleArrayList der;
 
-        public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet) {
+        public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet, double lowImpedanceThreshold) {
             super(bus);
 
             Map<LfBus, List<LfBranch>> neighbors = bus.findNeighbors();
@@ -108,7 +108,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 double r = 0;
                 for (LfBranch neighborBranch : neighborBranches) {
                     PiModel piModel = neighborBranch.getPiModel();
-                    double x = Math.max(Math.abs(piModel.getX()), LfBranch.LOW_IMPEDANCE_THRESHOLD); // to void issue with negative reactances
+                    double x = Math.max(Math.abs(piModel.getX()), lowImpedanceThreshold); // to avoid issues with negative reactances
                     b += 1 / x;
                     r += neighborBranch.getBus1() == bus ? 1 / piModel.getR1() : piModel.getR1();
                 }
@@ -181,7 +181,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     }
 
     @Override
-    public void prepare(LfNetwork network) {
+    public void prepare(LfNetwork network, double lowImpedanceThreshold) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // create the equation system:
@@ -202,7 +202,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                         .addTerm(v);
             } else {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_ZERO)
-                        .addTerm(new InitVmBusEquationTerm(bus, equationSystem.getVariableSet()))
+                        .addTerm(new InitVmBusEquationTerm(bus, equationSystem.getVariableSet(), lowImpedanceThreshold))
                         .addTerm(v.minus());
             }
         }
