@@ -776,7 +776,7 @@ public final class AcEquationSystem {
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
-        network.addListener(new AcEquationSystemUpdater(equationSystem));
+        network.addListener(new AcEquationSystemUpdater(equationSystem, creationParameters.getLowImpedanceThreshold()));
 
         return equationSystem;
     }

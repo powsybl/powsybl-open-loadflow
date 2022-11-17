@@ -19,8 +19,11 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private final double lowImpedanceThreshold;
+
+    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem, double lowImpedanceThreshold) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
     }
 
     @Override
@@ -45,7 +48,6 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     private void updateElementEquations(LfElement element, boolean enable) {
-        double lowImpedanceThreshold = 1.0E-8; // CAIOTODO
         if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranch(false, lowImpedanceThreshold)) {
             LfBranch branch = (LfBranch) element;
             if (branch.isSpanningTreeEdge()) {
