@@ -1097,13 +1097,28 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
         SensitivityFactor factorActivePower3Twt = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_3, "T3wT",
                 SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
-        List<SensitivityFactor> factors = List.of(factorActivePower1Twt, factorActivePower2Twt, factorActivePower3Twt);
+
+        SensitivityFactor factorCurrent1 = new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_1, "T3wT",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
+        SensitivityFactor factorCurrent2 = new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_2, "T3wT",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
+        SensitivityFactor factorCurrent3 = new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_3, "T3wT",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
+
+        List<SensitivityFactor> factors = List.of(factorActivePower1Twt, factorActivePower2Twt, factorActivePower3Twt,
+                factorCurrent1, factorCurrent2, factorCurrent3);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-        assertEquals(3, result.getValues().size());
-        SensitivityValue v = result.getValues().get(0);
+        assertEquals(6, result.getValues().size());
+
+        //Function active power
         assertEquals(-1.001, result.getValues().get(0).getValue(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, result.getValues().get(1).getValue(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.999, result.getValues().get(2).getValue(), LoadFlowAssert.DELTA_POWER);
+
+        //Function branch current
+        assertEquals(-4.309, result.getValues().get(3).getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(-0.001, result.getValues().get(4).getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(-55.986, result.getValues().get(5).getValue(), LoadFlowAssert.DELTA_I);
     }
 
     @Test
