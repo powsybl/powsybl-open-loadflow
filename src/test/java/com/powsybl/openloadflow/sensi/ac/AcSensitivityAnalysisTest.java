@@ -1093,11 +1093,17 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
         SensitivityFactor factorActivePower1Twt = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "T3wT",
                 SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
-        List<SensitivityFactor> factors = List.of(factorActivePower1Twt);
+        SensitivityFactor factorActivePower2Twt = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_2, "T3wT",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
+        SensitivityFactor factorActivePower3Twt = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_3, "T3wT",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, "LOAD_4", false, ContingencyContext.all());
+        List<SensitivityFactor> factors = List.of(factorActivePower1Twt, factorActivePower2Twt, factorActivePower3Twt);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-        assertEquals(1, result.getValues().size());
+        assertEquals(3, result.getValues().size());
         SensitivityValue v = result.getValues().get(0);
-        assertEquals(-1.001, v.getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.001, result.getValues().get(0).getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getValues().get(1).getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.999, result.getValues().get(2).getValue(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1105,12 +1111,80 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = PhaseControlFactory.createNetworkWithT3wt();
-        SensitivityFactor factorActivePower1Line = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "L1",
+
+        //Add phase tap changer to leg1 and leg3 of the twt for testing purpose
+        ThreeWindingsTransformer twt = network.getThreeWindingsTransformer("PS1");
+        twt.getLeg1().newPhaseTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(twt.getLeg1().getTerminal())
+                .setRegulationMode(PhaseTapChanger.RegulationMode.FIXED_TAP)
+                .setRegulationValue(200)
+                .beginStep()
+                .setAlpha(-5.0)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(0.0)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(5)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .add();
+        twt.getLeg3().newPhaseTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(twt.getLeg3().getTerminal())
+                .setRegulationMode(PhaseTapChanger.RegulationMode.FIXED_TAP)
+                .setRegulationValue(200)
+                .beginStep()
+                .setAlpha(-5.0)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(0.0)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(5)
+                .setRho(1.0)
+                .setR(0.0)
+                .setX(0.0)
+                .setG(0.0)
+                .setB(0.0)
+                .endStep()
+                .add();
+        SensitivityFactor factorPhase1 = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "L1",
+                SensitivityVariableType.TRANSFORMER_PHASE_1, "PS1", false, ContingencyContext.all());
+        SensitivityFactor factorPhase2 = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "L1",
                 SensitivityVariableType.TRANSFORMER_PHASE_2, "PS1", false, ContingencyContext.all());
-        List<SensitivityFactor> factors = List.of(factorActivePower1Line);
+        SensitivityFactor factorPhase3 = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "L1",
+                SensitivityVariableType.TRANSFORMER_PHASE_3, "PS1", false, ContingencyContext.all());
+        List<SensitivityFactor> factors = List.of(factorPhase1, factorPhase2, factorPhase3);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-        assertEquals(1, result.getValues().size());
-        SensitivityValue v = result.getValues().get(0);
-        assertEquals(5.421, v.getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(3, result.getValues().size());
+        assertEquals(-5.421, result.getValues().get(0).getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(5.421, result.getValues().get(1).getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getValues().get(2).getValue(), LoadFlowAssert.DELTA_POWER);
     }
 }
