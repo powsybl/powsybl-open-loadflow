@@ -451,10 +451,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    public void fix(boolean minImpedance, boolean dc) {
+    public void fix(boolean minImpedance, boolean dc, double lowImpedanceThreshold) {
         if (minImpedance) {
             for (LfBranch branch : branches) {
-                branch.setMinZ(dc);
+                branch.setMinZ(dc, lowImpedanceThreshold);
             }
         }
     }
@@ -500,7 +500,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         List<LfNetwork> lfNetworks = networkLoader.load(network, parameters, reporter);
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
-            lfNetwork.fix(parameters.isMinImpedance(), parameters.isDc());
+            lfNetwork.fix(parameters.isMinImpedance(), parameters.isDc(), parameters.getLowImpedanceThreshold());
             lfNetwork.validate(parameters.isDc(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
