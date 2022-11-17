@@ -190,6 +190,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public enum ReactiveRangeCheckMode {
         MIN_MAX,
+        MAX,
         TARGET_P
     }
 

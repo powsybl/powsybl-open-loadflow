@@ -212,6 +212,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected boolean checkVoltageControlConsistency(boolean reactiveLimits, LfNetworkLoadingReport report, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         boolean consistency = true;
         if (reactiveLimits) {
+            double rangeQ;
             switch (reactiveRangeCheckMode) {
                 case MIN_MAX:
                     double minRangeQ = getRangeQ(ReactiveRangeMode.MIN);
@@ -222,8 +223,16 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                         consistency = false;
                     }
                     break;
+                case MAX:
+                    rangeQ = getRangeQ(ReactiveRangeMode.MAX);
+                    if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                        LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), rangeQ);
+                        report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
+                        consistency = false;
+                    }
+                    break;
                 case TARGET_P:
-                    double rangeQ = getRangeQ(ReactiveRangeMode.TARGET_P);
+                    rangeQ = getRangeQ(ReactiveRangeMode.TARGET_P);
                     if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
                         LOGGER.trace("Discard generator '{}' from voltage control because reactive range at targetP ({}) is too small", getId(), rangeQ);
                         report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
