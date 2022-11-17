@@ -29,6 +29,8 @@ public class LfNetworkParameters {
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
 
+    public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
+
     public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
@@ -70,6 +72,8 @@ public class LfNetworkParameters {
     private boolean hvdcAcEmulation = false;
 
     private double minPlausibleTargetVoltage = MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
+
+    private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
     private double maxPlausibleTargetVoltage = MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
@@ -263,6 +267,15 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setMaxPlausibleTargetVoltage(double maxPlausibleTargetVoltage) {
         this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
+        return this;
+    }
+
+    public double getLowImpedanceThreshold() {
+        return lowImpedanceThreshold;
+    }
+
+    public LfNetworkParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
         return this;
     }
 

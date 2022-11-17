@@ -33,6 +33,7 @@
         "voltageInitModeOverride" : "NONE",
         "transformerVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
         "dcPowerFactor" : 1.0,
+        "lowImpedanceThreshold" : 1.0E-8,
         "minPlausibleTargetVoltage" : 0.8,
         "maxPlausibleTargetVoltage" : 1.2,
         "minRealisticVoltage" : 0.5,
