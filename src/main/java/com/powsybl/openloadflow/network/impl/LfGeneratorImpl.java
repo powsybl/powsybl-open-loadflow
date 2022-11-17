@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -30,7 +31,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     private double droop;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                            LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+                            LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         super(network, generator.getTargetP());
         this.generator = generator;
         participating = true;
@@ -50,7 +51,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
         if (generator.isVoltageRegulatorOn()) {
             setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), breakers,
-                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
         }
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
@@ -61,10 +62,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     public static LfGeneratorImpl create(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit,
                                          boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                                         double maxPlausibleTargetVoltage) {
+                                         double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+        return new LfGeneratorImpl(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report,
+                minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
     }
 
     @Override
