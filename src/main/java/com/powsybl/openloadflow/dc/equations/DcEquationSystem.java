@@ -108,11 +108,10 @@ public final class DcEquationSystem {
     private static void createBranches(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                        DcEquationSystemCreationParameters creationParameters) {
         List<LfBranch> nonImpedantBranches = new ArrayList<>();
-
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (branch.isZeroImpedanceBranch(true)) {
+            if (branch.isZeroImpedanceBranch(true, creationParameters.getLowImpedanceThreshold())) {
                 if (bus1 != null && bus2 != null) {
                     nonImpedantBranches.add(branch);
                 }

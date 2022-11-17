@@ -518,7 +518,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
      * @return the zero-impedance subgraph
      */
     public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(boolean dc) {
-        return createSubGraph(branch -> branch.isZeroImpedanceBranch(dc)
+        double lowImpedanceThreshold = 1.0E-8; // CAIOTODO
+        return createSubGraph(branch -> branch.isZeroImpedanceBranch(dc, lowImpedanceThreshold)
                 && branch.getBus1() != null && branch.getBus2() != null);
     }
 

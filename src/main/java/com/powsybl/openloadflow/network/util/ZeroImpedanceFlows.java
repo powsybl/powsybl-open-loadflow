@@ -131,8 +131,9 @@ public class ZeroImpedanceFlows {
             PQ balancePQ = new PQ(-bus.getP().eval(), -bus.getQ().eval());
 
             // only lines with impedance
+            double lowImpedanceThreshold = 1.0E-8; // CAIOTODO
             List<LfBranch> adjacentBranchesWithImpedance = bus.getBranches().stream()
-                .filter(branch -> !branch.isZeroImpedanceBranch(dc)).collect(Collectors.toList());
+                .filter(branch -> !branch.isZeroImpedanceBranch(dc, lowImpedanceThreshold)).collect(Collectors.toList());
 
             adjacentBranchesWithImpedance.forEach(branch -> {
                 PQ branchFlow = getBranchFlow(branch, bus);

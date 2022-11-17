@@ -45,7 +45,8 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
     }
 
     private void updateElementEquations(LfElement element, boolean enable) {
-        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranch(false)) {
+        double lowImpedanceThreshold = 1.0E-8; // CAIOTODO
+        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranch(false, lowImpedanceThreshold)) {
             LfBranch branch = (LfBranch) element;
             if (branch.isSpanningTreeEdge()) {
                 // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations

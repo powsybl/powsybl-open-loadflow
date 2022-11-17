@@ -318,11 +318,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void addBranch(LfNetwork lfNetwork, LfBranch lfBranch, LfNetworkLoadingReport report, boolean dc) {
         boolean connectedToSameBus = lfBranch.getBus1() == lfBranch.getBus2();
+        double lowImpedanceThreshold = 1.0E-8; // CAIOTODO
         if (connectedToSameBus) {
             LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
             report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
         } else {
-            if (lfBranch.isZeroImpedanceBranch(dc)) {
+            if (lfBranch.isZeroImpedanceBranch(dc, lowImpedanceThreshold)) {
                 LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
                 report.nonImpedantBranches++;
             }
