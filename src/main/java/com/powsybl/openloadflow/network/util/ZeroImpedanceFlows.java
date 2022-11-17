@@ -35,7 +35,7 @@ public class ZeroImpedanceFlows {
         this.tree = spanningTree;
     }
 
-    public void compute(boolean dc) {
+    public void compute(boolean dc, double lowImpedanceThreshold) {
         Set<LfBus> processed = new HashSet<>();
 
         graph.vertexSet().forEach(lfBus -> {
@@ -43,7 +43,7 @@ public class ZeroImpedanceFlows {
                 return;
             }
             TreeByLevels treeByLevels = new TreeByLevels(graph, tree, lfBus);
-            treeByLevels.updateFlows(dc);
+            treeByLevels.updateFlows(dc, lowImpedanceThreshold);
             processed.addAll(treeByLevels.getProcessedLfBuses());
         });
 
@@ -104,7 +104,7 @@ public class ZeroImpedanceFlows {
             return branch.getBus1().equals(bus) ? branch.getBus2() : branch.getBus1();
         }
 
-        private void updateFlows(boolean dc) {
+        private void updateFlows(boolean dc, double lowImpedanceThreshold) {
             Map<LfBus, PQ> descendantZeroImpedanceFlow = new HashMap<>();
 
             // traverse the tree from leaves to root
@@ -112,7 +112,7 @@ public class ZeroImpedanceFlows {
             int level = levels.size() - 1;
             while (level >= 1) {
                 levels.get(level).forEach(bus -> {
-                    PQ balance = balanceWithImpedance(bus, dc);
+                    PQ balance = balanceWithImpedance(bus, dc, lowImpedanceThreshold);
                     PQ z0flow = getDescendantZeroImpedanceFlow(descendantZeroImpedanceFlow, bus);
                     PQ branchFlow = balance.add(z0flow);
 
@@ -124,14 +124,13 @@ public class ZeroImpedanceFlows {
             }
         }
 
-        private PQ balanceWithImpedance(LfBus bus, boolean dc) {
+        private PQ balanceWithImpedance(LfBus bus, boolean dc, double lowImpedanceThreshold) {
             // balance considering injections and flow from lines with impedance
 
             // take care of the sign
             PQ balancePQ = new PQ(-bus.getP().eval(), -bus.getQ().eval());
 
             // only lines with impedance
-            double lowImpedanceThreshold = 1.0E-8; // CAIOTODO
             List<LfBranch> adjacentBranchesWithImpedance = bus.getBranches().stream()
                 .filter(branch -> !branch.isZeroImpedanceBranch(dc, lowImpedanceThreshold)).collect(Collectors.toList());
 
