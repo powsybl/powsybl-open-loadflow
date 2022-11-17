@@ -604,7 +604,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(164.87, nload);
+        assertVoltageEquals(150.0, nload);
 
         generator2.setTargetP(1.0);
         parameters.getExtension(OpenLoadFlowParameters.class).setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.TARGET_P);
@@ -613,9 +613,9 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(164.88, nload);
 
         generator2.setTargetP(0.0);
-        parameters.getExtension(OpenLoadFlowParameters.class).setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX);
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.MIN_MAX);
         LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
         assertTrue(result3.isOk());
-        assertVoltageEquals(150.0, nload);
+        assertVoltageEquals(164.88, nload);
     }
 }

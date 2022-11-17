@@ -37,7 +37,7 @@
         "maxPlausibleTargetVoltage" : 1.2,
         "minRealisticVoltage" : 0.5,
         "maxRealisticVoltage" : 1.5,
-        "reactiveRangeCheckMode" : "MIN_MAX"
+        "reactiveRangeCheckMode" : "MAX"
       }
     }
   },
