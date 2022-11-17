@@ -1202,4 +1202,16 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(5.421, result.getValues().get(1).getValue(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, result.getValues().get(2).getValue(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testThreeWindingsTransformerNoPhaseShifter() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+        SensitivityFactor factorPhase1 = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "LINE_12",
+                SensitivityVariableType.TRANSFORMER_PHASE_1, "T3wT", false, ContingencyContext.all());
+        assertThrows(CompletionException.class, () ->
+                sensiRunner.run(network, List.of(factorPhase1), Collections.emptyList(), Collections.emptyList(), sensiParameters),
+                "Three windings transformer 'T3wT' leg on side 'TRANSFORMER_PHASE_1' is not a phase shifter");
+    }
 }
