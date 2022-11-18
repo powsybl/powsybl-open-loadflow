@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.AbstractConverterTest;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
@@ -24,6 +23,8 @@ import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.security.action.LineConnectionAction;
+import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +64,7 @@ class LfActionTest extends AbstractConverterTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), Reporter.NO_OP, true, false);
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            LfAction lfAction = new LfAction(switchAction, lfNetwork);
+            LfAction lfAction = LfAction.create(switchAction, lfNetwork).orElseThrow();
             String loadId = "LOAD";
             Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
             PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
@@ -75,8 +76,11 @@ class LfActionTest extends AbstractConverterTest {
                 assertNull(lfAction.getEnabledBranch());
             });
 
-            SwitchAction switchAction2 = new SwitchAction("switchAction", "S", true);
-            assertThrows(PowsyblException.class, () -> new LfAction(switchAction2, lfNetwork), "Branch S not found in the network");
+            assertTrue(LfAction.create(new SwitchAction("switchAction", "S", true), lfNetwork).isEmpty());
+            assertTrue(LfAction.create(new LineConnectionAction("A line action", "x", true), lfNetwork).isEmpty());
+            assertTrue(LfAction.create(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3), lfNetwork).isEmpty());
+            var lineAction = new LineConnectionAction("A line action", "L1", true, false);
+            assertEquals("Line connection action: only open line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork)).getMessage());
         }
     }
 }
