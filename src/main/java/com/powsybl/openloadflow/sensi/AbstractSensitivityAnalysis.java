@@ -866,7 +866,20 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         throw new PowsyblException("Injection '" + injectionId + "' not found");
     }
 
-    private static LfBranch getBranch(Network network, String branchId, SensitivityFunctionType functionType, LfNetwork lfNetwork) {
+    private static void checkBranch(Network network, String branchId) {
+        Branch<?> branch = network.getBranch(branchId);
+        if (branch == null) {
+            DanglingLine danglingLine = network.getDanglingLine(branchId);
+            if (danglingLine == null) {
+                ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(branchId);
+                if (twt == null) {
+                    throw new PowsyblException("Branch '" + branchId + "' not found");
+                }
+            }
+        }
+    }
+
+    private static LfBranch getBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
         Branch<?> branch = network.getBranch(branchId);
         DanglingLine danglingLine = network.getDanglingLine(branchId);
         if (branch != null || danglingLine != null) {
@@ -874,7 +887,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
         ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(branchId);
         if (twt != null) {
-            return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(functionType)));
+            return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(fType)));
         }
         if (branch == null && danglingLine == null && twt == null) {
             throw new PowsyblException("Branch '" + branchId + "' not found");
@@ -999,7 +1012,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
                     || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
                     || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3) {
-                    LfBranch branch = getBranch(network, functionId, functionType, lfNetwork);
+                    checkBranch(network, functionId);
+                    LfBranch branch = getBranchOrLeg(network, functionId, functionType, lfNetwork);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                         Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
@@ -1043,7 +1057,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                       functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2 ||
                       functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3)
                      && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
-                    LfBranch branch = getBranch(network, functionId, functionType, lfNetwork);
+                    checkBranch(network, functionId);
+                    LfBranch branch = getBranchOrLeg(network, functionId, functionType, lfNetwork);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
 
                     HvdcLine hvdcLine = network.getHvdcLine(variableId);
@@ -1083,7 +1098,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                         || functionType == SensitivityFunctionType.BRANCH_CURRENT_1
                         || functionType == SensitivityFunctionType.BRANCH_CURRENT_2
                         || functionType == SensitivityFunctionType.BRANCH_CURRENT_3) {
-                        LfBranch branch = getBranch(network, functionId, functionType, lfNetwork);
+                        checkBranch(network, functionId);
+                        LfBranch branch = getBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         switch (variableType) {
                             case INJECTION_ACTIVE_POWER:
