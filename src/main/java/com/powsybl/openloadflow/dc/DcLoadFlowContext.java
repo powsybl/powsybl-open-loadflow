@@ -6,12 +6,12 @@
  */
 package com.powsybl.openloadflow.dc;
 
+import com.powsybl.openloadflow.AbstractLoadFlowContext;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 // import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
 // import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -20,31 +20,13 @@ import java.util.Objects;
 /**
  * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
  */
-public class DcLoadFlowContext implements AutoCloseable {
-
-    private final LfNetwork network;
-
-    private final DcLoadFlowParameters parameters;
-
-    private EquationSystem<DcVariableType, DcEquationType> equationSystem;
-
-    private JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix;
-
+public class DcLoadFlowContext extends AbstractLoadFlowContext<DcVariableType, DcEquationType, DcLoadFlowParameters> {
     // private DcTargetVector targetVector;
 
     // private EquationVector<DcVariableType, DcEquationType> equationVector;
 
     public DcLoadFlowContext(LfNetwork network, DcLoadFlowParameters parameters) {
-        this.network = Objects.requireNonNull(network);
-        this.parameters = Objects.requireNonNull(parameters);
-    }
-
-    public LfNetwork getNetwork() {
-        return network;
-    }
-
-    public DcLoadFlowParameters getParameters() {
-        return parameters;
+        super(Objects.requireNonNull(network), Objects.requireNonNull(parameters));
     }
 
     public EquationSystem<DcVariableType, DcEquationType> getEquationSystem() {
@@ -54,12 +36,12 @@ public class DcLoadFlowContext implements AutoCloseable {
         return equationSystem;
     }
 
-    public JacobianMatrix<DcVariableType, DcEquationType> getJacobianMatrix() {
+    /*public JacobianMatrix<DcVariableType, DcEquationType> getJacobianMatrix() {
         if (jacobianMatrix == null) {
-            jacobianMatrix = new JacobianMatrix<>(getEquationSystem(), parameters.getMatrixFactory());
+            jacobianMatrix = new JacobianMatrix<>(getEquationSystem(), getParameters().getMatrixFactory());
         }
         return jacobianMatrix;
-    }
+    }*/
 
     /*
     public TargetVector<DcVariableType, DcEquationType> getTargetVector() {
@@ -79,10 +61,4 @@ public class DcLoadFlowContext implements AutoCloseable {
     }
     */
 
-    @Override
-    public void close() {
-        if (jacobianMatrix != null) {
-            jacobianMatrix.close();
-        }
-    }
 }
