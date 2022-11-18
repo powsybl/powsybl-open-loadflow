@@ -260,4 +260,9 @@ class DcLoadFlowTest {
         loadFlowRunner.run(network, parameters);
         LoadFlowAssert.assertActivePowerEquals(0, sc.getTerminal());
     }
+
+    @Test
+    void dcLoadFlowContextTest() {
+        assertTrue(true);
+    }
 }

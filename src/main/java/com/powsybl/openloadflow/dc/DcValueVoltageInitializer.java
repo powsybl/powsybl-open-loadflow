@@ -57,9 +57,12 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
                                                                    distributedSlack,
                                                                    balanceType,
                                                                    false);
-        DcLoadFlowEngine engine = new DcLoadFlowEngine(new DcLoadFlowContext(network, parameters));
-        if (engine.run(reporter).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
-            throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
+
+        try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
+            DcLoadFlowEngine engine = new DcLoadFlowEngine(context);
+            if (engine.run(reporter).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
+                throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
+            }
         }
 
         if (busStates != null) {
