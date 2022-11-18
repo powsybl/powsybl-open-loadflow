@@ -15,7 +15,7 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean forceA1Var;
 
-    private double lowImpedanceThreshold;
+    private final double lowImpedanceThreshold;
 
     public AcEquationSystemCreationParameters() {
         this(false, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
@@ -32,11 +32,6 @@ public class AcEquationSystemCreationParameters {
 
     public double getLowImpedanceThreshold() {
         return lowImpedanceThreshold;
-    }
-
-    public AcEquationSystemCreationParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
-        this.lowImpedanceThreshold = lowImpedanceThreshold;
-        return this;
     }
 
     @Override

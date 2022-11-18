@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 public class UniformValueVoltageInitializer implements VoltageInitializer {
 
     @Override
-    public void prepare(LfNetwork network, double lowImpedanceThreshold) {
+    public void prepare(LfNetwork network) {
         // nothing to do
     }
 

@@ -363,6 +363,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        if (lowImpedanceThreshold <= 0) {
+            throw new PowsyblException("lowImpedanceThreshold must be greater than 0");
+        }
         this.lowImpedanceThreshold = lowImpedanceThreshold;
         return this;
     }
@@ -613,10 +616,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 return getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
 
             case VOLTAGE_MAGNITUDE:
-                return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory);
+                return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold());
 
             case FULL_VOLTAGE:
-                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory),
+                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold()),
                         new DcValueVoltageInitializer(networkParameters,
                                                       parameters.isDistributedSlack(),
                                                       parameters.getBalanceType(),

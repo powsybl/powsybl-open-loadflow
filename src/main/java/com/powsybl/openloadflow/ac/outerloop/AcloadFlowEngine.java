@@ -86,7 +86,7 @@ public class AcloadFlowEngine {
         // in case of a DC voltage initializer, an DC equation system in created and equations are attached
         // to the network. It is important that DC init is done before AC equation system is created by
         // calling ACLoadContext.getEquationSystem to avoid DC equations overwrite AC ones in the network.
-        voltageInitializer.prepare(context.getNetwork(), context.getParameters().getNetworkParameters().getLowImpedanceThreshold());
+        voltageInitializer.prepare(context.getNetwork());
 
         RunningContext runningContext = new RunningContext();
         NewtonRaphson newtonRaphson = new NewtonRaphson(context.getNetwork(),

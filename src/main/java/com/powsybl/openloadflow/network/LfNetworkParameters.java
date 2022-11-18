@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -275,6 +276,9 @@ public class LfNetworkParameters {
     }
 
     public LfNetworkParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        if (lowImpedanceThreshold <= 0) {
+            throw new PowsyblException("lowImpedanceThreshold must be greater than 0");
+        }
         this.lowImpedanceThreshold = lowImpedanceThreshold;
         return this;
     }

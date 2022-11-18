@@ -35,6 +35,8 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     private final Reporter reporter;
 
+    private final double lowImpedanceThreshold;
+
     public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
                                      boolean useTransformerRatio, MatrixFactory matrixFactory, Reporter reporter) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
@@ -43,10 +45,11 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         this.useTransformerRatio = useTransformerRatio;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.reporter = Objects.requireNonNull(reporter);
+        this.lowImpedanceThreshold = networkParameters.getLowImpedanceThreshold();
     }
 
     @Override
-    public void prepare(LfNetwork network, double lowImpedanceThreshold) {
+    public void prepare(LfNetwork network) {
         // in case of distributed slack, we need to save and restore generators and loads target p which might have been
         // modified by slack distribution, so that AC load flow can restart from original state
         List<BusDcState> busStates = distributedSlack ? ElementState.save(network.getBuses(), BusDcState::save) : null;

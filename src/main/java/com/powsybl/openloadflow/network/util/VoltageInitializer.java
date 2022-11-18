@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public interface VoltageInitializer {
 
-    void prepare(LfNetwork network, double lowImpedanceThreshold);
+    void prepare(LfNetwork network);
 
     double getMagnitude(LfBus bus);
 

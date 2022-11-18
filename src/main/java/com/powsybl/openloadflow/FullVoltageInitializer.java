@@ -32,9 +32,9 @@ public class FullVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
-    public void prepare(LfNetwork network, double lowImpedanceThreshold) {
-        magnitudeInitializer.prepare(network, lowImpedanceThreshold);
-        angleInitializer.prepare(network, lowImpedanceThreshold);
+    public void prepare(LfNetwork network) {
+        magnitudeInitializer.prepare(network);
+        angleInitializer.prepare(network);
     }
 
     @Override

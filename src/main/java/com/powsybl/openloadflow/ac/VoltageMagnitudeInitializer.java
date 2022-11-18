@@ -34,6 +34,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VoltageMagnitudeInitializer.class);
 
+    private final double lowImpedanceThreshold;
+
     public enum InitVmEquationType implements Quantity {
         BUS_TARGET_V("v", ElementType.BUS),
         BUS_ZERO("bus_z", ElementType.BUS);
@@ -157,9 +159,10 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     private final MatrixFactory matrixFactory;
 
-    public VoltageMagnitudeInitializer(boolean transformerVoltageControlOn, MatrixFactory matrixFactory) {
+    public VoltageMagnitudeInitializer(boolean transformerVoltageControlOn, MatrixFactory matrixFactory, double lowImpedanceThreshold) {
         this.transformerVoltageControlOn = transformerVoltageControlOn;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
     }
 
     private static void initTarget(Equation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {
@@ -181,7 +184,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
     }
 
     @Override
-    public void prepare(LfNetwork network, double lowImpedanceThreshold) {
+    public void prepare(LfNetwork network) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // create the equation system:
