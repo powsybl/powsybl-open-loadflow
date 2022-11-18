@@ -95,8 +95,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String DC_POWER_FACTOR_NAME = "dcPowerFactor";
 
-    public static final String LOW_IMPEDANCE_THRESHOLD_NAME = "lowImpedanceThreshold";
-
     public static final String MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME = "minPlausibleTargetVoltage";
 
     public static final String MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME = "maxPlausibleTargetVoltage";
@@ -106,6 +104,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String MAX_REALISTIC_VOLTAGE_NAME = "maxRealisticVoltage";
 
     public static final String REACTIVE_RANGE_CHECK_MODE_NAME = "reactiveRangeCheckMode";
+
+    public static final String LOW_IMPEDANCE_THRESHOLD_NAME = "lowImpedanceThreshold";
 
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
@@ -123,12 +123,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          VOLTAGE_INIT_MODE_OVERRIDE_NAME,
                                                                          TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME,
                                                                          DC_POWER_FACTOR_NAME,
-                                                                         LOW_IMPEDANCE_THRESHOLD_NAME,
                                                                          MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MIN_REALISTIC_VOLTAGE_NAME,
                                                                          MAX_REALISTIC_VOLTAGE_NAME,
-                                                                         REACTIVE_RANGE_CHECK_MODE_NAME);
+                                                                         REACTIVE_RANGE_CHECK_MODE_NAME,
+                                                                         LOW_IMPEDANCE_THRESHOLD_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -183,8 +183,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double dcPowerFactor = DC_POWER_FACTOR_DEFAULT_VALUE;
 
-    private double lowImpedanceThreshold = LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
-
     private double minPlausibleTargetVoltage = LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
     private double maxPlausibleTargetVoltage = LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
@@ -192,6 +190,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double minRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
+
+    private double lowImpedanceThreshold = LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
     public enum ReactiveRangeCheckMode {
         MIN_MAX,
@@ -358,18 +358,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public double getLowImpedanceThreshold() {
-        return lowImpedanceThreshold;
-    }
-
-    public OpenLoadFlowParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
-        if (lowImpedanceThreshold <= 0) {
-            throw new PowsyblException("lowImpedanceThreshold must be greater than 0");
-        }
-        this.lowImpedanceThreshold = lowImpedanceThreshold;
-        return this;
-    }
-
     public double getMinPlausibleTargetVoltage() {
         return minPlausibleTargetVoltage;
     }
@@ -415,6 +403,18 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getLowImpedanceThreshold() {
+        return lowImpedanceThreshold;
+    }
+
+    public OpenLoadFlowParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        if (lowImpedanceThreshold <= 0) {
+            throw new PowsyblException("lowImpedanceThreshold must be greater than 0");
+        }
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -441,12 +441,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
-                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
                 .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
-                .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE)));
+                .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
+                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -487,8 +487,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(DC_POWER_FACTOR_NAME))
                 .ifPresent(prop -> this.setDcPowerFactor(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_NAME))
-                .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME))
                 .ifPresent(prop -> this.setMinPlausibleTargetVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME))
@@ -499,6 +497,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_NAME))
                 .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_NAME))
+                .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
         return this;
     }
 
@@ -521,12 +521,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", voltageInitModeOverride=" + voltageInitModeOverride +
                 ", transformerVoltageControlMode=" + transformerVoltageControlMode +
                 ", dcPowerFactor=" + dcPowerFactor +
-                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
+                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ')';
     }
 
@@ -652,13 +652,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
                 .setReactivePowerRemoteControl(parametersExt.hasReactivePowerRemoteControl())
                 .setDc(parameters.isDc())
-                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setShuntVoltageControl(parameters.isShuntCompensatorVoltageControlOn())
                 .setReactiveLimits(!parameters.isNoGeneratorReactiveLimits())
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
-                .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode());
+                .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode())
+                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -742,7 +742,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setHvdcAcEmulation(false) // FIXME
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
-                .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX); // not useful for DC.
+                .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX) // not useful for DC.
+                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,
