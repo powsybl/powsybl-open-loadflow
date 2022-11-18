@@ -67,7 +67,7 @@ class LfSwitchTest {
 
     @Test
     void setterTest() {
-        lfSwitch.getPiModel().setX(acLoadFlowParameters.getNetworkParameters().getLowImpedanceThreshold());
+        lfSwitch.getPiModel().setX(1.0E-8);
 
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         EquationTerm<AcVariableType, AcEquationType> p1 = new ClosedBranchSide1ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
