@@ -35,7 +35,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb) {
         double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
-        double r1 = 1;
+        double r1 = nominalV1 / nominalV2;
         PiModel piModel = new SimplePiModel()
                 .setR1(r1)
                 .setR(line.getR() / zb)
@@ -97,9 +97,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(branch);
-        double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
-        double zb = nominalV1 * nominalV2 / PerUnit.SB;
+        double zb = nominalV2 * nominalV2 / PerUnit.SB;
         if (branch instanceof Line) {
             return createLine((Line) branch, network, bus1, bus2, zb);
         } else if (branch instanceof TwoWindingsTransformer) {

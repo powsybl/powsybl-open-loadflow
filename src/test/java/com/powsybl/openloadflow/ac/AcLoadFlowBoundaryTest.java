@@ -146,16 +146,8 @@ class AcLoadFlowBoundaryTest {
                 .setB2(0.)
                 .add();
 
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(135.0, network.getBusBreakerView().getBus("BUS_1"));
-        assertVoltageEquals(134.227, network.getBusBreakerView().getBus("BUS_2"));
-        assertVoltageEquals(28.069, network.getBusBreakerView().getBus("BUS_3"));
-
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
-        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isOk());
         assertVoltageEquals(135.0, network.getBusBreakerView().getBus("BUS_1"));
         assertVoltageEquals(127.198, network.getBusBreakerView().getBus("BUS_2"));
         assertVoltageEquals(40.19, network.getBusBreakerView().getBus("BUS_3"));
