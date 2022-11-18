@@ -42,8 +42,6 @@ public class LfNetworkParameters {
 
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
-    private boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds = false;
-
     private boolean computeMainConnectedComponentOnly = true;
 
     private Set<Country> countriesToBalance = Collections.emptySet();
@@ -132,15 +130,6 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setPlausibleActivePowerLimit(double plausibleActivePowerLimit) {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
-        return this;
-    }
-
-    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
-        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
-    }
-
-    public LfNetworkParameters setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
-        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         return this;
     }
 
@@ -280,7 +269,6 @@ public class LfNetworkParameters {
                 ", twtSplitShuntAdmittance=" + twtSplitShuntAdmittance +
                 ", breakers=" + breakers +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
-                ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
                 ", computeMainConnectedComponentOnly=" + computeMainConnectedComponentOnly +
                 ", countriesToBalance=" + countriesToBalance +
                 ", distributedOnConformLoad=" + distributedOnConformLoad +

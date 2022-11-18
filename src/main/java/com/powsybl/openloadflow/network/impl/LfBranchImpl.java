@@ -32,16 +32,10 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         this.branch = branch;
     }
 
-    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
-                                           LfNetworkLoadingReport report) {
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb) {
         double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
         double r1 = 1;
-        if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
-            LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ratio", line.getId(), nominalV1, nominalV2);
-            report.linesWithDifferentNominalVoltageAtBothEnds++;
-            r1 = 1 / Transformers.getRatioPerUnitBase(line);
-        }
         PiModel piModel = new SimplePiModel()
                 .setR1(r1)
                 .setR(line.getR() / zb)
@@ -101,13 +95,13 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return new LfBranchImpl(network, bus1, bus2, piModel, twt);
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
-                                      boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, LfNetworkLoadingReport report) {
+    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(branch);
+        double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
-        double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        double zb = nominalV1 * nominalV2 / PerUnit.SB;
         if (branch instanceof Line) {
-            return createLine((Line) branch, network, bus1, bus2, zb, addRatioToLinesWithDifferentNominalVoltageAtBothEnds, report);
+            return createLine((Line) branch, network, bus1, bus2, zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance);
