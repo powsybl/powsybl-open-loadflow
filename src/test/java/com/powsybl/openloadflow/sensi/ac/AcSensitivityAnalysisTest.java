@@ -1092,28 +1092,32 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
 
-        SensitivityFactor factorActivePower1Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_4", ThreeWindingsTransformer.Side.ONE);
-        SensitivityFactor factorActivePower2Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_4", ThreeWindingsTransformer.Side.TWO);
-        SensitivityFactor factorActivePower3Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_4", ThreeWindingsTransformer.Side.THREE);
+        SensitivityFactor factorActivePower1Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.ONE);
+        SensitivityFactor factorActivePower2Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.TWO);
+        SensitivityFactor factorActivePower3Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.THREE);
 
-        SensitivityFactor factorCurrent1 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_4", ThreeWindingsTransformer.Side.ONE);
-        SensitivityFactor factorCurrent2 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_4", ThreeWindingsTransformer.Side.TWO);
-        SensitivityFactor factorCurrent3 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_4", ThreeWindingsTransformer.Side.THREE);
+        SensitivityFactor factorCurrent1 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.ONE);
+        SensitivityFactor factorCurrent2 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.TWO);
+        SensitivityFactor factorCurrent3 = createTransformerLegIntensityPerInjectionIncrease("T3wT", "LOAD_3", ThreeWindingsTransformer.Side.THREE);
 
         List<SensitivityFactor> factors = List.of(factorActivePower1Twt, factorActivePower2Twt, factorActivePower3Twt,
                 factorCurrent1, factorCurrent2, factorCurrent3);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(6, result.getValues().size());
 
-        //Function active power
-        assertEquals(-1.001, result.getValues().get(0).getValue(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.0, result.getValues().get(1).getValue(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.999, result.getValues().get(2).getValue(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(43.03, result.getBranchCurrent1FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_I);
+        assertEquals(83.91, result.getBranchCurrent2FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_I);
+        assertEquals(279.70, getBranchCurrent3FunctionReferenceValue(result, "T3wT"), LoadFlowAssert.DELTA_I);
+        assertEquals(10.007, result.getBranchFlow1FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-4.999, result.getBranchFlow2FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-4.999, getBranchFlow3FunctionReferenceValue(result, "T3wT"), LoadFlowAssert.DELTA_POWER);
 
-        //Function branch current
-        assertEquals(-4.309, result.getValues().get(3).getValue(), LoadFlowAssert.DELTA_I);
-        assertEquals(-0.001, result.getValues().get(4).getValue(), LoadFlowAssert.DELTA_I);
-        assertEquals(-55.986, result.getValues().get(5).getValue(), LoadFlowAssert.DELTA_I);
+        assertEquals(-4.309, result.getBranchCurrent1SensitivityValue("LOAD_3", "T3wT"), LoadFlowAssert.DELTA_I);
+        assertEquals(-16.796, result.getBranchCurrent2SensitivityValue("LOAD_3", "T3wT"), LoadFlowAssert.DELTA_I);
+        assertEquals(-0.033, getBranchCurrent3SensitivityValue(result, "LOAD_3", "T3wT"), LoadFlowAssert.DELTA_I);
+        assertEquals(-1.001, result.getBranchFlow1SensitivityValue("LOAD_3", "T3wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.000, result.getBranchFlow2SensitivityValue("LOAD_3", "T3wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.000, getBranchFlow3SensitivityValue(result, "LOAD_3", "T3wT"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1191,6 +1195,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = List.of(factorPhase1, factorPhase2, factorPhase3);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
         assertEquals(3, result.getValues().size());
+        // FIXME.
         assertEquals(-5.421, result.getValues().get(0).getValue(), LoadFlowAssert.DELTA_POWER);
         assertEquals(5.421, result.getValues().get(1).getValue(), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.0, result.getValues().get(2).getValue(), LoadFlowAssert.DELTA_POWER);

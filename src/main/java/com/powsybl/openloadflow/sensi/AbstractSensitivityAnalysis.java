@@ -228,21 +228,22 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         @Override
         public EquationTerm<V, E> getFunctionEquationTerm() {
+            LfBranch branch;
             switch (functionType) {
                 case BRANCH_ACTIVE_POWER:
                 case BRANCH_ACTIVE_POWER_1:
-                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getP1();
-                case BRANCH_ACTIVE_POWER_2:
-                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getP2();
                 case BRANCH_ACTIVE_POWER_3:
                     return (EquationTerm<V, E>) ((LfBranch) functionElement).getP1();
+                case BRANCH_ACTIVE_POWER_2:
+                    branch = (LfBranch) functionElement;
+                    return branch instanceof LfLegBranch ? (EquationTerm<V, E>) ((LfBranch) functionElement).getP1() : (EquationTerm<V, E>) ((LfBranch) functionElement).getP2();
                 case BRANCH_CURRENT:
                 case BRANCH_CURRENT_1:
-                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getI1();
-                case BRANCH_CURRENT_2:
-                    return (EquationTerm<V, E>) ((LfBranch) functionElement).getI2();
                 case BRANCH_CURRENT_3:
                     return (EquationTerm<V, E>) ((LfBranch) functionElement).getI1();
+                case BRANCH_CURRENT_2:
+                    branch = (LfBranch) functionElement;
+                    return branch instanceof LfLegBranch ? (EquationTerm<V, E>) ((LfBranch) functionElement).getI1() : (EquationTerm<V, E>) ((LfBranch) functionElement).getI2();
                 case BUS_VOLTAGE:
                     return (EquationTerm<V, E>) ((LfBus) functionElement).getCalculatedV();
                 default:
@@ -882,15 +883,15 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     private static LfBranch getBranchOrLeg(Network network, String branchId, SensitivityFunctionType fType, LfNetwork lfNetwork) {
         Branch<?> branch = network.getBranch(branchId);
         DanglingLine danglingLine = network.getDanglingLine(branchId);
+        ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(branchId);
+        if (branch == null && danglingLine == null && twt == null) {
+            throw new PowsyblException("Branch '" + branchId + "' not found");
+        }
         if (branch != null || danglingLine != null) {
             return lfNetwork.getBranchById(branchId);
         }
-        ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(branchId);
         if (twt != null) {
             return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(fType)));
-        }
-        if (branch == null && danglingLine == null && twt == null) {
-            throw new PowsyblException("Branch '" + branchId + "' not found");
         }
         return null;
     }
@@ -1185,14 +1186,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 return PerUnit.SB;
             case BRANCH_CURRENT:
             case BRANCH_CURRENT_1:
+            case BRANCH_CURRENT_3:
                 LfBranch branch = (LfBranch) factor.getFunctionElement();
                 return PerUnit.ib(branch.getBus1().getNominalV());
             case BRANCH_CURRENT_2:
                 LfBranch branch2 = (LfBranch) factor.getFunctionElement();
-                return PerUnit.ib(branch2.getBus2().getNominalV());
-            case BRANCH_CURRENT_3:
-                LfBranch branch3 = (LfBranch) factor.getFunctionElement();
-                return PerUnit.ib(branch3.getBus1().getNominalV());
+                return branch2 instanceof LfLegBranch ? PerUnit.ib(branch2.getBus1().getNominalV()) : PerUnit.ib(branch2.getBus2().getNominalV());
             case BUS_VOLTAGE:
                 LfBus bus = (LfBus) factor.getFunctionElement();
                 return bus.getNominalV();

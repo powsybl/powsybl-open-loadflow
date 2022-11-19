@@ -204,6 +204,22 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
+    public double getBranchCurrent3SensitivityValue(SensitivityAnalysisResult result, String variableId, String functionId) {
+        return result.getSensitivityValue((String) null, variableId, functionId, SensitivityFunctionType.BRANCH_CURRENT_3);
+    }
+
+    public double getBranchFlow3SensitivityValue(SensitivityAnalysisResult result, String variableId, String functionId) {
+        return result.getSensitivityValue((String) null, variableId, functionId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_3);
+    }
+
+    public double getBranchCurrent3FunctionReferenceValue(SensitivityAnalysisResult result, String functionId) {
+        return result.getFunctionReferenceValue((String) null, functionId, SensitivityFunctionType.BRANCH_CURRENT_3);
+    }
+
+    public double getBranchFlow3FunctionReferenceValue(SensitivityAnalysisResult result, String functionId) {
+        return result.getFunctionReferenceValue((String) null, functionId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_3);
+    }
+
     protected void runAcLf(Network network) {
         runAcLf(network, Reporter.NO_OP);
     }
