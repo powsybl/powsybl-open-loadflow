@@ -890,10 +890,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (branch != null || danglingLine != null) {
             return lfNetwork.getBranchById(branchId);
         }
-        if (twt != null) {
-            return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(fType)));
-        }
-        return null;
+        return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(fType)));
     }
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {
