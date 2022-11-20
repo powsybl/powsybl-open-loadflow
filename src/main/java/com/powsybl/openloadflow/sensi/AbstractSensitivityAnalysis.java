@@ -890,7 +890,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (branch != null || danglingLine != null) {
             return lfNetwork.getBranchById(branchId);
         }
-        return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(fType)));
+        return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(fType.toString())));
     }
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {
@@ -1113,7 +1113,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             case TRANSFORMER_PHASE_2:
                             case TRANSFORMER_PHASE_3:
                                 checkThreeWindingsTransformerPhaseShifter(network, variableId, variableType);
-                                LfBranch leg = lfNetwork.getBranchById(LfLegBranch.getId(variableId, getLegNumber(variableType)));
+                                LfBranch leg = lfNetwork.getBranchById(LfLegBranch.getId(variableId, getLegNumber(variableType.toString())));
                                 variableElement = leg != null && leg.getBus1() != null && leg.getBus2() != null ? leg : null;
                                 break;
                             default:
@@ -1232,32 +1232,22 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         return value * getFunctionBaseValue(factor);
     }
 
-    protected static int getLegNumber(SensitivityFunctionType type) {
+    protected static int getLegNumber(String type) {
         switch (type) {
-            case BRANCH_ACTIVE_POWER_1:
-            case BRANCH_CURRENT_1:
+            case "BRANCH_ACTIVE_POWER_1":
+            case "BRANCH_CURRENT_1":
+            case "TRANSFORMER_PHASE_1":
                 return 1;
-            case BRANCH_ACTIVE_POWER_2:
-            case BRANCH_CURRENT_2:
+            case "BRANCH_ACTIVE_POWER_2":
+            case "BRANCH_CURRENT_2":
+            case "TRANSFORMER_PHASE_2":
                 return 2;
-            case BRANCH_ACTIVE_POWER_3:
-            case BRANCH_CURRENT_3:
+            case "BRANCH_ACTIVE_POWER_3":
+            case "BRANCH_CURRENT_3":
+            case "TRANSFORMER_PHASE_3":
                 return 3;
             default:
-                throw new PowsyblException("Cannot convert function type " + type + " to a leg number");
-        }
-    }
-
-    protected static int getLegNumber(SensitivityVariableType type) {
-        switch (type) {
-            case TRANSFORMER_PHASE_1:
-                return 1;
-            case TRANSFORMER_PHASE_2:
-                return 2;
-            case TRANSFORMER_PHASE_3:
-                return 3;
-            default:
-                throw new PowsyblException("Cannot convert variable type " + type + " to a leg number");
+                throw new PowsyblException("Cannot convert variable or function type " + type + " to a leg number");
         }
     }
 }
