@@ -11,8 +11,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,8 +21,6 @@ import java.util.Objects;
  */
 public class LfBranchImpl extends AbstractImpedantLfBranch {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
-
     private final Ref<Branch<?>> branchRef;
 
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
@@ -32,18 +28,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         this.branchRef = new Ref<>(branch);
     }
 
-    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
-                                           LfNetworkLoadingReport report) {
-        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
-        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
-        double r1 = 1;
-        if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
-            LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ratio", line.getId(), nominalV1, nominalV2);
-            report.linesWithDifferentNominalVoltageAtBothEnds++;
-            r1 = 1 / Transformers.getRatioPerUnitBase(line);
-        }
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb) {
         PiModel piModel = new SimplePiModel()
-                .setR1(r1)
+                .setR1(1 / Transformers.getRatioPerUnitBase(line))
                 .setR(line.getR() / zb)
                 .setX(line.getX() / zb)
                 .setG1(line.getG1() * zb)
@@ -101,13 +88,12 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return new LfBranchImpl(network, bus1, bus2, piModel, twt);
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
-                                      boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, LfNetworkLoadingReport report) {
+    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance) {
         Objects.requireNonNull(branch);
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
         if (branch instanceof Line) {
-            return createLine((Line) branch, network, bus1, bus2, zb, addRatioToLinesWithDifferentNominalVoltageAtBothEnds, report);
+            return createLine((Line) branch, network, bus1, bus2, zb);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance);

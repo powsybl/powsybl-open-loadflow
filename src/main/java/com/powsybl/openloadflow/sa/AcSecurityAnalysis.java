@@ -12,7 +12,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -104,7 +103,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             // run simulation on largest network
             SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
-                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategies, actions, allSwitchesToClose))
+                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategies, actions))
                     .orElse(createNoResult());
 
             stopwatch.stop();
@@ -219,29 +218,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         return operatorStrategiesByContingencyId;
     }
 
-    private static void restoreInitialTopology(LfNetwork network, Set<Switch> allSwitchesToClose) {
-        if (allSwitchesToClose.isEmpty()) {
-            return;
-        }
-        var connectivity = network.getConnectivity();
-        connectivity.startTemporaryChanges();
-        allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
-            LfBranch branch = network.getBranchById(id);
-            connectivity.removeEdge(branch);
-        });
-        Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
-        removedBuses.forEach(bus -> bus.setDisabled(true));
-        Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
-        // we should manage branches open at one side.
-        for (LfBus bus : removedBuses) {
-            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
-        }
-        removedBranches.forEach(branch -> branch.setDisabled(true));
-    }
-
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
                                                   SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                  List<Action> actions, Set<Switch> allSwitchesToClose) {
+                                                  List<Action> actions) {
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
@@ -258,8 +237,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.setReporter(preContSimReporter);
 
             // run pre-contingency simulation
-            restoreInitialTopology(network, allSwitchesToClose);
-            new AcloadFlowEngine(context)
+            AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
                     .run();
             AcLoadFlowResult preContingencyLoadFlowResult = context.getResult();
 

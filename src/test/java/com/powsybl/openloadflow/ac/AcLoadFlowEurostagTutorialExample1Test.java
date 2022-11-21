@@ -257,7 +257,6 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
     @Test
     void lineWithDifferentNominalVoltageTest() {
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
         network.getVoltageLevel("VLHV2").setNominalV(420);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());

@@ -69,8 +69,7 @@ class LinesWithDifferentNominalVoltagesTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR)
-                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR);
     }
 
     @Test
