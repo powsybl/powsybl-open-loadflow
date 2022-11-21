@@ -105,6 +105,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_REALISTIC_VOLTAGE_NAME = "maxRealisticVoltage";
 
+    public static final String REACTIVE_RANGE_CHECK_MODE_NAME = "reactiveRangeCheckMode";
+
     public static final String NETWORK_CACHE_ENABLED_NAME = "networkCacheEnabled";
 
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
@@ -127,6 +129,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MIN_REALISTIC_VOLTAGE_NAME,
                                                                          MAX_REALISTIC_VOLTAGE_NAME,
+                                                                         REACTIVE_RANGE_CHECK_MODE_NAME,
                                                                          NETWORK_CACHE_ENABLED_NAME);
 
     public enum VoltageInitModeOverride {
@@ -189,6 +192,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double minRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
+
+    public enum ReactiveRangeCheckMode {
+        MIN_MAX,
+        MAX,
+        TARGET_P
+    }
+
+    private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     private boolean networkCacheEnabled = NETWORK_CACHE_ENABLED_DEFAULT_VALUE;
 
@@ -385,6 +396,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public ReactiveRangeCheckMode getReactiveRangeCheckMode() {
+        return reactiveRangeCheckMode;
+    }
+
+    public OpenLoadFlowParameters setReactiveRangeCheckMode(ReactiveRangeCheckMode reactiveRangeCheckMode) {
+        this.reactiveRangeCheckMode = reactiveRangeCheckMode;
+        return this;
+    }
+
     public boolean isNetworkCacheEnabled() {
         return networkCacheEnabled;
     }
@@ -423,6 +443,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
+                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
+                .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
                 .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
                 .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE)));
         return parameters;
@@ -473,6 +495,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMinRealisticVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_NAME))
                 .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_NAME))
+                .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
         Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_NAME))
                 .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
         return this;
@@ -501,6 +525,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
+                ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ", networkCacheEnabled=" + networkCacheEnabled +
                 ')';
     }
@@ -568,6 +593,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Max plausible target voltage: {}", parametersExt.getMaxPlausibleTargetVoltage());
         LOGGER.info("Min realistic voltage: {}", parametersExt.getMinRealisticVoltage());
         LOGGER.info("Max realistic voltage: {}", parametersExt.getMaxRealisticVoltage());
+        LOGGER.info("Reactive range check mode: {}", parametersExt.getReactiveRangeCheckMode());
         LOGGER.info("Network cache enabled: {}", parametersExt.isNetworkCacheEnabled());
     }
 
@@ -631,7 +657,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveLimits(!parameters.isNoGeneratorReactiveLimits())
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
-                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage());
+                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
+                .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -714,7 +741,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveLimits(false)
                 .setHvdcAcEmulation(false) // FIXME
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
-                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage());
+                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
+                .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX); // not useful for DC.
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,
