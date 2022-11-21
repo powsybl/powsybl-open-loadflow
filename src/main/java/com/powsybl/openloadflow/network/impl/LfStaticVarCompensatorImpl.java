@@ -109,7 +109,11 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
             setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), breakers,
                     reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
-            // FIXME: check b0 and slope.
+            if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null
+                && svc.getExtension(StandbyAutomaton.class) != null) {
+                throw new IllegalStateException("Static var compensator " + svc.getId() + " has VoltagePerReactivePowerControl" +
+                        " and StandbyAutomaton extensions: not supported");
+            }
             if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
                 this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
             }
@@ -128,8 +132,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                 this.generatorControlType = GeneratorControlType.MONITORING_VOLTAGE;
             }
         }
-
-        targetQ = -svc.getReactivePowerSetpoint();
+        if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.REACTIVE_POWER) {
+            targetQ = -svc.getReactivePowerSetpoint();
+        }
     }
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
