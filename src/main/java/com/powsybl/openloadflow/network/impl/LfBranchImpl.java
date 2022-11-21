@@ -33,11 +33,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb) {
-        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
-        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
-        double r1 = nominalV1 / nominalV2;
         PiModel piModel = new SimplePiModel()
-                .setR1(r1)
+                .setR1(1 / Transformers.getRatioPerUnitBase(line))
                 .setR(line.getR() / zb)
                 .setX(line.getX() / zb)
                 .setG1(line.getG1() * zb)
