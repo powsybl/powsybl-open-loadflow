@@ -11,8 +11,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,8 +20,6 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class LfBranchImpl extends AbstractImpedantLfBranch {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
 
     private final Branch<?> branch;
 
