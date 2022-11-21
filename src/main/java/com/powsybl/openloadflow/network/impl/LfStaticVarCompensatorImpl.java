@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.StandbyAutomaton;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -29,7 +30,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private double slope = 0;
 
-    double targetQ;
+    double targetQ = 0;
 
     private LfShunt shunt;
 
@@ -71,7 +72,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                        boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                       double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+                                       double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         super(network, 0);
         this.svc = svc;
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
@@ -105,39 +106,38 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
             }
         };
 
-        StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
-        if (standbyAutomaton != null && standbyAutomaton.getB0() != 0.0) {
-            // a static var compensator with an extension stand by automaton includes an offset of B0,
-            // whatever it is in stand by or not.
-            this.shunt = new LfShuntImpl(standbyAutomaton.getB0(), this.nominalV, network, bus);
-            this.b0 = standbyAutomaton.getB0();
-        }
-
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
             setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), breakers,
-                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+            // FIXME: check b0 and slope.
             if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
                 this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
+            }
+            StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
+            if (standbyAutomaton != null && standbyAutomaton.getB0() != 0.0) {
+                // a static var compensator with an extension stand by automaton includes an offset of B0,
+                // whatever it is in stand by or not.
+                this.shunt = new LfShuntImpl(standbyAutomaton.getB0(), this.nominalV, network, bus);
+                this.b0 = standbyAutomaton.getB0();
             }
             if (standbyAutomaton != null && standbyAutomaton.isStandby()) {
                 this.standByAutomaton = new StandByAutomaton(standbyAutomaton.getHighVoltageThreshold() / nominalV,
                         standbyAutomaton.getLowVoltageThreshold() / nominalV,
                         standbyAutomaton.getHighVoltageSetpoint() / nominalV,
                         standbyAutomaton.getLowVoltageSetpoint() / nominalV);
-                this.generatorControlType = GeneratorControlType.MONITORING_VOLTAGE; // FIXME?
+                this.generatorControlType = GeneratorControlType.MONITORING_VOLTAGE;
             }
         }
-        // FIXME: if slope and b0, not supported.
 
         targetQ = -svc.getReactivePowerSetpoint();
     }
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                                     boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+                                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         Objects.requireNonNull(svc);
         return new LfStaticVarCompensatorImpl(svc, network, bus, voltagePerReactivePowerControl, breakers, reactiveLimits,
-                report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
     }
 
     @Override

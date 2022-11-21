@@ -52,8 +52,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE = false;
 
-    public static final boolean ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE = true;
-
     /**
      * Slack bus maximum active power mismatch in MW: 1 Mw => 10^-2 in p.u
      */
@@ -79,8 +77,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME = "plausibleActivePowerLimit";
 
-    public static final String ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME = "addRatioToLinesWithDifferentNominalVoltageAtBothEnds";
-
     public static final String SLACK_BUS_P_MAX_MISMATCH_NAME = "slackBusPMaxMismatch";
 
     public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME = "voltagePerReactivePowerControl";
@@ -103,6 +99,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_REALISTIC_VOLTAGE_NAME = "maxRealisticVoltage";
 
+    public static final String REACTIVE_RANGE_CHECK_MODE_NAME = "reactiveRangeCheckMode";
+
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -110,7 +108,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME,
                                                                          LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME,
                                                                          PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME,
-                                                                         ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME,
                                                                          SLACK_BUS_P_MAX_MISMATCH_NAME,
                                                                          VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME,
                                                                          REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME,
@@ -122,7 +119,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME,
                                                                          MIN_REALISTIC_VOLTAGE_NAME,
-                                                                         MAX_REALISTIC_VOLTAGE_NAME);
+                                                                         MAX_REALISTIC_VOLTAGE_NAME,
+                                                                         REACTIVE_RANGE_CHECK_MODE_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -159,8 +157,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double plausibleActivePowerLimit = LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
-    private boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds = ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE;
-
     private double slackBusPMaxMismatch = SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE;
 
     private boolean voltagePerReactivePowerControl = VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE;
@@ -184,6 +180,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double minRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
+
+    public enum ReactiveRangeCheckMode {
+        MIN_MAX,
+        MAX,
+        TARGET_P
+    }
+
+    private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -267,15 +271,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setSlackBusPMaxMismatch(double pSlackBusPMaxMismatch) {
         this.slackBusPMaxMismatch = pSlackBusPMaxMismatch;
-        return this;
-    }
-
-    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
-        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
-    }
-
-    public OpenLoadFlowParameters setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
-        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         return this;
     }
 
@@ -378,6 +373,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public ReactiveRangeCheckMode getReactiveRangeCheckMode() {
+        return reactiveRangeCheckMode;
+    }
+
+    public OpenLoadFlowParameters setReactiveRangeCheckMode(ReactiveRangeCheckMode reactiveRangeCheckMode) {
+        this.reactiveRangeCheckMode = reactiveRangeCheckMode;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -395,7 +399,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 )
                 .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
                 .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
-                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(config.getBooleanProperty(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME, ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_DEFAULT_VALUE))
                 .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
                 .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
                 .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
@@ -407,7 +410,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
-                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE)));
+                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
+                .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -430,8 +434,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setLoadPowerFactorConstant(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME))
                 .ifPresent(prop -> this.setPlausibleActivePowerLimit(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(ADD_RATIO_TO_LINES_WITH_DIFFERENT_NOMINAL_VOLTAGE_AT_BOTH_ENDS_NAME))
-                .ifPresent(prop -> this.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(SLACK_BUS_P_MAX_MISMATCH_NAME))
                 .ifPresent(prop -> this.setSlackBusPMaxMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME))
@@ -456,6 +458,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMinRealisticVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_NAME))
                 .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_NAME))
+                .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
         return this;
     }
 
@@ -469,7 +473,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", lowImpedanceBranchMode=" + lowImpedanceBranchMode +
                 ", loadPowerFactorConstant=" + loadPowerFactorConstant +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
-                ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
                 ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
@@ -482,6 +485,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
+                ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ')';
     }
 
@@ -515,7 +519,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
-        LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("DC power factor: {}", parametersExt.getDcPowerFactor());
     }
@@ -537,7 +540,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
         LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
-        LOGGER.info("Add ratio to lines with different nominal voltage at both ends: {}", parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds());
         LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
@@ -548,6 +550,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Max plausible target voltage: {}", parametersExt.getMaxPlausibleTargetVoltage());
         LOGGER.info("Min realistic voltage: {}", parametersExt.getMinRealisticVoltage());
         LOGGER.info("Max realistic voltage: {}", parametersExt.getMaxRealisticVoltage());
+        LOGGER.info("Reactive range check mode: {}", parametersExt.getReactiveRangeCheckMode());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
@@ -597,7 +600,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTwtSplitShuntAdmittance(parameters.isTwtSplitShuntAdmittance())
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
-                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
@@ -610,7 +612,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveLimits(!parameters.isNoGeneratorReactiveLimits())
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
-                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage());
+                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
+                .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -680,7 +683,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTwtSplitShuntAdmittance(false)
                 .setBreakers(false)
                 .setPlausibleActivePowerLimit(parametersExt.getPlausibleActivePowerLimit())
-                .setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(parametersExt.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds())
                 .setComputeMainConnectedComponentOnly(parameters.getConnectedComponentMode() == LoadFlowParameters.ConnectedComponentMode.MAIN)
                 .setCountriesToBalance(parameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
@@ -693,7 +695,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveLimits(false)
                 .setHvdcAcEmulation(false) // FIXME
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
-                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage());
+                .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
+                .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX); // not useful for DC.
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,
