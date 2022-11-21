@@ -237,7 +237,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.setReporter(preContSimReporter);
 
             // run pre-contingency simulation
-            AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
+            new AcloadFlowEngine(context)
                     .run();
             AcLoadFlowResult preContingencyLoadFlowResult = context.getResult();
 
