@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -44,6 +45,8 @@ public enum NetworkCache {
 
         private List<AcLoadFlowContext> contexts;
 
+        private LfNetworkList.VariantCleaner variantCleaner;
+
         public Entry(WeakReference<Network> networkRef, LoadFlowParameters parameters) {
             this.networkRef = Objects.requireNonNull(networkRef);
             this.parameters = parameters;
@@ -59,6 +62,14 @@ public enum NetworkCache {
 
         public void setContexts(List<AcLoadFlowContext> contexts) {
             this.contexts = contexts;
+        }
+
+        public LfNetworkList.VariantCleaner getVariantCleaner() {
+            return variantCleaner;
+        }
+
+        public void setVariantCleaner(LfNetworkList.VariantCleaner variantCleaner) {
+            this.variantCleaner = variantCleaner;
         }
 
         public LoadFlowParameters getParameters() {
@@ -134,7 +145,8 @@ public enum NetworkCache {
                 LfNetwork lfNetwork = context.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
-                    // TODO
+                    lfBranch.setDisabled(true);
+                    context.setNetworkUpdated(true);
                     found = true;
                 }
             }
@@ -227,6 +239,10 @@ public enum NetworkCache {
 
         public void close() {
             reset();
+            if (variantCleaner != null) {
+                variantCleaner.clean();
+                variantCleaner = null;
+            }
         }
     }
 
