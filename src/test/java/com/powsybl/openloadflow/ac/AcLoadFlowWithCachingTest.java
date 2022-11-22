@@ -97,6 +97,11 @@ class AcLoadFlowWithCachingTest {
         assertEquals(2, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(24.1, ngen);
         assertVoltageEquals(144.402, nload);
+
+        result = loadFlowRunner.run(network, parameters);
+        // FIXME NO_CALCULATION should be added to API
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals(0, result.getComponentResults().get(0).getIterationCount());
     }
 
     @Test

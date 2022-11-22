@@ -87,8 +87,8 @@ public class AcLoadFlowFromCache {
                 new AcloadFlowEngine(context)
                         .run();
                 context.setNetworkUpdated(false);
+                return context.getResult();
             }
-            return context.getResult();
         }
         return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
     }
