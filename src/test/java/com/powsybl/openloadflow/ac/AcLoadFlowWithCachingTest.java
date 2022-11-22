@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -74,6 +75,28 @@ class AcLoadFlowWithCachingTest {
             TimeUnit.MILLISECONDS.sleep(100);
         } while (NetworkCache.INSTANCE.getEntryCount() > 0 && retry < 10);
         assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
+    }
+
+    @Test
+    void testTargetV() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+        var ngen = network.getBusBreakerView().getBus("NGEN");
+        var nload = network.getBusBreakerView().getBus("NLOAD");
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(24.5, ngen);
+        assertVoltageEquals(147.578, nload);
+
+        gen.setTargetV(24.1);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(24.1, ngen);
+        assertVoltageEquals(144.402, nload);
     }
 
     @Test

@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -110,19 +111,23 @@ public enum NetworkCache {
             // seems to be not called anymore
         }
 
+        private static Bus getBus(Injection<?> injection, AcLoadFlowContext context) {
+            return context.getParameters().getNetworkParameters().isBreakers()
+                    ? injection.getTerminal().getBusBreakerView().getBus()
+                    : injection.getTerminal().getBusView().getBus();
+        }
+
         private boolean onLoadUpdate(Load load, String attribute, Object oldValue, Object newValue) {
             boolean found = false;
             for (AcLoadFlowContext context : contexts) {
-                Bus bus = context.getParameters().getNetworkParameters().isBreakers()
-                        ? load.getTerminal().getBusBreakerView().getBus()
-                        : load.getTerminal().getBusView().getBus();
+                Bus bus = getBus(load, context);
                 if (bus != null) {
                     LfNetwork lfNetwork = context.getNetwork();
                     LfBus lfBus = lfNetwork.getBusById(bus.getId());
                     if (lfBus != null) {
                         if (attribute.equals("p0")) {
-                            double loadShiftP = (double) newValue - (double) oldValue;
-                            double newLoadP = lfBus.getLoadTargetP() + loadShiftP / PerUnit.SB;
+                            double valueShift = (double) newValue - (double) oldValue;
+                            double newLoadP = lfBus.getLoadTargetP() + valueShift / PerUnit.SB;
                             lfBus.reInitLoadTargetP(newLoadP);
                             context.setNetworkUpdated(true);
                             found = true;
@@ -135,6 +140,34 @@ public enum NetworkCache {
             }
             if (!found) {
                 LOGGER.warn("Cannot update {} of load '{}'", attribute, load.getId());
+            }
+            return found;
+        }
+
+        private boolean onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                Bus bus = getBus(generator, context);
+                if (bus != null) {
+                    LfNetwork lfNetwork = context.getNetwork();
+                    LfBus lfBus = lfNetwork.getBusById(bus.getId());
+                    if (lfBus != null) {
+                        if (attribute.equals("targetV")) {
+                            double valueShift = (double) newValue - (double) oldValue;
+                            VoltageControl voltageControl = lfBus.getVoltageControl().orElseThrow();
+                            double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
+                            voltageControl.setTargetValue(newTargetV);
+                            context.setNetworkUpdated(true);
+                            found = true;
+                            break;
+                        } else {
+                            throw new IllegalStateException("Unsupported generator attribute: " + attribute);
+                        }
+                    }
+                }
+            }
+            if (!found) {
+                LOGGER.warn("Cannot update {} of generator '{}'", attribute, generator.getId());
             }
             return found;
         }
@@ -187,6 +220,13 @@ public enum NetworkCache {
                             && attribute.equals("open")) {
                         if (onSwitchOpen(identifiable.getId())) {
                             done = true;
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.GENERATOR) {
+                        Generator generator = (Generator) identifiable;
+                        if (attribute.equals("targetV")) {
+                            if (onGeneratorUpdate(generator, attribute, oldValue, newValue)) {
+                                done = true;
+                            }
                         }
                     }
                     break;
