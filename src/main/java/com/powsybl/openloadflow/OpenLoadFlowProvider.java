@@ -14,8 +14,6 @@ import com.powsybl.commons.extensions.ExtensionJsonSerializer;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
@@ -32,7 +30,6 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
@@ -106,56 +103,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 .collect(Collectors.toList());
     }
 
-    private static void configureSwitches(Network network, AcLoadFlowParameters acParameters,
-                                          Set<Switch> switchesToOpen, Set<Switch> switchesToClose) {
-        List<Switch> retainedSwitches = network.getSwitchStream()
-                .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER
-                        && sw.isRetained())
-                .collect(Collectors.toList());
-        if (retainedSwitches.size() < 10) {
-            for (Switch sw : retainedSwitches) {
-                if (sw.isOpen()) {
-                    switchesToClose.add(sw);
-                } else {
-                    switchesToOpen.add(sw);
-                }
-            }
-            acParameters.getNetworkParameters().setBreakers(true);
-        }
-    }
-
-    private static List<AcLoadFlowResult> runAcUsingCache(Network network, LoadFlowParameters parameters, Reporter reporter,
-                                                          AcLoadFlowParameters acParameters) {
-        NetworkCache.Entry entry = NetworkCache.INSTANCE.get(network, parameters);
-        List<AcLoadFlowContext> contexts = entry.getContexts();
-        if (contexts == null) {
-            Set<Switch> switchesToOpen = new HashSet<>();
-            Set<Switch> switchesToClose = new HashSet<>();
-            configureSwitches(network, acParameters, switchesToOpen, switchesToClose);
-            try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), switchesToOpen, switchesToClose, reporter)) {
-                contexts = lfNetworkList.getList()
-                        .stream()
-                        .map(n -> new AcLoadFlowContext(n, acParameters))
-                        .collect(Collectors.toList());
-                entry.setContexts(contexts);
-                entry.setVariantCleaner(lfNetworkList.release());
-            }
-        }
-        return contexts.stream()
-                .map(context -> {
-                    if (context.getNetwork().isValid()) {
-                        if (context.isNetworkUpdated()) {
-                            new AcloadFlowEngine(context)
-                                    .run();
-                            context.setNetworkUpdated(false);
-                        }
-                        return context.getResult();
-                    }
-                    return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
-                })
-                .collect(Collectors.toList());
-    }
-
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, Reporter reporter) {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         OpenLoadFlowParameters.logAc(parameters, parametersExt);
@@ -168,7 +115,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         List<AcLoadFlowResult> results;
         if (parametersExt.isNetworkCacheEnabled()) {
-            results = runAcUsingCache(network, parameters, reporter, acParameters);
+            results = new AcLoadFlowFromCache(network, parameters, acParameters, reporter)
+                    .run();
         } else {
             results = runAc(network, reporter, acParameters);
         }
