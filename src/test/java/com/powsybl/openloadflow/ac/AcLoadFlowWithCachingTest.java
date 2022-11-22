@@ -81,11 +81,7 @@ class AcLoadFlowWithCachingTest {
     void testSwitchOpen() {
         var network = NodeBreakerNetworkFactory.create();
         for (Switch sw : network.getSwitches()) {
-            if (sw.getId().equals("C")) {
-                sw.setRetained(true);
-            } else {
-                sw.setRetained(false);
-            }
+            sw.setRetained(sw.getId().equals("C"));
         }
 
         var result = loadFlowRunner.run(network, parameters);
