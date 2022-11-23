@@ -64,10 +64,6 @@ public enum NetworkCache {
             this.contexts = contexts;
         }
 
-        public LfNetworkList.VariantCleaner getVariantCleaner() {
-            return variantCleaner;
-        }
-
         public void setVariantCleaner(LfNetworkList.VariantCleaner variantCleaner) {
             this.variantCleaner = variantCleaner;
         }
