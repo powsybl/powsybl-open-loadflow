@@ -87,11 +87,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     .collect(Collectors.toList());
             List<LfGenerator> finalVoltageControlGenerators = voltageControlGenerators;
             if (voltageMonitoringGenerators.size() > 1) {
-                LOGGER.warn("We have several voltage monitors ({}) connected to the same bus: not supported. All switched to voltage control", voltageMonitoringGenerators.toString());
+                String generatorIds = voltageMonitoringGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
+                LOGGER.warn("We have several voltage monitors ({}) connected to the same bus: not supported. All switched to voltage control", generatorIds);
                 voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE));
             }
             if (!voltageControlGenerators.isEmpty() && !voltageMonitoringGenerators.isEmpty()) {
-                LOGGER.warn("We have both voltage controllers and voltage monitors connected to the same bus: voltage monitoring discarded", voltageMonitoringGenerators.toString());
+                String generatorIds = voltageMonitoringGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
+                LOGGER.warn("We have both voltage controllers and voltage monitors connected to the same bus: voltage monitoring discarded", generatorIds);
                 voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
                 voltageMonitoringGenerators = Collections.emptyList();
             }
