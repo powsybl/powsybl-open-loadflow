@@ -13,7 +13,6 @@ import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.VoltageControl;
@@ -172,23 +171,6 @@ public enum NetworkCache {
             return found;
         }
 
-        private boolean onSwitchOpen(String switchId) {
-            boolean found = false;
-            for (AcLoadFlowContext context : contexts) {
-                LfNetwork lfNetwork = context.getNetwork();
-                LfBranch lfBranch = lfNetwork.getBranchById(switchId);
-                if (lfBranch != null) {
-                    lfBranch.setDisabled(true);
-                    context.setNetworkUpdated(true);
-                    found = true;
-                }
-            }
-            if (!found) {
-                LOGGER.warn("Cannot open switch '{}'", switchId);
-            }
-            return found;
-        }
-
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null) {
@@ -215,11 +197,6 @@ public enum NetworkCache {
                             if (onLoadUpdate(load, attribute, oldValue, newValue)) {
                                 done = true;
                             }
-                        }
-                    } else if (identifiable.getType() == IdentifiableType.SWITCH
-                            && attribute.equals("open")) {
-                        if (onSwitchOpen(identifiable.getId())) {
-                            done = true;
                         }
                     } else if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;

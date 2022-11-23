@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -16,9 +15,7 @@ import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -102,24 +99,5 @@ class AcLoadFlowWithCachingTest {
         // FIXME NO_CALCULATION should be added to API
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
         assertEquals(0, result.getComponentResults().get(0).getIterationCount());
-    }
-
-    @Test
-    @Disabled
-    void testSwitchOpen() {
-        var network = NodeBreakerNetworkFactory.create();
-        for (Switch sw : network.getSwitches()) {
-            sw.setRetained(sw.getId().equals("C"));
-        }
-
-        var result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-
-        network.getSwitch("C").setOpen(true);
-
-        result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
     }
 }
