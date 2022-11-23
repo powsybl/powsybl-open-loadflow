@@ -204,22 +204,6 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
-    public double getBranchCurrent3SensitivityValue(SensitivityAnalysisResult result, String variableId, String functionId) {
-        return result.getSensitivityValue((String) null, variableId, functionId, SensitivityFunctionType.BRANCH_CURRENT_3);
-    }
-
-    public double getBranchFlow3SensitivityValue(SensitivityAnalysisResult result, String variableId, String functionId) {
-        return result.getSensitivityValue((String) null, variableId, functionId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_3);
-    }
-
-    public double getBranchCurrent3FunctionReferenceValue(SensitivityAnalysisResult result, String functionId) {
-        return result.getFunctionReferenceValue((String) null, functionId, SensitivityFunctionType.BRANCH_CURRENT_3);
-    }
-
-    public double getBranchFlow3FunctionReferenceValue(SensitivityAnalysisResult result, String functionId) {
-        return result.getFunctionReferenceValue((String) null, functionId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_3);
-    }
-
     protected void runAcLf(Network network) {
         runAcLf(network, Reporter.NO_OP);
     }
@@ -391,7 +375,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(0f, result.getBranchFlow1SensitivityValue("g3", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0f, result.getBranchFlow1SensitivityValue("g3", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testPhaseShifterOutsideMainComponent(boolean dc) {
@@ -404,7 +388,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(0d, result.getBranchFlow1SensitivityValue("l45", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("l45", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
         if (dc) {
             assertEquals(100.00, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
@@ -425,7 +409,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(0, result.getBranchFlow1SensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("glsk", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         if (dc) {
             assertEquals(100.000, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
@@ -446,7 +430,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("glsk", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("glsk", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l56"), LoadFlowAssert.DELTA_POWER);
     }
 
