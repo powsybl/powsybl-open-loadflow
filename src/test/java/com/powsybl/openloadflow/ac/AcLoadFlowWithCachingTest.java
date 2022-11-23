@@ -40,6 +40,7 @@ class AcLoadFlowWithCachingTest {
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setNetworkCacheEnabled(true);
+        NetworkCache.INSTANCE.clear();
     }
 
     @Test
@@ -91,7 +92,7 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
-    @Disabled("Cannot be enabled by default because not reliable enough (could depends on JVM impl and machine speed)")
+    @Disabled("Cannot be enabled by default because not reliable enough (could depend on JVM impl and machine speed)")
     void testCacheEviction() throws InterruptedException {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 

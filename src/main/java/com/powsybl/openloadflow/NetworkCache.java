@@ -355,4 +355,16 @@ public enum NetworkCache {
             lock.unlock();
         }
     }
+
+    public void clear() {
+        lock.lock();
+        try {
+            for (var entry : entries) {
+                entry.close();
+            }
+            entries.clear();
+        } finally {
+            lock.unlock();
+        }
+    }
 }
