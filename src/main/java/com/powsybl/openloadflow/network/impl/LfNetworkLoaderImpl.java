@@ -80,16 +80,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (LfBus controllerBus : lfBuses) {
 
             List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream()
-                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE ||
-                            gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
+                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
                     .collect(Collectors.toList());
-            if (!voltageControlGenerators.isEmpty()) {
+            List<LfGenerator> voltageMonitoringGenerators = controllerBus.getGenerators().stream()
+                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
+                    .collect(Collectors.toList());
+            List<LfGenerator> finalVoltageControlGenerators = voltageControlGenerators;
+            if (voltageMonitoringGenerators.size() > 1) {
+                LOGGER.warn("We have several voltage monitors ({}) connected to the same bus: not supported. All switched to voltage control", voltageMonitoringGenerators.toString());
+                voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE));
+            }
+            if (!voltageControlGenerators.isEmpty() && !voltageMonitoringGenerators.isEmpty()) {
+                LOGGER.warn("We have both voltage controllers and voltage monitors connected to the same bus: voltage monitoring discarded", voltageMonitoringGenerators.toString());
+                voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
+                voltageMonitoringGenerators = Collections.emptyList();
+            }
+            finalVoltageControlGenerators.addAll(voltageMonitoringGenerators);
 
-                LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
+            if (!finalVoltageControlGenerators.isEmpty()) {
+
+                LfGenerator lfGenerator0 = finalVoltageControlGenerators.get(0);
                 LfBus controlledBus = lfGenerator0.getControlledBus();
                 double controllerTargetV = lfGenerator0.getTargetV();
 
-                voltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
+                finalVoltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus();
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
