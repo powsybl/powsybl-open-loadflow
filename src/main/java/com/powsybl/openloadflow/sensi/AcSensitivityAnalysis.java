@@ -166,9 +166,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean throwsExceptionIfNoConvergence) {
-        new AcloadFlowEngine(context)
+        AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
-        AcLoadFlowResult result = context.getResult();
         if (result.getNewtonRaphsonStatus() != NewtonRaphsonStatus.CONVERGED
                 && result.getNewtonRaphsonStatus() != NewtonRaphsonStatus.NO_CALCULATION) {
             if (throwsExceptionIfNoConvergence) {

@@ -87,22 +87,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    private static List<AcLoadFlowResult> runAc(Network network, Reporter reporter, AcLoadFlowParameters acParameters) {
-        return LfNetwork.load(network, new LfNetworkLoaderImpl(), acParameters.getNetworkParameters(), reporter)
-                .stream()
-                .map(n -> {
-                    if (n.isValid()) {
-                        try (AcLoadFlowContext context = new AcLoadFlowContext(n, acParameters)) {
-                            new AcloadFlowEngine(context)
-                                    .run();
-                            return context.getResult();
-                        }
-                    }
-                    return AcLoadFlowResult.createNoCalculationResult(n);
-                })
-                .collect(Collectors.toList());
-    }
-
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, Reporter reporter) {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         OpenLoadFlowParameters.logAc(parameters, parametersExt);
@@ -118,7 +102,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             results = new AcLoadFlowFromCache(network, parameters, acParameters, reporter)
                     .run();
         } else {
-            results = runAc(network, reporter, acParameters);
+            results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
         }
 
         Networks.resetState(network);

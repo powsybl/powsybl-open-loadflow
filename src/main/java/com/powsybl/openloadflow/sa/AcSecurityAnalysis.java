@@ -237,9 +237,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.setReporter(preContSimReporter);
 
             // run pre-contingency simulation
-            new AcloadFlowEngine(context)
+            AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
                     .run();
-            AcLoadFlowResult preContingencyLoadFlowResult = context.getResult();
 
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             var preContingencyLimitViolationManager = new LimitViolationManager();
@@ -332,9 +331,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         // restart LF on post contingency equation system
         context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-        new AcloadFlowEngine(context)
+        AcLoadFlowResult postContingencyLoadFlowResult = new AcloadFlowEngine(context)
                 .run();
-        AcLoadFlowResult postContingencyLoadFlowResult = context.getResult();
 
         boolean postContingencyComputationOk = postContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
         PostContingencyComputationStatus status = postContingencyStatusFromNRStatus(postContingencyLoadFlowResult.getNewtonRaphsonStatus());
@@ -385,9 +383,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             // restart LF on post contingency and post actions equation system
             context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
-            new AcloadFlowEngine(context)
+            AcLoadFlowResult postActionsLoadFlowResult = new AcloadFlowEngine(context)
                     .run();
-            AcLoadFlowResult postActionsLoadFlowResult = context.getResult();
 
             boolean postActionsComputationOk = postActionsLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             PostContingencyComputationStatus status = postContingencyStatusFromNRStatus(postActionsLoadFlowResult.getNewtonRaphsonStatus());
