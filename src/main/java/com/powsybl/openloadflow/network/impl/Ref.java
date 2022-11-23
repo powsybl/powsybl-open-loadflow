@@ -14,13 +14,13 @@ import java.util.Objects;
  */
 public class Ref<T> {
 
-    private final WeakReference<T> ref;
+    private final WeakReference<T> value;
 
     public Ref(T identifiable) {
-        this.ref = new WeakReference<>(Objects.requireNonNull(identifiable));
+        this.value = new WeakReference<>(Objects.requireNonNull(identifiable));
     }
 
     public T get() {
-        return Objects.requireNonNull(ref.get(), "Reference has been garbage collected");
+        return Objects.requireNonNull(value.get(), "Reference has been garbage collected");
     }
 }

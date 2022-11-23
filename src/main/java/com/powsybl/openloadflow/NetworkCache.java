@@ -193,17 +193,15 @@ public enum NetworkCache {
                 default:
                     if (identifiable.getType() == IdentifiableType.LOAD) {
                         Load load = (Load) identifiable;
-                        if (attribute.equals("p0")) {
-                            if (onLoadUpdate(load, attribute, oldValue, newValue)) {
-                                done = true;
-                            }
+                        if (attribute.equals("p0")
+                                && onLoadUpdate(load, attribute, oldValue, newValue)) {
+                            done = true;
                         }
                     } else if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
-                        if (attribute.equals("targetV")) {
-                            if (onGeneratorUpdate(generator, attribute, oldValue, newValue)) {
-                                done = true;
-                            }
+                        if (attribute.equals("targetV")
+                                && onGeneratorUpdate(generator, attribute, oldValue, newValue)) {
+                            done = true;
                         }
                     }
                     break;

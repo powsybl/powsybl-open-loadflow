@@ -55,13 +55,11 @@ public class AcLoadFlowFromCache {
     }
 
     private static AcLoadFlowResult run(AcLoadFlowContext context) {
-        if (context.getNetwork().isValid()) {
-            if (context.isNetworkUpdated()) {
-                AcLoadFlowResult result = new AcloadFlowEngine(context)
-                        .run();
-                context.setNetworkUpdated(false);
-                return result;
-            }
+        if (context.getNetwork().isValid() && context.isNetworkUpdated()) {
+            AcLoadFlowResult result = new AcloadFlowEngine(context)
+                    .run();
+            context.setNetworkUpdated(false);
+            return result;
         }
         return AcLoadFlowResult.createNoCalculationResult(context.getNetwork());
     }
