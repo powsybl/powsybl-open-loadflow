@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -42,7 +43,7 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
-    void testLoadP() throws InterruptedException {
+    void testLoadP() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var load = network.getLoad("LOAD");
         var gen = network.getGenerator("GEN");
@@ -60,18 +61,6 @@ class AcLoadFlowWithCachingTest {
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(620, load.getTerminal());
         assertActivePowerEquals(-625.895, gen.getTerminal());
-
-        // check that cache entry could be correctly garbage collected
-        network = null;
-        load = null;
-        gen = null;
-        int retry = 0;
-        do {
-            System.gc();
-            retry++;
-            TimeUnit.MILLISECONDS.sleep(100);
-        } while (NetworkCache.INSTANCE.getEntryCount() > 0 && retry < 10);
-        assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
     }
 
     @Test
@@ -99,5 +88,23 @@ class AcLoadFlowWithCachingTest {
         // FIXME NO_CALCULATION should be added to API
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
         assertEquals(0, result.getComponentResults().get(0).getIterationCount());
+    }
+
+    @Test
+    @Disabled("Cannot be enabled by default because not reliable enough (could depends on JVM impl and machine speed)")
+    void testCacheEviction() throws InterruptedException {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        loadFlowRunner.run(network, parameters);
+
+        // check that cache entry could be correctly garbage collected
+        network = null;
+        int retry = 0;
+        do {
+            System.gc();
+            retry++;
+            TimeUnit.MILLISECONDS.sleep(100);
+        } while (NetworkCache.INSTANCE.getEntryCount() > 0 && retry < 10);
+        assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
     }
 }
