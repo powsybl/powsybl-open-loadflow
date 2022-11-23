@@ -37,7 +37,7 @@ public enum NetworkCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
-    public static class Entry implements NetworkListener {
+    public static class Entry extends DefaultNetworkListener {
 
         private final WeakReference<Network> networkRef;
 
@@ -96,18 +96,8 @@ public enum NetworkCache {
         }
 
         @Override
-        public void beforeRemoval(Identifiable identifiable) {
-            // we don't care
-        }
-
-        @Override
         public void afterRemoval(String s) {
             onStructureChange();
-        }
-
-        @Override
-        public void onUpdate(Identifiable identifiable, String attribute, Object oldValue, Object newValue) {
-            // seems to be not called anymore
         }
 
         private static Bus getBus(Injection<?> injection, AcLoadFlowContext context) {

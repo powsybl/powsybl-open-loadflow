@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -92,7 +91,6 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
-    @Disabled("Cannot be enabled by default because not reliable enough (could depend on JVM impl and machine speed)")
     void testCacheEviction() throws InterruptedException {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
