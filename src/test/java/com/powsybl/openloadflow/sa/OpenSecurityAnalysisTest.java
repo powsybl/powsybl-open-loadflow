@@ -2147,6 +2147,7 @@ class OpenSecurityAnalysisTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDistributedSlack(false);
+        parameters.setDc(true);
         setSlackBusId(parameters, "VL2_0");
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);

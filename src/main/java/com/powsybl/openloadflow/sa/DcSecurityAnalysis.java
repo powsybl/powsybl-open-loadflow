@@ -60,6 +60,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             this.preContingencyLimitViolationsMap = new HashMap<>();
             this.detector = violationDetector;
             this.dcPowerFactor = dcPowerFactor;
+            this.postContingencyResultPerContingencyId = new HashMap<>();
         }
 
         List<SensitivityFactor> getFactors() {
