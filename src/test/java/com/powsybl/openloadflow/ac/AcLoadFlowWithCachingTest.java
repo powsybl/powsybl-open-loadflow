@@ -14,6 +14,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,6 +62,37 @@ class AcLoadFlowWithCachingTest {
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(620, load.getTerminal());
         assertActivePowerEquals(-625.895, gen.getTerminal());
+    }
+
+    @Test
+    void testLoadPAndSlackDistributionOnLoads() {
+        var network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        var l14 = network.getBranch("l14");
+        var l24 = network.getBranch("l24");
+        var l34 = network.getBranch("l34");
+        var l2 = network.getLoad("l2");
+        var l4 = network.getLoad("l4");
+
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(70.588, l2.getTerminal());
+        assertActivePowerEquals(164.706, l4.getTerminal());
+        assertActivePowerEquals(64.706, l14.getTerminal1());
+        assertActivePowerEquals(129.412, l24.getTerminal1());
+        assertActivePowerEquals(-58.824, l34.getTerminal1());
+
+        l2.setP0(75);
+        l4.setP0(125);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(75.0, l2.getTerminal()); // FIXME, should be 88.235
+        assertActivePowerEquals(125.0, l4.getTerminal()); // FIXME, should be 147.059
+        assertActivePowerEquals(64.706, l14.getTerminal1());
+        assertActivePowerEquals(114.411, l24.getTerminal1()); // FIXME, should be 111.765
+        assertActivePowerEquals(-58.824, l34.getTerminal1());
     }
 
     @Test
