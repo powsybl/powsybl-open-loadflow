@@ -263,6 +263,8 @@ class DcLoadFlowTest {
 
     @Test
     void dcLoadFlowContextTest() {
+        // We'll base the test on the Eurostag
+        Network network = EurostagTutorialExample1Factory.create();
         assertTrue(true);
     }
 }
