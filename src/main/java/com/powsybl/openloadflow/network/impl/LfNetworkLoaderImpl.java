@@ -93,7 +93,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             if (!voltageControlGenerators.isEmpty() && !voltageMonitoringGenerators.isEmpty()) {
                 String generatorIds = voltageMonitoringGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
-                LOGGER.warn("We have both voltage controllers and voltage monitors connected to the same bus: voltage monitoring discarded", generatorIds);
+                LOGGER.warn("We have both voltage controllers and voltage monitors ({}) connected to the same bus: voltage monitoring discarded", generatorIds);
                 voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
                 voltageMonitoringGenerators = Collections.emptyList();
             }
