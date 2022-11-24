@@ -172,52 +172,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     }
                 });
     }
-
-    private static Map<String, LfAction> createLfActions(LfNetwork network, Set<Action> actions) {
-        return actions.stream()
-                .map(action -> LfAction.create(action, network))
-                .flatMap(Optional::stream)
-                .collect(Collectors.toMap(LfAction::getId, Function.identity()));
-    }
-
-    private static Map<String, Action> indexActionsById(List<Action> actions) {
-        return actions.stream()
-                .collect(Collectors.toMap(
-                    Action::getId,
-                    Function.identity(),
-                    (action1, action2) -> {
-                        throw new PowsyblException("An action '" + action1.getId() + "' already exist");
-                    }
-                ));
-    }
-
-    private static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
-                                                                                              List<OperatorStrategy> operatorStrategies,
-                                                                                              Map<String, Action> actionsById,
-                                                                                              Set<Action> neededActions) {
-        Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
-        for (OperatorStrategy operatorStrategy : operatorStrategies) {
-            if (contingencyIds.contains(operatorStrategy.getContingencyId())) {
-                // check actions IDs exists
-                for (String actionId : operatorStrategy.getActionIds()) {
-                    Action action = actionsById.get(actionId);
-                    if (action == null) {
-                        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to action '"
-                                + actionId + "' but this action is not present in the list");
-                    }
-                    neededActions.add(action);
-                }
-                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>())
-                        .add(operatorStrategy);
-            } else {
-                throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to contingency '"
-                        + operatorStrategy.getContingencyId() + "' but this contingency is not present in the list");
-            }
-        }
-        return operatorStrategiesByContingencyId;
-    }
-
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
                                                   SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                   List<Action> actions) {
@@ -412,35 +366,5 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         }
 
         return Optional.ofNullable(operatorStrategyResult);
-    }
-
-    private boolean checkCondition(OperatorStrategy operatorStrategy, LimitViolationsResult limitViolationsResult) {
-        Set<String> limitViolationEquipmentIds = limitViolationsResult.getLimitViolations().stream()
-                .map(LimitViolation::getSubjectId)
-                .collect(Collectors.toSet());
-        switch (operatorStrategy.getCondition().getType()) {
-            case TrueCondition.NAME:
-                return true;
-            case AnyViolationCondition.NAME:
-                return !limitViolationEquipmentIds.isEmpty();
-            case AtLeastOneViolationCondition.NAME: {
-                AtLeastOneViolationCondition atLeastCondition = (AtLeastOneViolationCondition) operatorStrategy.getCondition();
-                Set<String> commonEquipmentIds = atLeastCondition.getViolationIds().stream()
-                        .distinct()
-                        .filter(limitViolationEquipmentIds::contains)
-                        .collect(Collectors.toSet());
-                return !commonEquipmentIds.isEmpty();
-            }
-            case AllViolationCondition.NAME: {
-                AllViolationCondition allCondition = (AllViolationCondition) operatorStrategy.getCondition();
-                Set<String> commonEquipmentIds = allCondition.getViolationIds().stream()
-                        .distinct()
-                        .filter(limitViolationEquipmentIds::contains)
-                        .collect(Collectors.toSet());
-                return commonEquipmentIds.equals(new HashSet<>(allCondition.getViolationIds()));
-            }
-            default:
-                throw new UnsupportedOperationException("Unsupported condition type: " + operatorStrategy.getCondition().getType());
-        }
     }
 }
