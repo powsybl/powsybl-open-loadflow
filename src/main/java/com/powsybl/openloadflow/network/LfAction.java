@@ -6,11 +6,13 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.security.action.Action;
-import com.powsybl.security.action.LineConnectionAction;
-import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.security.action.SwitchAction;
+import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.security.action.*;
 
 import java.util.*;
 
@@ -54,49 +56,81 @@ public final class LfAction {
 
     private final TapPositionChange tapPositionChange;
 
-    private LfAction(String id, LfBranch disabledBranch, LfBranch enabledBranch, TapPositionChange tapPositionChange) {
+    private final Map<LfBus, PowerShift> busesLoadShift;
+
+    private LfAction(String id, LfBranch disabledBranch, LfBranch enabledBranch, TapPositionChange tapPositionChange, Map<LfBus, PowerShift> busesLoadShift) {
         this.id = Objects.requireNonNull(id);
         this.disabledBranch = disabledBranch;
         this.enabledBranch = enabledBranch;
         this.tapPositionChange = tapPositionChange;
+        this.busesLoadShift = busesLoadShift;
     }
 
-    public static Optional<LfAction> create(Action action, LfNetwork network) {
+    public static Optional<LfAction> create(Action action, LfNetwork lfNetwork, Network network, boolean breakers) {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         switch (action.getType()) {
             case SwitchAction.NAME:
-                return create((SwitchAction) action, network);
+                return create((SwitchAction) action, lfNetwork, network, breakers);
 
             case LineConnectionAction.NAME:
-                return create((LineConnectionAction) action, network);
+                return create((LineConnectionAction) action, lfNetwork, network, breakers);
 
             case PhaseTapChangerTapPositionAction.NAME:
-                return create((PhaseTapChangerTapPositionAction) action, network);
+                return create((PhaseTapChangerTapPositionAction) action, lfNetwork, network, breakers);
+
+            case LoadAction.NAME:
+                return create((LoadAction) action, lfNetwork, network, breakers);
 
             default:
                 throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         }
     }
 
-    private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork network) {
-        LfBranch branch = network.getBranchById(action.getTransformerId()); // only two windings transformer for the moment.
+    private static Optional<LfAction> create(LoadAction action, LfNetwork lfNetwork, Network network, boolean breakers) {
+        Load load = network.getLoad(action.getLoadId());
+        Terminal terminal = load.getTerminal();
+        Bus bus = breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
+        if (bus != null) {
+            LfBus lfBus = lfNetwork.getBusById(bus.getId());
+            double activePowerShift = 0;
+            double reactivePowerShift = 0;
+            Optional<Double> activePowerValue = action.getActivePowerValue();
+            Optional<Double> reactivePowerValue = action.getReactivePowerValue();
+            if (activePowerValue.isPresent()) {
+                activePowerShift = action.isRelativeValue() ? load.getP0() + activePowerValue.get() : activePowerValue.get();
+            }
+            if (reactivePowerValue.isPresent()) {
+                reactivePowerShift = action.isRelativeValue() ? load.getQ0() + reactivePowerValue.get() : reactivePowerValue.get();
+            }
+            // FIXME: variable active power.
+            PowerShift powerShift = new PowerShift(activePowerShift / PerUnit.SB, activePowerShift / PerUnit.SB, reactivePowerShift / PerUnit.SB);
+            Map<LfBus, PowerShift> busesLoadShift = new HashMap<>();
+            busesLoadShift.put(lfBus, powerShift);
+            return Optional.of(new LfAction(action.getId(), null, null, null, busesLoadShift));
+        }
+
+        return Optional.empty(); // could be in another component
+    }
+
+    private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork, Network network, boolean breakers) {
+        LfBranch branch = lfNetwork.getBranchById(action.getTransformerId()); // only two windings transformer for the moment.
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
                 throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + action.getTransformerId() + "}");
             } else {
                 var tapPositionChange = new TapPositionChange(branch, action.getValue(), action.isRelativeValue());
-                return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange));
+                return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange, Collections.emptyMap()));
             }
         }
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(LineConnectionAction action, LfNetwork network) {
-        LfBranch branch = network.getBranchById(action.getLineId());
+    private static Optional<LfAction> create(LineConnectionAction action, LfNetwork lfNetwork, Network network, boolean breakers) {
+        LfBranch branch = lfNetwork.getBranchById(action.getLineId());
         if (branch != null) {
             if (action.isOpenSide1() && action.isOpenSide2()) {
-                return Optional.of(new LfAction(action.getId(), branch, null, null));
+                return Optional.of(new LfAction(action.getId(), branch, null, null, Collections.emptyMap()));
             } else {
                 throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
             }
@@ -104,8 +138,8 @@ public final class LfAction {
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(SwitchAction action, LfNetwork network) {
-        LfBranch branch = network.getBranchById(action.getSwitchId());
+    private static Optional<LfAction> create(SwitchAction action, LfNetwork lfNetwork, Network network, boolean breakers) {
+        LfBranch branch = lfNetwork.getBranchById(action.getSwitchId());
         if (branch != null) {
             LfBranch disabledBranch = null;
             LfBranch enabledBranch = null;
@@ -114,7 +148,7 @@ public final class LfAction {
             } else {
                 enabledBranch = branch;
             }
-            return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null));
+            return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null, Collections.emptyMap()));
         }
         return Optional.empty(); // could be in another component
     }
