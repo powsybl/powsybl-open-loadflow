@@ -234,7 +234,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, context.getParameters().getLoadFlowParameters(),
                 parametersExt, matrixFactory, connectivityFactory, false);
-        dcParameters.getNetworkParameters().setBreakers(true);
+        dcParameters.getNetworkParameters().setBreakers(breakers);
 
         //TODO Switch to open and switch to close to fill
         LfNetwork lfNet = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP).getLargest().get();
