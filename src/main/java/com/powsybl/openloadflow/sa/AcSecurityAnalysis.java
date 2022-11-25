@@ -159,19 +159,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         }
     }
 
-    private static void findAllSwitchesToOperate(Network network, List<Action> actions, Set<Switch> allSwitchesToClose, Set<Switch> allSwitchesToOpen) {
-        actions.stream().filter(action -> action.getType().equals(SwitchAction.NAME))
-                .forEach(action -> {
-                    String switchId = ((SwitchAction) action).getSwitchId();
-                    Switch sw = network.getSwitch(switchId);
-                    boolean toOpen = ((SwitchAction) action).isOpen();
-                    if (sw.isOpen() && !toOpen) { // the switch is open and the action will close it.
-                        allSwitchesToClose.add(sw);
-                    } else if (!sw.isOpen() && toOpen) { // the switch is closed and the action will open it.
-                        allSwitchesToOpen.add(sw);
-                    }
-                });
-    }
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
                                                   SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                   List<Action> actions) {

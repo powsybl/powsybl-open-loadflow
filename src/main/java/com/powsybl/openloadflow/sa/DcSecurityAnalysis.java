@@ -12,6 +12,7 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -210,24 +211,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(context.getParameters().getLoadFlowParameters());
         List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
-        // create networks with no switches for the moment.
-        var dcParameters = OpenLoadFlowParameters.createDcParameters(network, context.getParameters().getLoadFlowParameters(),
-                parametersExt, matrixFactory, connectivityFactory, false);
-
-        //TODO Switch to open and switch to close to fill
-        LfNetwork lfNet = Networks.load(network, dcParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), Reporter.NO_OP).getLargest().get();
-
-        //TODO Lancer un load flow
-        DcLoadFlowResult baseResult = new DcLoadFlowEngine(List.of(lfNet), dcParameters).run(Reporter.NO_OP).get(0);
-
-        //Sauvegarder son état (pour restore plus tard)
-        NetworkState networkState = NetworkState.save(lfNet);
-        Map<String, Action> actionsById = indexActionsById(actions);
-        Set<Action> neededActions = new HashSet<>(actionsById.size());
-        Map<String, LfAction> lfActionById = createLfActions(lfNet, neededActions);
-
-        var preContingencyLimitViolationManager = new LimitViolationManager();
-        preContingencyLimitViolationManager.detectViolations(lfNet);
 
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(context.getParameters());
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
@@ -236,13 +219,40 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         //lfParameters.isHvdcAcEmulation() -> false is DC
         //securityAnalysisParametersExt.isContingencyPropagation() -> false
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), Collections.emptySet(),
+        Set<Switch> allSwitchesToOpen = new HashSet<>();
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen,
                 false, context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 false, false);
 
+        Map<String, Action> actionsById = indexActionsById(actions);
+        Set<Action> neededActions = new HashSet<>(actionsById.size());
+
+        Set<Switch> allSwitchesToClose = new HashSet<>();
+        findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
+
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
+
+        var dcParameters = OpenLoadFlowParameters.createDcParameters(network, context.getParameters().getLoadFlowParameters(),
+                parametersExt, matrixFactory, connectivityFactory, false);
+        dcParameters.getNetworkParameters().setBreakers(true);
+
+        //TODO Switch to open and switch to close to fill
+        LfNetwork lfNet = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP).getLargest().get();
+
+        //TODO Lancer un load flow
+        DcLoadFlowResult baseResult = new DcLoadFlowEngine(List.of(lfNet), dcParameters).run(Reporter.NO_OP).get(0);
+
+        //Sauvegarder son état (pour restore plus tard)
+        NetworkState networkState = NetworkState.save(lfNet);
+
+        var preContingencyLimitViolationManager = new LimitViolationManager();
+        preContingencyLimitViolationManager.detectViolations(lfNet);
+
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
 
+        Map<String, LfAction> lfActionById = createLfActions(lfNet, neededActions);
         Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
+
         while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
             PropagatedContingency propagatedContingency = contingencyIt.next();
             List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId());

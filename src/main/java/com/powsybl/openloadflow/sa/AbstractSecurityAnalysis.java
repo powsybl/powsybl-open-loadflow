@@ -12,6 +12,7 @@ import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -23,6 +24,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
+import com.powsybl.security.action.SwitchAction;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;
@@ -185,5 +187,19 @@ public abstract class AbstractSecurityAnalysis {
             default:
                 throw new UnsupportedOperationException("Unsupported condition type: " + operatorStrategy.getCondition().getType());
         }
+    }
+
+    protected static void findAllSwitchesToOperate(Network network, List<Action> actions, Set<Switch> allSwitchesToClose, Set<Switch> allSwitchesToOpen) {
+        actions.stream().filter(action -> action.getType().equals(SwitchAction.NAME))
+                .forEach(action -> {
+                    String switchId = ((SwitchAction) action).getSwitchId();
+                    Switch sw = network.getSwitch(switchId);
+                    boolean toOpen = ((SwitchAction) action).isOpen();
+                    if (sw.isOpen() && !toOpen) { // the switch is open and the action will close it.
+                        allSwitchesToClose.add(sw);
+                    } else if (!sw.isOpen() && toOpen) { // the switch is closed and the action will open it.
+                        allSwitchesToOpen.add(sw);
+                    }
+                });
     }
 }
