@@ -8,12 +8,14 @@ package com.powsybl.openloadflow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -111,9 +113,18 @@ public enum NetworkCache {
                     LfBus lfBus = lfNetwork.getBusById(bus.getId());
                     if (lfBus != null) {
                         if (attribute.equals("p0")) {
-                            double valueShift = (double) newValue - (double) oldValue;
-                            double newLoadP = lfBus.getLoadTargetP() + valueShift / PerUnit.SB;
-                            lfBus.reInitLoadTargetP(newLoadP);
+                            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+                            if (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD && loadDetail != null) {
+                                LOGGER.warn("Balance type PROPORTIONAL_TO_CONFORM_LOAD with Load {} that has a LoadDetail extension: not supported", load.getId());
+                            }
+                            double oldP0 = ((double) oldValue) / PerUnit.SB;
+                            double newP0 = ((double) newValue) / PerUnit.SB;
+                            double oldUpdatedP0 = LfContingency.getUpdatedLoadP0(lfBus, parameters.getBalanceType(), oldP0, oldP0);
+                            double newUpdatedLoadP0 = LfContingency.getUpdatedLoadP0(lfBus, parameters.getBalanceType(), newP0, newP0);
+                            lfBus.getAggregatedLoads().setInitialized(false);
+                            lfBus.reInitLoadTargetP(lfBus.getInitialLoadTargetP() + newP0 - oldP0);
+                            double newLoadP = lfBus.getLoadTargetP() - oldUpdatedP0 + newUpdatedLoadP0;
+                            lfBus.setLoadTargetP(newLoadP);
                             context.setNetworkUpdated(true);
                             found = true;
                             break;

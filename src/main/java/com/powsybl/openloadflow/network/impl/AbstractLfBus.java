@@ -307,7 +307,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void reInitLoadTargetP(double newInitialLoadTargetP) {
         this.initialLoadTargetP = newInitialLoadTargetP * PerUnit.SB;
-        setLoadTargetP(newInitialLoadTargetP);
     }
 
     @Override

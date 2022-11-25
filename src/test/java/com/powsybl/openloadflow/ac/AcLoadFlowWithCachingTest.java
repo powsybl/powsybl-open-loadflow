@@ -88,10 +88,21 @@ class AcLoadFlowWithCachingTest {
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(1, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(75.0, l2.getTerminal()); // FIXME, should be 88.235
-        assertActivePowerEquals(125.0, l4.getTerminal()); // FIXME, should be 147.059
+        assertActivePowerEquals(88.235, l2.getTerminal());
+        assertActivePowerEquals(147.059, l4.getTerminal());
         assertActivePowerEquals(64.706, l14.getTerminal1());
-        assertActivePowerEquals(114.411, l24.getTerminal1()); // FIXME, should be 111.765
+        assertActivePowerEquals(111.765, l24.getTerminal1());
+        assertActivePowerEquals(-58.824, l34.getTerminal1());
+
+        l2.setP0(60);
+        l4.setP0(140);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(70.588, l2.getTerminal());
+        assertActivePowerEquals(164.706, l4.getTerminal());
+        assertActivePowerEquals(64.706, l14.getTerminal1());
+        assertActivePowerEquals(129.412, l24.getTerminal1());
         assertActivePowerEquals(-58.824, l34.getTerminal1());
     }
 
