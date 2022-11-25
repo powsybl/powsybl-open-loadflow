@@ -119,39 +119,6 @@ public class DcLoadFlowEngine {
         }
     }
 
-    public static void initTarget(Equation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
-        switch (equation.getType()) {
-            case BUS_TARGET_P:
-                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
-                break;
-
-            case BUS_TARGET_PHI:
-                targets[equation.getColumn()] = 0;
-                break;
-
-            case BRANCH_TARGET_P:
-                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), DiscretePhaseControl.Unit.MW);
-                break;
-
-            case BRANCH_TARGET_ALPHA1:
-                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getA1();
-                break;
-
-            case ZERO_PHI:
-                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
-                break;
-
-            default:
-                throw new IllegalStateException("Unknown state variable type: " + equation.getType());
-        }
-
-        for (EquationTerm<DcVariableType, DcEquationType> term : equation.getTerms()) {
-            if (term.isActive() && term.hasRhs()) {
-                targets[equation.getColumn()] -= term.rhs();
-            }
-        }
-    }
-
     public static Pair<LoadFlowResult.ComponentResult.Status, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
                                                                             EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                                             JacobianMatrix<DcVariableType, DcEquationType> j,
@@ -165,7 +132,7 @@ public class DcLoadFlowEngine {
             distributeSlack(remainingBuses, parameters.getBalanceType());
         }
 
-        var targetVector = TargetVector.createArray(network, equationSystem, DcLoadFlowEngine::initTarget);
+        DcTargetVector targetVector = new DcTargetVector(network, equationSystem);
 
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0
@@ -174,7 +141,7 @@ public class DcLoadFlowEngine {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(Equation::getColumn)
-                .forEach(column -> targetVector[column] = 0);
+                .forEach(column -> targetVector.getArray()[column] = 0);
         }
 
         if (!disabledBranches.isEmpty()) {
@@ -184,12 +151,12 @@ public class DcLoadFlowEngine {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(Equation::getColumn)
-                .forEach(column -> targetVector[column] = 0);
+                .forEach(column -> targetVector.getArray()[column] = 0);
         }
 
         LoadFlowResult.ComponentResult.Status status;
         try {
-            j.solveTransposed(targetVector);
+            j.solveTransposed(targetVector.getArray());
             status = LoadFlowResult.ComponentResult.Status.CONVERGED;
         } catch (MatrixException e) {
             status = LoadFlowResult.ComponentResult.Status.FAILED;
@@ -198,8 +165,8 @@ public class DcLoadFlowEngine {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
 
-        equationSystem.getStateVector().set(targetVector);
-        updateNetwork(network, equationSystem, targetVector);
+        equationSystem.getStateVector().set(targetVector.getArray());
+        updateNetwork(network, equationSystem, targetVector.getArray());
 
         // set all calculated voltages to NaN
         if (parameters.isSetVToNan()) {
@@ -211,7 +178,7 @@ public class DcLoadFlowEngine {
         Reports.reportDcLfComplete(reporter, status.toString());
         LOGGER.info("DC load flow completed (status={})", status);
 
-        return Pair.of(status, targetVector);
+        return Pair.of(status, targetVector.getArray());
     }
 
     public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {

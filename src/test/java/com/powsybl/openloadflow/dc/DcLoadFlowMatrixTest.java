@@ -78,14 +78,14 @@ class DcLoadFlowMatrixTest {
             j.print(ps, equationSystem.getRowNames(mainNetwork), equationSystem.getColumnNames(mainNetwork));
         }
 
-        double[] targets = TargetVector.createArray(mainNetwork, equationSystem, DcLoadFlowEngine::initTarget);
+        DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem);
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("TGT=");
-            Matrix.createFromColumn(targets, matrixFactory)
+            Matrix.createFromColumn(targets.getArray(), matrixFactory)
                     .print(ps, equationSystem.getRowNames(mainNetwork), null);
         }
 
-        double[] dx = Arrays.copyOf(targets, targets.length);
+        double[] dx = Arrays.copyOf(targets.getArray(), targets.getArray().length);
         try (LUDecomposition lu = j.decomposeLU()) {
             lu.solveTransposed(dx);
         }
@@ -110,7 +110,7 @@ class DcLoadFlowMatrixTest {
 
         j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
 
-        dx = Arrays.copyOf(targets, targets.length);
+        dx = Arrays.copyOf(targets.getArray(), targets.getArray().length);
         try (LUDecomposition lu = j.decomposeLU()) {
             lu.solveTransposed(dx);
         }
