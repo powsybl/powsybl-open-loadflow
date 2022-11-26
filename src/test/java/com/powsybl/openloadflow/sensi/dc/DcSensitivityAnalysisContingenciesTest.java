@@ -2149,20 +2149,14 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         Network network = IeeeCdfNetworkFactory.create14();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(5000));
         SensitivityAnalysisParameters sensiParameters = createParameters(true);
-        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(false);
         List<SensitivityFactor> factors = createFactorMatrix(Stream.of("B1-G", "B2-G", "B3-G").map(network::getGenerator).collect(Collectors.toList()),
                 Stream.of("L1-5-1", "L2-3-1").map(network::getBranch).collect(Collectors.toList()));
         List<Contingency> contingencies = List.of(new Contingency("L1-2-1", new BranchContingency("L1-2-1")));
+
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
-        assertEquals(72.247, result.getBranchFlow1FunctionReferenceValue(null, "L1-5-1"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(69.831, result.getBranchFlow1FunctionReferenceValue(null, "L2-3-1"), LoadFlowAssert.DELTA_POWER);
-
-        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
-        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
-
-        assertEquals(72.224, result2.getBranchFlow1FunctionReferenceValue(null, "L1-5-1"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(69.850, result2.getBranchFlow1FunctionReferenceValue(null, "L2-3-1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(72.224, result.getBranchFlow1FunctionReferenceValue(null, "L1-5-1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(69.850, result.getBranchFlow1FunctionReferenceValue(null, "L2-3-1"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test

@@ -250,7 +250,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             @Override
             public void visitGenerator(Generator generator) {
                 lfBus.addGenerator(generator, parameters.isBreakers(), parameters.getPlausibleActivePowerLimit(), parameters.isReactiveLimits(),
-                        report, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage());
+                        report, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
                 postProcessors.forEach(pp -> pp.onInjectionAdded(generator, lfBus));
             }
 
@@ -279,7 +279,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
                 lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(),
                         parameters.isBreakers(), parameters.isReactiveLimits(), report, parameters.getMinPlausibleTargetVoltage(),
-                        parameters.getMaxPlausibleTargetVoltage());
+                        parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
                 postProcessors.forEach(pp -> pp.onInjectionAdded(staticVarCompensator, lfBus));
             }
 
@@ -295,7 +295,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     case VSC:
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
                         lfBus.addVscConverterStation(vscConverterStation, parameters.isBreakers(), parameters.isReactiveLimits(),
-                                report, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage());
+                                report, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
                         loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
                         break;
                     case LCC:
@@ -335,14 +335,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
-            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters.isTwtSplitShuntAdmittance(), parameters.isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(), report);
+            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters.isTwtSplitShuntAdmittance());
             addBranch(lfNetwork, lfBranch, report, parameters.isDc());
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
             LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters.isReactiveLimits(), report,
-                    parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage());
+                    parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
             lfNetwork.addBus(lfBus2);
             lfBuses.add(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
@@ -771,10 +771,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
-        if (report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall(reporter, report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
-            LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small max reactive range",
-                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall);
+        if (report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall > 0) {
+            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reporter, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
+            LOGGER.warn("Network {}: {} generators have been discarded from voltage control because of a too small reactive range",
+                    lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero > 0) {
             LOGGER.warn("Network {}: {} generators have been discarded from active power control because of a targetP equals 0",
