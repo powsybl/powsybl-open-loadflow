@@ -111,6 +111,14 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return rootTerm.eval();
     }
 
+    public double der(Variable<V> v) {
+        return rootTerm.der(v);
+    }
+
+    public double rhs() {
+        return rootTerm.rhs();
+    }
+
     @Override
     public int hashCode() {
         return elementNum + type.hashCode();

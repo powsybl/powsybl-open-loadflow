@@ -96,7 +96,9 @@ public class SumEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Q
     public double der(Variable<V> variable) {
         double der = 0;
         for (var term : terms) {
-            der += term.der(variable);
+            if (term.isActive()) {
+                der += term.der(variable);
+            }
         }
         return der;
     }
@@ -110,7 +112,9 @@ public class SumEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Q
     public double rhs() {
         double rhs = 0;
         for (var term : terms) {
-            rhs += term.rhs();
+            if (term.isActive() && term.hasRhs()) {
+                rhs += term.rhs();
+            }
         }
         return rhs;
     }

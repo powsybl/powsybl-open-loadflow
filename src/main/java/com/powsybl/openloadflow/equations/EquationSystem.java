@@ -80,19 +80,11 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    void addEquationTerm(EquationTerm<V, E> equationTerm) {
-        Objects.requireNonNull(equationTerm);
-        indexTerm(equationTerm);
-        attach(equationTerm);
-    }
-
     private void indexAllTerms() {
         if (equationTermsByElement == null) {
             equationTermsByElement = new HashMap<>();
             for (var equation : equations.values()) {
-                for (var term : equation.getTerms()) {
-                    indexTerm(term);
-                }
+                indexTerm(equation.getRootTerm());
             }
         }
     }

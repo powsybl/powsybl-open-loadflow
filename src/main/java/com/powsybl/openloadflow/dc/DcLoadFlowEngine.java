@@ -149,11 +149,7 @@ public class DcLoadFlowEngine {
                 throw new IllegalStateException("Unknown state variable type: " + equation.getType());
         }
 
-        for (EquationTerm<DcVariableType, DcEquationType> term : equation.getTerms()) {
-            if (term.isActive() && term.hasRhs()) {
-                targets[equation.getColumn()] -= term.rhs();
-            }
-        }
+        targets[equation.getColumn()] -= equation.rhs();
     }
 
     public static Pair<LoadFlowResult.ComponentResult.Status, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
