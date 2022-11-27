@@ -16,6 +16,7 @@ import java.io.Writer;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -102,8 +103,8 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return this;
     }
 
-    public List<EquationTerm<V, E>> getTerms() {
-        return getSum().getChildren();
+    public Set<Variable<V>> getVariables() {
+        return rootTerm.getVariables();
     }
 
     @Override

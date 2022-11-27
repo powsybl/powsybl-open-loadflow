@@ -161,7 +161,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
         @Override
         public double der(Variable<V> variable) {
-            return 1;
+            return variable.equals(this.variable) ? 1 : 0;
         }
 
         @Override
