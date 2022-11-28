@@ -37,7 +37,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         network.getGenerator("G2").newMinMaxReactiveLimits().setMaxQ(100).setMinQ(-100).add();
         LfNetworkParameters networkParameters = new LfNetworkParameters()
                 .setBreakers(true);
-        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, networkParameters.getLowImpedanceThreshold());
+        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
@@ -61,7 +61,7 @@ class NonImpedantBranchWithBreakerIssueTest {
         Network network = NodeBreakerNetworkFactory.create3barsAndJustOneVoltageLevel();
         LfNetworkParameters networkParameters = new LfNetworkParameters();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).get(0);
-        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false, networkParameters.getLowImpedanceThreshold());
+        AcEquationSystemCreationParameters equationSystemCreationParameters = new AcEquationSystemCreationParameters(false);
         NewtonRaphsonParameters newtonRaphsonParameters = new NewtonRaphsonParameters();
         AcLoadFlowParameters acLoadFlowParameters = new AcLoadFlowParameters(networkParameters, equationSystemCreationParameters,
                                                                              newtonRaphsonParameters, Collections.emptyList(),

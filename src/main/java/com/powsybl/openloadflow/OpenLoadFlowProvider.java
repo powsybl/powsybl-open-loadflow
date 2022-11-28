@@ -33,6 +33,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.*;
@@ -178,18 +179,19 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         Networks.resetState(network);
 
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters)).collect(Collectors.toList());
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, dcParameters.getNetworkParameters())).collect(Collectors.toList());
         boolean ok = results.stream().anyMatch(r -> r.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
 
-    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult pResult, LoadFlowParameters parameters) {
-        if (pResult.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
+    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters,
+                                                         LfNetworkParameters networkParameters) {
+        if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
         }
 
-        if (pResult.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED) {
-            pResult.getNetwork().updateState(false,
+        if (result.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED) {
+            result.getNetwork().updateState(false,
                     parameters.isWriteSlackBus(),
                     parameters.isPhaseShifterRegulationOn(),
                     parameters.isTransformerVoltageControlOn(),
@@ -197,16 +199,16 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     false, true);
 
             // zero or low impedance branch flows computation
-            computeZeroImpedanceFlows(pResult.getNetwork(), true, OpenLoadFlowParameters.get(parameters).getLowImpedanceThreshold());
+            computeZeroImpedanceFlows(result.getNetwork(), true, networkParameters.getLowImpedanceThreshold());
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(
-                pResult.getNetwork().getNumCC(),
-                pResult.getNetwork().getNumSC(),
-                pResult.getStatus(),
+                result.getNetwork().getNumCC(),
+                result.getNetwork().getNumSC(),
+                result.getStatus(),
                 0,
-                pResult.getNetwork().getSlackBus().getId(),
-                pResult.getSlackBusActivePowerMismatch() * PerUnit.SB,
+                result.getNetwork().getSlackBus().getId(),
+                result.getSlackBusActivePowerMismatch() * PerUnit.SB,
                 Double.NaN);
     }
 

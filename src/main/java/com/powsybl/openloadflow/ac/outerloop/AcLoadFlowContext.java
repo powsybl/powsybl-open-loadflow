@@ -49,7 +49,8 @@ public class AcLoadFlowContext implements AutoCloseable {
 
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         if (equationSystem == null) {
-            equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters());
+            equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters(),
+                    parameters.getNetworkParameters().getLowImpedanceThreshold());
         }
         return equationSystem;
     }

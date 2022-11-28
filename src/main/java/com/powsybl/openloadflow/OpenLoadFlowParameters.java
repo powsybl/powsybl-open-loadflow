@@ -661,7 +661,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
-        var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, parametersExt.getLowImpedanceThreshold());
+        var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var);
 
         VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory, reporter);
 
@@ -724,8 +724,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
-                                                                                      parameters.isDcUseTransformerRatio(),
-                                                                                      parametersExt.getLowImpedanceThreshold());
+                                                                                      parameters.isDcUseTransformerRatio());
 
         return new DcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,

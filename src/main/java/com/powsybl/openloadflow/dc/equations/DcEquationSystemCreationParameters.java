@@ -23,15 +23,12 @@ public class DcEquationSystemCreationParameters {
 
     private final boolean useTransformerRatio;
 
-    private final double lowImpedanceThreshold;
-
     public DcEquationSystemCreationParameters(boolean updateFlows, boolean indexTerms, boolean forcePhaseControlOffAndAddAngle1Var,
-                                              boolean useTransformerRatio, double lowImpedanceThreshold) {
+                                              boolean useTransformerRatio) {
         this.updateFlows = updateFlows;
         this.indexTerms = indexTerms;
         this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
         this.useTransformerRatio = useTransformerRatio;
-        this.lowImpedanceThreshold = lowImpedanceThreshold;
     }
 
     public boolean isUpdateFlows() {
@@ -48,10 +45,6 @@ public class DcEquationSystemCreationParameters {
 
     public boolean isUseTransformerRatio() {
         return useTransformerRatio;
-    }
-
-    public double getLowImpedanceThreshold() {
-        return lowImpedanceThreshold;
     }
 
     @Override

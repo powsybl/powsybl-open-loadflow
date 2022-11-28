@@ -35,8 +35,6 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     private final Reporter reporter;
 
-    private final double lowImpedanceThreshold;
-
     public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
                                      boolean useTransformerRatio, MatrixFactory matrixFactory, Reporter reporter) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
@@ -45,7 +43,6 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         this.useTransformerRatio = useTransformerRatio;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.reporter = Objects.requireNonNull(reporter);
-        this.lowImpedanceThreshold = networkParameters.getLowImpedanceThreshold();
     }
 
     @Override
@@ -55,7 +52,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         List<BusDcState> busStates = distributedSlack ? ElementState.save(network.getBuses(), BusDcState::save) : null;
 
         DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParameters,
-                                                                   new DcEquationSystemCreationParameters(false, false, false, useTransformerRatio, lowImpedanceThreshold),
+                                                                   new DcEquationSystemCreationParameters(false, false, false, useTransformerRatio),
                                                                    matrixFactory,
                                                                    distributedSlack,
                                                                    balanceType,

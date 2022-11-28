@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -15,30 +13,22 @@ public class AcEquationSystemCreationParameters {
 
     private final boolean forceA1Var;
 
-    private final double lowImpedanceThreshold;
-
     public AcEquationSystemCreationParameters() {
-        this(false, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
+        this(false);
     }
 
-    public AcEquationSystemCreationParameters(boolean forceA1Var, double lowImpedanceThreshold) {
+    public AcEquationSystemCreationParameters(boolean forceA1Var) {
         this.forceA1Var = forceA1Var;
-        this.lowImpedanceThreshold = lowImpedanceThreshold;
     }
 
     public boolean isForceA1Var() {
         return forceA1Var;
     }
 
-    public double getLowImpedanceThreshold() {
-        return lowImpedanceThreshold;
-    }
-
     @Override
     public String toString() {
         return "AcEquationSystemCreationParameters(" +
                 "forceA1Var=" + forceA1Var +
-                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ')';
     }
 }
