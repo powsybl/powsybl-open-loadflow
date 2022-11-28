@@ -60,17 +60,17 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
         assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
         assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.035155, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.035618, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.081485, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.064609, 0);
         assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.074078, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.2489781, 0);
         assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.072362, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.071942, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.070988, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.070186, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.070332, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.071474, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.320475, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.275961, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.174779, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.089793, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.105257, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.226377, 0);
     }
 
     @Test
@@ -83,17 +83,17 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
         assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
         assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.035126, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.0356, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.078661, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.062842, 0);
         assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.073983, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.240216, 0);
         assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.072171, 0); // equals VL14_0
-        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.071785, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.070908, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.070274, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.070489, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.072171, 0); // equals VL9_0
+        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.300261, 0); // equals VL14_0
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.25934, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.166324, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.099144, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.121916, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.300261, 0); // equals VL9_0
     }
 
     @Test
@@ -106,17 +106,17 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
         assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
         assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.035106, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.035587, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.076690, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.061609, 0);
         assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0); // equals target
-        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.073916, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.234098, 0);
         assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.072038, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.071415, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.286148, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.220109, 0);
         assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.07, 0); // equals VL6_0
-        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.070161, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.070286, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.071272, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.08708, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.100426, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.204946, 0);
     }
 
     @Test
@@ -146,17 +146,17 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
         assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
         assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.035155, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.035618, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.081485, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.064609, 0);
         assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.074078, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.248978, 0);
         assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.072362, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.071942, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.070988, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.070186, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.070332, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.071474, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.320475, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.275961, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL11_0", 1.17478, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL12_0", 1.089793, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL13_0", 1.105258, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL14_0", 1.226377, 0);
     }
 
     @Test
@@ -202,10 +202,10 @@ public class VoltageMagnitudeInitializerTest {
         assertBusVoltage(lfNetwork, initializer, "VL1_0", 1.06, 0);
         assertBusVoltage(lfNetwork, initializer, "VL2_0", 1.045, 0);
         assertBusVoltage(lfNetwork, initializer, "VL3_0", 1.01, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.039348, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.038242, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL4_0", 1.050687, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL5_0", 1.045337, 0);
         assertBusVoltage(lfNetwork, initializer, "VL6_0", 1.07, 0);
-        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.087979, 0);
+        assertBusVoltage(lfNetwork, initializer, "VL7_0", 1.153402, 0);
         assertBusVoltage(lfNetwork, initializer, "VL8_0", 1.09, 0);
         assertBusVoltage(lfNetwork, initializer, "VL9_0", 1.1, 0); // this is tha transformer voltage control target!
         assertBusVoltage(lfNetwork, initializer, "VL10_0", 1.094668, 0);
