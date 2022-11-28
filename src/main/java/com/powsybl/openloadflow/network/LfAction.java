@@ -10,9 +10,11 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 
@@ -56,9 +58,9 @@ public final class LfAction {
 
     private final TapPositionChange tapPositionChange;
 
-    private final Map<LfBus, PowerShift> busesLoadShift;
+    private final Map<LfBus, Pair<Double, PowerShift>> busesLoadShift;
 
-    private LfAction(String id, LfBranch disabledBranch, LfBranch enabledBranch, TapPositionChange tapPositionChange, Map<LfBus, PowerShift> busesLoadShift) {
+    private LfAction(String id, LfBranch disabledBranch, LfBranch enabledBranch, TapPositionChange tapPositionChange, Map<LfBus, Pair<Double, PowerShift>> busesLoadShift) {
         this.id = Objects.requireNonNull(id);
         this.disabledBranch = disabledBranch;
         this.enabledBranch = enabledBranch;
@@ -98,15 +100,15 @@ public final class LfAction {
             Optional<Double> activePowerValue = action.getActivePowerValue();
             Optional<Double> reactivePowerValue = action.getReactivePowerValue();
             if (activePowerValue.isPresent()) {
-                activePowerShift = action.isRelativeValue() ? load.getP0() + activePowerValue.get() : activePowerValue.get();
+                activePowerShift = action.isRelativeValue() ? activePowerValue.get() : activePowerValue.get() - load.getP0();
             }
             if (reactivePowerValue.isPresent()) {
-                reactivePowerShift = action.isRelativeValue() ? load.getQ0() + reactivePowerValue.get() : reactivePowerValue.get();
+                reactivePowerShift = action.isRelativeValue() ? reactivePowerValue.get() : reactivePowerValue.get() - load.getQ0();
             }
             // FIXME: variable active power.
             PowerShift powerShift = new PowerShift(activePowerShift / PerUnit.SB, activePowerShift / PerUnit.SB, reactivePowerShift / PerUnit.SB);
-            Map<LfBus, PowerShift> busesLoadShift = new HashMap<>();
-            busesLoadShift.put(lfBus, powerShift);
+            Map<LfBus, Pair<Double, PowerShift>> busesLoadShift = new HashMap<>();
+            busesLoadShift.put(lfBus, Pair.of(load.getP0(), powerShift));
             return Optional.of(new LfAction(action.getId(), null, null, null, busesLoadShift));
         }
 
@@ -165,7 +167,7 @@ public final class LfAction {
         return enabledBranch;
     }
 
-    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency) {
+    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LoadFlowParameters.BalanceType balanceType) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
@@ -174,7 +176,7 @@ public final class LfAction {
 
         // then process remaining changes of actions
         for (LfAction action : actions) {
-            action.apply();
+            action.apply(balanceType);
         }
     }
 
@@ -227,13 +229,27 @@ public final class LfAction {
         }
     }
 
-    public void apply() {
+    public void apply(LoadFlowParameters.BalanceType balanceType) {
         if (tapPositionChange != null) {
             LfBranch branch = tapPositionChange.getBranch();
             int tapPosition = branch.getPiModel().getTapPosition();
             int value = tapPositionChange.getValue();
             int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
             branch.getPiModel().setTapPosition(newTapPosition);
+        }
+
+        if (!busesLoadShift.isEmpty()) {
+            for (var e : busesLoadShift.entrySet()) {
+                LfBus bus = e.getKey();
+                Double loadP0 = e.getValue().getLeft(); // initial P0.
+                PowerShift shift = e.getValue().getRight();
+                double newP0 = loadP0 / PerUnit.SB + shift.getActive();
+                double oldUpdatedP0 = LfContingency.getUpdatedLoadP0(bus, balanceType, loadP0 / PerUnit.SB, loadP0 / PerUnit.SB);
+                double newUpdatedP0 = LfContingency.getUpdatedLoadP0(bus, balanceType, newP0, newP0);
+                bus.setLoadTargetP(bus.getLoadTargetP() + newUpdatedP0 - oldUpdatedP0);
+                bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
+                bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP() + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()) * PerUnit.SB);
+            }
         }
     }
 }

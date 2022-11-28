@@ -32,10 +32,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.*;
-import com.powsybl.security.action.Action;
-import com.powsybl.security.action.LineConnectionAction;
-import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.action.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;
@@ -145,6 +142,15 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     break;
                 }
 
+                case LoadAction.NAME: {
+                    LoadAction loadAction = (LoadAction) action;
+                    if (network.getLoad(loadAction.getLoadId()) == null) {
+                        throw new PowsyblException("Load '" + loadAction.getLoadId() + "' not found");
+                    }
+                    // FIXME: check extension.
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
@@ -173,7 +179,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 });
     }
 
-    private static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, boolean breakers) {
+    private static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, boolean breakers,
+                                                         boolean isDistributedSlack, LoadFlowParameters.BalanceType balanceType) {
         return actions.stream()
                 .map(action -> LfAction.create(action, lfNetwork, network, breakers))
                 .flatMap(Optional::stream)
@@ -224,12 +231,14 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters().isBreakers()); // only convert needed actions
 
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
+
+        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters().isBreakers(),
+                loadFlowParameters.isDistributedSlack(), loadFlowParameters.getBalanceType()); // only convert needed actions
 
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             Reporter networkReporter = lfNetwork.getReporter();
@@ -283,7 +292,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                         runActionSimulation(lfNetwork, context,
                                                 operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
-                                                createResultExtension, lfContingency)
+                                                createResultExtension, lfContingency, loadFlowParameters.getBalanceType())
                                                 .ifPresent(operatorStrategyResults::add);
                                     } else {
                                         // save post contingency state for later restoration after action
@@ -292,7 +301,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                             runActionSimulation(lfNetwork, context,
                                                     operatorStrategy, preContingencyLimitViolationManager,
                                                     securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
-                                                    createResultExtension, lfContingency)
+                                                    createResultExtension, lfContingency, loadFlowParameters.getBalanceType())
                                                     .ifPresent(result -> {
                                                         operatorStrategyResults.add(result);
                                                         postContingencyNetworkState.restore();
@@ -362,7 +371,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                  LimitViolationsResult postContingencyLimitViolations, Map<String, LfAction> lfActionById,
-                                                                 boolean createResultExtension, LfContingency contingency) {
+                                                                 boolean createResultExtension, LfContingency contingency, LoadFlowParameters.BalanceType balanceType) {
         OperatorStrategyResult operatorStrategyResult = null;
 
         if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
@@ -377,7 +386,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
-            LfAction.apply(operatorStrategyLfActions, network, contingency);
+            LfAction.apply(operatorStrategyLfActions, network, contingency, balanceType);
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 
