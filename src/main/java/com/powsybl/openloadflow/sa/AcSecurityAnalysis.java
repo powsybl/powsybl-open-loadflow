@@ -179,8 +179,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 });
     }
 
-    private static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, boolean breakers,
-                                                         boolean isDistributedSlack, LoadFlowParameters.BalanceType balanceType) {
+    private static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, boolean breakers) {
         return actions.stream()
                 .map(action -> LfAction.create(action, lfNetwork, network, breakers))
                 .flatMap(Optional::stream)
@@ -237,8 +236,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
-        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters().isBreakers(),
-                loadFlowParameters.isDistributedSlack(), loadFlowParameters.getBalanceType()); // only convert needed actions
+        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters().isBreakers()); // only convert needed actions
 
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             Reporter networkReporter = lfNetwork.getReporter();

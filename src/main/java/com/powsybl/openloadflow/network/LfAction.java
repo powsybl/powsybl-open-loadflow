@@ -73,13 +73,13 @@ public final class LfAction {
         Objects.requireNonNull(network);
         switch (action.getType()) {
             case SwitchAction.NAME:
-                return create((SwitchAction) action, lfNetwork, network, breakers);
+                return create((SwitchAction) action, lfNetwork);
 
             case LineConnectionAction.NAME:
-                return create((LineConnectionAction) action, lfNetwork, network, breakers);
+                return create((LineConnectionAction) action, lfNetwork);
 
             case PhaseTapChangerTapPositionAction.NAME:
-                return create((PhaseTapChangerTapPositionAction) action, lfNetwork, network, breakers);
+                return create((PhaseTapChangerTapPositionAction) action, lfNetwork);
 
             case LoadAction.NAME:
                 return create((LoadAction) action, lfNetwork, network, breakers);
@@ -115,7 +115,7 @@ public final class LfAction {
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork, Network network, boolean breakers) {
+    private static Optional<LfAction> create(PhaseTapChangerTapPositionAction action, LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getTransformerId()); // only two windings transformer for the moment.
         if (branch != null) {
             if (branch.getPiModel() instanceof SimplePiModel) {
@@ -128,7 +128,7 @@ public final class LfAction {
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(LineConnectionAction action, LfNetwork lfNetwork, Network network, boolean breakers) {
+    private static Optional<LfAction> create(LineConnectionAction action, LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getLineId());
         if (branch != null) {
             if (action.isOpenSide1() && action.isOpenSide2()) {
@@ -140,7 +140,7 @@ public final class LfAction {
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(SwitchAction action, LfNetwork lfNetwork, Network network, boolean breakers) {
+    private static Optional<LfAction> create(SwitchAction action, LfNetwork lfNetwork) {
         LfBranch branch = lfNetwork.getBranchById(action.getSwitchId());
         if (branch != null) {
             LfBranch disabledBranch = null;
@@ -241,7 +241,7 @@ public final class LfAction {
         if (!busesLoadShift.isEmpty()) {
             for (var e : busesLoadShift.entrySet()) {
                 LfBus bus = e.getKey();
-                Double loadP0 = e.getValue().getLeft(); // initial P0.
+                Double loadP0 = e.getValue().getLeft(); // initial load P0.
                 PowerShift shift = e.getValue().getRight();
                 double newP0 = loadP0 / PerUnit.SB + shift.getActive();
                 double oldUpdatedP0 = LfContingency.getUpdatedLoadP0(bus, balanceType, loadP0 / PerUnit.SB, loadP0 / PerUnit.SB);
