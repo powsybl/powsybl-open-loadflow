@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
-import com.powsybl.openloadflow.AbstractLoadFlowContext;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -14,8 +14,6 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
-
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -27,9 +25,10 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     private EquationVector<AcVariableType, AcEquationType> equationVector;
 
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
-        super(Objects.requireNonNull(network), Objects.requireNonNull(parameters));
+        super(network, parameters);
     }
 
+    @Override
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         if (equationSystem == null) {
             equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters());
@@ -37,6 +36,7 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
         return equationSystem;
     }
 
+    @Override
     public TargetVector<AcVariableType, AcEquationType> getTargetVector() {
         if (targetVector == null) {
             targetVector = new AcTargetVector(network, getEquationSystem());

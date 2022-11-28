@@ -35,14 +35,9 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.util.*;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
-import com.powsybl.openloadflow.util.Markers;
-import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
-import com.powsybl.openloadflow.util.ProviderConstants;
+import com.powsybl.openloadflow.util.*;
 import com.powsybl.tools.PowsyblCoreVersion;
-
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
@@ -99,7 +94,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         OpenLoadFlowParameters.logAc(parameters, parametersExt);
 
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, reporter);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory);
 
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getType).collect(Collectors.toList()));
@@ -178,17 +173,17 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         Networks.resetState(network);
 
         List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters)).collect(Collectors.toList());
-        boolean ok = results.stream().anyMatch(r -> r.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED);
+        boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSucceed);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
 
-    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult pResult, LoadFlowParameters parameters) {
-        if (pResult.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED && parameters.isWriteSlackBus()) {
+    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters) {
+        if (result.isSucceed() && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
         }
 
-        if (pResult.getStatus() == LoadFlowResult.ComponentResult.Status.CONVERGED) {
-            pResult.getNetwork().updateState(false,
+        if (result.isSucceed()) {
+            result.getNetwork().updateState(false,
                     parameters.isWriteSlackBus(),
                     parameters.isPhaseShifterRegulationOn(),
                     parameters.isTransformerVoltageControlOn(),
@@ -196,16 +191,16 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     false, true);
 
             // zero or low impedance branch flows computation
-            computeZeroImpedanceFlows(pResult.getNetwork(), true);
+            computeZeroImpedanceFlows(result.getNetwork(), true);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(
-                pResult.getNetwork().getNumCC(),
-                pResult.getNetwork().getNumSC(),
-                pResult.getStatus(),
+                result.getNetwork().getNumCC(),
+                result.getNetwork().getNumSC(),
+                result.isSucceed() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED,
                 0,
-                pResult.getNetwork().getSlackBus().getId(),
-                pResult.getSlackBusActivePowerMismatch() * PerUnit.SB,
+                result.getNetwork().getSlackBus().getId(),
+                result.getSlackBusActivePowerMismatch() * PerUnit.SB,
                 Double.NaN);
     }
 

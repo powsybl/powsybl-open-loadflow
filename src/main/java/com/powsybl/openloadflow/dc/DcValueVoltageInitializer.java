@@ -7,9 +7,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
@@ -33,16 +31,13 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
     private final MatrixFactory matrixFactory;
 
-    private final Reporter reporter;
-
     public DcValueVoltageInitializer(LfNetworkParameters networkParameters, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                     boolean useTransformerRatio, MatrixFactory matrixFactory, Reporter reporter) {
+                                     boolean useTransformerRatio, MatrixFactory matrixFactory) {
         this.networkParameters = Objects.requireNonNull(networkParameters);
         this.distributedSlack = distributedSlack;
         this.balanceType = Objects.requireNonNull(balanceType);
         this.useTransformerRatio = useTransformerRatio;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.reporter = Objects.requireNonNull(reporter);
     }
 
     @Override
@@ -60,7 +55,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
 
         try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
             DcLoadFlowEngine engine = new DcLoadFlowEngine(context);
-            if (engine.run(reporter).getStatus() != LoadFlowResult.ComponentResult.Status.CONVERGED) {
+            if (!engine.run().isSucceed()) {
                 throw new PowsyblException("DC loadflow failed, impossible to initialize voltage angle from DC values");
             }
         }

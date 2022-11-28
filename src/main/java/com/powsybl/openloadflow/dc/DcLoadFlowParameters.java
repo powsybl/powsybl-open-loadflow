@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 
@@ -30,7 +30,7 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters {
     public DcLoadFlowParameters(LfNetworkParameters networkParameters, DcEquationSystemCreationParameters equationSystemCreationParameters,
                                 MatrixFactory matrixFactory, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
                                 boolean setVToNan) {
-        super(Objects.requireNonNull(networkParameters), Objects.requireNonNull(matrixFactory));
+        super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.distributedSlack = distributedSlack;
         this.balanceType = balanceType;

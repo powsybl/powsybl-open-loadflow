@@ -6,37 +6,22 @@
  */
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.network.LfNetwork;
-
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DcLoadFlowResult {
+public class DcLoadFlowResult extends AbstractLoadFlowResult {
 
-    private final LfNetwork network;
+    private final boolean succeed;
 
-    private final double slackBusActivePowerMismatch;
-
-    private final LoadFlowResult.ComponentResult.Status status;
-
-    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, LoadFlowResult.ComponentResult.Status status) {
-        this.network = Objects.requireNonNull(network);
-        this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
-        this.status = status;
+    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean succeed) {
+        super(network, slackBusActivePowerMismatch);
+        this.succeed = succeed;
     }
 
-    public LfNetwork getNetwork() {
-        return network;
-    }
-
-    public double getSlackBusActivePowerMismatch() {
-        return slackBusActivePowerMismatch;
-    }
-
-    public LoadFlowResult.ComponentResult.Status getStatus() {
-        return status;
+    public boolean isSucceed() {
+        return succeed;
     }
 }

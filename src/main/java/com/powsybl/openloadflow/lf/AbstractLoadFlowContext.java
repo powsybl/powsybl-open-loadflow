@@ -4,26 +4,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow;
+package com.powsybl.openloadflow.lf;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.network.LfNetwork;
 
-public abstract class AbstractLoadFlowContext <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity, P extends AbstractLoadFlowParameters> implements AutoCloseable {
+import java.util.Objects;
+
+/**
+ * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
+ */
+public abstract class AbstractLoadFlowContext <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity, P extends AbstractLoadFlowParameters>
+        implements LoadFlowContext<V, E, P>, AutoCloseable {
 
     protected final LfNetwork network;
+
+    protected final P parameters;
 
     protected EquationSystem<V, E> equationSystem;
 
     protected JacobianMatrix<V, E> jacobianMatrix;
 
-    protected P parameters;
-
-    public AbstractLoadFlowContext(LfNetwork network, P param) {
-        this.network = network;
-        this.parameters = param;
+    protected AbstractLoadFlowContext(LfNetwork network, P parameters) {
+        this.network = Objects.requireNonNull(network);
+        this.parameters = Objects.requireNonNull(parameters);
     }
 
     public JacobianMatrix<V, E> getJacobianMatrix() {
@@ -40,8 +46,6 @@ public abstract class AbstractLoadFlowContext <V extends Enum<V> & Quantity, E e
     public LfNetwork getNetwork() {
         return network;
     }
-
-    public abstract EquationSystem<V, E> getEquationSystem();
 
     @Override
     public void close() {
