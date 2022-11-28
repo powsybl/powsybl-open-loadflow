@@ -13,9 +13,7 @@ class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromVoltageControlBecauseNotStarted = 0;
 
-    int generatorsDiscardedFromVoltageControlBecauseStarting = 0;
-
-    int generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall = 0;
+    int generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall = 0;
 
     int generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero = 0;
 

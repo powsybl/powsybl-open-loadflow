@@ -209,7 +209,6 @@ class DcLoadFlowTest {
     void lineWithDifferentNominalVoltageTest() {
 
         parameters.setDcUseTransformerRatio(true);
-        parameters.getExtension(OpenLoadFlowParameters.class).setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
         Network network = FourBusNetworkFactory.create();
 
         loadFlowRunner.run(network, parameters);

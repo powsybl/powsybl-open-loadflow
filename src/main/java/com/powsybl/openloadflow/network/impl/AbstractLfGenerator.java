@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -129,31 +131,38 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     }
 
     @Override
-    public double getMaxRangeQ() {
-        double maxRangeQ = Double.NaN;
+    public double getRangeQ(ReactiveRangeMode rangeMode) {
+        double rangeQ = Double.NaN;
         ReactiveLimits reactiveLimits = getReactiveLimits().orElse(null);
         if (reactiveLimits != null) {
             switch (reactiveLimits.getKind()) {
                 case CURVE:
                     ReactiveCapabilityCurve reactiveCapabilityCurve = (ReactiveCapabilityCurve) reactiveLimits;
-                    for (ReactiveCapabilityCurve.Point point : reactiveCapabilityCurve.getPoints()) {
-                        if (Double.isNaN(maxRangeQ)) {
-                            maxRangeQ = point.getMaxQ() - point.getMinQ();
-                        } else {
-                            maxRangeQ = Math.max(maxRangeQ, point.getMaxQ() - point.getMinQ());
+                    if (rangeMode == ReactiveRangeMode.MIN || rangeMode == ReactiveRangeMode.MAX) {
+                        for (ReactiveCapabilityCurve.Point point : reactiveCapabilityCurve.getPoints()) {
+                            if (Double.isNaN(rangeQ)) {
+                                rangeQ = point.getMaxQ() - point.getMinQ();
+                            } else {
+                                rangeQ = rangeMode == ReactiveRangeMode.MAX ? Math.max(rangeQ, point.getMaxQ() - point.getMinQ())
+                                                                            : Math.min(rangeQ, point.getMaxQ() - point.getMinQ());
+                            }
                         }
+                    } else if (rangeMode == ReactiveRangeMode.TARGET_P) {
+                        rangeQ = reactiveLimits.getMaxQ(targetP) - reactiveLimits.getMinQ(targetP);
+                    } else {
+                        throw new PowsyblException("Unsupported reactive range mode: " + rangeMode);
                     }
                     break;
 
                 case MIN_MAX:
                     MinMaxReactiveLimits minMaxReactiveLimits = (MinMaxReactiveLimits) reactiveLimits;
-                    maxRangeQ = minMaxReactiveLimits.getMaxQ() - minMaxReactiveLimits.getMinQ();
+                    rangeQ = minMaxReactiveLimits.getMaxQ() - minMaxReactiveLimits.getMinQ();
                     break;
 
                 default:
                     throw new IllegalStateException("Unknown reactive limits kind: " + reactiveLimits.getKind());
             }
-            return maxRangeQ / PerUnit.SB;
+            return rangeQ / PerUnit.SB;
         } else {
             return Double.MAX_VALUE;
         }
@@ -176,8 +185,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
                                      boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                                     double maxPlausibleTargetVoltage) {
-        if (!checkVoltageControlConsistency(reactiveLimits, report)) {
+                                     double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+        if (!checkVoltageControlConsistency(reactiveLimits, report, reactiveRangeCheckMode)) {
             return;
         }
         Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
@@ -200,24 +209,43 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
-    protected boolean checkVoltageControlConsistency(boolean reactiveLimits, LfNetworkLoadingReport report) {
+    protected boolean checkVoltageControlConsistency(boolean reactiveLimits, LfNetworkLoadingReport report, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         boolean consistency = true;
         if (reactiveLimits) {
-            double maxRangeQ = getMaxRangeQ();
-            if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
-                LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), maxRangeQ);
-                report.generatorsDiscardedFromVoltageControlBecauseMaxReactiveRangeIsTooSmall++;
-                consistency = false;
+            double rangeQ;
+            switch (reactiveRangeCheckMode) {
+                case MIN_MAX:
+                    double minRangeQ = getRangeQ(ReactiveRangeMode.MIN);
+                    double maxRangeQ = getRangeQ(ReactiveRangeMode.MAX);
+                    if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || minRangeQ == 0.0) {
+                        LOGGER.trace("Discard generator '{}' from voltage control because min or max reactive ranges (min: {} and max: {}) are too small", getId(), minRangeQ, maxRangeQ);
+                        report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
+                        consistency = false;
+                    }
+                    break;
+                case MAX:
+                    rangeQ = getRangeQ(ReactiveRangeMode.MAX);
+                    if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                        LOGGER.trace("Discard generator '{}' from voltage control because max reactive range ({}) is too small", getId(), rangeQ);
+                        report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
+                        consistency = false;
+                    }
+                    break;
+                case TARGET_P:
+                    rangeQ = getRangeQ(ReactiveRangeMode.TARGET_P);
+                    if (rangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB) {
+                        LOGGER.trace("Discard generator '{}' from voltage control because reactive range at targetP ({}) is too small", getId(), rangeQ);
+                        report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
+                        consistency = false;
+                    }
+                    break;
+                default:
+                    throw new IllegalStateException("Unknown reactive range check mode: " + reactiveRangeCheckMode);
             }
         }
-        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > 0) {
+        if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
-            consistency = false;
-        }
-        if (getTargetP() < getMinP() && getMinP() > 0) {
-            LOGGER.trace("Discard starting generator '{}' from voltage control (targetP={} MW, minP={} MW)", getId(), getTargetP(), getMinP());
-            report.generatorsDiscardedFromVoltageControlBecauseStarting++;
             consistency = false;
         }
         return consistency;

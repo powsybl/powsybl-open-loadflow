@@ -12,7 +12,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
-import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -34,6 +33,8 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
+import com.powsybl.security.action.LineConnectionAction;
+import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
@@ -48,6 +49,7 @@ import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -87,6 +89,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation());
 
+        // check actions validity
+        checkActions(network, actions);
+
         // try for find all switches to be operated as actions.
         Set<Switch> allSwitchesToClose = new HashSet<>();
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
@@ -98,7 +103,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
 
             // run simulation on largest network
             SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
-                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategies, actions, allSwitchesToClose))
+                    .map(largestNetwork -> runSimulations(largestNetwork, propagatedContingencies, acParameters, securityAnalysisParameters, operatorStrategies, actions))
                     .orElse(createNoResult());
 
             stopwatch.stop();
@@ -106,6 +111,43 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             return new SecurityAnalysisReport(result);
+        }
+    }
+
+    private static void checkActions(Network network, List<Action> actions) {
+        for (Action action : actions) {
+            switch (action.getType()) {
+                case SwitchAction.NAME: {
+                    SwitchAction switchAction = (SwitchAction) action;
+                    if (network.getSwitch(switchAction.getSwitchId()) == null) {
+                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + "' not found");
+                    }
+                    break;
+                }
+
+                case LineConnectionAction.NAME: {
+                    LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
+                    if (network.getBranch(lineConnectionAction.getLineId()) == null) {
+                        throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + "' not found");
+                    }
+                    break;
+                }
+
+                case PhaseTapChangerTapPositionAction.NAME: {
+                    PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
+                    phaseTapChangerTapPositionAction.getSide().ifPresentOrElse(side -> {
+                        throw new PowsyblException("3 windings transformers not yet supported");
+                    }, () -> {
+                            if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
+                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + "' not found");
+                            }
+                        });
+                    break;
+                }
+
+                default:
+                    throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
+            }
         }
     }
 
@@ -131,51 +173,58 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                 });
     }
 
-    private static Map<String, LfAction> createLfActions(LfNetwork network, List<Action> actions) {
-        return actions.stream().collect(Collectors.toMap(Action::getId, action -> new LfAction(action, network)));
+    private static Map<String, LfAction> createLfActions(LfNetwork network, Set<Action> actions) {
+        return actions.stream()
+                .map(action -> LfAction.create(action, network))
+                .flatMap(Optional::stream)
+                .collect(Collectors.toMap(LfAction::getId, Function.identity()));
+    }
+
+    private static Map<String, Action> indexActionsById(List<Action> actions) {
+        return actions.stream()
+                .collect(Collectors.toMap(
+                    Action::getId,
+                    Function.identity(),
+                    (action1, action2) -> {
+                        throw new PowsyblException("An action '" + action1.getId() + "' already exist");
+                    }
+                ));
     }
 
     private static Map<String, List<OperatorStrategy>> indexOperatorStrategiesByContingencyId(List<PropagatedContingency> propagatedContingencies,
-                                                                                              List<OperatorStrategy> operatorStrategies) {
+                                                                                              List<OperatorStrategy> operatorStrategies,
+                                                                                              Map<String, Action> actionsById,
+                                                                                              Set<Action> neededActions) {
         Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
         for (OperatorStrategy operatorStrategy : operatorStrategies) {
             if (contingencyIds.contains(operatorStrategy.getContingencyId())) {
-                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>()).add(operatorStrategy);
+                // check actions IDs exists
+                for (String actionId : operatorStrategy.getActionIds()) {
+                    Action action = actionsById.get(actionId);
+                    if (action == null) {
+                        throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to action '"
+                                + actionId + "' but this action is not present in the list");
+                    }
+                    neededActions.add(action);
+                }
+                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>())
+                        .add(operatorStrategy);
             } else {
-                throw new PowsyblException("An operator strategy associated to contingency '" + operatorStrategy.getContingencyId() +
-                        "' but this contingency is not present in the list of contingencies");
+                throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to contingency '"
+                        + operatorStrategy.getContingencyId() + "' but this contingency is not present in the list");
             }
         }
         return operatorStrategiesByContingencyId;
     }
 
-    private static void restoreInitialTopology(LfNetwork network, Set<Switch> allSwitchesToClose) {
-        if (allSwitchesToClose.isEmpty()) {
-            return;
-        }
-        var connectivity = network.getConnectivity();
-        connectivity.startTemporaryChanges();
-        allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
-            LfBranch branch = network.getBranchById(id);
-            connectivity.removeEdge(branch);
-        });
-        Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
-        removedBuses.forEach(bus -> bus.setDisabled(true));
-        Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
-        // we should manage branches open at one side.
-        for (LfBus bus : removedBuses) {
-            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
-        }
-        removedBranches.forEach(branch -> branch.setDisabled(true));
-    }
-
     private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
                                                   SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                  List<Action> actions, Set<Switch> allSwitchesToClose) {
-
-        Map<String, LfAction> lfActionById = createLfActions(network, actions);
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies);
+                                                  List<Action> actions) {
+        Map<String, Action> actionsById = indexActionsById(actions);
+        Set<Action> neededActions = new HashSet<>(actionsById.size());
+        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
+        Map<String, LfAction> lfActionById = createLfActions(network, neededActions); // only convert needed actions
 
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
@@ -188,7 +237,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             network.setReporter(preContSimReporter);
 
             // run pre-contingency simulation
-            restoreInitialTopology(network, allSwitchesToClose);
             AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
                     .run();
 
@@ -245,8 +293,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                                                     operatorStrategy, preContingencyLimitViolationManager,
                                                     securityAnalysisParameters.getIncreasedViolationsParameters(), postContingencyResult.getLimitViolationsResult(), lfActionById,
                                                     createResultExtension, lfContingency)
-                                                    .ifPresent(operatorStrategyResults::add);
-                                            postContingencyNetworkState.restore();
+                                                    .ifPresent(result -> {
+                                                        operatorStrategyResults.add(result);
+                                                        postContingencyNetworkState.restore();
+                                                    });
                                         }
                                     }
                                 }
@@ -319,14 +369,12 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
             LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                     operatorStrategy.getContingencyId(), network);
 
+            // get LF action for this operator strategy, as all actions have been previously checked against IIDM
+            // network, an empty LF action means it is for another component (so another LF network) so we can
+            // skip it
             List<LfAction> operatorStrategyLfActions = operatorStrategy.getActionIds().stream()
-                    .map(id -> {
-                        LfAction lfAction = lfActionById.get(id);
-                        if (lfAction == null) {
-                            throw new PowsyblException("Action '" + id + "' of operator strategy '" + operatorStrategy.getId() + "' not found");
-                        }
-                        return lfAction;
-                    })
+                    .map(lfActionById::get)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             LfAction.apply(operatorStrategyLfActions, network, contingency);
