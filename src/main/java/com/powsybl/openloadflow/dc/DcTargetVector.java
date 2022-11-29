@@ -30,10 +30,6 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
                 targets[equation.getColumn()] = 0;
                 break;
 
-            case BRANCH_TARGET_P:
-                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), DiscretePhaseControl.Unit.MW);
-                break;
-
             case BRANCH_TARGET_ALPHA1:
                 targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getA1();
                 break;
