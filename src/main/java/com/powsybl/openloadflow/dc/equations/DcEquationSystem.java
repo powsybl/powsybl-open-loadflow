@@ -106,13 +106,13 @@ public final class DcEquationSystem {
     }
 
     private static void createBranches(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                       DcEquationSystemCreationParameters creationParameters) {
+                                       DcEquationSystemCreationParameters creationParameters,
+                                       double lowImpedanceThreshold) {
         List<LfBranch> nonImpedantBranches = new ArrayList<>();
-
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (branch.isZeroImpedanceBranch(true)) {
+            if (branch.isZeroImpedanceBranch(true, lowImpedanceThreshold)) {
                 if (bus1 != null && bus2 != null) {
                     nonImpedantBranches.add(branch);
                 }
@@ -137,11 +137,12 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem<DcVariableType, DcEquationType> create(LfNetwork network, DcEquationSystemCreationParameters creationParameters) {
+    public static EquationSystem<DcVariableType, DcEquationType> create(LfNetwork network, DcEquationSystemCreationParameters creationParameters,
+                                                                        double lowImpedanceThreshold) {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>();
 
         createBuses(network, equationSystem);
-        createBranches(network, equationSystem, creationParameters);
+        createBranches(network, equationSystem, creationParameters, lowImpedanceThreshold);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
