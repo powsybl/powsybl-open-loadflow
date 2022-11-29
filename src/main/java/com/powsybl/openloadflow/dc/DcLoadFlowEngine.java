@@ -64,15 +64,15 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     public DcLoadFlowResult run() {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = context.getEquationSystem();
 
-        boolean succeed = false;
+        boolean succeeded = false;
         try (JacobianMatrix<DcVariableType, DcEquationType> j = context.getJacobianMatrix()) {
 
-            succeed = run(context.getNetwork(), context.getParameters(), equationSystem, j, context.getTargetVector(),
+            succeeded = run(context.getNetwork(), context.getParameters(), equationSystem, j, context.getTargetVector(),
                     Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
         } catch (Exception e) {
             LOGGER.error("Failed to solve linear system for DC load flow", e);
         }
-        return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeed);
+        return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
     }
 
     public static void initStateVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer initializer) {
@@ -166,12 +166,12 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 .forEach(column -> targetVectorArray[column] = 0);
         }
 
-        boolean succeed;
+        boolean succeeded;
         try {
             j.solveTransposed(targetVectorArray);
-            succeed = true;
+            succeeded = true;
         } catch (MatrixException e) {
-            succeed = false;
+            succeeded = false;
 
             Reports.reportDcLfSolverFailure(reporter, e.getMessage());
             LOGGER.error("Failed to solve linear system for DC load flow", e);
@@ -187,10 +187,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             }
         }
 
-        Reports.reportDcLfComplete(reporter, succeed);
-        LOGGER.info("DC load flow completed (succeed={})", succeed);
+        Reports.reportDcLfComplete(reporter, succeeded);
+        LOGGER.info("DC load flow completed (succeed={})", succeeded);
 
-        return Pair.of(succeed, targetVectorArray);
+        return Pair.of(succeeded, targetVectorArray);
     }
 
     public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {
