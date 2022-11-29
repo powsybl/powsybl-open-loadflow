@@ -19,7 +19,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractVector<V, E>
-        implements StateVectorListener {
+        implements StateVectorListener, AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EquationVector.class);
 
@@ -56,5 +56,10 @@ public class EquationVector<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Equation vector updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+    }
+
+    @Override
+    public void close() {
+        equationSystem.getStateVector().removeListener(this);
     }
 }
