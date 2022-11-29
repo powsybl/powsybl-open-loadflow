@@ -36,10 +36,6 @@ import com.powsybl.security.action.Action;
 import com.powsybl.security.action.LineConnectionAction;
 import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
-import com.powsybl.security.condition.AllViolationCondition;
-import com.powsybl.security.condition.AnyViolationCondition;
-import com.powsybl.security.condition.AtLeastOneViolationCondition;
-import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.NetworkResult;
 import com.powsybl.security.results.OperatorStrategyResult;
@@ -49,7 +45,6 @@ import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**

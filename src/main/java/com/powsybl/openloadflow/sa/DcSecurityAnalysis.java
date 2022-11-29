@@ -210,7 +210,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(context.getParameters().getLoadFlowParameters());
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen,false,
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, false,
                 context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 false, false);
 
@@ -225,7 +225,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 parametersExt, matrixFactory, connectivityFactory, false);
         dcParameters.getNetworkParameters().setBreakers(breakers);
 
-        try(LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
             return lfNetworks.getLargest().filter(LfNetwork::isValid)
                     .map(largestNetwork -> runActionSimulations(context, largestNetwork, dcParameters, propagatedContingencies,
                             operatorStrategies, actionsById, neededActions))

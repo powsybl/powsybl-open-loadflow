@@ -126,9 +126,9 @@ public abstract class AbstractSecurityAnalysis {
                 .collect(Collectors.toMap(
                         Action::getId,
                         Function.identity(),
-                        (action1, action2) -> {
-                            throw new PowsyblException("An action '" + action1.getId() + "' already exist");
-                        }
+                    (action1, action2) -> {
+                        throw new PowsyblException("An action '" + action1.getId() + "' already exist");
+                    }
                 ));
     }
 
