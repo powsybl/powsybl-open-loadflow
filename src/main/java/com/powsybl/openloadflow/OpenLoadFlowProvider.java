@@ -33,6 +33,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
@@ -122,7 +123,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                 parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(), parameters.isDc());
 
                 // zero or low impedance branch flows computation
-                computeZeroImpedanceFlows(result.getNetwork(), parameters.isDc());
+                computeZeroImpedanceFlows(result.getNetwork(), parameters.isDc(), parametersExt.getLowImpedanceThreshold());
             }
 
             LoadFlowResult.ComponentResult.Status status;
@@ -154,11 +155,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private void computeZeroImpedanceFlows(LfNetwork network, boolean dc) {
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph(dc);
+    private void computeZeroImpedanceFlows(LfNetwork network, boolean dc, double lowImpedanceThreshold) {
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph(dc, lowImpedanceThreshold);
         if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
             SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
-            new ZeroImpedanceFlows(zeroImpedanceSubGraph, spanningTree).compute(dc);
+            new ZeroImpedanceFlows(zeroImpedanceSubGraph, spanningTree).compute(dc, lowImpedanceThreshold);
         }
     }
 
@@ -172,12 +173,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         Networks.resetState(network);
 
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters)).collect(Collectors.toList());
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, dcParameters.getNetworkParameters())).collect(Collectors.toList());
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSucceed);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
 
-    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters) {
+    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters,
+                                                         LfNetworkParameters networkParameters) {
         if (result.isSucceed() && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
         }
@@ -191,7 +193,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                     false, true);
 
             // zero or low impedance branch flows computation
-            computeZeroImpedanceFlows(result.getNetwork(), true);
+            computeZeroImpedanceFlows(result.getNetwork(), true, networkParameters.getLowImpedanceThreshold());
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(

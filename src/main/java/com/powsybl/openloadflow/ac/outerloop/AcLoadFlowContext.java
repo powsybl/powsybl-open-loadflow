@@ -31,7 +31,8 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     @Override
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         if (equationSystem == null) {
-            equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters());
+            equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters(),
+                    parameters.getNetworkParameters().getLowImpedanceThreshold());
         }
         return equationSystem;
     }
