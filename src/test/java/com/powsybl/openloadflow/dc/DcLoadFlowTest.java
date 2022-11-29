@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -263,33 +264,40 @@ class DcLoadFlowTest {
                 .add()
                 .add();
         loadFlowRunner.run(network, parameters);
-        LoadFlowAssert.assertActivePowerEquals(0, sc.getTerminal());
+        assertActivePowerEquals(0, sc.getTerminal());
     }
 
     @Test
     void testDisabledNonImpedantBranch() {
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setDc(true);
-        LoadFlow.run(network, parameters);
-        LoadFlowAssert.assertActivePowerEquals(400.0, network.getLine("L1").getTerminal1());
-        LoadFlowAssert.assertActivePowerEquals(100.0, network.getLine("L2").getTerminal1());
-        LoadFlowAssert.assertActivePowerEquals(100.0, network.getLine("L3").getTerminal1());
 
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters().setDc(true).setBreakers(true);
-        LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, Collections.emptySet(), Set.of(network.getSwitch("C1")), Reporter.NO_OP);
-        LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
-        largestNetwork.getBranchById("C1").setDisabled(true);
-        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
-                new DcEquationSystemCreationParameters(true, true, false, true),
-                new DenseMatrixFactory(),
-                true,
-                parameters.getBalanceType(),
-                false);
-        new DcLoadFlowEngine(List.of(largestNetwork), dcLoadFlowParameters).run(Reporter.NO_OP);
-        assertEquals(400.0, largestNetwork.getBranchById("L1").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
-        assertEquals(100.0, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
-        assertEquals(100.0, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setDc(true);
+        LoadFlow.run(network, parameters);
+
+        assertActivePowerEquals(400.0, network.getLine("L1").getTerminal1());
+        assertActivePowerEquals(100.0, network.getLine("L2").getTerminal1());
+        assertActivePowerEquals(100.0, network.getLine("L3").getTerminal1());
+
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setDc(true)
+                .setBreakers(true);
+        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, Collections.emptySet(), Set.of(network.getSwitch("C1")), Reporter.NO_OP)) {
+            LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
+            largestNetwork.getBranchById("C1").setDisabled(true);
+            DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
+                                                                                 new DcEquationSystemCreationParameters(true, true, false, true),
+                                                                                 new DenseMatrixFactory(),
+                                                                                 true,
+                                                                                 parameters.getBalanceType(),
+                                                                                 false);
+            try (DcLoadFlowContext context = new DcLoadFlowContext(largestNetwork, dcLoadFlowParameters)) {
+                new DcLoadFlowEngine(context).run();
+            }
+            assertEquals(400.0, largestNetwork.getBranchById("L1").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.0, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.0, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+        }
     }
 }
