@@ -41,4 +41,12 @@ public class DcLoadFlowContext extends AbstractLoadFlowContext<DcVariableType, D
         }
         return targetVector;
     }
+
+    @Override
+    public void close() {
+        super.close();
+        if (targetVector != null) {
+            targetVector.close();
+        }
+    }
 }

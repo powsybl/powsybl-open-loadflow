@@ -51,4 +51,12 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
         }
         return equationVector;
     }
+
+    @Override
+    public void close() {
+        super.close();
+        if (targetVector != null) {
+            targetVector.close();
+        }
+    }
 }

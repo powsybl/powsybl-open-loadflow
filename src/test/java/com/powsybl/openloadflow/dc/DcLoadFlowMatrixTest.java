@@ -16,7 +16,8 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -73,31 +74,33 @@ class DcLoadFlowMatrixTest {
                     .print(ps, equationSystem.getColumnNames(mainNetwork), null);
         }
 
-        Matrix j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
-        try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
-            ps.println("J=");
-            j.print(ps, equationSystem.getRowNames(mainNetwork), equationSystem.getColumnNames(mainNetwork));
+        try (var j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
+            try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
+                ps.println("J=");
+                j.getMatrix().print(ps, equationSystem.getRowNames(mainNetwork), equationSystem.getColumnNames(mainNetwork));
+            }
+
+            try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {
+                try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
+                    ps.println("TGT=");
+                    Matrix.createFromColumn(targets.getArray(), matrixFactory)
+                            .print(ps, equationSystem.getRowNames(mainNetwork), null);
+                }
+
+                double[] dx = Arrays.copyOf(targets.getArray(), targets.getArray().length);
+                try (LUDecomposition lu = j.getMatrix().decomposeLU()) {
+                    lu.solveTransposed(dx);
+                }
+
+                assertEquals(0d, dx[0], 1E-14d);
+                assertEquals(-0.04383352433493455d, dx[1], 1E-14d);
+                assertEquals(-0.11239308112163815d, dx[2], 1E-14d);
+                assertEquals(-0.2202418845341654d, dx[3], 1E-14d);
+
+                Networks.resetState(network);
+                DcLoadFlowEngine.updateNetwork(mainNetwork, equationSystem, dx);
+            }
         }
-
-        DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem);
-        try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
-            ps.println("TGT=");
-            Matrix.createFromColumn(targets.getArray(), matrixFactory)
-                    .print(ps, equationSystem.getRowNames(mainNetwork), null);
-        }
-
-        double[] dx = Arrays.copyOf(targets.getArray(), targets.getArray().length);
-        try (LUDecomposition lu = j.decomposeLU()) {
-            lu.solveTransposed(dx);
-        }
-
-        assertEquals(0d, dx[0], 1E-14d);
-        assertEquals(-0.04383352433493455d, dx[1], 1E-14d);
-        assertEquals(-0.11239308112163815d, dx[2], 1E-14d);
-        assertEquals(-0.2202418845341654d, dx[3], 1E-14d);
-
-        Networks.resetState(network);
-        DcLoadFlowEngine.updateNetwork(mainNetwork, equationSystem, dx);
 
         logNetwork(network);
 
@@ -109,15 +112,17 @@ class DcLoadFlowMatrixTest {
 
         equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
 
-        j = new JacobianMatrix<>(equationSystem, matrixFactory).getMatrix();
+        try (var j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
+            try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {
+                var dx = Arrays.copyOf(targets.getArray(), targets.getArray().length);
+                try (LUDecomposition lu = j.getMatrix().decomposeLU()) {
+                    lu.solveTransposed(dx);
+                }
 
-        dx = Arrays.copyOf(targets.getArray(), targets.getArray().length);
-        try (LUDecomposition lu = j.decomposeLU()) {
-            lu.solveTransposed(dx);
+                Networks.resetState(network);
+                DcLoadFlowEngine.updateNetwork(mainNetwork, equationSystem, dx);
+            }
         }
-
-        Networks.resetState(network);
-        DcLoadFlowEngine.updateNetwork(mainNetwork, equationSystem, dx);
 
         logNetwork(network);
     }

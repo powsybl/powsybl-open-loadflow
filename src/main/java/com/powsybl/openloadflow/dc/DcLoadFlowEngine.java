@@ -125,8 +125,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                                                                             JacobianMatrix<DcVariableType, DcEquationType> j,
                                                                             Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                                             Reporter reporter) {
-        var targetVector = new DcTargetVector(network, equationSystem);
-        return run(network, parameters, equationSystem, j, targetVector, disabledBuses, disabledBranches, reporter);
+        try (var targetVector = new DcTargetVector(network, equationSystem)) {
+            return run(network, parameters, equationSystem, j, targetVector, disabledBuses, disabledBranches, reporter);
+        }
     }
 
     private static Pair<Boolean, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
