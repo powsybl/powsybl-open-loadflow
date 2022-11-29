@@ -211,6 +211,19 @@ class OpenLoadFlowParametersTest {
     }
 
     @Test
+    void testLowImpedanceThreshold() throws IOException {
+        Path cfgDir = Files.createDirectory(fileSystem.getPath("config"));
+        Path cfgFile = cfgDir.resolve("configLowImpedanceThreshold.yml");
+
+        Files.copy(getClass().getResourceAsStream("/configLowImpedanceThreshold.yml"), cfgFile);
+        PlatformConfig platformConfig = new PlatformConfig(new YamlModuleConfigRepository(cfgFile), cfgDir);
+
+        LoadFlowParameters parameters = LoadFlowParameters.load(platformConfig);
+        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
+        assertEquals(1.0E-2, olfParameters.getLowImpedanceThreshold());
+    }
+
+    @Test
     void testUpdateParameters() {
         Map<String, String> parametersMap = new HashMap<>();
         parametersMap.put("slackBusSelectionMode", "FIRST");

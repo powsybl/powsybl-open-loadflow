@@ -6,29 +6,19 @@
  */
 package com.powsybl.openloadflow.ac.outerloop;
 
+import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
-
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlowContext implements AutoCloseable {
-
-    private final LfNetwork network;
-
-    private final AcLoadFlowParameters parameters;
-
-    private EquationSystem<AcVariableType, AcEquationType> equationSystem;
-
-    private JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix;
+public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, AcEquationType, AcLoadFlowParameters> {
 
     private AcTargetVector targetVector;
 
@@ -39,32 +29,19 @@ public class AcLoadFlowContext implements AutoCloseable {
     private boolean networkUpdated = true;
 
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
-        this.network = Objects.requireNonNull(network);
-        this.parameters = Objects.requireNonNull(parameters);
+        super(network, parameters);
     }
 
-    public LfNetwork getNetwork() {
-        return network;
-    }
-
-    public AcLoadFlowParameters getParameters() {
-        return parameters;
-    }
-
+    @Override
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         if (equationSystem == null) {
-            equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters());
+            equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters(),
+                    parameters.getNetworkParameters().getLowImpedanceThreshold());
         }
         return equationSystem;
     }
 
-    public JacobianMatrix<AcVariableType, AcEquationType> getJacobianMatrix() {
-        if (jacobianMatrix == null) {
-            jacobianMatrix = new JacobianMatrix<>(getEquationSystem(), parameters.getMatrixFactory());
-        }
-        return jacobianMatrix;
-    }
-
+    @Override
     public TargetVector<AcVariableType, AcEquationType> getTargetVector() {
         if (targetVector == null) {
             targetVector = new AcTargetVector(network, getEquationSystem());
@@ -97,8 +74,12 @@ public class AcLoadFlowContext implements AutoCloseable {
 
     @Override
     public void close() {
-        if (jacobianMatrix != null) {
-            jacobianMatrix.close();
+        super.close();
+        if (targetVector != null) {
+            targetVector.close();
+        }
+        if (equationVector != null) {
+            equationVector.close();
         }
     }
 }

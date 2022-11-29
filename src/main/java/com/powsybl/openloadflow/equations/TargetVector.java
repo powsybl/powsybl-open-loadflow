@@ -14,7 +14,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractVector<V, E> {
+public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractVector<V, E> implements AutoCloseable {
 
     @FunctionalInterface
     public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
@@ -94,5 +94,10 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
+    }
+
+    @Override
+    public void close() {
+        network.removeListener(networkListener);
     }
 }

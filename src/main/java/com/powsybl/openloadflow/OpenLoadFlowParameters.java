@@ -9,7 +9,6 @@ package com.powsybl.openloadflow;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -103,6 +102,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String REACTIVE_RANGE_CHECK_MODE_NAME = "reactiveRangeCheckMode";
 
+    public static final String LOW_IMPEDANCE_THRESHOLD_NAME = "lowImpedanceThreshold";
+
     public static final String NETWORK_CACHE_ENABLED_NAME = "networkCacheEnabled";
 
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
@@ -125,6 +126,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MIN_REALISTIC_VOLTAGE_NAME,
                                                                          MAX_REALISTIC_VOLTAGE_NAME,
                                                                          REACTIVE_RANGE_CHECK_MODE_NAME,
+                                                                         LOW_IMPEDANCE_THRESHOLD_NAME,
                                                                          NETWORK_CACHE_ENABLED_NAME);
 
     public enum VoltageInitModeOverride {
@@ -185,6 +187,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double minRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE;
+
+    private double lowImpedanceThreshold = LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
     public enum ReactiveRangeCheckMode {
         MIN_MAX,
@@ -389,6 +393,18 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getLowImpedanceThreshold() {
+        return lowImpedanceThreshold;
+    }
+
+    public OpenLoadFlowParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        if (lowImpedanceThreshold <= 0) {
+            throw new PowsyblException("lowImpedanceThreshold must be greater than 0");
+        }
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
+        return this;
+    }
+
     public boolean isNetworkCacheEnabled() {
         return networkCacheEnabled;
     }
@@ -428,7 +444,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
                 .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
                 .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
-                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
+                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
                 .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE)));
         return parameters;
     }
@@ -478,6 +494,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_NAME))
                 .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_NAME))
+                .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_NAME))
                 .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
         return this;
@@ -506,6 +524,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
+                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ", networkCacheEnabled=" + networkCacheEnabled +
                 ')';
     }
@@ -575,36 +594,35 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Network cache enabled: {}", parametersExt.isNetworkCacheEnabled());
     }
 
-    static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
+    static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, reporter);
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory);
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
     }
 
     static VoltageInitializer getExtendedVoltageInitializer(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                            LfNetworkParameters networkParameters, MatrixFactory matrixFactory, Reporter reporter) {
+                                                            LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
         switch (parametersExt.getVoltageInitModeOverride()) {
             case NONE:
-                return getVoltageInitializer(parameters, networkParameters, matrixFactory, reporter);
+                return getVoltageInitializer(parameters, networkParameters, matrixFactory);
 
             case VOLTAGE_MAGNITUDE:
-                return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory);
+                return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold());
 
             case FULL_VOLTAGE:
-                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory),
+                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold()),
                         new DcValueVoltageInitializer(networkParameters,
                                                       parameters.isDistributedSlack(),
                                                       parameters.getBalanceType(),
                                                       parameters.isDcUseTransformerRatio(),
-                                                      matrixFactory,
-                                                      reporter));
+                                                      matrixFactory));
 
             default:
                 throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());
@@ -635,19 +653,19 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
-                .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode());
+                .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode())
+                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold());
+    }
+
+    public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+        return createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, false, false);
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          Reporter reporter) {
-        return createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, reporter, false, false);
-    }
-
-    public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          Reporter reporter, boolean breakers, boolean forceA1Var) {
-        AcLoadFlowParameters acParameters = createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, reporter, breakers, forceA1Var);
+                                                          boolean breakers, boolean forceA1Var) {
+        AcLoadFlowParameters acParameters = createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, breakers, forceA1Var);
         if (parameters.isReadSlackBus()) {
             acParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, acParameters.getNetworkParameters().getSlackBusSelector()));
         }
@@ -656,14 +674,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          Reporter reporter, boolean breakers, boolean forceA1Var) {
+                                                          boolean breakers, boolean forceA1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var);
 
-        VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory, reporter);
+        VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
@@ -718,7 +736,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setHvdcAcEmulation(false) // FIXME
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
-                .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX); // not useful for DC.
+                .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX) // not useful for DC.
+                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       false,

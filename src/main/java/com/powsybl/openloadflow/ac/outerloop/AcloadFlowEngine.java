@@ -8,6 +8,9 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.openloadflow.lf.LoadFlowEngine;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -30,7 +33,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcloadFlowEngine {
+public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowResult> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcloadFlowEngine.class);
 
@@ -40,6 +43,7 @@ public class AcloadFlowEngine {
         this.context = Objects.requireNonNull(context);
     }
 
+    @Override
     public AcLoadFlowContext getContext() {
         return context;
     }
@@ -79,6 +83,7 @@ public class AcloadFlowEngine {
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE);
     }
 
+    @Override
     public AcLoadFlowResult run() {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
