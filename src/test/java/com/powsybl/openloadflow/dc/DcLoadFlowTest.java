@@ -10,6 +10,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
@@ -270,7 +271,8 @@ class DcLoadFlowTest {
     @Test
     void testDisabledNonImpedantBranch() {
         Network network = NodeBreakerNetworkFactory.create3Bars();
-        network.getSwitch("C1").setOpen(true);
+        Switch c1 = network.getSwitch("C1");
+        c1.setOpen(true);
 
         LoadFlowParameters parameters = new LoadFlowParameters()
                 .setDc(true);
@@ -283,18 +285,19 @@ class DcLoadFlowTest {
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setDc(true)
                 .setBreakers(true);
-        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, Collections.emptySet(), Set.of(network.getSwitch("C1")), Reporter.NO_OP)) {
+        DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
+                                                                             new DcEquationSystemCreationParameters(true, true, false, true),
+                                                                             new DenseMatrixFactory(),
+                                                                             true,
+                                                                             parameters.getBalanceType(),
+                                                                             false);
+        try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
-            DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
-                                                                                 new DcEquationSystemCreationParameters(true, true, false, true),
-                                                                                 new DenseMatrixFactory(),
-                                                                                 true,
-                                                                                 parameters.getBalanceType(),
-                                                                                 false);
             try (DcLoadFlowContext context = new DcLoadFlowContext(largestNetwork, dcLoadFlowParameters)) {
                 new DcLoadFlowEngine(context).run();
             }
+            // should be the same as with previous LF
             assertEquals(400.0, largestNetwork.getBranchById("L1").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
             assertEquals(100.0, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
             assertEquals(100.0, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
