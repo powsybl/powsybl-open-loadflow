@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -39,7 +38,6 @@ class NonImpedantBranchDisablingTest {
                                                                                     new OpenLoadFlowParameters(),
                                                                                     new DenseMatrixFactory(),
                                                                                     new EvenShiloachGraphDecrementalConnectivityFactory<>(),
-                                                                                    Reporter.NO_OP,
                                                                                     true,
                                                                                     false);
         parameters.getNetworkParameters().setSlackBusSelector(new NameSlackBusSelector("VL1_1"));
