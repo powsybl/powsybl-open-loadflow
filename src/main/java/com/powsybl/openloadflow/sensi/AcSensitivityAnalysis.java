@@ -248,7 +248,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             var validLfFactors = validFactorHolder.getAllFactors();
 
             // create AC engine
-            AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, reporter, breakers, true);
+            AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, true);
 
             try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
