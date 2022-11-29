@@ -112,6 +112,11 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
         return newLoadTargetQ;
     }
 
+    @Override
+    public void setInitialized(boolean initialized) {
+        this.initialized = initialized;
+    }
+
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
     }
