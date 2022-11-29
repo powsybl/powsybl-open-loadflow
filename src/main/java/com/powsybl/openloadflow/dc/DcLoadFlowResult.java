@@ -14,14 +14,14 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public class DcLoadFlowResult extends AbstractLoadFlowResult {
 
-    private final boolean succeed;
+    private final boolean succeeded;
 
-    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean succeed) {
+    public DcLoadFlowResult(LfNetwork network, double slackBusActivePowerMismatch, boolean succeeded) {
         super(network, slackBusActivePowerMismatch);
-        this.succeed = succeed;
+        this.succeeded = succeeded;
     }
 
-    public boolean isSucceed() {
-        return succeed;
+    public boolean isSucceeded() {
+        return succeeded;
     }
 }
