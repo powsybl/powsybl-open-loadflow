@@ -20,8 +20,6 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
         return new AcLoadFlowResult(network, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, Double.NaN);
     }
 
-    private final LfNetwork network;
-
     private final int outerLoopIterations;
 
     private final int newtonRaphsonIterations;
