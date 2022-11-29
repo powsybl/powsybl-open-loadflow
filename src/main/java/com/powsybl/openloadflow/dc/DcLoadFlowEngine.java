@@ -66,7 +66,8 @@ public class DcLoadFlowEngine {
     }
 
     private DcLoadFlowResult run(Reporter reporter, LfNetwork network) {
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(network, parameters.getEquationSystemCreationParameters());
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(network, parameters.getEquationSystemCreationParameters(),
+                parameters.getNetworkParameters().getLowImpedanceThreshold());
 
         LoadFlowResult.ComponentResult.Status status = LoadFlowResult.ComponentResult.Status.FAILED;
         try (JacobianMatrix<DcVariableType, DcEquationType> j = new JacobianMatrix<>(equationSystem, parameters.getMatrixFactory())) {

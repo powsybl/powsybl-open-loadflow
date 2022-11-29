@@ -21,8 +21,6 @@ import java.util.Optional;
  */
 public interface LfBranch extends LfElement {
 
-    double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
-
     enum BranchType {
         LINE,
         TRANSFO_2,
@@ -141,7 +139,7 @@ public interface LfBranch extends LfElement {
 
     double computeApparentPower2();
 
-    boolean isZeroImpedanceBranch(boolean dc);
+    boolean isZeroImpedanceBranch(boolean dc, double lowImpedanceThreshold);
 
     void setSpanningTreeEdge(boolean spanningTreeEdge);
 
@@ -176,5 +174,5 @@ public interface LfBranch extends LfElement {
 
     boolean isConnectedAtBothSides();
 
-    void setMinZ(boolean dc);
+    void setMinZ(boolean dc, double lowImpedanceThreshold);
 }
