@@ -131,6 +131,7 @@ public class DcLoadFlowEngine {
                 break;
 
             case BUS_TARGET_PHI:
+            case DUMMY_TARGET_P:
                 targets[equation.getColumn()] = 0;
                 break;
 
