@@ -259,11 +259,4 @@ class DcLoadFlowTest {
         loadFlowRunner.run(network, parameters);
         LoadFlowAssert.assertActivePowerEquals(0, sc.getTerminal());
     }
-
-    @Test
-    void dcLoadFlowContextTest() {
-        // We'll base the test on the Eurostag
-        Network network = EurostagTutorialExample1Factory.create();
-        assertTrue(true);
-    }
 }
