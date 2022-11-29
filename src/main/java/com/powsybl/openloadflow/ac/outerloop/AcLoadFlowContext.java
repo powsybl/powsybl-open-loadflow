@@ -58,5 +58,8 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
         if (targetVector != null) {
             targetVector.close();
         }
+        if (equationVector != null) {
+            equationVector.close();
+        }
     }
 }
