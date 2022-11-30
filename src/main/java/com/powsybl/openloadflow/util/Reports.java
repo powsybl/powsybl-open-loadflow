@@ -112,11 +112,11 @@ public final class Reports {
                 .build());
     }
 
-    public static void reportDcLfComplete(Reporter reporter, String lfStatus) {
+    public static void reportDcLfComplete(Reporter reporter, boolean succeeded) {
         reporter.report(Report.builder()
                 .withKey("dcLfComplete")
-                .withDefaultMessage("DC load flow completed (status=${lfStatus})")
-                .withValue("lfStatus", lfStatus)
+                .withDefaultMessage("DC load flow completed (status=${succeeded})")
+                .withValue("succeeded", succeeded)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .build());
     }

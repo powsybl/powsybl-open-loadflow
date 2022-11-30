@@ -156,7 +156,7 @@ class OpenSecurityAnalysisGraphTest {
         LOGGER.info("Contingencies contexts calculated from contingencies in {} ms", System.currentTimeMillis() - start);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-            lfParameters, lfParametersExt, matrixFactory, connectivityFactory, Reporter.NO_OP, true, false);
+            lfParameters, lfParametersExt, matrixFactory, connectivityFactory, true, false);
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, Collections.emptySet(), Reporter.NO_OP)) {

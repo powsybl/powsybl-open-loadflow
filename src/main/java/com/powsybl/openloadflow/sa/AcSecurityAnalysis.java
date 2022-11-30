@@ -91,7 +91,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
         Set<Switch> allSwitchesToClose = new HashSet<>();
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, saReporter, breakers, false);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {

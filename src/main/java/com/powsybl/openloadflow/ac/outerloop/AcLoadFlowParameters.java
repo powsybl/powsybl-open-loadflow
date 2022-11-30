@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -19,9 +20,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcLoadFlowParameters {
-
-    private final LfNetworkParameters networkParameters;
+public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private final AcEquationSystemCreationParameters equationSystemCreationParameters;
 
@@ -29,23 +28,16 @@ public class AcLoadFlowParameters {
 
     private final List<OuterLoop> outerLoops;
 
-    private final MatrixFactory matrixFactory;
-
     private VoltageInitializer voltageInitializer;
 
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
                                 NewtonRaphsonParameters newtonRaphsonParameters, List<OuterLoop> outerLoops, MatrixFactory matrixFactory,
                                 VoltageInitializer voltageInitializer) {
-        this.networkParameters = Objects.requireNonNull(networkParameters);
+        super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
         this.outerLoops = Objects.requireNonNull(outerLoops);
-        this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
-    }
-
-    public LfNetworkParameters getNetworkParameters() {
-        return networkParameters;
     }
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
@@ -58,10 +50,6 @@ public class AcLoadFlowParameters {
 
     public List<OuterLoop> getOuterLoops() {
         return outerLoops;
-    }
-
-    public MatrixFactory getMatrixFactory() {
-        return matrixFactory;
     }
 
     public VoltageInitializer getVoltageInitializer() {

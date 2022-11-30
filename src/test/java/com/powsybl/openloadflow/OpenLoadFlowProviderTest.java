@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -57,14 +56,14 @@ class OpenLoadFlowProviderTest {
     @Test
     void testAcParameters() {
         Network network = Mockito.mock(Network.class);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, new LoadFlowParameters().setReadSlackBus(true), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), Reporter.NO_OP, false, false);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, new LoadFlowParameters().setReadSlackBus(true), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false);
         assertEquals("AcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=true, minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=5000.0, computeMainConnectedComponentOnly=true, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, voltagePerReactivePowerControl=false, reactivePowerRemoteControl=false, dc=false, reactiveLimits=true, hvdcAcEmulation=true, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, loaderPostProcessorSelection=[], reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8), equationSystemCreationParameters=AcEquationSystemCreationParameters(forceA1Var=false), newtonRaphsonParameters=NewtonRaphsonParameters(maxIteration=30, minRealisticVoltage=0.5, maxRealisticVoltage=1.5, stoppingCriteria=DefaultNewtonRaphsonStoppingCriteria), outerLoops=[DistributedSlackOuterLoop, ReactiveLimitsOuterLoop], matrixFactory=DenseMatrixFactory, voltageInitializer=UniformValueVoltageInitializer)",
                      acParameters.toString());
     }
 
     private static VoltageInitializer getExtendedVoltageInitializer(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         LfNetworkParameters networkParameters = OpenLoadFlowParameters.getNetworkParameters(parameters, parametersExt, new FirstSlackBusSelector(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false);
-        return OpenLoadFlowParameters.getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, new DenseMatrixFactory(), Reporter.NO_OP);
+        return OpenLoadFlowParameters.getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, new DenseMatrixFactory());
     }
 
     @Test
