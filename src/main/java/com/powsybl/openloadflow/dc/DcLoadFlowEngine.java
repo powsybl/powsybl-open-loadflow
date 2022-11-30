@@ -121,21 +121,21 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     public static Pair<Boolean, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
-                                                                            EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                                                            JacobianMatrix<DcVariableType, DcEquationType> j,
-                                                                            Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
-                                                                            Reporter reporter) {
+                                              EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                              JacobianMatrix<DcVariableType, DcEquationType> j,
+                                              Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
+                                              Reporter reporter) {
         try (var targetVector = new DcTargetVector(network, equationSystem)) {
             return run(network, parameters, equationSystem, j, targetVector, disabledBuses, disabledBranches, reporter);
         }
     }
 
     private static Pair<Boolean, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
-                                                                             EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                                                             JacobianMatrix<DcVariableType, DcEquationType> j,
-                                                                             TargetVector<DcVariableType, DcEquationType> targetVector,
-                                                                             Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
-                                                                             Reporter reporter) {
+                                               EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                               JacobianMatrix<DcVariableType, DcEquationType> j,
+                                               TargetVector<DcVariableType, DcEquationType> targetVector,
+                                               Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
+                                               Reporter reporter) {
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());

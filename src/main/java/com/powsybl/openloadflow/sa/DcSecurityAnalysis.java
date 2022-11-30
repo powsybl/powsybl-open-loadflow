@@ -296,9 +296,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
                                 LfAction.apply(operatorStrategyLfActions, lfNetwork, lfContingency);
 
-                                // FIXME: the same context should be used.
-                                DcLoadFlowContext lfContext2 = new DcLoadFlowContext(lfNetwork, parameters);
-                                DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(lfContext2).run();
+                                DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(lfContext).run();
 
                                 boolean postActionsComputationOk = dcLoadFlowResult.isSucceeded();
                                 PostContingencyComputationStatus status = postActionsComputationOk ? PostContingencyComputationStatus.CONVERGED : PostContingencyComputationStatus.FAILED;

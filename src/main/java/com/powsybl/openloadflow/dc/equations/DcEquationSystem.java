@@ -151,6 +151,8 @@ public final class DcEquationSystem {
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
+        network.addListener(new DcEquationSystemUpdater(equationSystem, lowImpedanceThreshold));
+
         return equationSystem;
     }
 }
