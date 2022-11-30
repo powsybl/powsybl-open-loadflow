@@ -2158,14 +2158,14 @@ class OpenSecurityAnalysisTest {
         //L1 Contingency then close C1
         assertEquals(0.0, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(200.0, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L3").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(300.0, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(300.0, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L3").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(400.0, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(200.0, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L3").getP1(), LoadFlowAssert.DELTA_POWER);
 
         //L3 Contingency then close C2
         assertEquals(0.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(400.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(300.0, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(300.0, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(200.0, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(400.0, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
 
         //L2 Contingency then close C1 and C2
         assertEquals(400.0, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
