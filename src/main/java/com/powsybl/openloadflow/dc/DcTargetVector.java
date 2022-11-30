@@ -27,6 +27,7 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
                 break;
 
             case BUS_TARGET_PHI:
+            case DUMMY_TARGET_P:
                 targets[equation.getColumn()] = 0;
                 break;
 
