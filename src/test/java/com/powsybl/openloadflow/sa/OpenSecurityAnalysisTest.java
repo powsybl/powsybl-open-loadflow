@@ -2112,7 +2112,7 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void testDCSecurityAnalysisWithOperatorStrategy() {
+    void testDcSecurityAnalysisWithOperatorStrategy() {
         MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
@@ -2193,5 +2193,18 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
+
+        parameters.setDc(false);
+        SecurityAnalysisParameters securityAnalysisParametersAc = new SecurityAnalysisParameters();
+        securityAnalysisParametersAc.setLoadFlowParameters(parameters);
+
+        OperatorStrategyResult resultStratL1 = getOperatorStrategyResult(result, "strategyL1");
+        BranchResult brl12 = resultStratL1.getNetworkResult().getBranchResult("l12");
+        BranchResult brl23 = resultStratL1.getNetworkResult().getBranchResult("l23");
+        BranchResult brl34 = resultStratL1.getNetworkResult().getBranchResult("l34");
+
+        assertEquals(2.0, brl12.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(3.0, brl23.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.0, brl34.getP1(), LoadFlowAssert.DELTA_POWER);
     }
 }
