@@ -62,9 +62,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
     @Override
     public DcLoadFlowResult run() {
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = context.getEquationSystem();
-        JacobianMatrix<DcVariableType, DcEquationType> j = context.getJacobianMatrix();
-        boolean succeeded = run(context.getNetwork(), context.getParameters(), equationSystem, j, context.getTargetVector(),
+        boolean succeeded = run(context.getNetwork(), context.getParameters(), context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector(),
                 Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
         return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
     }
@@ -139,7 +137,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             distributeSlack(remainingBuses, parameters.getBalanceType());
         }
 
-        var targetVectorArray = targetVector.getArray();
+        var targetVectorArray = targetVector.getArray().clone();
 
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0

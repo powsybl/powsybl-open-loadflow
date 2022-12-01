@@ -2194,10 +2194,6 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
 
-        parameters.setDc(false);
-        SecurityAnalysisParameters securityAnalysisParametersAc = new SecurityAnalysisParameters();
-        securityAnalysisParametersAc.setLoadFlowParameters(parameters);
-
         OperatorStrategyResult resultStratL1 = getOperatorStrategyResult(result, "strategyL1");
         BranchResult brl12 = resultStratL1.getNetworkResult().getBranchResult("l12");
         BranchResult brl23 = resultStratL1.getNetworkResult().getBranchResult("l23");
