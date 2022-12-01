@@ -9,10 +9,10 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
-import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -62,13 +62,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
     @Override
     public DcLoadFlowResult run() {
-        boolean succeeded = false;
-        try {
-            succeeded = run(context.getNetwork(), context.getParameters(), context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector(),
+        boolean succeeded = run(context.getNetwork(), context.getParameters(), context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector(),
                 Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
-        } catch (Exception e) {
-            LOGGER.error("Failed to solve linear system for DC load flow", e);
-        }
         return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
     }
 
@@ -142,7 +137,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             distributeSlack(remainingBuses, parameters.getBalanceType());
         }
 
-        var targetVectorArray = targetVector.getArray();
+        var targetVectorArray = targetVector.getArray().clone();
 
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0
