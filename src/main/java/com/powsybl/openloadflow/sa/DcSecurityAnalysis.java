@@ -42,16 +42,16 @@ import java.util.stream.Collectors;
 
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
-    private class DcSecurityAnalysisContext {
+    private static class DcSecurityAnalysisContext {
 
-        List<SensitivityFactor> sensitivityFactors;
-        Map<String, BranchResult> preContingencyAllBranchResults;
-        Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolationsMap;
-        SecurityAnalysisParameters parameters;
-        List<Contingency> contingencies;
-        DefaultLimitViolationDetector detector;
-        double dcPowerFactor;
-        Map<String, PostContingencyResult> postContingencyResultPerContingencyId;
+        private final List<SensitivityFactor> sensitivityFactors;
+        private final Map<String, BranchResult> preContingencyAllBranchResults;
+        private final Map<Pair<String, Branch.Side>, LimitViolation> preContingencyLimitViolationsMap;
+        private final SecurityAnalysisParameters parameters;
+        private final List<Contingency> contingencies;
+        private final DefaultLimitViolationDetector detector;
+        private final double dcPowerFactor;
+        private final Map<String, PostContingencyResult> postContingencyResultPerContingencyId = new HashMap<>();
 
         public DcSecurityAnalysisContext(SecurityAnalysisParameters saParameters,
                                          List<Contingency> contingencyList,
@@ -64,7 +64,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
             this.preContingencyLimitViolationsMap = new HashMap<>();
             this.detector = violationDetector;
             this.dcPowerFactor = dcPowerFactor;
-            this.postContingencyResultPerContingencyId = new HashMap<>();
         }
 
         List<SensitivityFactor> getFactors() {

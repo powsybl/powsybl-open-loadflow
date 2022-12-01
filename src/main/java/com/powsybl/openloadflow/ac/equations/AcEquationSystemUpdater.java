@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.Objects;
@@ -14,7 +15,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
+public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 

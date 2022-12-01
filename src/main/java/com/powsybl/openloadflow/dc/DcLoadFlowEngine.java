@@ -62,8 +62,13 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
     @Override
     public DcLoadFlowResult run() {
-        boolean succeeded = run(context.getNetwork(), context.getParameters(), context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector(),
+        boolean succeeded = false;
+        try {
+            succeeded = run(context.getNetwork(), context.getParameters(), context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector(),
                 Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
+        } catch (Exception e) {
+            LOGGER.error("Failed to solve linear system for DC load flow", e);
+        }
         return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
     }
 
@@ -137,7 +142,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             distributeSlack(remainingBuses, parameters.getBalanceType());
         }
 
-        var targetVectorArray = targetVector.getArray().clone();
+        var targetVectorArray = targetVector.getArray();
 
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0

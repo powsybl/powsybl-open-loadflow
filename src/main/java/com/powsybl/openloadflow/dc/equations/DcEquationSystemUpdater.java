@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.Objects;
@@ -14,7 +15,7 @@ import java.util.Objects;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class DcEquationSystemUpdater extends AbstractLfNetworkListener {
+public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater {
 
     private final EquationSystem<DcVariableType, DcEquationType> equationSystem;
 
