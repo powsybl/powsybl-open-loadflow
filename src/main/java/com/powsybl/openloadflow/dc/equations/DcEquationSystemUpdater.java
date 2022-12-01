@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 
@@ -62,9 +61,7 @@ public class DcEquationSystemUpdater extends AbstractLfNetworkListener {
         switch (element.getType()) {
             case BUS:
                 LfBus bus = (LfBus) element;
-                if (disabled && bus.isSlack()) {
-                    throw new PowsyblException("Slack bus '" + bus.getId() + "' disabling is not supported");
-                }
+                checkSlackBus(bus, disabled);
                 equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
                 equationSystem.getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)

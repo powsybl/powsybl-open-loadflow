@@ -63,15 +63,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     @Override
     public DcLoadFlowResult run() {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = context.getEquationSystem();
-
-        boolean succeeded = false;
-        try (JacobianMatrix<DcVariableType, DcEquationType> j = context.getJacobianMatrix()) {
-
-            succeeded = run(context.getNetwork(), context.getParameters(), equationSystem, j, context.getTargetVector(),
-                    Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
-        } catch (Exception e) {
-            LOGGER.error("Failed to solve linear system for DC load flow", e);
-        }
+        JacobianMatrix<DcVariableType, DcEquationType> j = context.getJacobianMatrix();
+        boolean succeeded = run(context.getNetwork(), context.getParameters(), equationSystem, j, context.getTargetVector(),
+                Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
         return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
     }
 

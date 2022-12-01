@@ -215,6 +215,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 false, false);
 
+        // check actions validity
+        checkActions(network, actions);
+
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
 
@@ -225,6 +228,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, context.getParameters().getLoadFlowParameters(),
                 parametersExt, matrixFactory, connectivityFactory, false);
         dcParameters.getNetworkParameters().setBreakers(breakers);
+        dcParameters.getEquationSystemCreationParameters().setIndexTerms(true);
 
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
             return lfNetworks.getLargest().filter(LfNetwork::isValid)
@@ -255,7 +259,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                                       List<PropagatedContingency> propagatedContingencies, List<OperatorStrategy> operatorStrategies,
                                       Map<String, Action> actionsById, Set<Action> neededActions) {
 
-        //Run initial load flow and save state
+        // Run initial load flow and save state
         DcLoadFlowContext lfContext = new DcLoadFlowContext(lfNetwork, parameters);
         new DcLoadFlowEngine(lfContext).run();
         NetworkState networkState = NetworkState.save(lfNetwork);

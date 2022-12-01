@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -64,5 +66,11 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
         // empty
+    }
+
+    protected void checkSlackBus(LfBus bus, boolean disabled) {
+        if (disabled && bus.isSlack()) {
+            throw new PowsyblException("Slack bus '" + bus.getId() + "' disabling is not supported");
+        }
     }
 }

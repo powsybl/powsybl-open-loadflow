@@ -143,7 +143,7 @@ public final class DcEquationSystem {
     }
 
     public static EquationSystem<DcVariableType, DcEquationType> create(LfNetwork network, DcEquationSystemCreationParameters creationParameters,
-                                                                        double lowImpedanceThreshold) {
+                                                                        double lowImpedanceThreshold, boolean withListener) {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>(creationParameters.isIndexTerms());
 
         createBuses(network, equationSystem);
@@ -151,7 +151,9 @@ public final class DcEquationSystem {
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
-        network.addListener(new DcEquationSystemUpdater(equationSystem, lowImpedanceThreshold));
+        if (withListener) {
+            network.addListener(new DcEquationSystemUpdater(equationSystem, lowImpedanceThreshold));
+        }
 
         return equationSystem;
     }
