@@ -215,6 +215,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                 context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 false, false);
 
+        // check actions validity
+        checkActions(network, actions);
+
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
 

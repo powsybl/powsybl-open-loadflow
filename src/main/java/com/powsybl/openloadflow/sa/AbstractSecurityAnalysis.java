@@ -24,6 +24,8 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
+import com.powsybl.security.action.LineConnectionAction;
+import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
@@ -111,6 +113,43 @@ public abstract class AbstractSecurityAnalysis {
                 return LoadFlowResult.ComponentResult.Status.FAILED;
             default:
                 throw new PowsyblException("Unsupported Newton Raphson status : " + status);
+        }
+    }
+
+    protected static void checkActions(Network network, List<Action> actions) {
+        for (Action action : actions) {
+            switch (action.getType()) {
+                case SwitchAction.NAME: {
+                    SwitchAction switchAction = (SwitchAction) action;
+                    if (network.getSwitch(switchAction.getSwitchId()) == null) {
+                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + "' not found");
+                    }
+                    break;
+                }
+
+                case LineConnectionAction.NAME: {
+                    LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
+                    if (network.getBranch(lineConnectionAction.getLineId()) == null) {
+                        throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + "' not found");
+                    }
+                    break;
+                }
+
+                case PhaseTapChangerTapPositionAction.NAME: {
+                    PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
+                    phaseTapChangerTapPositionAction.getSide().ifPresentOrElse(side -> {
+                        throw new PowsyblException("3 windings transformers not yet supported");
+                    }, () -> {
+                            if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
+                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + "' not found");
+                            }
+                        });
+                    break;
+                }
+
+                default:
+                    throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
+            }
         }
     }
 

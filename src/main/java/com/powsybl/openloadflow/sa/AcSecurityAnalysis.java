@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
@@ -33,9 +32,6 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
-import com.powsybl.security.action.LineConnectionAction;
-import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.security.action.SwitchAction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.NetworkResult;
 import com.powsybl.security.results.OperatorStrategyResult;
@@ -106,43 +102,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
             return new SecurityAnalysisReport(result);
-        }
-    }
-
-    private static void checkActions(Network network, List<Action> actions) {
-        for (Action action : actions) {
-            switch (action.getType()) {
-                case SwitchAction.NAME: {
-                    SwitchAction switchAction = (SwitchAction) action;
-                    if (network.getSwitch(switchAction.getSwitchId()) == null) {
-                        throw new PowsyblException("Switch '" + switchAction.getSwitchId() + "' not found");
-                    }
-                    break;
-                }
-
-                case LineConnectionAction.NAME: {
-                    LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
-                    if (network.getBranch(lineConnectionAction.getLineId()) == null) {
-                        throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + "' not found");
-                    }
-                    break;
-                }
-
-                case PhaseTapChangerTapPositionAction.NAME: {
-                    PhaseTapChangerTapPositionAction phaseTapChangerTapPositionAction = (PhaseTapChangerTapPositionAction) action;
-                    phaseTapChangerTapPositionAction.getSide().ifPresentOrElse(side -> {
-                        throw new PowsyblException("3 windings transformers not yet supported");
-                    }, () -> {
-                            if (network.getTwoWindingsTransformer(phaseTapChangerTapPositionAction.getTransformerId()) == null) {
-                                throw new PowsyblException("Branch '" + phaseTapChangerTapPositionAction.getTransformerId() + "' not found");
-                            }
-                        });
-                    break;
-                }
-
-                default:
-                    throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
-            }
         }
     }
 
