@@ -2199,8 +2199,64 @@ class OpenSecurityAnalysisTest {
         BranchResult brl23 = resultStratL1.getNetworkResult().getBranchResult("l23");
         BranchResult brl34 = resultStratL1.getNetworkResult().getBranchResult("l34");
 
+        parameters.setDc(false);
+        SecurityAnalysisParameters securityAnalysisParametersAc = new SecurityAnalysisParameters();
+        securityAnalysisParametersAc.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult resultAc = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParametersAc,
+                operatorStrategies, actions, Reporter.NO_OP);
+        OperatorStrategyResult resultStratL1Ac = getOperatorStrategyResult(resultAc, "strategyL1");
+        BranchResult brl12Ac = resultStratL1Ac.getNetworkResult().getBranchResult("l12");
+        BranchResult brl23Ac = resultStratL1Ac.getNetworkResult().getBranchResult("l23");
+        BranchResult brl34Ac = resultStratL1Ac.getNetworkResult().getBranchResult("l34");
+
         assertEquals(2.0, brl12.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(3.0, brl23.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-1.0, brl34.getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSaDcPhaseTapChangerTapPositionAction() {
+
+        Network network = MetrixTutorialSixBusesFactory.create();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstAbsChange", "NE_NO_1", false, 1),
+                new PhaseTapChangerTapPositionAction("pstRelChange", "NE_NO_1", true, -1));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyTapAbsChange", "S_SO_1", new TrueCondition(), List.of("pstAbsChange")),
+                new OperatorStrategy("strategyTapRelChange", "S_SO_1", new TrueCondition(), List.of("pstRelChange")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(false);
+        parameters.setDc(true);
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        assertNotNull(result);
+
+        OperatorStrategyResult resultAbs = getOperatorStrategyResult(result, "strategyTapAbsChange");
+        BranchResult brAbs = resultAbs.getNetworkResult().getBranchResult("S_SO_2");
+        OperatorStrategyResult resultRel = getOperatorStrategyResult(result, "strategyTapRelChange");
+        BranchResult brRel = resultRel.getNetworkResult().getBranchResult("S_SO_2");
+
+        // Apply contingency by hand
+        network.getLine("S_SO_1").getTerminal1().disconnect();
+        network.getLine("S_SO_1").getTerminal2().disconnect();
+        // Apply remedial action
+        int originalTapPosition = network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().getTapPosition();
+        network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().setTapPosition(1);
+        LoadFlow.run(network, parameters);
+        // Compare results
+        assertEquals(network.getLine("S_SO_2").getTerminal1().getP(), brAbs.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getBranch("S_SO_2").getTerminal2().getP(), brAbs.getP2(), LoadFlowAssert.DELTA_POWER);
+
+        // Check the second operator strategy: relative change
+        network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().setTapPosition(-1+originalTapPosition);
+        LoadFlow.run(network, parameters);
+        // Compare results
+        assertEquals(network.getLine("S_SO_2").getTerminal1().getP(), brRel.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getBranch("S_SO_2").getTerminal2().getP(), brRel.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 }
