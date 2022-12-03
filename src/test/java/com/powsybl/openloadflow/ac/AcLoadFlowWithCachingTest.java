@@ -14,14 +14,12 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -41,69 +39,6 @@ class AcLoadFlowWithCachingTest {
         OpenLoadFlowParameters.create(parameters)
                 .setNetworkCacheEnabled(true);
         NetworkCache.INSTANCE.clear();
-    }
-
-    @Test
-    void testLoadP() {
-        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        var load = network.getLoad("LOAD");
-        var gen = network.getGenerator("GEN");
-
-        var result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(600, load.getTerminal());
-        assertActivePowerEquals(-605.559, gen.getTerminal());
-
-        load.setP0(620);
-
-        result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(620, load.getTerminal());
-        assertActivePowerEquals(-625.895, gen.getTerminal());
-    }
-
-    @Test
-    void testLoadPAndSlackDistributionOnLoads() {
-        var network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        var l14 = network.getBranch("l14");
-        var l24 = network.getBranch("l24");
-        var l34 = network.getBranch("l34");
-        var l2 = network.getLoad("l2");
-        var l4 = network.getLoad("l4");
-
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        var result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(70.588, l2.getTerminal());
-        assertActivePowerEquals(164.706, l4.getTerminal());
-        assertActivePowerEquals(64.706, l14.getTerminal1());
-        assertActivePowerEquals(129.412, l24.getTerminal1());
-        assertActivePowerEquals(-58.824, l34.getTerminal1());
-
-        l2.setP0(75);
-        l4.setP0(125);
-        result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(88.235, l2.getTerminal());
-        assertActivePowerEquals(147.059, l4.getTerminal());
-        assertActivePowerEquals(64.706, l14.getTerminal1());
-        assertActivePowerEquals(111.765, l24.getTerminal1());
-        assertActivePowerEquals(-58.824, l34.getTerminal1());
-
-        l2.setP0(60);
-        l4.setP0(140);
-        result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(70.588, l2.getTerminal());
-        assertActivePowerEquals(164.706, l4.getTerminal());
-        assertActivePowerEquals(64.706, l14.getTerminal1());
-        assertActivePowerEquals(129.412, l24.getTerminal1());
-        assertActivePowerEquals(-58.824, l34.getTerminal1());
     }
 
     @Test

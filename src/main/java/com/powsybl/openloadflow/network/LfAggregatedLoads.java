@@ -22,6 +22,4 @@ public interface LfAggregatedLoads extends PropertyBag {
     double getLoadCount();
 
     double getLoadTargetQ(double diffLoadTargetP);
-
-    void setInitialized(boolean initialized);
 }
