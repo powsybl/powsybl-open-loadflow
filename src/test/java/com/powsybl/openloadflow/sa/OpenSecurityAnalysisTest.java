@@ -2216,7 +2216,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testSaDcPhaseTapChangerTapPositionAction() {
-
         Network network = MetrixTutorialSixBusesFactory.create();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
@@ -2233,6 +2232,9 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
+
+        System.out.println(getPostContingencyResult(result, "S_SO_1").getNetworkResult().getBranchResult("S_SO_2").getP1());
+        System.out.println(getPostContingencyResult(result, "S_SO_1").getNetworkResult().getBranchResult("S_SO_2").getP2());
 
         assertNotNull(result);
 
@@ -2253,7 +2255,7 @@ class OpenSecurityAnalysisTest {
         assertEquals(network.getBranch("S_SO_2").getTerminal2().getP(), brAbs.getP2(), LoadFlowAssert.DELTA_POWER);
 
         // Check the second operator strategy: relative change
-        network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().setTapPosition(-1+originalTapPosition);
+        network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().setTapPosition(originalTapPosition - 1);
         LoadFlow.run(network, parameters);
         // Compare results
         assertEquals(network.getLine("S_SO_2").getTerminal1().getP(), brRel.getP1(), LoadFlowAssert.DELTA_POWER);

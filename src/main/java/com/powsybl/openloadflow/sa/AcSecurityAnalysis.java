@@ -272,7 +272,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
-            LfAction.apply(operatorStrategyLfActions, network, contingency);
+            LfAction.apply(operatorStrategyLfActions, network, contingency, false);
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 

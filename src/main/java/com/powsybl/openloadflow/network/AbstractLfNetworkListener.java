@@ -65,4 +65,9 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onDisableChange(LfElement element, boolean disabled) {
         // empty
     }
+
+    @Override
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+        // empty
+    }
 }

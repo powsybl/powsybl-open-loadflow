@@ -131,7 +131,7 @@ public final class LfAction {
         return enabledBranch;
     }
 
-    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency) {
+    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, boolean dc) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
@@ -140,7 +140,7 @@ public final class LfAction {
 
         // then process remaining changes of actions
         for (LfAction action : actions) {
-            action.apply();
+            action.apply(network, dc);
         }
     }
 
@@ -193,13 +193,18 @@ public final class LfAction {
         }
     }
 
-    public void apply() {
+    public void apply(LfNetwork network, boolean dc) {
         if (tapPositionChange != null) {
             LfBranch branch = tapPositionChange.getBranch();
             int tapPosition = branch.getPiModel().getTapPosition();
             int value = tapPositionChange.getValue();
             int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
             branch.getPiModel().setTapPosition(newTapPosition);
+            if (dc) { // FIXME
+                for (LfNetworkListener listener : network.getListeners()) {
+                    listener.onTapPositionChange(branch, tapPosition, newTapPosition);
+                }
+            }
         }
     }
 }

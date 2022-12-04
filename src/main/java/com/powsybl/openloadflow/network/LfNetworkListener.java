@@ -32,4 +32,6 @@ public interface LfNetworkListener {
     void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition);
 
     void onDisableChange(LfElement element, boolean disabled);
+
+    void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition);
 }

@@ -297,7 +297,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                                         })
                                         .collect(Collectors.toList());
 
-                                LfAction.apply(operatorStrategyLfActions, lfNetwork, lfContingency);
+                                LfAction.apply(operatorStrategyLfActions, lfNetwork, lfContingency, true);
 
                                 DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(lfContext).run();
 
