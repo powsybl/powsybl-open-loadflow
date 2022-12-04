@@ -425,7 +425,8 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
 
-        List<Contingency> contingencies = List.of(new Contingency("l34", new BranchContingency("l34")));
+        List<Contingency> contingencies = List.of(new Contingency("l34", new BranchContingency("l34")),
+                                                  new Contingency("l12", new BranchContingency("l12")));
 
         List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("g2", 0.4f),
                                                               new WeightedSensitivityVariable("g6", 0.6f));
@@ -434,7 +435,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         List<SensitivityFactor> factors = network.getBranchStream()
                                                  .map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l34", Branch.Side.ONE))
                                                  .collect(Collectors.toList());
-
+        factors.addAll(network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk", "l12", Branch.Side.ONE)).collect(Collectors.toList()));
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters);
 
         assertEquals(7, result.getValues("l34").size());
@@ -445,6 +446,15 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "glsk", "l45"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "glsk", "l46"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0d, result.getBranchFlow1SensitivityValue("l34", "glsk", "l56"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(7, result.getValues("l12").size());
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue("l12", "glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.4, result.getBranchFlow1SensitivityValue("l12", "glsk", "l23"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.2, result.getBranchFlow1SensitivityValue("l12", "glsk", "l13"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("l12", "glsk", "l34"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.064, result.getBranchFlow1SensitivityValue("l12", "glsk", "l45"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.264, result.getBranchFlow1SensitivityValue("l12", "glsk", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.336, result.getBranchFlow1SensitivityValue("l12", "glsk", "l56"), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
