@@ -41,25 +41,22 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
-    protected void updateNonImpedantBranchEquations(LfElement element, boolean enable) {
-        LfBranch branch = (LfBranch) element;
-        if (branch.isSpanningTreeEdge()) {
-            // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
-            // or equations that set dummy p and q variable to zero
-            equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_PHI)
-                    .orElseThrow()
-                    .setActive(enable);
-            equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_P)
-                    .orElseThrow()
-                    .setActive(!enable);
+    protected void updateNonImpedantBranchEquations(LfBranch branch, boolean enable) {
+        // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
+        // or equations that set dummy p and q variable to zero
+        equationSystem.getEquation(branch.getNum(), AcEquationType.ZERO_PHI)
+                .orElseThrow()
+                .setActive(enable);
+        equationSystem.getEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_P)
+                .orElseThrow()
+                .setActive(!enable);
 
-            equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_V)
-                    .orElseThrow()
-                    .setActive(enable);
-            equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_Q)
-                    .orElseThrow()
-                    .setActive(!enable);
-        }
+        equationSystem.getEquation(branch.getNum(), AcEquationType.ZERO_V)
+                .orElseThrow()
+                .setActive(enable);
+        equationSystem.getEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_Q)
+                .orElseThrow()
+                .setActive(!enable);
     }
 
     @Override

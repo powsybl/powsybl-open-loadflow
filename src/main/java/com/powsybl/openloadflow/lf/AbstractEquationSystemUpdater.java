@@ -35,11 +35,16 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
         }
     }
 
-    protected abstract void updateNonImpedantBranchEquations(LfElement element, boolean enable);
+    protected abstract void updateNonImpedantBranchEquations(LfBranch branch, boolean enable);
+
+    protected boolean isNonImpedantBranchWithEquation(LfBranch branch, boolean dc) {
+        return branch.isZeroImpedanceBranch(dc, lowImpedanceThreshold)
+                && branch.isSpanningTreeEdge();
+    }
 
     protected void updateElementEquations(LfElement element, boolean enable, boolean dc) {
-        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranch(dc, lowImpedanceThreshold)) {
-            updateNonImpedantBranchEquations(element, enable);
+        if (element instanceof LfBranch && isNonImpedantBranchWithEquation((LfBranch) element, dc)) {
+            updateNonImpedantBranchEquations((LfBranch) element, enable);
         } else {
             // update all equations related to the element
             for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
