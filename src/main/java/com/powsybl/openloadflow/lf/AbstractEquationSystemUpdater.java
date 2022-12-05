@@ -23,7 +23,7 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
 
     protected final double lowImpedanceThreshold;
 
-    public AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem, double lowImpedanceThreshold) {
+    protected AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem, double lowImpedanceThreshold) {
         this.equationSystem = equationSystem;
         this.lowImpedanceThreshold = lowImpedanceThreshold;
     }
