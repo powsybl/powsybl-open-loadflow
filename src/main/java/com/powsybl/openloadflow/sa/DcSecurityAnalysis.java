@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
@@ -22,6 +21,7 @@ import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -38,7 +38,6 @@ import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
 
@@ -287,45 +286,23 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                     propagatedContingency.toLfContingency(lfNetwork)
                             .ifPresent(lfContingency -> {
                                 lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
-                                List<LfAction> operatorStrategyLfActions = operatorStrategy.getActionIds().stream()
-                                        .map(id -> {
-                                            LfAction lfAction = lfActionById.get(id);
-                                            if (lfAction == null) {
-                                                throw new PowsyblException("Action '" + id + "' of operator strategy '" + operatorStrategy.getId() + "' not found");
-                                            }
-                                            return lfAction;
-                                        })
-                                        .collect(Collectors.toList());
-
-                                LfAction.apply(operatorStrategyLfActions, lfNetwork, lfContingency, true);
-
-                                DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(lfContext).run();
-
-                                boolean postActionsComputationOk = dcLoadFlowResult.isSucceeded();
-                                PostContingencyComputationStatus status = postActionsComputationOk ? PostContingencyComputationStatus.CONVERGED : PostContingencyComputationStatus.FAILED;
-                                var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters());
-                                var postActionsNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
-
-                                if (postActionsComputationOk) {
-                                    // update network result
-                                    postActionsNetworkResult.update();
-
-                                    // detect violations
-                                    postActionsViolationManager.detectViolations(lfNetwork);
-                                }
-
-                                OperatorStrategyResult operatorStrategyResult = new OperatorStrategyResult(operatorStrategy, status,
-                                        new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
-                                        new NetworkResult(postActionsNetworkResult.getBranchResults(),
-                                                postActionsNetworkResult.getBusResults(),
-                                                postActionsNetworkResult.getThreeWindingsTransformerResults()));
-
-                                operatorStrategyResults.add(operatorStrategyResult);
+                                Optional<OperatorStrategyResult> result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
+                                        context.getPostContingencyResultPerContingencyId().get(propagatedContingency.getContingency().getId()).getLimitViolationsResult(), lfActionById,
+                                        createResultExtension, lfContingency, true);
+                                result.ifPresent(operatorStrategyResults::add);
                                 networkState.restore();
                             });
                 }
             }
         }
         return operatorStrategyResults;
+    }
+
+    @Override
+    protected PostContingencyComputationStatus runActionLoadFlow(LoadFlowContext<?, ?, ?> context) {
+        DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine((DcLoadFlowContext) context).run();
+
+        boolean postActionsComputationOk = dcLoadFlowResult.isSucceeded();
+        return postActionsComputationOk ? PostContingencyComputationStatus.CONVERGED : PostContingencyComputationStatus.FAILED;
     }
 }
