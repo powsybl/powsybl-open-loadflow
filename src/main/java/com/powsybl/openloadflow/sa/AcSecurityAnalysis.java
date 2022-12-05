@@ -262,7 +262,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
         if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
             operatorStrategyResult = runActionSimulation(network, context, operatorStrategy, preContingencyLimitViolationManager,
-                    violationsParameters, lfActionById, createResultExtension, contingency, false);
+                    violationsParameters, lfActionById, createResultExtension, contingency);
         }
 
         return Optional.ofNullable(operatorStrategyResult);

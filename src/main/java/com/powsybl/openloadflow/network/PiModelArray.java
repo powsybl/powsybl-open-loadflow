@@ -260,9 +260,13 @@ public class PiModelArray implements PiModel {
 
     @Override
     public PiModel setTapPosition(int tapPosition) {
+        int oldTapPosition = this.tapPosition;
         this.tapPosition = tapPosition;
         r1 = Double.NaN;
         a1 = Double.NaN;
+        for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
+            listener.onTransformerVoltageControlTapPositionChange(branch, oldTapPosition, tapPosition);
+        }
         return this;
     }
 }
