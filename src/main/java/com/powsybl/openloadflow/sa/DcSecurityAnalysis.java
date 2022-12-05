@@ -284,8 +284,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 break;
             }
             for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-                if (checkCondition(operatorStrategy,
-                        context.getPostContingencyResultPerContingencyId().get(propagatedContingency.getContingency().getId()).getLimitViolationsResult())) {
+                var postContingencyResult = context.getPostContingencyResultPerContingencyId().get(propagatedContingency.getContingency().getId());
+                if (checkCondition(operatorStrategy, postContingencyResult.getLimitViolationsResult())) {
                     propagatedContingency.toLfContingency(lfNetwork)
                             .ifPresent(lfContingency -> {
                                 lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
