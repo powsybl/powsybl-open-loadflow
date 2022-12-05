@@ -13,7 +13,7 @@ public class DcEquationSystemCreationParameters {
 
     private final boolean updateFlows;
 
-    private boolean indexTerms;
+    private final boolean indexTerms;
 
     /**
      * The purpose of this option is to add a constant a1 var to the equation system, to calculate sensitivity regarding
@@ -37,10 +37,6 @@ public class DcEquationSystemCreationParameters {
 
     public boolean isIndexTerms() {
         return indexTerms;
-    }
-
-    public void setIndexTerms(boolean indexTerms) {
-        this.indexTerms = indexTerms;
     }
 
     public boolean isForcePhaseControlOffAndAddAngle1Var() {
