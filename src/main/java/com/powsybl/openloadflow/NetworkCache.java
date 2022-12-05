@@ -25,8 +25,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -40,19 +38,27 @@ public enum NetworkCache {
 
         private final WeakReference<Network> networkRef;
 
+        private final String variantId;
+
         private final LoadFlowParameters parameters;
 
         private List<AcLoadFlowContext> contexts;
 
         private LfNetworkList.VariantCleaner variantCleaner;
 
-        public Entry(WeakReference<Network> networkRef, LoadFlowParameters parameters) {
-            this.networkRef = Objects.requireNonNull(networkRef);
+        public Entry(Network network, LoadFlowParameters parameters) {
+            Objects.requireNonNull(network);
+            this.networkRef = new WeakReference<>(network);
+            this.variantId = network.getVariantManager().getWorkingVariantId();
             this.parameters = parameters;
         }
 
         public WeakReference<Network> getNetworkRef() {
             return networkRef;
+        }
+
+        public String getVariantId() {
+            return variantId;
         }
 
         public List<AcLoadFlowContext> getContexts() {
@@ -213,9 +219,7 @@ public enum NetworkCache {
         }
     }
 
-    private final List<Entry> entries = new ArrayList<>();
-
-    private final Lock lock = new ReentrantLock();
+    private final List<Entry> entries = Collections.synchronizedList(new ArrayList<>());
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new LoadFlowParametersJsonModule());
@@ -243,18 +247,14 @@ public enum NetworkCache {
     }
 
     public int getEntryCount() {
-        lock.lock();
-        try {
-            evictDeadEntries();
-            return entries.size();
-        } finally {
-            lock.unlock();
-        }
+        evictDeadEntries();
+        return entries.size();
     }
 
     private Optional<Entry> findEntry(Network network) {
+        String variantId = network.getVariantManager().getWorkingVariantId();
         return entries.stream()
-                .filter(e -> e.getNetworkRef().get() == network)
+                .filter(e -> e.getNetworkRef().get() == network && e.getVariantId().equals(variantId))
                 .findFirst();
     }
 
@@ -262,61 +262,53 @@ public enum NetworkCache {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
-        lock.lock();
-        try {
-            evictDeadEntries();
+        evictDeadEntries();
 
-            var entry = findEntry(network).orElse(null);
+        var entry = findEntry(network).orElse(null);
 
-            // invalid cache if parameters have changed
-            // TODO to refine later by comparing in detail parameters that have changed
-            if (entry != null && !equals(parameters, entry.getParameters())) {
-                // release all resources
-                entry.close();
-                entries.remove(entry);
-                entry = null;
-                LOGGER.info("Network cache evicted because of parameters change");
-            }
+        // invalid cache if parameters have changed
+        // TODO to refine later by comparing in detail parameters that have changed
+        if (entry != null && !equals(parameters, entry.getParameters())) {
+            // release all resources
+            entry.close();
+            entries.remove(entry);
+            entry = null;
+            LOGGER.info("Network cache evicted because of parameters change");
+        }
 
-            if (entry == null) {
-                entry = new Entry(new WeakReference<>(network), parameters);
-                entries.add(entry);
-                network.addListener(entry);
+        if (entry == null) {
+            entry = new Entry(network, parameters);
+            entries.add(entry);
+            network.addListener(entry);
 
-                LOGGER.info("Network cache created for network '{}'", network.getId());
+            LOGGER.info("Network cache created for network '{}' and variant '{}'",
+                    network.getId(), network.getVariantManager().getWorkingVariantId());
 
-                return entry;
-            } else {
-                // restart from previous state
-                if (entry.getContexts() != null) {
-                    LOGGER.info("Network cache reused for network '{}'", network.getId());
+            return entry;
+        } else {
+            // restart from previous state
+            if (entry.getContexts() != null) {
+                LOGGER.info("Network cache reused for network '{}' and variant '{}'",
+                        network.getId(), network.getVariantManager().getWorkingVariantId());
 
-                    for (AcLoadFlowContext context : entry.getContexts()) {
-                        AcLoadFlowResult result = context.getResult();
-                        if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                            context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-                        }
+                for (AcLoadFlowContext context : entry.getContexts()) {
+                    AcLoadFlowResult result = context.getResult();
+                    if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
+                        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
                     }
-                } else {
-                    LOGGER.info("Network cache cannot be reused for network '{}' because invalided", network.getId());
                 }
-
-                return entry;
+            } else {
+                LOGGER.info("Network cache cannot be reused for network '{}' because invalided", network.getId());
             }
-        } finally {
-            lock.unlock();
+
+            return entry;
         }
     }
 
     public void clear() {
-        lock.lock();
-        try {
-            for (var entry : entries) {
-                entry.close();
-            }
-            entries.clear();
-        } finally {
-            lock.unlock();
+        for (var entry : entries) {
+            entry.close();
         }
+        entries.clear();
     }
 }
