@@ -20,8 +20,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -70,6 +69,27 @@ class AcLoadFlowWithCachingTest {
         // FIXME NO_CALCULATION should be added to API
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
         assertEquals(0, result.getComponentResults().get(0).getIterationCount());
+    }
+
+    @Test
+    void testParameterChange() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        assertEquals(0, NetworkCache.INSTANCE.getEntryCount());
+        loadFlowRunner.run(network, parameters);
+        assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
+        NetworkCache.Entry entry = NetworkCache.INSTANCE.findEntry(network).orElseThrow();
+        loadFlowRunner.run(network, parameters);
+        assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
+        NetworkCache.Entry entry2 = NetworkCache.INSTANCE.findEntry(network).orElseThrow();
+        assertSame(entry, entry2); // reuse same cache
+
+        // run with different parameters
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        loadFlowRunner.run(network, parameters);
+        assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
+        NetworkCache.Entry entry3 = NetworkCache.INSTANCE.findEntry(network).orElseThrow();
+        assertNotSame(entry, entry3); // cache has been evicted and recreated
     }
 
     @Test

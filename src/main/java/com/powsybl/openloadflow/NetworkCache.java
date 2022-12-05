@@ -21,8 +21,6 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
 
@@ -50,7 +48,7 @@ public enum NetworkCache {
             Objects.requireNonNull(network);
             this.networkRef = new WeakReference<>(network);
             this.variantId = network.getVariantManager().getWorkingVariantId();
-            this.parameters = parameters;
+            this.parameters = Objects.requireNonNull(parameters);
         }
 
         public WeakReference<Network> getNetworkRef() {
@@ -237,21 +235,12 @@ public enum NetworkCache {
         }
     }
 
-    private boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {
-        try {
-            return objectMapper.writeValueAsString(parameters1)
-                    .equals(objectMapper.writeValueAsString(parameters2));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
     public int getEntryCount() {
         evictDeadEntries();
         return entries.size();
     }
 
-    private Optional<Entry> findEntry(Network network) {
+    public Optional<Entry> findEntry(Network network) {
         String variantId = network.getVariantManager().getWorkingVariantId();
         return entries.stream()
                 .filter(e -> e.getNetworkRef().get() == network && e.getVariantId().equals(variantId))
@@ -268,7 +257,7 @@ public enum NetworkCache {
 
         // invalid cache if parameters have changed
         // TODO to refine later by comparing in detail parameters that have changed
-        if (entry != null && !equals(parameters, entry.getParameters())) {
+        if (entry != null && !OpenLoadFlowParameters.equals(parameters, entry.getParameters())) {
             // release all resources
             entry.close();
             entries.remove(entry);
@@ -277,7 +266,7 @@ public enum NetworkCache {
         }
 
         if (entry == null) {
-            entry = new Entry(network, parameters);
+            entry = new Entry(network, OpenLoadFlowParameters.clone(parameters));
             entries.add(entry);
             network.addListener(entry);
 
