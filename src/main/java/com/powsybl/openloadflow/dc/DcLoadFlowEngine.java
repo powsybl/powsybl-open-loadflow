@@ -137,6 +137,11 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             distributeSlack(remainingBuses, parameters.getBalanceType());
         }
 
+        // we need to copy the target array because:
+        //  - in case of disabled buses or branches some elements could be overwriten to zero
+        //  - JacobianMatrix.solveTransposed take as an input the second member and reuse the array
+        //    to fill with the solution
+        // so we need to copy to later the target as it is and reusable for next run
         var targetVectorArray = targetVector.getArray().clone();
 
         if (!disabledBuses.isEmpty()) {
