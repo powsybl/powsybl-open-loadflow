@@ -20,8 +20,9 @@ import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
+import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -32,14 +33,17 @@ import com.powsybl.security.action.Action;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.monitor.StateMonitor;
-import com.powsybl.security.results.*;
+import com.powsybl.security.results.BranchResult;
+import com.powsybl.security.results.OperatorStrategyResult;
+import com.powsybl.security.results.PostContingencyResult;
+import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 
-public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
+public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext> {
 
     private static class DcSecurityAnalysisContext {
 
@@ -286,10 +290,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
                     propagatedContingency.toLfContingency(lfNetwork)
                             .ifPresent(lfContingency -> {
                                 lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
-                                Optional<OperatorStrategyResult> result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
-                                        context.getPostContingencyResultPerContingencyId().get(propagatedContingency.getContingency().getId()).getLimitViolationsResult(), lfActionById,
-                                        createResultExtension, lfContingency, true);
-                                result.ifPresent(operatorStrategyResults::add);
+                                OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
+                                                                                    lfActionById, createResultExtension, lfContingency, true);
+                                operatorStrategyResults.add(result);
                                 networkState.restore();
                             });
                 }
@@ -299,8 +302,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis {
     }
 
     @Override
-    protected PostContingencyComputationStatus runActionLoadFlow(LoadFlowContext<?, ?, ?> context) {
-        DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine((DcLoadFlowContext) context).run();
+    protected PostContingencyComputationStatus runActionLoadFlow(DcLoadFlowContext context) {
+        DcLoadFlowResult dcLoadFlowResult = new DcLoadFlowEngine(context).run();
 
         boolean postActionsComputationOk = dcLoadFlowResult.isSucceeded();
         return postActionsComputationOk ? PostContingencyComputationStatus.CONVERGED : PostContingencyComputationStatus.FAILED;

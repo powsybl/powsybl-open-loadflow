@@ -17,7 +17,9 @@ import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -47,7 +49,9 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractSecurityAnalysis {
+public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity,
+                                               P extends AbstractLoadFlowParameters,
+                                               C extends LoadFlowContext<V, E, P>> {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractSecurityAnalysis.class);
 
@@ -244,56 +248,49 @@ public abstract class AbstractSecurityAnalysis {
                 });
     }
 
-    protected Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, LoadFlowContext context, OperatorStrategy operatorStrategy,
-                                                                 LimitViolationManager preContingencyLimitViolationManager,
-                                                                 SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                                                 LimitViolationsResult postContingencyLimitViolations, Map<String, LfAction> lfActionById,
-                                                                 boolean createResultExtension, LfContingency contingency, boolean dc) {
-        OperatorStrategyResult operatorStrategyResult = null;
+    protected OperatorStrategyResult runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,
+                                                         LimitViolationManager preContingencyLimitViolationManager,
+                                                         SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
+                                                         Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency, boolean dc) {
+        LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
+                operatorStrategy.getContingencyId(), network);
 
-        if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
-            LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
-                    operatorStrategy.getContingencyId(), network);
+        // get LF action for this operator strategy, as all actions have been previously checked against IIDM
+        // network, an empty LF action means it is for another component (so another LF network) so we can
+        // skip it
+        List<LfAction> operatorStrategyLfActions = operatorStrategy.getActionIds().stream()
+                .map(lfActionById::get)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
-            // get LF action for this operator strategy, as all actions have been previously checked against IIDM
-            // network, an empty LF action means it is for another component (so another LF network) so we can
-            // skip it
-            List<LfAction> operatorStrategyLfActions = operatorStrategy.getActionIds().stream()
-                    .map(lfActionById::get)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+        LfAction.apply(operatorStrategyLfActions, network, contingency, dc);
 
-            LfAction.apply(operatorStrategyLfActions, network, contingency, dc);
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
-            Stopwatch stopwatch = Stopwatch.createStarted();
+        // restart LF on post contingency and post actions equation system
+        PostContingencyComputationStatus status = runActionLoadFlow(context);
+        var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
+        var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
 
-            // restart LF on post contingency and post actions equation system
-            PostContingencyComputationStatus status = runActionLoadFlow(context);
-            var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, violationsParameters);
-            var postActionsNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
+        if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
+            // update network result
+            postActionsNetworkResult.update();
 
-            if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
-                // update network result
-                postActionsNetworkResult.update();
-
-                // detect violations
-                postActionsViolationManager.detectViolations(network);
-            }
-
-            stopwatch.stop();
-
-            LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
-                    operatorStrategy.getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
-            operatorStrategyResult = new OperatorStrategyResult(operatorStrategy, status,
-                    new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
-                    new NetworkResult(postActionsNetworkResult.getBranchResults(),
-                            postActionsNetworkResult.getBusResults(),
-                            postActionsNetworkResult.getThreeWindingsTransformerResults()));
+            // detect violations
+            postActionsViolationManager.detectViolations(network);
         }
 
-        return Optional.ofNullable(operatorStrategyResult);
+        stopwatch.stop();
+
+        LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
+                operatorStrategy.getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+        return new OperatorStrategyResult(operatorStrategy, status,
+                new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
+                new NetworkResult(postActionsNetworkResult.getBranchResults(),
+                        postActionsNetworkResult.getBusResults(),
+                        postActionsNetworkResult.getThreeWindingsTransformerResults()));
     }
 
-    protected abstract PostContingencyComputationStatus runActionLoadFlow(LoadFlowContext<?, ?, ?> context);
+    protected abstract PostContingencyComputationStatus runActionLoadFlow(C context);
 }
