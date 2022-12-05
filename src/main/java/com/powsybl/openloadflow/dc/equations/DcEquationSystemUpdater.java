@@ -33,19 +33,7 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                         .setActive(!enable);
             }
         } else {
-            // update all equations related to the element
-            for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
-                if (equation.isActive() != enable) {
-                    equation.setActive(enable);
-                }
-            }
-
-            // update all equation terms related to the element
-            for (var equationTerm : equationSystem.getEquationTerms(element.getType(), element.getNum())) {
-                if (equationTerm.isActive() != enable) {
-                    equationTerm.setActive(enable);
-                }
-            }
+            nonBranchEquationsUpdate(element, enable);
         }
     }
 
