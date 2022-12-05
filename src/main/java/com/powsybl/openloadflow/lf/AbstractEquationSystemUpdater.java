@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.network.AbstractLfNetworkListener;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 
@@ -34,18 +35,24 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
         }
     }
 
-    protected void nonBranchEquationsUpdate(LfElement element, boolean enable) {
-        // update all equations related to the element
-        for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
-            if (equation.isActive() != enable) {
-                equation.setActive(enable);
-            }
-        }
+    protected abstract void updateNonImpedantBranchEquations(LfElement element, boolean enable);
 
-        // update all equation terms related to the element
-        for (var equationTerm : equationSystem.getEquationTerms(element.getType(), element.getNum())) {
-            if (equationTerm.isActive() != enable) {
-                equationTerm.setActive(enable);
+    protected void updateElementEquations(LfElement element, boolean enable, boolean dc) {
+        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranch(dc, lowImpedanceThreshold)) {
+            updateNonImpedantBranchEquations(element, enable);
+        } else {
+            // update all equations related to the element
+            for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
+                if (equation.isActive() != enable) {
+                    equation.setActive(enable);
+                }
+            }
+
+            // update all equation terms related to the element
+            for (var equationTerm : equationSystem.getEquationTerms(element.getType(), element.getNum())) {
+                if (equationTerm.isActive() != enable) {
+                    equationTerm.setActive(enable);
+                }
             }
         }
     }

@@ -19,27 +19,24 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
         super(equationSystem, lowImpedanceThreshold);
     }
 
-    private void updateElementEquations(LfElement element, boolean enable) {
-        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranch(true, lowImpedanceThreshold)) {
-            LfBranch branch = (LfBranch) element;
-            if (branch.isSpanningTreeEdge()) {
-                // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
-                // or equations that set dummy p and q variable to zero
-                equationSystem.getEquation(element.getNum(), DcEquationType.ZERO_PHI)
-                        .orElseThrow()
-                        .setActive(enable);
-                equationSystem.getEquation(element.getNum(), DcEquationType.DUMMY_TARGET_P)
-                        .orElseThrow()
-                        .setActive(!enable);
-            }
-        } else {
-            nonBranchEquationsUpdate(element, enable);
+    @Override
+    protected void updateNonImpedantBranchEquations(LfElement element, boolean enable) {
+        LfBranch branch = (LfBranch) element;
+        if (branch.isSpanningTreeEdge()) {
+            // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
+            // or equations that set dummy p and q variable to zero
+            equationSystem.getEquation(element.getNum(), DcEquationType.ZERO_PHI)
+                    .orElseThrow()
+                    .setActive(enable);
+            equationSystem.getEquation(element.getNum(), DcEquationType.DUMMY_TARGET_P)
+                    .orElseThrow()
+                    .setActive(!enable);
         }
     }
 
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
-        updateElementEquations(element, !disabled);
+        updateElementEquations(element, !disabled, true);
         switch (element.getType()) {
             case BUS:
                 LfBus bus = (LfBus) element;

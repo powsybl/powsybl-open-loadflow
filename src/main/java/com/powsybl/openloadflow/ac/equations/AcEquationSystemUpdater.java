@@ -40,34 +40,31 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         AcEquationSystem.updateShuntVoltageControlEquations(controllerShunt.getVoltageControl().orElseThrow(), equationSystem);
     }
 
-    private void updateElementEquations(LfElement element, boolean enable) {
-        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranch(false, lowImpedanceThreshold)) {
-            LfBranch branch = (LfBranch) element;
-            if (branch.isSpanningTreeEdge()) {
-                // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
-                // or equations that set dummy p and q variable to zero
-                equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_PHI)
-                        .orElseThrow()
-                        .setActive(enable);
-                equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_P)
-                        .orElseThrow()
-                        .setActive(!enable);
+    @Override
+    protected void updateNonImpedantBranchEquations(LfElement element, boolean enable) {
+        LfBranch branch = (LfBranch) element;
+        if (branch.isSpanningTreeEdge()) {
+            // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
+            // or equations that set dummy p and q variable to zero
+            equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_PHI)
+                    .orElseThrow()
+                    .setActive(enable);
+            equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_P)
+                    .orElseThrow()
+                    .setActive(!enable);
 
-                equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_V)
-                        .orElseThrow()
-                        .setActive(enable);
-                equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_Q)
-                        .orElseThrow()
-                        .setActive(!enable);
-            }
-        } else {
-            nonBranchEquationsUpdate(element, enable);
+            equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_V)
+                    .orElseThrow()
+                    .setActive(enable);
+            equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_Q)
+                    .orElseThrow()
+                    .setActive(!enable);
         }
     }
 
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
-        updateElementEquations(element, !disabled);
+        updateElementEquations(element, !disabled, false);
         switch (element.getType()) {
             case BUS:
                 LfBus bus = (LfBus) element;
