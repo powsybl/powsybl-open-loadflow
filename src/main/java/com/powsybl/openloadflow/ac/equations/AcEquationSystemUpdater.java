@@ -10,20 +10,13 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 
-import java.util.Objects;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater {
-
-    private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
-
-    private final double lowImpedanceThreshold;
+public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem, double lowImpedanceThreshold) {
-        this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.lowImpedanceThreshold = lowImpedanceThreshold;
+        super(equationSystem, lowImpedanceThreshold);
     }
 
     @Override
