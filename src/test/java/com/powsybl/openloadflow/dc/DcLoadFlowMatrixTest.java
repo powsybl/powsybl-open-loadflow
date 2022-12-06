@@ -60,7 +60,7 @@ class DcLoadFlowMatrixTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, false);
 
         for (LfBus b : mainNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), DcEquationType.BUS_TARGET_P);
@@ -110,7 +110,7 @@ class DcLoadFlowMatrixTest {
         lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         mainNetwork = lfNetworks.get(0);
 
-        equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
+        equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, false);
 
         try (var j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
             try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {

@@ -31,10 +31,10 @@ public final class DcEquationSystem {
 
     private static void createBuses(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         for (LfBus bus : network.getBuses()) {
-            var p = equationSystem.createEquation(bus.getNum(), DcEquationType.BUS_TARGET_P);
+            var p = equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_P);
             bus.setP(p);
             if (bus.isSlack()) {
-                equationSystem.createEquation(bus.getNum(), DcEquationType.BUS_TARGET_PHI)
+                equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_PHI)
                         .addTerm(equationSystem.getVariable(bus.getNum(), DcVariableType.BUS_PHI).createTerm());
                 p.setActive(false);
             }
@@ -48,22 +48,27 @@ public final class DcEquationSystem {
         if (!(hasPhi1 && hasPhi2)) {
             // create voltage angle coupling equation
             // alpha = phi1 - phi2
-            equationSystem.createEquation(branch.getNum(), DcEquationType.ZERO_PHI)
+            equationSystem.createEquation(branch, DcEquationType.ZERO_PHI)
                     .addTerm(equationSystem.getVariable(bus1.getNum(), DcVariableType.BUS_PHI).createTerm())
                     .addTerm(equationSystem.getVariable(bus2.getNum(), DcVariableType.BUS_PHI).<DcEquationType>createTerm()
                                          .minus());
 
             // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
+            var dummyP = equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P);
             equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
                     .orElseThrow()
-                    .addTerm(equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P)
-                            .createTerm());
+                    .addTerm(dummyP.createTerm());
 
             equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P)
                     .orElseThrow()
-                    .addTerm(equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P).<DcEquationType>createTerm()
-                            .minus());
+                    .addTerm(dummyP.<DcEquationType>createTerm().minus());
+
+            // create an inactive dummy active power target equation set to zero that could be activated
+            // on case of switch opening
+            equationSystem.createEquation(branch, DcEquationType.DUMMY_TARGET_P)
+                    .addTerm(dummyP.createTerm())
+                    .setActive(branch.isDisabled()); // inverted logic
         } else {
             throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
         }
@@ -88,7 +93,7 @@ public final class DcEquationSystem {
                     EquationTerm<DcVariableType, DcEquationType> a1 = equationSystem.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1)
                             .createTerm();
                     branch.setA1(a1);
-                    equationSystem.createEquation(branch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1)
+                    equationSystem.createEquation(branch, DcEquationType.BRANCH_TARGET_ALPHA1)
                             .addTerm(a1);
                 } else {
                     //TODO
@@ -138,13 +143,17 @@ public final class DcEquationSystem {
     }
 
     public static EquationSystem<DcVariableType, DcEquationType> create(LfNetwork network, DcEquationSystemCreationParameters creationParameters,
-                                                                        double lowImpedanceThreshold) {
+                                                                        double lowImpedanceThreshold, boolean withListener) {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>(creationParameters.isIndexTerms());
 
         createBuses(network, equationSystem);
         createBranches(network, equationSystem, creationParameters, lowImpedanceThreshold);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
+
+        if (withListener) {
+            network.addListener(new DcEquationSystemUpdater(equationSystem, lowImpedanceThreshold));
+        }
 
         return equationSystem;
     }
