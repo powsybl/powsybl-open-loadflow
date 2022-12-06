@@ -93,7 +93,7 @@ class AcLoadFlowWithCachingTest {
     }
 
     @Test
-    @Disabled
+    @Disabled("Disabled by default because not reliable, depends on JVM, garbage collector, and machine performance")
     void testCacheEviction() {
         int runCount = 10;
         for (int i = 0; i < runCount; i++) {
