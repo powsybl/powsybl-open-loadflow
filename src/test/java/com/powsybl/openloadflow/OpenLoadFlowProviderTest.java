@@ -48,7 +48,7 @@ class OpenLoadFlowProviderTest {
     @Test
     void testDcParameters() {
         Network network = Mockito.mock(Network.class);
-        DcLoadFlowParameters dcParameters = OpenLoadFlowParameters.createDcParameters(network, new LoadFlowParameters().setReadSlackBus(true), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true);
+        DcLoadFlowParameters dcParameters = OpenLoadFlowParameters.createDcParameters(network, new LoadFlowParameters().setReadSlackBus(true), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true, false);
         assertEquals("DcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=false, minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=5000.0, computeMainConnectedComponentOnly=true, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, voltagePerReactivePowerControl=false, reactivePowerRemoteControl=false, dc=true, reactiveLimits=false, hvdcAcEmulation=false, minPlausibleTargetVoltage=0.8, maxPlausibleTargetVoltage=1.2, loaderPostProcessorSelection=[], reactiveRangeCheckMode=MAX, lowImpedanceThreshold=1.0E-8), equationSystemCreationParameters=DcEquationSystemCreationParameters(updateFlows=true, indexTerms=false, forcePhaseControlOffAndAddAngle1Var=true, useTransformerRatio=true), matrixFactory=DenseMatrixFactory, distributedSlack=true, balanceType=PROPORTIONAL_TO_GENERATION_P_MAX, setVToNan=true)",
                      dcParameters.toString());
     }

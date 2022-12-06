@@ -29,7 +29,7 @@ public class DcLoadFlowContext extends AbstractLoadFlowContext<DcVariableType, D
     @Override
     public EquationSystem<DcVariableType, DcEquationType> getEquationSystem() {
         if (equationSystem == null) {
-            equationSystem = DcEquationSystem.create(network, parameters.getEquationSystemCreationParameters(), parameters.getNetworkParameters().getLowImpedanceThreshold());
+            equationSystem = DcEquationSystem.create(network, parameters.getEquationSystemCreationParameters(), parameters.getNetworkParameters().getLowImpedanceThreshold(), true);
         }
         return equationSystem;
     }

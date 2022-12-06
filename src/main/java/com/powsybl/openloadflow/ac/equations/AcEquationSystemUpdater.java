@@ -6,24 +6,17 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
-
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
-
-    private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
-
-    private final double lowImpedanceThreshold;
+public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem, double lowImpedanceThreshold) {
-        this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.lowImpedanceThreshold = lowImpedanceThreshold;
+        super(equationSystem, lowImpedanceThreshold);
     }
 
     @Override
@@ -47,52 +40,32 @@ public class AcEquationSystemUpdater extends AbstractLfNetworkListener {
         AcEquationSystem.updateShuntVoltageControlEquations(controllerShunt.getVoltageControl().orElseThrow(), equationSystem);
     }
 
-    private void updateElementEquations(LfElement element, boolean enable) {
-        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranch(false, lowImpedanceThreshold)) {
-            LfBranch branch = (LfBranch) element;
-            if (branch.isSpanningTreeEdge()) {
-                // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
-                // or equations that set dummy p and q variable to zero
-                equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_PHI)
-                        .orElseThrow()
-                        .setActive(enable);
-                equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_P)
-                        .orElseThrow()
-                        .setActive(!enable);
+    @Override
+    protected void updateNonImpedantBranchEquations(LfBranch branch, boolean enable) {
+        // depending on the switch status, we activate either v1 = v2, ph1 = ph2 equations
+        // or equations that set dummy p and q variable to zero
+        equationSystem.getEquation(branch.getNum(), AcEquationType.ZERO_PHI)
+                .orElseThrow()
+                .setActive(enable);
+        equationSystem.getEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_P)
+                .orElseThrow()
+                .setActive(!enable);
 
-                equationSystem.getEquation(element.getNum(), AcEquationType.ZERO_V)
-                        .orElseThrow()
-                        .setActive(enable);
-                equationSystem.getEquation(element.getNum(), AcEquationType.DUMMY_TARGET_Q)
-                        .orElseThrow()
-                        .setActive(!enable);
-            }
-        } else {
-            // update all equations related to the element
-            for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
-                if (equation.isActive() != enable) {
-                    equation.setActive(enable);
-                }
-            }
-
-            // update all equation terms related to the element
-            for (var equationTerm : equationSystem.getEquationTerms(element.getType(), element.getNum())) {
-                if (equationTerm.isActive() != enable) {
-                    equationTerm.setActive(enable);
-                }
-            }
-        }
+        equationSystem.getEquation(branch.getNum(), AcEquationType.ZERO_V)
+                .orElseThrow()
+                .setActive(enable);
+        equationSystem.getEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_Q)
+                .orElseThrow()
+                .setActive(!enable);
     }
 
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
-        updateElementEquations(element, !disabled);
+        updateElementEquations(element, !disabled, false);
         switch (element.getType()) {
             case BUS:
                 LfBus bus = (LfBus) element;
-                if (disabled && bus.isSlack()) {
-                    throw new PowsyblException("Slack bus '" + bus.getId() + "' disabling is not supported");
-                }
+                checkSlackBus(bus, disabled);
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_PHI)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled()));
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P)

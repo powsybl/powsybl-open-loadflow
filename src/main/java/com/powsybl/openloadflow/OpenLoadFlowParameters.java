@@ -702,8 +702,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          boolean forcePhaseControlOffAndAddAngle1Var) {
-        var dcParameters = createDcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
+                                                          boolean forcePhaseControlOffAndAddAngle1Var, boolean indexTerms) {
+        var dcParameters = createDcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var, indexTerms);
         if (parameters.isReadSlackBus()) {
             dcParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, dcParameters.getNetworkParameters().getSlackBusSelector()));
         }
@@ -712,7 +712,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static DcLoadFlowParameters createDcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          boolean forcePhaseControlOffAndAddAngle1Var) {
+                                                          boolean forcePhaseControlOffAndAddAngle1Var, boolean indexTerms) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
 
         var networkParameters = new LfNetworkParameters()
@@ -740,7 +740,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
-                                                                                      false,
+                                                                                      indexTerms,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
                                                                                       parameters.isDcUseTransformerRatio());
 

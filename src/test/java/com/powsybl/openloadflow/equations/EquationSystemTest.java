@@ -173,7 +173,7 @@ class EquationSystemTest {
         List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
         LfNetwork network = lfNetworks.get(0);
 
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, false, true), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, false, true), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, false);
         String ref = String.join(System.lineSeparator(),
                 "bus_target_φ0 = φ0",
                 "bus_target_p1 = dc_p_2(φ0, φ1) + dc_p_1(φ1, φ2) + dc_p_1(φ1, φ2)",
