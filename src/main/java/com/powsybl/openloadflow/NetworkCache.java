@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -217,7 +218,7 @@ public enum NetworkCache {
         }
     }
 
-    private final List<Entry> entries = Collections.synchronizedList(new ArrayList<>());
+    private final List<Entry> entries = new CopyOnWriteArrayList<>();
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new LoadFlowParametersJsonModule());
