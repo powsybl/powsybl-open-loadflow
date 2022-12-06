@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -102,5 +103,84 @@ class AcLoadFlowWithCachingTest {
             System.gc();
         }
         assertTrue(NetworkCache.INSTANCE.getEntryCount() < runCount);
+    }
+
+    @Test
+    void testUnsupportedAttributeChange() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        gen.setTargetQ(10);
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+    }
+
+    @Test
+    void testPropertiesChange() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        gen.setProperty("foo", "bar");
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        gen.setProperty("foo", "baz");
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        gen.removeProperty("foo");
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+    }
+
+    @Test
+    void testVariantChange() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v");
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "v", true);
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        network.getVariantManager().removeVariant("v");
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+    }
+
+    @Test
+    void testLoadAddition() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        network.getVoltageLevel("VLLOAD").newLoad()
+                .setId("NEWLOAD")
+                .setConnectableBus("NLOAD")
+                .setBus("NLOAD")
+                .setP0(10)
+                .setQ0(10)
+                .add();
+
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+    }
+
+    @Test
+    void testLoadRemoval() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        network.getLoad("LOAD").remove();
+
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
     }
 }
