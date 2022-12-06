@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
@@ -222,9 +220,6 @@ public enum NetworkCache {
     private final List<Entry> entries = new ArrayList<>();
 
     private final Lock lock = new ReentrantLock();
-
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new LoadFlowParametersJsonModule());
 
     private void evictDeadEntries() {
         Iterator<Entry> it = entries.iterator();
