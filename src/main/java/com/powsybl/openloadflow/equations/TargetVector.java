@@ -49,12 +49,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
-        public void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-            invalidateValues();
-        }
-
-        @Override
-        public void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
+        public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
             invalidateValues();
         }
     };

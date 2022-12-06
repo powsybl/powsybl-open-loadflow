@@ -52,17 +52,12 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-        // empty
-    }
-
-    @Override
-    public void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-        // empty
-    }
-
-    @Override
     public void onDisableChange(LfElement element, boolean disabled) {
+        // empty
+    }
+
+    @Override
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
         // empty
     }
 }

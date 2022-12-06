@@ -9,10 +9,10 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
-import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -62,16 +62,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
     @Override
     public DcLoadFlowResult run() {
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = context.getEquationSystem();
-
-        boolean succeeded = false;
-        try (JacobianMatrix<DcVariableType, DcEquationType> j = context.getJacobianMatrix()) {
-
-            succeeded = run(context.getNetwork(), context.getParameters(), equationSystem, j, context.getTargetVector(),
-                    Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
-        } catch (Exception e) {
-            LOGGER.error("Failed to solve linear system for DC load flow", e);
-        }
+        boolean succeeded = run(context.getNetwork(), context.getParameters(), context.getEquationSystem(), context.getJacobianMatrix(), context.getTargetVector(),
+                Collections.emptyList(), Collections.emptyList(), context.getNetwork().getReporter()).getLeft();
         return new DcLoadFlowResult(context.getNetwork(), getActivePowerMismatch(context.getNetwork().getBuses()), succeeded);
     }
 
@@ -121,21 +113,21 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     public static Pair<Boolean, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
-                                                                            EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                                                            JacobianMatrix<DcVariableType, DcEquationType> j,
-                                                                            Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
-                                                                            Reporter reporter) {
+                                              EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                              JacobianMatrix<DcVariableType, DcEquationType> j,
+                                              Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
+                                              Reporter reporter) {
         try (var targetVector = new DcTargetVector(network, equationSystem)) {
             return run(network, parameters, equationSystem, j, targetVector, disabledBuses, disabledBranches, reporter);
         }
     }
 
     private static Pair<Boolean, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
-                                                                             EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                                                             JacobianMatrix<DcVariableType, DcEquationType> j,
-                                                                             TargetVector<DcVariableType, DcEquationType> targetVector,
-                                                                             Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
-                                                                             Reporter reporter) {
+                                               EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                               JacobianMatrix<DcVariableType, DcEquationType> j,
+                                               TargetVector<DcVariableType, DcEquationType> targetVector,
+                                               Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
+                                               Reporter reporter) {
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());
@@ -145,7 +137,12 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             distributeSlack(remainingBuses, parameters.getBalanceType());
         }
 
-        var targetVectorArray = targetVector.getArray();
+        // we need to copy the target array because:
+        //  - in case of disabled buses or branches some elements could be overwriten to zero
+        //  - JacobianMatrix.solveTransposed take as an input the second member and reuse the array
+        //    to fill with the solution
+        // so we need to copy to later the target as it is and reusable for next run
+        var targetVectorArray = targetVector.getArray().clone();
 
         if (!disabledBuses.isEmpty()) {
             // set buses injections and transformers to 0

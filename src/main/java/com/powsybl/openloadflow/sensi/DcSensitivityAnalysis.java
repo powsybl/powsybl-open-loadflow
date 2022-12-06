@@ -833,7 +833,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             // create DC equation system for sensitivity analysis
             EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(lfNetwork, dcLoadFlowParameters.getEquationSystemCreationParameters(),
-                    dcLoadFlowParameters.getNetworkParameters().getLowImpedanceThreshold());
+                    dcLoadFlowParameters.getNetworkParameters().getLowImpedanceThreshold(), false);
 
             // next we only work with valid factors
             var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter);
