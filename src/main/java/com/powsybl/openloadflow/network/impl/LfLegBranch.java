@@ -7,10 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.LimitType;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.RatioTapChanger;
-import com.powsybl.iidm.network.ThreeWindingsTransformer;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
@@ -22,14 +19,22 @@ import java.util.*;
  */
 public class LfLegBranch extends AbstractImpedantLfBranch {
 
-    private final ThreeWindingsTransformer twt;
+    private final Ref<ThreeWindingsTransformer> twtRef;
 
-    private final ThreeWindingsTransformer.Leg leg;
+    private final Ref<ThreeWindingsTransformer.Leg> legRef;
 
     protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
         super(network, bus1, bus0, piModel);
-        this.twt = twt;
-        this.leg = leg;
+        this.twtRef = new Ref<>(twt);
+        this.legRef = new Ref<>(leg);
+    }
+
+    private ThreeWindingsTransformer getTwt() {
+        return twtRef.get();
+    }
+
+    private ThreeWindingsTransformer.Leg getLeg() {
+        return legRef.get();
     }
 
     public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
@@ -86,6 +91,8 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     private int getLegNum() {
+        var twt = getTwt();
+        var leg = getLeg();
         if (leg == twt.getLeg1()) {
             return 1;
         } else if (leg == twt.getLeg2()) {
@@ -101,11 +108,13 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public String getId() {
-        return getId(twt.getId(), getLegNum());
+        return getId(getTwt().getId(), getLegNum());
     }
 
     @Override
     public BranchType getBranchType() {
+        var twt = getTwt();
+        var leg = getLeg();
         if (leg == twt.getLeg1()) {
             return BranchType.TRANSFO_3_LEG_1;
         } else if (leg == twt.getLeg2()) {
@@ -117,12 +126,12 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<String> getOriginalIds() {
-        return List.of(twt.getId());
+        return List.of(getTwt().getId());
     }
 
     @Override
     public boolean hasPhaseControlCapability() {
-        return leg.getPhaseTapChanger() != null;
+        return getLeg().getPhaseTapChanger() != null;
     }
 
     @Override
@@ -132,6 +141,7 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type) {
+        var leg = getLeg();
         switch (type) {
             case ACTIVE_POWER:
                 return getLimits1(type, leg.getActivePowerLimits().orElse(null));
@@ -147,6 +157,9 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+        var twt = getTwt();
+        var leg = getLeg();
+
         updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
 
         if (phaseShifterRegulationOn && isPhaseController()) {
@@ -172,7 +185,7 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
     @Override
     public void updateFlows(double p1, double q1, double p2, double q2) {
         // Star bus is always on side 2.
-        leg.getTerminal().setP(p1 * PerUnit.SB)
+        getLeg().getTerminal().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
     }
 }

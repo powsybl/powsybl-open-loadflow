@@ -20,14 +20,14 @@ import java.util.Optional;
  */
 public class LfVscConverterStationImpl extends AbstractLfGenerator implements LfVscConverterStation {
 
-    private final VscConverterStation station;
+    private final Ref<VscConverterStation> stationRef;
 
     private final double lossFactor;
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                      double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         super(network, HvdcConverterStations.getConverterStationTargetP(station));
-        this.station = station;
+        this.stationRef = new Ref<>(station);
         this.lossFactor = station.getLossFactor();
 
         // local control only
@@ -43,6 +43,10 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         return new LfVscConverterStationImpl(station, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
     }
 
+    private VscConverterStation getStation() {
+        return stationRef.get();
+    }
+
     @Override
     public double getLossFactor() {
         return lossFactor;
@@ -50,31 +54,32 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public String getId() {
-        return station.getId();
+        return getStation().getId();
     }
 
     @Override
     public double getTargetQ() {
-        return station.getReactivePowerSetpoint() / PerUnit.SB;
+        return getStation().getReactivePowerSetpoint() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return -station.getHvdcLine().getMaxP() / PerUnit.SB;
+        return -getStation().getHvdcLine().getMaxP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return station.getHvdcLine().getMaxP() / PerUnit.SB;
+        return getStation().getHvdcLine().getMaxP() / PerUnit.SB;
     }
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.of(station.getReactiveLimits());
+        return Optional.of(getStation().getReactiveLimits());
     }
 
     @Override
     public void updateState() {
+        var station = getStation();
         station.getTerminal()
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);

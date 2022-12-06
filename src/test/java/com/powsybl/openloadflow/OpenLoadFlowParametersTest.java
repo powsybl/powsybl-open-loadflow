@@ -243,4 +243,30 @@ class OpenLoadFlowParametersTest {
         assertEquals(10, parameters.getMaxIteration());
         assertFalse(parameters.hasReactivePowerRemoteControl());
     }
+
+    @Test
+    void testCompareParameters() {
+        assertTrue(OpenLoadFlowParameters.equals(new LoadFlowParameters(), new LoadFlowParameters()));
+        assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), new LoadFlowParameters().setDc(true)));
+        var p1 = new LoadFlowParameters();
+        var p2 = new LoadFlowParameters();
+        var pe1 = OpenLoadFlowParameters.create(p1);
+        OpenLoadFlowParameters.create(p2);
+        assertTrue(OpenLoadFlowParameters.equals(p1, p2));
+        assertFalse(OpenLoadFlowParameters.equals(p1, new LoadFlowParameters()));
+        assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), p2));
+        pe1.setDcPowerFactor(0.3);
+        assertFalse(OpenLoadFlowParameters.equals(p1, p2));
+    }
+
+    @Test
+    void testCloneParameters() {
+        var p = new LoadFlowParameters();
+        assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
+        var pe = OpenLoadFlowParameters.create(p);
+        assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
+        pe.setMaxIteration(20);
+        assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
+        assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), OpenLoadFlowParameters.clone(p)));
+    }
 }

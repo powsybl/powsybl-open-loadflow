@@ -159,6 +159,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name());
 
+        context.setResult(result);
+
         return result;
     }
 
@@ -172,7 +174,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                                     .run();
                         }
                     }
-                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, Double.NaN);
+                    return AcLoadFlowResult.createNoCalculationResult(n);
                 })
                 .collect(Collectors.toList());
     }

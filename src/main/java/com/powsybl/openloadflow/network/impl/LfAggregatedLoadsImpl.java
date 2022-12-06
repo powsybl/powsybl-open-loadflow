@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.AbstractPropertyBag;
@@ -22,7 +21,7 @@ import java.util.stream.Collectors;
  */
 class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedLoads {
 
-    private final List<Load> loads = new ArrayList<>();
+    private final List<Ref<Load>> loadsRefs = new ArrayList<>();
 
     private double[] participationFactors;
 
@@ -38,11 +37,11 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
 
     @Override
     public List<String> getOriginalIds() {
-        return loads.stream().map(Identifiable::getId).collect(Collectors.toList());
+        return loadsRefs.stream().map(r -> r.get().getId()).collect(Collectors.toList());
     }
 
     void add(Load load) {
-        loads.add(load);
+        loadsRefs.add(new Ref<>(load));
         initialized = false;
     }
 
@@ -62,10 +61,10 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
             return;
         }
 
-        participationFactors = new double[loads.size()];
+        participationFactors = new double[loadsRefs.size()];
         absVariableLoadTargetP = 0;
-        for (int i = 0; i < loads.size(); i++) {
-            Load load = loads.get(i);
+        for (int i = 0; i < loadsRefs.size(); i++) {
+            Load load = loadsRefs.get(i).get();
             double value;
             if (distributedOnConformLoad) {
                 value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
@@ -87,13 +86,13 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
 
     @Override
     public double getLoadCount() {
-        return loads.size();
+        return loadsRefs.size();
     }
 
     void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
         init();
-        for (int i = 0; i < loads.size(); i++) {
-            Load load = loads.get(i);
+        for (int i = 0; i < loadsRefs.size(); i++) {
+            Load load = loadsRefs.get(i).get();
             double updatedP0 = (load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i]) * PerUnit.SB;
             double updatedQ0 = loadPowerFactorConstant ? getPowerFactor(load) * updatedP0 : load.getQ0();
             load.getTerminal().setP(updatedP0);
@@ -105,8 +104,8 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
     public double getLoadTargetQ(double diffLoadTargetP) {
         init();
         double newLoadTargetQ = 0;
-        for (int i = 0; i < loads.size(); i++) {
-            Load load = loads.get(i);
+        for (int i = 0; i < loadsRefs.size(); i++) {
+            Load load = loadsRefs.get(i).get();
             double updatedP0 = load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i];
             newLoadTargetQ += getPowerFactor(load) * updatedP0;
         }
