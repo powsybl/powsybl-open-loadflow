@@ -2233,9 +2233,6 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
 
-        System.out.println(getPostContingencyResult(result, "S_SO_1").getNetworkResult().getBranchResult("S_SO_2").getP1());
-        System.out.println(getPostContingencyResult(result, "S_SO_1").getNetworkResult().getBranchResult("S_SO_2").getP2());
-
         assertNotNull(result);
 
         OperatorStrategyResult resultAbs = getOperatorStrategyResult(result, "strategyTapAbsChange");
