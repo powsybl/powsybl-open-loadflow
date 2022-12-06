@@ -23,7 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.ref.WeakReference;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -218,7 +219,9 @@ public enum NetworkCache {
         }
     }
 
-    private final List<Entry> entries = new CopyOnWriteArrayList<>();
+    private final List<Entry> entries = new ArrayList<>();
+
+    private final Lock lock = new ReentrantLock();
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new LoadFlowParametersJsonModule());
@@ -237,8 +240,13 @@ public enum NetworkCache {
     }
 
     public int getEntryCount() {
-        evictDeadEntries();
-        return entries.size();
+        lock.lock();
+        try {
+            evictDeadEntries();
+            return entries.size();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public Optional<Entry> findEntry(Network network) {
@@ -252,53 +260,64 @@ public enum NetworkCache {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
-        evictDeadEntries();
+        Entry entry;
+        lock.lock();
+        try {
+            evictDeadEntries();
 
-        var entry = findEntry(network).orElse(null);
+            entry = findEntry(network).orElse(null);
 
-        // invalid cache if parameters have changed
-        // TODO to refine later by comparing in detail parameters that have changed
-        if (entry != null && !OpenLoadFlowParameters.equals(parameters, entry.getParameters())) {
-            // release all resources
-            entry.close();
-            entries.remove(entry);
-            entry = null;
-            LOGGER.info("Network cache evicted because of parameters change");
-        }
-
-        if (entry == null) {
-            entry = new Entry(network, OpenLoadFlowParameters.clone(parameters));
-            entries.add(entry);
-            network.addListener(entry);
-
-            LOGGER.info("Network cache created for network '{}' and variant '{}'",
-                    network.getId(), network.getVariantManager().getWorkingVariantId());
-
-            return entry;
-        } else {
-            // restart from previous state
-            if (entry.getContexts() != null) {
-                LOGGER.info("Network cache reused for network '{}' and variant '{}'",
-                        network.getId(), network.getVariantManager().getWorkingVariantId());
-
-                for (AcLoadFlowContext context : entry.getContexts()) {
-                    AcLoadFlowResult result = context.getResult();
-                    if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                        context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
-                    }
-                }
-            } else {
-                LOGGER.info("Network cache cannot be reused for network '{}' because invalided", network.getId());
+            // invalid cache if parameters have changed
+            // TODO to refine later by comparing in detail parameters that have changed
+            if (entry != null && !OpenLoadFlowParameters.equals(parameters, entry.getParameters())) {
+                // release all resources
+                entry.close();
+                entries.remove(entry);
+                entry = null;
+                LOGGER.info("Network cache evicted because of parameters change");
             }
 
-            return entry;
+            if (entry == null) {
+                entry = new Entry(network, OpenLoadFlowParameters.clone(parameters));
+                entries.add(entry);
+                network.addListener(entry);
+
+                LOGGER.info("Network cache created for network '{}' and variant '{}'",
+                        network.getId(), network.getVariantManager().getWorkingVariantId());
+
+                return entry;
+            }
+        } finally {
+            lock.unlock();
         }
+
+        // restart from previous state
+        if (entry.getContexts() != null) {
+            LOGGER.info("Network cache reused for network '{}' and variant '{}'",
+                    network.getId(), network.getVariantManager().getWorkingVariantId());
+
+            for (AcLoadFlowContext context : entry.getContexts()) {
+                AcLoadFlowResult result = context.getResult();
+                if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
+                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                }
+            }
+        } else {
+            LOGGER.info("Network cache cannot be reused for network '{}' because invalided", network.getId());
+        }
+
+        return entry;
     }
 
     public void clear() {
-        for (var entry : entries) {
-            entry.close();
+        lock.lock();
+        try {
+            for (var entry : entries) {
+                entry.close();
+            }
+            entries.clear();
+        } finally {
+            lock.unlock();
         }
-        entries.clear();
     }
 }
