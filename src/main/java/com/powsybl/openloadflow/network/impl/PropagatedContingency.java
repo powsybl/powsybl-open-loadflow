@@ -43,6 +43,8 @@ public class PropagatedContingency {
 
     private final Set<String> originalPowerShiftIds;
 
+    private final Set<String> busIdsToLose; // for busbar section
+
     public Contingency getContingency() {
         return contingency;
     }
@@ -82,7 +84,7 @@ public class PropagatedContingency {
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
                                  Set<Switch> switchesToOpen, Set<String> generatorIdsToLose,
                                  Map<String, PowerShift> loadIdsToShift, Map<String, AdmittanceShift> shuntIdsToShift,
-                                 Set<String> originalPowerShiftIds) {
+                                 Set<String> originalPowerShiftIds, Set<String> busIdsToLose) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
@@ -92,6 +94,7 @@ public class PropagatedContingency {
         this.loadIdsToShift = Objects.requireNonNull(loadIdsToShift);
         this.shuntIdsToShift = Objects.requireNonNull(shuntIdsToShift);
         this.originalPowerShiftIds = Objects.requireNonNull(originalPowerShiftIds);
+        this.busIdsToLose = Objects.requireNonNull(busIdsToLose);
 
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
@@ -114,7 +117,7 @@ public class PropagatedContingency {
     public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies,
                                                          Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
                                                          boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
-                                                         boolean contingencyPropagation) {
+                                                         boolean contingencyPropagation, Set<String> allBusIdsToLose) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
@@ -122,6 +125,7 @@ public class PropagatedContingency {
                     PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, contingencyPropagation);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
+            allBusIdsToLose.addAll(propagatedContingency.busIdsToLose);
         }
         return propagatedContingencies;
     }
@@ -132,6 +136,7 @@ public class PropagatedContingency {
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
 
         // process elements of the contingency
+        boolean withBbsContingency = false;
         for (ContingencyElement element : contingency.getElements()) {
             Identifiable<?> identifiable = getIdentifiable(network, element);
             if (contingencyPropagation) {
@@ -141,9 +146,12 @@ public class PropagatedContingency {
             if (identifiable instanceof Switch) {
                 switchesToOpen.add((Switch) identifiable);
             }
+            if (identifiable instanceof BusbarSection && !contingencyPropagation) {
+                withBbsContingency = true;
+            }
         }
 
-        boolean breakers = !switchesToOpen.isEmpty();
+        boolean breakers = !switchesToOpen.isEmpty() || withBbsContingency;
 
         Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
@@ -151,6 +159,7 @@ public class PropagatedContingency {
         Map<String, PowerShift> loadIdsToShift = new HashMap<>();
         Map<String, AdmittanceShift> shuntIdsToShift = new HashMap<>();
         Set<String> originalPowerShiftIds = new LinkedHashSet<>();
+        Set<String> busIdsToLose = new LinkedHashSet<>();
 
         // process terminals disconnected, in particular process injection power shift
         for (Terminal terminal : terminalsToDisconnect) {
@@ -200,7 +209,11 @@ public class PropagatedContingency {
                     break;
 
                 case BUSBAR_SECTION:
-                    // we don't care
+                    BusbarSection busbarSection = (BusbarSection) connectable;
+                    Bus bus = breakers ? busbarSection.getTerminal().getBusBreakerView().getBus() : busbarSection.getTerminal().getBusView().getBus();
+                    if (bus != null) {
+                        busIdsToLose.add(bus.getId()); // FIXME: maybe we should always be at bus/breaker level for bbs.
+                    }
                     break;
 
                 case THREE_WINDINGS_TRANSFORMER:
@@ -216,7 +229,7 @@ public class PropagatedContingency {
         }
 
         return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen,
-                                         generatorIdsToLose, loadIdsToShift, shuntIdsToShift, originalPowerShiftIds);
+                                         generatorIdsToLose, loadIdsToShift, shuntIdsToShift, originalPowerShiftIds, busIdsToLose);
     }
 
     private static void addPowerShift(Terminal terminal, Map<String, PowerShift> loadIdsToShift, PowerShift powerShift, boolean breakers) {
@@ -278,6 +291,10 @@ public class PropagatedContingency {
                 identifiable = network.getThreeWindingsTransformer(element.getId());
                 identifiableType = "Three windings transformer";
                 break;
+            case BUSBAR_SECTION:
+                identifiable = network.getBusbarSection(element.getId());
+                identifiableType = "Busbar section";
+                break;
             default:
                 throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
         }
@@ -309,6 +326,9 @@ public class PropagatedContingency {
 
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
+
+        // we add buses corresponding to busbar sections.
+        busIdsToLose.stream().forEach(busId -> buses.add(network.getBusById(busId)));
 
         Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {

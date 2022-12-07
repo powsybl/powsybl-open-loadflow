@@ -82,6 +82,7 @@ public final class NodeBreakerNetworkFactory {
                 .setId("C")
                 .setNode1(6)
                 .setNode2(1)
+                .setRetained(true)
                 .add();
         vl1.getNodeBreakerView().newBreaker()
                 .setId("B1")

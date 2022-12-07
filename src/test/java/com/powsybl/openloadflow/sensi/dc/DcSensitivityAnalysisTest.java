@@ -25,10 +25,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -832,7 +829,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("c1", new BranchContingency("L1")));
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies,
-                Collections.emptySet(), false, false, false, false);
+                Collections.emptySet(), false, false, false, false, Collections.emptySet());
         assertEquals(1, propagatedContingencies.size());
     }
 

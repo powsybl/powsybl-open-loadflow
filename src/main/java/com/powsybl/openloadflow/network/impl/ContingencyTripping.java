@@ -72,6 +72,7 @@ public class ContingencyTripping {
             case GENERATOR:
             case LOAD:
             case SHUNT_COMPENSATOR:
+            case BUSBAR_SECTION:
                 return ContingencyTripping.createInjectionTripping(network, (Injection<?>) identifiable);
             case THREE_WINDINGS_TRANSFORMER:
                 return ContingencyTripping.createThreeWindingsTransformerTripping(network, (ThreeWindingsTransformer) identifiable);

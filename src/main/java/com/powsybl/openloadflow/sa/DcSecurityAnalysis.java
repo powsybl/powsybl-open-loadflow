@@ -213,9 +213,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(context.getParameters().getLoadFlowParameters());
         Set<Switch> allSwitchesToOpen = new HashSet<>();
+        Set<String> allBusIdToLose = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, false,
                 context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                false, false);
+                false, false, allBusIdToLose);
 
         // check actions validity
         checkActions(network, actions);
