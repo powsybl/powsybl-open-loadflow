@@ -25,8 +25,7 @@ public final class AcEquationSystem {
 
     private static void createBusEquation(LfBus bus,
                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                          AcEquationSystemCreationParameters creationParameters,
-                                          double lowImpedanceThreshold) {
+                                          AcEquationSystemCreationParameters creationParameters) {
         var p = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
         bus.setP(p);
         var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
@@ -39,7 +38,7 @@ public final class AcEquationSystem {
             p.setActive(false);
         }
 
-        createGeneratorControlEquations(bus, equationSystem, creationParameters, lowImpedanceThreshold);
+        createGeneratorControlEquations(bus, equationSystem, creationParameters);
 
         createShuntEquations(bus, equationSystem);
 
@@ -60,24 +59,22 @@ public final class AcEquationSystem {
 
     private static void createBusesEquations(LfNetwork network,
                                              EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                             AcEquationSystemCreationParameters creationParameters,
-                                             double lowImpedanceThreshold) {
+                                             AcEquationSystemCreationParameters creationParameters) {
         for (LfBus bus : network.getBuses()) {
-            createBusEquation(bus, equationSystem, creationParameters, lowImpedanceThreshold);
+            createBusEquation(bus, equationSystem, creationParameters);
         }
     }
 
     private static void createGeneratorControlEquations(LfBus bus,
                                                         EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                        AcEquationSystemCreationParameters creationParameters,
-                                                        double lowImpedanceThreshold) {
+                                                        AcEquationSystemCreationParameters creationParameters) {
         bus.getVoltageControl()
                 .ifPresent(voltageControl -> {
                     if (bus.isVoltageControlled()) {
                         if (voltageControl.isVoltageControlLocal()) {
-                            createLocalVoltageControlEquation(bus, equationSystem, creationParameters, lowImpedanceThreshold);
+                            createLocalVoltageControlEquation(bus, equationSystem, creationParameters);
                         } else {
-                            createRemoteVoltageControlEquations(voltageControl, equationSystem, creationParameters, lowImpedanceThreshold);
+                            createRemoteVoltageControlEquations(voltageControl, equationSystem, creationParameters);
                         }
                         updateGeneratorVoltageControl(voltageControl, equationSystem);
                     }
@@ -86,8 +83,7 @@ public final class AcEquationSystem {
 
     private static void createLocalVoltageControlEquation(LfBus bus,
                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                          AcEquationSystemCreationParameters creationParameters,
-                                                          double lowImpedanceThreshold) {
+                                                          AcEquationSystemCreationParameters creationParameters) {
         EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
                 .createTerm();
         bus.setCalculatedV(vTerm);
@@ -100,7 +96,7 @@ public final class AcEquationSystem {
             // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V_WITH_SLOPE)
                     .addTerm(vTerm)
-                    .addTerms(createReactiveTerms(bus, equationSystem.getVariableSet(), creationParameters, lowImpedanceThreshold)
+                    .addTerms(createReactiveTerms(bus, equationSystem.getVariableSet(), creationParameters)
                             .stream()
                             .map(term -> term.multiply(slope))
                             .collect(Collectors.toList()));
@@ -157,8 +153,7 @@ public final class AcEquationSystem {
 
     private static void createRemoteVoltageControlEquations(VoltageControl voltageControl,
                                                             EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                            AcEquationSystemCreationParameters creationParameters,
-                                                            double lowImpedanceThreshold) {
+                                                            AcEquationSystemCreationParameters creationParameters) {
         LfBus controlledBus = voltageControl.getControlledBus();
 
         // create voltage equation at voltage controlled bus
@@ -178,12 +173,12 @@ public final class AcEquationSystem {
             // which can be rewritten in a more simple way
             // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
             Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
-                    .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters, lowImpedanceThreshold).stream()
+                    .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
             for (LfBus otherControllerBus : voltageControl.getControllerBuses()) {
                 if (otherControllerBus != controllerBus) {
-                    zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters, lowImpedanceThreshold).stream()
+                    zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters).stream()
                             .map(term -> term.multiply(controllerBus::getRemoteVoltageControlReactivePercent))
                             .collect(Collectors.toList()));
                 }
@@ -249,12 +244,11 @@ public final class AcEquationSystem {
 
     private static List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus,
                                                                                           VariableSet<AcVariableType> variableSet,
-                                                                                          AcEquationSystemCreationParameters creationParameters,
-                                                                                          double lowImpedanceThreshold) {
+                                                                                          AcEquationSystemCreationParameters creationParameters) {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
-            if (branch.isZeroImpedanceBranch(false, lowImpedanceThreshold)) {
+            if (branch.isZeroImpedanceBranch()) {
                 if (!branch.isSpanningTreeEdge()) {
                     continue;
                 }
@@ -744,10 +738,9 @@ public final class AcEquationSystem {
 
     private static void createBranchEquations(LfBranch branch,
                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                              AcEquationSystemCreationParameters creationParameters,
-                                              double lowImpedanceThreshold) {
+                                              AcEquationSystemCreationParameters creationParameters) {
         // create zero and non zero impedance branch equations
-        if (branch.isZeroImpedanceBranch(false, lowImpedanceThreshold)) {
+        if (branch.isZeroImpedanceBranch()) {
             if (branch.isSpanningTreeEdge()) {
                 createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem);
             }
@@ -758,27 +751,24 @@ public final class AcEquationSystem {
 
     private static void createBranchesEquations(LfNetwork network,
                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                AcEquationSystemCreationParameters creationParameters,
-                                                double lowImpedanceThreshold) {
+                                                AcEquationSystemCreationParameters creationParameters) {
         for (LfBranch branch : network.getBranches()) {
-            createBranchEquations(branch, equationSystem, creationParameters, lowImpedanceThreshold);
+            createBranchEquations(branch, equationSystem, creationParameters);
         }
     }
 
     public static EquationSystem<AcVariableType, AcEquationType> create(LfNetwork network) {
-        return create(network, new AcEquationSystemCreationParameters(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
+        return create(network, new AcEquationSystemCreationParameters());
     }
 
-    public static EquationSystem<AcVariableType, AcEquationType> create(LfNetwork network,
-                                                                        AcEquationSystemCreationParameters creationParameters,
-                                                                        double lowImpedanceThreshold) {
+    public static EquationSystem<AcVariableType, AcEquationType> create(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(creationParameters);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(true);
 
-        createBusesEquations(network, equationSystem, creationParameters, lowImpedanceThreshold);
-        createBranchesEquations(network, equationSystem, creationParameters, lowImpedanceThreshold);
+        createBusesEquations(network, equationSystem, creationParameters);
+        createBranchesEquations(network, equationSystem, creationParameters);
 
         for (LfHvdc hvdc : network.getHvdcs()) {
             createHvdcAcEmulationEquations(hvdc, equationSystem);
@@ -786,7 +776,7 @@ public final class AcEquationSystem {
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
-        network.addListener(new AcEquationSystemUpdater(equationSystem, lowImpedanceThreshold));
+        network.addListener(new AcEquationSystemUpdater(equationSystem));
 
         return equationSystem;
     }

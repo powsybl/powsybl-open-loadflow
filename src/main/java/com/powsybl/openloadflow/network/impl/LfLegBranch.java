@@ -23,8 +23,9 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
 
     private final Ref<ThreeWindingsTransformer.Leg> legRef;
 
-    protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg) {
-        super(network, bus1, bus0, piModel);
+    protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
+                          boolean dc, double lowImpedanceThreshold) {
+        super(network, bus1, bus0, piModel, dc, lowImpedanceThreshold);
         this.twtRef = new Ref<>(twt);
         this.legRef = new Ref<>(leg);
     }
@@ -38,7 +39,7 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
-                                     boolean twtSplitShuntAdmittance) {
+                                     boolean twtSplitShuntAdmittance, boolean dc, double lowImpedanceThreshold) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
@@ -87,7 +88,7 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
-        return new LfLegBranch(network, bus1, bus0, piModel, twt, leg);
+        return new LfLegBranch(network, bus1, bus0, piModel, twt, leg, dc, lowImpedanceThreshold);
     }
 
     private int getLegNum() {
