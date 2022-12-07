@@ -109,7 +109,7 @@ public final class DcEquationSystem {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             if (branch.isZeroImpedanceBranch()) {
-                if (bus1 != null && bus2 != null && branch.isSpanningTreeEdge()) {
+                if (branch.isSpanningTreeEdge()) {
                     createNonImpedantBranch(equationSystem, branch, bus1, bus2);
                 }
             } else {
