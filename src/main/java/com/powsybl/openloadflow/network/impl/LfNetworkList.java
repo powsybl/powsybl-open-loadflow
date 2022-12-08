@@ -41,7 +41,7 @@ public class LfNetworkList implements AutoCloseable {
     // list of networks sorted by descending size
     private final List<LfNetwork> list;
 
-    private final VariantCleaner variantCleaner;
+    private VariantCleaner variantCleaner;
 
     public LfNetworkList(List<LfNetwork> list, VariantCleaner variantCleaner) {
         this.list = Objects.requireNonNull(list);
@@ -58,6 +58,12 @@ public class LfNetworkList implements AutoCloseable {
 
     public Optional<LfNetwork> getLargest() {
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+    public VariantCleaner release() {
+        VariantCleaner variantCleanerToReturn = variantCleaner;
+        variantCleaner = null;
+        return variantCleanerToReturn;
     }
 
     @Override

@@ -16,6 +16,10 @@ import com.powsybl.openloadflow.util.PerUnit;
  */
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
+    public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
+        return new AcLoadFlowResult(network, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, Double.NaN);
+    }
+
     private final int outerLoopIterations;
 
     private final int newtonRaphsonIterations;

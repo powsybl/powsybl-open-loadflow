@@ -32,8 +32,8 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
     protected Evaluable i2 = NAN;
 
-    protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
-        super(network, bus1, bus2, piModel);
+    protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, boolean dc, double lowImpedanceThreshold) {
+        super(network, bus1, bus2, piModel, dc, lowImpedanceThreshold);
     }
 
     @Override
