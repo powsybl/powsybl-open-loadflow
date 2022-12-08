@@ -13,13 +13,6 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.EvaluableConstants;
-import org.jgrapht.Graph;
-import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
-import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
-import org.jgrapht.graph.Pseudograph;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -111,48 +104,31 @@ public final class DcEquationSystem {
     }
 
     private static void createBranches(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                       DcEquationSystemCreationParameters creationParameters,
-                                       double lowImpedanceThreshold) {
-        List<LfBranch> nonImpedantBranches = new ArrayList<>();
+                                       DcEquationSystemCreationParameters creationParameters) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (branch.isZeroImpedanceBranch(true, lowImpedanceThreshold)) {
-                if (bus1 != null && bus2 != null) {
-                    nonImpedantBranches.add(branch);
+            if (branch.isZeroImpedance()) {
+                if (branch.isSpanningTreeEdge()) {
+                    createNonImpedantBranch(equationSystem, branch, bus1, bus2);
                 }
             } else {
                 createImpedantBranch(equationSystem, creationParameters, branch, bus1, bus2);
             }
         }
-
-        // create non impedant equations only on minimum spanning forest calculated from non impedant subgraph
-        if (!nonImpedantBranches.isEmpty()) {
-            Graph<LfBus, LfBranch> nonImpedantSubGraph = new Pseudograph<>(LfBranch.class);
-            for (LfBranch branch : nonImpedantBranches) {
-                nonImpedantSubGraph.addVertex(branch.getBus1());
-                nonImpedantSubGraph.addVertex(branch.getBus2());
-                nonImpedantSubGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
-            }
-
-            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(nonImpedantSubGraph).getSpanningTree();
-            for (LfBranch branch : spanningTree.getEdges()) {
-                createNonImpedantBranch(equationSystem, branch, branch.getBus1(), branch.getBus2());
-            }
-        }
     }
 
     public static EquationSystem<DcVariableType, DcEquationType> create(LfNetwork network, DcEquationSystemCreationParameters creationParameters,
-                                                                        double lowImpedanceThreshold, boolean withListener) {
+                                                                        boolean withListener) {
         EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>(creationParameters.isIndexTerms());
 
         createBuses(network, equationSystem);
-        createBranches(network, equationSystem, creationParameters, lowImpedanceThreshold);
+        createBranches(network, equationSystem, creationParameters);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
         if (withListener) {
-            network.addListener(new DcEquationSystemUpdater(equationSystem, lowImpedanceThreshold));
+            network.addListener(new DcEquationSystemUpdater(equationSystem));
         }
 
         return equationSystem;

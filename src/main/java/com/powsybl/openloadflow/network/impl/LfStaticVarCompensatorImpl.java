@@ -20,7 +20,7 @@ import java.util.Optional;
  */
 public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
-    private final StaticVarCompensator svc;
+    private final Ref<StaticVarCompensator> svcRef;
 
     private final ReactiveLimits reactiveLimits;
 
@@ -32,20 +32,20 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                                        boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                        double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         super(network, 0);
-        this.svc = svc;
+        this.svcRef = new Ref<>(svc);
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
         this.reactiveLimits = new MinMaxReactiveLimits() {
 
             @Override
             public double getMinQ() {
                 double v = bus.getV() * nominalV;
-                return svc.getBmin() * v * v;
+                return svcRef.get().getBmin() * v * v;
             }
 
             @Override
             public double getMaxQ() {
                 double v = bus.getV() * nominalV;
-                return svc.getBmax() * v * v;
+                return svcRef.get().getBmax() * v * v;
             }
 
             @Override
@@ -81,14 +81,18 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
                 report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
     }
 
+    private StaticVarCompensator getSvc() {
+        return svcRef.get();
+    }
+
     @Override
     public String getId() {
-        return svc.getId();
+        return getSvc().getId();
     }
 
     @Override
     public double getTargetQ() {
-        return -svc.getReactivePowerSetpoint() / PerUnit.SB;
+        return -getSvc().getReactivePowerSetpoint() / PerUnit.SB;
     }
 
     @Override
@@ -108,6 +112,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
 
     @Override
     public void updateState() {
+        var svc = getSvc();
         svc.getTerminal()
                 .setP(0)
                 .setQ(Double.isNaN(calculatedQ) ? svc.getReactivePowerSetpoint() : -calculatedQ);

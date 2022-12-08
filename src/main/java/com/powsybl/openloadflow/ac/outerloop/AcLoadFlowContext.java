@@ -24,6 +24,10 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
 
     private EquationVector<AcVariableType, AcEquationType> equationVector;
 
+    private AcLoadFlowResult result;
+
+    private boolean networkUpdated = true;
+
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
         super(network, parameters);
     }
@@ -31,8 +35,7 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     @Override
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         if (equationSystem == null) {
-            equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters(),
-                    parameters.getNetworkParameters().getLowImpedanceThreshold());
+            equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters());
         }
         return equationSystem;
     }
@@ -50,6 +53,22 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
             equationVector = new EquationVector<>(getEquationSystem());
         }
         return equationVector;
+    }
+
+    public AcLoadFlowResult getResult() {
+        return result;
+    }
+
+    public void setResult(AcLoadFlowResult result) {
+        this.result = result;
+    }
+
+    public boolean isNetworkUpdated() {
+        return networkUpdated;
+    }
+
+    public void setNetworkUpdated(boolean networkUpdated) {
+        this.networkUpdated = networkUpdated;
     }
 
     @Override

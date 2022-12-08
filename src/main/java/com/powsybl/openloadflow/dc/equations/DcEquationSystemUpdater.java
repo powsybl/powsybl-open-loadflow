@@ -15,8 +15,8 @@ import com.powsybl.openloadflow.network.*;
  */
 public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVariableType, DcEquationType> {
 
-    public DcEquationSystemUpdater(EquationSystem<DcVariableType, DcEquationType> equationSystem, double lowImpedanceThreshold) {
-        super(equationSystem, lowImpedanceThreshold);
+    public DcEquationSystemUpdater(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        super(equationSystem);
     }
 
     @Override
@@ -33,7 +33,7 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
 
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
-        updateElementEquations(element, !disabled, true);
+        updateElementEquations(element, !disabled);
         switch (element.getType()) {
             case BUS:
                 LfBus bus = (LfBus) element;
