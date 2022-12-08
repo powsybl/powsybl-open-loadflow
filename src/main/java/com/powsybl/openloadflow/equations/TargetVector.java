@@ -29,6 +29,11 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     private final LfNetworkListener networkListener = new AbstractLfNetworkListener() {
 
         @Override
+        public void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage) {
+            invalidateValues();
+        }
+
+        @Override
         public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
             invalidateValues();
         }

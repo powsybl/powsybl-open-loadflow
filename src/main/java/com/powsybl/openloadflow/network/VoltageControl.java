@@ -24,7 +24,7 @@ public class VoltageControl {
 
     private final Set<LfBus> controllers;
 
-    private final double targetValue;
+    private double targetValue;
 
     public VoltageControl(LfBus controlled, double targetValue) {
         this.controlled = controlled;
@@ -34,6 +34,13 @@ public class VoltageControl {
 
     public double getTargetValue() {
         return targetValue;
+    }
+
+    public void setTargetValue(double targetValue) {
+        if (targetValue != this.targetValue) {
+            this.targetValue = targetValue;
+            controlled.getNetwork().getListeners().forEach(l -> l.onVoltageControlTargetChange(this, targetValue));
+        }
     }
 
     public LfBus getControlledBus() {

@@ -20,7 +20,7 @@ import java.util.Optional;
  */
 public final class LfBatteryImpl extends AbstractLfGenerator {
 
-    private final Battery battery;
+    private final Ref<Battery> batteryRef;
 
     private boolean participating;
 
@@ -28,7 +28,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private LfBatteryImpl(Battery battery, LfNetwork network, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
         super(network, battery.getTargetP());
-        this.battery = battery;
+        this.batteryRef = new Ref<>(battery);
         participating = true;
         droop = DEFAULT_DROOP;
         // get participation factor from extension
@@ -51,29 +51,33 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         return new LfBatteryImpl(battery, network, plausibleActivePowerLimit, report);
     }
 
+    private Battery getBattery() {
+        return batteryRef.get();
+    }
+
     @Override
     public String getId() {
-        return battery.getId();
+        return getBattery().getId();
     }
 
     @Override
     public double getTargetQ() {
-        return battery.getTargetQ() / PerUnit.SB;
+        return getBattery().getTargetQ() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return battery.getMinP() / PerUnit.SB;
+        return getBattery().getMinP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return battery.getMaxP() / PerUnit.SB;
+        return getBattery().getMaxP() / PerUnit.SB;
     }
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.of(battery.getReactiveLimits());
+        return Optional.of(getBattery().getReactiveLimits());
     }
 
     @Override
@@ -93,6 +97,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     @Override
     public void updateState() {
+        var battery = getBattery();
         battery.getTerminal()
                 .setP(-targetP)
                 .setQ(-battery.getTargetQ());

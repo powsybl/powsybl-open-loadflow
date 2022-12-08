@@ -180,16 +180,21 @@ public class NewtonRaphson {
     }
 
     private boolean isStateUnrealistic() {
-        List<String> busesOutOfNormalVoltageRange = new ArrayList<>();
+        Map<String, Double> busesOutOfNormalVoltageRange = new LinkedHashMap<>();
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             if (v.getType() == AcVariableType.BUS_V && !network.getBus(v.getElementNum()).isFictitious()) {
                 double value = equationSystem.getStateVector().get(v.getRow());
                 if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
-                    busesOutOfNormalVoltageRange.add(network.getBus(v.getElementNum()).getId());
+                    busesOutOfNormalVoltageRange.put(network.getBus(v.getElementNum()).getId(), value);
                 }
             }
         }
         if (!busesOutOfNormalVoltageRange.isEmpty()) {
+            if (LOGGER.isTraceEnabled()) {
+                for (var e : busesOutOfNormalVoltageRange.entrySet()) {
+                    LOGGER.trace("Bus '{}' has an unrealistic voltage magnitude: {} pu", e.getKey(), e.getValue());
+                }
+            }
             LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
                     busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
         }

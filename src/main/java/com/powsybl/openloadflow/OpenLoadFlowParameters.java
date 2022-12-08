@@ -60,6 +60,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final double DC_POWER_FACTOR_DEFAULT_VALUE = 1.0;
 
+    private static final boolean NETWORK_CACHE_ENABLED_DEFAULT_VALUE = false;
+
     public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -102,6 +104,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String LOW_IMPEDANCE_THRESHOLD_NAME = "lowImpedanceThreshold";
 
+    public static final String NETWORK_CACHE_ENABLED_NAME = "networkCacheEnabled";
+
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -122,7 +126,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MIN_REALISTIC_VOLTAGE_NAME,
                                                                          MAX_REALISTIC_VOLTAGE_NAME,
                                                                          REACTIVE_RANGE_CHECK_MODE_NAME,
-                                                                         LOW_IMPEDANCE_THRESHOLD_NAME);
+                                                                         LOW_IMPEDANCE_THRESHOLD_NAME,
+                                                                         NETWORK_CACHE_ENABLED_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -192,6 +197,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
+
+    private boolean networkCacheEnabled = NETWORK_CACHE_ENABLED_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -398,6 +405,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isNetworkCacheEnabled() {
+        return networkCacheEnabled;
+    }
+
+    public OpenLoadFlowParameters setNetworkCacheEnabled(boolean networkCacheEnabled) {
+        this.networkCacheEnabled = networkCacheEnabled;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -428,7 +444,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
                 .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
                 .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
-                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE)));
+                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -479,6 +496,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
         Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_NAME))
                 .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_NAME))
+                .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -506,6 +525,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ", lowImpedanceThreshold=" + lowImpedanceThreshold +
+                ", networkCacheEnabled=" + networkCacheEnabled +
                 ')';
     }
 
@@ -571,6 +591,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Min realistic voltage: {}", parametersExt.getMinRealisticVoltage());
         LOGGER.info("Max realistic voltage: {}", parametersExt.getMaxRealisticVoltage());
         LOGGER.info("Reactive range check mode: {}", parametersExt.getReactiveRangeCheckMode());
+        LOGGER.info("Network cache enabled: {}", parametersExt.isNetworkCacheEnabled());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -730,4 +751,114 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                         parameters.getBalanceType(),
                                         true);
     }
+
+    public static boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {
+        Objects.requireNonNull(parameters1);
+        Objects.requireNonNull(parameters2);
+        boolean equals = parameters1.getVoltageInitMode() == parameters2.getVoltageInitMode() &&
+                parameters1.isTransformerVoltageControlOn() == parameters2.isTransformerVoltageControlOn() &&
+                parameters1.isNoGeneratorReactiveLimits() == parameters2.isNoGeneratorReactiveLimits() &&
+                parameters1.isPhaseShifterRegulationOn() == parameters2.isPhaseShifterRegulationOn() &&
+                parameters1.isTwtSplitShuntAdmittance() == parameters2.isTwtSplitShuntAdmittance() &&
+                parameters1.isShuntCompensatorVoltageControlOn() == parameters2.isShuntCompensatorVoltageControlOn() &&
+                parameters1.isReadSlackBus() == parameters2.isReadSlackBus() &&
+                parameters1.isWriteSlackBus() == parameters2.isWriteSlackBus() &&
+                parameters1.isDc() == parameters2.isDc() &&
+                parameters1.isDistributedSlack() == parameters2.isDistributedSlack() &&
+                parameters1.getBalanceType() == parameters2.getBalanceType() &&
+                parameters1.isDcUseTransformerRatio() == parameters2.isDcUseTransformerRatio() &&
+                parameters1.getCountriesToBalance().equals(parameters2.getCountriesToBalance()) &&
+                parameters1.getConnectedComponentMode() == parameters2.getConnectedComponentMode() &&
+                parameters1.isHvdcAcEmulation() == parameters2.isHvdcAcEmulation();
+        if (!equals) {
+            return false;
+        }
+
+        OpenLoadFlowParameters extension1 = parameters1.getExtension(OpenLoadFlowParameters.class);
+        OpenLoadFlowParameters extension2 = parameters2.getExtension(OpenLoadFlowParameters.class);
+        if (extension1 == null && extension2 == null) {
+            return true;
+        }
+        if (extension1 == null) {
+            return false;
+        }
+        if (extension2 == null) {
+            return false;
+        }
+
+        return extension1.getSlackBusSelectionMode() == extension2.getSlackBusSelectionMode() &&
+                extension1.getSlackBusesIds().equals(extension2.getSlackBusesIds()) &&
+                extension1.isThrowsExceptionInCaseOfSlackDistributionFailure() == extension2.isThrowsExceptionInCaseOfSlackDistributionFailure() &&
+                extension1.hasVoltageRemoteControl() == extension2.hasVoltageRemoteControl() &&
+                extension1.getLowImpedanceBranchMode() == extension2.getLowImpedanceBranchMode() &&
+                extension1.isLoadPowerFactorConstant() == extension2.isLoadPowerFactorConstant() &&
+                extension1.getPlausibleActivePowerLimit() == extension2.getPlausibleActivePowerLimit() &&
+                extension1.getSlackBusPMaxMismatch() == extension2.getSlackBusPMaxMismatch() &&
+                extension1.isVoltagePerReactivePowerControl() == extension2.isVoltagePerReactivePowerControl() &&
+                extension1.hasReactivePowerRemoteControl() == extension2.hasReactivePowerRemoteControl() &&
+                extension1.getMaxIteration() == extension2.getMaxIteration() &&
+                extension1.getNewtonRaphsonConvEpsPerEq() == extension2.getNewtonRaphsonConvEpsPerEq() &&
+                extension1.getVoltageInitModeOverride() == extension2.getVoltageInitModeOverride() &&
+                extension1.getTransformerVoltageControlMode() == extension2.getTransformerVoltageControlMode() &&
+                extension1.getDcPowerFactor() == extension2.getDcPowerFactor() &&
+                extension1.getMinPlausibleTargetVoltage() == extension2.getMinPlausibleTargetVoltage() &&
+                extension1.getMaxPlausibleTargetVoltage() == extension2.getMaxPlausibleTargetVoltage() &&
+                extension1.getMinRealisticVoltage() == extension2.getMinRealisticVoltage() &&
+                extension1.getMaxRealisticVoltage() == extension2.getMaxRealisticVoltage() &&
+                extension1.getReactiveRangeCheckMode() == extension2.getReactiveRangeCheckMode() &&
+                extension1.getLowImpedanceThreshold() == extension2.getLowImpedanceThreshold() &&
+                extension1.isNetworkCacheEnabled() == extension2.isNetworkCacheEnabled();
+    }
+
+    public static LoadFlowParameters clone(LoadFlowParameters parameters) {
+        Objects.requireNonNull(parameters);
+        LoadFlowParameters parameters2 = new LoadFlowParameters(parameters.getVoltageInitMode(),
+                                                                parameters.isTransformerVoltageControlOn(),
+                                                                parameters.isNoGeneratorReactiveLimits(),
+                                                                parameters.isPhaseShifterRegulationOn(),
+                                                                parameters.isTwtSplitShuntAdmittance(),
+                                                                parameters.isShuntCompensatorVoltageControlOn(),
+                                                                parameters.isReadSlackBus(),
+                                                                parameters.isWriteSlackBus(),
+                                                                parameters.isDc(),
+                                                                parameters.isDistributedSlack(),
+                                                                parameters.getBalanceType(),
+                                                                parameters.isDcUseTransformerRatio(),
+                                                                new HashSet<>(parameters.getCountriesToBalance()),
+                                                                parameters.getConnectedComponentMode(),
+                                                                parameters.isHvdcAcEmulation());
+
+        OpenLoadFlowParameters extension = parameters.getExtension(OpenLoadFlowParameters.class);
+        if (extension != null) {
+            OpenLoadFlowParameters extension2 = new OpenLoadFlowParameters()
+                    .setSlackBusSelectionMode(extension.getSlackBusSelectionMode())
+                    .setSlackBusesIds(new ArrayList<>(extension.getSlackBusesIds()))
+                    .setThrowsExceptionInCaseOfSlackDistributionFailure(extension.isThrowsExceptionInCaseOfSlackDistributionFailure())
+                    .setVoltageRemoteControl(extension.hasVoltageRemoteControl())
+                    .setLowImpedanceBranchMode(extension.getLowImpedanceBranchMode())
+                    .setLoadPowerFactorConstant(extension.isLoadPowerFactorConstant())
+                    .setPlausibleActivePowerLimit(extension.getPlausibleActivePowerLimit())
+                    .setSlackBusPMaxMismatch(extension.getSlackBusPMaxMismatch())
+                    .setVoltagePerReactivePowerControl(extension.isVoltagePerReactivePowerControl())
+                    .setReactivePowerRemoteControl(extension.hasReactivePowerRemoteControl())
+                    .setMaxIteration(extension.getMaxIteration())
+                    .setNewtonRaphsonConvEpsPerEq(extension.getNewtonRaphsonConvEpsPerEq())
+                    .setVoltageInitModeOverride(extension.getVoltageInitModeOverride())
+                    .setTransformerVoltageControlMode(extension.getTransformerVoltageControlMode())
+                    .setDcPowerFactor(extension.getDcPowerFactor())
+                    .setMinPlausibleTargetVoltage(extension.getMinPlausibleTargetVoltage())
+                    .setMaxPlausibleTargetVoltage(extension.getMaxPlausibleTargetVoltage())
+                    .setMinRealisticVoltage(extension.getMinRealisticVoltage())
+                    .setMaxRealisticVoltage(extension.getMaxRealisticVoltage())
+                    .setReactiveRangeCheckMode(extension.getReactiveRangeCheckMode())
+                    .setLowImpedanceThreshold(extension.getLowImpedanceThreshold())
+                    .setNetworkCacheEnabled(extension.isNetworkCacheEnabled());
+            if (extension2 != null) {
+                parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
+            }
+        }
+
+        return parameters2;
+    }
 }
+

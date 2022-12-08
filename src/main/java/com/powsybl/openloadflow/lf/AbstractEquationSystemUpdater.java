@@ -22,11 +22,8 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
 
     protected final EquationSystem<V, E> equationSystem;
 
-    protected final double lowImpedanceThreshold;
-
-    protected AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem, double lowImpedanceThreshold) {
+    protected AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem) {
         this.equationSystem = equationSystem;
-        this.lowImpedanceThreshold = lowImpedanceThreshold;
     }
 
     protected static void checkSlackBus(LfBus bus, boolean disabled) {
@@ -37,13 +34,8 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
 
     protected abstract void updateNonImpedantBranchEquations(LfBranch branch, boolean enable);
 
-    protected boolean isNonImpedantBranchWithEquation(LfBranch branch, boolean dc) {
-        return branch.isZeroImpedanceBranch(dc, lowImpedanceThreshold)
-                && branch.isSpanningTreeEdge();
-    }
-
-    protected void updateElementEquations(LfElement element, boolean enable, boolean dc) {
-        if (element instanceof LfBranch && isNonImpedantBranchWithEquation((LfBranch) element, dc)) {
+    protected void updateElementEquations(LfElement element, boolean enable) {
+        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedance() && ((LfBranch) element).isSpanningTreeEdge()) {
             updateNonImpedantBranchEquations((LfBranch) element, enable);
         } else {
             // update all equations related to the element

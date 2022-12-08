@@ -13,6 +13,8 @@ public interface LfNetworkListener {
 
     void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
+    void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage);
+
     void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled);
 
     void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled);

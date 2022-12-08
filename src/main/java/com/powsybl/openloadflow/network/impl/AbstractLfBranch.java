@@ -49,12 +49,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private ReactivePowerControl reactivePowerControl;
 
-    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
+    protected boolean zeroImpedance;
+
+    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, boolean dc, double lowImpedanceThreshold) {
         super(network);
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
         this.piModel.setBranch(this);
+        zeroImpedance = isZeroImpedanceBranch(piModel, dc, lowImpedanceThreshold);
     }
 
     protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {
@@ -244,12 +247,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public boolean isZeroImpedanceBranch(boolean dc, double lowImpedanceThreshold) {
-        if (dc) {
-            return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
-        } else {
-            return piModel.getZ() < lowImpedanceThreshold;
-        }
+    public boolean isZeroImpedance() {
+        return this.zeroImpedance;
     }
 
     @Override
@@ -290,6 +289,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     public void setMinZ(boolean dc, double lowImpedanceThreshold) {
         if (piModel.setMinZ(lowImpedanceThreshold, dc)) {
             LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), lowImpedanceThreshold);
+        }
+        this.zeroImpedance = false;
+    }
+
+    public static boolean isZeroImpedanceBranch(PiModel piModel, boolean dc, double lowImpedanceThreshold) {
+        if (dc) {
+            return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
+        } else {
+            return piModel.getZ() < lowImpedanceThreshold;
         }
     }
 }
