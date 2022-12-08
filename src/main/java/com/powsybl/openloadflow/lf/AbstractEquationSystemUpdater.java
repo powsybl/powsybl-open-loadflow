@@ -35,7 +35,7 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
     protected abstract void updateNonImpedantBranchEquations(LfBranch branch, boolean enable);
 
     protected void updateElementEquations(LfElement element, boolean enable) {
-        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedanceBranchWithEquation()) {
+        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedance() && ((LfBranch) element).isSpanningTreeEdge()) {
             updateNonImpedantBranchEquations((LfBranch) element, enable);
         } else {
             // update all equations related to the element

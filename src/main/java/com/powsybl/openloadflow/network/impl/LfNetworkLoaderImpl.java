@@ -322,7 +322,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
             report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
         } else {
-            if (lfBranch.isZeroImpedanceBranch()) {
+            if (lfBranch.isZeroImpedance()) {
                 LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
                 report.nonImpedantBranches++;
             }

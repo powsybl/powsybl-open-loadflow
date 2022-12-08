@@ -518,7 +518,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
      * @return the zero-impedance subgraph
      */
     public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph() {
-        return createSubGraph(branch -> branch.isZeroImpedanceBranch()
+        return createSubGraph(branch -> branch.isZeroImpedance()
                 && branch.getBus1() != null && branch.getBus2() != null);
     }
 
