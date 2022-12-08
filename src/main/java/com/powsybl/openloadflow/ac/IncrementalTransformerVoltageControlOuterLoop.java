@@ -106,11 +106,11 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             double deltaR1 = diffV / sensitivity;
             controllerBranch.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                 updateAllowedDirection(controllerContext, direction);
-                LOGGER.info("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
+                LOGGER.debug("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
                 status.setValue(OuterLoopStatus.UNSTABLE);
             });
         } else {
-            LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controllerBranch.getId(), targetDeadband, Math.abs(diffV));
+            LOGGER.trace("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controllerBranch.getId(), targetDeadband, Math.abs(diffV));
         }
     }
 
@@ -135,10 +135,10 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                         remainingDiffV -= (controllerBranch.getPiModel().getR1() - previousR1) * sensitivity;
                         hasChanged = true;
                         status.setValue(OuterLoopStatus.UNSTABLE);
-                        LOGGER.info("[Shared control] round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
+                        LOGGER.debug("[Shared control] round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
                     }
                 } else {
-                    LOGGER.info("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controllerBranch.getId(), targetDeadband, Math.abs(diffV));
+                    LOGGER.trace("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controllerBranch.getId(), targetDeadband, Math.abs(diffV));
                 }
             }
         }

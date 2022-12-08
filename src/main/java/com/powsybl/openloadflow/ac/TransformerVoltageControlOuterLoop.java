@@ -11,11 +11,10 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.TransformerVoltageControl;
+import org.apache.commons.lang3.mutable.MutableObject;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -67,7 +66,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
+        final MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         var contextData = (ContextData) context.getData();
 
@@ -87,21 +86,20 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                             contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
                         }
                     });
-                    status = OuterLoopStatus.UNSTABLE;
+                    status.setValue(OuterLoopStatus.UNSTABLE);
                 }
             }
             for (LfBranch branch : getControllerBranches(context.getNetwork())) {
-                Optional<TransformerVoltageControl> voltageControl = branch.getVoltageControl();
-                if (voltageControl.isPresent()) {
-                    double targetV = voltageControl.get().getTargetValue();
-                    double v = voltageControl.get().getControlled().getV();
+                branch.getVoltageControl().ifPresent(voltageControl -> {
+                    double targetV = voltageControl.getTargetValue();
+                    double v = voltageControl.getControlled().getV();
                     double diffV = targetV - v;
                     Double targetDeadband = branch.getTransformerVoltageControlTargetDeadband().orElse(null);
                     if (checkTargetDeadband(targetDeadband, diffV)) {
                         branch.setVoltageControlEnabled(true);
-                        status = OuterLoopStatus.UNSTABLE;
+                        status.setValue(OuterLoopStatus.UNSTABLE);
                     }
-                }
+                });
             }
             context.getNetwork().fixTransformerVoltageControls();
         }
@@ -109,14 +107,14 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         // At second outer loop iteration, the transformers are rounded. The generator voltage controls that were
         // disabled previously are enabled.
         if (context.getIteration() == 1) {
-            status = roundVoltageRatios(context);
+            status.setValue(roundVoltageRatios(context));
             for (LfBus controllerBus : contextData.getBusesWithVoltageControlDisabled()) {
                 controllerBus.setGenerationTargetQ(0);
                 controllerBus.setVoltageControlEnabled(true);
-                status = OuterLoopStatus.UNSTABLE;
+                status.setValue(OuterLoopStatus.UNSTABLE);
             }
         }
 
-        return status;
+        return status.getValue();
     }
 }
