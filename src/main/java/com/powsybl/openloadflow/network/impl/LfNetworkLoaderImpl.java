@@ -334,6 +334,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!shuntCompensators.isEmpty()) {
             lfBus.setShuntCompensators(shuntCompensators, parameters.isShuntVoltageControl());
         }
+
         return lfBus;
     }
 

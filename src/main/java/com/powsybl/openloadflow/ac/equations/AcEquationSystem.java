@@ -136,25 +136,17 @@ public final class AcEquationSystem {
                 .setActive(false);
     }
 
+    private static void createShuntEquation(LfShunt shunt, LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveB) {
+        ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), deriveB);
+        equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
+        ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
+        equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
+    }
+
     private static void createShuntEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        bus.getShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), false);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
-            ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
-        });
-        bus.getControllerShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), shunt.hasVoltageControlCapability());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
-            ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
-        });
-        bus.getSvcShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), false);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
-            ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
-        });
+        bus.getShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
+        bus.getControllerShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, shunt.hasVoltageControlCapability()));
+        bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
     }
 
     private static void createRemoteVoltageControlEquations(VoltageControl voltageControl,
