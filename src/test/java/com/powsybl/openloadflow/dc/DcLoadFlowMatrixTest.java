@@ -21,7 +21,6 @@ import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
@@ -60,7 +59,7 @@ class DcLoadFlowMatrixTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, false);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, false);
 
         for (LfBus b : mainNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), DcEquationType.BUS_TARGET_P);
@@ -110,7 +109,7 @@ class DcLoadFlowMatrixTest {
         lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         mainNetwork = lfNetworks.get(0);
 
-        equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, false);
+        equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, false);
 
         try (var j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
             try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {

@@ -27,8 +27,8 @@ public class LfSwitch extends AbstractLfBranch {
 
     private final Ref<Switch> switchRef;
 
-    public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch) {
-        super(network, bus1, bus2, new SimplePiModel());
+    public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch, boolean dc, double lowImpedanceThreshold) {
+        super(network, bus1, bus2, new SimplePiModel(), dc, lowImpedanceThreshold);
         this.switchRef = new Ref<>(aSwitch);
     }
 
