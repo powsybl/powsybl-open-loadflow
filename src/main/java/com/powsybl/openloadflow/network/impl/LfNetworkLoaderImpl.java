@@ -663,12 +663,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             vc.addController(controllerBranch);
             controllerBranch.setVoltageControl(vc);
-            controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+            if (deadbandValue > 0) {
+                controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+            }
         }, () -> {
                 TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue);
                 voltageControl.addController(controllerBranch);
                 controllerBranch.setVoltageControl(voltageControl);
-                controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+                if (deadbandValue > 0) {
+                    controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+                }
                 controlledBus.setTransformerVoltageControl(voltageControl);
             });
     }
