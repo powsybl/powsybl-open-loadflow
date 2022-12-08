@@ -43,7 +43,7 @@ public class PropagatedContingency {
 
     private final Set<String> originalPowerShiftIds;
 
-    private final Set<String> busIdsToLose; // for busbar section
+    private final Set<String> busIdsToLose; // for busbar section only
 
     public Contingency getContingency() {
         return contingency;
@@ -212,7 +212,7 @@ public class PropagatedContingency {
                     BusbarSection busbarSection = (BusbarSection) connectable;
                     Bus bus = breakers ? busbarSection.getTerminal().getBusBreakerView().getBus() : busbarSection.getTerminal().getBusView().getBus();
                     if (bus != null) {
-                        busIdsToLose.add(bus.getId()); // FIXME: maybe we should always be at bus/breaker level for bbs.
+                        busIdsToLose.add(bus.getId());
                     }
                     break;
 
@@ -304,6 +304,14 @@ public class PropagatedContingency {
         return identifiable;
     }
 
+    public void postProcessing(LfNetwork network) {
+        if (!busIdsToLose.isEmpty()) {
+            busIdsToLose.stream().map(network::getBusById).forEach(bus -> {
+                branchIdsToOpen.addAll(bus.getBranches().stream().map(LfBranch::getId).collect(Collectors.toSet()));
+            });
+        }
+    }
+
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
@@ -327,8 +335,14 @@ public class PropagatedContingency {
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
 
-        // we add buses corresponding to busbar sections.
-        busIdsToLose.stream().forEach(busId -> buses.add(network.getBusById(busId)));
+        // we add buses corresponding to busbar sections
+        // we have to check all the branches that are connected to the bus to disable
+        // the non impedant ones and the branch connected at one side.
+        busIdsToLose.stream().forEach(busId -> {
+            LfBus bus = network.getBusById(busId);
+            buses.add(bus);
+            bus.getBranches().stream().forEach(branch -> branches.add(branch)); // FIXME.
+        });
 
         Map<LfShunt, AdmittanceShift> shunts = new HashMap<>(1);
         for (var e : shuntIdsToShift.entrySet()) {

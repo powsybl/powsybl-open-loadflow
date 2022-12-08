@@ -198,9 +198,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             }
 
             if (lfParameters.isDc()) {
-                dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+                dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen, !allBusIdToLose.isEmpty());
             } else {
-                acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+                acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen, !allBusIdToLose.isEmpty());
             }
         }, computationManager.getExecutor());
     }

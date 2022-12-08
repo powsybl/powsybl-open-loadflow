@@ -87,7 +87,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // try for find all switches to be operated as actions.
         Set<Switch> allSwitchesToClose = new HashSet<>();
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
-        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty() && allBusIdToLose.isEmpty());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
 
         // create networks including all necessary switches
