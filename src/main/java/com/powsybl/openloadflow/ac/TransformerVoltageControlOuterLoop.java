@@ -11,9 +11,11 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.TransformerVoltageControl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -89,8 +91,17 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                 }
             }
             for (LfBranch branch : getControllerBranches(context.getNetwork())) {
-                branch.setVoltageControlEnabled(true);
-                status = OuterLoopStatus.UNSTABLE;
+                Optional<TransformerVoltageControl> voltageControl = branch.getVoltageControl();
+                if (voltageControl.isPresent()) {
+                    double targetV = voltageControl.get().getTargetValue();
+                    double v = voltageControl.get().getControlled().getV();
+                    double diffV = targetV - v;
+                    Double targetDeadband = branch.getTransformerVoltageControlTargetDeadband().orElse(null);
+                    if (targetDeadband != null && Math.abs(diffV) > targetDeadband / 2) {
+                        branch.setVoltageControlEnabled(true);
+                        status = OuterLoopStatus.UNSTABLE;
+                    }
+                }
             }
             context.getNetwork().fixTransformerVoltageControls();
         }
