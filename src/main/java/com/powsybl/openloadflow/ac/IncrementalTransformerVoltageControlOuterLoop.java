@@ -99,7 +99,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         // only one transformer controls a bus
         var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
         Double targetDeadband = controllerBranch.getTransformerVoltageControlTargetDeadband().orElse(null);
-        if (targetDeadband != null && Math.abs(diffV) > targetDeadband / 2) {
+        if (checkTargetDeadband(targetDeadband, diffV)) {
             double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
                     .calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
             double previousR1 = controllerBranch.getPiModel().getR1();
@@ -124,7 +124,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             for (LfBranch controllerBranch : controllerBranches) {
                 var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
                 Double targetDeadband = controllerBranch.getTransformerVoltageControlTargetDeadband().orElse(null);
-                if (targetDeadband != null && Math.abs(remainingDiffV) > targetDeadband / 2) {
+                if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
                     double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
                             .calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
                     double previousR1 = controllerBranch.getPiModel().getR1();
