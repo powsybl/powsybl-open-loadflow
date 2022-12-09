@@ -267,16 +267,14 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
                 .findFirst().orElse(null);
         if (generator != null) {
-            Optional<LfStaticVarCompensatorImpl.StandByAutomaton> automaton = ((LfStaticVarCompensatorImpl) generator).getStandByAutomaton();
-            if (automaton.isPresent()) {
+            return ((LfStaticVarCompensatorImpl) generator).getStandByAutomaton().map(automaton -> {
+                generator.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE); // FIXME
                 if (direction == VoltageLimitDirection.MIN) {
-                    generator.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE); // FIXME
-                    return automaton.get().getLowTargetV();
+                    return automaton.getLowTargetV();
                 } else {
-                    generator.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE); // FIXME
-                    return automaton.get().getHighTargetV();
+                    return automaton.getHighTargetV();
                 }
-            }
+            }).orElseThrow();
         }
         return Double.NaN;
     }
