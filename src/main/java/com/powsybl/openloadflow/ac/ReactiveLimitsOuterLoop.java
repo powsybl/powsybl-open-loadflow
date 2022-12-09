@@ -151,7 +151,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private boolean switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
+    private static boolean switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
         int pqPvSwitchCount = 0;
 
         for (PqToPvBus pqToPvBus : pqToPvBuses) {
@@ -164,11 +164,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 controllerBus.setVoltageControlEnabled(true);
                 controllerBus.setGenerationTargetQ(0);
                 pqPvSwitchCount++;
-                if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MAX) {
-                    controllerBus.getVoltageControl().ifPresent(vc -> vc.setTargetValue(getNewTargetV(controllerBus, VoltageLimitDirection.MAX)));
-                }
-                if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MIN) {
-                    controllerBus.getVoltageControl().ifPresent(vc -> vc.setTargetValue(getNewTargetV(controllerBus, VoltageLimitDirection.MIN)));
+                if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MAX
+                        || pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MIN) {
+                    controllerBus.getVoltageControl().ifPresent(vc -> vc.setTargetValue(getSvcTargetV(controllerBus, pqToPvBus.voltageLimitDirection)));
                 }
 
                 if (LOGGER.isTraceEnabled()) {
@@ -194,7 +192,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
      *  - if Q equals to Qmax
      *  - if Q equals to Qmin
      */
-    private void checkPvBus(LfBus controllerBus, List<PvToPqBus> pvToPqBuses, MutableInt remainingPvBusCount) {
+    private static void checkPvBus(LfBus controllerBus, List<PvToPqBus> pvToPqBuses, MutableInt remainingPvBusCount) {
         double minQ = controllerBus.getMinQ();
         double maxQ = controllerBus.getMaxQ();
         double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
@@ -212,7 +210,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
      *  - if Q is equal to Qmin and V is less than targetV: it means that the PQ bus can be unlocked in order to increase the reactive power and reach its targetV.
      *  - if Q is equal to Qmax and V is greater than targetV: it means that the PQ bus can be unlocked in order to decrease the reactive power and reach its targetV.
      */
-    private void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses) {
+    private static void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses) {
         double minQ = controllerCapableBus.getMinQ();
         double maxQ = controllerCapableBus.getMaxQ();
         double q = controllerCapableBus.getGenerationTargetQ();
@@ -226,11 +224,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private double getBusTargetV(LfBus bus) {
+    private static double getBusTargetV(LfBus bus) {
         return bus.getVoltageControl().map(VoltageControl::getTargetValue).orElse(Double.NaN);
     }
 
-    private double getBusV(LfBus bus) {
+    private static double getBusV(LfBus bus) {
         return bus.getVoltageControl().map(vc -> vc.getControlledBus().getV()).orElse(Double.NaN);
     }
 
@@ -239,40 +237,41 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
      *  - if the voltage of the controlled bus is higher than the high voltage threshold.
      *  - if the voltage of the controlled bus is lower that the low voltage threshold.
      */
-    private void checkPqBusForVoltageLimits(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, double highVoltageLimit, double lowVoltageLimit) {
-        if (getBusV(controllerCapableBus) > highVoltageLimit) {
+    private static void checkPqBusForVoltageLimits(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, double highVoltageLimit, double lowVoltageLimit) {
+        double busV = getBusV(controllerCapableBus);
+        if (busV > highVoltageLimit) {
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, VoltageLimitDirection.MAX));
         }
-        if (getBusV(controllerCapableBus) < lowVoltageLimit) {
+        if (busV < lowVoltageLimit) {
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, VoltageLimitDirection.MIN));
         }
     }
 
-    private Optional<Pair<Double, Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {
-        return controllerCapableBus.getGenerators().stream()
+    private static Optional<LfStaticVarCompensatorImpl> findMonitoringSvc(LfBus bus) {
+        return bus.getGenerators().stream()
                 .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
                 .findFirst()
-                .map(LfStaticVarCompensatorImpl.class::cast)
+                .map(LfStaticVarCompensatorImpl.class::cast);
+    }
+
+    private static Optional<Pair<Double, Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {
+        return findMonitoringSvc(controllerCapableBus)
                 .flatMap(generator -> generator.getStandByAutomaton()
                         .map(automaton -> Pair.of(automaton.getHighVoltageThreshold(), automaton.getLowVoltageThreshold())));
     }
 
-    private double getNewTargetV(LfBus bus, VoltageLimitDirection direction) {
-        return bus.getGenerators().stream()
-                .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
-                .findFirst()
-                .map(LfStaticVarCompensatorImpl.class::cast)
-                .flatMap(generator -> generator.getStandByAutomaton()
-                    .map(automaton -> {
-                        generator.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE); // FIXME
-                        if (direction == VoltageLimitDirection.MIN) {
-                            return automaton.getLowTargetV();
-                        } else {
-                            return automaton.getHighTargetV();
-                        }
-                    })
-                )
-                .orElse(Double.NaN);
+    private static double getSvcTargetV(LfBus bus, VoltageLimitDirection direction) {
+        return findMonitoringSvc(bus).flatMap(svc -> svc.getStandByAutomaton()
+            .map(automaton -> {
+                svc.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE); // FIXME
+                if (direction == VoltageLimitDirection.MIN) {
+                    return automaton.getLowTargetV();
+                } else {
+                    return automaton.getHighTargetV();
+                }
+            })
+        )
+        .orElse(Double.NaN);
     }
 
     @Override
@@ -287,7 +286,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
                 if (!bus.hasGeneratorsWithSlope()) {
-                    getControlledBusVoltageLimits(bus).ifPresentOrElse(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits.getLeft(), voltageLimits.getRight()),
+                    getControlledBusVoltageLimits(bus).ifPresentOrElse(
+                        voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits.getLeft(), voltageLimits.getRight()),
                         () -> checkPqBus(bus, pqToPvBuses));
                 } else {
                     // we don't support switching PQ to PV for bus with one controller with slope.
