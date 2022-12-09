@@ -249,17 +249,12 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     private Optional<Pair<Double, Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {
-        Pair<Double, Double> limits = null;
-        LfGenerator generator = controllerCapableBus.getGenerators().stream()
+        return controllerCapableBus.getGenerators().stream()
                 .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
-                .findFirst().orElse(null);
-        if (generator != null) {
-            Optional<LfStaticVarCompensatorImpl.StandByAutomaton> automaton = ((LfStaticVarCompensatorImpl) generator).getStandByAutomaton();
-            if (automaton.isPresent()) {
-                limits = Pair.of(automaton.get().getHighVoltageThreshold(), automaton.get().getLowVoltageThreshold());
-            }
-        }
-        return Optional.ofNullable(limits);
+                .findFirst()
+                .map(LfStaticVarCompensatorImpl.class::cast)
+                .flatMap(generator -> generator.getStandByAutomaton()
+                        .map(automaton -> Pair.of(automaton.getHighVoltageThreshold(), automaton.getLowVoltageThreshold())));
     }
 
     private double getNewTargetV(LfBus bus, VoltageLimitDirection direction) {
@@ -292,12 +287,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
                 if (!bus.hasGeneratorsWithSlope()) {
-                    Optional<Pair<Double, Double>> voltageLimits = getControlledBusVoltageLimits(bus);
-                    if (voltageLimits.isEmpty()) {
-                        checkPqBus(bus, pqToPvBuses);
-                    } else {
-                        checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits.get().getLeft(), voltageLimits.get().getRight());
-                    }
+                    getControlledBusVoltageLimits(bus).ifPresentOrElse(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits.getLeft(), voltageLimits.getRight()),
+                        () -> checkPqBus(bus, pqToPvBuses));
                 } else {
                     // we don't support switching PQ to PV for bus with one controller with slope.
                     LOGGER.warn("Controller bus '{}' wants to control back voltage with slope: not supported", bus.getId());
