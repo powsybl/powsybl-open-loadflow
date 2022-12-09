@@ -263,20 +263,21 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     private double getNewTargetV(LfBus bus, VoltageLimitDirection direction) {
-        LfGenerator generator = bus.getGenerators().stream()
+        return bus.getGenerators().stream()
                 .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
-                .findFirst().orElse(null);
-        if (generator != null) {
-            return ((LfStaticVarCompensatorImpl) generator).getStandByAutomaton().map(automaton -> {
-                generator.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE); // FIXME
-                if (direction == VoltageLimitDirection.MIN) {
-                    return automaton.getLowTargetV();
-                } else {
-                    return automaton.getHighTargetV();
-                }
-            }).orElseThrow();
-        }
-        return Double.NaN;
+                .findFirst()
+                .map(LfStaticVarCompensatorImpl.class::cast)
+                .flatMap(generator -> generator.getStandByAutomaton()
+                    .map(automaton -> {
+                        generator.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE); // FIXME
+                        if (direction == VoltageLimitDirection.MIN) {
+                            return automaton.getLowTargetV();
+                        } else {
+                            return automaton.getHighTargetV();
+                        }
+                    })
+                )
+                .orElse(Double.NaN);
     }
 
     @Override
@@ -290,8 +291,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             if (bus.isVoltageControlEnabled() && !bus.isDisabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
             } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
-                Optional<Pair<Double, Double>> voltageLimits = getControlledBusVoltageLimits(bus);
                 if (!bus.hasGeneratorsWithSlope()) {
+                    Optional<Pair<Double, Double>> voltageLimits = getControlledBusVoltageLimits(bus);
                     if (voltageLimits.isEmpty()) {
                         checkPqBus(bus, pqToPvBuses);
                     } else {
