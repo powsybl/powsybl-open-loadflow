@@ -16,8 +16,8 @@ import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
+import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -237,12 +237,12 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
      *  - if the voltage of the controlled bus is higher than the high voltage threshold.
      *  - if the voltage of the controlled bus is lower that the low voltage threshold.
      */
-    private static void checkPqBusForVoltageLimits(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, double highVoltageLimit, double lowVoltageLimit) {
+    private static void checkPqBusForVoltageLimits(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, Range<Double> voltageLimit) {
         double busV = getBusV(controllerCapableBus);
-        if (busV > highVoltageLimit) {
+        if (busV > voltageLimit.getMaximum()) {
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, VoltageLimitDirection.MAX));
         }
-        if (busV < lowVoltageLimit) {
+        if (busV < voltageLimit.getMinimum()) {
             pqToPvBuses.add(new PqToPvBus(controllerCapableBus, VoltageLimitDirection.MIN));
         }
     }
@@ -254,10 +254,10 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 .map(LfStaticVarCompensatorImpl.class::cast);
     }
 
-    private static Optional<Pair<Double, Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {
+    private static Optional<Range<Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {
         return findMonitoringSvc(controllerCapableBus)
                 .flatMap(generator -> generator.getStandByAutomaton()
-                        .map(automaton -> Pair.of(automaton.getHighVoltageThreshold(), automaton.getLowVoltageThreshold())));
+                        .map(automaton -> Range.between(automaton.getLowVoltageThreshold(), automaton.getHighVoltageThreshold())));
     }
 
     private static double getSvcTargetV(LfBus bus, VoltageLimitDirection direction) {
@@ -287,7 +287,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
                 if (!bus.hasGeneratorsWithSlope()) {
                     getControlledBusVoltageLimits(bus).ifPresentOrElse(
-                        voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits.getLeft(), voltageLimits.getRight()),
+                        voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits),
                         () -> checkPqBus(bus, pqToPvBuses));
                 } else {
                     // we don't support switching PQ to PV for bus with one controller with slope.
