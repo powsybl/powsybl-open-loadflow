@@ -79,13 +79,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // set controller -> controlled link
         for (LfBus controllerBus : lfBuses) {
 
-            List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream()
-                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
-                    .collect(Collectors.toList());
-            List<LfGenerator> voltageMonitoringGenerators = controllerBus.getGenerators().stream()
-                    .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
-                    .collect(Collectors.toList());
-            List<LfGenerator> finalVoltageControlGenerators = voltageControlGenerators;
+            List<LfGenerator> voltageControlGenerators = new ArrayList<>(1);
+            List<LfGenerator> voltageMonitoringGenerators = new ArrayList<>(1);
+            for (var generator : controllerBus.getGenerators()) {
+                if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
+                    voltageControlGenerators.add(generator);
+                } else if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE) {
+                    voltageMonitoringGenerators.add(generator);
+                }
+            }
             if (voltageMonitoringGenerators.size() > 1) {
                 String generatorIds = voltageMonitoringGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
                 LOGGER.warn("We have several voltage monitors ({}) connected to the same bus: not supported. All switched to voltage control", generatorIds);
@@ -95,17 +97,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 String generatorIds = voltageMonitoringGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
                 LOGGER.warn("We have both voltage controllers and voltage monitors ({}) connected to the same bus: voltage monitoring discarded", generatorIds);
                 voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
-                voltageMonitoringGenerators = Collections.emptyList();
+                voltageMonitoringGenerators.clear();
             }
-            finalVoltageControlGenerators.addAll(voltageMonitoringGenerators);
+            voltageControlGenerators.addAll(voltageMonitoringGenerators);
 
-            if (!finalVoltageControlGenerators.isEmpty()) {
+            if (!voltageControlGenerators.isEmpty()) {
 
-                LfGenerator lfGenerator0 = finalVoltageControlGenerators.get(0);
+                LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
                 LfBus controlledBus = lfGenerator0.getControlledBus();
                 double controllerTargetV = lfGenerator0.getTargetV();
 
-                finalVoltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
+                voltageControlGenerators.stream().skip(1).forEach(lfGenerator -> {
                     LfBus generatorControlledBus = lfGenerator.getControlledBus();
 
                     // check that remote control bus is the same for the generators of current controller bus which have voltage control on
