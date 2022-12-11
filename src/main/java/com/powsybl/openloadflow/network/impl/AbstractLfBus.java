@@ -244,7 +244,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 hasGeneratorsWithSlope = true;
             }
             if (lfSvc.getB0() != 0) {
-                svcShunt = new LfShuntImpl(lfSvc.getB0(), network, this);
+                svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
             }
         }
     }
