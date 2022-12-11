@@ -41,6 +41,8 @@ public class NewtonRaphson {
 
     private final EquationVector<AcVariableType, AcEquationType> equationVector;
 
+    private final NewtonRaphsonStepSizer stepSizer = new NoOpNewtonRaphsonStepSizer();
+
     public NewtonRaphson(LfNetwork network, NewtonRaphsonParameters parameters,
                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
                          JacobianMatrix<AcVariableType, AcEquationType> j,
@@ -76,6 +78,8 @@ public class NewtonRaphson {
             }
             // f(x) now contains dx
 
+            stepSizer.saveDx(equationVector.getArray());
+
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minus(equationVector.getArray());
 
@@ -95,7 +99,10 @@ public class NewtonRaphson {
             // test stopping criteria and log norm(fx)
             NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray());
 
-            LOGGER.debug("|f(x)|={}", testResult.getNorm());
+            stepSizer.resizeStateVector(equationSystem.getStateVector(), equationVector, targetVector,
+                                        parameters.getStoppingCriteria(), testResult);
+
+            LOGGER.debug("|f(x)|={}, stepSize={}", testResult.getNorm(), stepSizer.getStepSize());
 
             if (testResult.isStop()) {
                 return NewtonRaphsonStatus.CONVERGED;
