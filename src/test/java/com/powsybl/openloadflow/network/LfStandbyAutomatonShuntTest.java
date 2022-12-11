@@ -36,6 +36,8 @@ class LfStandbyAutomatonShuntTest {
         assertEquals(0, shunt.getG(), 0);
         assertEquals(0, shunt.getB(), 1.444);
         assertTrue(shunt.getVoltageControl().isEmpty());
+        assertFalse(shunt.isVoltageControlEnabled());
+        assertFalse(shunt.hasVoltageControlCapability());
         assertThrows(UnsupportedOperationException.class, () -> shunt.setG(0));
         assertThrows(UnsupportedOperationException.class, () -> shunt.setB(0));
         assertThrows(UnsupportedOperationException.class, () -> shunt.setVoltageControl(null));
