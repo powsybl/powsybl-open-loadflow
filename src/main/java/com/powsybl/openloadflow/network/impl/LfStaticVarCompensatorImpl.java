@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.extensions.StandbyAutomaton;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfStaticVarCompensator;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -22,7 +23,7 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
+public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implements LfStaticVarCompensator {
 
     private final Ref<StaticVarCompensator> svcRef;
 
@@ -37,40 +38,6 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
     private StandByAutomaton standByAutomaton;
 
     private double b0 = 0.0;
-
-    /**
-     * if the static var compensator has an automaton in stand by, this object must be field.
-     */
-    public static class StandByAutomaton {
-
-        private final double highVoltageThreshold;
-        private final double lowVoltageThreshold;
-        private final double highTargetV;
-        private final double lowTargetV;
-
-        StandByAutomaton(double highVoltageThreshold, double lowVoltageThreshold, double highTargetV, double lowTargetV) {
-            this.highVoltageThreshold = highVoltageThreshold;
-            this.lowVoltageThreshold = lowVoltageThreshold;
-            this.highTargetV = highTargetV;
-            this.lowTargetV = lowTargetV;
-        }
-
-        public double getLowTargetV() {
-            return lowTargetV;
-        }
-
-        public double getHighTargetV() {
-            return highTargetV;
-        }
-
-        public double getLowVoltageThreshold() {
-            return lowVoltageThreshold;
-        }
-
-        public double getHighVoltageThreshold() {
-            return highVoltageThreshold;
-        }
-    }
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                        boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
@@ -198,10 +165,12 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator {
         this.slope = slope;
     }
 
+    @Override
     public double getB0() {
         return b0;
     }
 
+    @Override
     public Optional<StandByAutomaton> getStandByAutomaton() {
         return Optional.ofNullable(standByAutomaton);
     }

@@ -12,8 +12,8 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
+import com.powsybl.openloadflow.network.LfStaticVarCompensator;
 import com.powsybl.openloadflow.network.VoltageControl;
-import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
@@ -247,11 +247,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private static Optional<LfStaticVarCompensatorImpl> findMonitoringSvc(LfBus bus) {
+    private static Optional<LfStaticVarCompensator> findMonitoringSvc(LfBus bus) {
         return bus.getGenerators().stream()
                 .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)
                 .findFirst()
-                .map(LfStaticVarCompensatorImpl.class::cast);
+                .map(LfStaticVarCompensator.class::cast);
     }
 
     private static Optional<Range<Double>> getControlledBusVoltageLimits(LfBus controllerCapableBus) {

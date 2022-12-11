@@ -1,0 +1,47 @@
+package com.powsybl.openloadflow.network;
+
+import java.util.Optional;
+
+/**
+ * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ */
+public interface LfStaticVarCompensator extends LfGenerator {
+
+    /**
+     * if the static var compensator has an automaton in stand by, this object must be field.
+     */
+    class StandByAutomaton {
+
+        private final double highVoltageThreshold;
+        private final double lowVoltageThreshold;
+        private final double highTargetV;
+        private final double lowTargetV;
+
+        public StandByAutomaton(double highVoltageThreshold, double lowVoltageThreshold, double highTargetV, double lowTargetV) {
+            this.highVoltageThreshold = highVoltageThreshold;
+            this.lowVoltageThreshold = lowVoltageThreshold;
+            this.highTargetV = highTargetV;
+            this.lowTargetV = lowTargetV;
+        }
+
+        public double getLowTargetV() {
+            return lowTargetV;
+        }
+
+        public double getHighTargetV() {
+            return highTargetV;
+        }
+
+        public double getLowVoltageThreshold() {
+            return lowVoltageThreshold;
+        }
+
+        public double getHighVoltageThreshold() {
+            return highVoltageThreshold;
+        }
+    }
+
+    double getB0();
+
+    Optional<StandByAutomaton> getStandByAutomaton();
+}
