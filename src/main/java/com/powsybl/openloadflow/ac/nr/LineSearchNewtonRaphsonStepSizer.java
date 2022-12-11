@@ -60,6 +60,7 @@ public class LineSearchNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer 
                 stepSize = 1 / Math.pow(STEP_FOLD, iteration);
                 Vectors.plus(newX, lastDx, 1 - stepSize);
                 stateVector.set(newX);
+                // equation vector has been updated
 
                 // recompute mismatch with new x
                 equationVector.minus(targetVector);
