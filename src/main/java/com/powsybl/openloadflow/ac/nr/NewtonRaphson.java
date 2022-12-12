@@ -76,7 +76,7 @@ public class NewtonRaphson {
             }
             // f(x) now contains dx
 
-            svRescaler.saveDx(equationVector.getArray());
+            svRescaler.rescale(equationVector.getArray());
 
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minus(equationVector.getArray());

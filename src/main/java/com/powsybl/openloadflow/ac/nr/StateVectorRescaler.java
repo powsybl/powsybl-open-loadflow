@@ -13,12 +13,20 @@ import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.TargetVector;
 
 /**
+ * State vector rescaler.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface StateVectorRescaler {
 
-    void saveDx(double[] dx);
+    /**
+     * Rescale state vector variation before equation mismatches calculation.
+     */
+    void rescale(double[] dx);
 
+    /**
+     * Rescale state vector after equation mismatches and norm have been calculated.
+     */
     NewtonRaphsonStoppingCriteria.TestResult rescaleAfter(StateVector stateVector,
                                                           EquationVector<AcVariableType, AcEquationType> equationVector,
                                                           TargetVector<AcVariableType, AcEquationType> targetVector,

@@ -18,7 +18,7 @@ import com.powsybl.openloadflow.equations.TargetVector;
 public class NoOpStateVectorRescaler implements StateVectorRescaler {
 
     @Override
-    public void saveDx(double[] dx) {
+    public void rescale(double[] dx) {
         // nothing to do
     }
 

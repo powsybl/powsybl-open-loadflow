@@ -36,7 +36,8 @@ public class LineSearchStateVectorRescaler implements StateVectorRescaler {
     }
 
     @Override
-    public void saveDx(double[] dx) {
+    public void rescale(double[] dx) {
+        // just save dx vector
         if (lastDx == null || lastDx.length != dx.length) {
             lastDx = dx.clone();
         } else {
