@@ -19,11 +19,11 @@ public interface NewtonRaphsonStepSizer {
 
     void saveDx(double[] dx);
 
-    void resizeStateVector(StateVector stateVector,
-                           EquationVector<AcVariableType, AcEquationType> equationVector,
-                           TargetVector<AcVariableType, AcEquationType> targetVector,
-                           NewtonRaphsonStoppingCriteria stoppingCriteria,
-                           NewtonRaphsonStoppingCriteria.TestResult testResult);
+    NewtonRaphsonStoppingCriteria.TestResult resizeStateVector(StateVector stateVector,
+                                                               EquationVector<AcVariableType, AcEquationType> equationVector,
+                                                               TargetVector<AcVariableType, AcEquationType> targetVector,
+                                                               NewtonRaphsonStoppingCriteria stoppingCriteria,
+                                                               NewtonRaphsonStoppingCriteria.TestResult testResult);
 
     double getStepSize();
 }

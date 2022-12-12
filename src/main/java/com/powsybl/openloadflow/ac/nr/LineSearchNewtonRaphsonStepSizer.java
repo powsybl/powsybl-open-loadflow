@@ -13,6 +13,8 @@ import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.equations.Vectors;
 
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -27,6 +29,10 @@ public class LineSearchNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer 
 
     private double stepSize = Double.NaN;
 
+    public LineSearchNewtonRaphsonStepSizer(NewtonRaphsonStoppingCriteria.TestResult lastTestResult) {
+        this.lastTestResult = Objects.requireNonNull(lastTestResult);
+    }
+
     @Override
     public void saveDx(double[] dx) {
         if (lastDx == null || lastDx.length != dx.length) {
@@ -37,11 +43,11 @@ public class LineSearchNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer 
     }
 
     @Override
-    public void resizeStateVector(StateVector stateVector,
-                                  EquationVector<AcVariableType, AcEquationType> equationVector,
-                                  TargetVector<AcVariableType, AcEquationType> targetVector,
-                                  NewtonRaphsonStoppingCriteria stoppingCriteria,
-                                  NewtonRaphsonStoppingCriteria.TestResult testResult) {
+    public NewtonRaphsonStoppingCriteria.TestResult resizeStateVector(StateVector stateVector,
+                                                                      EquationVector<AcVariableType, AcEquationType> equationVector,
+                                                                      TargetVector<AcVariableType, AcEquationType> targetVector,
+                                                                      NewtonRaphsonStoppingCriteria stoppingCriteria,
+                                                                      NewtonRaphsonStoppingCriteria.TestResult testResult) {
         stepSize = 1;
         if (lastTestResult != null) {
             NewtonRaphsonStoppingCriteria.TestResult currentTestResult = testResult;
@@ -72,6 +78,7 @@ public class LineSearchNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer 
             }
             lastTestResult = currentTestResult;
         }
+        return lastTestResult;
     }
 
     @Override

@@ -23,12 +23,12 @@ public class NoOpNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer {
     }
 
     @Override
-    public void resizeStateVector(StateVector stateVector,
-                                  EquationVector<AcVariableType, AcEquationType> equationVector,
-                                  TargetVector<AcVariableType, AcEquationType> targetVector,
-                                  NewtonRaphsonStoppingCriteria stoppingCriteria,
-                                  NewtonRaphsonStoppingCriteria.TestResult testResult) {
-        // nothing to do
+    public NewtonRaphsonStoppingCriteria.TestResult resizeStateVector(StateVector stateVector,
+                                                                      EquationVector<AcVariableType, AcEquationType> equationVector,
+                                                                      TargetVector<AcVariableType, AcEquationType> targetVector,
+                                                                      NewtonRaphsonStoppingCriteria stoppingCriteria,
+                                                                      NewtonRaphsonStoppingCriteria.TestResult testResult) {
+        return testResult;
     }
 
     @Override
