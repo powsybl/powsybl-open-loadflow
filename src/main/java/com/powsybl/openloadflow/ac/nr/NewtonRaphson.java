@@ -213,7 +213,9 @@ public class NewtonRaphson {
 
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
-//        NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray());
+        NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray());
+        LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
+
 //        NewtonRaphsonStepSizer stepSizer = new LineSearchNewtonRaphsonStepSizer(initialTestResult);
         NewtonRaphsonStepSizer stepSizer = new NoOpNewtonRaphsonStepSizer();
 
