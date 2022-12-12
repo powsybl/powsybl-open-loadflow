@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.equations.TargetVector;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NoOpNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer {
+public class NoOpStateVectorRescaler implements StateVectorRescaler {
 
     @Override
     public void saveDx(double[] dx) {
@@ -23,11 +23,11 @@ public class NoOpNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer {
     }
 
     @Override
-    public NewtonRaphsonStoppingCriteria.TestResult resizeStateVector(StateVector stateVector,
-                                                                      EquationVector<AcVariableType, AcEquationType> equationVector,
-                                                                      TargetVector<AcVariableType, AcEquationType> targetVector,
-                                                                      NewtonRaphsonStoppingCriteria stoppingCriteria,
-                                                                      NewtonRaphsonStoppingCriteria.TestResult testResult) {
+    public NewtonRaphsonStoppingCriteria.TestResult rescaleAfter(StateVector stateVector,
+                                                                 EquationVector<AcVariableType, AcEquationType> equationVector,
+                                                                 TargetVector<AcVariableType, AcEquationType> targetVector,
+                                                                 NewtonRaphsonStoppingCriteria stoppingCriteria,
+                                                                 NewtonRaphsonStoppingCriteria.TestResult testResult) {
         return testResult;
     }
 }

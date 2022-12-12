@@ -15,13 +15,13 @@ import com.powsybl.openloadflow.equations.TargetVector;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface NewtonRaphsonStepSizer {
+public interface StateVectorRescaler {
 
     void saveDx(double[] dx);
 
-    NewtonRaphsonStoppingCriteria.TestResult resizeStateVector(StateVector stateVector,
-                                                               EquationVector<AcVariableType, AcEquationType> equationVector,
-                                                               TargetVector<AcVariableType, AcEquationType> targetVector,
-                                                               NewtonRaphsonStoppingCriteria stoppingCriteria,
-                                                               NewtonRaphsonStoppingCriteria.TestResult testResult);
+    NewtonRaphsonStoppingCriteria.TestResult rescaleAfter(StateVector stateVector,
+                                                          EquationVector<AcVariableType, AcEquationType> equationVector,
+                                                          TargetVector<AcVariableType, AcEquationType> targetVector,
+                                                          NewtonRaphsonStoppingCriteria stoppingCriteria,
+                                                          NewtonRaphsonStoppingCriteria.TestResult testResult);
 }
