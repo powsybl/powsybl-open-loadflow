@@ -100,7 +100,7 @@ public class NewtonRaphson {
             testResult = stepSizer.resizeStateVector(equationSystem.getStateVector(), equationVector, targetVector,
                                                      parameters.getStoppingCriteria(), testResult);
 
-            LOGGER.debug("|f(x)|={}, stepSize={}", testResult.getNorm(), stepSizer.getStepSize());
+            LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
             if (testResult.isStop()) {
                 return NewtonRaphsonStatus.CONVERGED;

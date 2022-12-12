@@ -24,6 +24,4 @@ public interface NewtonRaphsonStepSizer {
                                                                TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                NewtonRaphsonStoppingCriteria stoppingCriteria,
                                                                NewtonRaphsonStoppingCriteria.TestResult testResult);
-
-    double getStepSize();
 }

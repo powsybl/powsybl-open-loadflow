@@ -30,9 +30,4 @@ public class NoOpNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer {
                                                                       NewtonRaphsonStoppingCriteria.TestResult testResult) {
         return testResult;
     }
-
-    @Override
-    public double getStepSize() {
-        return 1;
-    }
 }

@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.equations.Vectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
@@ -20,14 +22,14 @@ import java.util.Objects;
  */
 public class LineSearchNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LineSearchNewtonRaphsonStepSizer.class);
+
     private static final int MAX_ITERATION = 10;
     private static final int STEP_FOLD = 4;
 
     private double[] lastDx;
 
     private NewtonRaphsonStoppingCriteria.TestResult lastTestResult;
-
-    private double stepSize = Double.NaN;
 
     public LineSearchNewtonRaphsonStepSizer(NewtonRaphsonStoppingCriteria.TestResult lastTestResult) {
         this.lastTestResult = Objects.requireNonNull(lastTestResult);
@@ -48,8 +50,8 @@ public class LineSearchNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer 
                                                                       TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                       NewtonRaphsonStoppingCriteria stoppingCriteria,
                                                                       NewtonRaphsonStoppingCriteria.TestResult testResult) {
-        stepSize = 1;
         if (lastTestResult != null) {
+            double stepSize = 1;
             NewtonRaphsonStoppingCriteria.TestResult currentTestResult = testResult;
             double[] x = null;
             int iteration = 1;
@@ -77,12 +79,8 @@ public class LineSearchNewtonRaphsonStepSizer implements NewtonRaphsonStepSizer 
                 iteration++;
             }
             lastTestResult = currentTestResult;
+            LOGGER.debug("Step size: {}", stepSize);
         }
         return lastTestResult;
-    }
-
-    @Override
-    public double getStepSize() {
-        return stepSize;
     }
 }
