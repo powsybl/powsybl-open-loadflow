@@ -6,8 +6,8 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Network;
