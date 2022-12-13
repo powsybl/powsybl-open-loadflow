@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.TargetVector;
@@ -22,7 +23,7 @@ public interface StateVectorRescaler {
     /**
      * Rescale state vector variation before equation mismatches calculation.
      */
-    void rescale(double[] dx);
+    void rescale(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem);
 
     /**
      * Rescale state vector after equation mismatches and norm have been calculated.

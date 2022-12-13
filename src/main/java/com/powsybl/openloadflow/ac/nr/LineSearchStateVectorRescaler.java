@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.ac.nr;
 
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.StateVector;
-import com.powsybl.openloadflow.equations.TargetVector;
-import com.powsybl.openloadflow.equations.Vectors;
+import com.powsybl.openloadflow.equations.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +33,7 @@ public class LineSearchStateVectorRescaler implements StateVectorRescaler {
     }
 
     @Override
-    public void rescale(double[] dx) {
+    public void rescale(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // just save dx vector
         if (lastDx == null || lastDx.length != dx.length) {
             lastDx = dx.clone();

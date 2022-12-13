@@ -12,15 +12,41 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.TargetVector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NoOpStateVectorRescaler implements StateVectorRescaler {
+public class VoltageMagnitudeStateVectorRescaler implements StateVectorRescaler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(VoltageMagnitudeStateVectorRescaler.class);
+
+    private static final double DEFAULT_MAX_DV = 0.1;
+
+    private final double maxDv;
+
+    public VoltageMagnitudeStateVectorRescaler() {
+        this(DEFAULT_MAX_DV);
+    }
+
+    public VoltageMagnitudeStateVectorRescaler(double maxDv) {
+        this.maxDv = maxDv;
+    }
 
     @Override
     public void rescale(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // nothing to do
+        int vCutCount = 0;
+        for (var variable : equationSystem.getIndex().getSortedVariablesToFind()) {
+            double value = dx[variable.getRow()];
+            if (variable.getType() == AcVariableType.BUS_V && value > maxDv) {
+                dx[variable.getRow()] = maxDv;
+                vCutCount++;
+            }
+        }
+        if (vCutCount > 0) {
+            LOGGER.debug("{} voltage magnitudes have been cut", vCutCount);
+        }
     }
 
     @Override
@@ -29,6 +55,7 @@ public class NoOpStateVectorRescaler implements StateVectorRescaler {
                                                                  TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                  NewtonRaphsonStoppingCriteria stoppingCriteria,
                                                                  NewtonRaphsonStoppingCriteria.TestResult testResult) {
+        // nothing to do
         return testResult;
     }
 }

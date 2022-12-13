@@ -76,7 +76,7 @@ public class NewtonRaphson {
             }
             // f(x) now contains dx
 
-            svRescaler.rescale(equationVector.getArray());
+            svRescaler.rescale(equationVector.getArray(), equationSystem);
 
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minus(equationVector.getArray());
@@ -216,8 +216,9 @@ public class NewtonRaphson {
         NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray());
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-//        NewtonRaphsonStepSizer svRescaler = new LineSearchNewtonRaphsonStepSizer(initialTestResult);
+//        StateVectorRescaler svRescaler = new LineSearchStateVectorRescaler(initialTestResult);
         StateVectorRescaler svRescaler = new NoOpStateVectorRescaler();
+//        StateVectorRescaler svRescaler = new VoltageMagnitudeStateVectorRescaler();
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
