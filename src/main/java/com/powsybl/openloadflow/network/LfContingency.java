@@ -124,7 +124,7 @@ public class LfContingency {
                     .distinct()
                     .filter(bus.getAggregatedLoads().getOriginalIds()::contains) // maybe not optimized.
                     .collect(Collectors.toSet());
-            loadsIdsInContingency.stream().forEach(id -> bus.getAggregatedLoads().setDisabled(id, true));
+            loadsIdsInContingency.stream().forEach(loadId -> bus.getAggregatedLoads().setDisabled(loadId, true));
         }
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {
