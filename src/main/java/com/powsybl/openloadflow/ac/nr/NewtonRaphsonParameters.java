@@ -23,6 +23,8 @@ public class NewtonRaphsonParameters {
 
     private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
 
+    private StateVectorScalingMode stateVectorRescalerType;
+
     public int getMaxIteration() {
         return maxIteration;
     }

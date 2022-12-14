@@ -17,9 +17,9 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LineSearchStateVectorRescaler implements StateVectorRescaler {
+public class LineSearchStateVectorScaling implements StateVectorScaling {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LineSearchStateVectorRescaler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LineSearchStateVectorScaling.class);
 
     private static final int MAX_ITERATION = 10;
     private static final int STEP_FOLD = 4;
@@ -28,12 +28,17 @@ public class LineSearchStateVectorRescaler implements StateVectorRescaler {
 
     private NewtonRaphsonStoppingCriteria.TestResult lastTestResult;
 
-    public LineSearchStateVectorRescaler(NewtonRaphsonStoppingCriteria.TestResult lastTestResult) {
-        this.lastTestResult = Objects.requireNonNull(lastTestResult);
+    public LineSearchStateVectorScaling(NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
+        this.lastTestResult = Objects.requireNonNull(initialTestResult);
     }
 
     @Override
-    public void rescale(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public StateVectorScalingMode getMode() {
+        return StateVectorScalingMode.LINE_SEARCH;
+    }
+
+    @Override
+    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // just save dx vector
         if (lastDx == null || lastDx.length != dx.length) {
             lastDx = dx.clone();
@@ -43,11 +48,11 @@ public class LineSearchStateVectorRescaler implements StateVectorRescaler {
     }
 
     @Override
-    public NewtonRaphsonStoppingCriteria.TestResult rescaleAfter(StateVector stateVector,
-                                                                 EquationVector<AcVariableType, AcEquationType> equationVector,
-                                                                 TargetVector<AcVariableType, AcEquationType> targetVector,
-                                                                 NewtonRaphsonStoppingCriteria stoppingCriteria,
-                                                                 NewtonRaphsonStoppingCriteria.TestResult testResult) {
+    public NewtonRaphsonStoppingCriteria.TestResult applyAfter(StateVector stateVector,
+                                                               EquationVector<AcVariableType, AcEquationType> equationVector,
+                                                               TargetVector<AcVariableType, AcEquationType> targetVector,
+                                                               NewtonRaphsonStoppingCriteria stoppingCriteria,
+                                                               NewtonRaphsonStoppingCriteria.TestResult testResult) {
         if (lastTestResult != null) {
             double stepSize = 1;
             NewtonRaphsonStoppingCriteria.TestResult currentTestResult = testResult;

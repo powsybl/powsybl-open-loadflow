@@ -19,9 +19,9 @@ import org.slf4j.LoggerFactory;
  * Limit voltage magnitude change and voltage angle change between NR iterations
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class MaxVoltageChangeStateVectorRescaler implements StateVectorRescaler {
+public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MaxVoltageChangeStateVectorRescaler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MaxVoltageChangeStateVectorScaling.class);
 
     private static final double DEFAULT_MAX_DV = 0.1;
     private static final double DEFAULT_MAX_DPHI = Math.toRadians(10);
@@ -29,17 +29,22 @@ public class MaxVoltageChangeStateVectorRescaler implements StateVectorRescaler 
     private final double maxDv;
     private final double maxDphi;
 
-    public MaxVoltageChangeStateVectorRescaler() {
+    public MaxVoltageChangeStateVectorScaling() {
         this(DEFAULT_MAX_DV, DEFAULT_MAX_DPHI);
     }
 
-    public MaxVoltageChangeStateVectorRescaler(double maxDv, double maxDphi) {
+    public MaxVoltageChangeStateVectorScaling(double maxDv, double maxDphi) {
         this.maxDv = maxDv;
         this.maxDphi = maxDphi;
     }
 
     @Override
-    public void rescale(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public StateVectorScalingMode getMode() {
+        return StateVectorScalingMode.MAX_VOLTAGE_CHANGE;
+    }
+
+    @Override
+    public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         int vCutCount = 0;
         int phiCutCount = 0;
         for (var variable : equationSystem.getIndex().getSortedVariablesToFind()) {
@@ -71,11 +76,11 @@ public class MaxVoltageChangeStateVectorRescaler implements StateVectorRescaler 
     }
 
     @Override
-    public NewtonRaphsonStoppingCriteria.TestResult rescaleAfter(StateVector stateVector,
-                                                                 EquationVector<AcVariableType, AcEquationType> equationVector,
-                                                                 TargetVector<AcVariableType, AcEquationType> targetVector,
-                                                                 NewtonRaphsonStoppingCriteria stoppingCriteria,
-                                                                 NewtonRaphsonStoppingCriteria.TestResult testResult) {
+    public NewtonRaphsonStoppingCriteria.TestResult applyAfter(StateVector stateVector,
+                                                               EquationVector<AcVariableType, AcEquationType> equationVector,
+                                                               TargetVector<AcVariableType, AcEquationType> targetVector,
+                                                               NewtonRaphsonStoppingCriteria stoppingCriteria,
+                                                               NewtonRaphsonStoppingCriteria.TestResult testResult) {
         // nothing to do
         return testResult;
     }

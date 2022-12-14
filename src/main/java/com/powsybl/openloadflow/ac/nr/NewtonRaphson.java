@@ -63,7 +63,7 @@ public class NewtonRaphson {
                 .collect(Collectors.toList());
     }
 
-    private NewtonRaphsonStatus runIteration(StateVectorRescaler svRescaler) {
+    private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling) {
         LOGGER.debug("Start iteration {}", iteration);
 
         try {
@@ -76,7 +76,7 @@ public class NewtonRaphson {
             }
             // f(x) now contains dx
 
-            svRescaler.rescale(equationVector.getArray(), equationSystem);
+            svScaling.apply(equationVector.getArray(), equationSystem);
 
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minus(equationVector.getArray());
@@ -97,8 +97,8 @@ public class NewtonRaphson {
             // test stopping criteria and log norm(fx)
             NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray());
 
-            testResult = svRescaler.rescaleAfter(equationSystem.getStateVector(), equationVector, targetVector,
-                                                 parameters.getStoppingCriteria(), testResult);
+            testResult = svScaling.applyAfter(equationSystem.getStateVector(), equationVector, targetVector,
+                                                parameters.getStoppingCriteria(), testResult);
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
@@ -216,14 +216,12 @@ public class NewtonRaphson {
         NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray());
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-//        StateVectorRescaler svRescaler = new LineSearchStateVectorRescaler(initialTestResult);
-        StateVectorRescaler svRescaler = new NoOpStateVectorRescaler();
-//        StateVectorRescaler svRescaler = new MaxVoltageChangeStateVectorRescaler();
+        StateVectorScaling svScaling = StateVectorScaling.fromMode(StateVectorScalingMode.NONE, initialTestResult);
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration(svRescaler);
+            NewtonRaphsonStatus newStatus = runIteration(svScaling);
             if (newStatus != null) {
                 status = newStatus;
                 break;
