@@ -16,6 +16,9 @@ public final class Vectors {
     private Vectors() {
     }
 
+    /**
+     * a = a - b
+     */
     public static void minus(double[] a, double[] b) {
         if (a.length != b.length) {
             throw new IllegalArgumentException("a and b have different length");
@@ -25,6 +28,9 @@ public final class Vectors {
         }
     }
 
+    /**
+     * a = a + b * c
+     */
     public static void plus(double[] a, double[] b, double c) {
         if (a.length != b.length) {
             throw new IllegalArgumentException("a and b have different length");
