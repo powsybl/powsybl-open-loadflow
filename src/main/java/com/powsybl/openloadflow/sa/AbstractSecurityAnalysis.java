@@ -156,7 +156,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     if (network.getLoad(loadAction.getLoadId()) == null) {
                         throw new PowsyblException("Load '" + loadAction.getLoadId() + "' not found");
                     }
-                    // FIXME: check extension.
                     break;
                 }
 

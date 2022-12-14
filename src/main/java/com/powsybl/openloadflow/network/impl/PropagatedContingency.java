@@ -108,7 +108,7 @@ public class PropagatedContingency {
         }
         return new PowerShift(load.getP0() / PerUnit.SB,
                               variableActivePower / PerUnit.SB,
-                              load.getQ0() / PerUnit.SB);
+                              load.getQ0() / PerUnit.SB); // ensurePowerFactorConstant is not supported.
     }
 
     public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies,
@@ -352,6 +352,6 @@ public class PropagatedContingency {
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, busesLoadShift, generators, hvdcs));
+        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, busesLoadShift, generators, hvdcs, originalPowerShiftIds));
     }
 }
