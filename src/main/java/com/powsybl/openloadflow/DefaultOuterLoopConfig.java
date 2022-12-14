@@ -32,6 +32,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         if (!parameters.isNoGeneratorReactiveLimits()) {
             outerLoops.add(new ReactiveLimitsOuterLoop());
         }
+        outerLoops.add(new MonitoringVoltageOuterLoop());
         if (parameters.isTransformerVoltageControlOn()) {
             if (parametersExt.getTransformerVoltageControlMode() == OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL) {
                 outerLoops.add(new SimpleTransformerVoltageControlOuterLoop());
