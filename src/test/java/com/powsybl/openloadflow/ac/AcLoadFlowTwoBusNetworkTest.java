@@ -37,7 +37,6 @@ class AcLoadFlowTwoBusNetworkTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
-    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
@@ -49,7 +48,7 @@ class AcLoadFlowTwoBusNetworkTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
-        parametersExt = OpenLoadFlowParameters.create(parameters)
+        OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
     }
 
