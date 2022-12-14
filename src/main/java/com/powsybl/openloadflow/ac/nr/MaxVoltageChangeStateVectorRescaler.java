@@ -16,36 +16,57 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Limit voltage magnitude change and voltage angle change between NR iterations
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class VoltageMagnitudeStateVectorRescaler implements StateVectorRescaler {
+public class MaxVoltageChangeStateVectorRescaler implements StateVectorRescaler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(VoltageMagnitudeStateVectorRescaler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MaxVoltageChangeStateVectorRescaler.class);
 
     private static final double DEFAULT_MAX_DV = 0.1;
+    private static final double DEFAULT_MAX_DPHI = Math.toRadians(10);
 
     private final double maxDv;
+    private final double maxDphi;
 
-    public VoltageMagnitudeStateVectorRescaler() {
-        this(DEFAULT_MAX_DV);
+    public MaxVoltageChangeStateVectorRescaler() {
+        this(DEFAULT_MAX_DV, DEFAULT_MAX_DPHI);
     }
 
-    public VoltageMagnitudeStateVectorRescaler(double maxDv) {
+    public MaxVoltageChangeStateVectorRescaler(double maxDv, double maxDphi) {
         this.maxDv = maxDv;
+        this.maxDphi = maxDphi;
     }
 
     @Override
     public void rescale(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         int vCutCount = 0;
+        int phiCutCount = 0;
         for (var variable : equationSystem.getIndex().getSortedVariablesToFind()) {
-            double value = dx[variable.getRow()];
-            if (variable.getType() == AcVariableType.BUS_V && value > maxDv) {
-                dx[variable.getRow()] = maxDv;
-                vCutCount++;
+            int row = variable.getRow();
+            double value = dx[row];
+            switch (variable.getType()) {
+                case BUS_V:
+                    if (Math.abs(value) > maxDv) {
+                        dx[row] = Math.copySign(maxDv, value);
+                        vCutCount++;
+                    }
+                    break;
+                case BUS_PHI:
+                    if (Math.abs(value) > maxDphi) {
+                        dx[row] = Math.copySign(maxDphi, value);
+                        phiCutCount++;
+                    }
+                    break;
+                default:
+                    break;
             }
         }
         if (vCutCount > 0) {
-            LOGGER.debug("{} voltage magnitudes have been cut", vCutCount);
+            LOGGER.debug("{} voltage magnitude changes have been cut", vCutCount);
+        }
+        if (phiCutCount > 0) {
+            LOGGER.debug("{} voltage angle changes have been cut", phiCutCount);
         }
     }
 

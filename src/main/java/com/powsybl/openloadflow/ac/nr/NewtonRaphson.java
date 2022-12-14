@@ -218,7 +218,7 @@ public class NewtonRaphson {
 
 //        StateVectorRescaler svRescaler = new LineSearchStateVectorRescaler(initialTestResult);
         StateVectorRescaler svRescaler = new NoOpStateVectorRescaler();
-//        StateVectorRescaler svRescaler = new VoltageMagnitudeStateVectorRescaler();
+//        StateVectorRescaler svRescaler = new MaxVoltageChangeStateVectorRescaler();
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;

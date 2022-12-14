@@ -68,6 +68,15 @@ class AcLoadFlowTwoBusNetworkTest {
     }
 
     @Test
+    void withHighLoad() {
+        // TODO a better ill-conditioned case for state vector rescaler tests, also to be moved to another test file
+        network.getLoad("l1").setP0(3.902); // 3.9 does not need rescaler
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(0.6364204826103471, bus2);
+    }
+
+    @Test
     void voltageInitModeTest() {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
