@@ -16,14 +16,14 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.nr.StateVectorScalingMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -37,6 +37,7 @@ class AcLoadFlowTwoBusNetworkTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +49,7 @@ class AcLoadFlowTwoBusNetworkTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
     }
 
@@ -68,11 +69,24 @@ class AcLoadFlowTwoBusNetworkTest {
     }
 
     @Test
-    void withHighLoad() {
-        // TODO a better ill-conditioned case for state vector rescaler tests, also to be moved to another test file
-        network.getLoad("l1").setP0(3.902); // 3.9 does not need rescaler
+    void withHighLoadTest() {
+        // TODO a better ill-conditioned case for state vector scaling tests, also to be moved to another test file
+        network.getLoad("l1").setP0(3.902); // 3.9 does not need scaling
+
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+
+        parametersExt.setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE);
+        result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
+        assertEquals(20, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(0.6364204826103471, bus2);
+
+        parametersExt.setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
     }
 

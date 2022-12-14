@@ -216,7 +216,7 @@ public class NewtonRaphson {
         NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray());
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-        StateVectorScaling svScaling = StateVectorScaling.fromMode(StateVectorScalingMode.NONE, initialTestResult);
+        StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters.getStateVectorScalingMode(), initialTestResult);
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
