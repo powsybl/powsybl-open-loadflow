@@ -828,7 +828,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxRealisticVoltage() == extension2.getMaxRealisticVoltage() &&
                 extension1.getReactiveRangeCheckMode() == extension2.getReactiveRangeCheckMode() &&
                 extension1.getLowImpedanceThreshold() == extension2.getLowImpedanceThreshold() &&
-                extension1.isNetworkCacheEnabled() == extension2.isNetworkCacheEnabled();
+                extension1.isNetworkCacheEnabled() == extension2.isNetworkCacheEnabled() &&
+                extension1.isSvcVoltageMonitoring() == extension2.isSvcVoltageMonitoring();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -873,7 +874,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxRealisticVoltage(extension.getMaxRealisticVoltage())
                     .setReactiveRangeCheckMode(extension.getReactiveRangeCheckMode())
                     .setLowImpedanceThreshold(extension.getLowImpedanceThreshold())
-                    .setNetworkCacheEnabled(extension.isNetworkCacheEnabled());
+                    .setNetworkCacheEnabled(extension.isNetworkCacheEnabled())
+                    .setSvcVoltageMonitoring(extension.isSvcVoltageMonitoring());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }
