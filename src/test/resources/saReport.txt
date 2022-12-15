@@ -8,25 +8,25 @@
          AC load flow complete with NR status 'CONVERGED'
         + Outer loop Distributed slack on generation
            Iteration 0: failed to distribute slack bus active power mismatch, -1.4404045651219555 MW remains
-        + Outer loop Reactive limits
         + Outer loop Voltage monitoring
+        + Outer loop Reactive limits
       + Post-contingency simulation 'NHV1_NHV2_1'
          AC load flow complete with NR status 'CONVERGED'
         + Outer loop Distributed slack on generation
            Iteration 0: failed to distribute slack bus active power mismatch, 4.366500677028373 MW remains
-        + Outer loop Reactive limits
         + Outer loop Voltage monitoring
+        + Outer loop Reactive limits
       + Post-contingency simulation 'NHV1_NHV2_2'
          AC load flow complete with NR status 'CONVERGED'
         + Outer loop Distributed slack on generation
            Iteration 0: failed to distribute slack bus active power mismatch, 4.366500677028373 MW remains
-        + Outer loop Reactive limits
         + Outer loop Voltage monitoring
+        + Outer loop Reactive limits
       + Post-contingency simulation 'NGEN_NHV1'
          AC load flow complete with NR status 'UNREALISTIC_STATE'
       + Post-contingency simulation 'NHV2_NLOAD'
          AC load flow complete with NR status 'CONVERGED'
         + Outer loop Distributed slack on generation
            Iteration 0: failed to distribute slack bus active power mismatch, -606.3549396476619 MW remains
-        + Outer loop Reactive limits
         + Outer loop Voltage monitoring
+        + Outer loop Reactive limits

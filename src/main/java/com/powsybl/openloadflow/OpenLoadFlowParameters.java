@@ -62,6 +62,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final boolean NETWORK_CACHE_ENABLED_DEFAULT_VALUE = false;
 
+    public static final boolean SVC_VOLTAGE_MONITORING_DEFAULT_VALUE = true;
+
     public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -106,6 +108,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String NETWORK_CACHE_ENABLED_NAME = "networkCacheEnabled";
 
+    public static final String SVC_VOLTAGE_MONITORING_NAME = "svcVoltageMonitoring";
+
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -127,7 +131,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MAX_REALISTIC_VOLTAGE_NAME,
                                                                          REACTIVE_RANGE_CHECK_MODE_NAME,
                                                                          LOW_IMPEDANCE_THRESHOLD_NAME,
-                                                                         NETWORK_CACHE_ENABLED_NAME);
+                                                                         NETWORK_CACHE_ENABLED_NAME,
+                                                                         SVC_VOLTAGE_MONITORING_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -199,6 +204,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     private boolean networkCacheEnabled = NETWORK_CACHE_ENABLED_DEFAULT_VALUE;
+
+    private boolean svcVoltageMonitoring = SVC_VOLTAGE_MONITORING_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -414,6 +421,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isSvcVoltageMonitoring() {
+        return svcVoltageMonitoring;
+    }
+
+    public OpenLoadFlowParameters setSvcVoltageMonitoring(boolean svcVoltageMonitoring) {
+        this.svcVoltageMonitoring = svcVoltageMonitoring;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -445,7 +461,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
                 .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
                 .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
-                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE)));
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
+                .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -498,6 +515,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_NAME))
                 .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(SVC_VOLTAGE_MONITORING_NAME))
+                .ifPresent(prop -> this.setSvcVoltageMonitoring(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -526,6 +545,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ", networkCacheEnabled=" + networkCacheEnabled +
+                ", svcVoltageMonitoring=" + svcVoltageMonitoring +
                 ')';
     }
 
@@ -592,6 +612,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Max realistic voltage: {}", parametersExt.getMaxRealisticVoltage());
         LOGGER.info("Reactive range check mode: {}", parametersExt.getReactiveRangeCheckMode());
         LOGGER.info("Network cache enabled: {}", parametersExt.isNetworkCacheEnabled());
+        LOGGER.info("Static var compensator voltage monitoring: {}", parametersExt.isSvcVoltageMonitoring());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {

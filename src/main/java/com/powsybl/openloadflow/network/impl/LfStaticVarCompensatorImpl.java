@@ -16,6 +16,8 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfStaticVarCompensator;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -24,6 +26,8 @@ import java.util.Optional;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implements LfStaticVarCompensator {
+
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LfStaticVarCompensatorImpl.class);
 
     private final Ref<StaticVarCompensator> svcRef;
 
@@ -78,14 +82,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
             setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), breakers,
                     reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
-            if (voltagePerReactivePowerControl
-                    && svc.getExtension(VoltagePerReactivePowerControl.class) != null
-                    && svc.getExtension(StandbyAutomaton.class) != null) {
-                throw new IllegalStateException("Static var compensator " + svc.getId() + " has VoltagePerReactivePowerControl" +
-                        " and StandbyAutomaton extensions: not supported");
-            }
             if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
-                this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
+                if (svc.getExtension(StandbyAutomaton.class) == null) {
+                    this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
+                } else {
+                    LOGGER.warn("Static var compensator {} has VoltagePerReactivePowerControl" +
+                            " and StandbyAutomaton extensions: VoltagePerReactivePowerControl extension ignored", svc.getId());
+                }
             }
             StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
             if (standbyAutomaton != null) {

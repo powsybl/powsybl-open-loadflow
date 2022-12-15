@@ -51,27 +51,18 @@ public class MonitoringVoltageOuterLoop implements OuterLoop {
         }
     }
 
-    @Override
-    public void initialize(OuterLoopContext context) {
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            bus.setVoltageControlSwitchOffCount(0);
-        }
-    }
-
-    private static boolean switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
-        int pqPvSwitchCount = 0;
-
+    private static void switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
         for (PqToPvBus pqToPvBus : pqToPvBuses) {
             LfBus controllerBus = pqToPvBus.controllerBus;
 
             controllerBus.setVoltageControlEnabled(true);
             controllerBus.setGenerationTargetQ(0);
-            pqPvSwitchCount++;
             double newTargetV;
             if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MAX
                     || pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MIN) {
                 newTargetV = getSvcTargetV(controllerBus, pqToPvBus.voltageLimitDirection);
                 controllerBus.getVoltageControl().ifPresent(vc -> vc.setTargetValue(newTargetV));
+                Reports.reportStandByAutomatonActivation(reporter, controllerBus.getId(), newTargetV);
                 if (LOGGER.isTraceEnabled()) {
                     if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MAX) {
                         LOGGER.trace("Switch bus '{}' PQ -> PV with high targetV={}", controllerBus.getId(), newTargetV);
@@ -81,10 +72,6 @@ public class MonitoringVoltageOuterLoop implements OuterLoop {
                 }
             }
         }
-
-        Reports.reportPqToPvBuses(reporter, pqPvSwitchCount, 0);
-
-        return pqPvSwitchCount > 0;
     }
 
     private static double getBusV(LfBus bus) {
@@ -140,16 +127,12 @@ public class MonitoringVoltageOuterLoop implements OuterLoop {
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         for (LfBus bus : context.getNetwork().getBuses()) {
             if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
-                if (!bus.hasGeneratorsWithSlope()) {
-                    getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits));
-                } else {
-                    // we don't support switching PQ to PV for bus with one controller with slope.
-                    LOGGER.warn("Controller bus '{}' wants to control back voltage with slope: not supported", bus.getId());
-                }
+                getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits));
             }
         }
 
-        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, reporter)) {
+        if (!pqToPvBuses.isEmpty()) {
+            switchPqPv(pqToPvBuses, reporter);
             status = OuterLoopStatus.UNSTABLE;
         }
 
