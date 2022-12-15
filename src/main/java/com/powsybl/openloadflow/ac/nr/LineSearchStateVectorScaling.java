@@ -23,7 +23,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
     private static final Logger LOGGER = LoggerFactory.getLogger(LineSearchStateVectorScaling.class);
 
     private static final int MAX_ITERATION = 10;
-    private static final int STEP_FOLD = 4;
+    private static final double STEP_FOLD = 0.75;
 
     private double[] lastDx;
 
