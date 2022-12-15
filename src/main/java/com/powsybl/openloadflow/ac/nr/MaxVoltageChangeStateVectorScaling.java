@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.TargetVector;
+import com.powsybl.openloadflow.equations.Vectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,19 +52,20 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
     public void apply(double[] dx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         int vCutCount = 0;
         int phiCutCount = 0;
+        double stepSize = 1.0;
         for (var variable : equationSystem.getIndex().getSortedVariablesToFind()) {
             int row = variable.getRow();
-            double value = dx[row];
+            double absValueChange = Math.abs(dx[row]);
             switch (variable.getType()) {
                 case BUS_V:
-                    if (Math.abs(value) > maxDv) {
-                        dx[row] = Math.copySign(maxDv, value);
+                    if (absValueChange > maxDv) {
+                        stepSize = Math.min(stepSize, maxDv / absValueChange);
                         vCutCount++;
                     }
                     break;
                 case BUS_PHI:
-                    if (Math.abs(value) > maxDphi) {
-                        dx[row] = Math.copySign(maxDphi, value);
+                    if (absValueChange > maxDphi) {
+                        stepSize = Math.min(stepSize, maxDv / absValueChange);
                         phiCutCount++;
                     }
                     break;
@@ -71,11 +73,9 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
                     break;
             }
         }
-        if (vCutCount > 0) {
-            LOGGER.debug("{} voltage magnitude changes have been cut", vCutCount);
-        }
-        if (phiCutCount > 0) {
-            LOGGER.debug("{} voltage angle changes have been cut", phiCutCount);
+        if (vCutCount > 0 || phiCutCount > 0) {
+            LOGGER.debug("Step size: {} ({} dv and {} dphi changes outside thresholds)", stepSize, vCutCount, phiCutCount);
+            Vectors.mult(dx, stepSize);
         }
     }
 

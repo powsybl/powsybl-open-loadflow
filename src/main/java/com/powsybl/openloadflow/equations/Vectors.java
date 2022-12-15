@@ -40,6 +40,15 @@ public final class Vectors {
         }
     }
 
+    /**
+     * a = a * b
+     */
+    public static void mult(double[] a, double b) {
+        for (int i = 0; i < a.length; i++) {
+            a[i] = a[i] * b;
+        }
+    }
+
     public static double norm2(double[] vector) {
         double norm = 0;
         for (double v : vector) {
