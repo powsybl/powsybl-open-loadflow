@@ -55,7 +55,7 @@ public final class LfStandbyAutomatonShunt extends AbstractElement implements Lf
 
     @Override
     public void setB(double b) {
-        createUnsupportedForStandbyAutomatonShuntException();
+        throw createUnsupportedForStandbyAutomatonShuntException();
     }
 
     private static UnsupportedOperationException createUnsupportedForStandbyAutomatonShuntException() {
