@@ -134,9 +134,9 @@ class LfBusImplTest {
 
         LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, false, true, false);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
-        lfBus.addStaticVarCompensator(svc1, false, true, true, lfNetworkLoadingReport, 0.8, 1.2, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX);
-        lfBus.addStaticVarCompensator(svc2, false, true, true, lfNetworkLoadingReport, 0.8, 1.2, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX);
-        lfBus.addStaticVarCompensator(svc3, false, true, true, lfNetworkLoadingReport, 0.8, 1.2, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX);
+        lfBus.addStaticVarCompensator(svc1, false, true, true, lfNetworkLoadingReport, 0.8, 1.2, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX, false);
+        lfBus.addStaticVarCompensator(svc2, false, true, true, lfNetworkLoadingReport, 0.8, 1.2, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX, false);
+        lfBus.addStaticVarCompensator(svc3, false, true, true, lfNetworkLoadingReport, 0.8, 1.2, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX, false);
         double generationQ = -6.412103131789854;
         lfBus.updateGeneratorsState(generationQ * PerUnit.SB, true);
         double sumQ = 0;

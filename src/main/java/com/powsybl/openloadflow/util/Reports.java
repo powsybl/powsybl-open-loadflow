@@ -103,6 +103,16 @@ public final class Reports {
                 .build());
     }
 
+    public static void reportStandByAutomatonActivation(Reporter reporter, String busId, double newTargetV) {
+        reporter.report(Report.builder()
+                .withKey("standByAutomatonActivation")
+                .withDefaultMessage("Activation of voltage control of static var compensator with stand by automaton: bus {busId} switched PQ -> PV with targetV {newTargetV}")
+                .withValue("busId", busId)
+                .withValue("newTargetV", newTargetV)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .build());
+    }
+
     public static void reportDcLfSolverFailure(Reporter reporter, String errorMessage) {
         reporter.report(Report.builder()
                 .withKey("dcLfFailure")

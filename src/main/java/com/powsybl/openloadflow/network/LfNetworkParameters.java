@@ -80,6 +80,8 @@ public class LfNetworkParameters {
 
     private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
+    private boolean svcVoltageMonitoring = true;
+
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
     }
@@ -281,6 +283,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isSvcVoltageMonitoring() {
+        return svcVoltageMonitoring;
+    }
+
+    public LfNetworkParameters setSvcVoltageMonitoring(boolean svcVoltageMonitoring) {
+        this.svcVoltageMonitoring = svcVoltageMonitoring;
+        return this;
+    }
+
     public Set<String> getLoaderPostProcessorSelection() {
         return loaderPostProcessorSelection;
     }
@@ -315,6 +326,7 @@ public class LfNetworkParameters {
                 ", loaderPostProcessorSelection=" + loaderPostProcessorSelection +
                 ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ", lowImpedanceThreshold=" + lowImpedanceThreshold +
+                ", svcVoltageMonitoring=" + svcVoltageMonitoring +
                 ')';
     }
 }
