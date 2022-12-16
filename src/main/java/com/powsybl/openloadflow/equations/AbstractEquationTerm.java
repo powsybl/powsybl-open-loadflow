@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -34,6 +36,11 @@ public abstract class AbstractEquationTerm<V extends Enum<V> & Quantity, E exten
     @Override
     public void setStateVector(StateVector sv) {
         this.sv = Objects.requireNonNull(sv);
+    }
+
+    @Override
+    public List<EquationTerm<V, E>> getChildren() {
+        return Collections.emptyList();
     }
 
     @Override
