@@ -65,7 +65,7 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
                     break;
                 case BUS_PHI:
                     if (absValueChange > maxDphi) {
-                        stepSize = Math.min(stepSize, maxDv / absValueChange);
+                        stepSize = Math.min(stepSize, maxDphi / absValueChange);
                         phiCutCount++;
                     }
                     break;
