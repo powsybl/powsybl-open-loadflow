@@ -136,7 +136,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          LOW_IMPEDANCE_THRESHOLD_NAME,
                                                                          NETWORK_CACHE_ENABLED_NAME,
                                                                          SVC_VOLTAGE_MONITORING_NAME,
-                                                                         NETWORK_CACHE_ENABLED_NAME,
                                                                          STATE_VECTOR_SCALING_MODE_NAME);
 
     public enum VoltageInitModeOverride {
