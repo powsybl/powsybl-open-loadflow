@@ -29,6 +29,11 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     private final LfNetworkListener networkListener = new AbstractLfNetworkListener() {
 
         @Override
+        public void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage) {
+            invalidateValues();
+        }
+
+        @Override
         public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
             invalidateValues();
         }
@@ -49,12 +54,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
-        public void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-            invalidateValues();
-        }
-
-        @Override
-        public void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
+        public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
             invalidateValues();
         }
     };

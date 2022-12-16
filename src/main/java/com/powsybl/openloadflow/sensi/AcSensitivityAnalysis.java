@@ -321,6 +321,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                                 Map<LfBus, Double> postContingencySlackParticipationByBus;
                                 Set<LfBus> slackConnectedComponent;
+                                boolean hasChanged = false;
                                 if (lfContingency.getDisabledBuses().isEmpty()) {
                                     // contingency not breaking connectivity
                                     LOGGER.debug("Contingency '{}' without loss of connectivity", lfContingency.getId());
@@ -331,7 +332,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                     // we check if factors are still in the main component
                                     slackConnectedComponent = new HashSet<>(lfNetwork.getBuses()).stream().filter(Predicate.not(lfContingency.getDisabledBuses()::contains)).collect(Collectors.toSet());
                                     // we recompute GLSK weights if needed
-                                    rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
+                                    hasChanged = rescaleGlsk(factorGroups, lfContingency.getDisabledBuses());
                                 }
 
                                 // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
@@ -345,6 +346,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 calculatePostContingencySensitivityValues(contingencyFactors, lfContingency, lfNetwork, context, factorGroups, postContingencySlackParticipationByBus,
                                         lfParameters, lfParametersExt, lfContingency.getIndex(), resultWriter, Boolean.TRUE.equals(hasBusTargetVoltage.getRight()));
 
+                                if (hasChanged) {
+                                    rescaleGlsk(factorGroups, Collections.emptySet());
+                                }
                                 networkState.restore();
                             }, () -> {
                                     // it means that the contingency has no impact.

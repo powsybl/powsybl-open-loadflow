@@ -38,13 +38,14 @@ class BridgesTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BridgesTest.class);
 
+    private Network network;
     private LfNetwork lfNetwork;
     private Set<String> bridgesSetReference;
 
     @BeforeEach
     void setUp() {
         long start = System.currentTimeMillis();
-        Network network = EurostagTutorialExample1Factory.create();
+        network = EurostagTutorialExample1Factory.create();
         List<LfNetwork> lfn = Networks.load(network, new FirstSlackBusSelector());
         this.lfNetwork = lfn.get(0);
         LOGGER.info("Reading network of {} buses in {} ms", lfNetwork.getBuses().size(), System.currentTimeMillis() - start);

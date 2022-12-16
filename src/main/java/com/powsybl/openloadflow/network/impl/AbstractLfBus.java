@@ -58,11 +58,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt controllerShunt;
 
+    protected LfShunt svcShunt;
+
     protected final LfAggregatedLoadsImpl lfAggregatedLoads;
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
-    protected final List<LccConverterStation> lccCss = new ArrayList<>();
+    protected final List<Ref<LccConverterStation>> lccCsRefs = new ArrayList<>();
 
     protected final List<LfBranch> branches = new ArrayList<>();
 
@@ -211,7 +213,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addLccConverterStation(LccConverterStation lccCs) {
         // note that LCC converter station are out of the slack distribution.
-        lccCss.add(lccCs);
+        lccCsRefs.add(new Ref<>(lccCs));
         double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs);
         loadTargetP += targetP;
         initialLoadTargetP += targetP;
@@ -233,13 +235,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl,
                                  boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                 double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+                                 double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                                 boolean svcMonitoringVoltage) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, voltagePerReactivePowerControl,
-                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, svcMonitoringVoltage);
             add(lfSvc);
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
+            }
+            if (lfSvc.getB0() != 0) {
+                svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
             }
         }
     }
@@ -395,6 +401,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public Optional<LfShunt> getSvcShunt() {
+        return Optional.ofNullable(svcShunt);
+    }
+
+    @Override
     public List<LfGenerator> getGenerators() {
         return generators;
     }
@@ -472,7 +483,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         lfAggregatedLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
 
         // update lcc converter station power
-        for (LccConverterStation lccCs : lccCss) {
+        for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
+            LccConverterStation lccCs = lccCsRef.get();
             double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs); // A LCC station has active losses.
             double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs); // A LCC station always consumes reactive power.
             lccCs.getTerminal()

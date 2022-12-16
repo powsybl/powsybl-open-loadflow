@@ -29,6 +29,9 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         if (parameters.isPhaseShifterRegulationOn()) {
             outerLoops.add(new PhaseControlOuterLoop());
         }
+        if (parametersExt.isSvcVoltageMonitoring()) {
+            outerLoops.add(new MonitoringVoltageOuterLoop());
+        }
         if (!parameters.isNoGeneratorReactiveLimits()) {
             outerLoops.add(new ReactiveLimitsOuterLoop());
         }

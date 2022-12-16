@@ -79,7 +79,28 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // set controller -> controlled link
         for (LfBus controllerBus : lfBuses) {
 
-            List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).collect(Collectors.toList());
+            List<LfGenerator> voltageControlGenerators = new ArrayList<>(1);
+            List<LfGenerator> voltageMonitoringGenerators = new ArrayList<>(1);
+            for (var generator : controllerBus.getGenerators()) {
+                if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
+                    voltageControlGenerators.add(generator);
+                } else if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE) {
+                    voltageMonitoringGenerators.add(generator);
+                }
+            }
+            if (voltageMonitoringGenerators.size() > 1) {
+                String generatorIds = voltageMonitoringGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
+                LOGGER.warn("We have several voltage monitors ({}) connected to the same bus: not supported. All switched to voltage control", generatorIds);
+                voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE));
+            }
+            if (!voltageControlGenerators.isEmpty() && !voltageMonitoringGenerators.isEmpty()) {
+                String generatorIds = voltageMonitoringGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
+                LOGGER.warn("We have both voltage controllers and voltage monitors ({}) connected to the same bus: voltage monitoring discarded", generatorIds);
+                voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
+                voltageMonitoringGenerators.clear();
+            }
+            voltageControlGenerators.addAll(voltageMonitoringGenerators);
+
             if (!voltageControlGenerators.isEmpty()) {
 
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
@@ -122,6 +143,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         controlledBus.setVoltageControl(voltageControl);
         if (voltagePerReactivePowerControl) {
             voltageControls.add(voltageControl);
+        }
+        if (controllerBus.getGenerators().stream().anyMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)) {
+            controllerBus.setVoltageControlEnabled(false);
         }
     }
 
@@ -279,7 +303,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
                 lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(),
                         parameters.isBreakers(), parameters.isReactiveLimits(), report, parameters.getMinPlausibleTargetVoltage(),
-                        parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
+                        parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode(), parameters.isSvcVoltageMonitoring());
                 postProcessors.forEach(pp -> pp.onInjectionAdded(staticVarCompensator, lfBus));
             }
 
@@ -316,13 +340,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return lfBus;
     }
 
-    private static void addBranch(LfNetwork lfNetwork, LfBranch lfBranch, LfNetworkLoadingReport report, boolean dc, double lowImpedanceThreshold) {
+    private static void addBranch(LfNetwork lfNetwork, LfBranch lfBranch, LfNetworkLoadingReport report) {
         boolean connectedToSameBus = lfBranch.getBus1() == lfBranch.getBus2();
         if (connectedToSameBus) {
             LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
             report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
         } else {
-            if (lfBranch.isZeroImpedanceBranch(dc, lowImpedanceThreshold)) {
+            if (lfBranch.isZeroImpedance()) {
                 LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
                 report.nonImpedantBranches++;
             }
@@ -335,8 +359,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
-            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters.isTwtSplitShuntAdmittance());
-            addBranch(lfNetwork, lfBranch, report, parameters.isDc(), parameters.getLowImpedanceThreshold());
+            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters.isTwtSplitShuntAdmittance(),
+                    parameters.isDc(), parameters.getLowImpedanceThreshold());
+            addBranch(lfNetwork, lfBranch, report);
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
@@ -346,8 +371,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             lfNetwork.addBus(lfBus2);
             lfBuses.add(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
-            LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2);
-            addBranch(lfNetwork, lfBranch, report, parameters.isDc(), parameters.getLowImpedanceThreshold());
+            LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters.isDc(), parameters.getLowImpedanceThreshold());
+            addBranch(lfNetwork, lfBranch, report);
             postProcessors.forEach(pp -> {
                 pp.onBusAdded(danglingLine, lfBus2);
                 pp.onBranchAdded(danglingLine, lfBranch);
@@ -360,12 +385,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, parameters.isBreakers());
-            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters.isTwtSplitShuntAdmittance());
-            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters.isTwtSplitShuntAdmittance());
-            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters.isTwtSplitShuntAdmittance());
-            addBranch(lfNetwork, lfBranch1, report, parameters.isDc(), parameters.getLowImpedanceThreshold());
-            addBranch(lfNetwork, lfBranch2, report, parameters.isDc(), parameters.getLowImpedanceThreshold());
-            addBranch(lfNetwork, lfBranch3, report, parameters.isDc(), parameters.getLowImpedanceThreshold());
+            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters.isTwtSplitShuntAdmittance(), parameters.isDc(), parameters.getLowImpedanceThreshold());
+            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters.isTwtSplitShuntAdmittance(), parameters.isDc(), parameters.getLowImpedanceThreshold());
+            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters.isTwtSplitShuntAdmittance(), parameters.isDc(), parameters.getLowImpedanceThreshold());
+            addBranch(lfNetwork, lfBranch1, report);
+            addBranch(lfNetwork, lfBranch2, report);
+            addBranch(lfNetwork, lfBranch3, report);
             postProcessors.forEach(pp -> {
                 pp.onBusAdded(t3wt, lfBus0);
                 pp.onBranchAdded(t3wt, lfBranch1);
@@ -440,19 +465,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
                 LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
                 LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
-                LfSwitch lfSwitch = new LfSwitch(lfNetwork, lfBus1, lfBus2, sw);
-                addBranch(lfNetwork, lfSwitch, report, dc, lowImpedanceThreshold);
+                LfSwitch lfSwitch = new LfSwitch(lfNetwork, lfBus1, lfBus2, sw, dc, lowImpedanceThreshold);
+                addBranch(lfNetwork, lfSwitch, report);
                 postProcessors.forEach(pp -> pp.onBranchAdded(sw, lfSwitch));
             }
         }
     }
 
-    private static void fixAllVoltageControls(LfNetwork lfNetwork, boolean minImpedance, boolean transformerVoltageControl,
-                                              boolean dc, double lowImpedanceThreshold) {
+    private static void fixAllVoltageControls(LfNetwork lfNetwork, boolean minImpedance, boolean transformerVoltageControl) {
         // If min impedance is set, there is no zero-impedance branch
         if (!minImpedance) {
             // Merge the discrete voltage control in each zero impedance connected set
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph(dc, lowImpedanceThreshold)).connectedSets();
+            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
             connectedSets.forEach(connectedSet -> mergeVoltageControls(connectedSet, transformerVoltageControl));
         }
     }
@@ -642,12 +666,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             vc.addController(controllerBranch);
             controllerBranch.setVoltageControl(vc);
-            controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+            if (deadbandValue > 0) {
+                controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+            }
         }, () -> {
                 TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue);
                 voltageControl.addController(controllerBranch);
                 controllerBranch.setVoltageControl(voltageControl);
-                controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+                if (deadbandValue > 0) {
+                    controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+                }
                 controlledBus.setTransformerVoltageControl(voltageControl);
             });
     }
@@ -751,13 +779,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         if (!parameters.isDc()) {
             // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
-            fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl(),
-                    parameters.isDc(), parameters.getLowImpedanceThreshold());
+            fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
         }
 
         if (!parameters.isMinImpedance()) {
             // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
-            Graph<LfBus, LfBranch> zeroImpedanceSubGraph = lfNetwork.createZeroImpedanceSubGraph(parameters.isDc(), parameters.getLowImpedanceThreshold());
+            Graph<LfBus, LfBranch> zeroImpedanceSubGraph = lfNetwork.createZeroImpedanceSubGraph();
             if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
                 SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
                 for (LfBranch branch : spanningTree.getEdges()) {
