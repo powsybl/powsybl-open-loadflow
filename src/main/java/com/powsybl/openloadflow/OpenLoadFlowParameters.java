@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.nr.StateVectorScalingMode;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -110,6 +111,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String SVC_VOLTAGE_MONITORING_NAME = "svcVoltageMonitoring";
 
+    public static final String STATE_VECTOR_SCALING_MODE_NAME = "stateVectorScalingMode";
+
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -132,7 +135,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          REACTIVE_RANGE_CHECK_MODE_NAME,
                                                                          LOW_IMPEDANCE_THRESHOLD_NAME,
                                                                          NETWORK_CACHE_ENABLED_NAME,
-                                                                         SVC_VOLTAGE_MONITORING_NAME);
+                                                                         SVC_VOLTAGE_MONITORING_NAME,
+                                                                         STATE_VECTOR_SCALING_MODE_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -206,6 +210,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean networkCacheEnabled = NETWORK_CACHE_ENABLED_DEFAULT_VALUE;
 
     private boolean svcVoltageMonitoring = SVC_VOLTAGE_MONITORING_DEFAULT_VALUE;
+
+    private StateVectorScalingMode stateVectorScalingMode = NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE;
 
     @Override
     public String getName() {
@@ -430,6 +436,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public StateVectorScalingMode getStateVectorScalingMode() {
+        return stateVectorScalingMode;
+    }
+
+    public OpenLoadFlowParameters setStateVectorScalingMode(StateVectorScalingMode stateVectorScalingMode) {
+        this.stateVectorScalingMode = Objects.requireNonNull(stateVectorScalingMode);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -462,7 +477,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
                 .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
                 .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
-                .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE)));
+                .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE))
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
+                .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE)));
         return parameters;
     }
 
@@ -517,6 +534,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(SVC_VOLTAGE_MONITORING_NAME))
                 .ifPresent(prop -> this.setSvcVoltageMonitoring(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(STATE_VECTOR_SCALING_MODE_NAME))
+                .ifPresent(prop -> this.setStateVectorScalingMode(StateVectorScalingMode.valueOf(prop)));
         return this;
     }
 
@@ -546,6 +565,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ", networkCacheEnabled=" + networkCacheEnabled +
                 ", svcVoltageMonitoring=" + svcVoltageMonitoring +
+                ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ')';
     }
 
@@ -613,6 +633,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Reactive range check mode: {}", parametersExt.getReactiveRangeCheckMode());
         LOGGER.info("Network cache enabled: {}", parametersExt.isNetworkCacheEnabled());
         LOGGER.info("Static var compensator voltage monitoring: {}", parametersExt.isSvcVoltageMonitoring());
+        LOGGER.info("State vector scaling mode: {}", parametersExt.getStateVectorScalingMode());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -709,7 +730,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
                 .setMaxIteration(parametersExt.getMaxIteration())
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
-                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage());
+                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
+                .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode());
 
         OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
@@ -831,7 +853,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getReactiveRangeCheckMode() == extension2.getReactiveRangeCheckMode() &&
                 extension1.getLowImpedanceThreshold() == extension2.getLowImpedanceThreshold() &&
                 extension1.isNetworkCacheEnabled() == extension2.isNetworkCacheEnabled() &&
-                extension1.isSvcVoltageMonitoring() == extension2.isSvcVoltageMonitoring();
+                extension1.isSvcVoltageMonitoring() == extension2.isSvcVoltageMonitoring() &&
+                extension1.getStateVectorScalingMode() == extension2.getStateVectorScalingMode();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -877,7 +900,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReactiveRangeCheckMode(extension.getReactiveRangeCheckMode())
                     .setLowImpedanceThreshold(extension.getLowImpedanceThreshold())
                     .setNetworkCacheEnabled(extension.isNetworkCacheEnabled())
-                    .setSvcVoltageMonitoring(extension.isSvcVoltageMonitoring());
+                    .setSvcVoltageMonitoring(extension.isSvcVoltageMonitoring())
+                    .setStateVectorScalingMode(extension.getStateVectorScalingMode());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }
