@@ -131,7 +131,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private boolean switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
+    private static boolean switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
         int pqPvSwitchCount = 0;
 
         for (PqToPvBus pqToPvBus : pqToPvBuses) {
@@ -168,7 +168,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
      *  - if Q equals to Qmax
      *  - if Q equals to Qmin
      */
-    private void checkPvBus(LfBus controllerBus, List<PvToPqBus> pvToPqBuses, MutableInt remainingPvBusCount) {
+    private static void checkPvBus(LfBus controllerBus, List<PvToPqBus> pvToPqBuses, MutableInt remainingPvBusCount) {
         double minQ = controllerBus.getMinQ();
         double maxQ = controllerBus.getMaxQ();
         double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
@@ -186,7 +186,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
      *  - if Q is equal to Qmin and V is less than targetV: it means that the PQ bus can be unlocked in order to increase the reactive power and reach its targetV.
      *  - if Q is equal to Qmax and V is greater than targetV: it means that the PQ bus can be unlocked in order to decrease the reactive power and reach its targetV.
      */
-    private void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses) {
+    private static void checkPqBus(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses) {
         double minQ = controllerCapableBus.getMinQ();
         double maxQ = controllerCapableBus.getMaxQ();
         double q = controllerCapableBus.getGenerationTargetQ();
@@ -200,11 +200,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private double getBusTargetV(LfBus bus) {
+    private static double getBusTargetV(LfBus bus) {
         return bus.getVoltageControl().map(VoltageControl::getTargetValue).orElse(Double.NaN);
     }
 
-    private double getBusV(LfBus bus) {
+    private static double getBusV(LfBus bus) {
         return bus.getVoltageControl().map(vc -> vc.getControlledBus().getV()).orElse(Double.NaN);
     }
 

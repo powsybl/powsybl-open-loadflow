@@ -107,7 +107,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         this.bus = Objects.requireNonNull(bus);
         this.voltageControlCapability = voltageControlCapability;
         double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
-        zb = nominalV * nominalV / PerUnit.SB;
+        zb = PerUnit.zb(nominalV);
         b = zb * shuntCompensators.stream()
                 .mapToDouble(ShuntCompensator::getB)
                 .sum();

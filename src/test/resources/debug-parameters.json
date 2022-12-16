@@ -39,6 +39,7 @@
         "lowImpedanceThreshold" : 1.0E-8,
         "reactiveRangeCheckMode" : "MAX",
         "networkCacheEnabled" : false,
+        "svcVoltageMonitoring" : true,
         "stateVectorScalingMode" : "NONE"
       }
     }

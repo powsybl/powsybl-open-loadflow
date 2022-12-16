@@ -14,7 +14,7 @@ import java.util.OptionalDouble;
 public interface LfGenerator extends PropertyBag {
 
     enum GeneratorControlType {
-        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE, MONITORING_VOLTAGE
     }
 
     enum ReactiveRangeMode {

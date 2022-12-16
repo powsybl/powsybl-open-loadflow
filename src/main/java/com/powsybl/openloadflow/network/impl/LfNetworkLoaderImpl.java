@@ -79,7 +79,28 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // set controller -> controlled link
         for (LfBus controllerBus : lfBuses) {
 
-            List<LfGenerator> voltageControlGenerators = controllerBus.getGenerators().stream().filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).collect(Collectors.toList());
+            List<LfGenerator> voltageControlGenerators = new ArrayList<>(1);
+            List<LfGenerator> voltageMonitoringGenerators = new ArrayList<>(1);
+            for (var generator : controllerBus.getGenerators()) {
+                if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
+                    voltageControlGenerators.add(generator);
+                } else if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE) {
+                    voltageMonitoringGenerators.add(generator);
+                }
+            }
+            if (voltageMonitoringGenerators.size() > 1) {
+                String generatorIds = voltageMonitoringGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
+                LOGGER.warn("We have several voltage monitors ({}) connected to the same bus: not supported. All switched to voltage control", generatorIds);
+                voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE));
+            }
+            if (!voltageControlGenerators.isEmpty() && !voltageMonitoringGenerators.isEmpty()) {
+                String generatorIds = voltageMonitoringGenerators.stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
+                LOGGER.warn("We have both voltage controllers and voltage monitors ({}) connected to the same bus: voltage monitoring discarded", generatorIds);
+                voltageMonitoringGenerators.forEach(gen -> gen.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF));
+                voltageMonitoringGenerators.clear();
+            }
+            voltageControlGenerators.addAll(voltageMonitoringGenerators);
+
             if (!voltageControlGenerators.isEmpty()) {
 
                 LfGenerator lfGenerator0 = voltageControlGenerators.get(0);
@@ -122,6 +143,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         controlledBus.setVoltageControl(voltageControl);
         if (voltagePerReactivePowerControl) {
             voltageControls.add(voltageControl);
+        }
+        if (controllerBus.getGenerators().stream().anyMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)) {
+            controllerBus.setVoltageControlEnabled(false);
         }
     }
 
@@ -279,7 +303,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
                 lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(),
                         parameters.isBreakers(), parameters.isReactiveLimits(), report, parameters.getMinPlausibleTargetVoltage(),
-                        parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
+                        parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode(), parameters.isSvcVoltageMonitoring());
                 postProcessors.forEach(pp -> pp.onInjectionAdded(staticVarCompensator, lfBus));
             }
 

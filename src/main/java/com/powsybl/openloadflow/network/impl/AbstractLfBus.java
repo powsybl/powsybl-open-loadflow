@@ -58,6 +58,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt controllerShunt;
 
+    protected LfShunt svcShunt;
+
     protected final LfAggregatedLoadsImpl lfAggregatedLoads;
 
     protected boolean ensurePowerFactorConstantByLoad = false;
@@ -233,13 +235,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl,
                                  boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                 double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+                                 double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                                 boolean svcMonitoringVoltage) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, voltagePerReactivePowerControl,
-                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, svcMonitoringVoltage);
             add(lfSvc);
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
+            }
+            if (lfSvc.getB0() != 0) {
+                svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
             }
         }
     }
@@ -392,6 +398,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public Optional<LfShunt> getControllerShunt() {
         return Optional.ofNullable(controllerShunt);
+    }
+
+    @Override
+    public Optional<LfShunt> getSvcShunt() {
+        return Optional.ofNullable(svcShunt);
     }
 
     @Override
