@@ -675,7 +675,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
                 .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode())
-                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold());
+                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
+                .setSvcVoltageMonitoring(parametersExt.isSvcVoltageMonitoring());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -758,7 +759,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
                 .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX) // not useful for DC.
-                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold());
+                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
+                .setSvcVoltageMonitoring(false);
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       indexTerms,

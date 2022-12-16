@@ -45,7 +45,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                        boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                       double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+                                       double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                                       boolean svcMonitoringVoltage) {
         super(network, 0);
         this.svcRef = new Ref<>(svc);
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
@@ -83,7 +84,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
             setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), breakers,
                     reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
             if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
-                if (svc.getExtension(StandbyAutomaton.class) == null) {
+                if (svcMonitoringVoltage && svc.getExtension(StandbyAutomaton.class) == null) {
                     this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
                 } else {
                     LOGGER.warn("Static var compensator {} has VoltagePerReactivePowerControl" +
@@ -91,7 +92,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
                 }
             }
             StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
-            if (standbyAutomaton != null) {
+            if (svcMonitoringVoltage && standbyAutomaton != null) {
                 if (standbyAutomaton.getB0() != 0.0) {
                     // a static var compensator with an extension stand by automaton includes an offset of B0,
                     // whatever it is in stand by or not.
@@ -113,10 +114,11 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                                     boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+                                                    double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                                                    boolean svcMonitoringVoltage) {
         Objects.requireNonNull(svc);
         return new LfStaticVarCompensatorImpl(svc, network, bus, voltagePerReactivePowerControl, breakers, reactiveLimits,
-                report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+                report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, svcMonitoringVoltage);
     }
 
     private StaticVarCompensator getSvc() {

@@ -303,7 +303,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
                 lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(),
                         parameters.isBreakers(), parameters.isReactiveLimits(), report, parameters.getMinPlausibleTargetVoltage(),
-                        parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
+                        parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode(), parameters.isSvcVoltageMonitoring());
                 postProcessors.forEach(pp -> pp.onInjectionAdded(staticVarCompensator, lfBus));
             }
 
