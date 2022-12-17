@@ -24,13 +24,11 @@ import java.util.stream.Collectors;
  */
 public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-    private final boolean indexTerms;
-
     private final Map<Pair<Integer, E>, Equation<V, E>> equations = new HashMap<>();
 
     private final Map<Pair<ElementType, Integer>, List<Equation<V, E>>> equationsByElement = new HashMap<>();
 
-    private final Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement = new HashMap<>();
+    private Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement;
 
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
@@ -41,16 +39,11 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private final EquationSystemIndex<V, E> index;
 
     public EquationSystem() {
-        this(false);
+        this(new VariableSet<>());
     }
 
-    public EquationSystem(boolean indexTerms) {
-        this(new VariableSet<>(), indexTerms);
-    }
-
-    public EquationSystem(VariableSet<V> variableSet, boolean indexTerms) {
+    public EquationSystem(VariableSet<V> variableSet) {
         this.variableSet = Objects.requireNonNull(variableSet);
-        this.indexTerms = indexTerms;
         index = new EquationSystemIndex<>(this);
     }
 
@@ -74,21 +67,38 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equations.values();
     }
 
-    void addEquationTerm(EquationTerm<V, E> equationTerm) {
-        if (indexTerms) {
-            Objects.requireNonNull(equationTerm);
-            Pair<ElementType, Integer> element = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
-            equationTermsByElement.computeIfAbsent(element, k -> new ArrayList<>())
-                    .add(equationTerm);
+    private void indexTerm(EquationTerm<V, E> equationTerm) {
+        if (equationTermsByElement != null) {
+            if (equationTerm.getElementType() != null && equationTerm.getElementNum() != -1) {
+                Pair<ElementType, Integer> element = Pair.of(equationTerm.getElementType(), equationTerm.getElementNum());
+                equationTermsByElement.computeIfAbsent(element, k -> new ArrayList<>())
+                        .add(equationTerm);
+            }
+            for (EquationTerm<V, E> child : equationTerm.getChildren()) {
+                indexTerm(child);
+            }
         }
+    }
+
+    private void indexAllTerms() {
+        if (equationTermsByElement == null) {
+            equationTermsByElement = new HashMap<>();
+            for (var equation : equations.values()) {
+                for (var term : equation.getTerms()) {
+                    indexTerm(term);
+                }
+            }
+        }
+    }
+
+    void addEquationTerm(EquationTerm<V, E> equationTerm) {
+        indexTerm(equationTerm);
         attach(equationTerm);
     }
 
     public List<EquationTerm<V, E>> getEquationTerms(ElementType elementType, int elementNum) {
-        if (!indexTerms) {
-            throw new PowsyblException("Equations terms have not been indexed");
-        }
         Objects.requireNonNull(elementType);
+        indexAllTerms();
         Pair<ElementType, Integer> element = Pair.of(elementType, elementNum);
         return equationTermsByElement.getOrDefault(element, Collections.emptyList());
     }
