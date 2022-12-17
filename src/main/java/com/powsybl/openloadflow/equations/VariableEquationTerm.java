@@ -51,7 +51,7 @@ public class VariableEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E
 
     @Override
     public double der(Variable<V> variable) {
-        return 1;
+        return variables.get(0).equals(variable) ? 1 : 0;
     }
 
     @Override

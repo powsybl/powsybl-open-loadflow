@@ -145,9 +145,8 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
             return di2dph2(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(a1Var)) {
             return di2da1(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
         }
+        return 0;
     }
 
     @Override

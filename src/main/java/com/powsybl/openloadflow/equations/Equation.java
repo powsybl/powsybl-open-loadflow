@@ -36,6 +36,8 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
+    private List<Variable<V>> variables;
+
     Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
         this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
@@ -74,6 +76,20 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return this;
     }
 
+    /**
+     * Get all variables used by this equation, including non-active ones (so ones only used by deactivated terms).
+     */
+    public List<Variable<V>> getVariables() {
+        if (variables == null) {
+            Set<Variable<V>> sortedUniqueVariables = new TreeSet<>();
+            for (EquationTerm<V, E> term : terms) {
+                sortedUniqueVariables.addAll(term.getVariables());
+            }
+            variables = new ArrayList<>(sortedUniqueVariables);
+        }
+        return variables;
+    }
+
     public Equation<V, E> addTerm(EquationTerm<V, E> term) {
         Objects.requireNonNull(term);
         if (term.getEquation() != null) {
@@ -83,6 +99,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         terms.add(term);
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
+        variables = null;
         equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
     }
@@ -121,6 +138,16 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
             }
         }
         return rhs;
+    }
+
+    public double der(Variable<V> variable) {
+        double value = 0;
+        for (EquationTerm<V, E> term : terms) {
+            if (term.isActive()) {
+                value += term.der(variable);
+            }
+        }
+        return value;
     }
 
     @Override
