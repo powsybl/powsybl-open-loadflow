@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
@@ -129,11 +128,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 throw new IllegalStateException("Unknown state variable type: " + equation.getType());
         }
 
-        for (EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()) {
-            if (term.isActive() && term.hasRhs()) {
-                targets[equation.getColumn()] -= term.rhs();
-            }
-        }
+        targets[equation.getColumn()] -= equation.rhs();
     }
 
     public AcTargetVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {

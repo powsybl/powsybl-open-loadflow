@@ -11,9 +11,9 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.TargetVector;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
  * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
@@ -43,11 +43,7 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
                 throw new IllegalStateException("Unknown state variable type: " + equation.getType());
         }
 
-        for (EquationTerm<DcVariableType, DcEquationType> term : equation.getTerms()) {
-            if (term.isActive() && term.hasRhs()) {
-                targets[equation.getColumn()] -= term.rhs();
-            }
-        }
+        targets[equation.getColumn()] -= equation.rhs();
     }
 
     public DcTargetVector(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
