@@ -12,10 +12,13 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
+import gnu.trove.list.array.TIntArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -28,30 +31,40 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
-    static final class PartialDerivative<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
+    static final class PartialDerivatives<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
-        private final Equation<V, E> equation;
+        private final TIntArrayList elementIndexes;
 
-        private final int elementIndex;
+        private final List<Equation<V, E>> equations;
 
-        private final Variable<V> variable;
+        private final List<Variable<V>> variables;
 
-        PartialDerivative(Equation<V, E> equation, int elementIndex, Variable<V> variable) {
-            this.equation = Objects.requireNonNull(equation);
-            this.elementIndex = elementIndex;
-            this.variable = Objects.requireNonNull(variable);
+        PartialDerivatives(int estimatedNonZeroValueCount) {
+            elementIndexes = new TIntArrayList(estimatedNonZeroValueCount);
+            equations = new ArrayList<>(estimatedNonZeroValueCount);
+            variables = new ArrayList<>(estimatedNonZeroValueCount);
         }
 
-        Equation<V, E> getEquation() {
-            return equation;
+        void add(int elementIndex, Equation<V, E> equation, Variable<V> variable) {
+            elementIndexes.add(elementIndex);
+            equations.add(equation);
+            variables.add(variable);
         }
 
-        public int getElementIndex() {
-            return elementIndex;
+        int getSize() {
+            return elementIndexes.size();
         }
 
-        Variable<V> getVariable() {
-            return variable;
+        Equation<V, E> getEquation(int i) {
+            return equations.get(i);
+        }
+
+        int getElementIndex(int i) {
+            return elementIndexes.get(i);
+        }
+
+        Variable<V> getVariable(int i) {
+            return variables.get(i);
         }
     }
 
@@ -61,7 +74,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private Matrix matrix;
 
-    private List<PartialDerivative<V, E>> partialDerivatives;
+    private PartialDerivatives<V, E> partialDerivatives;
 
     private LUDecomposition lu;
 
@@ -124,9 +137,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     + ") and variables (" + columnCount + ")");
         }
 
-        int estimatedNonZeroValueCount = rowCount * 3;
+        int estimatedNonZeroValueCount = rowCount * 4;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
-        partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
+        partialDerivatives = new PartialDerivatives<>(estimatedNonZeroValueCount);
 
         for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
@@ -135,7 +148,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 if (row != -1) {
                     double value = eq.der(v);
                     int elementIndex = matrix.addAndGetIndex(row, column, value);
-                    partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(eq, elementIndex, v));
+                    partialDerivatives.add(elementIndex, eq, v);
                 }
             }
         }
@@ -159,10 +172,10 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
-        for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
-            Equation<V, E> eq = partialDerivative.getEquation();
-            int elementIndex = partialDerivative.getElementIndex();
-            Variable<V> v = partialDerivative.getVariable();
+        for (int i = 0; i < partialDerivatives.getSize(); i++) {
+            int elementIndex = partialDerivatives.getElementIndex(i);
+            Equation<V, E> eq = partialDerivatives.getEquation(i);
+            Variable<V> v = partialDerivatives.getVariable(i);
             double value = eq.der(v);
             matrix.addAtIndex(elementIndex, value);
         }
