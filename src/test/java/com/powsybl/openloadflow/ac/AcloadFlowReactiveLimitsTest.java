@@ -24,8 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -140,6 +139,17 @@ class AcloadFlowReactiveLimitsTest {
         assertReactivePowerEquals(-100, gen2.getTerminal()); // GEN is correctly limited to 100 MVar
         assertReactivePowerEquals(100, ngen2Nhv1.getTerminal1());
         assertReactivePowerEquals(-200, nhv2Nload.getTerminal2());
+    }
+
+    @Test
+    void infiniteReactiveLimitIssueTest() {
+        gen2.newMinMaxReactiveLimits()
+                .setMinQ(Double.POSITIVE_INFINITY)
+                .setMaxQ(Double.POSITIVE_INFINITY)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isOk()); // FIXME
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
 
     @Test
