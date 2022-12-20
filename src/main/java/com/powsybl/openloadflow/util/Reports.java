@@ -136,6 +136,7 @@ public final class Reports {
                 .withKey("generatorsDiscardedFromVoltageControlBecauseNotStarted")
                 .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because not started")
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
 
@@ -144,14 +145,16 @@ public final class Reports {
                 .withKey("generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
                 .withDefaultMessage("${impactedGeneratorCount} generators have been discarded from voltage control because of a too small reactive range")
                 .withValue("impactedGeneratorCount", impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
                 .build());
     }
 
-    public static void reportAcLfComplete(Reporter reporter, String nrStatus) {
+    public static void reportAcLfComplete(Reporter reporter, String nrStatus, TypedValue severity) {
         reporter.report(Report.builder()
                 .withKey("acLfComplete")
                 .withDefaultMessage("AC load flow complete with NR status '${nrStatus}'")
                 .withValue("nrStatus", nrStatus)
+                .withSeverity(severity)
                 .build());
     }
 
