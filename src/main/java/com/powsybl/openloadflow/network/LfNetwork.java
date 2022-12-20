@@ -39,8 +39,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
-    private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
-
     private final int numCC;
 
     private final int numSC;
