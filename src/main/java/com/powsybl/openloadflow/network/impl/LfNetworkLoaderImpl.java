@@ -240,10 +240,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static Bus getBus(Terminal terminal, boolean breakers) {
-        return breakers ? terminal.getBusBreakerView().getBus() : terminal.getBusView().getBus();
-    }
-
     private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report, List<LfNetworkLoaderPostProcessor> postProcessors) {
         LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, parameters.isDistributedOnConformLoad(), participateToSlackDistribution(parameters, bus), parameters.isBreakers());
@@ -738,7 +734,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static LfBus getLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {
-        Bus bus = getBus(terminal, breakers);
+        Bus bus = Networks.getBus(terminal, breakers);
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
@@ -851,8 +847,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
-        Iterable<Bus> buses = parameters.isBreakers() ? network.getBusBreakerView().getBuses()
-                                                      : network.getBusView().getBuses();
+        Iterable<Bus> buses = Networks.getBuses(network, parameters.isBreakers());
         for (Bus bus : buses) {
             Component cc = bus.getConnectedComponent();
             Component sc = bus.getSynchronousComponent();
