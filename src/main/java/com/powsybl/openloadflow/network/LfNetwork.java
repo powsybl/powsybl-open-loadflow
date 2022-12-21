@@ -49,7 +49,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
-    private LfBus slackBus;
+    private List<LfBus> slackBuses;
 
     private final List<LfBranch> branches = new ArrayList<>();
 
@@ -108,15 +108,22 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private void invalidateSlack() {
-        slackBus = null;
+        if (slackBuses != null) {
+            for (var slackBus : slackBuses) {
+                slackBus.setSlack(false);
+            }
+        }
+        slackBuses = null;
     }
 
-    public void updateSlack() {
-        if (slackBus == null) {
+    public void updateSlackBuses() {
+        if (slackBuses == null) {
             SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, 1);
-            slackBus = selectedSlackBus.getBuses().get(0);
-            LOGGER.info("Network {}, slack bus is '{}' (method='{}')", this, slackBus.getId(), selectedSlackBus.getSelectionMethod());
-            slackBus.setSlack(true);
+            slackBuses = selectedSlackBus.getBuses();
+            LOGGER.info("Network {}, slack buses are '{}' (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
+            for (var slackBus : slackBuses) {
+                slackBus.setSlack(true);
+            }
         }
     }
 
@@ -185,8 +192,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfBus getSlackBus() {
-        updateSlack();
-        return slackBus;
+        return getSlackBuses().get(0);
+    }
+
+    public List<LfBus> getSlackBuses() {
+        updateSlackBuses();
+        return slackBuses;
     }
 
     public List<LfShunt> getShunts() {
@@ -363,7 +374,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void writeJson(Writer writer) {
         Objects.requireNonNull(writer);
-        updateSlack();
+        updateSlackBuses();
         try (JsonGenerator jsonGenerator = new JsonFactory()
                 .createGenerator(writer)
                 .useDefaultPrettyPrinter()) {
