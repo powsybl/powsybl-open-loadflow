@@ -453,12 +453,4 @@ class AcLoadFlowEurostagTutorialExample1Test {
         assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
         assertVoltageEquals(147.57, network.getBusBreakerView().getBus("NLOAD"));
     }
-
-    @Test
-    void multiSlackTest() {
-        parametersExt.setMaxSlackBusCount(2);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-    }
 }

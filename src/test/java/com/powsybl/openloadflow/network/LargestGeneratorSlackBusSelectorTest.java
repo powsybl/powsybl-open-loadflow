@@ -9,6 +9,9 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -40,5 +43,16 @@ class LargestGeneratorSlackBusSelectorTest {
         var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LargestGeneratorSlackBusSelector(5000)).get(0);
         var slackBus = lfNetwork.getSlackBus();
         assertEquals("b3_vl_0", slackBus.getId());
+    }
+
+    @Test
+    void testMultipleSlacks() {
+        var network = DistributedSlackNetworkFactory.create();
+        var parameters = new LfNetworkParameters()
+                .setSlackBusSelector(new LargestGeneratorSlackBusSelector(5000))
+                .setMaxSlackBusCount(3);
+        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters).get(0);
+        var slackBusIds = lfNetwork.getSlackBuses().stream().map(LfBus::getId).collect(Collectors.toList());
+        assertEquals(List.of("b2_vl_0", "b3_vl_0", "b1_vl_0"), slackBusIds);
     }
 }
