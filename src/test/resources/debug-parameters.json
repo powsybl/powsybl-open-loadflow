@@ -40,7 +40,8 @@
         "reactiveRangeCheckMode" : "MAX",
         "networkCacheEnabled" : false,
         "svcVoltageMonitoring" : true,
-        "stateVectorScalingMode" : "NONE"
+        "stateVectorScalingMode" : "NONE",
+        "maxSlackBusCount" : 1
       }
     }
   },

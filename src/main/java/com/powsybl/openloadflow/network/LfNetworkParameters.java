@@ -309,11 +309,15 @@ public class LfNetworkParameters {
         return maxSlackBusCount;
     }
 
-    public LfNetworkParameters setMaxSlackBusCount(int maxSlackBusCount) {
+    public static int checkMaxSlackBusCount(int maxSlackBusCount) {
         if (maxSlackBusCount < 1) {
             throw new IllegalArgumentException("Max slack bus count should be >= 1");
         }
-        this.maxSlackBusCount = maxSlackBusCount;
+        return maxSlackBusCount;
+    }
+
+    public LfNetworkParameters setMaxSlackBusCount(int maxSlackBusCount) {
+        this.maxSlackBusCount = checkMaxSlackBusCount(maxSlackBusCount);
         return this;
     }
 
