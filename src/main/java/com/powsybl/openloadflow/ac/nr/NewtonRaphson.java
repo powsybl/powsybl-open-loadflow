@@ -10,6 +10,7 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -241,6 +242,7 @@ public class NewtonRaphson {
             updateNetwork();
         }
 
-        return new NewtonRaphsonResult(status, iteration, network.getSlackBus().getMismatchP());
+        double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
+        return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);
     }
 }
