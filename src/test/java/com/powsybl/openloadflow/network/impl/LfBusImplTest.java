@@ -148,7 +148,7 @@ class LfBusImplTest {
 
     private static List<LfGenerator> createLfGeneratorsWithInitQ(List<Double> initQs) {
         Network network = FourSubstationsNodeBreakerFactory.create();
-        LfNetwork lfNetwork = new LfNetwork(0, 0, new FirstSlackBusSelector(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LfNetwork lfNetwork = new LfNetwork(0, 0, new FirstSlackBusSelector(), 1, new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
         LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"), lfNetwork,
                 false, 100, true, lfNetworkLoadingReport, 0.9, 1.1, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX);

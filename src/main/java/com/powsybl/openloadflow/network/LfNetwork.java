@@ -45,6 +45,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final SlackBusSelector slackBusSelector;
 
+    private final int maxSlackBusCount;
+
     private final Map<String, LfBus> busesById = new LinkedHashMap<>();
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
@@ -77,18 +79,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private Reporter reporter;
 
-    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
+    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+        this.maxSlackBusCount = maxSlackBusCount;
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
         this.reporter = Objects.requireNonNull(reporter);
     }
 
-    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
+    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        this(numCC, numSC, slackBusSelector, connectivityFactory, Reporter.NO_OP);
+        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, Reporter.NO_OP);
     }
 
     public int getNumCC() {
@@ -118,7 +121,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void updateSlackBuses() {
         if (slackBuses == null) {
-            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, 1);
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
             slackBuses = selectedSlackBus.getBuses();
             LOGGER.info("Network {}, slack buses are '{}' (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
             for (var slackBus : slackBuses) {
