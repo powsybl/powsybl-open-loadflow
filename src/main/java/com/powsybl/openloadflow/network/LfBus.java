@@ -24,6 +24,10 @@ public interface LfBus extends LfElement {
 
     void setSlack(boolean slack);
 
+    boolean isReference();
+
+    void setReference(boolean reference);
+
     boolean hasVoltageControllerCapability();
 
     boolean isVoltageControlEnabled();

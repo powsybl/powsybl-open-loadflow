@@ -31,10 +31,12 @@ public final class AcEquationSystem {
         var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
         bus.setQ(q);
 
-        if (bus.isSlack()) {
+        if (bus.isReference()) {
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_PHI)
                     .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_PHI)
-                                           .createTerm());
+                            .createTerm());
+        }
+        if (bus.isSlack()) {
             p.setActive(false);
         }
 

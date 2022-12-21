@@ -115,6 +115,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(false);
             }
+            slackBuses.get(0).setReference(false);
         }
         slackBuses = null;
     }
@@ -127,6 +128,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             for (var slackBus : slackBuses) {
                 slackBus.setSlack(true);
             }
+            slackBuses.get(0).setReference(true);
         }
     }
 

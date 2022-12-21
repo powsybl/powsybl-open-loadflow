@@ -32,6 +32,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean slack = false;
 
+    protected boolean reference = false;
+
     protected double v;
 
     protected Evaluable calculatedV = NAN;
@@ -105,6 +107,17 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setSlack(boolean slack) {
         this.slack = slack;
+    }
+
+    @Override
+    public boolean isReference() {
+        network.updateSlackBuses();
+        return reference;
+    }
+
+    @Override
+    public void setReference(boolean reference) {
+        this.reference = reference;
     }
 
     @Override
