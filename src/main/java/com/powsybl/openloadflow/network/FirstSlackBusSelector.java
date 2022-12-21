@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -14,7 +15,7 @@ import java.util.List;
 public class FirstSlackBusSelector implements SlackBusSelector {
 
     @Override
-    public SelectedSlackBus select(List<LfBus> buses) {
-        return new SelectedSlackBus(buses.get(0), "First bus");
+    public SelectedSlackBus select(List<LfBus> buses, int limit) {
+        return new SelectedSlackBus(buses.stream().limit(limit).collect(Collectors.toList()), "First bus");
     }
 }

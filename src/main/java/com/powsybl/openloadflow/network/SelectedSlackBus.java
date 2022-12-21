@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -13,17 +14,20 @@ import java.util.Objects;
  */
 public class SelectedSlackBus {
 
-    private final LfBus bus;
+    private final List<LfBus> buses;
 
     private final String selectionMethod;
 
-    public SelectedSlackBus(LfBus bus, String selectionMethod) {
-        this.bus = Objects.requireNonNull(bus);
+    public SelectedSlackBus(List<LfBus> buses, String selectionMethod) {
+        this.buses = Objects.requireNonNull(buses);
+        if (buses.isEmpty()) {
+            throw new IllegalArgumentException("Empty slack bus list");
+        }
         this.selectionMethod = Objects.requireNonNull(selectionMethod);
     }
 
-    public LfBus getBus() {
-        return bus;
+    public List<LfBus> getBuses() {
+        return buses;
     }
 
     public String getSelectionMethod() {

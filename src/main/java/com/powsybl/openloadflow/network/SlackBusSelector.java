@@ -14,7 +14,7 @@ import java.util.Objects;
  */
 public interface SlackBusSelector {
 
-    SelectedSlackBus select(List<LfBus> buses);
+    SelectedSlackBus select(List<LfBus> buses, int limit);
 
     static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds, double plausibleActivePowerLimit) {
         Objects.requireNonNull(mode);
