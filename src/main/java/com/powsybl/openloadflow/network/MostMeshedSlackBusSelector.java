@@ -31,6 +31,7 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
             .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
             .sorted(Comparator.comparingInt((LfBus bus) -> bus.getBranches().size())
                     .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
+            .limit(limit)
             .collect(Collectors.toList());
 
         return new SelectedSlackBus(slackBuses, "Most meshed bus");
