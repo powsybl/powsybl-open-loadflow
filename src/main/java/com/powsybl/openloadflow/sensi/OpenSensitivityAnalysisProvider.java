@@ -155,7 +155,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
             OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
-            NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
+            NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network, lfParametersExt.getNominalVoltagePerUnitResolution());
 
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance

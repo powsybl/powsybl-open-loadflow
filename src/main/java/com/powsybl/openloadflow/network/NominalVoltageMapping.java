@@ -27,8 +27,6 @@ public class NominalVoltageMapping {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NominalVoltageMapping.class);
 
-    private static final double NOMINAL_VOLTAGE_RANGE = 0.1;
-
     public static final NominalVoltageMapping NONE = new NominalVoltageMapping();
 
     private final Map<Double, Double> mapping;
@@ -62,7 +60,7 @@ public class NominalVoltageMapping {
         return nominalVoltageHistogram;
     }
 
-    public static NominalVoltageMapping create(Network network) {
+    public static NominalVoltageMapping create(Network network, double resolution) {
         Objects.requireNonNull(network);
 
         Map<Double, Double> nominalVoltageMapping = new HashMap<>();
@@ -77,7 +75,7 @@ public class NominalVoltageMapping {
                 while (it.hasNext()) {
                     var e = it.next();
                     double nominalV2 = e.getKey();
-                    if (nominalV1 != nominalV2 && Math.abs(nominalV1 - nominalV2) / nominalV1 < NOMINAL_VOLTAGE_RANGE) {
+                    if (nominalV1 != nominalV2 && Math.abs(nominalV1 - nominalV2) / nominalV1 < resolution) {
                         MutableInt count1 = nominalVoltageHistogram.get(nominalV1);
                         MutableInt count2 = e.getValue();
                         if (count1.getValue() > count2.getValue()) {

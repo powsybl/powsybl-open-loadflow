@@ -132,10 +132,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.allOf(LoadingLimitType.class));
 
-        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
+
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network, parametersExt.getNominalVoltagePerUnitResolution());
 
         // CosPhi for DC power to current conversion
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
         DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, parametersExt.getDcPowerFactor(), nominalVoltageMapping);
         for (Branch<?> b : network.getBranches()) {
             context.getFactors().add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,

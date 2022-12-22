@@ -74,7 +74,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
-        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network, lfParametersExt.getNominalVoltagePerUnitResolution());
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();

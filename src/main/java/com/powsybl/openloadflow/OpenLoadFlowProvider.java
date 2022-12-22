@@ -98,7 +98,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getType).collect(Collectors.toList()));
         }
 
-        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network, parametersExt.getNominalVoltagePerUnitResolution());
 
         List<AcLoadFlowResult> results;
         if (parametersExt.isNetworkCacheEnabled()) {
@@ -174,7 +174,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
 
-        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network, parametersExt.getNominalVoltagePerUnitResolution());
 
         List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, nominalVoltageMapping, new LfNetworkLoaderImpl(), dcParameters, reporter);
 
