@@ -15,6 +15,11 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
+ * Nominal voltage mapping. All nominal voltages that are closed (10% threshold) are merged together so that we only
+ * keep ones containing the biggest number of buses, resulting a set of common nominal voltages and discarding unusual
+ * and rare ones. The purpose of this is to avoid the addition a voltage ratio to line with a small difference of
+ * nominal voltage between side 1 and 2.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class NominalVoltageMapping {
