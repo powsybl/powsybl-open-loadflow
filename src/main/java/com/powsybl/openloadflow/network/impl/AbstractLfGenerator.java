@@ -185,7 +185,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
                                      boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                                     double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+                                     double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                                     NominalVoltageMapping nominalVoltageMapping) {
         if (!checkVoltageControlConsistency(reactiveLimits, report, reactiveRangeCheckMode)) {
             return;
         }
@@ -201,11 +202,11 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
         }
-        if (!checkTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage)) {
+        if (!checkTargetV(targetV / nominalVoltageMapping.get(regulatingTerminal), report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage)) {
             return;
         }
         this.controlledBusId = controlledBus.getId();
-        this.targetV = targetV / regulatingTerminal.getVoltageLevel().getNominalV();
+        this.targetV = targetV / nominalVoltageMapping.get(regulatingTerminal);
         this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 

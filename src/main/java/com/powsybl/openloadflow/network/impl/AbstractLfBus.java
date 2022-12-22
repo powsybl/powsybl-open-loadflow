@@ -229,17 +229,20 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addGenerator(Generator generator, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                      LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
-        add(LfGeneratorImpl.create(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode));
+                      LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage,
+                      OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode, NominalVoltageMapping nominalVoltageMapping) {
+        add(LfGeneratorImpl.create(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report,
+                minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, nominalVoltageMapping));
     }
 
     void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl,
                                  boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                  double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
-                                 boolean svcMonitoringVoltage) {
+                                 boolean svcMonitoringVoltage, NominalVoltageMapping nominalVoltageMapping) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
             LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, voltagePerReactivePowerControl,
-                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, svcMonitoringVoltage);
+                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, svcMonitoringVoltage,
+                    nominalVoltageMapping);
             add(lfSvc);
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
@@ -251,29 +254,32 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void addVscConverterStation(VscConverterStation vscCs, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
-        add(LfVscConverterStationImpl.create(vscCs, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode));
+                                double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                                NominalVoltageMapping nominalVoltageMapping) {
+        add(LfVscConverterStationImpl.create(vscCs, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage,
+                maxPlausibleTargetVoltage, reactiveRangeCheckMode, nominalVoltageMapping));
     }
 
     void addBattery(Battery generator, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
         add(LfBatteryImpl.create(generator, network, plausibleActivePowerLimit, report));
     }
 
-    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl) {
+    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl,
+                              NominalVoltageMapping nominalVoltageMapping) {
         if (!isShuntVoltageControl && !shuntCompensators.isEmpty()) {
-            shunt = new LfShuntImpl(shuntCompensators, network, this, false);
+            shunt = new LfShuntImpl(shuntCompensators, network, this, false, nominalVoltageMapping);
         } else {
             List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
                     .filter(ShuntCompensator::isVoltageRegulatorOn)
                     .collect(Collectors.toList());
             if (!controllerShuntCompensators.isEmpty()) {
-                controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true);
+                controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true, nominalVoltageMapping);
             }
             List<ShuntCompensator> fixedShuntCompensators = shuntCompensators.stream()
                     .filter(sc -> !sc.isVoltageRegulatorOn())
                     .collect(Collectors.toList());
             if (!fixedShuntCompensators.isEmpty()) {
-                shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false);
+                shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false, nominalVoltageMapping);
             }
         }
     }

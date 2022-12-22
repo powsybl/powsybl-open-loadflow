@@ -51,13 +51,17 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean zeroImpedance;
 
-    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, boolean dc, double lowImpedanceThreshold) {
+    protected final NominalVoltageMapping nominalVoltageMapping;
+
+    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, boolean dc, double lowImpedanceThreshold,
+                               NominalVoltageMapping nominalVoltageMapping) {
         super(network);
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
         this.piModel.setBranch(this);
         zeroImpedance = isZeroImpedanceBranch(piModel, dc, lowImpedanceThreshold);
+        this.nominalVoltageMapping = Objects.requireNonNull(nominalVoltageMapping);
     }
 
     protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {
@@ -171,7 +175,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected void checkTargetDeadband(RatioTapChanger rtc) {
         if (rtc.getTargetDeadband() != 0) {
-            double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
+            double nominalV = nominalVoltageMapping.get(rtc.getRegulationTerminal());
             double v = voltageControl.getControlled().getV();
             double distance = Math.abs(v - voltageControl.getTargetValue()); // in per unit system
             if (distance > rtc.getTargetDeadband() / 2) {

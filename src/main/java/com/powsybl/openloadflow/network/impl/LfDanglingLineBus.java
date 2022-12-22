@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.NominalVoltageMapping;
 
 import java.util.List;
 
@@ -22,15 +23,17 @@ public class LfDanglingLineBus extends AbstractLfBus {
     private final double nominalV;
 
     public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, boolean reactiveLimits, LfNetworkLoadingReport report,
-                             double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+                             double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                             NominalVoltageMapping nominalVoltageMapping) {
         super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine), false);
         this.danglingLineRef = new Ref<>(danglingLine);
-        nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
+        nominalV = nominalVoltageMapping.get(danglingLine.getTerminal());
         loadTargetP += danglingLine.getP0();
         loadTargetQ += danglingLine.getQ0();
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
-            add(new LfDanglingLineGenerator(danglingLine, network, getId(), reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode));
+            add(new LfDanglingLineGenerator(danglingLine, network, getId(), reactiveLimits, report, minPlausibleTargetVoltage,
+                    maxPlausibleTargetVoltage, reactiveRangeCheckMode, nominalVoltageMapping));
         }
     }
 

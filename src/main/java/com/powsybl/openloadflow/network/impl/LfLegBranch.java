@@ -24,8 +24,8 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
     private final Ref<ThreeWindingsTransformer.Leg> legRef;
 
     protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
-                          boolean dc, double lowImpedanceThreshold) {
-        super(network, bus1, bus0, piModel, dc, lowImpedanceThreshold);
+                          boolean dc, double lowImpedanceThreshold, NominalVoltageMapping nominalVoltageMapping) {
+        super(network, bus1, bus0, piModel, dc, lowImpedanceThreshold, nominalVoltageMapping);
         this.twtRef = new Ref<>(twt);
         this.legRef = new Ref<>(leg);
     }
@@ -39,7 +39,8 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     public static LfLegBranch create(LfNetwork network, LfBus bus1, LfBus bus0, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
-                                     boolean twtSplitShuntAdmittance, boolean dc, double lowImpedanceThreshold) {
+                                     boolean twtSplitShuntAdmittance, boolean dc, double lowImpedanceThreshold,
+                                     NominalVoltageMapping nominalVoltageMapping) {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
@@ -48,7 +49,7 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
 
         double nominalV2 = twt.getRatedU0();
         double zb = nominalV2 * nominalV2 / PerUnit.SB;
-        double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
+        double baseRatio = Transformers.getRatioPerUnitBase(leg, twt, nominalVoltageMapping);
         PhaseTapChanger ptc = leg.getPhaseTapChanger();
         if (ptc != null
                 && ptc.isRegulating()
@@ -88,7 +89,7 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
-        return new LfLegBranch(network, bus1, bus0, piModel, twt, leg, dc, lowImpedanceThreshold);
+        return new LfLegBranch(network, bus1, bus0, piModel, twt, leg, dc, lowImpedanceThreshold, nominalVoltageMapping);
     }
 
     private int getLegNum() {
@@ -175,7 +176,7 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
 
         if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
             RatioTapChanger rtc = leg.getRatioTapChanger();
-            double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
+            double baseRatio = Transformers.getRatioPerUnitBase(leg, twt, nominalVoltageMapping);
             double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;
             double ptcRho = leg.getPhaseTapChanger() != null ? leg.getPhaseTapChanger().getCurrentStep().getRho() : 1;
             updateTapPosition(rtc, ptcRho, rho);

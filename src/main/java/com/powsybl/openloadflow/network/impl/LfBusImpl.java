@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.security.results.BusResult;
 
 import java.util.List;
@@ -33,10 +34,10 @@ public class LfBusImpl extends AbstractLfBus {
     private final boolean breakers;
 
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean distributedOnConformLoad,
-                        boolean participating, boolean breakers) {
+                        boolean participating, boolean breakers, NominalVoltageMapping nominalVoltageMapping) {
         super(network, v, angle, distributedOnConformLoad);
         this.busRef = new Ref<>(bus);
-        nominalV = bus.getVoltageLevel().getNominalV();
+        nominalV = nominalVoltageMapping.get(bus);
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
@@ -44,9 +45,9 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     public static LfBusImpl create(Bus bus, LfNetwork network, boolean distributedOnConformLoad, boolean participating,
-                                   boolean breakers) {
+                                   boolean breakers, NominalVoltageMapping nominalVoltageMapping) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), distributedOnConformLoad, participating, breakers);
+        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), distributedOnConformLoad, participating, breakers, nominalVoltageMapping);
     }
 
     private Bus getBus() {

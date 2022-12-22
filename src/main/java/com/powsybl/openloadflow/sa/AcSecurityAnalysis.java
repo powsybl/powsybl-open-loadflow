@@ -74,11 +74,14 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network.getBusView().getBuses());
+
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen,
                 lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation());
+                lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation(),
+                nominalVoltageMapping);
 
         // check actions validity
         checkActions(network, actions);

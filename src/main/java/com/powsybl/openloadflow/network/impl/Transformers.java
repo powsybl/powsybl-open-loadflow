@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.network.SimplePiModel;
 
 import java.util.Objects;
@@ -196,15 +197,16 @@ public final class Transformers {
         throw new PowsyblException("No tap position found (should never happen)");
     }
 
-    public static double getRatioPerUnitBase(ThreeWindingsTransformer.Leg leg, ThreeWindingsTransformer twt) {
-        double nominalV1 = leg.getTerminal().getVoltageLevel().getNominalV();
+    public static double getRatioPerUnitBase(ThreeWindingsTransformer.Leg leg, ThreeWindingsTransformer twt,
+                                             NominalVoltageMapping nominalVoltageMapping) {
+        double nominalV1 = nominalVoltageMapping.get(leg.getTerminal());
         double nominalV2 = twt.getRatedU0();
         return nominalV2 / nominalV1;
     }
 
-    public static double getRatioPerUnitBase(Branch<?> branch) {
-        double nominalV1 = branch.getTerminal1().getVoltageLevel().getNominalV();
-        double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
+    public static double getRatioPerUnitBase(Branch<?> branch, NominalVoltageMapping nominalVoltageMapping) {
+        double nominalV1 = nominalVoltageMapping.get(branch.getTerminal1());
+        double nominalV2 = nominalVoltageMapping.get(branch.getTerminal2());
         return nominalV2 / nominalV1;
     }
 }

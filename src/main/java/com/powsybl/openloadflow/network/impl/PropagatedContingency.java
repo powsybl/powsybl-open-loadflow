@@ -114,12 +114,12 @@ public class PropagatedContingency {
     public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies,
                                                          Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
                                                          boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
-                                                         boolean contingencyPropagation) {
+                                                         boolean contingencyPropagation, NominalVoltageMapping nominalVoltageMapping) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, contingencyPropagation);
+                    PropagatedContingency.create(network, contingency, index, shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, contingencyPropagation, nominalVoltageMapping);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
@@ -127,7 +127,8 @@ public class PropagatedContingency {
     }
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean shuntCompensatorVoltageControlOn,
-                                                boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation, boolean contingencyPropagation) {
+                                                boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation, boolean contingencyPropagation,
+                                                NominalVoltageMapping nominalVoltageMapping) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
 
@@ -177,7 +178,7 @@ public class PropagatedContingency {
                     if (shuntCompensatorVoltageControlOn && shunt.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + shunt.getId() + "' with voltage control on: not supported yet");
                     }
-                    double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
+                    double nominalV = nominalVoltageMapping.get(shunt.getTerminal());
                     shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(-shunt.getG() * nominalV * nominalV / PerUnit.SB,
                             shunt.getB() * nominalV * nominalV / PerUnit.SB));
                     break;

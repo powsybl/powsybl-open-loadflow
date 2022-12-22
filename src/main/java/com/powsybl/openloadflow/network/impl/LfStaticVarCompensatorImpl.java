@@ -15,6 +15,7 @@ import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfStaticVarCompensator;
+import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,10 +47,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                        boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                        double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
-                                       boolean svcMonitoringVoltage) {
+                                       boolean svcMonitoringVoltage, NominalVoltageMapping nominalVoltageMapping) {
         super(network, 0);
         this.svcRef = new Ref<>(svc);
-        this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
+        this.nominalV = nominalVoltageMapping.get(svc.getTerminal());
         this.reactiveLimits = new MinMaxReactiveLimits() {
 
             @Override
@@ -82,7 +83,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.VOLTAGE) {
             setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), breakers,
-                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode,
+                    nominalVoltageMapping);
             if (voltagePerReactivePowerControl && svc.getExtension(VoltagePerReactivePowerControl.class) != null) {
                 if (svcMonitoringVoltage && svc.getExtension(StandbyAutomaton.class) == null) {
                     this.slope = svc.getExtension(VoltagePerReactivePowerControl.class).getSlope() * PerUnit.SB / nominalV;
@@ -115,10 +117,11 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, boolean voltagePerReactivePowerControl,
                                                     boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
                                                     double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
-                                                    boolean svcMonitoringVoltage) {
+                                                    boolean svcMonitoringVoltage, NominalVoltageMapping nominalVoltageMapping) {
         Objects.requireNonNull(svc);
         return new LfStaticVarCompensatorImpl(svc, network, bus, voltagePerReactivePowerControl, breakers, reactiveLimits,
-                report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, svcMonitoringVoltage);
+                report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, svcMonitoringVoltage,
+                nominalVoltageMapping);
     }
 
     private StaticVarCompensator getSvc() {

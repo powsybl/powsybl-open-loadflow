@@ -95,7 +95,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         }
     }
 
-    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean voltageControlCapability) {
+    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean voltageControlCapability,
+                       NominalVoltageMapping nominalVoltageMapping) {
         // if withVoltageControl equals to true, all shunt compensators that are listed must control voltage.
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
@@ -106,7 +107,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         }
         this.bus = Objects.requireNonNull(bus);
         this.voltageControlCapability = voltageControlCapability;
-        double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
+        double nominalV = nominalVoltageMapping.get(shuntCompensators.get(0).getTerminal()); // has to be the same for all shunts
         zb = PerUnit.zb(nominalV);
         b = zb * shuntCompensators.stream()
                 .mapToDouble(ShuntCompensator::getB)

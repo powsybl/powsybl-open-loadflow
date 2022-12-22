@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -24,17 +25,18 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
     private final Ref<DanglingLine> danglingLineRef;
 
     public LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                   double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+                                   double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                                   NominalVoltageMapping nominalVoltageMapping) {
         super(network, danglingLine.getGeneration().getTargetP());
         this.danglingLineRef = new Ref<>(danglingLine);
 
         // local control only
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(reactiveLimits, report, reactiveRangeCheckMode)) {
             // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
-            if (checkTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(),
+            if (checkTargetV(danglingLine.getGeneration().getTargetV() / nominalVoltageMapping.get(danglingLine.getTerminal()),
                     report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage)) {
                 this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
-                this.targetV = danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV();
+                this.targetV = danglingLine.getGeneration().getTargetV() / nominalVoltageMapping.get(danglingLine.getTerminal());
                 this.generatorControlType = GeneratorControlType.VOLTAGE;
             }
         }

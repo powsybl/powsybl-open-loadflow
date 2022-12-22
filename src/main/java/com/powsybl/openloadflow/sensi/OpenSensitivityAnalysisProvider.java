@@ -34,6 +34,7 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.openloadflow.util.Reports;
@@ -154,6 +155,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
             OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
+            NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network.getBusView().getBuses());
+
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
@@ -161,7 +164,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false,
                     sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                     sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc(),
-                    false);
+                    false, nominalVoltageMapping);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 

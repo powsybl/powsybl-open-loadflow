@@ -15,10 +15,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.network.BoundaryFactory;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -832,7 +829,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("c1", new BranchContingency("L1")));
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies,
-                Collections.emptySet(), false, false, false, false);
+                Collections.emptySet(), false, false, false, false, NominalVoltageMapping.NONE);
         assertEquals(1, propagatedContingencies.size());
     }
 

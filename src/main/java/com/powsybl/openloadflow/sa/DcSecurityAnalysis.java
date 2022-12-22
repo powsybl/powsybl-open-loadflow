@@ -55,11 +55,13 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         private final DefaultLimitViolationDetector detector;
         private final double dcPowerFactor;
         private final Map<String, PostContingencyResult> postContingencyResultPerContingencyId = new HashMap<>();
+        private final NominalVoltageMapping nominalVoltageMapping;
 
         public DcSecurityAnalysisContext(SecurityAnalysisParameters saParameters,
                                          List<Contingency> contingencyList,
                                          DefaultLimitViolationDetector violationDetector,
-                                         double dcPowerFactor) {
+                                         double dcPowerFactor,
+                                         NominalVoltageMapping nominalVoltageMapping) {
             this.parameters = saParameters;
             this.contingencies = contingencyList;
             this.sensitivityFactors = new ArrayList<>();
@@ -67,6 +69,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             this.preContingencyLimitViolationsMap = new HashMap<>();
             this.detector = violationDetector;
             this.dcPowerFactor = dcPowerFactor;
+            this.nominalVoltageMapping = Objects.requireNonNull(nominalVoltageMapping);
         }
 
         List<SensitivityFactor> getFactors() {
@@ -100,6 +103,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         Map<String, PostContingencyResult> getPostContingencyResultPerContingencyId() {
             return postContingencyResultPerContingencyId;
         }
+
+        NominalVoltageMapping getNominalVoltageMapping() {
+            return nominalVoltageMapping;
+        }
     }
 
     protected DcSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
@@ -127,7 +134,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         // CosPhi for DC power to current conversion
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, parametersExt.getDcPowerFactor());
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network.getBusView().getBuses());
+        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, parametersExt.getDcPowerFactor(), nominalVoltageMapping);
         for (Branch<?> b : network.getBranches()) {
             context.getFactors().add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
                     variableId, false, contingencyContext));
@@ -151,8 +159,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             SensitivityFactor factor = context.getFactors().get(sensValue.getFactorIndex());
             String branchId = factor.getFunctionId();
             Branch<?> branch = network.getBranch(branchId);
-            double i1 = currentActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal1().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
-            double i2 = currentActivePower(Math.abs(sensValue.getFunctionReference()), branch.getTerminal2().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
+            double i1 = currentActivePower(Math.abs(sensValue.getFunctionReference()), context.getNominalVoltageMapping().get(branch.getTerminal1()), context.getDcPowerFactor());
+            double i2 = currentActivePower(Math.abs(sensValue.getFunctionReference()), context.getNominalVoltageMapping().get(branch.getTerminal2()), context.getDcPowerFactor());
             BranchResult branchResult = new BranchResult(branchId, sensValue.getFunctionReference(), Double.NaN, i1, -sensValue.getFunctionReference(), Double.NaN, i2, Double.NaN);
             context.getPreContingencyAllBranchResults().put(branchId, branchResult);
             context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(sensValue.getFunctionReference()), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
@@ -182,8 +190,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 SensitivityFactor factor = context.getFactors().get(v.getFactorIndex());
                 String branchId = factor.getFunctionId();
                 Branch<?> branch = network.getBranch(branchId);
-                double i1 = currentActivePower(Math.abs(v.getFunctionReference()), branch.getTerminal1().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
-                double i2 = currentActivePower(Math.abs(v.getFunctionReference()), branch.getTerminal2().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
+                double i1 = currentActivePower(Math.abs(v.getFunctionReference()), context.getNominalVoltageMapping().get(branch.getTerminal1()), context.getDcPowerFactor());
+                double i2 = currentActivePower(Math.abs(v.getFunctionReference()), context.getNominalVoltageMapping().get(branch.getTerminal2()), context.getDcPowerFactor());
                 if (isBranchMonitored(branchId, contingency)) {
                     BranchResult preContingencyBranchResult = context.getPreContingencyAllBranchResults().get(branchId);
                     double flowTransfer = Double.isNaN(branchInContingencyP1) ? Double.NaN : (v.getFunctionReference() - preContingencyBranchResult.getP1()) / branchInContingencyP1;
@@ -215,7 +223,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, false,
                 context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                false, false);
+                false, false, context.getNominalVoltageMapping());
 
         // check actions validity
         checkActions(network, actions);

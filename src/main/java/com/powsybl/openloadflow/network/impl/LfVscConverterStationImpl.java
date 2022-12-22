@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfVscConverterStation;
+import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -25,7 +26,8 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     private final double lossFactor;
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                     double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+                                     double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                                     NominalVoltageMapping nominalVoltageMapping) {
         super(network, HvdcConverterStations.getConverterStationTargetP(station));
         this.stationRef = new Ref<>(station);
         this.lossFactor = station.getLossFactor();
@@ -33,14 +35,17 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         // local control only
         if (station.isVoltageRegulatorOn()) {
             setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(),
-                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode,
+                    nominalVoltageMapping);
         }
     }
 
     public static LfVscConverterStationImpl create(VscConverterStation station, LfNetwork network, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                                   double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+                                                   double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
+                                                   NominalVoltageMapping nominalVoltageMapping) {
         Objects.requireNonNull(station);
-        return new LfVscConverterStationImpl(station, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+        return new LfVscConverterStationImpl(station, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage,
+                maxPlausibleTargetVoltage, reactiveRangeCheckMode, nominalVoltageMapping);
     }
 
     private VscConverterStation getStation() {

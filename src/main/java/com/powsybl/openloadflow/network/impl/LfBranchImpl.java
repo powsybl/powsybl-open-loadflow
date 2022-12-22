@@ -23,14 +23,16 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private final Ref<Branch<?>> branchRef;
 
-    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch, boolean dc, double lowImpedanceThreshold) {
-        super(network, bus1, bus2, piModel, dc, lowImpedanceThreshold);
+    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch, boolean dc, double lowImpedanceThreshold,
+                           NominalVoltageMapping nominalVoltageMapping) {
+        super(network, bus1, bus2, piModel, dc, lowImpedanceThreshold, nominalVoltageMapping);
         this.branchRef = new Ref<>(branch);
     }
 
-    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean dc, double lowImpedanceThreshold) {
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean dc,
+                                           double lowImpedanceThreshold, NominalVoltageMapping nominalVoltageMapping) {
         PiModel piModel = new SimplePiModel()
-                .setR1(1 / Transformers.getRatioPerUnitBase(line))
+                .setR1(1 / Transformers.getRatioPerUnitBase(line, nominalVoltageMapping))
                 .setR(line.getR() / zb)
                 .setX(line.getX() / zb)
                 .setG1(line.getG1() * zb)
@@ -38,14 +40,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, line, dc, lowImpedanceThreshold);
+        return new LfBranchImpl(network, bus1, bus2, piModel, line, dc, lowImpedanceThreshold, nominalVoltageMapping);
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
-                                                  boolean twtSplitShuntAdmittance, boolean dc, double lowImpedanceThreshold) {
+                                                  boolean twtSplitShuntAdmittance, boolean dc, double lowImpedanceThreshold,
+                                                  NominalVoltageMapping nominalVoltageMapping) {
         PiModel piModel = null;
 
-        double baseRatio = Transformers.getRatioPerUnitBase(twt);
+        double baseRatio = Transformers.getRatioPerUnitBase(twt, nominalVoltageMapping);
 
         PhaseTapChanger ptc = twt.getPhaseTapChanger();
         if (ptc != null
@@ -86,19 +89,19 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, twt, dc, lowImpedanceThreshold);
+        return new LfBranchImpl(network, bus1, bus2, piModel, twt, dc, lowImpedanceThreshold, nominalVoltageMapping);
     }
 
     public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
-                                      boolean dc, double lowImpedanceThreshold) {
+                                      boolean dc, double lowImpedanceThreshold, NominalVoltageMapping nominalVoltageMapping) {
         Objects.requireNonNull(branch);
-        double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
+        double nominalV2 = nominalVoltageMapping.get(branch.getTerminal2());
         double zb = PerUnit.zb(nominalV2);
         if (branch instanceof Line) {
-            return createLine((Line) branch, network, bus1, bus2, zb, dc, lowImpedanceThreshold);
+            return createLine((Line) branch, network, bus1, bus2, zb, dc, lowImpedanceThreshold, nominalVoltageMapping);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance, dc, lowImpedanceThreshold);
+            return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance, dc, lowImpedanceThreshold, nominalVoltageMapping);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
@@ -132,8 +135,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
             flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
         }
-        double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
-        double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
+        double currentScale1 = PerUnit.ib(nominalVoltageMapping.get(branch.getTerminal1()));
+        double currentScale2 = PerUnit.ib(nominalVoltageMapping.get(branch.getTerminal2()));
         var branchResult = new BranchResult(getId(), p1.eval() * PerUnit.SB, q1.eval() * PerUnit.SB, currentScale1 * i1.eval(),
                                             p2.eval() * PerUnit.SB, q2.eval() * PerUnit.SB, currentScale2 * i2.eval(), flowTransfer);
         if (createExtension) {
@@ -190,7 +193,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             RatioTapChanger rtc = twt.getRatioTapChanger();
-            double baseRatio = Transformers.getRatioPerUnitBase(twt);
+            double baseRatio = Transformers.getRatioPerUnitBase(twt, nominalVoltageMapping);
             double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
             double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
             updateTapPosition(rtc, ptcRho, rho);
