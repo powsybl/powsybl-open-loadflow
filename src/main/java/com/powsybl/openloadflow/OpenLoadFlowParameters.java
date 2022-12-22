@@ -115,7 +115,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String STATE_VECTOR_SCALING_MODE_NAME = "stateVectorScalingMode";
 
-    public static final String NOMINAL_VOLTAGE_RESOLUTION_PER_UNIT_NAME = "nominalVoltagePerUnitResolution";
+    public static final String NOMINAL_VOLTAGE_PER_UNIT_RESOLUTION_NAME = "nominalVoltagePerUnitResolution";
 
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
@@ -141,7 +141,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          NETWORK_CACHE_ENABLED_NAME,
                                                                          SVC_VOLTAGE_MONITORING_NAME,
                                                                          STATE_VECTOR_SCALING_MODE_NAME,
-                                                                         NOMINAL_VOLTAGE_RESOLUTION_PER_UNIT_NAME);
+                                                                         NOMINAL_VOLTAGE_PER_UNIT_RESOLUTION_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -496,7 +496,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE))
                 .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
                 .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE))
-                .setNominalVoltagePerUnitResolution(config.getDoubleProperty(NOMINAL_VOLTAGE_RESOLUTION_PER_UNIT_NAME, DEFAULT_NOMINAL_VOLTAGE_PER_UNIT_RESOLUTION)));
+                .setNominalVoltagePerUnitResolution(config.getDoubleProperty(NOMINAL_VOLTAGE_PER_UNIT_RESOLUTION_NAME, DEFAULT_NOMINAL_VOLTAGE_PER_UNIT_RESOLUTION)));
         return parameters;
     }
 
@@ -553,7 +553,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setSvcVoltageMonitoring(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(STATE_VECTOR_SCALING_MODE_NAME))
                 .ifPresent(prop -> this.setStateVectorScalingMode(StateVectorScalingMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(NOMINAL_VOLTAGE_RESOLUTION_PER_UNIT_NAME))
+        Optional.ofNullable(properties.get(NOMINAL_VOLTAGE_PER_UNIT_RESOLUTION_NAME))
                 .ifPresent(prop -> this.setNominalVoltagePerUnitResolution(Double.parseDouble(prop)));
         return this;
     }
