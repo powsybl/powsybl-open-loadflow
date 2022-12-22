@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 
@@ -28,14 +29,18 @@ public class AcLoadFlowFromCache {
 
     private final Network network;
 
+    private final NominalVoltageMapping nominalVoltageMapping;
+
     private final LoadFlowParameters parameters;
 
     private final AcLoadFlowParameters acParameters;
 
     private final Reporter reporter;
 
-    public AcLoadFlowFromCache(Network network, LoadFlowParameters parameters, AcLoadFlowParameters acParameters, Reporter reporter) {
+    public AcLoadFlowFromCache(Network network, NominalVoltageMapping nominalVoltageMapping, LoadFlowParameters parameters,
+                               AcLoadFlowParameters acParameters, Reporter reporter) {
         this.network = Objects.requireNonNull(network);
+        this.nominalVoltageMapping = Objects.requireNonNull(nominalVoltageMapping);
         this.parameters = Objects.requireNonNull(parameters);
         this.acParameters = Objects.requireNonNull(acParameters);
         this.reporter = Objects.requireNonNull(reporter);
@@ -43,7 +48,7 @@ public class AcLoadFlowFromCache {
 
     private List<AcLoadFlowContext> initContexts(NetworkCache.Entry entry) {
         List<AcLoadFlowContext> contexts;
-        try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), reporter)) {
+        try (LfNetworkList lfNetworkList = Networks.load(network, nominalVoltageMapping, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), reporter)) {
             contexts = lfNetworkList.getList()
                     .stream()
                     .map(n -> new AcLoadFlowContext(n, acParameters))

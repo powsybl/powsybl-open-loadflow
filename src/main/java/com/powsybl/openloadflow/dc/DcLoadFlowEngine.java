@@ -13,10 +13,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoader;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -191,8 +188,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         return Pair.of(succeeded, targetVectorArray);
     }
 
-    public static <T> List<DcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter)
+    public static <T> List<DcLoadFlowResult> run(T network, NominalVoltageMapping nominalVoltageMapping, LfNetworkLoader<T> networkLoader, DcLoadFlowParameters parameters, Reporter reporter) {
+        return LfNetwork.load(network, nominalVoltageMapping, networkLoader, parameters.getNetworkParameters(), reporter)
                 .stream()
                 .map(n -> {
                     if (n.isValid()) {

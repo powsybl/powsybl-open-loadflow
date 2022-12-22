@@ -155,7 +155,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
             OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
-            NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network.getBusView().getBuses());
+            NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
 
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
@@ -200,9 +200,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             }
 
             if (lfParameters.isDc()) {
-                dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+                dcSensitivityAnalysis.analyse(network, nominalVoltageMapping, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
             } else {
-                acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+                acSensitivityAnalysis.analyse(network, nominalVoltageMapping, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
             }
         }, computationManager.getExecutor());
     }

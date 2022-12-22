@@ -30,6 +30,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
@@ -97,12 +98,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getType).collect(Collectors.toList()));
         }
 
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
+
         List<AcLoadFlowResult> results;
         if (parametersExt.isNetworkCacheEnabled()) {
-            results = new AcLoadFlowFromCache(network, parameters, acParameters, reporter)
+            results = new AcLoadFlowFromCache(network, nominalVoltageMapping, parameters, acParameters, reporter)
                     .run();
         } else {
-            results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
+            results = AcloadFlowEngine.run(network, nominalVoltageMapping, new LfNetworkLoaderImpl(), acParameters, reporter);
         }
 
         Networks.resetState(network);
@@ -171,7 +174,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
 
-        List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reporter);
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
+
+        List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, nominalVoltageMapping, new LfNetworkLoaderImpl(), dcParameters, reporter);
 
         Networks.resetState(network);
 

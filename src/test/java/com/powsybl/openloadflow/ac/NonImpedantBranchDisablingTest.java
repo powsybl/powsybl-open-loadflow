@@ -112,7 +112,7 @@ class NonImpedantBranchDisablingTest {
                                                             new NaiveGraphConnectivityFactory<>(LfElement::getNum),
                                                             true,
                                                             false);
-        try (LfNetworkList lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, NominalVoltageMapping.NONE, acLoadFlowParameters.getNetworkParameters(), Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (AcLoadFlowContext context = new AcLoadFlowContext(largestNetwork, acLoadFlowParameters)) {

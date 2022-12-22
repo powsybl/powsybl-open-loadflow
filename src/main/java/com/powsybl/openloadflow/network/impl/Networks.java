@@ -102,8 +102,8 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters);
     }
 
-    public static List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, new LfNetworkLoaderImpl(), parameters, reporter);
+    public static List<LfNetwork> load(Network network, NominalVoltageMapping nominalVoltageMapping, LfNetworkParameters parameters, Reporter reporter) {
+        return LfNetwork.load(network, nominalVoltageMapping, new LfNetworkLoaderImpl(), parameters, reporter);
     }
 
     private static void retainAndCloseNecessarySwitches(Network network, Set<Switch> switchesToOpen, Set<Switch> switchesToClose) {
@@ -137,10 +137,10 @@ public final class Networks {
         removedBranches.forEach(branch -> branch.setDisabled(true));
     }
 
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
+    public static LfNetworkList load(Network network, NominalVoltageMapping nominalVoltageMapping, LfNetworkParameters networkParameters,
                                      Set<Switch> switchesToOpen, Set<Switch> switchesToClose, Reporter reporter) {
         if (switchesToOpen.isEmpty() && switchesToClose.isEmpty()) {
-            return new LfNetworkList(load(network, networkParameters, reporter));
+            return new LfNetworkList(load(network, nominalVoltageMapping, networkParameters, reporter));
         } else {
             if (!networkParameters.isBreakers()) {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");
@@ -155,7 +155,7 @@ public final class Networks {
             // and close switches that could be closed during the simulation
             retainAndCloseNecessarySwitches(network, switchesToOpen, switchesToClose);
 
-            List<LfNetwork> lfNetworks = load(network, networkParameters, reporter);
+            List<LfNetwork> lfNetworks = load(network, nominalVoltageMapping, networkParameters, reporter);
 
             if (!switchesToClose.isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {

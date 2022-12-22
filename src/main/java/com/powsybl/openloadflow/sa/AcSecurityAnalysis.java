@@ -74,7 +74,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
-        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network.getBusView().getBuses());
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
@@ -93,7 +93,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
 
         // create networks including all necessary switches
-        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, nominalVoltageMapping, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {
 
             // run simulation on largest network
             SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)

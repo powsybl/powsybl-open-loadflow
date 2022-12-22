@@ -132,9 +132,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.allOf(LoadingLimitType.class));
 
+        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network);
+
         // CosPhi for DC power to current conversion
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network.getBusView().getBuses());
         DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, parametersExt.getDcPowerFactor(), nominalVoltageMapping);
         for (Branch<?> b : network.getBranches()) {
             context.getFactors().add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
@@ -239,7 +240,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 parametersExt, matrixFactory, connectivityFactory, false);
         dcParameters.getNetworkParameters().setBreakers(breakers);
 
-        try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, context.getNominalVoltageMapping(), dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
             return lfNetworks.getLargest().filter(LfNetwork::isValid)
                     .map(largestNetwork -> runActionSimulations(context, largestNetwork, dcParameters, propagatedContingencies,
                             operatorStrategies, actionsById, neededActions))

@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -52,21 +53,21 @@ public class NominalVoltageMapping {
         return get(Objects.requireNonNull(bus).getVoltageLevel().getNominalV());
     }
 
-    private static Map<Double, MutableInt> createHistogram(Iterable<Bus> buses) {
+    private static Map<Double, MutableInt> createHistogram(Network network) {
         Map<Double, MutableInt> nominalVoltageHistogram = new TreeMap<>();
-        for (var bus : buses) {
-            nominalVoltageHistogram.computeIfAbsent(bus.getVoltageLevel().getNominalV(), k -> new MutableInt())
+        for (var vl : network.getVoltageLevels()) {
+            nominalVoltageHistogram.computeIfAbsent(vl.getNominalV(), k -> new MutableInt())
                     .increment();
         }
         return nominalVoltageHistogram;
     }
 
-    public static NominalVoltageMapping create(Iterable<Bus> buses) {
-        Objects.requireNonNull(buses);
+    public static NominalVoltageMapping create(Network network) {
+        Objects.requireNonNull(network);
 
         Map<Double, Double> nominalVoltageMapping = new HashMap<>();
 
-        Map<Double, MutableInt> nominalVoltageHistogram = createHistogram(buses);
+        Map<Double, MutableInt> nominalVoltageHistogram = createHistogram(network);
         boolean change = true;
         while (change) {
             change = false;

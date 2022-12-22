@@ -18,11 +18,12 @@ public interface LfNetworkLoader<T> {
     /**
      * Load the given network object
      * @param network the network to load
+     * @param nominalVoltageMapping nominal voltage mapping
      * @param parameters parameters used to load the network
      * @param reporter the reporter used for functional logs
      * @return the list of LfNetwork, sorted by ascending connected components number then by ascending synchronous
      * components number (hence sorted by descending connected components size then by descending synchronous components
      * size)
      */
-    List<LfNetwork> load(T network, LfNetworkParameters parameters, Reporter reporter);
+    List<LfNetwork> load(T network, NominalVoltageMapping nominalVoltageMapping, LfNetworkParameters parameters, Reporter reporter);
 }
