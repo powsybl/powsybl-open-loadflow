@@ -247,24 +247,22 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return hvdcsById.get(id);
     }
 
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
-                            boolean transformerVoltageControlOn, boolean distributedOnConformLoad, boolean loadPowerFactorConstant,
-                            boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         for (LfHvdc hvdc : hvdcs) {
             hvdc.updateState();
         }
         for (LfBus bus : busesById.values()) {
-            bus.updateState(reactiveLimits, writeSlackBus, distributedOnConformLoad, loadPowerFactorConstant);
+            bus.updateState(parameters);
             for (LfGenerator generator : bus.getGenerators()) {
                 generator.updateState();
             }
-            bus.getShunt().ifPresent(shunt -> shunt.updateState(dc));
-            bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(dc));
+            bus.getShunt().ifPresent(shunt -> shunt.updateState(parameters));
+            bus.getControllerShunt().ifPresent(shunt -> shunt.updateState(parameters));
         }
         for (LfBranch branch : branches) {
-            branch.updateState(phaseShifterRegulationOn, transformerVoltageControlOn, dc);
+            branch.updateState(parameters);
         }
 
         stopwatch.stop();

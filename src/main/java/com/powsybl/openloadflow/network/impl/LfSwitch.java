@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
@@ -126,7 +127,7 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         // nothing to do
     }
 
