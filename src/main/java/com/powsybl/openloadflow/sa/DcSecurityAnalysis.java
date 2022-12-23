@@ -134,7 +134,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
 
-        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network, parametersExt.getNominalVoltagePerUnitResolution());
+        NominalVoltageMapping nominalVoltageMapping = SimpleNominalVoltageMapping.create(network, parametersExt.getNominalVoltagePerUnitResolution());
 
         // CosPhi for DC power to current conversion
         DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, parametersExt.getDcPowerFactor(), nominalVoltageMapping);

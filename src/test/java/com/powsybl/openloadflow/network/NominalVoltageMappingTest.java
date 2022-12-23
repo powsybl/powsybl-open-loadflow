@@ -53,10 +53,10 @@ class NominalVoltageMappingTest {
     @Test
     void testMapping() {
         // 25Kv should not be mapped because for instance VL7 nominal voltage is more than 10% greater
-        NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network, 0.1);
+        SimpleNominalVoltageMapping nominalVoltageMapping = SimpleNominalVoltageMapping.create(network, 0.1);
         assertEquals(Map.of(131d, 135d, 138d, 135d, 13d, 12d), nominalVoltageMapping.get());
 
-        nominalVoltageMapping = NominalVoltageMapping.create(network, 0.05);
+        nominalVoltageMapping = SimpleNominalVoltageMapping.create(network, 0.05);
         assertEquals(Map.of(131d, 135d, 138d, 135d), nominalVoltageMapping.get());
     }
 

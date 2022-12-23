@@ -162,14 +162,14 @@ class OpenSecurityAnalysisGraphTest {
 
         // try to find all switches impacted by at least one contingency
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false, false, false, true, NominalVoltageMapping.NONE);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false, false, false, true, SimpleNominalVoltageMapping.NONE);
 
         LfNetworkParameters networkParameters = new LfNetworkParameters()
                 .setConnectivityFactory(connectivityFactory)
                 .setBreakers(true);
 
         // create networks including all necessary switches
-        LfNetworkList lfNetworks = Networks.load(network, NominalVoltageMapping.NONE, networkParameters, allSwitchesToOpen, Collections.emptySet(), Reporter.NO_OP);
+        LfNetworkList lfNetworks = Networks.load(network, SimpleNominalVoltageMapping.NONE, networkParameters, allSwitchesToOpen, Collections.emptySet(), Reporter.NO_OP);
 
         // run simulation on each network
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();

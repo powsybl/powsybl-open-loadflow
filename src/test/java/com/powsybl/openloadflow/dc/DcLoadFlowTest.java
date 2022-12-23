@@ -291,7 +291,7 @@ class DcLoadFlowTest {
                                                                              true,
                                                                              parameters.getBalanceType(),
                                                                              false);
-        try (LfNetworkList lfNetworks = Networks.load(network, NominalVoltageMapping.NONE, lfNetworkParameters, Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
+        try (LfNetworkList lfNetworks = Networks.load(network, SimpleNominalVoltageMapping.NONE, lfNetworkParameters, Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);
             try (DcLoadFlowContext context = new DcLoadFlowContext(largestNetwork, dcLoadFlowParameters)) {

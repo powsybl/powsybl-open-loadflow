@@ -35,6 +35,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.NominalVoltageMapping;
+import com.powsybl.openloadflow.network.SimpleNominalVoltageMapping;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.openloadflow.util.Reports;
@@ -155,7 +156,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
             OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
-            NominalVoltageMapping nominalVoltageMapping = NominalVoltageMapping.create(network, lfParametersExt.getNominalVoltagePerUnitResolution());
+            NominalVoltageMapping nominalVoltageMapping = SimpleNominalVoltageMapping.create(network, lfParametersExt.getNominalVoltagePerUnitResolution());
 
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
