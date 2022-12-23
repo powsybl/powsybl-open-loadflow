@@ -39,6 +39,10 @@ public class NominalVoltageMapping {
         this.mapping = Objects.requireNonNull(mapping);
     }
 
+    public Map<Double, Double> get() {
+        return mapping;
+    }
+
     public double get(double nominalV) {
         return mapping.getOrDefault(nominalV, nominalV);
     }
@@ -72,7 +76,7 @@ public class NominalVoltageMapping {
             Set<Double> nominalVoltages = new HashSet<>(nominalVoltageHistogram.keySet());
             for (double nominalV1 : nominalVoltages) {
                 var it = nominalVoltageHistogram.entrySet().iterator();
-                while (it.hasNext()) {
+                while (it.hasNext() && !change) {
                     var e = it.next();
                     double nominalV2 = e.getKey();
                     if (nominalV1 != nominalV2 && Math.abs(nominalV1 - nominalV2) / nominalV1 < resolution) {
