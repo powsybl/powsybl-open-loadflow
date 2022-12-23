@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.NominalVoltageMapping;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.security.results.BusResult;
 
 import java.util.List;
@@ -85,16 +86,16 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var bus = getBus();
         bus.setV(v).setAngle(angle);
 
         // update slack bus
-        if (slack && writeSlackBus) {
+        if (slack && parameters.isWriteSlackBus()) {
             SlackTerminal.attach(bus);
         }
 
-        super.updateState(reactiveLimits, writeSlackBus, distributedOnConformLoad, loadPowerFactorConstant);
+        super.updateState(parameters);
     }
 
     @Override

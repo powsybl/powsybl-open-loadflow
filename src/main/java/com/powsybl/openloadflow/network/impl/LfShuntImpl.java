@@ -245,8 +245,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public void updateState(boolean dc) {
-        if (dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
+        if (parameters.isDc()) {
             for (var scRef : shuntCompensatorsRefs) {
                 var sc = scRef.get();
                 sc.getTerminal().setP(0);

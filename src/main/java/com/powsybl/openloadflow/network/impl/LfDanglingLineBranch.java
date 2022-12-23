@@ -87,7 +87,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
     }
 

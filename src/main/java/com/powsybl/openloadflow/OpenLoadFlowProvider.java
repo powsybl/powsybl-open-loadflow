@@ -117,12 +117,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         for (AcLoadFlowResult result : results) {
             // update network state
             if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(),
-                                                parameters.isWriteSlackBus(),
-                                                parameters.isPhaseShifterRegulationOn(),
-                                                parameters.isTransformerVoltageControlOn(),
-                                                parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                                                parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(), parameters.isDc());
+                var updateParameters = new LfNetworkStateUpdateParameters(!parameters.isNoGeneratorReactiveLimits(),
+                                                                          parameters.isWriteSlackBus(),
+                                                                          parameters.isPhaseShifterRegulationOn(),
+                                                                          parameters.isTransformerVoltageControlOn(),
+                                                                          parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
+                                                                          parameters.isDc());
+                result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
                 computeZeroImpedanceFlows(result.getNetwork());
@@ -188,12 +189,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
 
         if (result.isSucceeded()) {
-            result.getNetwork().updateState(false,
-                    parameters.isWriteSlackBus(),
-                    parameters.isPhaseShifterRegulationOn(),
-                    parameters.isTransformerVoltageControlOn(),
-                    parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                    false, true);
+            var updateParameters = new LfNetworkStateUpdateParameters(false,
+                                                                      parameters.isWriteSlackBus(),
+                                                                      parameters.isPhaseShifterRegulationOn(),
+                                                                      parameters.isTransformerVoltageControlOn(),
+                                                                      false,
+                                                                      true);
+            result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
             computeZeroImpedanceFlows(result.getNetwork());

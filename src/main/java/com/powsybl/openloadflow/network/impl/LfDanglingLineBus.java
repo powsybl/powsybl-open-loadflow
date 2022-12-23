@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.NominalVoltageMapping;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 
 import java.util.List;
 
@@ -71,11 +72,11 @@ public class LfDanglingLineBus extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var danglingLine = getDanglingLine();
         Networks.setPropertyV(danglingLine, v);
         Networks.setPropertyAngle(danglingLine, angle);
 
-        super.updateState(reactiveLimits, writeSlackBus, false, false);
+        super.updateState(parameters);
     }
 }

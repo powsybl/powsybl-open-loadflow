@@ -178,19 +178,19 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var branch = getBranch();
 
         updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
 
-        if (phaseShifterRegulationOn && isPhaseController()) {
+        if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
             // check if the target value deadband is respected
             checkTargetDeadband(discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
         }
 
-        if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
+        if (parameters.isTransformerVoltageControlOn() && isVoltageController()) { // it means there is a regulating ratio tap changer
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             RatioTapChanger rtc = twt.getRatioTapChanger();
             double baseRatio = Transformers.getRatioPerUnitBase(twt, nominalVoltageMapping);
