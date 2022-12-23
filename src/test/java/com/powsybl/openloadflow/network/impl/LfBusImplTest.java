@@ -158,7 +158,7 @@ class LfBusImplTest {
         LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"), lfNetwork, parameters1, lfNetworkLoadingReport);
         lfGenerator1.setCalculatedQ(initQs.get(0));
         LfNetworkParameters parameters23 = new LfNetworkParameters()
-                .setPlausibleActivePowerLimit(100)
+                .setPlausibleActivePowerLimit(200)
                 .setMinPlausibleTargetVoltage(0.9)
                 .setMaxPlausibleTargetVoltage(1.1);
         LfGenerator lfGenerator2 = LfGeneratorImpl.create(network.getGenerator("GH2"), lfNetwork, parameters23, lfNetworkLoadingReport);
