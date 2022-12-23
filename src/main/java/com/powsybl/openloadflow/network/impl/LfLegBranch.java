@@ -157,23 +157,23 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var twt = getTwt();
         var leg = getLeg();
 
         updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
 
-        if (phaseShifterRegulationOn && isPhaseController()) {
+        if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that leg
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (phaseShifterRegulationOn && isPhaseControlled() && discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
+        if (parameters.isPhaseShifterRegulationOn() && isPhaseControlled() && discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
             // check if the target value deadband is respected
             checkTargetDeadband(p1.eval());
         }
 
-        if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
+        if (parameters.isTransformerVoltageControlOn() && isVoltageController()) { // it means there is a regulating ratio tap changer
             RatioTapChanger rtc = leg.getRatioTapChanger();
             double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
             double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;
