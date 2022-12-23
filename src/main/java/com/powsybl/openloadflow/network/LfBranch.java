@@ -105,7 +105,7 @@ public interface LfBranch extends LfElement {
 
     Optional<DiscretePhaseControl> getDiscretePhaseControl();
 
-    void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc);
+    void updateState(LfNetworkStateUpdateParameters parameters);
 
     void updateFlows(double p1, double q1, double p2, double q2);
 
