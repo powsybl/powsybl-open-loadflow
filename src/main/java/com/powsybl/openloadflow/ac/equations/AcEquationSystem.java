@@ -136,19 +136,17 @@ public final class AcEquationSystem {
                 .setActive(false);
     }
 
+    private static void createShuntEquation(LfShunt shunt, LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveB) {
+        ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), deriveB);
+        equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
+        ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
+        equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
+    }
+
     private static void createShuntEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        bus.getShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), false);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
-            ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
-        });
-        bus.getControllerShunt().ifPresent(shunt -> {
-            ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), shunt.hasVoltageControlCapability());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
-            ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
-        });
+        bus.getShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
+        bus.getControllerShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, shunt.hasVoltageControlCapability()));
+        bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
     }
 
     private static void createRemoteVoltageControlEquations(VoltageControl voltageControl,
@@ -243,11 +241,12 @@ public final class AcEquationSystem {
     }
 
     private static List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus,
-                                                                                          VariableSet<AcVariableType> variableSet, AcEquationSystemCreationParameters creationParameters) {
+                                                                                          VariableSet<AcVariableType> variableSet,
+                                                                                          AcEquationSystemCreationParameters creationParameters) {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
-            if (branch.isZeroImpedanceBranch(false)) {
+            if (branch.isZeroImpedance()) {
                 if (!branch.isSpanningTreeEdge()) {
                     continue;
                 }
@@ -736,10 +735,10 @@ public final class AcEquationSystem {
     }
 
     private static void createBranchEquations(LfBranch branch,
-                                                EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                AcEquationSystemCreationParameters creationParameters) {
+                                              EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                              AcEquationSystemCreationParameters creationParameters) {
         // create zero and non zero impedance branch equations
-        if (branch.isZeroImpedanceBranch(false)) {
+        if (branch.isZeroImpedance()) {
             if (branch.isSpanningTreeEdge()) {
                 createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem);
             }
@@ -760,12 +759,11 @@ public final class AcEquationSystem {
         return create(network, new AcEquationSystemCreationParameters());
     }
 
-    public static EquationSystem<AcVariableType, AcEquationType> create(LfNetwork network,
-                                                                        AcEquationSystemCreationParameters creationParameters) {
+    public static EquationSystem<AcVariableType, AcEquationType> create(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(creationParameters);
 
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(true);
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
 
         createBusesEquations(network, equationSystem, creationParameters);
         createBranchesEquations(network, equationSystem, creationParameters);

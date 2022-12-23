@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
@@ -28,6 +30,10 @@ public class LfNetworkParameters {
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
 
+    public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
+
+    public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX;
+
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
@@ -41,8 +47,6 @@ public class LfNetworkParameters {
     private boolean breakers = false;
 
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
-
-    private boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds = false;
 
     private boolean computeMainConnectedComponentOnly = true;
 
@@ -71,6 +75,12 @@ public class LfNetworkParameters {
     private double maxPlausibleTargetVoltage = MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
+
+    private OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
+
+    private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
+
+    private boolean svcVoltageMonitoring = true;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -132,15 +142,6 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setPlausibleActivePowerLimit(double plausibleActivePowerLimit) {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
-        return this;
-    }
-
-    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
-        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
-    }
-
-    public LfNetworkParameters setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
-        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         return this;
     }
 
@@ -261,6 +262,36 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public double getLowImpedanceThreshold() {
+        return lowImpedanceThreshold;
+    }
+
+    public LfNetworkParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        if (lowImpedanceThreshold <= 0) {
+            throw new PowsyblException("lowImpedanceThreshold must be greater than 0");
+        }
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
+        return this;
+    }
+
+    public OpenLoadFlowParameters.ReactiveRangeCheckMode getReactiveRangeCheckMode() {
+        return reactiveRangeCheckMode;
+    }
+
+    public LfNetworkParameters setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+        this.reactiveRangeCheckMode = reactiveRangeCheckMode;
+        return this;
+    }
+
+    public boolean isSvcVoltageMonitoring() {
+        return svcVoltageMonitoring;
+    }
+
+    public LfNetworkParameters setSvcVoltageMonitoring(boolean svcVoltageMonitoring) {
+        this.svcVoltageMonitoring = svcVoltageMonitoring;
+        return this;
+    }
+
     public Set<String> getLoaderPostProcessorSelection() {
         return loaderPostProcessorSelection;
     }
@@ -280,7 +311,6 @@ public class LfNetworkParameters {
                 ", twtSplitShuntAdmittance=" + twtSplitShuntAdmittance +
                 ", breakers=" + breakers +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
-                ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
                 ", computeMainConnectedComponentOnly=" + computeMainConnectedComponentOnly +
                 ", countriesToBalance=" + countriesToBalance +
                 ", distributedOnConformLoad=" + distributedOnConformLoad +
@@ -294,6 +324,9 @@ public class LfNetworkParameters {
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", loaderPostProcessorSelection=" + loaderPostProcessorSelection +
+                ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
+                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
+                ", svcVoltageMonitoring=" + svcVoltageMonitoring +
                 ')';
     }
 }

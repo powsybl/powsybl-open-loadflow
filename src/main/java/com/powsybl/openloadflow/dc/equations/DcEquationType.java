@@ -15,9 +15,9 @@ import com.powsybl.openloadflow.network.ElementType;
 public enum DcEquationType implements Quantity {
     BUS_TARGET_P("bus_target_p", ElementType.BUS), // bus active power target
     BUS_TARGET_PHI("bus_target_\u03C6", ElementType.BUS), // slack bus voltage angle target
-    BRANCH_TARGET_P("branch_target_p", ElementType.BRANCH), // phase shifter active flow control
     BRANCH_TARGET_ALPHA1("branch_target_\u03B1", ElementType.BRANCH), // phase shifter constant shift
-    ZERO_PHI("zero_\u03C6", ElementType.BRANCH); // zero impedance branch, voltage angle equality
+    ZERO_PHI("zero_\u03C6", ElementType.BRANCH), // zero impedance branch, voltage angle equality
+    DUMMY_TARGET_P("dummy_target_p", ElementType.BRANCH);
 
     private final String symbol;
 

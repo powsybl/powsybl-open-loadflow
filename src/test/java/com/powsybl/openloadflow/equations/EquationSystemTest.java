@@ -49,7 +49,7 @@ class EquationSystemTest {
         LfNetwork network = lfNetworks.get(0);
 
         LfBus bus = network.getBus(0);
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(true);
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
         equationSystem.addListener(new EquationSystemListener<>() {
             @Override
             public void onEquationChange(Equation<AcVariableType, AcEquationType> equation, EquationEventType eventType) {
@@ -173,7 +173,7 @@ class EquationSystemTest {
         List<LfNetwork> lfNetworks = Networks.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector());
         LfNetwork network = lfNetworks.get(0);
 
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, false, true));
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(network, new DcEquationSystemCreationParameters(true, false, true), false);
         String ref = String.join(System.lineSeparator(),
                 "bus_target_φ0 = φ0",
                 "bus_target_p1 = dc_p_2(φ0, φ1) + dc_p_1(φ1, φ2) + dc_p_1(φ1, φ2)",
@@ -192,13 +192,14 @@ class EquationSystemTest {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = AcEquationSystem.create(mainNetwork);
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         double[] targets = TargetVector.createArray(mainNetwork, equationSystem, AcTargetVector::init);
-        var equationVector = new EquationVector<>(equationSystem);
-        Vectors.minus(equationVector.getArray(), targets);
-        var largestMismatches = NewtonRaphson.findLargestMismatches(equationSystem, equationVector.getArray(), 3);
-        assertEquals(3, largestMismatches.size());
-        assertEquals(-7.397518453004565, largestMismatches.get(0).getValue(), 0);
-        assertEquals(5.999135514403292, largestMismatches.get(1).getValue(), 0);
-        assertEquals(1.9259062775721603, largestMismatches.get(2).getValue(), 0);
+        try (var equationVector = new EquationVector<>(equationSystem)) {
+            Vectors.minus(equationVector.getArray(), targets);
+            var largestMismatches = NewtonRaphson.findLargestMismatches(equationSystem, equationVector.getArray(), 3);
+            assertEquals(3, largestMismatches.size());
+            assertEquals(-7.397518453004565, largestMismatches.get(0).getValue(), 0);
+            assertEquals(5.999135514403292, largestMismatches.get(1).getValue(), 0);
+            assertEquals(1.9259062775721603, largestMismatches.get(2).getValue(), 0);
+        }
     }
 
     @Test

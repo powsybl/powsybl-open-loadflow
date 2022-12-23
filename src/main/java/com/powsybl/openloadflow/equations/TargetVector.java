@@ -14,7 +14,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractVector<V, E> {
+public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractVector<V, E> implements AutoCloseable {
 
     @FunctionalInterface
     public interface Initializer<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
@@ -27,6 +27,11 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
     private final Initializer<V, E> initializer;
 
     private final LfNetworkListener networkListener = new AbstractLfNetworkListener() {
+
+        @Override
+        public void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage) {
+            invalidateValues();
+        }
 
         @Override
         public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
@@ -49,12 +54,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
-        public void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-            invalidateValues();
-        }
-
-        @Override
-        public void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
+        public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
             invalidateValues();
         }
     };
@@ -89,5 +89,10 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         for (Equation<V, E> equation : sortedEquationsToSolve) {
             initializer.initialize(equation, network, array);
         }
+    }
+
+    @Override
+    public void close() {
+        network.removeListener(networkListener);
     }
 }

@@ -63,7 +63,7 @@ public class NewtonRaphson {
                 .collect(Collectors.toList());
     }
 
-    private NewtonRaphsonStatus runIteration() {
+    private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling) {
         LOGGER.debug("Start iteration {}", iteration);
 
         try {
@@ -75,6 +75,8 @@ public class NewtonRaphson {
                 return NewtonRaphsonStatus.SOLVER_FAILED;
             }
             // f(x) now contains dx
+
+            svScaling.apply(equationVector.getArray(), equationSystem);
 
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minus(equationVector.getArray());
@@ -94,6 +96,9 @@ public class NewtonRaphson {
 
             // test stopping criteria and log norm(fx)
             NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray());
+
+            testResult = svScaling.applyAfter(equationSystem.getStateVector(), equationVector, targetVector,
+                                              parameters.getStoppingCriteria(), testResult);
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
@@ -180,16 +185,21 @@ public class NewtonRaphson {
     }
 
     private boolean isStateUnrealistic() {
-        List<String> busesOutOfNormalVoltageRange = new ArrayList<>();
+        Map<String, Double> busesOutOfNormalVoltageRange = new LinkedHashMap<>();
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             if (v.getType() == AcVariableType.BUS_V && !network.getBus(v.getElementNum()).isFictitious()) {
                 double value = equationSystem.getStateVector().get(v.getRow());
                 if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
-                    busesOutOfNormalVoltageRange.add(network.getBus(v.getElementNum()).getId());
+                    busesOutOfNormalVoltageRange.put(network.getBus(v.getElementNum()).getId(), value);
                 }
             }
         }
         if (!busesOutOfNormalVoltageRange.isEmpty()) {
+            if (LOGGER.isTraceEnabled()) {
+                for (var e : busesOutOfNormalVoltageRange.entrySet()) {
+                    LOGGER.trace("Bus '{}' has an unrealistic voltage magnitude: {} pu", e.getKey(), e.getValue());
+                }
+            }
             LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
                     busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
         }
@@ -203,10 +213,15 @@ public class NewtonRaphson {
 
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
+        NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray());
+        LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
+
+        StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters.getStateVectorScalingMode(), initialTestResult);
+
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration();
+            NewtonRaphsonStatus newStatus = runIteration(svScaling);
             if (newStatus != null) {
                 status = newStatus;
                 break;

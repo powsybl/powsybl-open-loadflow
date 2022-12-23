@@ -39,8 +39,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
-    private static final double TARGET_VOLTAGE_EPSILON = Math.pow(10, -6);
-
     private final int numCC;
 
     private final int numSC;
@@ -451,10 +449,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
 
-    public void fix(boolean minImpedance, boolean dc) {
+    public void fix(boolean minImpedance, boolean dc, double lowImpedanceThreshold) {
         if (minImpedance) {
             for (LfBranch branch : branches) {
-                branch.setMinZ(dc);
+                branch.setMinZ(dc, lowImpedanceThreshold);
             }
         }
     }
@@ -500,7 +498,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         List<LfNetwork> lfNetworks = networkLoader.load(network, parameters, reporter);
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
-            lfNetwork.fix(parameters.isMinImpedance(), parameters.isDc());
+            lfNetwork.fix(parameters.isMinImpedance(), parameters.isDc(), parameters.getLowImpedanceThreshold());
             lfNetwork.validate(parameters.isDc(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
@@ -517,8 +515,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
      * The graph is intentionally not cached as a parameter so far, to avoid the complexity of invalidating it if changes occur
      * @return the zero-impedance subgraph
      */
-    public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(boolean dc) {
-        return createSubGraph(branch -> branch.isZeroImpedanceBranch(dc)
+    public Graph<LfBus, LfBranch> createZeroImpedanceSubGraph() {
+        return createSubGraph(branch -> branch.isZeroImpedance()
                 && branch.getBus1() != null && branch.getBus2() != null);
     }
 

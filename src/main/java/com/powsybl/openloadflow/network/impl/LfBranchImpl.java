@@ -11,8 +11,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,27 +21,16 @@ import java.util.Objects;
  */
 public class LfBranchImpl extends AbstractImpedantLfBranch {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfBranchImpl.class);
+    private final Ref<Branch<?>> branchRef;
 
-    private final Branch<?> branch;
-
-    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch) {
-        super(network, bus1, bus2, piModel);
-        this.branch = branch;
+    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch, boolean dc, double lowImpedanceThreshold) {
+        super(network, bus1, bus2, piModel, dc, lowImpedanceThreshold);
+        this.branchRef = new Ref<>(branch);
     }
 
-    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds,
-                                           LfNetworkLoadingReport report) {
-        double nominalV1 = line.getTerminal1().getVoltageLevel().getNominalV();
-        double nominalV2 = line.getTerminal2().getVoltageLevel().getNominalV();
-        double r1 = 1;
-        if (addRatioToLinesWithDifferentNominalVoltageAtBothEnds && nominalV1 != nominalV2) {
-            LOGGER.trace("Line '{}' has a different nominal voltage at both ends ({} and {}): add a ratio", line.getId(), nominalV1, nominalV2);
-            report.linesWithDifferentNominalVoltageAtBothEnds++;
-            r1 = 1 / Transformers.getRatioPerUnitBase(line);
-        }
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean dc, double lowImpedanceThreshold) {
         PiModel piModel = new SimplePiModel()
-                .setR1(r1)
+                .setR1(1 / Transformers.getRatioPerUnitBase(line))
                 .setR(line.getR() / zb)
                 .setX(line.getX() / zb)
                 .setG1(line.getG1() * zb)
@@ -51,10 +38,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, line);
+        return new LfBranchImpl(network, bus1, bus2, piModel, line, dc, lowImpedanceThreshold);
     }
 
-    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean twtSplitShuntAdmittance) {
+    private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
+                                                  boolean twtSplitShuntAdmittance, boolean dc, double lowImpedanceThreshold) {
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt);
@@ -98,42 +86,48 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
         }
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, twt);
+        return new LfBranchImpl(network, bus1, bus2, piModel, twt, dc, lowImpedanceThreshold);
     }
 
     public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
-                                      boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds, LfNetworkLoadingReport report) {
+                                      boolean dc, double lowImpedanceThreshold) {
         Objects.requireNonNull(branch);
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
-        double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        double zb = PerUnit.zb(nominalV2);
         if (branch instanceof Line) {
-            return createLine((Line) branch, network, bus1, bus2, zb, addRatioToLinesWithDifferentNominalVoltageAtBothEnds, report);
+            return createLine((Line) branch, network, bus1, bus2, zb, dc, lowImpedanceThreshold);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance);
+            return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance, dc, lowImpedanceThreshold);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
     }
 
+    private Branch<?> getBranch() {
+        return branchRef.get();
+    }
+
     @Override
     public String getId() {
-        return branch.getId();
+        return getBranch().getId();
     }
 
     @Override
     public BranchType getBranchType() {
-        return branch instanceof Line ? BranchType.LINE : BranchType.TRANSFO_2;
+        return getBranch() instanceof Line ? BranchType.LINE : BranchType.TRANSFO_2;
     }
 
     @Override
     public boolean hasPhaseControlCapability() {
+        var branch = getBranch();
         return branch.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER
                 && ((TwoWindingsTransformer) branch).getPhaseTapChanger() != null;
     }
 
     @Override
     public BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension) {
+        var branch = getBranch();
         double flowTransfer = Double.NaN;
         if (!Double.isNaN(preContingencyBranchP1) && !Double.isNaN(preContingencyBranchOfContingencyP1)) {
             flowTransfer = (p1.eval() * PerUnit.SB - preContingencyBranchP1) / preContingencyBranchOfContingencyP1;
@@ -150,6 +144,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type) {
+        var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
                 return getLimits1(type, branch.getActivePowerLimits1().orElse(null));
@@ -165,6 +160,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits2(final LimitType type) {
+        var branch = getBranch();
         switch (type) {
             case ACTIVE_POWER:
                 return getLimits2(type, branch.getActivePowerLimits2().orElse(null));
@@ -180,6 +176,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+        var branch = getBranch();
+
         updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
 
         if (phaseShifterRegulationOn && isPhaseController()) {
@@ -202,6 +200,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public void updateFlows(double p1, double q1, double p2, double q2) {
+        var branch = getBranch();
         branch.getTerminal1().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
         branch.getTerminal2().setP(p2 * PerUnit.SB)

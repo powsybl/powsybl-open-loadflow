@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -23,16 +24,16 @@ import java.util.OptionalDouble;
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
 
-    private final Generator generator;
+    private final Ref<Generator> generatorRef;
 
     private boolean participating;
 
     private double droop;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                            LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+                            LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         super(network, generator.getTargetP());
-        this.generator = generator;
+        this.generatorRef = new Ref<>(generator);
         participating = true;
         droop = DEFAULT_DROOP;
         // get participation factor from extension
@@ -50,7 +51,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
         if (generator.isVoltageRegulatorOn()) {
             setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), breakers,
-                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
         }
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
@@ -61,25 +62,30 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     public static LfGeneratorImpl create(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit,
                                          boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                                         double maxPlausibleTargetVoltage) {
+                                         double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+        return new LfGeneratorImpl(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report,
+                minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+    }
+
+    private Generator getGenerator() {
+        return generatorRef.get();
     }
 
     @Override
     public String getId() {
-        return generator.getId();
+        return getGenerator().getId();
     }
 
     @Override
     public boolean isFictitious() {
-        return generator.isFictitious();
+        return getGenerator().isFictitious();
     }
 
     @Override
     public OptionalDouble getRemoteControlReactiveKey() {
-        CoordinatedReactiveControl coordinatedReactiveControl = generator.getExtension(CoordinatedReactiveControl.class);
+        CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
         if (coordinatedReactiveControl == null) {
             return OptionalDouble.empty();
         }
@@ -88,22 +94,22 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return generator.getTargetQ() / PerUnit.SB;
+        return getGenerator().getTargetQ() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return generator.getMinP() / PerUnit.SB;
+        return getGenerator().getMinP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return generator.getMaxP() / PerUnit.SB;
+        return getGenerator().getMaxP() / PerUnit.SB;
     }
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.of(generator.getReactiveLimits());
+        return Optional.of(getGenerator().getReactiveLimits());
     }
 
     @Override
@@ -123,6 +129,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public void updateState() {
+        var generator = getGenerator();
         generator.getTerminal()
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);

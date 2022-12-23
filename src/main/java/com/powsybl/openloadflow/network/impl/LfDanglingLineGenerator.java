@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -20,15 +21,15 @@ import java.util.OptionalDouble;
  */
 public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
-    private final DanglingLine danglingLine;
+    private final Ref<DanglingLine> danglingLineRef;
 
     public LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                   double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+                                   double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         super(network, danglingLine.getGeneration().getTargetP());
-        this.danglingLine = danglingLine;
+        this.danglingLineRef = new Ref<>(danglingLine);
 
         // local control only
-        if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(reactiveLimits, report)) {
+        if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(reactiveLimits, report, reactiveRangeCheckMode)) {
             // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
             if (checkTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(),
                     report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage)) {
@@ -39,14 +40,18 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
         }
     }
 
+    private DanglingLine getDanglingLine() {
+        return danglingLineRef.get();
+    }
+
     @Override
     public String getId() {
-        return danglingLine.getId() + "_GEN";
+        return getDanglingLine().getId() + "_GEN";
     }
 
     @Override
     public String getOriginalId() {
-        return danglingLine.getId();
+        return getDanglingLine().getId();
     }
 
     @Override
@@ -56,22 +61,22 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return danglingLine.getGeneration().getTargetQ() / PerUnit.SB;
+        return getDanglingLine().getGeneration().getTargetQ() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return danglingLine.getGeneration().getMinP() / PerUnit.SB;
+        return getDanglingLine().getGeneration().getMinP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return danglingLine.getGeneration().getMaxP() / PerUnit.SB;
+        return getDanglingLine().getGeneration().getMaxP() / PerUnit.SB;
     }
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.ofNullable(danglingLine.getGeneration().getReactiveLimits());
+        return Optional.ofNullable(getDanglingLine().getGeneration().getReactiveLimits());
     }
 
     @Override

@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -133,9 +134,9 @@ class LfBusImplTest {
 
         LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, false, true, false);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
-        lfBus.addStaticVarCompensator(svc1, false, true, true, lfNetworkLoadingReport, 0.8, 1.2);
-        lfBus.addStaticVarCompensator(svc2, false, true, true, lfNetworkLoadingReport, 0.8, 1.2);
-        lfBus.addStaticVarCompensator(svc3, false, true, true, lfNetworkLoadingReport, 0.8, 1.2);
+        lfBus.addStaticVarCompensator(svc1, false, true, true, lfNetworkLoadingReport, 0.8, 1.2, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX, false);
+        lfBus.addStaticVarCompensator(svc2, false, true, true, lfNetworkLoadingReport, 0.8, 1.2, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX, false);
+        lfBus.addStaticVarCompensator(svc3, false, true, true, lfNetworkLoadingReport, 0.8, 1.2, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX, false);
         double generationQ = -6.412103131789854;
         lfBus.updateGeneratorsState(generationQ * PerUnit.SB, true);
         double sumQ = 0;
@@ -150,13 +151,13 @@ class LfBusImplTest {
         LfNetwork lfNetwork = new LfNetwork(0, 0, new FirstSlackBusSelector(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
         LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"), lfNetwork,
-                false, 100, true, lfNetworkLoadingReport, 0.9, 1.1);
+                false, 100, true, lfNetworkLoadingReport, 0.9, 1.1, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX);
         lfGenerator1.setCalculatedQ(initQs.get(0));
         LfGenerator lfGenerator2 = LfGeneratorImpl.create(network.getGenerator("GH2"), lfNetwork,
-                false, 200, true, lfNetworkLoadingReport, 0.9, 1.1);
+                false, 200, true, lfNetworkLoadingReport, 0.9, 1.1, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX);
         lfGenerator2.setCalculatedQ(initQs.get(1));
         LfGenerator lfGenerator3 = LfGeneratorImpl.create(network.getGenerator("GH3"), lfNetwork,
-                false, 200, true, lfNetworkLoadingReport, 0.9, 1.1);
+                false, 200, true, lfNetworkLoadingReport, 0.9, 1.1, OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX);
         lfGenerator3.setCalculatedQ(initQs.get(2));
         List<LfGenerator> generators = new ArrayList<>();
         generators.add(lfGenerator1);

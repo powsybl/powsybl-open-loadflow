@@ -826,4 +826,24 @@ class AcLoadFlowTransformerControlTest {
         t2wt = network.getTwoWindingsTransformer("T2wT1");
         t2wt2 = network.getTwoWindingsTransformer("T2wT2");
     }
+
+    @Test
+    void testTargetDeadband() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(16.0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(27.00, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
 }

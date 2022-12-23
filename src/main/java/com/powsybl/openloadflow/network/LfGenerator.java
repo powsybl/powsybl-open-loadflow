@@ -14,7 +14,11 @@ import java.util.OptionalDouble;
 public interface LfGenerator extends PropertyBag {
 
     enum GeneratorControlType {
-        OFF, REMOTE_REACTIVE_POWER, VOLTAGE
+        OFF, REMOTE_REACTIVE_POWER, VOLTAGE, MONITORING_VOLTAGE
+    }
+
+    enum ReactiveRangeMode {
+        MIN, MAX, TARGET_P
     }
 
     String getId();
@@ -51,7 +55,7 @@ public interface LfGenerator extends PropertyBag {
 
     double getMaxQ();
 
-    double getMaxRangeQ();
+    double getRangeQ(ReactiveRangeMode reactiveRangeMode);
 
     default boolean isParticipating() {
         return false;
