@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -228,18 +227,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    void addGenerator(Generator generator, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                      LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
-        add(LfGeneratorImpl.create(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode));
+    void addGenerator(Generator generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        add(LfGeneratorImpl.create(generator, network, parameters, report));
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl,
-                                 boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                 double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
-                                 boolean svcMonitoringVoltage) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkParameters parameters,
+                                 LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, voltagePerReactivePowerControl,
-                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, svcMonitoringVoltage);
+            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, parameters, report);
             add(lfSvc);
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
@@ -250,17 +245,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    void addVscConverterStation(VscConverterStation vscCs, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
-        add(LfVscConverterStationImpl.create(vscCs, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode));
+    void addVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        add(LfVscConverterStationImpl.create(vscCs, network, parameters, report));
     }
 
-    void addBattery(Battery generator, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
-        add(LfBatteryImpl.create(generator, network, plausibleActivePowerLimit, report));
+    void addBattery(Battery generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        add(LfBatteryImpl.create(generator, network, parameters, report));
     }
 
-    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl) {
-        if (!isShuntVoltageControl && !shuntCompensators.isEmpty()) {
+    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, LfNetworkParameters parameters) {
+        if (!parameters.isShuntVoltageControl() && !shuntCompensators.isEmpty()) {
             shunt = new LfShuntImpl(shuntCompensators, network, this, false);
         } else {
             List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
