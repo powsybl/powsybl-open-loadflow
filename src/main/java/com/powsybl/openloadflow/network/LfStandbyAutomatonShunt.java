@@ -108,7 +108,7 @@ public final class LfStandbyAutomatonShunt extends AbstractElement implements Lf
     }
 
     @Override
-    public void updateState(boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         // nothing to do
     }
 }

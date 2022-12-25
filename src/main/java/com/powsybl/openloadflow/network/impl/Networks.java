@@ -167,4 +167,14 @@ public final class Networks {
             return new LfNetworkList(lfNetworks, new LfNetworkList.VariantCleaner(network, workingVariantId, tmpVariantId));
         }
     }
+
+    public static Iterable<Bus> getBuses(Network network, boolean breaker) {
+        return breaker ? network.getBusBreakerView().getBuses()
+                       : network.getBusView().getBuses();
+    }
+
+    public static Bus getBus(Terminal terminal, boolean breakers) {
+        return breakers ? terminal.getBusBreakerView().getBus()
+                        : terminal.getBusView().getBus();
+    }
 }

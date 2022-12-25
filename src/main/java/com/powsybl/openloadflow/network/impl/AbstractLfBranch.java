@@ -51,13 +51,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean zeroImpedance;
 
-    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, boolean dc, double lowImpedanceThreshold) {
+    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network);
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
         this.piModel.setBranch(this);
-        zeroImpedance = isZeroImpedanceBranch(piModel, dc, lowImpedanceThreshold);
+        zeroImpedance = isZeroImpedanceBranch(piModel, parameters);
     }
 
     protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {
@@ -293,11 +293,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.zeroImpedance = false;
     }
 
-    public static boolean isZeroImpedanceBranch(PiModel piModel, boolean dc, double lowImpedanceThreshold) {
-        if (dc) {
-            return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
+    private static boolean isZeroImpedanceBranch(PiModel piModel, LfNetworkParameters parameters) {
+        if (parameters.isDc()) {
+            return FastMath.abs(piModel.getX()) < parameters.getLowImpedanceThreshold();
         } else {
-            return piModel.getZ() < lowImpedanceThreshold;
+            return piModel.getZ() < parameters.getLowImpedanceThreshold();
         }
     }
 }
