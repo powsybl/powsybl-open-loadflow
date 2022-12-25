@@ -840,6 +840,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     @Override
     public List<LfNetwork> load(Network network, NominalVoltageMapping nominalVoltageMapping, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
+        Objects.requireNonNull(nominalVoltageMapping);
         Objects.requireNonNull(parameters);
 
         if (!network.getValidationLevel().equals(ValidationLevel.STEADY_STATE_HYPOTHESIS)) {
@@ -848,9 +849,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        Iterable<Bus> buses = Networks.getBuses(network, parameters.isBreakers());
-
         Map<Pair<Integer, Integer>, List<Bus>> busesByCc = new TreeMap<>();
+        Iterable<Bus> buses = Networks.getBuses(network, parameters.isBreakers());
         for (Bus bus : buses) {
             Component cc = bus.getConnectedComponent();
             Component sc = bus.getSynchronousComponent();
