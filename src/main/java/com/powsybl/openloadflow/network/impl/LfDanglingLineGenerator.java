@@ -33,7 +33,7 @@ public final class LfDanglingLineGenerator extends AbstractLfGenerator {
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(parameters, report)) {
             // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
             if (checkTargetV(danglingLine.getGeneration().getTargetV() / nominalVoltageMapping.get(danglingLine.getTerminal()),
-                    parameters, report, nominalVoltageMapping)) {
+                    parameters, report)) {
                 this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
                 this.targetV = danglingLine.getGeneration().getTargetV() / nominalVoltageMapping.get(danglingLine.getTerminal());
                 this.generatorControlType = GeneratorControlType.VOLTAGE;
@@ -42,12 +42,12 @@ public final class LfDanglingLineGenerator extends AbstractLfGenerator {
     }
 
     public static LfDanglingLineGenerator create(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,
-                                                 LfNetworkLoadingReport report) {
+                                                 LfNetworkLoadingReport report, NominalVoltageMapping nominalVoltageMapping) {
         Objects.requireNonNull(danglingLine);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        return new LfDanglingLineGenerator(danglingLine, network, controlledLfBusId, parameters, report);
+        return new LfDanglingLineGenerator(danglingLine, network, controlledLfBusId, parameters, report, nominalVoltageMapping);
     }
 
     private DanglingLine getDanglingLine() {

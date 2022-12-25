@@ -32,7 +32,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     private double droop;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report,
-            , NominalVoltageMapping nominalVoltageMapping) {
+                            NominalVoltageMapping nominalVoltageMapping) {
         super(network, generator.getTargetP());
         this.generatorRef = new Ref<>(generator);
         participating = true;
