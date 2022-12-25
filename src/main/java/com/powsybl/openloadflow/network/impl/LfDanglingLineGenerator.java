@@ -8,8 +8,8 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -19,25 +19,34 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfDanglingLineGenerator extends AbstractLfGenerator {
+public final class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final Ref<DanglingLine> danglingLineRef;
 
-    public LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                   double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+    private LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,
+                                    LfNetworkLoadingReport report) {
         super(network, danglingLine.getGeneration().getTargetP());
         this.danglingLineRef = new Ref<>(danglingLine);
 
         // local control only
-        if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(reactiveLimits, report, reactiveRangeCheckMode)) {
+        if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(parameters, report)) {
             // The controlled bus cannot be reached from the DanglingLine parameters (there is no terminal in DanglingLine.Generation)
             if (checkTargetV(danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV(),
-                    report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage)) {
+                    parameters, report)) {
                 this.controlledBusId = Objects.requireNonNull(controlledLfBusId);
                 this.targetV = danglingLine.getGeneration().getTargetV() / danglingLine.getTerminal().getVoltageLevel().getNominalV();
                 this.generatorControlType = GeneratorControlType.VOLTAGE;
             }
         }
+    }
+
+    public static LfDanglingLineGenerator create(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,
+                                                 LfNetworkLoadingReport report) {
+        Objects.requireNonNull(danglingLine);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
+        Objects.requireNonNull(report);
+        return new LfDanglingLineGenerator(danglingLine, network, controlledLfBusId, parameters, report);
     }
 
     private DanglingLine getDanglingLine() {

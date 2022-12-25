@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.util.Evaluable;
 
@@ -32,8 +33,8 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
 
     protected Evaluable i2 = NAN;
 
-    protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, boolean dc, double lowImpedanceThreshold) {
-        super(network, bus1, bus2, piModel, dc, lowImpedanceThreshold);
+    protected AbstractImpedantLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
+        super(network, bus1, bus2, piModel, parameters);
     }
 
     @Override
