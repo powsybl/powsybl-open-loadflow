@@ -24,16 +24,17 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     private final Ref<DanglingLine> danglingLineRef;
 
     protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine,
-                                   boolean dc, double lowImpedanceThreshold) {
-        super(network, bus1, bus2, piModel, dc, lowImpedanceThreshold);
+                                   LfNetworkParameters parameters) {
+        super(network, bus1, bus2, piModel, parameters);
         this.danglingLineRef = new Ref<>(danglingLine);
     }
 
     public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2,
-                                              boolean dc, double lowImpedanceThreshold) {
+                                              LfNetworkParameters parameters) {
         Objects.requireNonNull(danglingLine);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
+        Objects.requireNonNull(parameters);
         double nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
         PiModel piModel = new SimplePiModel()
@@ -43,7 +44,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
                 .setG2(danglingLine.getG() / 2 * zb)
                 .setB1(danglingLine.getB() / 2 * zb)
                 .setB2(danglingLine.getB() / 2 * zb);
-        return new LfDanglingLineBranch(network, bus1, bus2, piModel, danglingLine, dc, lowImpedanceThreshold);
+        return new LfDanglingLineBranch(network, bus1, bus2, piModel, danglingLine, parameters);
     }
 
     private DanglingLine getDanglingLine() {
