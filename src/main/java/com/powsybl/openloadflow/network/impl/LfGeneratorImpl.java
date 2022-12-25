@@ -11,8 +11,8 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -31,9 +31,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double droop;
 
-    private LfGeneratorImpl(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                            LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
-                            NominalVoltageMapping nominalVoltageMapping) {
+    private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report,
+            , NominalVoltageMapping nominalVoltageMapping) {
         super(network, generator.getTargetP());
         this.generatorRef = new Ref<>(generator);
         participating = true;
@@ -47,14 +46,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             }
         }
 
-        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), plausibleActivePowerLimit, report)) {
+        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), parameters, report)) {
             participating = false;
         }
 
         if (generator.isVoltageRegulatorOn()) {
-            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), breakers,
-                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode,
-                    nominalVoltageMapping);
+            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), parameters,
+                    report, nominalVoltageMapping);
         }
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
@@ -63,14 +61,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    public static LfGeneratorImpl create(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit,
-                                         boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                                         double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode,
-                                         NominalVoltageMapping nominalVoltageMapping) {
+    public static LfGeneratorImpl create(Generator generator, LfNetwork network, LfNetworkParameters parameters,
+                                         LfNetworkLoadingReport report, NominalVoltageMapping nominalVoltageMapping) {
         Objects.requireNonNull(generator);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report,
-                minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode, nominalVoltageMapping);
+        return new LfGeneratorImpl(generator, network, parameters, report, nominalVoltageMapping);
     }
 
     private Generator getGenerator() {

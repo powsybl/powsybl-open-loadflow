@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.security.results.BusResult;
@@ -34,21 +35,22 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final boolean breakers;
 
-    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, boolean distributedOnConformLoad,
-                        boolean participating, boolean breakers, NominalVoltageMapping nominalVoltageMapping) {
-        super(network, v, angle, distributedOnConformLoad);
+    protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
+                        boolean participating, NominalVoltageMapping nominalVoltageMapping) {
+        super(network, v, angle, parameters.isDistributedOnConformLoad());
         this.busRef = new Ref<>(bus);
         nominalV = nominalVoltageMapping.get(bus);
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
-        this.breakers = breakers;
+        this.breakers = parameters.isBreakers();
     }
 
-    public static LfBusImpl create(Bus bus, LfNetwork network, boolean distributedOnConformLoad, boolean participating,
-                                   boolean breakers, NominalVoltageMapping nominalVoltageMapping) {
+    public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating,
+                                   NominalVoltageMapping nominalVoltageMapping) {
         Objects.requireNonNull(bus);
-        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), distributedOnConformLoad, participating, breakers, nominalVoltageMapping);
+        Objects.requireNonNull(parameters);
+        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), parameters, participating, nominalVoltageMapping);
     }
 
     private Bus getBus() {

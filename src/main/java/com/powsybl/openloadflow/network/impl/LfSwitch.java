@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 import com.powsybl.openloadflow.network.SimplePiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
@@ -29,9 +30,9 @@ public class LfSwitch extends AbstractLfBranch {
 
     private final Ref<Switch> switchRef;
 
-    public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch, boolean dc, double lowImpedanceThreshold,
-                    NominalVoltageMapping nominalVoltageMapping) {
-        super(network, bus1, bus2, new SimplePiModel(), dc, lowImpedanceThreshold, nominalVoltageMapping);
+    public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch,
+                    LfNetworkParameters parameters, NominalVoltageMapping nominalVoltageMapping) {
+        super(network, bus1, bus2, new SimplePiModel(), parameters, nominalVoltageMapping);
         this.switchRef = new Ref<>(aSwitch);
     }
 

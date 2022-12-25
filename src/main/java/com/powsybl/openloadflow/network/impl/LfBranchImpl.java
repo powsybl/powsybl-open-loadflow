@@ -23,14 +23,14 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private final Ref<Branch<?>> branchRef;
 
-    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch, boolean dc, double lowImpedanceThreshold,
+    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch, LfNetworkParameters parameters,
                            NominalVoltageMapping nominalVoltageMapping) {
-        super(network, bus1, bus2, piModel, dc, lowImpedanceThreshold, nominalVoltageMapping);
+        super(network, bus1, bus2, piModel, parameters, nominalVoltageMapping);
         this.branchRef = new Ref<>(branch);
     }
 
-    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean dc,
-                                           double lowImpedanceThreshold, NominalVoltageMapping nominalVoltageMapping) {
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, LfNetworkParameters parameters,
+                                           NominalVoltageMapping nominalVoltageMapping) {
         PiModel piModel = new SimplePiModel()
                 .setR1(1 / Transformers.getRatioPerUnitBase(line, nominalVoltageMapping))
                 .setR(line.getR() / zb)
@@ -40,12 +40,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, line, dc, lowImpedanceThreshold, nominalVoltageMapping);
+        return new LfBranchImpl(network, bus1, bus2, piModel, line, parameters, nominalVoltageMapping);
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
-                                                  boolean twtSplitShuntAdmittance, boolean dc, double lowImpedanceThreshold,
-                                                  NominalVoltageMapping nominalVoltageMapping) {
+                                                  LfNetworkParameters parameters, NominalVoltageMapping nominalVoltageMapping) {
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt, nominalVoltageMapping);
@@ -60,7 +59,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             List<PiModel> models = new ArrayList<>();
             for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
-                models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
+                models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance()));
             }
             piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
         }
@@ -74,7 +73,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 List<PiModel> models = new ArrayList<>();
                 for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
-                    models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
+                    models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance()));
                 }
                 piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
             } else {
@@ -86,22 +85,24 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             // we don't have any phase or voltage control, we create a simple pi model (single tap) based on phase current
             // tap and voltage current tap
             Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt);
-            piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
+            piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance());
         }
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, twt, dc, lowImpedanceThreshold, nominalVoltageMapping);
+        return new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters, nominalVoltageMapping);
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
-                                      boolean dc, double lowImpedanceThreshold, NominalVoltageMapping nominalVoltageMapping) {
+    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters,
+                                      NominalVoltageMapping nominalVoltageMapping) {
         Objects.requireNonNull(branch);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         double nominalV2 = nominalVoltageMapping.get(branch.getTerminal2());
         double zb = PerUnit.zb(nominalV2);
         if (branch instanceof Line) {
-            return createLine((Line) branch, network, bus1, bus2, zb, dc, lowImpedanceThreshold, nominalVoltageMapping);
+            return createLine((Line) branch, network, bus1, bus2, zb, parameters, nominalVoltageMapping);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance, dc, lowImpedanceThreshold, nominalVoltageMapping);
+            return createTransformer(twt, network, bus1, bus2, zb, parameters, nominalVoltageMapping);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
