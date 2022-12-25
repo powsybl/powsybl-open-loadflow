@@ -112,6 +112,10 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, LfNetworkParameters parameters,
                                                     LfNetworkLoadingReport report) {
         Objects.requireNonNull(svc);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(bus);
+        Objects.requireNonNull(parameters);
+        Objects.requireNonNull(report);
         return new LfStaticVarCompensatorImpl(svc, network, bus, parameters, report);
     }
 

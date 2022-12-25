@@ -38,6 +38,8 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     public static LfVscConverterStationImpl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         Objects.requireNonNull(station);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         return new LfVscConverterStationImpl(station, network, parameters, report);
     }
 

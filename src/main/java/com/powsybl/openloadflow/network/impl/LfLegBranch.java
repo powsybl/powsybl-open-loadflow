@@ -17,14 +17,14 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfLegBranch extends AbstractImpedantLfBranch {
+public final class LfLegBranch extends AbstractImpedantLfBranch {
 
     private final Ref<ThreeWindingsTransformer> twtRef;
 
     private final Ref<ThreeWindingsTransformer.Leg> legRef;
 
-    protected LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
-                          LfNetworkParameters parameters) {
+    private LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
+                        LfNetworkParameters parameters) {
         super(network, bus1, bus0, piModel, parameters);
         this.twtRef = new Ref<>(twt);
         this.legRef = new Ref<>(leg);
@@ -43,6 +43,7 @@ public class LfLegBranch extends AbstractImpedantLfBranch {
         Objects.requireNonNull(bus0);
         Objects.requireNonNull(twt);
         Objects.requireNonNull(leg);
+        Objects.requireNonNull(parameters);
 
         PiModel piModel = null;
 

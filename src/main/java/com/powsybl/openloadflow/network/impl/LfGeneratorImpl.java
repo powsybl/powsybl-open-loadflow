@@ -62,6 +62,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     public static LfGeneratorImpl create(Generator generator, LfNetwork network, LfNetworkParameters parameters,
                                          LfNetworkLoadingReport report) {
         Objects.requireNonNull(generator);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
         return new LfGeneratorImpl(generator, network, parameters, report);
     }

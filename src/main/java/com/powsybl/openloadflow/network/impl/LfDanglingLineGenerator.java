@@ -19,12 +19,12 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfDanglingLineGenerator extends AbstractLfGenerator {
+public final class LfDanglingLineGenerator extends AbstractLfGenerator {
 
     private final Ref<DanglingLine> danglingLineRef;
 
-    public LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,
-                                   LfNetworkLoadingReport report) {
+    private LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,
+                                    LfNetworkLoadingReport report) {
         super(network, danglingLine.getGeneration().getTargetP());
         this.danglingLineRef = new Ref<>(danglingLine);
 
@@ -38,6 +38,15 @@ public class LfDanglingLineGenerator extends AbstractLfGenerator {
                 this.generatorControlType = GeneratorControlType.VOLTAGE;
             }
         }
+    }
+
+    public static LfDanglingLineGenerator create(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,
+                                                 LfNetworkLoadingReport report) {
+        Objects.requireNonNull(danglingLine);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
+        Objects.requireNonNull(report);
+        return new LfDanglingLineGenerator(danglingLine, network, controlledLfBusId, parameters, report);
     }
 
     private DanglingLine getDanglingLine() {

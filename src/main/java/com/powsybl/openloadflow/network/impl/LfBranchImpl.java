@@ -91,6 +91,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
         Objects.requireNonNull(branch);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = PerUnit.zb(nominalV2);
         if (branch instanceof Line) {

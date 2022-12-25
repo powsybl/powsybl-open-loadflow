@@ -48,6 +48,8 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     public static LfBatteryImpl create(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         Objects.requireNonNull(battery);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
         return new LfBatteryImpl(battery, network, parameters, report);
     }
