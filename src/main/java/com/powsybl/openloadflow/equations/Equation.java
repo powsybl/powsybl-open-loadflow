@@ -21,6 +21,34 @@ import java.util.stream.Collectors;
  */
 public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Evaluable, Comparable<Equation<V, E>> {
 
+    static class DerIndexCache {
+
+        private final int[] indexes;
+
+        private final int termCount;
+
+        DerIndexCache(int[] indexes, int termCount) {
+            this.indexes = indexes;
+            this.termCount = termCount;
+        }
+
+        int getDerIndex(int varIndex, int termIndex) {
+            return indexes[varIndex * termCount + termIndex];
+        }
+
+        static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DerIndexCache build(List<EquationTerm<V, E>> terms, List<Variable<V>> variables) {
+            int[] indexes = new int[variables.size() * terms.size()];
+            for (int varIndex = 0; varIndex < variables.size(); varIndex++) {
+                Variable<V> variable = variables.get(varIndex);
+                for (int termIndex = 0; termIndex < terms.size(); termIndex++) {
+                    EquationTerm<V, E> term = terms.get(termIndex);
+                    indexes[varIndex * terms.size() + termIndex] = term.getDerIndex(variable);
+                }
+            }
+            return new DerIndexCache(indexes, terms.size());
+        }
+    }
+
     private final int elementNum;
 
     private final E type;
@@ -37,6 +65,8 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
     private List<Variable<V>> variables;
+
+    private DerIndexCache derIndexCache;
 
     Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
         this.elementNum = elementNum;
@@ -100,6 +130,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
         variables = null;
+        derIndexCache = null;
         equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
     }
@@ -140,15 +171,38 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return rhs;
     }
 
+    private DerIndexCache getDerIndexCache() {
+        if (derIndexCache == null) {
+            derIndexCache = DerIndexCache.build(terms, getVariables());
+        }
+        return derIndexCache;
+    }
+
     public double der(Variable<V> variable) {
+        int varIndex = getVariables().indexOf(variable);
+        if (varIndex == -1) {
+            return 0;
+        }
         double value = 0;
-        for (EquationTerm<V, E> term : terms) {
+        for (int termIndex = 0; termIndex < terms.size(); termIndex++) {
+            EquationTerm<V, E> term = terms.get(termIndex);
             if (term.isActive()) {
-                value += term.der(variable);
+                int derIndex = getDerIndexCache().getDerIndex(varIndex, termIndex);
+                value += term.der(derIndex);
             }
         }
         return value;
     }
+//
+//    public double der(Variable<V> variable) {
+//        double value = 0;
+//        for (EquationTerm<V, E> term : terms) {
+//            if (term.isActive()) {
+//                value += term.der(variable);
+//            }
+//        }
+//        return value;
+//    }
 
     @Override
     public int hashCode() {
