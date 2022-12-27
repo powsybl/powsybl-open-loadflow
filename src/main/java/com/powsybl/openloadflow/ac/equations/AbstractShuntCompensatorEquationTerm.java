@@ -20,6 +20,8 @@ import java.util.Objects;
  */
 public abstract class AbstractShuntCompensatorEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
+    protected static final int DV = 0;
+
     protected final LfShunt shunt;
 
     protected final Variable<AcVariableType> vVar;
@@ -44,5 +46,13 @@ public abstract class AbstractShuntCompensatorEquationTerm extends AbstractNamed
 
     protected double v() {
         return sv.get(vVar.getRow());
+    }
+
+    @Override
+    public int getDerIndex(Variable<AcVariableType> variable) {
+        if (variable.equals(vVar)) {
+            return DV;
+        }
+        return DER_ZERO_INDEX;
     }
 }

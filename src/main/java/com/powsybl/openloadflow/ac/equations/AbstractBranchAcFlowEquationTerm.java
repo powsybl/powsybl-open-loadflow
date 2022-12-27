@@ -15,6 +15,13 @@ import com.powsybl.openloadflow.network.PiModel;
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractBranchEquationTerm<AcVariableType, AcEquationType> {
 
+    protected static final int DV1 = 0;
+    protected static final int DV2 = 1;
+    protected static final int DPH1 = 2;
+    protected static final int DPH2 = 3;
+    protected static final int DA1 = 4;
+    protected static final int DR1 = 5;
+
     protected final double b1;
     protected final double b2;
     protected final double g1;

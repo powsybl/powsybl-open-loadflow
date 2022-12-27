@@ -18,16 +18,23 @@ import java.util.List;
  */
 abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 
+    protected final Variable<AcVariableType> v1Var;
+
     protected final List<Variable<AcVariableType>> variables;
 
     protected AbstractOpenSide2BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
-                                                        LfBus bus, VariableSet<AcVariableType> variableSet,
+                                                        LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                         boolean deriveA1, boolean deriveR1) {
         super(branch);
-        variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
+        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
+        variables = List.of(variableSet.getVariable(bus1.getNum(), variableType));
         if (deriveA1 || deriveR1) {
             throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());
         }
+    }
+
+    protected double v1() {
+        return sv.get(v1Var.getRow());
     }
 
     protected static double shunt(double y, double cosKsi, double sinKsi, double g2, double b2) {
@@ -37,5 +44,13 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
     @Override
     public List<Variable<AcVariableType>> getVariables() {
         return variables;
+    }
+
+    @Override
+    public int getDerIndex(Variable<AcVariableType> variable) {
+        if (variable.equals(v1Var)) {
+            return DV1;
+        }
+        return DER_ZERO_INDEX;
     }
 }

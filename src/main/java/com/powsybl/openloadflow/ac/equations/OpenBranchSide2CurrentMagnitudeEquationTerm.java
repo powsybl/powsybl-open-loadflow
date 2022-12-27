@@ -12,15 +12,11 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
-import java.util.Objects;
-
 /**
  * @author Gael Macherel <gael.macherel at artelys.com>
  */
 @SuppressWarnings("squid:S00107")
 public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSide2BranchAcFlowEquationTerm {
-
-    private final Variable<AcVariableType> v1Var;
 
     private final Variable<AcVariableType> ph1Var;
 
@@ -29,15 +25,10 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     public OpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                        boolean deriveA1, boolean deriveR1) {
         super(branch, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
-        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         if (deriveR1) {
             r1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BRANCH_RHO1);
         }
-    }
-
-    private double v1() {
-        return sv.get(v1Var.getRow());
     }
 
     private double ph1() {
@@ -91,12 +82,11 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(v1Var)) {
+    public double der(int index) {
+        if (index == DV1) {
             return di1dv1(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v1(), ph1(), r1());
         }
-        return 0;
+        return super.der(index);
     }
 
     @Override

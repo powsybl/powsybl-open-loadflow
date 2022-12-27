@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -46,16 +45,17 @@ public final class ClosedBranchSide2DcFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable<DcVariableType> variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(ph1Var)) {
-            return -power;
-        } else if (variable.equals(ph2Var)) {
-            return power;
-        } else if (variable.equals(a1Var)) {
-            return -power;
+    public double der(int index) {
+        switch (index) {
+            case DPH1:
+                return -power;
+            case DPH2:
+                return power;
+            case DA1:
+                return -power;
+            default:
+                return super.der(index);
         }
-        return 0;
     }
 
     @Override

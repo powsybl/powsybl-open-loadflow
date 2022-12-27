@@ -12,12 +12,13 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompensatorEquationTerm {
+
+    protected static final int DB = 1;
 
     private Variable<AcVariableType> bVar;
 
@@ -60,14 +61,21 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(vVar)) {
+    public int getDerIndex(Variable<AcVariableType> variable) {
+        if (variable.equals(bVar)) {
+            return DB;
+        }
+        return super.getDerIndex(variable);
+    }
+
+    @Override
+    public double der(int index) {
+        if (index == DV) {
             return dqdv(v(), b());
-        } else if (variable.equals(bVar)) {
+        } else if (index == DB) {
             return dqdb(v());
         }
-        return 0;
+        return super.der(index);
     }
 
     @Override

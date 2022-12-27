@@ -6,13 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
-
-import java.util.Objects;
 
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
@@ -76,23 +73,24 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
+    public double der(int index) {
         double theta = theta1(ksi, ph1(), a1(), ph2());
-        if (variable.equals(v1Var)) {
-            return dq1dv1(y, FastMath.cos(ksi), b1, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(v2Var)) {
-            return dq1dv2(y, v1(), r1(), FastMath.cos(theta));
-        } else if (variable.equals(ph1Var)) {
-            return dq1dph1(y, v1(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(ph2Var)) {
-            return dq1dph2(y, v1(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(a1Var)) {
-            return dq1da1(y, v1(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(r1Var)) {
-            return dq1dr1(y, FastMath.cos(ksi), b1, v1(), r1(), v2(), FastMath.cos(theta));
+        switch (index) {
+            case DV1:
+                return dq1dv1(y, FastMath.cos(ksi), b1, v1(), r1(), v2(), FastMath.cos(theta));
+            case DV2:
+                return dq1dv2(y, v1(), r1(), FastMath.cos(theta));
+            case DPH1:
+                return dq1dph1(y, v1(), r1(), v2(), FastMath.sin(theta));
+            case DPH2:
+                return dq1dph2(y, v1(), r1(), v2(), FastMath.sin(theta));
+            case DA1:
+                return dq1da1(y, v1(), r1(), v2(), FastMath.sin(theta));
+            case DR1:
+                return dq1dr1(y, FastMath.cos(ksi), b1, v1(), r1(), v2(), FastMath.cos(theta));
+            default:
+                return super.der(index);
         }
-        return 0;
     }
 
     @Override

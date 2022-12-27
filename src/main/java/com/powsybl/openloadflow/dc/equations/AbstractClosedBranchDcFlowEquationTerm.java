@@ -24,6 +24,10 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBranchEquationTerm<DcVariableType, DcEquationType> {
 
+    protected static final int DPH1 = 0;
+    protected static final int DPH2 = 1;
+    protected static final int DA1 = 2;
+
     protected final Variable<DcVariableType> ph1Var;
 
     protected final Variable<DcVariableType> ph2Var;
@@ -86,6 +90,18 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
     @Override
     public List<Variable<DcVariableType>> getVariables() {
         return variables;
+    }
+
+    @Override
+    public int getDerIndex(Variable<DcVariableType> variable) {
+        if (variable.equals(ph1Var)) {
+            return DPH1;
+        } else if (variable.equals(ph2Var)) {
+            return DPH2;
+        } else if (variable.equals(a1Var)) {
+            return DA1;
+        }
+        return DER_ZERO_INDEX;
     }
 
     @Override

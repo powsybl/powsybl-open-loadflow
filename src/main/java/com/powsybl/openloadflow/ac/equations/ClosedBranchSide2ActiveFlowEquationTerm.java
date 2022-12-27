@@ -6,13 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
-
-import java.util.Objects;
 
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
@@ -74,23 +71,24 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
+    public double der(int index) {
         double theta = theta2(ksi, ph1(), a1(), ph2());
-        if (variable.equals(v1Var)) {
-            return dp2dv1(y, r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(v2Var)) {
-            return dp2dv2(y, FastMath.sin(ksi), g2, v1(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(ph1Var)) {
-            return dp2dph1(y, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(ph2Var)) {
-            return dp2dph2(y, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(a1Var)) {
-            return dp2da1(y, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(r1Var)) {
-            return dp2dr1(y, v1(), v2(), FastMath.sin(theta));
+        switch (index) {
+            case DV1:
+                return dp2dv1(y, r1(), v2(), FastMath.sin(theta));
+            case DV2:
+                return dp2dv2(y, FastMath.sin(ksi), g2, v1(), r1(), v2(), FastMath.sin(theta));
+            case DPH1:
+                return dp2dph1(y, v1(), r1(), v2(), FastMath.cos(theta));
+            case DPH2:
+                return dp2dph2(y, v1(), r1(), v2(), FastMath.cos(theta));
+            case DA1:
+                return dp2da1(y, v1(), r1(), v2(), FastMath.cos(theta));
+            case DR1:
+                return dp2dr1(y, v1(), v2(), FastMath.sin(theta));
+            default:
+                return super.der(index);
         }
-        return 0;
     }
 
     @Override

@@ -6,13 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
-
-import java.util.Objects;
 
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
@@ -21,16 +18,9 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
  */
 public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1BranchAcFlowEquationTerm {
 
-    private final Variable<AcVariableType> v2Var;
-
     public OpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
         super(branch, AcVariableType.BUS_V, bus2, variableSet, deriveA1, deriveR1);
-        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
-    }
-
-    private double v2() {
-        return sv.get(v2Var.getRow());
     }
 
     private static double q2(double y, double cosKsi, double sinKsi, double g1, double b1, double b2, double v2) {
@@ -49,12 +39,11 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(v2Var)) {
+    public double der(int index) {
+        if (index == DV2) {
             return dq2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, b2, v2());
         }
-        return 0;
+        return super.der(index);
     }
 
     @Override

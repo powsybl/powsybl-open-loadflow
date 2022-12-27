@@ -21,6 +21,9 @@ import java.util.Objects;
  */
 public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
+    protected static final int DPH1 = 0;
+    protected static final int DPH2 = 1;
+
     protected final LfHvdc hvdc;
 
     protected final Variable<AcVariableType> ph1Var;
@@ -64,6 +67,16 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
     @Override
     public List<Variable<AcVariableType>> getVariables() {
         return variables;
+    }
+
+    @Override
+    public int getDerIndex(Variable<AcVariableType> variable) {
+        if (variable.equals(ph1Var)) {
+            return DPH1;
+        } else if (variable.equals(ph2Var)) {
+            return DPH2;
+        }
+        return DER_ZERO_INDEX;
     }
 
     @Override

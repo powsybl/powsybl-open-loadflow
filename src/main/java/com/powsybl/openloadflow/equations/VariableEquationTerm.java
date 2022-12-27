@@ -50,8 +50,16 @@ public class VariableEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E
     }
 
     @Override
-    public double der(Variable<V> variable) {
-        return variables.get(0).equals(variable) ? 1 : 0;
+    public int getDerIndex(Variable<V> variable) {
+        return variables.get(0).equals(variable) ? 0 : DER_ZERO_INDEX;
+    }
+
+    @Override
+    public double der(int index) {
+        if (index == 0) {
+            return 1;
+        }
+        return super.der(index);
     }
 
     @Override

@@ -97,6 +97,24 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         return ksi + a1 - A2 + ph1 - ph2;
     }
 
+    @Override
+    public int getDerIndex(Variable<AcVariableType> variable) {
+        if (variable.equals(v1Var)) {
+            return DV1;
+        } else if (variable.equals(v2Var)) {
+            return DV2;
+        } else if (variable.equals(ph1Var)) {
+            return DPH1;
+        } else if (variable.equals(ph2Var)) {
+            return DPH2;
+        } else if (variable.equals(a1Var)) {
+            return DA1;
+        } else if (variable.equals(r1Var)) {
+            return DR1;
+        }
+        return DER_ZERO_INDEX;
+    }
+
     protected abstract double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1);
 
     @Override

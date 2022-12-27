@@ -141,12 +141,16 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
 
         @Override
-        public double der(Variable<InitVmVariableType> variable) {
-            int i = variables.indexOf(variable);
-            if (i == -1) {
+        public int getDerIndex(Variable<InitVmVariableType> variable) {
+            return variables.indexOf(variable);
+        }
+
+        @Override
+        public double der(int index) {
+            if (index == DER_ZERO_INDEX) {
                 return 0;
             }
-            return der.getQuick(i);
+            return der.getQuick(index);
         }
 
         @Override

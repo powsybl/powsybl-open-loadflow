@@ -6,13 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
-
-import java.util.Objects;
 
 import static com.powsybl.openloadflow.network.PiModel.A2;
 import static com.powsybl.openloadflow.network.PiModel.R2;
@@ -133,20 +130,21 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(v1Var)) {
-            return di1dv1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(v2Var)) {
-            return di1dv2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(ph1Var)) {
-            return di1dph1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(ph2Var)) {
-            return di1dph2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
-        } else if (variable.equals(a1Var)) {
-            return di1da1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+    public double der(int index) {
+        switch (index) {
+            case DV1:
+                return di1dv1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+            case DV2:
+                return di1dv2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+            case DPH1:
+                return di1dph1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+            case DPH2:
+                return di1dph2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+            case DA1:
+                return di1da1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+            default:
+                return super.der(index);
         }
-        return 0;
     }
 
     @Override

@@ -6,12 +6,9 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfHvdc;
-
-import java.util.Objects;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -44,14 +41,15 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     }
 
     @Override
-    public double der(Variable<AcVariableType> variable) {
-        Objects.requireNonNull(variable);
-        if (variable.equals(ph1Var)) {
-            return dp1dph1(k, lossFactor1, lossFactor2, ph1(), ph2());
-        } else if (variable.equals(ph2Var)) {
-            return dp1dph2(k, lossFactor1, lossFactor2, ph1(), ph2());
+    public double der(int index) {
+        switch (index) {
+            case DPH1:
+                return dp1dph1(k, lossFactor1, lossFactor2, ph1(), ph2());
+            case DPH2:
+                return dp1dph2(k, lossFactor1, lossFactor2, ph1(), ph2());
+            default:
+                return super.der(index);
         }
-        return 0;
     }
 
     @Override

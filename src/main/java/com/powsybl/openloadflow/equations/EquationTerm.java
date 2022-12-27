@@ -24,6 +24,8 @@ import java.util.function.DoubleSupplier;
  */
 public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends Evaluable {
 
+    int DER_ZERO_INDEX = -1;
+
     class MultiplyByScalarEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements EquationTerm<V, E> {
 
         private final EquationTerm<V, E> term;
@@ -96,6 +98,16 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
+        public int getDerIndex(Variable<V> variable) {
+            return term.getDerIndex(variable);
+        }
+
+        @Override
+        public double der(int index) {
+            return scalarSupplier.getAsDouble() * term.der(index);
+        }
+
+        @Override
         public double der(Variable<V> variable) {
             return scalarSupplier.getAsDouble() * term.der(variable);
         }
@@ -165,13 +177,24 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
      */
     double eval();
 
+    int getDerIndex(Variable<V> variable);
+
+    default double der(int index) {
+        if (index == DER_ZERO_INDEX) {
+            return 0;
+        }
+        throw new IllegalArgumentException("Unknown derivative index: " + index);
+    }
+
     /**
      * Get partial derivative.
      *
      * @param variable the variable the partial derivative is with respect to
      * @return value of the partial derivative
      */
-    double der(Variable<V> variable);
+    default double der(Variable<V> variable) {
+        return der(getDerIndex(variable));
+    }
 
     /**
      * Check {@link #rhs()} can return a value different from zero.
