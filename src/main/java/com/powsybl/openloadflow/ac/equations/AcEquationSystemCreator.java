@@ -756,9 +756,8 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static List<EquationTerm<AcVariableType, AcEquationType>> createActiveInjectionTerms(LfBus bus,
-                                                                                                 VariableSet<AcVariableType> variableSet,
-                                                                                                 AcEquationSystemCreationParameters creationParameters) {
+    private List<EquationTerm<AcVariableType, AcEquationType>> createActiveInjectionTerms(LfBus bus,
+                                                                                          VariableSet<AcVariableType> variableSet) {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : bus.getBranches()) {
             if (branch.isZeroImpedance()) {
@@ -770,7 +769,7 @@ public class AcEquationSystemCreator {
                     terms.add(p);
                 }
             } else {
-                boolean deriveA1 = isDeriveA1(branch, creationParameters);
+                boolean deriveA1 = isDeriveA1(branch);
                 boolean deriveR1 = isDeriveR1(branch);
                 if (branch.getBus1() == bus) {
                     LfBus otherSideBus = branch.getBus2();
@@ -788,7 +787,7 @@ public class AcEquationSystemCreator {
         return terms;
     }
 
-    private static void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         List<LfBus> slackBuses = network.getSlackBuses();
         if (slackBuses.size() > 1) {
             LfBus firstSlackBus = slackBuses.get(0);
@@ -798,8 +797,8 @@ public class AcEquationSystemCreator {
                 // 0 = slack_p1 - slack_p2
                 // 0 = slack_p1 - slack_p3
                 equationSystem.createEquation(slackBus, AcEquationType.BUS_DISTR_SLACK_P)
-                        .addTerms(createActiveInjectionTerms(firstSlackBus, equationSystem.getVariableSet(), creationParameters))
-                        .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet(), creationParameters).stream()
+                        .addTerms(createActiveInjectionTerms(firstSlackBus, equationSystem.getVariableSet()))
+                        .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet()).stream()
                                 .map(EquationTerm::minus)
                                 .collect(Collectors.toList()));
             }
