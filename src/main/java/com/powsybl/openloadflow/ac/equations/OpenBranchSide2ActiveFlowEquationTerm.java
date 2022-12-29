@@ -32,7 +32,7 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
     }
 
     private double r1() {
-        return branch.getPiModel().getR1();
+        return element.getPiModel().getR1();
     }
 
     private static double p1(double y, double cosKsi, double sinKsi, double g1, double g2, double b2, double v1, double r1) {
