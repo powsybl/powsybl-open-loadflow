@@ -45,7 +45,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double r1() {
-        return r1Var != null ? sv.get(r1Var.getRow()) : branch.getPiModel().getR1();
+        return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
     }
 
     private static double gres(double y, double sinksi, double g1, double g2, double b2, double shunt) {
