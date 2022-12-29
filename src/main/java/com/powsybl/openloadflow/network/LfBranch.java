@@ -11,10 +11,7 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -175,4 +172,10 @@ public interface LfBranch extends LfElement {
     boolean isConnectedAtBothSides();
 
     void setMinZ(boolean dc, double lowImpedanceThreshold);
+
+    Set<LfBranchDisableMode> getSupportedDisableModes();
+
+    LfBranchDisableMode getDisableMode();
+
+    void setDisableMode(LfBranchDisableMode disableMode);
 }

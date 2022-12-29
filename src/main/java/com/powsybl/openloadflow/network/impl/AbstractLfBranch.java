@@ -51,6 +51,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean zeroImpedance;
 
+    protected final Set<LfBranchDisableMode> supportedDisableModes = EnumSet.of(LfBranchDisableMode.BOTH_SIDES);
+
+    protected LfBranchDisableMode disableMode = LfBranchDisableMode.BOTH_SIDES;
+
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network);
         this.bus1 = bus1;
@@ -298,6 +302,27 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             return FastMath.abs(piModel.getX()) < parameters.getLowImpedanceThreshold();
         } else {
             return piModel.getZ() < parameters.getLowImpedanceThreshold();
+        }
+    }
+
+    @Override
+    public Set<LfBranchDisableMode> getSupportedDisableModes() {
+        return supportedDisableModes;
+    }
+
+    @Override
+    public LfBranchDisableMode getDisableMode() {
+        return disableMode;
+    }
+
+    @Override
+    public void setDisableMode(LfBranchDisableMode disableMode) {
+        Objects.requireNonNull(disableMode);
+        if (disableMode != this.disableMode) {
+            this.disableMode = disableMode;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onBranchDisableModeChange(this, disableMode);
+            }
         }
     }
 }
