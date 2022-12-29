@@ -6,10 +6,9 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 
@@ -18,28 +17,15 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractShuntCompensatorEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
-
-    protected final LfShunt shunt;
+public abstract class AbstractShuntCompensatorEquationTerm extends AbstractElementEquationTerm<LfShunt, AcVariableType, AcEquationType> {
 
     protected final Variable<AcVariableType> vVar;
 
     protected AbstractShuntCompensatorEquationTerm(LfShunt shunt, LfBus bus, VariableSet<AcVariableType> variableSet) {
-        super(!Objects.requireNonNull(shunt).isDisabled());
-        this.shunt = shunt;
+        super(shunt);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
-    }
-
-    @Override
-    public ElementType getElementType() {
-        return ElementType.SHUNT_COMPENSATOR;
-    }
-
-    @Override
-    public int getElementNum() {
-        return shunt.getNum();
     }
 
     protected double v() {
