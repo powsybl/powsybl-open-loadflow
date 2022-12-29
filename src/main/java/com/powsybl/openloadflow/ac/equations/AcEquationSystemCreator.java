@@ -308,7 +308,7 @@ public class AcEquationSystemCreator {
                         .orElseThrow()
                         .setActive(!controlledBus.isDisabled() && !controlledBus.isVoltageControlEnabled());
             } else {
-                AcEquationSystemCreator.updateRemoteVoltageControlEquations(voltageControl, equationSystem);
+                updateRemoteVoltageControlEquations(voltageControl, equationSystem);
             }
         }
     }
