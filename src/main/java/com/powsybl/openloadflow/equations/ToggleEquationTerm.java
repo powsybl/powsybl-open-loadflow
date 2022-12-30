@@ -10,41 +10,68 @@ import com.powsybl.openloadflow.network.ElementType;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.List;
+import java.util.*;
 
 /**
+ * Toggle equation term.
+ * toggleTerm.value = commandTerm.value * term1.value + (1 - commandTerm.value) * term2.value
+ * commandTerm.value is expected to be 0 or 1
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class ToggleEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractEquationTerm<V, E> {
 
-    private final EquationTerm<V, E> term1;
+    private final EquationTerm<V, E> termA;
 
-    private final EquationTerm<V, E> term2;
+    private final EquationTerm<V, E> termB;
 
-    public ToggleEquationTerm(boolean active, EquationTerm<V, E> term1, EquationTerm<V, E> term2) {
+    private final VariableEquationTerm<V, E> commandTerm;
+
+    private final Variable<V> commandVar;
+
+    private final List<Variable<V>> variables;
+
+    public ToggleEquationTerm(boolean active, EquationTerm<V, E> termA, EquationTerm<V, E> termB, VariableEquationTerm<V, E> commandTerm) {
         super(active);
-        this.term1 = term1;
-        this.term2 = term2;
+        this.termA = Objects.requireNonNull(termA);
+        this.termB = Objects.requireNonNull(termB);
+        this.commandTerm = Objects.requireNonNull(commandTerm);
+        if (termA.getElementType() != termB.getElementType()) {
+            throw new IllegalArgumentException("The 2 terms should have same element type");
+        }
+        if (termA.getElementNum() != termB.getElementNum()) {
+            throw new IllegalArgumentException("The 2 terms should have same element number");
+        }
+        commandVar = commandTerm.getVariable();
+        if (termA.getVariables().contains(commandVar) || termB.getVariables().contains(commandVar)) {
+            throw new IllegalArgumentException("None of the 2 terms should use command variable");
+        }
+        Set<Variable<V>> uniqueVariables = new HashSet<>();
+        uniqueVariables.addAll(termA.getVariables());
+        uniqueVariables.addAll(termB.getVariables());
+        uniqueVariables.add(commandVar);
+        variables = new ArrayList<>(uniqueVariables);
     }
 
     @Override
     public ElementType getElementType() {
-        return null;
+        return termA.getElementType();
     }
 
     @Override
     public int getElementNum() {
-        return 0;
+        return termA.getElementNum();
     }
 
     @Override
     public List<Variable<V>> getVariables() {
-        return null;
+        return variables;
     }
 
     @Override
     public double eval() {
-        return 0;
+        double c = commandTerm.eval();
+        return c * termA.eval() + (1 - c) * termB.eval();
     }
 
     @Override

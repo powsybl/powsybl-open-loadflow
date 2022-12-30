@@ -25,7 +25,7 @@ public class VariableEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E
         this.variables = List.of(Objects.requireNonNull(variable));
     }
 
-    private Variable<V> getVariable() {
+    public Variable<V> getVariable() {
         return variables.get(0);
     }
 
