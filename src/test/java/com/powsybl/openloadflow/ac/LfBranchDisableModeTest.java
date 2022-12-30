@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
@@ -22,6 +23,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -31,8 +36,8 @@ class LfBranchDisableModeTest {
     void test() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters()).get(0);
-        LfBranch l1 = lfNetwork.getBranchById("NHV1_NHV2_1");
-        l1.getSupportedDisableModes().add(LfBranchDisableMode.SIDE_1);
+        LfBranch lfl1 = lfNetwork.getBranchById("NHV1_NHV2_1");
+        lfl1.getSupportedDisableModes().add(LfBranchDisableMode.SIDE_1);
 
         AcLoadFlowParameters acParameters = new AcLoadFlowParameters(new LfNetworkParameters(),
                                                                      new AcEquationSystemCreationParameters(),
@@ -43,6 +48,14 @@ class LfBranchDisableModeTest {
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult result = new AcloadFlowEngine(context)
                     .run();
+            assertEquals(NewtonRaphsonStatus.CONVERGED, result.getNewtonRaphsonStatus());
+            lfNetwork.updateState(new LfNetworkStateUpdateParameters(true, false, false, false, true, false));
+
+            var l1 = network.getLine("NHV1_NHV2_1");
+            assertActivePowerEquals(302.444, l1.getTerminal1());
+            assertReactivePowerEquals(98.739, l1.getTerminal1());
+            assertActivePowerEquals(-300.434, l1.getTerminal2());
+            assertReactivePowerEquals(-137.187, l1.getTerminal2());
         }
     }
 }
