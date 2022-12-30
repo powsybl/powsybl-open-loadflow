@@ -76,11 +76,23 @@ public class ToggleEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> 
 
     @Override
     public double der(Variable<V> variable) {
-        return 0;
+        // it has been checked that terms A and B does not depend on var command
+        if (variable.equals(commandVar)) {
+            return termA.eval() - termB.eval();
+        } else {
+            double c = commandTerm.eval();
+            return c * termA.der(variable) + (1 - c) * termB.der(variable);
+        }
     }
 
     @Override
     public void write(Writer writer) throws IOException {
-
+        writer.write("toggle(");
+        termA.write(writer);
+        writer.write(", ");
+        termB.write(writer);
+        writer.write(", ");
+        commandTerm.write(writer);
+        writer.write(")");
     }
 }
