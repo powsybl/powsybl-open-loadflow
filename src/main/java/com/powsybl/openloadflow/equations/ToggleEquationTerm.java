@@ -69,6 +69,13 @@ public class ToggleEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> 
     }
 
     @Override
+    public void setStateVector(StateVector sv) {
+        super.setStateVector(sv);
+        termA.setStateVector(sv);
+        termB.setStateVector(sv);
+    }
+
+    @Override
     public double eval() {
         double c = commandTerm.eval();
         return c * termA.eval() + (1 - c) * termB.eval();

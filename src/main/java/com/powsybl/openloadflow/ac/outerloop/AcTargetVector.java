@@ -124,6 +124,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = 0;
                 break;
 
+            case COMMAND_OPEN_1_TARGET:
+                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getDisableMode() != LfBranchDisableMode.SIDE_1 ? 1 : 0;
+                break;
+
             default:
                 throw new IllegalStateException("Unknown state variable type: " + equation.getType());
         }

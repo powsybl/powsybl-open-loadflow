@@ -6,9 +6,13 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -16,6 +20,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -31,6 +36,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 class LfBranchDisableModeTest {
+
+    private static Network calculateLine1OpenSide1Ref() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
+        new OpenLoadFlowProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>())
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters())
+                .join();
+        return network;
+    }
 
     @Test
     void test() {
@@ -56,6 +70,18 @@ class LfBranchDisableModeTest {
             assertReactivePowerEquals(98.739, l1.getTerminal1());
             assertActivePowerEquals(-300.434, l1.getTerminal2());
             assertReactivePowerEquals(-137.187, l1.getTerminal2());
+        }
+
+        Network networkRef = calculateLine1OpenSide1Ref();
+
+        lfl1.setDisableMode(LfBranchDisableMode.SIDE_1);
+        try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
+            AcLoadFlowResult result = new AcloadFlowEngine(context)
+                    .run();
+            assertEquals(NewtonRaphsonStatus.CONVERGED, result.getNewtonRaphsonStatus());
+            lfNetwork.updateState(new LfNetworkStateUpdateParameters(true, false, false, false, true, false));
+
+            var l1 = network.getLine("NHV1_NHV2_1");
         }
     }
 }

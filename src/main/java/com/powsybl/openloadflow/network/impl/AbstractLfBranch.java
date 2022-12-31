@@ -318,6 +318,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setDisableMode(LfBranchDisableMode disableMode) {
         Objects.requireNonNull(disableMode);
+        if (!supportedDisableModes.contains(disableMode)) {
+            throw new IllegalArgumentException("Unsupported disable mode " + disableMode + " for branch " + getId()
+                    + ", supported disable modes are " + supportedDisableModes);
+        }
         if (disableMode != this.disableMode) {
             this.disableMode = disableMode;
             for (LfNetworkListener listener : network.getListeners()) {
