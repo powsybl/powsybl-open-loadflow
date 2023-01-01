@@ -678,6 +678,19 @@ public class AcEquationSystemCreator {
                 });
     }
 
+    private static void updateBranchDisableMode(LfBranch branch, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        switch (branch.getDisableMode()) {
+            case BOTH_SIDES:
+                break;
+            case SIDE_1:
+                break;
+            case SIDE_2:
+                break;
+            default:
+                throw new IllegalStateException("Unknown branch disable mode:" + branch.getDisableMode());
+        }
+    }
+
     private void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
                                       EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
