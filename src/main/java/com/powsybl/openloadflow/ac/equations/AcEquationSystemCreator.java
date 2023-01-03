@@ -645,52 +645,6 @@ public class AcEquationSystemCreator {
         return branch.isVoltageController();
     }
 
-    private static EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveA1, boolean deriveR1) {
-        var closedP1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-        if (branch.getSupportedDisableModes().contains(LfBranchDisableMode.SIDE_2)) {
-            var openP1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            var commandEq1 = createOpenSideOneCommandEquation(branch, equationSystem);
-            return new ToggleEquationTerm<>(!branch.isDisabled(), closedP1, openP1,
-                    (VariableEquationTerm<AcVariableType, AcEquationType>) commandEq1.getTerms().get(0));
-        }
-        return closedP1;
-    }
-
-    private static EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveA1, boolean deriveR1) {
-        var closedQ1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-        if (branch.getSupportedDisableModes().contains(LfBranchDisableMode.SIDE_2)) {
-            var openQ1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            var commandEq1 = createOpenSideOneCommandEquation(branch, equationSystem);
-            return new ToggleEquationTerm<>(!branch.isDisabled(), closedQ1, openQ1,
-                    (VariableEquationTerm<AcVariableType, AcEquationType>) commandEq1.getTerms().get(0));
-        }
-        return closedQ1;
-    }
-
-    private static Equation<AcVariableType, AcEquationType> createOpenSideOneCommandEquation(LfBranch branch, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        return equationSystem.getEquation(branch.getNum(), AcEquationType.COMMAND_OPEN_1_TARGET)
-                .orElseGet(() -> {
-                    // create the command equation
-                    var commandVar = equationSystem.getVariableSet().getVariable(branch.getNum(), AcVariableType.COMMAND_OPEN_1);
-                    EquationTerm<AcVariableType, AcEquationType> commandTerm = commandVar.createTerm();
-                    return equationSystem.createEquation(branch, AcEquationType.COMMAND_OPEN_1_TARGET)
-                            .addTerm(commandTerm);
-                });
-    }
-
-    private static void updateBranchDisableMode(LfBranch branch, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        switch (branch.getDisableMode()) {
-            case BOTH_SIDES:
-                break;
-            case SIDE_1:
-                break;
-            case SIDE_2:
-                break;
-            default:
-                throw new IllegalStateException("Unknown branch disable mode:" + branch.getDisableMode());
-        }
-    }
-
     private void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
                                       EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
@@ -702,8 +656,8 @@ public class AcEquationSystemCreator {
         boolean deriveA1 = isDeriveA1(branch);
         boolean deriveR1 = isDeriveR1(branch);
         if (bus1 != null && bus2 != null) {
-            p1 = createClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
-            q1 = createClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+            p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
             p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
             q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
             i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);

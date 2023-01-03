@@ -10,7 +10,6 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.LfBranchDisableMode;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -142,10 +141,6 @@ public class NewtonRaphson {
                     x[v.getRow()] = 0;
                     break;
 
-                case COMMAND_OPEN_1:
-                    x[v.getRow()] = network.getBranch(v.getElementNum()).getDisableMode() != LfBranchDisableMode.SIDE_1 ? 1 : 0;
-                    break;
-
                 default:
                     throw new IllegalStateException("Unknown variable type " + v.getType());
             }
@@ -180,7 +175,6 @@ public class NewtonRaphson {
 
                 case DUMMY_P:
                 case DUMMY_Q:
-                case COMMAND_OPEN_1:
                     // nothing to do
                     break;
 

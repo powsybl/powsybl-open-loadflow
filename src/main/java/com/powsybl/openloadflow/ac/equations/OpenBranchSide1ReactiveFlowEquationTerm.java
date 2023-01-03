@@ -53,8 +53,9 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
             return dq2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, b2, v2());
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
         }
-        return 0;
     }
 
     @Override

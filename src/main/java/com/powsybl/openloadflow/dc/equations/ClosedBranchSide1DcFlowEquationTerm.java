@@ -53,8 +53,9 @@ public final class ClosedBranchSide1DcFlowEquationTerm extends AbstractClosedBra
             return -power;
         } else if (variable.equals(a1Var)) {
             return power;
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
         }
-        return 0;
     }
 
     @Override

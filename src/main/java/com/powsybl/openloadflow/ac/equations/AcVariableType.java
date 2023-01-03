@@ -19,8 +19,7 @@ public enum AcVariableType implements Quantity {
     BRANCH_ALPHA1("\u03B1", ElementType.BRANCH), // branch phase shift
     BRANCH_RHO1("\u03C1", ElementType.BRANCH), // branch voltage ratio
     DUMMY_P("dummy_p", ElementType.BRANCH), // dummy active power injection (zero impedance branch)
-    DUMMY_Q("dummy_q", ElementType.BRANCH), // dummy reactive power injection (zero impedance branch)
-    COMMAND_OPEN_1("command_open_one", ElementType.BRANCH);
+    DUMMY_Q("dummy_q", ElementType.BRANCH); // dummy reactive power injection (zero impedance branch)
 
     private final String symbol;
 

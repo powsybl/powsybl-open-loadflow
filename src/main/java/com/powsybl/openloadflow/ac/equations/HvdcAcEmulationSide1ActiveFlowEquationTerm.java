@@ -50,8 +50,9 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
             return dp1dph1(k, lossFactor1, lossFactor2, ph1(), ph2());
         } else if (variable.equals(ph2Var)) {
             return dp1dph2(k, lossFactor1, lossFactor2, ph1(), ph2());
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
         }
-        return 0;
     }
 
     @Override
