@@ -6,8 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.AbstractConverterTest;
-import com.powsybl.commons.ComparisonUtils;
+import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;

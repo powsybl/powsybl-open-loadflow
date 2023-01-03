@@ -11,6 +11,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
+import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
@@ -259,8 +260,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     @Override
-    public List<String> getSpecificParametersNames() {
-        return OpenLoadFlowParameters.SPECIFIC_PARAMETERS_NAMES;
+    public List<Parameter> getSpecificParameters() {
+        return OpenLoadFlowParameters.SPECIFIC_PARAMETERS;
     }
 
     @Override

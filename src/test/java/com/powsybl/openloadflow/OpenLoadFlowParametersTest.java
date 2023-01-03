@@ -97,7 +97,7 @@ class OpenLoadFlowParametersTest {
         assertTrue(parameters.isDistributedSlack());
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(OpenLoadFlowParameters.SLACK_BUS_SELECTION_DEFAULT_VALUE, olfParameters.getSlackBusSelectionMode());
+        assertEquals(OpenLoadFlowParameters.SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE, olfParameters.getSlackBusSelectionMode());
         assertEquals(OpenLoadFlowParameters.VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
         assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
         assertEquals(OpenLoadFlowParameters.THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());

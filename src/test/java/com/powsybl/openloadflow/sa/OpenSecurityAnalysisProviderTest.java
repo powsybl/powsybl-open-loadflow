@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.AbstractConverterTest;
+import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
