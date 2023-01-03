@@ -56,8 +56,9 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
         }
 
         @Override
-        public void setActive(boolean active) {
+        public EquationTerm<V, E> setActive(boolean active) {
             term.setActive(active);
+            return this;
         }
 
         @Override
@@ -139,7 +140,7 @@ public interface EquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & 
 
     boolean isActive();
 
-    void setActive(boolean active);
+    EquationTerm<V, E> setActive(boolean active);
 
     void setSelf(EquationTerm<V, E> self);
 
