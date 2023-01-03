@@ -36,15 +36,6 @@ public interface LfBus extends LfElement {
 
     void removeGeneratorSlopes();
 
-    /**
-     * Get the number of time, voltage control status has be set from true to false.
-     *
-     * @return the number of time, voltage control status has be set from true to false
-     */
-    int getVoltageControlSwitchOffCount();
-
-    void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
-
     void setVoltageControlEnabled(boolean voltageControlEnabled);
 
     Optional<VoltageControl> getVoltageControl();

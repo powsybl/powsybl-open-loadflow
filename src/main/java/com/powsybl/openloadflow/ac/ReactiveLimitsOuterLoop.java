@@ -18,9 +18,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -39,6 +37,24 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     private static final Comparator<PvToPqBus> BY_ID_COMPARATOR = Comparator.comparing(pvToPqBus -> pvToPqBus.controllerBus.getId());
 
     private static final int MAX_SWITCH_PQ_PV = 2;
+
+    private static final class ContextData {
+
+        private final Map<String, MutableInt> pvPqSwitchCount = new HashMap<>();
+
+        void incrementPvPqSwitchCount(String busId) {
+            pvPqSwitchCount.computeIfAbsent(busId, k -> new MutableInt(0))
+                    .increment();
+        }
+
+        int getPvPqSwitchCount(String busId) {
+            MutableInt counter = pvPqSwitchCount.get(busId);
+            if (counter == null) {
+                return 0;
+            }
+            return counter.getValue();
+        }
+    }
 
     @Override
     public String getType() {
@@ -68,7 +84,8 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         }
     }
 
-    private boolean switchPvPq(List<PvToPqBus> pvToPqBuses, int remainingPvBusCount, Reporter reporter) {
+    private boolean switchPvPq(List<PvToPqBus> pvToPqBuses, int remainingPvBusCount, ContextData contextData,
+                               Reporter reporter) {
         boolean done = false;
 
         int modifiedRemainingPvBusCount = remainingPvBusCount;
@@ -89,16 +106,20 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             done = true;
 
             for (PvToPqBus pvToPqBus : pvToPqBuses) {
+                LfBus controllerBus = pvToPqBus.controllerBus;
+
                 // switch PV -> PQ
-                pvToPqBus.controllerBus.setGenerationTargetQ(pvToPqBus.qLimit);
-                pvToPqBus.controllerBus.setVoltageControlEnabled(false);
+                controllerBus.setGenerationTargetQ(pvToPqBus.qLimit);
+                controllerBus.setVoltageControlEnabled(false);
+                // increment PV -> PQ switch counter
+                contextData.incrementPvPqSwitchCount(controllerBus.getId());
 
                 if (LOGGER.isTraceEnabled()) {
                     if (pvToPqBus.limitDirection == ReactiveLimitDirection.MAX) {
-                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} > maxQ={}", pvToPqBus.controllerBus.getId(), pvToPqBus.q * PerUnit.SB,
+                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} > maxQ={}", controllerBus.getId(), pvToPqBus.q * PerUnit.SB,
                                 pvToPqBus.qLimit * PerUnit.SB);
                     } else {
-                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", pvToPqBus.controllerBus.getId(), pvToPqBus.q * PerUnit.SB,
+                        LOGGER.trace("Switch bus '{}' PV -> PQ, q={} < minQ={}", controllerBus.getId(), pvToPqBus.q * PerUnit.SB,
                                 pvToPqBus.qLimit * PerUnit.SB);
                     }
                 }
@@ -126,20 +147,19 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     @Override
     public void initialize(OuterLoopContext context) {
-        for (LfBus bus : context.getNetwork().getBuses()) {
-            bus.setVoltageControlSwitchOffCount(0);
-        }
+        context.setData(new ContextData());
     }
 
-    private static boolean switchPqPv(List<PqToPvBus> pqToPvBuses, Reporter reporter) {
+    private static boolean switchPqPv(List<PqToPvBus> pqToPvBuses, ContextData contextData, Reporter reporter) {
         int pqPvSwitchCount = 0;
 
         for (PqToPvBus pqToPvBus : pqToPvBuses) {
             LfBus controllerBus = pqToPvBus.controllerBus;
 
-            if (controllerBus.getVoltageControlSwitchOffCount() >= MAX_SWITCH_PQ_PV) {
+            int pvPqSwitchCount = contextData.getPvPqSwitchCount(controllerBus.getId());
+            if (pvPqSwitchCount >= MAX_SWITCH_PQ_PV) {
                 LOGGER.trace("Bus '{}' blocked PQ as it has reach its max number of PQ -> PV switch ({})",
-                        controllerBus.getId(), controllerBus.getVoltageControlSwitchOffCount());
+                        controllerBus.getId(), pvPqSwitchCount);
             } else {
                 controllerBus.setVoltageControlEnabled(true);
                 controllerBus.setGenerationTargetQ(0);
@@ -228,10 +248,12 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
             }
         }
 
-        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), reporter)) {
+        var contextData = (ContextData) context.getData();
+
+        if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, reporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
-        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, reporter)) {
+        if (!pqToPvBuses.isEmpty() && switchPqPv(pqToPvBuses, contextData, reporter)) {
             status = OuterLoopStatus.UNSTABLE;
         }
 
