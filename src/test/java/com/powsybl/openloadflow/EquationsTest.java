@@ -4,17 +4,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.*;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.StateVector;
-import com.powsybl.openloadflow.equations.Variable;
-import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.ClosedBranchSide2DcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -29,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-class AcEquationsTest {
+class EquationsTest {
 
     public static class RuntimeExceptionAnswer implements Answer<Object> {
 
@@ -60,8 +61,7 @@ class AcEquationsTest {
     private static final double LOSS_FACTOR_1 = 0.01100000023841858;
     private static final double LOSS_FACTOR_2 = 0.02400453453002384;
 
-    private static double[] eval(EquationTerm<AcVariableType, AcEquationType> term, List<Variable<AcVariableType>> variables,
-                                 StateVector sv) {
+    private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] eval(EquationTerm<V, E> term, List<Variable<V>> variables, StateVector sv) {
         term.setStateVector(sv);
         double[] values = new double[variables.size() + 2];
 
@@ -93,9 +93,15 @@ class AcEquationsTest {
         return values;
     }
 
-    @Test
-    void branchTest() {
-        var branch = Mockito.mock(LfBranch.class, ANSWER);
+    private LfBranch branch;
+
+    private LfBus bus1;
+
+    private LfBus bus2;
+
+    @BeforeEach
+    void setUp() {
+        branch = Mockito.mock(LfBranch.class, ANSWER);
         Mockito.doReturn(0).when(branch).getNum();
         Mockito.doReturn(false).when(branch).isDisabled();
         PiModel piModel = Mockito.mock(PiModel.class, ANSWER);
@@ -110,11 +116,14 @@ class AcEquationsTest {
         Mockito.doReturn(KSI).when(piModel).getKsi();
         Mockito.doReturn(R_1).when(piModel).getR1();
 
-        var bus1 = Mockito.mock(LfBus.class, ANSWER);
-        var bus2 = Mockito.mock(LfBus.class, ANSWER);
+        bus1 = Mockito.mock(LfBus.class, ANSWER);
+        bus2 = Mockito.mock(LfBus.class, ANSWER);
         Mockito.doReturn(0).when(bus1).getNum();
         Mockito.doReturn(1).when(bus2).getNum();
+    }
 
+    @Test
+    void branchTest() {
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var v1Var = variableSet.getVariable(0, AcVariableType.BUS_V);
         var ph1Var = variableSet.getVariable(0, AcVariableType.BUS_PHI);
@@ -185,6 +194,29 @@ class AcEquationsTest {
         i2Eq.setStateVector(sv);
         double i2 = i2Eq.eval();
         assertEquals(i2, Math.hypot(p2, q2) / V_2, 10e-14);
+    }
+
+    @Test
+    void dcBranchTest() {
+        VariableSet<DcVariableType> variableSet = new VariableSet<>();
+        var ph1Var = variableSet.getVariable(0, DcVariableType.BUS_PHI);
+        var ph2Var = variableSet.getVariable(1, DcVariableType.BUS_PHI);
+        var a1Var = variableSet.getVariable(0, DcVariableType.BRANCH_ALPHA1);
+        var unknownVar = variableSet.getVariable(999, DcVariableType.DUMMY_P);
+
+        var variables = List.of(ph1Var, ph2Var, a1Var, unknownVar);
+        ph1Var.setRow(0);
+        ph2Var.setRow(1);
+        a1Var.setRow(2);
+        unknownVar.setRow(3);
+
+        var sv = new StateVector(new double[]{PH_1, PH_2, A_1, 0});
+
+        // closed branch equations
+        assertArrayEquals(new double[] {37.07881433490131, 123.77606318805043, -123.77606318805043, 123.77606318805043, 0, 123.77606318805043},
+                eval(ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, true, true), variables, sv));
+        assertArrayEquals(new double[] {-37.07881433490131, -123.77606318805043, 123.77606318805043, -123.77606318805043, 0, -123.77606318805043},
+                eval(ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, variableSet, true, true), variables, sv));
     }
 
     @Test
