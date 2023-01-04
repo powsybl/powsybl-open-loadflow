@@ -60,6 +60,7 @@ class EquationsTest {
     private static final double P_0 = 1.9280906677246095;
     private static final double LOSS_FACTOR_1 = 0.01100000023841858;
     private static final double LOSS_FACTOR_2 = 0.02400453453002384;
+    private static final double G_SHUNT = 0.0000372472384299244;
 
     private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double[] eval(EquationTerm<V, E> term, List<Variable<V>> variables, StateVector sv) {
         term.setStateVector(sv);
@@ -223,6 +224,7 @@ class EquationsTest {
     void shuntTest() {
         var shunt = Mockito.mock(LfShunt.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(shunt).getNum();
+        Mockito.doReturn(G_SHUNT).when(shunt).getG();
         Mockito.doReturn(false).when(shunt).isDisabled();
 
         var bus = Mockito.mock(LfBus.class, ANSWER);
@@ -240,6 +242,8 @@ class EquationsTest {
 
         var sv = new StateVector(new double[] {V_1, B, 0});
 
+        assertArrayEquals(new double[] {4.275919696380507E-5, 7.98163392892194E-5, 0, 0, Double.NaN},
+                eval(new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, variableSet), variables, sv));
         assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, 0, Double.NaN},
                 eval(new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, true), variables, sv));
     }
