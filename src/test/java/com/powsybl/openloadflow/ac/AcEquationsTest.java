@@ -73,8 +73,8 @@ class AcEquationsTest {
             var v = variables.get(i);
             try {
                 values[i + 1] = term.der(v);
-            } catch (IllegalStateException e) {
-                // not supported
+            } catch (IllegalArgumentException e) {
+                // not implemented
                 values[i + 1] = Double.NaN;
             }
         }
@@ -122,43 +122,45 @@ class AcEquationsTest {
         var ph2Var = variableSet.getVariable(1, AcVariableType.BUS_PHI);
         var r1Var = variableSet.getVariable(0, AcVariableType.BRANCH_RHO1);
         var a1Var = variableSet.getVariable(0, AcVariableType.BRANCH_ALPHA1);
+        var unknownVar = variableSet.getVariable(999, AcVariableType.BUS_V);
 
-        var variables = List.of(v1Var, ph1Var, v2Var, ph2Var, r1Var, a1Var);
+        var variables = List.of(v1Var, ph1Var, v2Var, ph2Var, r1Var, a1Var, unknownVar);
         v1Var.setRow(0);
         ph1Var.setRow(1);
         v2Var.setRow(2);
         ph2Var.setRow(3);
         r1Var.setRow(4);
         a1Var.setRow(5);
+        unknownVar.setRow(6);
 
-        var sv = new StateVector(new double[] {V_1, PH_1, V_2, PH_2, R_1, A_1});
+        var sv = new StateVector(new double[] {V_1, PH_1, V_2, PH_2, R_1, A_1, 0});
 
         // closed branch equations
-        assertArrayEquals(new double[] {41.78173051479356, 48.66261692116701, 138.21343172859858, 29.31710523088579, -138.21343172859858, 54.62161149356045, 138.21343172859858, 77.9797221520528},
+        assertArrayEquals(new double[] {41.78173051479356, 48.66261692116701, 138.21343172859858, 29.31710523088579, -138.21343172859858, 54.62161149356045, 138.21343172859858, 0, 77.9797221520528},
                 eval(new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {-3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898, -6.480493855143919},
+        assertArrayEquals(new double[] {-3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898, 0, -6.480493855143919},
                 eval(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, 0, 126.09926753871542, 36.50794108255369},
+        assertArrayEquals(new double[] {39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, Double.NaN, 126.09926753871542, 0, 36.50794108255369},
                 eval(new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {-40.6365773800554, -48.52391742324069, -131.8614376204652, -27.319027760225953, 131.8614376204652, -54.4659275092331, -131.8614376204652, -75.84294518346664},
+        assertArrayEquals(new double[] {-40.6365773800554, -48.52391742324069, -131.8614376204652, -27.319027760225953, 131.8614376204652, -54.4659275092331, -131.8614376204652, 0, -75.84294518346664},
                 eval(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {16.04980301110306, -123.06939783256767, 51.99045110393844, 152.96594042215764, -51.99045110393844, -138.1398958886022, 51.99045110393844, 29.89654258958997},
+        assertArrayEquals(new double[] {16.04980301110306, -123.06939783256767, 51.99045110393844, 152.96594042215764, -51.99045110393844, -138.1398958886022, 51.99045110393844, 0, 29.89654258958997},
                 eval(new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, 0, -132.23571821183896, 38.02791573718571},
+        assertArrayEquals(new double[] {40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, Double.NaN, -132.23571821183896, 0, 38.02791573718571},
                 eval(new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
 
         // open branch equations
-        assertArrayEquals(new double[] {0.1717595025847833, 0, 0, 0.3204828812456483, 0, 0, 0, Double.NaN},
+        assertArrayEquals(new double[] {0.1717595025847833, 0, 0, 0.3204828812456483, 0, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {-0.36364935827807376, 0, 0, -0.6785266162875639, 0, 0, 0, Double.NaN},
+        assertArrayEquals(new double[] {-0.36364935827807376, 0, 0, -0.6785266162875639, 0, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.37520249405559764, 0, 0, 0.3500416993992393, 0, 0, 0, Double.NaN},
+        assertArrayEquals(new double[] {0.37520249405559764, 0, 0, 0.3500416993992393, Double.NaN, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.15652310047954035, 0, 0, 0.2920535601715773, 0, 0, 0, Double.NaN},
+        assertArrayEquals(new double[] {0.15652310047954035, 0, 0, 0.2920535601715773, 0, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide2ActiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {-0.331495628053771, 0, 0, -0.6185315653587614, 0, 0, 0, Double.NaN},
+        assertArrayEquals(new double[] {-0.331495628053771, 0, 0, -0.6185315653587614, 0, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.3420075216110214, 0, 0, 0.31907275662806295, 0, 0, 0, Double.NaN},
+        assertArrayEquals(new double[] {0.3420075216110214, 0, 0, 0.31907275662806295, Double.NaN, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
 
         // assert current equation is consistent with active and reactive power ones
@@ -197,14 +199,16 @@ class AcEquationsTest {
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var vVar = variableSet.getVariable(0, AcVariableType.BUS_V);
         var bVar = variableSet.getVariable(0, AcVariableType.SHUNT_B);
+        var unknownVar = variableSet.getVariable(999, AcVariableType.BUS_V);
 
-        var variables = List.of(vVar, bVar);
+        var variables = List.of(vVar, bVar, unknownVar);
         vVar.setRow(0);
         bVar.setRow(1);
+        unknownVar.setRow(2);
 
-        var sv = new StateVector(new double[] {V_1, B});
+        var sv = new StateVector(new double[] {V_1, B, 0});
 
-        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, Double.NaN},
+        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, 0, Double.NaN},
                 eval(new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, true), variables, sv));
     }
 
@@ -230,16 +234,18 @@ class AcEquationsTest {
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var hvdcPh1Var = variableSet.getVariable(0, AcVariableType.BUS_PHI);
         var hvdcPh2Var = variableSet.getVariable(1, AcVariableType.BUS_PHI);
+        var unknownVar = variableSet.getVariable(999, AcVariableType.BUS_V);
 
-        var variables = List.of(hvdcPh1Var, hvdcPh2Var);
+        var variables = List.of(hvdcPh1Var, hvdcPh2Var, unknownVar);
         hvdcPh1Var.setRow(0);
         hvdcPh2Var.setRow(1);
+        unknownVar.setRow(2);
 
-        var sv = new StateVector(new double[] {PH_1, PH_2});
+        var sv = new StateVector(new double[] {PH_1, PH_2, 0});
 
-        assertArrayEquals(new double[] {-144.1554855266458, 5906.983150087268, -5906.983150087268, Double.NaN},
+        assertArrayEquals(new double[] {-144.1554855266458, 5906.983150087268, -5906.983150087268, 0, Double.NaN},
                 eval(new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, bus1, bus2, variableSet), variables, sv));
-        assertArrayEquals(new double[] {144.20596034441598, -5909.051430021139, 5909.051430021139, Double.NaN},
+        assertArrayEquals(new double[] {144.20596034441598, -5909.051430021139, 5909.051430021139, 0, Double.NaN},
                 eval(new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, bus1, bus2, variableSet), variables, sv));
     }
 }
