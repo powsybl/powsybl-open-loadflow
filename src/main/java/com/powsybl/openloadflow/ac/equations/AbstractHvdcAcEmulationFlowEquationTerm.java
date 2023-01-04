@@ -6,22 +6,18 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfHvdc;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
-
-    protected final LfHvdc hvdc;
+public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractElementEquationTerm<LfHvdc, AcVariableType, AcEquationType> {
 
     protected final Variable<AcVariableType> ph1Var;
 
@@ -38,8 +34,7 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
     protected final double lossFactor2;
 
     protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
-        super(!Objects.requireNonNull(hvdc).isDisabled());
-        this.hvdc = hvdc;
+        super(hvdc);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
         variables = List.of(ph1Var, ph2Var);
@@ -69,15 +64,5 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNa
     @Override
     public boolean hasRhs() {
         return false;
-    }
-
-    @Override
-    public ElementType getElementType() {
-        return ElementType.HVDC;
-    }
-
-    @Override
-    public int getElementNum() {
-        return hvdc.getNum();
     }
 }

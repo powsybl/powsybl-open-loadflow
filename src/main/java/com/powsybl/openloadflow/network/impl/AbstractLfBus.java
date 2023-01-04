@@ -43,8 +43,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean voltageControlEnabled = false;
 
-    protected int voltageControlSwitchOffCount = 0;
-
     protected double loadTargetP = 0;
 
     protected double initialLoadTargetP = 0;
@@ -192,24 +190,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setVoltageControlEnabled(boolean voltageControlEnabled) {
         if (this.voltageControlEnabled != voltageControlEnabled) {
-            if (this.voltageControlEnabled) {
-                voltageControlSwitchOffCount++;
-            }
             this.voltageControlEnabled = voltageControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onVoltageControlChange(this, voltageControlEnabled);
             }
         }
-    }
-
-    @Override
-    public int getVoltageControlSwitchOffCount() {
-        return voltageControlSwitchOffCount;
-    }
-
-    @Override
-    public void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount) {
-        this.voltageControlSwitchOffCount = voltageControlSwitchOffCount;
     }
 
     void addLoad(Load load) {
