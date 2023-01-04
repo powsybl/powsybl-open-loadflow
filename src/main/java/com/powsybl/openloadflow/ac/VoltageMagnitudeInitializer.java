@@ -144,7 +144,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         public double der(Variable<InitVmVariableType> variable) {
             int i = variables.indexOf(variable);
             if (i == -1) {
-                throw new IllegalStateException("Unknown variable: " + variable);
+                return 0;
             }
             return der.getQuick(i);
         }

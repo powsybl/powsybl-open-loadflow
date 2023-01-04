@@ -138,27 +138,27 @@ class AcEquationsTest {
                 eval(new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
         assertArrayEquals(new double[] {-3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898, -6.480493855143919},
                 eval(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, Double.NaN, 126.09926753871542, 36.50794108255369},
+        assertArrayEquals(new double[] {39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, 0, 126.09926753871542, 36.50794108255369},
                 eval(new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
         assertArrayEquals(new double[] {-40.6365773800554, -48.52391742324069, -131.8614376204652, -27.319027760225953, 131.8614376204652, -54.4659275092331, -131.8614376204652, -75.84294518346664},
                 eval(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
         assertArrayEquals(new double[] {16.04980301110306, -123.06939783256767, 51.99045110393844, 152.96594042215764, -51.99045110393844, -138.1398958886022, 51.99045110393844, 29.89654258958997},
                 eval(new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, Double.NaN, -132.23571821183896, 38.02791573718571},
+        assertArrayEquals(new double[] {40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, 0, -132.23571821183896, 38.02791573718571},
                 eval(new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
 
         // open branch equations
-        assertArrayEquals(new double[] {0.1717595025847833, Double.NaN, Double.NaN, 0.3204828812456483, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.1717595025847833, 0, 0, 0.3204828812456483, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {-0.36364935827807376, Double.NaN, Double.NaN, -0.6785266162875639, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {-0.36364935827807376, 0, 0, -0.6785266162875639, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.37520249405559764, Double.NaN, Double.NaN, 0.3500416993992393, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.37520249405559764, 0, 0, 0.3500416993992393, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.15652310047954035, Double.NaN, Double.NaN, 0.2920535601715773, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.15652310047954035, 0, 0, 0.2920535601715773, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide2ActiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {-0.331495628053771, Double.NaN, Double.NaN, -0.6185315653587614, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {-0.331495628053771, 0, 0, -0.6185315653587614, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.3420075216110214, Double.NaN, Double.NaN, 0.31907275662806295, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.3420075216110214, 0, 0, 0.31907275662806295, 0, 0, 0, Double.NaN},
                 eval(new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus2, variableSet, false, false), variables, sv));
 
         // assert current equation is consistent with active and reactive power ones
