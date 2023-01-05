@@ -200,7 +200,7 @@ public class PiModelArray implements PiModel {
             case INCREASE:
                 return Range.between(tapPosition - lowTapPosition, models.size());
             case DECREASE:
-                return Range.between(0, tapPosition - lowTapPosition);
+                return Range.between(0, tapPosition - lowTapPosition + 1);
             case BOTH:
                 return Range.between(0, models.size());
             default:
@@ -218,9 +218,10 @@ public class PiModelArray implements PiModel {
         int oldTapPosition = tapPosition;
         // find tap position with the closest r1 value without exceeding the maximum of taps to switch.
         double smallestDistance = Math.abs(deltaR1);
-        for (int p = positionRange.getMinimum();
-             p < positionRange.getMaximum() && Math.abs(lowTapPosition + p - oldTapPosition) <= maxTapShift;
-             p++) {
+        for (int p = positionRange.getMinimum(); p < positionRange.getMaximum(); p++) {
+            if (Math.abs(lowTapPosition + p - oldTapPosition) > maxTapShift) {
+                continue;
+            }
             double distance = Math.abs(newR1 - models.get(p).getR1());
             if (distance < smallestDistance) {
                 tapPosition = lowTapPosition + p;
