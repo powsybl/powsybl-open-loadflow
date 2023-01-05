@@ -16,12 +16,36 @@ public final class Vectors {
     private Vectors() {
     }
 
+    /**
+     * a = a - b
+     */
     public static void minus(double[] a, double[] b) {
         if (a.length != b.length) {
             throw new IllegalArgumentException("a and b have different length");
         }
         for (int i = 0; i < a.length; i++) {
             a[i] -= b[i];
+        }
+    }
+
+    /**
+     * a = a + b * c
+     */
+    public static void plus(double[] a, double[] b, double c) {
+        if (a.length != b.length) {
+            throw new IllegalArgumentException("a and b have different length");
+        }
+        for (int i = 0; i < a.length; i++) {
+            a[i] += b[i] * c;
+        }
+    }
+
+    /**
+     * a = a * b
+     */
+    public static void mult(double[] a, double b) {
+        for (int i = 0; i < a.length; i++) {
+            a[i] = a[i] * b;
         }
     }
 

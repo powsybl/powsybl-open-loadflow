@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -183,25 +182,24 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         return network.getBusById(controlledBusId);
     }
 
-    protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, boolean breakers,
-                                     boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                                     double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
-        if (!checkVoltageControlConsistency(reactiveLimits, report, reactiveRangeCheckMode)) {
+    protected void setVoltageControl(double targetV, Terminal terminal, Terminal regulatingTerminal, LfNetworkParameters parameters,
+                                     LfNetworkLoadingReport report) {
+        if (!checkVoltageControlConsistency(parameters, report)) {
             return;
         }
-        Bus controlledBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
+        Bus controlledBus = parameters.isBreakers() ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
         if (controlledBus == null) {
             LOGGER.warn("Regulating terminal of LfGenerator {} is out of voltage: voltage control discarded", getId());
             return;
         }
-        boolean inSameSynchronousComponent = breakers
+        boolean inSameSynchronousComponent = parameters.isBreakers()
                 ? regulatingTerminal.getBusBreakerView().getBus().getSynchronousComponent().getNum() == terminal.getBusBreakerView().getBus().getSynchronousComponent().getNum()
                 : regulatingTerminal.getBusView().getBus().getSynchronousComponent().getNum() == terminal.getBusView().getBus().getSynchronousComponent().getNum();
         if (!inSameSynchronousComponent) {
             LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
         }
-        if (!checkTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage)) {
+        if (!checkTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), parameters, report)) {
             return;
         }
         this.controlledBusId = controlledBus.getId();
@@ -209,11 +207,11 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         this.generatorControlType = GeneratorControlType.VOLTAGE;
     }
 
-    protected boolean checkVoltageControlConsistency(boolean reactiveLimits, LfNetworkLoadingReport report, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+    protected boolean checkVoltageControlConsistency(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         boolean consistency = true;
-        if (reactiveLimits) {
+        if (parameters.isReactiveLimits()) {
             double rangeQ;
-            switch (reactiveRangeCheckMode) {
+            switch (parameters.getReactiveRangeCheckMode()) {
                 case MIN_MAX:
                     double minRangeQ = getRangeQ(ReactiveRangeMode.MIN);
                     double maxRangeQ = getRangeQ(ReactiveRangeMode.MAX);
@@ -240,7 +238,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                     }
                     break;
                 default:
-                    throw new IllegalStateException("Unknown reactive range check mode: " + reactiveRangeCheckMode);
+                    throw new IllegalStateException("Unknown reactive range check mode: " + parameters.getReactiveRangeCheckMode());
             }
         }
         if (Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
@@ -251,10 +249,9 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         return consistency;
     }
 
-    protected boolean checkTargetV(double targetV, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                                   double maxPlausibleTargetVoltage) {
+    protected boolean checkTargetV(double targetV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         // check that targetV has a plausible value (wrong nominal voltage issue)
-        if (targetV < minPlausibleTargetVoltage || targetV > maxPlausibleTargetVoltage) {
+        if (targetV < parameters.getMinPlausibleTargetVoltage() || targetV > parameters.getMaxPlausibleTargetVoltage()) {
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu: generator voltage control discarded",
                 getId(), targetV);
             report.generatorsWithInconsistentTargetVoltage++;
@@ -304,7 +301,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         // nothing to do
     }
 
-    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, double plausibleActivePowerLimit,
+    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, LfNetworkParameters parameters,
                                               LfNetworkLoadingReport report) {
         boolean participating = true;
         if (Math.abs(targetP) < POWER_EPSILON_SI) {
@@ -325,9 +322,9 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
             participating = false;
         }
-        if (maxP > plausibleActivePowerLimit) {
+        if (maxP > parameters.getPlausibleActivePowerLimit()) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
-                    getId(), maxP, plausibleActivePowerLimit);
+                    getId(), maxP, parameters.getPlausibleActivePowerLimit());
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             participating = false;
         }

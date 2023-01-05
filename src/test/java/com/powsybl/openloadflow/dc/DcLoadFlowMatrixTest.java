@@ -12,7 +12,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreator;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
@@ -58,8 +58,8 @@ class DcLoadFlowMatrixTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
-        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, false, true);
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, false);
+        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, true);
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(mainNetwork, creationParameters).create(false);
 
         for (LfBus b : mainNetwork.getBuses()) {
             equationSystem.createEquation(b.getNum(), DcEquationType.BUS_TARGET_P);
@@ -109,7 +109,7 @@ class DcLoadFlowMatrixTest {
         lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         mainNetwork = lfNetworks.get(0);
 
-        equationSystem = DcEquationSystem.create(mainNetwork, creationParameters, false);
+        equationSystem = new DcEquationSystemCreator(mainNetwork, creationParameters).create(false);
 
         try (var j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
             try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {

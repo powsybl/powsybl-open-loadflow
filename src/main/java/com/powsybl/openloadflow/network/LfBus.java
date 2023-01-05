@@ -36,15 +36,6 @@ public interface LfBus extends LfElement {
 
     void removeGeneratorSlopes();
 
-    /**
-     * Get the number of time, voltage control status has be set from true to false.
-     *
-     * @return the number of time, voltage control status has be set from true to false
-     */
-    int getVoltageControlSwitchOffCount();
-
-    void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
-
     void setVoltageControlEnabled(boolean voltageControlEnabled);
 
     Optional<VoltageControl> getVoltageControl();
@@ -115,6 +106,8 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getControllerShunt();
 
+    Optional<LfShunt> getSvcShunt();
+
     LfAggregatedLoads getAggregatedLoads();
 
     List<LfBranch> getBranches();
@@ -123,7 +116,7 @@ public interface LfBus extends LfElement {
 
     void addHvdc(LfHvdc hvdc);
 
-    void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
+    void updateState(LfNetworkStateUpdateParameters parameters);
 
     Optional<TransformerVoltageControl> getTransformerVoltageControl();
 
