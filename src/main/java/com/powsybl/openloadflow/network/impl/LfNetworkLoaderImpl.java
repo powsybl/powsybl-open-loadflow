@@ -413,18 +413,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfBus lfBus1 = getLfBus(hvdcLine.getConverterStation1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(hvdcLine.getConverterStation2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfHvdc lfHvdc = new LfHvdcImpl(hvdcLine.getId(), lfBus1, lfBus2, lfNetwork, hvdcLine);
-            LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
-            LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
-            if (cs1 != null && cs2 != null) {
-                lfHvdc.setConverterStation1((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId()));
-                lfHvdc.setConverterStation2((LfVscConverterStationImpl) lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId()));
-                lfNetwork.addHvdc(lfHvdc);
-                HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
-                if (control != null && control.isEnabled() && parameters.isHvdcAcEmulation()) {
-                    lfHvdc.enableAcEmulation(true);
+            LfGenerator g1 = lfNetwork.getGeneratorById(hvdcLine.getConverterStation1().getId());
+            LfGenerator g2 = lfNetwork.getGeneratorById(hvdcLine.getConverterStation2().getId());
+            if (g1 != null && g2 != null) {
+                if (g1 instanceof LfVscConverterStation && g2 instanceof LfVscConverterStation) {
+                    LfVscConverterStationImpl cs1 = (LfVscConverterStationImpl) g1;
+                    LfVscConverterStationImpl cs2 = (LfVscConverterStationImpl) g2;
+                    lfHvdc.setConverterStation1(cs1);
+                    lfHvdc.setConverterStation2(cs2);
+                    lfNetwork.addHvdc(lfHvdc);
+                    HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
+                    if (control != null && control.isEnabled() && parameters.isHvdcAcEmulation()) {
+                        lfHvdc.enableAcEmulation(true);
+                    }
+                } else {
+                    // LOGGER.warn("Hvdc line '{}' in AC emulation but converter stations are not in the same synchronous component: operated using active set point.", hvdcLine.getId());
                 }
-            } else {
-                // LOGGER.warn("Hvdc line '{}' in AC emulation but converter stations are not in the same synchronous component: operated using active set point.", hvdcLine.getId());
             }
         }
     }
