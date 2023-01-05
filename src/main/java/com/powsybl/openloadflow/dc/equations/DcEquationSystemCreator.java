@@ -6,11 +6,10 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
-import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
@@ -111,6 +110,31 @@ public class DcEquationSystemCreator {
         }
     }
 
+    private static void createHvdcAcEmulationEquations(LfHvdc hvdc, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+        EquationTerm<DcVariableType, DcEquationType> p1 = null;
+        EquationTerm<DcVariableType, DcEquationType> p2 = null;
+        if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
+            p1 = new HvdcSide1ActiveFlowEquationTerm(hvdc);
+            p2 = new HvdcSide2ActiveFlowEquationTerm(hvdc);
+        } else {
+            // nothing to do
+        }
+
+        if (p1 != null) {
+            equationSystem.getEquation(hvdc.getBus1().getNum(), DcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(p1);
+            hvdc.setP1(p1);
+        }
+
+        if (p2 != null) {
+            equationSystem.getEquation(hvdc.getBus2().getNum(), DcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(p2);
+            hvdc.setP2(p2);
+        }
+    }
+
     private void createBranches(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
@@ -130,6 +154,10 @@ public class DcEquationSystemCreator {
 
         createBuses(equationSystem);
         createBranches(equationSystem);
+
+        for (LfHvdc hvdc : network.getHvdcs()) {
+            createHvdcAcEmulationEquations(hvdc, equationSystem);
+        }
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 

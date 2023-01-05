@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -30,22 +31,36 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     private Evaluable p2 = NAN;
 
-    private final double droop;
+    private final double power;
 
-    private final double p0;
+    private boolean isControllerSide1; // for active power set point only, rectifier side.
+
+    private final double r;
+
+    private boolean acEmulation = false;
+
+    private double droop = 0.0;
+
+    private double p0 = 0.0;
 
     private LfVscConverterStation converterStation1;
 
     private LfVscConverterStation converterStation2;
 
-    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcAngleDroopActivePowerControl control) {
+    public LfHvdcImpl(String id, LfBus bus1, LfBus bus2, LfNetwork network, HvdcLine hvdcLine) {
         super(network);
         this.id = Objects.requireNonNull(id);
         this.bus1 = bus1;
         this.bus2 = bus2;
-        Objects.requireNonNull(control);
-        droop = control.getDroop();
-        p0 = control.getP0();
+        this.power = hvdcLine.getActivePowerSetpoint();
+        this.isControllerSide1 = HvdcConverterStations.isRectifier(hvdcLine.getConverterStation1());
+        double zb = PerUnit.zb(hvdcLine.getNominalV());
+        this.r = hvdcLine.getR() / zb;
+        HvdcAngleDroopActivePowerControl control = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
+        if (control != null) {
+            droop = control.getDroop();
+            p0 = control.getP0();
+        }
     }
 
     @Override
@@ -89,6 +104,31 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
+    public double getPower() {
+        return power / PerUnit.SB;
+    }
+
+    @Override
+    public double getLosses(double p) {
+        return r * p * p; // check per unit.
+    }
+
+    @Override
+    public boolean isControllerSide1() {
+        return isControllerSide1;
+    }
+
+    @Override
+    public void enableAcEmulation(boolean enabled) {
+        this.acEmulation = enabled;
+    }
+
+    @Override
+    public boolean isAcEmulationEnabled() {
+        return acEmulation;
+    }
+
+    @Override
     public double getDroop() {
         return droop / PerUnit.SB;
     }
@@ -111,13 +151,13 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public void setConverterStation1(LfVscConverterStation converterStation1) {
         this.converterStation1 = Objects.requireNonNull(converterStation1);
-        converterStation1.setTargetP(0);
+        converterStation1.setTargetP(0); // FIXME
     }
 
     @Override
     public void setConverterStation2(LfVscConverterStation converterStation2) {
         this.converterStation2 = Objects.requireNonNull(converterStation2);
-        converterStation2.setTargetP(0);
+        converterStation2.setTargetP(0); // FIXME
     }
 
     @Override

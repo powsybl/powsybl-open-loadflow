@@ -716,8 +716,13 @@ public class AcEquationSystemCreator {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
         if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
-            p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
-            p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+            if (hvdc.isAcEmulationEnabled()) {
+                p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+                p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+            } else {
+                p1 = new HvdcSide1ActiveFlowEquationTerm(hvdc);
+                p2 = new HvdcSide2ActiveFlowEquationTerm(hvdc);
+            }
         } else {
             // nothing to do
         }

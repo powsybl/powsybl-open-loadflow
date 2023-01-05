@@ -235,4 +235,38 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(2.0, cs4.getTerminal());
 
     }
+
+    @Test
+    void testOnConnectedComponent() {
+        Network network = HvdcNetworkFactory.createVsc();
+        network.newLine() // in order to have only one synchronous component for the moment.
+                .setId("l23")
+                .setVoltageLevel1("vl2")
+                .setBus1("b2")
+                .setVoltageLevel2("vl3")
+                .setBus2("b3")
+                .setR(1)
+                .setX(3)
+                .setG1(0)
+                .setG2(0)
+                .setB1(0)
+                .setB2(0)
+                .add();
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        VscConverterStation cs2 = network.getVscConverterStation("cs2");
+        assertActivePowerEquals(50.0, cs2.getTerminal());
+        assertReactivePowerEquals(341.490, cs2.getTerminal());
+
+        VscConverterStation cs3 = network.getVscConverterStation("cs3");
+        assertActivePowerEquals(-49.35, cs3.getTerminal());
+        assertReactivePowerEquals(245.044, cs3.getTerminal());
+    }
 }

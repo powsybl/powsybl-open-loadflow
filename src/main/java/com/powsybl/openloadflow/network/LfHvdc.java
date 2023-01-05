@@ -25,6 +25,16 @@ public interface LfHvdc extends LfElement {
 
     Evaluable getP2();
 
+    double getPower();
+
+    double getLosses(double p);
+
+    boolean isControllerSide1();
+
+    void enableAcEmulation(boolean enabled);
+
+    boolean isAcEmulationEnabled();
+
     double getDroop();
 
     double getP0();
