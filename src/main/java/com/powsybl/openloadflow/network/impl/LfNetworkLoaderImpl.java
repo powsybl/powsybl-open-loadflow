@@ -709,6 +709,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
+        double deadbandValue = shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV;
 
         controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
             LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
@@ -719,6 +720,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (!voltageControl.getControllers().contains(controllerShunt)) {
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
+                if (deadbandValue > 0) {
+                    controllerShunt.setShuntVoltageControlTargetDeadband(deadbandValue);
+                }
                 controlledBus.setShuntVoltageControl(voltageControl);
             }
         }, () -> {
@@ -726,6 +730,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue);
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
+                if (deadbandValue > 0) {
+                    controllerShunt.setShuntVoltageControlTargetDeadband(deadbandValue);
+                }
                 controlledBus.setShuntVoltageControl(voltageControl);
             });
     }

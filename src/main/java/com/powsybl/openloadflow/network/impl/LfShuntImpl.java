@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.ShuntCompensatorModel;
 import com.powsybl.iidm.network.ShuntCompensatorNonLinearModel;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.Range;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private ShuntVoltageControl voltageControl;
 
+    protected Double shuntVoltageControlTargetDeadband;
+
     private boolean voltageControlCapability;
 
     private boolean voltageControlEnabled = false;
@@ -44,7 +47,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private double g;
 
-    private static class Controller {
+    public static class Controller {
 
         private final String id;
 
@@ -92,6 +95,70 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
         public double getBMagnitude() {
             return bMagnitude;
+        }
+
+        public enum Direction {
+            INCREASE(AllowedDirection.INCREASE),
+            DECREASE(AllowedDirection.DECREASE);
+
+            private final AllowedDirection allowedDirection;
+
+            Direction(AllowedDirection allowedDirection) {
+                this.allowedDirection = allowedDirection;
+            }
+
+            public AllowedDirection getAllowedDirection() {
+                return allowedDirection;
+            }
+        }
+
+        public enum AllowedDirection {
+            INCREASE,
+            DECREASE,
+            BOTH
+        }
+
+        private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
+            switch (allowedDirection) {
+                case INCREASE:
+                    return Range.between(position, sectionsB.size());
+                case DECREASE:
+                    return Range.between(0, position + 1);
+                case BOTH:
+                    return Range.between(0, sectionsB.size());
+                default:
+                    throw new IllegalStateException("Unknown direction: " + allowedDirection);
+            }
+        }
+
+        public Optional<Direction> updateTapPositionB(double deltaB, int maxTapShift, AllowedDirection allowedDirection) {
+            // an increase allowed direction means that the tap could increase.
+            // a decrease allowed direction means that the tap could decrease.
+            double newB = getB() + deltaB;
+            Range<Integer> positionRange = getAllowedPositionRange(allowedDirection);
+
+            int oldTapPosition = position;
+            // find tap position with the closest b value without exceeding the maximum of taps to switch.
+            double smallestDistance = Math.abs(deltaB);
+            for (int p = positionRange.getMinimum();
+                 p < positionRange.getMaximum() && Math.abs(p - oldTapPosition) <= maxTapShift;
+                 p++) {
+                double distance = Math.abs(newB - sectionsB.get(p));
+                if (distance < smallestDistance) {
+                    position = p;
+                    smallestDistance = distance;
+                }
+            }
+
+            boolean hasChanged = position != oldTapPosition;
+            /*if (hasChanged) {
+                r1 = Double.NaN;
+                for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
+                    listener.onTapPositionChange(branch, oldTapPosition, tapPosition);
+                }
+                return Optional.of(tapPosition - oldTapPosition > 0 ? PiModel.Direction.INCREASE : PiModel.Direction.DECREASE);
+            }*/
+            return Optional.empty();
         }
     }
 
@@ -211,6 +278,20 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public void setVoltageControl(ShuntVoltageControl voltageControl) {
         this.voltageControl = voltageControl;
+    }
+
+    @Override
+    public Optional<Double> getShuntVoltageControlTargetDeadband() {
+        return Optional.ofNullable(shuntVoltageControlTargetDeadband);
+    }
+
+    @Override
+    public void setShuntVoltageControlTargetDeadband(Double shuntVoltageControlTargetDeadband) {
+        this.shuntVoltageControlTargetDeadband = shuntVoltageControlTargetDeadband;
+    }
+
+    public List<Controller> getControllers() {
+        return controllers;
     }
 
     private void roundBToClosestSection(double b, Controller controller) {

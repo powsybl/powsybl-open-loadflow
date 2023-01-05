@@ -36,4 +36,8 @@ public interface LfShunt extends LfElement {
     Optional<ShuntVoltageControl> getVoltageControl();
 
     void setVoltageControl(ShuntVoltageControl voltageControl);
+
+    Optional<Double> getShuntVoltageControlTargetDeadband();
+
+    void setShuntVoltageControlTargetDeadband(Double shuntVoltageControlTargetDeadband);
 }
