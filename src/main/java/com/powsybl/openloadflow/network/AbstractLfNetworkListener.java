@@ -65,4 +65,9 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
         // empty
     }
+
+    @Override
+    public void onShuntTargetBChange(LfShunt shunt, double bTarget) {
+        // empty
+    }
 }

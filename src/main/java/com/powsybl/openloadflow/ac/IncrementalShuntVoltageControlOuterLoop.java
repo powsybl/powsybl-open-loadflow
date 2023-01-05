@@ -14,9 +14,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -92,7 +90,10 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         // All shunt voltage control are disabled for the first equation system resolution.
         for (LfShunt shunt : getControllerShunts(context.getNetwork())) {
             shunt.getVoltageControl().ifPresent(voltageControl -> shunt.setVoltageControlEnabled(false));
-            contextData.getControllersContexts().put(shunt.getId(), new ControllerContext());
+            // FIX ME: not safe casting
+            for (LfShuntImpl.Controller lfShuntController : ((LfShuntImpl) shunt).getControllers()) {
+                contextData.getControllersContexts().put(lfShuntController.getId(), new ControllerContext());
+            }
         }
     }
 
@@ -111,21 +112,55 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
     private void adjustWithOneController(LfShuntImpl controllingShunt, LfBus controlledBus, ContextData contextData, int ShuntId,
                                          DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
         // only one shunt controls a bus
-        var controllerContext = contextData.getControllersContexts().get(controllingShunt.getId());
-        Double targetDeadband = controllingShunt.getShuntVoltageControlTargetDeadband().orElse(null);
         LfShuntImpl.Controller controllerShunt = controllingShunt.getControllers().get(0);
+        var controllerContext = contextData.getControllersContexts().get(controllerShunt.getId());
+        Double targetDeadband = controllingShunt.getShuntVoltageControlTargetDeadband().orElse(null);
         if (checkTargetDeadband(targetDeadband, diffV)) {
             double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
                     .calculateSensi(sensitivities, ShuntId);
             double previousB = controllerShunt.getB();
             double deltaB = diffV / sensitivity;
-            /*controllerShunt.updateTapPositionB(deltaB, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+            controllerShunt.updateTapPositionB(deltaB, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                 updateAllowedDirection(controllerContext, direction);
-                LOGGER.debug("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
+                LOGGER.debug("Increment shunt susceptance of '{}': {} -> {}", controllerShunt.getId(), previousB, controllerShunt.getB());
                 status.setValue(OuterLoopStatus.UNSTABLE);
-            });*/
+                controllingShunt.updateB();
+                for (LfNetworkListener listener : controllingShunt.getNetwork().getListeners()) {
+                    listener.onShuntTargetBChange(controllingShunt, controllingShunt.getB());
+                }
+            });
         } else {
-            LOGGER.trace("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controllingShunt.getId(), targetDeadband, Math.abs(diffV));
+            LOGGER.trace("Controlling shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllingShunt.getId(), targetDeadband, Math.abs(diffV));
+        }
+    }
+
+    private void adjustWithSeveralControllers(LfShuntImpl controllingShunt, LfBus controlledBus, ContextData contextData, int ShuntId,
+                                              DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
+        // several shunts control the same bus
+        double remainingDiffV = diffV;
+        boolean hasChanged = true;
+        while (hasChanged) {
+            hasChanged = false;
+            double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
+                    .calculateSensi(sensitivities, ShuntId);
+            double targetDeadband = controllingShunt.getShuntVoltageControlTargetDeadband().orElse(null);
+            for (LfShuntImpl.Controller controllerShunt : controllingShunt.getControllers()) {
+                var controllerContext = contextData.getControllersContexts().get(controllerShunt.getId());
+                if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
+                    double previousB = controllerShunt.getB();
+                    double deltaB = remainingDiffV / sensitivity;
+                    LfShuntImpl.Controller.Direction direction = controllerShunt.updateTapPositionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
+                    if (direction != null) {
+                        updateAllowedDirection(controllerContext, direction);
+                        remainingDiffV -= (controllerShunt.getB() - previousB) * sensitivity;
+                        hasChanged = true;
+                        status.setValue(OuterLoopStatus.UNSTABLE);
+                        LOGGER.debug("[Shared control] increment shunt susceptance of '{}': {} -> {}", controllerShunt.getId(), previousB, controllerShunt.getB());
+                    }
+                } else {
+                    LOGGER.trace("Controlling shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllingShunt.getId(), targetDeadband, Math.abs(diffV));
+                }
+            }
         }
     }
 

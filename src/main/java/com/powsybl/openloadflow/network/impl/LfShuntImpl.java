@@ -151,13 +151,9 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             }
 
             boolean hasChanged = position != oldTapPosition;
-            /*if (hasChanged) {
-                r1 = Double.NaN;
-                for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                    listener.onTapPositionChange(branch, oldTapPosition, tapPosition);
-                }
-                return Optional.of(tapPosition - oldTapPosition > 0 ? PiModel.Direction.INCREASE : PiModel.Direction.DECREASE);
-            }*/
+            if (hasChanged) {
+                return Optional.of(position - oldTapPosition > 0 ? Direction.INCREASE : Direction.DECREASE);
+            }
             return Optional.empty();
         }
     }
@@ -233,6 +229,10 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     @Override
     public void setB(double b) {
         this.b = b;
+    }
+
+    public void updateB() {
+        setB(controllers.stream().mapToDouble(Controller::getB).sum());
     }
 
     @Override
