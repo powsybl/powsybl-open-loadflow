@@ -75,6 +75,14 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     @Override
+    public int getDerIndex(Variable<AcVariableType> variable) {
+        if (variable.equals(ph2Var)) {
+            return DPH2;
+        }
+        return super.getDerIndex(variable);
+    }
+
+    @Override
     public double der(int index) {
         if (index == DV2) {
             return di2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v2(), ph2());

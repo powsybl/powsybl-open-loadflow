@@ -20,15 +20,13 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private final Variable<AcVariableType> ph1Var;
 
-    private Variable<AcVariableType> r1Var;
+    private final Variable<AcVariableType> r1Var;
 
     public OpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, VariableSet<AcVariableType> variableSet,
                                                        boolean deriveA1, boolean deriveR1) {
         super(branch, AcVariableType.BUS_V, bus1, variableSet, deriveA1, deriveR1);
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
-        if (deriveR1) {
-            r1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BRANCH_RHO1);
-        }
+        r1Var = deriveR1 ? variableSet.getVariable(bus1.getNum(), AcVariableType.BRANCH_RHO1) : null;
     }
 
     private double ph1() {
@@ -79,6 +77,16 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     @Override
     public double eval() {
         return i1(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v1(), ph1(), r1());
+    }
+
+    @Override
+    public int getDerIndex(Variable<AcVariableType> variable) {
+        if (variable.equals(ph1Var)) {
+            return DPH1;
+        } else if (variable.equals(r1Var)) {
+            return DR1;
+        }
+        return super.getDerIndex(variable);
     }
 
     @Override
