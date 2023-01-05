@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
+public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractElementEquationTerm<LfHvdc, AcVariableType, AcEquationType> {
 
     protected static final int DPH1 = 0;
     protected static final int DPH2 = 1;
