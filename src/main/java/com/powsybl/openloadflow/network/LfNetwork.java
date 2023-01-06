@@ -573,12 +573,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return dc ? dcLfZeroImpedanceNetwork : acLfZeroImpedanceNetwork;
     }
 
-    /**
-     * Create the subgraph of zero-impedance LfBranches and their corresponding LfBuses.
-     *
-     * @return the zero-impedance subgraph
-     */
-
     private Graph<LfBus, LfBranch> createSubGraph(Predicate<LfBranch> branchFilter) {
         Objects.requireNonNull(branchFilter);
 
