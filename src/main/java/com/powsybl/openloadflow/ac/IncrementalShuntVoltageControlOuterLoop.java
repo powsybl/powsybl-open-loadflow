@@ -24,10 +24,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -110,19 +107,21 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         }
     }
 
-    private void adjustB(List<LfShunt> controllerShunts, LfBus controlledBus, ContextData contextData, int[] controllerShuntIndex,
+    private void adjustB(List<LfShunt> sortedControllerShunts, LfBus controlledBus, ContextData contextData, int[] controllerShuntIndex,
                                               DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
         // several shunts control the same bus
         double remainingDiffV = diffV;
         boolean hasChanged = true;
         while (hasChanged) {
             hasChanged = false;
-            for (LfShunt controllerShunt : controllerShunts) {
+            for (LfShunt controllerShunt : sortedControllerShunts) {
                 double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
                         .calculateSensi(sensitivities, controllerShuntIndex[controllerShunt.getNum()]);
                 double targetDeadband = controllerShunt.getShuntVoltageControlTargetDeadband().orElse(null);
                 // FIX ME: Not safe casting
-                for (LfShuntImpl.Controller controller : ((LfShuntImpl) controllerShunt).getControllers()) {
+                // Not very efficient because sorting is performed at each iteration. However, in practical should not be an issue.
+                // Considering storing the controlers sorted already as same order is used everywhere else
+                for (LfShuntImpl.Controller controller : ((LfShuntImpl) controllerShunt).getControllers().stream().sorted(Comparator.comparing(LfShuntImpl.Controller::getBMagnitude)).collect(Collectors.toList())) {
                     var controllerContext = contextData.getControllersContexts().get(controllerShunt.getId());
                     if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
                         double previousB = controller.getB();
@@ -137,6 +136,13 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                         }
                     } else {
                         LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(), targetDeadband, Math.abs(diffV));
+                    }
+                }
+                if (hasChanged) {
+                    // FIX ME: Not safe casting either
+                    ((LfShuntImpl) controllerShunt).updateB();
+                    for (LfNetworkListener listener : controllerShunt.getNetwork().getListeners()) {
+                        listener.onShuntTargetBChange(controllerShunt, controllerShunt.getB());
                     }
                 }
             }
@@ -168,8 +174,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                     double targetV = voltageControl.getTargetValue();
                     double v = voltageControl.getControlled().getV();
                     double diffV = targetV - v;
-                    List<LfShunt> controllers = voltageControl.getControllers();
-                    adjustB(controllers, controlledBus, contextData, controllerShuntIndex, sensitivities, diffV, status);
+                    List<LfShunt> sortedControllers = voltageControl.getControllers().stream().sorted(Comparator.comparing(LfShunt::getBMagnitude)).collect(Collectors.toList());
+                    adjustB(sortedControllers, controlledBus, contextData, controllerShuntIndex, sensitivities, diffV, status);
                 });
         return status.getValue();
     }

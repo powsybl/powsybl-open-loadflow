@@ -15,6 +15,10 @@ public interface LfShunt extends LfElement {
 
     double getB();
 
+    default double getBMagnitude() {
+        return Math.abs(getB());
+    }
+
     void setB(double b);
 
     double dispatchB();
