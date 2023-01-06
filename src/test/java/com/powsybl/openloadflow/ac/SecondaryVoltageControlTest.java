@@ -29,7 +29,7 @@ class SecondaryVoltageControlTest {
     void test() {
         Network network = IeeeCdfNetworkFactory.create14();
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addZone(new Zone(new PilotPoint("B10", 14), List.of("B1-G", "B2-G", "B3-G", "B6-G")))
+                .addZone(new Zone("z1", new PilotPoint("B10", 14), List.of("B1-G", "B2-G", "B3-G", "B6-G")))
                 .add();
 
         var loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));

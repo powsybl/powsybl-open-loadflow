@@ -41,13 +41,20 @@ public interface SecondaryVoltageControl extends Extension<Network> {
 
     class Zone {
 
+        private final String name;
+
         private final PilotPoint pilotPoint;
 
         private final List<String> generatorsIds;
 
-        public Zone(PilotPoint pilotPoint, List<String> generatorsIds) {
+        public Zone(String name, PilotPoint pilotPoint, List<String> generatorsIds) {
+            this.name = Objects.requireNonNull(name);
             this.pilotPoint = Objects.requireNonNull(pilotPoint);
             this.generatorsIds = Objects.requireNonNull(generatorsIds);
+        }
+
+        public String getName() {
+            return name;
         }
 
         public PilotPoint getPilotPoint() {
