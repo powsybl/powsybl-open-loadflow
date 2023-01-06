@@ -13,7 +13,10 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -35,7 +38,6 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalShuntVoltageControlOuterLoop.class);
 
-    private static final int MAX_TAP_SHIFT = 3;
     private static final int MAX_DIRECTION_CHANGE = 2;
 
     private static final class ControllerContext {
@@ -99,8 +101,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
     private static void updateAllowedDirection(ControllerContext controllerContext, LfShuntImpl.Controller.Direction direction) {
         if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
-            if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection()))
-            {
+            if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
                 // both vs increase or decrease
                 // increase vs decrease or decrease vs increase
                 controllerContext.getDirectionChangeCount().increment();
@@ -109,78 +110,82 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         }
     }
 
-    private void adjustWithOneController(LfShuntImpl controllingShunt, LfBus controlledBus, ContextData contextData, int ShuntId,
-                                         DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
-        // only one shunt controls a bus
-        LfShuntImpl.Controller controllerShunt = controllingShunt.getControllers().get(0);
-        var controllerContext = contextData.getControllersContexts().get(controllerShunt.getId());
-        Double targetDeadband = controllingShunt.getShuntVoltageControlTargetDeadband().orElse(null);
-        if (checkTargetDeadband(targetDeadband, diffV)) {
-            double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
-                    .calculateSensi(sensitivities, ShuntId);
-            double previousB = controllerShunt.getB();
-            double deltaB = diffV / sensitivity;
-            controllerShunt.updateTapPositionB(deltaB, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                updateAllowedDirection(controllerContext, direction);
-                LOGGER.debug("Increment shunt susceptance of '{}': {} -> {}", controllerShunt.getId(), previousB, controllerShunt.getB());
-                status.setValue(OuterLoopStatus.UNSTABLE);
-                controllingShunt.updateB();
-                for (LfNetworkListener listener : controllingShunt.getNetwork().getListeners()) {
-                    listener.onShuntTargetBChange(controllingShunt, controllingShunt.getB());
-                }
-            });
-        } else {
-            LOGGER.trace("Controlling shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllingShunt.getId(), targetDeadband, Math.abs(diffV));
-        }
-    }
-
-    private void adjustWithSeveralControllers(LfShuntImpl controllingShunt, LfBus controlledBus, ContextData contextData, int ShuntId,
+    private void adjustB(List<LfShunt> controllerShunts, LfBus controlledBus, ContextData contextData, int[] controllerShuntIndex,
                                               DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
         // several shunts control the same bus
         double remainingDiffV = diffV;
         boolean hasChanged = true;
         while (hasChanged) {
             hasChanged = false;
-            double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
-                    .calculateSensi(sensitivities, ShuntId);
-            double targetDeadband = controllingShunt.getShuntVoltageControlTargetDeadband().orElse(null);
-            for (LfShuntImpl.Controller controllerShunt : controllingShunt.getControllers()) {
-                var controllerContext = contextData.getControllersContexts().get(controllerShunt.getId());
-                if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
-                    double previousB = controllerShunt.getB();
-                    double deltaB = remainingDiffV / sensitivity;
-                    LfShuntImpl.Controller.Direction direction = controllerShunt.updateTapPositionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
-                    if (direction != null) {
-                        updateAllowedDirection(controllerContext, direction);
-                        remainingDiffV -= (controllerShunt.getB() - previousB) * sensitivity;
-                        hasChanged = true;
-                        status.setValue(OuterLoopStatus.UNSTABLE);
-                        LOGGER.debug("[Shared control] increment shunt susceptance of '{}': {} -> {}", controllerShunt.getId(), previousB, controllerShunt.getB());
+            for (LfShunt controllerShunt : controllerShunts) {
+                double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
+                        .calculateSensi(sensitivities, controllerShuntIndex[controllerShunt.getNum()]);
+                double targetDeadband = controllerShunt.getShuntVoltageControlTargetDeadband().orElse(null);
+                // FIX ME: Not safe casting
+                for (LfShuntImpl.Controller controller : ((LfShuntImpl) controllerShunt).getControllers()) {
+                    var controllerContext = contextData.getControllersContexts().get(controllerShunt.getId());
+                    if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
+                        double previousB = controller.getB();
+                        double deltaB = remainingDiffV / sensitivity;
+                        LfShuntImpl.Controller.Direction direction = controller.updateTapPositionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
+                        if (direction != null) {
+                            updateAllowedDirection(controllerContext, direction);
+                            remainingDiffV -= (controller.getB() - previousB) * sensitivity;
+                            hasChanged = true;
+                            status.setValue(OuterLoopStatus.UNSTABLE);
+                            LOGGER.debug("Increment shunt susceptance of '{}': {} -> {}", controller.getId(), previousB, controller.getB());
+                        }
+                    } else {
+                        LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(), targetDeadband, Math.abs(diffV));
                     }
-                } else {
-                    LOGGER.trace("Controlling shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllingShunt.getId(), targetDeadband, Math.abs(diffV));
                 }
             }
         }
     }
 
-
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
+        MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
-        if (context.getIteration() == 0) {
-            for (LfShunt controllerShunt : getControllerShunts(context.getNetwork())) {
-                controllerShunt.setVoltageControlEnabled(false);
-
-                // round the susceptance to the closest section
-                double b = controllerShunt.getB();
-                controllerShunt.dispatchB();
-                LOGGER.trace("Round susceptance of '{}': {} -> {}", controllerShunt.getId(), b, controllerShunt.getB());
-
-                status = OuterLoopStatus.UNSTABLE;
-            }
+        LfNetwork network = context.getNetwork();
+        List<LfShunt> controllerShunts = getControllerShunts(network);
+        int[] controllerShuntIndex = new int[network.getShunts().size()];
+        for (int i = 0; i < controllerShunts.size(); i++) {
+            LfShunt controllerShunt = controllerShunts.get(i);
+            controllerShuntIndex[controllerShunt.getNum()] = i;
         }
-        return status;
+
+        DenseMatrix sensitivities = calculateSensitivityValues(controllerShunts, controllerShuntIndex,
+                context.getAcLoadFlowContext().getEquationSystem(),
+                context.getAcLoadFlowContext().getJacobianMatrix());
+
+        var contextData = (IncrementalShuntVoltageControlOuterLoop.ContextData) context.getData();
+
+        network.getBuses().stream()
+                .filter(LfBus::isShuntVoltageControlled)
+                .forEach(controlledBus -> {
+                    ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
+                    double targetV = voltageControl.getTargetValue();
+                    double v = voltageControl.getControlled().getV();
+                    double diffV = targetV - v;
+                    List<LfShunt> controllers = voltageControl.getControllers();
+                    adjustB(controllers, controlledBus, contextData, controllerShuntIndex, sensitivities, diffV, status);
+                });
+        return status.getValue();
+    }
+
+    private static DenseMatrix calculateSensitivityValues(List<LfShunt> controllerShunts, int[] controllerShuntIndex,
+                                                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                          JacobianMatrix<AcVariableType, AcEquationType> j) {
+        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerShunts.size());
+        for (LfShunt controllerShunt : controllerShunts) {
+            Variable<AcVariableType> b = equationSystem.getVariable(controllerShunt.getNum(), AcVariableType.SHUNT_B);
+            equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B).ifPresent(equation -> {
+                var term = equation.getTerms().get(0);
+                rhs.set(equation.getColumn(), controllerShuntIndex[controllerShunt.getNum()], term.der(b));
+            });
+        }
+        j.solveTransposed(rhs);
+        return rhs;
     }
 }

@@ -140,9 +140,10 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             int oldTapPosition = position;
             // find tap position with the closest b value without exceeding the maximum of taps to switch.
             double smallestDistance = Math.abs(deltaB);
-            for (int p = positionRange.getMinimum();
-                 p < positionRange.getMaximum() && Math.abs(p - oldTapPosition) <= maxTapShift;
-                 p++) {
+            for (int p = positionRange.getMinimum(); p < positionRange.getMaximum(); p++) {
+                if (Math.abs(p - oldTapPosition) > maxTapShift) {
+                    continue;
+                }
                 double distance = Math.abs(newB - sectionsB.get(p));
                 if (distance < smallestDistance) {
                     position = p;
