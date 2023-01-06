@@ -833,6 +833,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         for (String generatorId : zone.getGeneratorsIds()) {
                             Generator generator = network.getGenerator(generatorId);
                             if (generator != null) {
+                                // FIXME take controlled bus
                                 LfBus controllerBus = getLfBus(generator.getTerminal(), lfNetwork, parameters.isBreakers());
                                 if (controllerBus != null) {
                                     lfSvc.addControllerBus(controllerBus);
