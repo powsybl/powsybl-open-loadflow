@@ -12,6 +12,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.extensions.SecondaryVoltageControl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
@@ -732,7 +733,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
+    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(),
                 parameters.getConnectivityFactory(), reporter);
 
@@ -769,6 +770,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
         fixAllVoltageControls(lfNetwork, parameters);
+
+        // secondary voltage controls
+        createSecondaryVoltageControls(network, parameters, lfNetwork);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
@@ -814,6 +818,52 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         return lfNetwork;
+    }
+
+    private static void createSecondaryVoltageControls(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork) {
+        SecondaryVoltageControl svc = network.getExtension(SecondaryVoltageControl.class);
+        if (svc != null) {
+            for (SecondaryVoltageControl.Zone zone : svc.getZones()) {
+                SecondaryVoltageControl.PilotPoint pilotPoint = zone.getPilotPoint();
+                findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionOrBusId()).ifPresent(pilotBus -> {
+                    LfBus controlledBus = lfNetwork.getBusById(pilotBus.getId());
+                    if (controlledBus != null) {
+                        double targetV = pilotPoint.getTargetV() / controlledBus.getNominalV();
+                        LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(controlledBus, targetV);
+                        for (String generatorId : zone.getGeneratorsIds()) {
+                            Generator generator = network.getGenerator(generatorId);
+                            if (generator != null) {
+                                LfBus controllerBus = getLfBus(generator.getTerminal(), lfNetwork, parameters.isBreakers());
+                                if (controllerBus != null) {
+                                    lfSvc.addControllerBus(controllerBus);
+                                }
+                            }
+                        }
+                        lfNetwork.addSecondaryVoltageControl(lfSvc);
+                    }
+                });
+            }
+        }
+    }
+
+    private static Optional<Bus> findPilotBus(Network network, boolean breaker, String busbarSectionOrBusId) {
+        BusbarSection bbs = network.getBusbarSection(busbarSectionOrBusId);
+        if (bbs != null) {
+            return Optional.of(Networks.getBus(bbs.getTerminal(), breaker));
+        }
+        Bus configuredBus = network.getBusBreakerView().getBus(busbarSectionOrBusId);
+        if (configuredBus != null) {
+            if (breaker) {
+                return Optional.of(configuredBus);
+            }
+            // FIXME: commented line is buggy (to fix in core)
+            Iterator<Bus> it = configuredBus.getVoltageLevel().getBusView().getBuses().iterator();
+//            Iterator<Bus> it = configuredBus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(configuredBus.getId()).iterator();
+            if (it.hasNext()) {
+                return Optional.of(it.next());
+            }
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -863,7 +913,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numCc = networkKey.getLeft();
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
-                    return create(numCc, numSc, lfBuses, switchesByCc.get(networkKey), parameters,
+                    return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), parameters,
                             Reports.createLfNetworkReporter(reporter, numCc, numSc));
                 })
                 .collect(Collectors.toList());

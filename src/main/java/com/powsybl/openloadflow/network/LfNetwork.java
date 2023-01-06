@@ -119,6 +119,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private Reporter reporter;
 
+    private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
+
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
         this.numCC = numCC;
@@ -663,6 +665,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             LOGGER.warn("{} transformer voltage controls have been disabled because no PV buses on not controlled side connected component",
                     disabledTransformerCount);
         }
+    }
+
+    public void addSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
+        secondaryVoltageControls.add(Objects.requireNonNull(secondaryVoltageControl));
+    }
+
+    public List<LfSecondaryVoltageControl> getSecondaryVoltageControls() {
+        return secondaryVoltageControls;
     }
 
     @Override
