@@ -23,7 +23,7 @@ public interface SecondaryVoltageControl extends Extension<Network> {
 
         private final String busbarSectionOrBusId;
 
-        private final double targetV;
+        private double targetV;
 
         public PilotPoint(String busbarSectionOrBusId, double targetV) {
             this.busbarSectionOrBusId = Objects.requireNonNull(busbarSectionOrBusId);
@@ -36,6 +36,10 @@ public interface SecondaryVoltageControl extends Extension<Network> {
 
         public double getTargetV() {
             return targetV;
+        }
+
+        public void setTargetV(double targetV) {
+            this.targetV = targetV;
         }
     }
 
