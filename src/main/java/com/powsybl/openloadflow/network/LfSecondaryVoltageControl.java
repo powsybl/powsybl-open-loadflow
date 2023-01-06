@@ -6,12 +6,40 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfSecondaryVoltageControl extends AbstractLfVoltageControl {
+public class LfSecondaryVoltageControl {
 
-    public LfSecondaryVoltageControl(LfBus controlledBus, double targetValue) {
-        super(controlledBus, targetValue);
+    protected final LfBus pilotBus;
+
+    protected final Set<LfBus> controlledBuses;
+
+    protected double targetValue;
+
+    public LfSecondaryVoltageControl(LfBus pilotBus, double targetValue) {
+        this.pilotBus = pilotBus;
+        this.targetValue = targetValue;
+        this.controlledBuses = new LinkedHashSet<>();
+    }
+
+    public double getTargetValue() {
+        return targetValue;
+    }
+
+    public LfBus getPilotBus() {
+        return pilotBus;
+    }
+
+    public Set<LfBus> getControlledBuses() {
+        return controlledBuses;
+    }
+
+    public void addControlledBus(LfBus controlledBus) {
+        controlledBuses.add(Objects.requireNonNull(controlledBus));
     }
 }

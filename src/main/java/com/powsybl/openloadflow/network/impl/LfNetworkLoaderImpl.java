@@ -826,17 +826,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             for (SecondaryVoltageControl.Zone zone : svc.getZones()) {
                 SecondaryVoltageControl.PilotPoint pilotPoint = zone.getPilotPoint();
                 findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionOrBusId()).ifPresent(pilotBus -> {
-                    LfBus controlledBus = lfNetwork.getBusById(pilotBus.getId());
-                    if (controlledBus != null) {
-                        double targetV = pilotPoint.getTargetV() / controlledBus.getNominalV();
-                        LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(controlledBus, targetV);
+                    LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
+                    if (lfPilotBus != null) {
+                        double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
+                        LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(lfPilotBus, targetV);
                         for (String generatorId : zone.getGeneratorsIds()) {
                             Generator generator = network.getGenerator(generatorId);
                             if (generator != null) {
-                                // FIXME take controlled bus
-                                LfBus controllerBus = getLfBus(generator.getTerminal(), lfNetwork, parameters.isBreakers());
-                                if (controllerBus != null) {
-                                    lfSvc.addControllerBus(controllerBus);
+                                LfBus controlledBus = getLfBus(generator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers());
+                                if (controlledBus != null) {
+                                    lfSvc.addControlledBus(controlledBus);
                                 }
                             }
                         }

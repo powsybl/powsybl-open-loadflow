@@ -33,13 +33,13 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return "SecondaryVoltageControl";
     }
 
-    private static DenseMatrix calculateSensitivityValues(List<LfBus> controllerBuses, int[] controllerBusIndex,
+    private static DenseMatrix calculateSensitivityValues(List<LfBus> controllerBuses, int[] controlledBusIndex,
                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                           JacobianMatrix<AcVariableType, AcEquationType> j) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBuses.size());
-        for (LfBus controllerBus : controllerBuses) {
-            equationSystem.getEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_V)
-                    .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBusIndex[controllerBus.getNum()], 1d));
+        for (LfBus controlledBus : controllerBuses) {
+            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
+                    .ifPresent(equation -> rhs.set(equation.getColumn(), controlledBusIndex[controlledBus.getNum()], 1d));
         }
         j.solveTransposed(rhs);
         return rhs;
@@ -50,22 +50,22 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         LfNetwork network = context.getNetwork();
         List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls();
         if (!secondaryVoltageControls.isEmpty()) {
-            int[] controllerBusIndex = new int[network.getBuses().size()];
+            int[] controlledBusIndex = new int[network.getBuses().size()];
             for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
                 int i = 0;
-                List<LfBus> controllerBuses = new ArrayList<>(secondaryVoltageControl.getControllerBuses());
-                for (LfBus controllerBus : controllerBuses) {
-                    controllerBusIndex[controllerBus.getNum()] = i++;
+                List<LfBus> controlledBuses = new ArrayList<>(secondaryVoltageControl.getControlledBuses());
+                for (LfBus controlledBus : controlledBuses) {
+                    controlledBusIndex[controlledBus.getNum()] = i++;
                 }
-                DenseMatrix sensitivities = calculateSensitivityValues(controllerBuses, controllerBusIndex,
+                DenseMatrix sensitivities = calculateSensitivityValues(controlledBuses, controlledBusIndex,
                                                                        context.getAcLoadFlowContext().getEquationSystem(),
                                                                        context.getAcLoadFlowContext().getJacobianMatrix());
 
-                LfBus pilotBus = secondaryVoltageControl.getControlledBus();
-                for (LfBus controllerBus : controllerBuses) {
+                LfBus pilotBus = secondaryVoltageControl.getPilotBus();
+                for (LfBus controlledBus : controlledBuses) {
                     double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV())
-                            .calculateSensi(sensitivities, controllerBusIndex[controllerBus.getNum()]);
-                    System.out.println(controllerBus.getId() + " " + sensitivity);
+                            .calculateSensi(sensitivities, controlledBusIndex[controlledBus.getNum()]);
+                    System.out.println(controlledBus.getId() + " " + sensitivity);
                 }
                 // TODO
             }

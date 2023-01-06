@@ -16,24 +16,44 @@ import java.util.*;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class VoltageControl extends AbstractLfVoltageControl {
+public class VoltageControl {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VoltageControl.class);
 
+    private final LfBus controlled;
+
+    private final Set<LfBus> controllers;
+
+    private double targetValue;
+
     public VoltageControl(LfBus controlled, double targetValue) {
-        super(controlled, targetValue);
+        this.controlled = controlled;
+        this.targetValue = targetValue;
+        this.controllers = new LinkedHashSet<>();
+    }
+
+    public double getTargetValue() {
+        return targetValue;
     }
 
     public void setTargetValue(double targetValue) {
         if (targetValue != this.targetValue) {
             this.targetValue = targetValue;
-            controlledBus.getNetwork().getListeners().forEach(l -> l.onVoltageControlTargetChange(this, targetValue));
+            controlled.getNetwork().getListeners().forEach(l -> l.onVoltageControlTargetChange(this, targetValue));
         }
     }
 
-    @Override
+    public LfBus getControlledBus() {
+        return controlled;
+    }
+
+    public Set<LfBus> getControllerBuses() {
+        return controllers;
+    }
+
     public void addControllerBus(LfBus controllerBus) {
-        super.addControllerBus(controllerBus);
+        Objects.requireNonNull(controllerBus);
+        controllers.add(controllerBus);
         controllerBus.setVoltageControl(this);
     }
 
@@ -42,7 +62,7 @@ public class VoltageControl extends AbstractLfVoltageControl {
      * @return true if the voltage control is ONLY local, false otherwise
      */
     public boolean isVoltageControlLocal() {
-        return controllerBuses.size() == 1 && controllerBuses.contains(controlledBus);
+        return controllers.size() == 1 && controllers.contains(controlled);
     }
 
     /**
@@ -50,18 +70,18 @@ public class VoltageControl extends AbstractLfVoltageControl {
      * @return true if the voltage control is shared, false otherwise
      */
     public boolean isSharedControl() {
-        return controllerBuses.stream().flatMap(lfBus -> lfBus.getGenerators().stream())
+        return controllers.stream().flatMap(lfBus -> lfBus.getGenerators().stream())
                 .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).count() > 1;
     }
 
     public void updateReactiveKeys() {
-        List<LfBus> controllerBusList = new ArrayList<>(controllerBuses);
+        List<LfBus> controllerBuses = new ArrayList<>(controllers);
 
-        double[] reactiveKeys = createReactiveKeys(controllerBusList);
+        double[] reactiveKeys = createReactiveKeys(controllerBuses);
 
         // no reactive dispatch on PQ buses, so we set the key to 0
-        for (int i = 0; i < controllerBusList.size(); i++) {
-            LfBus controllerBus = controllerBusList.get(i);
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
             if (controllerBus.isDisabled() || !controllerBus.isVoltageControlEnabled()) {
                 reactiveKeys[i] = 0d;
             }
@@ -69,8 +89,8 @@ public class VoltageControl extends AbstractLfVoltageControl {
 
         // update bus reactive keys
         double reactiveKeysSum = Arrays.stream(reactiveKeys).sum();
-        for (int i = 0; i < controllerBusList.size(); i++) {
-            LfBus controllerBus = controllerBusList.get(i);
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
             controllerBus.setRemoteVoltageControlReactivePercent(reactiveKeysSum == 0 ? 0 : reactiveKeys[i] / reactiveKeysSum);
         }
     }
