@@ -19,6 +19,9 @@ import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
+import com.powsybl.openloadflow.network.VoltageControl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,6 +30,10 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class SecondaryVoltageControlOuterLoop implements OuterLoop {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
+
+    private static final double TARGET_V_DIFF_EPS = 10e-4;
 
     @Override
     public String getType() {
@@ -47,6 +54,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+
         LfNetwork network = context.getNetwork();
         List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls().stream()
                 .filter(control -> !control.getPilotBus().isDisabled())
@@ -57,6 +66,10 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                 List<LfBus> controlledBuses = secondaryVoltageControl.getControlledBuses().stream()
                         .filter(b -> !b.isDisabled() && b.isVoltageControlEnabled())
                         .collect(Collectors.toList());
+                if (controlledBuses.isEmpty()) {
+                    continue;
+                }
+
                 for (int i = 0; i < controlledBuses.size(); i++) {
                     LfBus controlledBus = controlledBuses.get(i);
                     controlledBusIndex[controlledBus.getNum()] = i;
@@ -66,14 +79,23 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                                                                        context.getAcLoadFlowContext().getJacobianMatrix());
 
                 LfBus pilotBus = secondaryVoltageControl.getPilotBus();
-                for (LfBus controlledBus : controlledBuses) {
-                    double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV())
-                            .calculateSensi(sensitivities, controlledBusIndex[controlledBus.getNum()]);
-                    System.out.println(controlledBus.getId() + " " + sensitivity);
+                double svcTargetDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
+                if (Math.abs(svcTargetDv) > TARGET_V_DIFF_EPS) {
+                    for (LfBus controlledBus : controlledBuses) {
+                        double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV())
+                                .calculateSensi(sensitivities, controlledBusIndex[controlledBus.getNum()]);
+                        double pvcTargetDv = svcTargetDv / controlledBuses.size() / sensitivity;
+                        VoltageControl primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
+                        double newPvcTargetV = primaryVoltageControl.getTargetValue() + pvcTargetDv;
+                        LOGGER.info("Adjust primary voltage control target of bus {}: {} -> {}",
+                                controlledBus.getId(), primaryVoltageControl.getTargetValue(), newPvcTargetV);
+                        primaryVoltageControl.setTargetValue(newPvcTargetV);
+                    }
+                    status = OuterLoopStatus.UNSTABLE;
                 }
-                // TODO
             }
         }
-        return OuterLoopStatus.STABLE;
+
+        return status;
     }
 }
