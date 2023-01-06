@@ -20,8 +20,8 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -48,14 +48,18 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         LfNetwork network = context.getNetwork();
-        List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls();
+        List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls().stream()
+                .filter(control -> !control.getPilotBus().isDisabled())
+                .collect(Collectors.toList());
         if (!secondaryVoltageControls.isEmpty()) {
             int[] controlledBusIndex = new int[network.getBuses().size()];
             for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
-                int i = 0;
-                List<LfBus> controlledBuses = new ArrayList<>(secondaryVoltageControl.getControlledBuses());
-                for (LfBus controlledBus : controlledBuses) {
-                    controlledBusIndex[controlledBus.getNum()] = i++;
+                List<LfBus> controlledBuses = secondaryVoltageControl.getControlledBuses().stream()
+                        .filter(b -> !b.isDisabled() && b.isVoltageControlEnabled())
+                        .collect(Collectors.toList());
+                for (int i = 0; i < controlledBuses.size(); i++) {
+                    LfBus controlledBus = controlledBuses.get(i);
+                    controlledBusIndex[controlledBus.getNum()] = i;
                 }
                 DenseMatrix sensitivities = calculateSensitivityValues(controlledBuses, controlledBusIndex,
                                                                        context.getAcLoadFlowContext().getEquationSystem(),

@@ -34,7 +34,7 @@ class SecondaryVoltageControlTest {
 
         var loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         var parameters = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true); // FIXME manage PV -> PQ bus
+                .setNoGeneratorReactiveLimits(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSecondaryVoltageControl(true);
         loadFlowRunner.run(network, parameters);
