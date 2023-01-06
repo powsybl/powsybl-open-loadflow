@@ -336,12 +336,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
             report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
         } else {
-            if (lfBranch.isZeroImpedance(true)) {
-                LOGGER.trace("Branch {} is non impedant with DC criteria", lfBranch.getId());
-                report.nonImpedantBranches++;
-            }
-            if (lfBranch.isZeroImpedance(false)) {
-                LOGGER.trace("Branch {} is non impedant with AC criteria", lfBranch.getId());
+            if (lfBranch.isZeroImpedance(true) || lfBranch.isZeroImpedance(false)) {
+                LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
                 report.nonImpedantBranches++;
             }
             lfNetwork.addBranch(lfBranch);
