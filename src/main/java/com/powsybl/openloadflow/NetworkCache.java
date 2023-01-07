@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
@@ -133,6 +134,32 @@ public enum NetworkCache {
             return found;
         }
 
+        private boolean onShuntUpdate(ShuntCompensator shunt, String attribute, Object oldValue, Object newValue) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                Bus bus = getBus(shunt, context);
+                if (bus != null) {
+                    LfNetwork lfNetwork = context.getNetwork();
+                    LfBus lfBus = lfNetwork.getBusById(bus.getId());
+                    if (lfBus != null) {
+                        if (attribute.equals("sectionCount")) {
+                            LfShunt lfShunt = lfBus.getShunt().orElseThrow();
+                            lfShunt.reInit();
+                            context.setNetworkUpdated(true);
+                            found = true;
+                            break;
+                        } else {
+                            throw new IllegalStateException("Unsupported generator attribute: " + attribute);
+                        }
+                    }
+                }
+            }
+            if (!found) {
+                LOGGER.warn("Cannot update {} of shunt compensator '{}'", attribute, shunt.getId());
+            }
+            return found;
+        }
+
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null) {
@@ -157,6 +184,12 @@ public enum NetworkCache {
                         Generator generator = (Generator) identifiable;
                         if (attribute.equals("targetV")
                                 && onGeneratorUpdate(generator, attribute, oldValue, newValue)) {
+                            done = true;
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
+                        ShuntCompensator shunt = (ShuntCompensator) identifiable;
+                        if (attribute.equals("sectionCount")
+                                && onShuntUpdate(shunt, attribute, oldValue, newValue)) {
                             done = true;
                         }
                     }
