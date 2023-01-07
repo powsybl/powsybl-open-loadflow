@@ -32,7 +32,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
-    private static final double TARGET_V_DIFF_EPS = 10e-4;
+    private static final double TARGET_V_DIFF_EPS = 10e-3; // in PU, so 0.1 Kv
 
     @Override
     public String getType() {
@@ -90,6 +90,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         for (LfBus controlledBus : controlledBuses) {
             double sensitivity = getCalculatedV(pilotBus)
                     .calculateSensi(sensitivities, controlledBusIndex[controlledBus.getNum()]);
+            // each primary voltage control proportionally participate to pilot bus voltage adjustment
             double pvcTargetDv = svcTargetDv / controlledBuses.size() / sensitivity;
             var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
             double newPvcTargetV = primaryVoltageControl.getTargetValue() + pvcTargetDv;
@@ -118,6 +119,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         int[] controlledBusIndex = buildControlledBusIndex(network, allControlledBusList);
 
+        // calculate primary voltage control target voltage sensitivity to pilot bus voltage
         DenseMatrix sensitivities = calculateSensitivityValues(allControlledBusList, controlledBusIndex,
                                                                context.getAcLoadFlowContext().getEquationSystem(),
                                                                context.getAcLoadFlowContext().getJacobianMatrix());
