@@ -65,8 +65,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean SVC_VOLTAGE_MONITORING_DEFAULT_VALUE = true;
 
-    public static final boolean SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE = false;
-
     public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -218,7 +216,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private StateVectorScalingMode stateVectorScalingMode = NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE;
 
-    private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
+    private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -496,7 +494,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE))
                 .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
                 .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE))
-                .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)));
+                .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -718,7 +716,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
                 .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode())
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
-                .setSvcVoltageMonitoring(parametersExt.isSvcVoltageMonitoring());
+                .setSvcVoltageMonitoring(parametersExt.isSvcVoltageMonitoring())
+                .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

@@ -821,6 +821,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void createSecondaryVoltageControls(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork) {
+        if (!parameters.isSecondaryVoltageControl()) {
+            return;
+        }
         SecondaryVoltageControl svc = network.getExtension(SecondaryVoltageControl.class);
         if (svc != null) {
             for (SecondaryVoltageControl.Zone zone : svc.getZones()) {
