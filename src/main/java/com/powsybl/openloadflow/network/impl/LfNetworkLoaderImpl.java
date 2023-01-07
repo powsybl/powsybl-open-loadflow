@@ -856,15 +856,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // bus/breaker case
         Bus configuredBus = network.getBusBreakerView().getBus(busbarSectionOrBusId);
         if (configuredBus != null) {
-            if (breaker) {
-                return Optional.of(configuredBus);
-            }
-            // FIXME: commented line is buggy (to fix in core)
-            Iterator<Bus> it = configuredBus.getVoltageLevel().getBusView().getBuses().iterator();
-//            Iterator<Bus> it = configuredBus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(configuredBus.getId()).iterator();
-            if (it.hasNext()) {
-                return Optional.of(it.next());
-            }
+            return breaker ? Optional.of(configuredBus)
+                           : Optional.ofNullable(configuredBus.getVoltageLevel().getBusView().getMergedBus(configuredBus.getId()));
         }
         return Optional.empty();
     }
