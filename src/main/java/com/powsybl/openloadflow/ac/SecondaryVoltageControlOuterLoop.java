@@ -94,7 +94,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             double pvcTargetDv = svcTargetDv / controlledBuses.size() / sensitivity;
             var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
             double newPvcTargetV = primaryVoltageControl.getTargetValue() + pvcTargetDv;
-            LOGGER.info("Adjust primary voltage control target of bus {}: {} -> {}",
+            LOGGER.trace("Adjust primary voltage control target of bus {}: {} -> {}",
                     controlledBus.getId(), primaryVoltageControl.getTargetValue(), newPvcTargetV);
             primaryVoltageControl.setTargetValue(newPvcTargetV);
         }
@@ -126,17 +126,23 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
+        List<String> adjustedZoneNames = new ArrayList<>();
         for (var e : activeSecondaryVoltageControls.entrySet()) {
             var secondaryVoltageControl = e.getKey();
             var controlledBuses = e.getValue();
             var pilotBus = secondaryVoltageControl.getPilotBus();
             double svcTargetDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
             if (Math.abs(svcTargetDv) > TARGET_V_DIFF_EPS) {
-                LOGGER.info("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
+                LOGGER.debug("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
                         secondaryVoltageControl.getZoneName(), pilotBus.getV(), secondaryVoltageControl.getTargetValue());
                 adjustPrimaryVoltageControlTargets(controlledBusIndex, sensitivities, controlledBuses, pilotBus, svcTargetDv);
+                adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
                 status = OuterLoopStatus.UNSTABLE;
             }
+        }
+        if (!adjustedZoneNames.isEmpty()) {
+            LOGGER.info("{} secondary voltage control zones have been adjusted: {}",
+                    adjustedZoneNames.size(), adjustedZoneNames);
         }
 
         return status;
