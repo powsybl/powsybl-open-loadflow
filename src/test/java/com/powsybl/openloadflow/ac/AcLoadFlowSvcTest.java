@@ -352,7 +352,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void testStandByAutomaton3() {
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         network.getGenerator("g1").setTargetV(405);
 
@@ -375,7 +375,7 @@ class AcLoadFlowSvcTest {
     void testStandByAutomaton4() {
         // Test a voltage controller and a voltage monitor connected to the same bus.
         // Voltage monitor is discarded.
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(397)
