@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -24,6 +23,7 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiPredicate;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -100,64 +100,54 @@ public enum NetworkCache {
             onStructureChange();
         }
 
-        private static Bus getBus(Injection<?> injection, AcLoadFlowContext context) {
-            return context.getParameters().getNetworkParameters().isBreakers()
+        private static Optional<Bus> getBus(Injection<?> injection, AcLoadFlowContext context) {
+            return Optional.ofNullable(context.getParameters().getNetworkParameters().isBreakers()
                     ? injection.getTerminal().getBusBreakerView().getBus()
-                    : injection.getTerminal().getBusView().getBus();
+                    : injection.getTerminal().getBusView().getBus());
+        }
+
+        private static Optional<LfBus> getLfBus(Injection<?> injection, AcLoadFlowContext context) {
+            return getBus(injection, context)
+                    .map(bus -> context.getNetwork().getBusById(bus.getId()));
+        }
+
+        private boolean onInjectionUpdate(Injection<?> injection, String attribute, BiPredicate<AcLoadFlowContext, LfBus> handler) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                found |= getLfBus(injection, context)
+                        .map(lfBus -> handler.test(context, lfBus))
+                        .orElse(Boolean.FALSE);
+            }
+            if (!found) {
+                LOGGER.warn("Cannot update attribute {} of injection '{}'", attribute, injection.getId());
+            }
+            return found;
         }
 
         private boolean onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
-            boolean found = false;
-            for (AcLoadFlowContext context : contexts) {
-                Bus bus = getBus(generator, context);
-                if (bus != null) {
-                    LfNetwork lfNetwork = context.getNetwork();
-                    LfBus lfBus = lfNetwork.getBusById(bus.getId());
-                    if (lfBus != null) {
-                        if (attribute.equals("targetV")) {
-                            double valueShift = (double) newValue - (double) oldValue;
-                            VoltageControl voltageControl = lfBus.getVoltageControl().orElseThrow();
-                            double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
-                            voltageControl.setTargetValue(newTargetV);
-                            context.setNetworkUpdated(true);
-                            found = true;
-                            break;
-                        } else {
-                            throw new IllegalStateException("Unsupported generator attribute: " + attribute);
-                        }
-                    }
+            return onInjectionUpdate(generator, attribute, (context, lfBus) -> {
+                if (attribute.equals("targetV")) {
+                    double valueShift = (double) newValue - (double) oldValue;
+                    VoltageControl voltageControl = lfBus.getVoltageControl().orElseThrow();
+                    double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
+                    voltageControl.setTargetValue(newTargetV);
+                    context.setNetworkUpdated(true);
+                    return true;
                 }
-            }
-            if (!found) {
-                LOGGER.warn("Cannot update {} of generator '{}'", attribute, generator.getId());
-            }
-            return found;
+                return false;
+            });
         }
 
-        private boolean onShuntUpdate(ShuntCompensator shunt, String attribute, Object oldValue, Object newValue) {
-            boolean found = false;
-            for (AcLoadFlowContext context : contexts) {
-                Bus bus = getBus(shunt, context);
-                if (bus != null) {
-                    LfNetwork lfNetwork = context.getNetwork();
-                    LfBus lfBus = lfNetwork.getBusById(bus.getId());
-                    if (lfBus != null) {
-                        if (attribute.equals("sectionCount")) {
-                            LfShunt lfShunt = lfBus.getShunt().orElseThrow();
-                            lfShunt.reInit();
-                            context.setNetworkUpdated(true);
-                            found = true;
-                            break;
-                        } else {
-                            throw new IllegalStateException("Unsupported shunt attribute: " + attribute);
-                        }
-                    }
+        private boolean onShuntUpdate(ShuntCompensator shunt, String attribute) {
+            return onInjectionUpdate(shunt, attribute, (context, lfBus) -> {
+                if (attribute.equals("sectionCount")) {
+                    LfShunt lfShunt = lfBus.getShunt().orElseThrow();
+                    lfShunt.reInit();
+                    context.setNetworkUpdated(true);
+                    return true;
                 }
-            }
-            if (!found) {
-                LOGGER.warn("Cannot update {} of shunt compensator '{}'", attribute, shunt.getId());
-            }
-            return found;
+                return false;
+            });
         }
 
         @Override
@@ -189,7 +179,7 @@ public enum NetworkCache {
                     } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
                         ShuntCompensator shunt = (ShuntCompensator) identifiable;
                         if (attribute.equals("sectionCount")
-                                && onShuntUpdate(shunt, attribute, oldValue, newValue)) {
+                                && onShuntUpdate(shunt, attribute)) {
                             done = true;
                         }
                     }
