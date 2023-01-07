@@ -52,12 +52,20 @@ class SecondaryVoltageControlTest {
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .addZone(new Zone("z1", pilotPoint, List.of("B1-G", "B2-G", "B3-G", "B6-G")))
                 .add();
+        Bus b1 = network.getBusBreakerView().getBus("B1");
+        Bus b2 = network.getBusBreakerView().getBus("B2");
+        Bus b3 = network.getBusBreakerView().getBus("B3");
+        Bus b6 = network.getBusBreakerView().getBus("B6");
         Bus b10 = network.getBusBreakerView().getBus("B10");
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(14.262, b10);
+        assertVoltageEquals(143.1, b1);
+        assertVoltageEquals(141.075, b2);
+        assertVoltageEquals(136.35, b3);
+        assertVoltageEquals(12.84, b6);
 
         parametersExt.setSecondaryVoltageControl(true);
 
@@ -65,11 +73,19 @@ class SecondaryVoltageControlTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(6, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(15, b10);
+        assertVoltageEquals(179.099, b1);
+        assertVoltageEquals(152.352, b2);
+        assertVoltageEquals(155.101, b3);
+        assertVoltageEquals(13.147, b6);
 
         pilotPoint.setTargetV(14);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(5, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(14, b10);
+        assertVoltageEquals(130.326, b1);
+        assertVoltageEquals(137.073, b2);
+        assertVoltageEquals(129.696, b3);
+        assertVoltageEquals(12.73, b6);
     }
 }
