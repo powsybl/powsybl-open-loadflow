@@ -825,27 +825,25 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             return;
         }
         SecondaryVoltageControl svc = network.getExtension(SecondaryVoltageControl.class);
-        if (svc != null) {
-            for (SecondaryVoltageControl.Zone zone : svc.getZones()) {
-                SecondaryVoltageControl.PilotPoint pilotPoint = zone.getPilotPoint();
-                findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionOrBusId()).ifPresent(pilotBus -> {
-                    LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
-                    if (lfPilotBus != null) {
-                        double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
-                        LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(lfPilotBus, targetV);
-                        for (String generatorId : zone.getGeneratorsIds()) {
-                            Generator generator = network.getGenerator(generatorId);
-                            if (generator != null) {
-                                LfBus controlledBus = getLfBus(generator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers());
-                                if (controlledBus != null) {
-                                    lfSvc.addControlledBus(controlledBus);
-                                }
-                            }
-                        }
-                        lfNetwork.addSecondaryVoltageControl(lfSvc);
-                    }
-                });
-            }
+        if (svc == null) {
+            return;
+        }
+        for (SecondaryVoltageControl.Zone zone : svc.getZones()) {
+            SecondaryVoltageControl.PilotPoint pilotPoint = zone.getPilotPoint();
+            // only keep zone if its pilot bus is in this LF network
+            findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionOrBusId()).ifPresent(pilotBus -> {
+                LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
+                if (lfPilotBus != null) {
+                    double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
+                    LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(lfPilotBus, targetV);
+                    // filter missing generators and find corresponding primary voltage control, controlled bus
+                    zone.getGeneratorsIds().stream()
+                            .flatMap(generatorId -> Optional.ofNullable(network.getGenerator(generatorId)).stream())
+                            .flatMap(generator -> Optional.ofNullable(getLfBus(generator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers())).stream())
+                            .forEach(lfSvc::addControlledBus);
+                    lfNetwork.addSecondaryVoltageControl(lfSvc);
+                }
+            });
         }
     }
 
