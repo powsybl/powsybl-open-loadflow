@@ -149,7 +149,7 @@ public enum NetworkCache {
                             found = true;
                             break;
                         } else {
-                            throw new IllegalStateException("Unsupported generator attribute: " + attribute);
+                            throw new IllegalStateException("Unsupported shunt attribute: " + attribute);
                         }
                     }
                 }
