@@ -115,7 +115,13 @@ public enum NetworkCache {
             boolean found = false;
             for (AcLoadFlowContext context : contexts) {
                 found |= getLfBus(injection, context)
-                        .map(lfBus -> handler.test(context, lfBus))
+                        .map(lfBus -> {
+                            boolean done = handler.test(context, lfBus);
+                            if (done) {
+                                context.setNetworkUpdated(true);
+                            }
+                            return done;
+                        })
                         .orElse(Boolean.FALSE);
             }
             if (!found) {
@@ -131,7 +137,6 @@ public enum NetworkCache {
                     VoltageControl voltageControl = lfBus.getVoltageControl().orElseThrow();
                     double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
                     voltageControl.setTargetValue(newTargetV);
-                    context.setNetworkUpdated(true);
                     return true;
                 }
                 return false;
@@ -143,7 +148,6 @@ public enum NetworkCache {
                 if (attribute.equals("sectionCount")) {
                     LfShunt lfShunt = lfBus.getShunt().orElseThrow();
                     lfShunt.reInit();
-                    context.setNetworkUpdated(true);
                     return true;
                 }
                 return false;
