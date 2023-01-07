@@ -52,6 +52,11 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return rhs;
     }
 
+    @SuppressWarnings("unchecked")
+    private static EquationTerm<AcVariableType, AcEquationType> getCalculatedV(LfBus pilotBus) {
+        return (EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV(); // this is safe
+    }
+
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
@@ -81,8 +86,10 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                 LfBus pilotBus = secondaryVoltageControl.getPilotBus();
                 double svcTargetDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
                 if (Math.abs(svcTargetDv) > TARGET_V_DIFF_EPS) {
+                    LOGGER.info("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
+                            secondaryVoltageControl.getZoneName(), pilotBus.getV(), secondaryVoltageControl.getTargetValue());
                     for (LfBus controlledBus : controlledBuses) {
-                        double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV())
+                        double sensitivity = getCalculatedV(pilotBus)
                                 .calculateSensi(sensitivities, controlledBusIndex[controlledBus.getNum()]);
                         double pvcTargetDv = svcTargetDv / controlledBuses.size() / sensitivity;
                         VoltageControl primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();

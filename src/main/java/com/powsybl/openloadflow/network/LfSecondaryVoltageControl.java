@@ -15,16 +15,23 @@ import java.util.Set;
  */
 public class LfSecondaryVoltageControl {
 
-    protected final LfBus pilotBus;
+    private final String zoneName;
 
-    protected final Set<LfBus> controlledBuses;
+    private final LfBus pilotBus;
 
-    protected double targetValue;
+    private final Set<LfBus> controlledBuses;
 
-    public LfSecondaryVoltageControl(LfBus pilotBus, double targetValue) {
-        this.pilotBus = pilotBus;
+    private double targetValue;
+
+    public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue) {
+        this.zoneName = Objects.requireNonNull(zoneName);
+        this.pilotBus = Objects.requireNonNull(pilotBus);
         this.targetValue = targetValue;
         this.controlledBuses = new LinkedHashSet<>();
+    }
+
+    public String getZoneName() {
+        return zoneName;
     }
 
     public double getTargetValue() {

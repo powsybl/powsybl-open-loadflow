@@ -835,7 +835,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
                 if (lfPilotBus != null) {
                     double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
-                    LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(lfPilotBus, targetV);
+                    LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(zone.getName(), lfPilotBus, targetV);
                     // filter missing generators and find corresponding primary voltage control, controlled bus
                     zone.getGeneratorsIds().stream()
                             .flatMap(generatorId -> Optional.ofNullable(network.getGenerator(generatorId)).stream())
@@ -848,10 +848,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static Optional<Bus> findPilotBus(Network network, boolean breaker, String busbarSectionOrBusId) {
+        // node/breaker case
         BusbarSection bbs = network.getBusbarSection(busbarSectionOrBusId);
         if (bbs != null) {
             return Optional.of(Networks.getBus(bbs.getTerminal(), breaker));
         }
+        // bus/breaker case
         Bus configuredBus = network.getBusBreakerView().getBus(busbarSectionOrBusId);
         if (configuredBus != null) {
             if (breaker) {
