@@ -88,4 +88,25 @@ class SecondaryVoltageControlTest {
         assertVoltageEquals(129.696, b3);
         assertVoltageEquals(12.73, b6);
     }
+
+    @Test
+    void multiZonesTest() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        PilotPoint pilotPoint1 = new PilotPoint("B4", 142);
+        PilotPoint pilotPoint2 = new PilotPoint("B10", 14.5);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addZone(new Zone("z1", pilotPoint1, List.of("B1-G", "B2-G", "B3-G")))
+                .addZone(new Zone("z2", pilotPoint2, List.of("B6-G", "B8-G")))
+                .add();
+
+        Bus b4 = network.getBusBreakerView().getBus("B4");
+        Bus b10 = network.getBusBreakerView().getBus("B10");
+
+        parametersExt.setSecondaryVoltageControl(true);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(9, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(142, b4);
+        assertVoltageEquals(14.5, b10);
+    }
 }

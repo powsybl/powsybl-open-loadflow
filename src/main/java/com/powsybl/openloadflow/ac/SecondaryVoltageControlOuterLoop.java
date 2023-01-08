@@ -32,7 +32,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
-    private static final double TARGET_V_DIFF_EPS = 10e-3; // in PU, so 0.1 Kv
+    private static final double TARGET_V_DIFF_EPS = 10e-4; // in PU, so < 0.1 Kv
 
     @Override
     public String getType() {
