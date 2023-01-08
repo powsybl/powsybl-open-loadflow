@@ -31,6 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class SecondaryVoltageControlTest {
 
+    private Network network;
+
     private LoadFlow.Runner loadFlowRunner;
 
     private LoadFlowParameters parameters;
@@ -39,6 +41,7 @@ class SecondaryVoltageControlTest {
 
     @BeforeEach
     void setUp() {
+        network = IeeeCdfNetworkFactory.create14();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
                 .setNoGeneratorReactiveLimits(true);
@@ -47,7 +50,6 @@ class SecondaryVoltageControlTest {
 
     @Test
     void test() {
-        Network network = IeeeCdfNetworkFactory.create14();
         PilotPoint pilotPoint = new PilotPoint("B10", 15);
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .addZone(new Zone("z1", pilotPoint, List.of("B1-G", "B2-G", "B3-G", "B6-G")))
@@ -91,7 +93,6 @@ class SecondaryVoltageControlTest {
 
     @Test
     void multiZonesTest() {
-        Network network = IeeeCdfNetworkFactory.create14();
         PilotPoint pilotPoint1 = new PilotPoint("B4", 142);
         PilotPoint pilotPoint2 = new PilotPoint("B10", 14.5);
         network.newExtension(SecondaryVoltageControlAdder.class)

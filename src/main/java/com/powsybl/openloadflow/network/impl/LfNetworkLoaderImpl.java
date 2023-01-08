@@ -833,7 +833,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             // only keep zone if its pilot bus is in this LF network
             findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionOrBusId()).ifPresent(pilotBus -> {
                 LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
-                if (lfPilotBus != null) {
+                if (lfPilotBus != null) { // could be in another LF network (another component)
                     double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
                     LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(zone.getName(), lfPilotBus, targetV);
                     // filter missing generators and find corresponding primary voltage control, controlled bus
