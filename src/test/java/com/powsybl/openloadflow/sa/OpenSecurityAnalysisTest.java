@@ -2271,11 +2271,11 @@ class OpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
 
         List<Action> actions = List.of(new LoadActionBuilder().withId("action1").withLoadId("l4").withRelativeValue(false).withActivePowerValue(90).build(),
-                                       new LoadActionBuilder().withId("action2").withLoadId("l1").withRelativeValue(true).withActivePowerValue(50).build(),
-                                       new LoadActionBuilder().withId("action3").withLoadId("l2").withRelativeValue(true).withActivePowerValue(10).build());
+                new LoadActionBuilder().withId("action2").withLoadId("l1").withRelativeValue(true).withActivePowerValue(50).build(),
+                new LoadActionBuilder().withId("action3").withLoadId("l2").withRelativeValue(true).withActivePowerValue(10).build());
 
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action1", "action2")),
-                                                            new OperatorStrategy("strategy2", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action3")));
+                new OperatorStrategy("strategy2", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -2341,5 +2341,32 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
         assertFalse(result.getPostContingencyResults().isEmpty());
+    }
+
+    void testConnectivityResultWhenNoSplit() throws IOException {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l12")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(), Reporter.NO_OP);
+
+        var postContingencyResult = result.getPostContingencyResults().get(0);
+
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+
+        assertEquals(0, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+    }
+
+    @Test
+    void testConnectivityResultOnSplit() throws IOException {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(), Reporter.NO_OP);
+
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+
+        assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
     }
 }

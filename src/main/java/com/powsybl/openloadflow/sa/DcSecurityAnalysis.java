@@ -200,6 +200,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
             PostContingencyResult pcResult = new PostContingencyResult(contingency, PostContingencyComputationStatus.CONVERGED, new ArrayList<>(violations.values()),
                     new ArrayList<>(postContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList(), new ConnectivityResult(0, 0, 0, 0, Collections.emptySet()));
+
             context.getPostContingencyResultPerContingencyId().put(contingency.getId(), pcResult);
             postContingencyResults.add(pcResult);
         }

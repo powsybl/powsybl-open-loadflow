@@ -247,12 +247,14 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         LOGGER.info("Post contingency '{}' simulation done on network {} in {} ms", lfContingency.getId(),
                 network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
+        var connectivityResult = new ConnectivityResult(lfContingency.getNbSynchronousComponents() - 1, 0, 0, 0, Collections.emptySet());
+
         return new PostContingencyResult(contingency, status,
                                          new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
                                          postContingencyNetworkResult.getBranchResults(),
                                          postContingencyNetworkResult.getBusResults(),
                                          postContingencyNetworkResult.getThreeWindingsTransformerResults(),
-                                         new ConnectivityResult(0, 0, 0, 0, Collections.emptySet()));
+                                         connectivityResult);
     }
 
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, AcLoadFlowContext context, OperatorStrategy operatorStrategy,
