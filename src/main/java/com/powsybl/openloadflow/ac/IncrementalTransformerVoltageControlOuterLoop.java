@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -184,11 +183,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                                                           JacobianMatrix<AcVariableType, AcEquationType> j) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
         for (LfBranch controllerBranch : controllerBranches) {
-            Variable<AcVariableType> rho1 = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1);
-            equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1).ifPresent(equation -> {
-                var term = equation.getTerms().get(0);
-                rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], term.der(rho1));
-            });
+            equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)
+                    .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], 1d));
         }
         j.solveTransposed(rhs);
         return rhs;
