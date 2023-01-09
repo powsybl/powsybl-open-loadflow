@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -23,11 +22,11 @@ public class LfSecondaryVoltageControl {
 
     private final double targetValue;
 
-    public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue) {
+    public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue, Set<LfBus> controlledBuses) {
         this.zoneName = Objects.requireNonNull(zoneName);
         this.pilotBus = Objects.requireNonNull(pilotBus);
         this.targetValue = targetValue;
-        this.controlledBuses = new LinkedHashSet<>();
+        this.controlledBuses = Objects.requireNonNull(controlledBuses);
     }
 
     public String getZoneName() {
@@ -44,9 +43,5 @@ public class LfSecondaryVoltageControl {
 
     public Set<LfBus> getControlledBuses() {
         return controlledBuses;
-    }
-
-    public void addControlledBus(LfBus controlledBus) {
-        controlledBuses.add(Objects.requireNonNull(controlledBus));
     }
 }

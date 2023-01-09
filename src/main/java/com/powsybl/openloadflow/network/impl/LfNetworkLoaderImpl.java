@@ -838,16 +838,22 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
                 if (lfPilotBus != null) { // could be in another LF network (another component)
                     double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
-                    LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV);
                     // filter missing control units and find corresponding primary voltage control, controlled bus
-                    controlZone.getControlUnits().stream()
+                    Set<LfBus> controlledBuses = controlZone.getControlUnits().stream()
                             .flatMap(controlUnit -> getControlUnitRegulatingTerminal(network, controlUnit).stream())
                             .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
-                            .forEach(lfSvc::addControlledBus);
-                    lfNetwork.addSecondaryVoltageControl(lfSvc);
+                            .collect(Collectors.toCollection((Supplier<Set<LfBus>>) LinkedHashSet::new));
+                    if (controlledBuses.size() != controlZone.getControlUnits().size()) {
+                        LOGGER.debug("{}/{} control units have been mapped to a LF bus", controlledBuses.size(), controlZone.getControlUnits().size());
+                    }
+                    if (!controlledBuses.isEmpty()) {
+                        var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, controlledBuses);
+                        lfNetwork.addSecondaryVoltageControl(lfSvc);
+                    }
                 }
             }, () -> LOGGER.warn("None of the pilot buses of control zone '{}' is valid", controlZone.getName()));
         }
+        LOGGER.info("Network {}: {} secondary control zones have been created", lfNetwork, lfNetwork.getSecondaryVoltageControls().size());
     }
 
     private static Optional<Terminal> getControlUnitRegulatingTerminal(Network network, ControlUnit controlUnit) {
@@ -867,7 +873,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             // node/breaker case
             BusbarSection bbs = network.getBusbarSection(busbarSectionOrBusId);
             if (bbs != null) {
-                return Optional.of(Networks.getBus(bbs.getTerminal(), breaker));
+                return Optional.ofNullable(Networks.getBus(bbs.getTerminal(), breaker));
             }
             // bus/breaker case
             Bus configuredBus = network.getBusBreakerView().getBus(busbarSectionOrBusId);
