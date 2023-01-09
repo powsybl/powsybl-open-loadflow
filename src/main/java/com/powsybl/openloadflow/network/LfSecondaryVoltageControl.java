@@ -21,7 +21,7 @@ public class LfSecondaryVoltageControl {
 
     private final Set<LfBus> controlledBuses;
 
-    private double targetValue;
+    private final double targetValue;
 
     public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue) {
         this.zoneName = Objects.requireNonNull(zoneName);

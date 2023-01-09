@@ -11,8 +11,11 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlUnit;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.extensions.SecondaryVoltageControl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
@@ -828,36 +831,50 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (svc == null) {
             return;
         }
-        for (SecondaryVoltageControl.Zone zone : svc.getZones()) {
-            SecondaryVoltageControl.PilotPoint pilotPoint = zone.getPilotPoint();
-            // only keep zone if its pilot bus is in this LF network
-            findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionOrBusId()).ifPresent(pilotBus -> {
+        for (ControlZone controlZone : svc.getControlZones()) {
+            PilotPoint pilotPoint = controlZone.getPilotPoint();
+            // only keep control zone if its pilot bus is in this LF network
+            findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionsOrBusesIds()).ifPresentOrElse(pilotBus -> {
                 LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
                 if (lfPilotBus != null) { // could be in another LF network (another component)
                     double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
-                    LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(zone.getName(), lfPilotBus, targetV);
-                    // filter missing generators and find corresponding primary voltage control, controlled bus
-                    zone.getGeneratorsIds().stream()
-                            .flatMap(generatorId -> Optional.ofNullable(network.getGenerator(generatorId)).stream())
-                            .flatMap(generator -> Optional.ofNullable(getLfBus(generator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers())).stream())
+                    LfSecondaryVoltageControl lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV);
+                    // filter missing control units and find corresponding primary voltage control, controlled bus
+                    controlZone.getControlUnits().stream()
+                            .flatMap(controlUnit -> getControlUnitRegulatingTerminal(network, controlUnit).stream())
+                            .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
                             .forEach(lfSvc::addControlledBus);
                     lfNetwork.addSecondaryVoltageControl(lfSvc);
                 }
-            });
+            }, () -> LOGGER.warn("None of the pilot buses of control zone '{}' is valid", controlZone.getName()));
         }
     }
 
-    private static Optional<Bus> findPilotBus(Network network, boolean breaker, String busbarSectionOrBusId) {
-        // node/breaker case
-        BusbarSection bbs = network.getBusbarSection(busbarSectionOrBusId);
-        if (bbs != null) {
-            return Optional.of(Networks.getBus(bbs.getTerminal(), breaker));
+    private static Optional<Terminal> getControlUnitRegulatingTerminal(Network network, ControlUnit controlUnit) {
+        Generator generator = network.getGenerator(controlUnit.getId());
+        if (generator != null) {
+            return Optional.of(generator.getRegulatingTerminal());
         }
-        // bus/breaker case
-        Bus configuredBus = network.getBusBreakerView().getBus(busbarSectionOrBusId);
-        if (configuredBus != null) {
-            return breaker ? Optional.of(configuredBus)
-                           : Optional.ofNullable(configuredBus.getVoltageLevel().getBusView().getMergedBus(configuredBus.getId()));
+        VscConverterStation vscConverterStation = network.getVscConverterStation(controlUnit.getId());
+        if (vscConverterStation != null) {
+            return Optional.of(vscConverterStation.getRegulatingTerminal());
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<Bus> findPilotBus(Network network, boolean breaker, List<String> busbarSectionsOrBusesId) {
+        for (String busbarSectionOrBusId : busbarSectionsOrBusesId) {
+            // node/breaker case
+            BusbarSection bbs = network.getBusbarSection(busbarSectionOrBusId);
+            if (bbs != null) {
+                return Optional.of(Networks.getBus(bbs.getTerminal(), breaker));
+            }
+            // bus/breaker case
+            Bus configuredBus = network.getBusBreakerView().getBus(busbarSectionOrBusId);
+            if (configuredBus != null) {
+                return breaker ? Optional.of(configuredBus)
+                        : Optional.ofNullable(configuredBus.getVoltageLevel().getBusView().getMergedBus(configuredBus.getId()));
+            }
         }
         return Optional.empty();
     }

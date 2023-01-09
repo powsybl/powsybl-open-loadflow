@@ -9,15 +9,16 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlUnit;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.impl.extensions.SecondaryVoltageControl.PilotPoint;
-import com.powsybl.openloadflow.network.impl.extensions.SecondaryVoltageControl.Zone;
-import com.powsybl.openloadflow.network.impl.extensions.SecondaryVoltageControlAdder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -44,15 +45,18 @@ class SecondaryVoltageControlTest {
         network = IeeeCdfNetworkFactory.create14();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true);
+                .setUseReactiveLimits(false);
         parametersExt = OpenLoadFlowParameters.create(parameters);
     }
 
     @Test
     void test() {
-        PilotPoint pilotPoint = new PilotPoint("B10", 15);
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 15);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addZone(new Zone("z1", pilotPoint, List.of("B1-G", "B2-G", "B3-G", "B6-G")))
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B1-G"),
+                                                                          new ControlUnit("B2-G"),
+                                                                          new ControlUnit("B3-G"),
+                                                                          new ControlUnit("B6-G"))))
                 .add();
         Bus b1 = network.getBusBreakerView().getBus("B1");
         Bus b2 = network.getBusBreakerView().getBus("B2");
@@ -93,11 +97,11 @@ class SecondaryVoltageControlTest {
 
     @Test
     void multiZonesTest() {
-        PilotPoint pilotPoint1 = new PilotPoint("B4", 142);
-        PilotPoint pilotPoint2 = new PilotPoint("B10", 14.5);
+        PilotPoint pilotPoint1 = new PilotPoint(List.of("B4"), 142);
+        PilotPoint pilotPoint2 = new PilotPoint(List.of("B10"), 14.5);
         network.newExtension(SecondaryVoltageControlAdder.class)
-                .addZone(new Zone("z1", pilotPoint1, List.of("B1-G", "B2-G", "B3-G")))
-                .addZone(new Zone("z2", pilotPoint2, List.of("B6-G", "B8-G")))
+                .addControlZone(new ControlZone("z1", pilotPoint1, List.of(new ControlUnit("B1-G"), new ControlUnit("B2-G"), new ControlUnit("B3-G"))))
+                .addControlZone(new ControlZone("z2", pilotPoint2, List.of(new ControlUnit("B6-G"), new ControlUnit("B8-G"))))
                 .add();
 
         Bus b4 = network.getBusBreakerView().getBus("B4");

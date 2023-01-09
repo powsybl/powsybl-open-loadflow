@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.sensi.dc;
 
-import com.powsybl.commons.ComparisonUtils;
+import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.reporter.Reporter;
