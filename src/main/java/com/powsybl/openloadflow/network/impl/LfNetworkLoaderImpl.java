@@ -16,10 +16,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
-import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
-import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -204,7 +201,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
-                generatorIds, controllerBus.getId(), targetV * controlledBus.getNominalV(), previousTargetV * controlledBus.getNominalV());
+                generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
         }
     }
 
@@ -339,7 +336,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
             report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
         } else {
-            if (lfBranch.isZeroImpedance()) {
+            if (lfBranch.isZeroImpedance(true) || lfBranch.isZeroImpedance(false)) {
                 LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
                 report.nonImpedantBranches++;
             }
@@ -465,9 +462,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void fixAllVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters) {
         // If min impedance is set, there is no zero-impedance branch
-        if (!parameters.isMinImpedance()) {
+        if (!parameters.isDc() && !parameters.isMinImpedance()) {
             // Merge the discrete voltage control in each zero impedance connected set
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
+            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.getZeroImpedanceNetwork(false).getSubGraph()).connectedSets();
             connectedSets.forEach(connectedSet -> mergeVoltageControls(connectedSet, parameters));
         }
     }
@@ -770,21 +767,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             createSwitches(switches, lfNetwork, postProcessors, parameters, report);
         }
 
-        if (!parameters.isDc()) {
-            // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
-            fixAllVoltageControls(lfNetwork, parameters);
-        }
-
-        if (!parameters.isMinImpedance()) {
-            // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
-            Graph<LfBus, LfBranch> zeroImpedanceSubGraph = lfNetwork.createZeroImpedanceSubGraph();
-            if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
-                SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
-                for (LfBranch branch : spanningTree.getEdges()) {
-                    branch.setSpanningTreeEdge(true);
-                }
-            }
-        }
+        // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
+        fixAllVoltageControls(lfNetwork, parameters);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
