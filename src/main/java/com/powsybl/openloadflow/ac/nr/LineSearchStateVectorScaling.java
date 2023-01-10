@@ -78,7 +78,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
                 equationVector.minus(targetVector);
 
                 // and recompute new norm
-                currentTestResult = stoppingCriteria.test(equationVector.getArray());
+                currentTestResult = stoppingCriteria.test(equationVector.getArray(), null);
 
                 iteration++;
             }
