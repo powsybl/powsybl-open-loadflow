@@ -822,7 +822,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Objects.requireNonNull(parameters2);
         boolean equals = parameters1.getVoltageInitMode() == parameters2.getVoltageInitMode() &&
                 parameters1.isTransformerVoltageControlOn() == parameters2.isTransformerVoltageControlOn() &&
-                parameters1.isNoGeneratorReactiveLimits() == parameters2.isNoGeneratorReactiveLimits() &&
+                parameters1.isUseReactiveLimits() == parameters2.isUseReactiveLimits() &&
                 parameters1.isPhaseShifterRegulationOn() == parameters2.isPhaseShifterRegulationOn() &&
                 parameters1.isTwtSplitShuntAdmittance() == parameters2.isTwtSplitShuntAdmittance() &&
                 parameters1.isShuntCompensatorVoltageControlOn() == parameters2.isShuntCompensatorVoltageControlOn() &&
@@ -882,7 +882,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Objects.requireNonNull(parameters);
         LoadFlowParameters parameters2 = new LoadFlowParameters(parameters.getVoltageInitMode(),
                                                                 parameters.isTransformerVoltageControlOn(),
-                                                                parameters.isNoGeneratorReactiveLimits(),
+                                                                parameters.isUseReactiveLimits(),
                                                                 parameters.isPhaseShifterRegulationOn(),
                                                                 parameters.isTwtSplitShuntAdmittance(),
                                                                 parameters.isShuntCompensatorVoltageControlOn(),

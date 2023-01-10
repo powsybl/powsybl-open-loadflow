@@ -10,7 +10,6 @@ import com.google.common.io.ByteStreams;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
-import com.powsybl.commons.test.TestUtil;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
@@ -60,6 +59,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.commons.test.TestUtil.normalizeLineSeparator;
 import static java.lang.Double.NaN;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1771,11 +1771,11 @@ class OpenSecurityAnalysisTest {
 
         runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), reporter);
 
-        String refLogExport = TestUtil.normalizeLineSeparator(new String(ByteStreams.toByteArray(Objects.requireNonNull(getClass().getResourceAsStream("/saReport.txt"))), StandardCharsets.UTF_8));
+        String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(Objects.requireNonNull(getClass().getResourceAsStream("/saReport.txt"))), StandardCharsets.UTF_8));
 
         StringWriter writer = new StringWriter();
         reporter.export(writer);
-        String logExport = TestUtil.normalizeLineSeparator(writer.toString());
+        String logExport = normalizeLineSeparator(writer.toString());
 
         assertEquals(refLogExport, logExport);
     }
