@@ -18,9 +18,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.IncrementalTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
-import com.powsybl.openloadflow.ac.nr.StateVectorScalingMode;
+import com.powsybl.openloadflow.ac.nr.*;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -61,6 +59,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
      * Slack bus maximum active power mismatch in MW: 1 Mw => 10^-2 in p.u
      */
     public static final double SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE = 1.0;
+
+    // FIXME What is the value?
+    public static final double MAX_ACTIVE_POWER_MISMATCH = 1.0;
+
+    // FIXME What is the value?
+    public static final double MAX_REACTIVE_POWER_MISMATCH = 1.0;
+
+    // FIXME What is the value?
+    public static final double MAX_VOLTAGE_MISMATCH = 1.0;
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
@@ -205,6 +212,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean loadPowerFactorConstant = LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
 
     private double plausibleActivePowerLimit = LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
+
+    private double maxActivePowerMismatch = MAX_ACTIVE_POWER_MISMATCH;
+
+    private double maxReactivePowerMismatch = MAX_REACTIVE_POWER_MISMATCH;
+
+    private double maxVoltageMismatch = MAX_VOLTAGE_MISMATCH;
 
     private double slackBusPMaxMismatch = SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE;
 
@@ -834,9 +847,28 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return acParameters;
     }
 
+    private static NewtonRaphsonStoppingCriteria generateNewtonRaphsonStoppingCriteria(OpenLoadFlowParameters parametersExt,
+                                                                                       NewtonRaphsonStoppingCriteriaType typeCriteria) {
+        switch (typeCriteria) {
+            case DEFAULT_CRITERIA:
+                return new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
+            case CUSTOM_CRITERIA:
+                return new CustomNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq(),
+                        parametersExt.maxActivePowerMismatch, parametersExt.maxReactivePowerMismatch, parametersExt.maxVoltageMismatch);
+            default:
+                return null;
+        }
+    }
+
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
+        return createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, breakers, forceA1Var, NewtonRaphsonStoppingCriteriaType.DEFAULT_CRITERIA);
+    }
+
+    public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
+                                                          boolean breakers, boolean forceA1Var, NewtonRaphsonStoppingCriteriaType typeCriteria) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
@@ -846,7 +878,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
-                .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
+                .setStoppingCriteria(generateNewtonRaphsonStoppingCriteria(parametersExt, typeCriteria))
                 .setMaxIteration(parametersExt.getMaxIteration())
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
