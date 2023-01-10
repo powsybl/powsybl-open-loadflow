@@ -119,12 +119,14 @@ public class LfContingency {
             PowerShift shift = e.getValue();
             bus.setLoadTargetP(bus.getLoadTargetP() - getUpdatedLoadP0(bus, balanceType, shift.getActive(), shift.getVariableActive()));
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
-            bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
             Set<String> loadsIdsInContingency = originalPowerShiftIds.stream()
                     .distinct()
                     .filter(bus.getAggregatedLoads().getOriginalIds()::contains) // maybe not optimized.
                     .collect(Collectors.toSet());
-            loadsIdsInContingency.stream().forEach(loadId -> bus.getAggregatedLoads().setDisabled(loadId, true));
+            if (!loadsIdsInContingency.isEmpty()) { // it could be a LCC in contingency.
+                bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+                loadsIdsInContingency.stream().forEach(loadId -> bus.getAggregatedLoads().setDisabled(loadId, true));
+            }
         }
         Set<LfBus> generatorBuses = new HashSet<>();
         for (LfGenerator generator : lostGenerators) {

@@ -28,7 +28,7 @@ public interface LfAggregatedLoads extends PropertyBag {
 
     void setDisabled(String originalId, boolean disabled);
 
-    Map<String, Boolean> getLoadsStatus();
+    Map<String, Boolean> getLoadsDisablingStatus();
 
-    void setLoadsStatus(Map<String, Boolean> loadsStatus);
+    void setLoadsDisablingStatus(Map<String, Boolean> loadsDisablingStatus);
 }

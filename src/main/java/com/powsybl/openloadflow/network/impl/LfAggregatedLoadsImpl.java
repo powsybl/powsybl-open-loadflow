@@ -125,12 +125,12 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
     }
 
     @Override
-    public Map<String, Boolean> getLoadsStatus() {
+    public Map<String, Boolean> getLoadsDisablingStatus() {
         return loadsStatus;
     }
 
     @Override
-    public void setLoadsStatus(Map<String, Boolean> loadsStatus) {
+    public void setLoadsDisablingStatus(Map<String, Boolean> loadsStatus) {
         this.loadsStatus = loadsStatus;
     }
 

@@ -67,7 +67,7 @@ public class PropagatedContingency {
         return generatorIdsToLose;
     }
 
-    public Map<String, PowerShift> getLoadIdsToShift() {
+    public Map<String, PowerShift> getBusIdsToShift() {
         return loadIdsToShift;
     }
 
