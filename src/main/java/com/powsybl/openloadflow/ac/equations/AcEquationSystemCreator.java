@@ -40,10 +40,12 @@ public class AcEquationSystemCreator {
         var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
         bus.setQ(q);
 
-        if (bus.isSlack()) {
+        if (bus.isReference()) {
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_PHI)
                     .addTerm(equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_PHI)
-                                           .createTerm());
+                            .createTerm());
+        }
+        if (bus.isSlack()) {
             p.setActive(false);
         }
 
@@ -754,11 +756,61 @@ public class AcEquationSystemCreator {
         }
     }
 
+    private List<EquationTerm<AcVariableType, AcEquationType>> createActiveInjectionTerms(LfBus bus,
+                                                                                          VariableSet<AcVariableType> variableSet) {
+        List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
+        for (LfBranch branch : bus.getBranches()) {
+            if (branch.isZeroImpedance(false)) {
+                if (branch.isSpanningTreeEdge(false)) {
+                    EquationTerm<AcVariableType, AcEquationType> p = variableSet.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
+                    if (branch.getBus2() == bus) {
+                        p = p.minus();
+                    }
+                    terms.add(p);
+                }
+            } else {
+                boolean deriveA1 = isDeriveA1(branch);
+                boolean deriveR1 = isDeriveR1(branch);
+                if (branch.getBus1() == bus) {
+                    LfBus otherSideBus = branch.getBus2();
+                    var p = otherSideBus != null ? new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus, otherSideBus, variableSet, deriveA1, deriveR1)
+                                                 : new OpenBranchSide2ActiveFlowEquationTerm(branch, bus, variableSet, deriveA1, deriveR1);
+                    terms.add(p);
+                } else {
+                    LfBus otherSideBus = branch.getBus1();
+                    var p = otherSideBus != null ? new ClosedBranchSide2ActiveFlowEquationTerm(branch, otherSideBus, bus, variableSet, deriveA1, deriveR1)
+                                                 : new OpenBranchSide1ActiveFlowEquationTerm(branch, bus, variableSet, deriveA1, deriveR1);
+                    terms.add(p);
+                }
+            }
+        }
+        return terms;
+    }
+
+    private void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        List<LfBus> slackBuses = network.getSlackBuses();
+        if (slackBuses.size() > 1) {
+            LfBus firstSlackBus = slackBuses.get(0);
+            for (int i = 1; i < slackBuses.size(); i++) {
+                LfBus slackBus = slackBuses.get(i);
+                // example for 2 slack buses
+                // 0 = slack_p1 - slack_p2
+                // 0 = slack_p1 - slack_p3
+                equationSystem.createEquation(slackBus, AcEquationType.BUS_DISTR_SLACK_P)
+                        .addTerms(createActiveInjectionTerms(firstSlackBus, equationSystem.getVariableSet()))
+                        .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet()).stream()
+                                .map(EquationTerm::minus)
+                                .collect(Collectors.toList()));
+            }
+        }
+    }
+
     public EquationSystem<AcVariableType, AcEquationType> create() {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
 
         createBusesEquations(equationSystem);
+        createMultipleSlackBusesEquations(equationSystem);
         createBranchesEquations(equationSystem);
 
         for (LfHvdc hvdc : network.getHvdcs()) {
