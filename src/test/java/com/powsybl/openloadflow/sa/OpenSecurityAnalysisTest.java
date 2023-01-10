@@ -2321,26 +2321,4 @@ class OpenSecurityAnalysisTest {
         assertEquals(57.142, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-71.428, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
-
-    @Test
-    void testLoadAction2() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
-        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
-
-        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        network.getLoad("l2").getTerminal().disconnect();
-        network.getLoad("l4").setP0(90);
-        network.getLoad("l1").setP0(80);
-
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        parameters.setDc(true);
-
-        LoadFlow.run(network, parameters);
-
-        System.out.println(network.getLine("l34").getTerminal1().getP());
-        System.out.println(network.getLine("l14").getTerminal1().getP());
-        System.out.println(network.getLine("l24").getTerminal1().getP());
-    }
 }
