@@ -20,9 +20,13 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -869,15 +873,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {
         if (busCache.isEmpty()) {
-            if (breakers) {
-                network.getBusBreakerView()
-                        .getBusStream()
-                        .forEach(bus -> busCache.put(bus.getId(), bus));
-            } else {
-                network.getBusView()
-                        .getBusStream()
-                        .forEach(bus -> busCache.put(bus.getId(), bus));
-            }
+            Networks.getBuses(network, breakers).forEach(bus -> busCache.put(bus.getId(), bus));
         }
         Bus bus = busCache.get(busId);
         if (bus == null) {

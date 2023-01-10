@@ -107,7 +107,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         this.bus = Objects.requireNonNull(bus);
         this.voltageControlCapability = voltageControlCapability;
         double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
-        zb = nominalV * nominalV / PerUnit.SB;
+        zb = PerUnit.zb(nominalV);
         b = zb * shuntCompensators.stream()
                 .mapToDouble(ShuntCompensator::getB)
                 .sum();
@@ -244,8 +244,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public void updateState(boolean dc) {
-        if (dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
+        if (parameters.isDc()) {
             for (var scRef : shuntCompensatorsRefs) {
                 var sc = scRef.get();
                 sc.getTerminal().setP(0);

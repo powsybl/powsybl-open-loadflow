@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.nr.StateVectorScalingMode;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -62,6 +63,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final boolean NETWORK_CACHE_ENABLED_DEFAULT_VALUE = false;
 
+    public static final boolean SVC_VOLTAGE_MONITORING_DEFAULT_VALUE = true;
+
     public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -106,6 +109,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String NETWORK_CACHE_ENABLED_NAME = "networkCacheEnabled";
 
+    public static final String SVC_VOLTAGE_MONITORING_NAME = "svcVoltageMonitoring";
+
+    public static final String STATE_VECTOR_SCALING_MODE_NAME = "stateVectorScalingMode";
+
+    public static final String MAX_SLACK_BUS_COUNT_NAME = "maxSlackBusCount";
+
     public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(SLACK_BUS_SELECTION_PARAM_NAME,
                                                                          SLACK_BUSES_IDS_PARAM_NAME,
                                                                          LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME,
@@ -127,7 +136,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                          MAX_REALISTIC_VOLTAGE_NAME,
                                                                          REACTIVE_RANGE_CHECK_MODE_NAME,
                                                                          LOW_IMPEDANCE_THRESHOLD_NAME,
-                                                                         NETWORK_CACHE_ENABLED_NAME);
+                                                                         NETWORK_CACHE_ENABLED_NAME,
+                                                                         SVC_VOLTAGE_MONITORING_NAME,
+                                                                         STATE_VECTOR_SCALING_MODE_NAME,
+                                                                         MAX_SLACK_BUS_COUNT_NAME);
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -199,6 +211,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     private boolean networkCacheEnabled = NETWORK_CACHE_ENABLED_DEFAULT_VALUE;
+
+    private boolean svcVoltageMonitoring = SVC_VOLTAGE_MONITORING_DEFAULT_VALUE;
+
+    private StateVectorScalingMode stateVectorScalingMode = NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE;
+
+    private int maxSlackBusCount = LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT;
 
     @Override
     public String getName() {
@@ -414,6 +432,33 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isSvcVoltageMonitoring() {
+        return svcVoltageMonitoring;
+    }
+
+    public OpenLoadFlowParameters setSvcVoltageMonitoring(boolean svcVoltageMonitoring) {
+        this.svcVoltageMonitoring = svcVoltageMonitoring;
+        return this;
+    }
+
+    public StateVectorScalingMode getStateVectorScalingMode() {
+        return stateVectorScalingMode;
+    }
+
+    public OpenLoadFlowParameters setStateVectorScalingMode(StateVectorScalingMode stateVectorScalingMode) {
+        this.stateVectorScalingMode = Objects.requireNonNull(stateVectorScalingMode);
+        return this;
+    }
+
+    public int getMaxSlackBusCount() {
+        return maxSlackBusCount;
+    }
+
+    public OpenLoadFlowParameters setMaxSlackBusCount(int maxSlackBusCount) {
+        this.maxSlackBusCount = LfNetworkParameters.checkMaxSlackBusCount(maxSlackBusCount);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -445,7 +490,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
                 .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
                 .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
-                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE)));
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
+                .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE))
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
+                .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE))
+                .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT)));
         return parameters;
     }
 
@@ -498,6 +547,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_NAME))
                 .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(SVC_VOLTAGE_MONITORING_NAME))
+                .ifPresent(prop -> this.setSvcVoltageMonitoring(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(STATE_VECTOR_SCALING_MODE_NAME))
+                .ifPresent(prop -> this.setStateVectorScalingMode(StateVectorScalingMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(MAX_SLACK_BUS_COUNT_NAME))
+                .ifPresent(prop -> this.setMaxSlackBusCount(Integer.parseInt(prop)));
         return this;
     }
 
@@ -526,6 +581,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ", networkCacheEnabled=" + networkCacheEnabled +
+                ", svcVoltageMonitoring=" + svcVoltageMonitoring +
+                ", stateVectorScalingMode=" + stateVectorScalingMode +
+                ", maxSlackBusCount=" + maxSlackBusCount +
                 ')';
     }
 
@@ -592,6 +650,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Max realistic voltage: {}", parametersExt.getMaxRealisticVoltage());
         LOGGER.info("Reactive range check mode: {}", parametersExt.getReactiveRangeCheckMode());
         LOGGER.info("Network cache enabled: {}", parametersExt.isNetworkCacheEnabled());
+        LOGGER.info("Static var compensator voltage monitoring: {}", parametersExt.isSvcVoltageMonitoring());
+        LOGGER.info("State vector scaling mode: {}", parametersExt.getStateVectorScalingMode());
+        LOGGER.info("Max slack bus count: {}", parametersExt.getMaxSlackBusCount());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -654,7 +715,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
                 .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode())
-                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold());
+                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
+                .setSvcVoltageMonitoring(parametersExt.isSvcVoltageMonitoring())
+                .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -687,7 +750,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
                 .setMaxIteration(parametersExt.getMaxIteration())
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
-                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage());
+                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
+                .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode());
 
         OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
@@ -702,8 +766,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          boolean forcePhaseControlOffAndAddAngle1Var, boolean indexTerms) {
-        var dcParameters = createDcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var, indexTerms);
+                                                          boolean forcePhaseControlOffAndAddAngle1Var) {
+        var dcParameters = createDcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
         if (parameters.isReadSlackBus()) {
             dcParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, dcParameters.getNetworkParameters().getSlackBusSelector()));
         }
@@ -712,7 +776,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static DcLoadFlowParameters createDcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          boolean forcePhaseControlOffAndAddAngle1Var, boolean indexTerms) {
+                                                          boolean forcePhaseControlOffAndAddAngle1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
 
         var networkParameters = new LfNetworkParameters()
@@ -737,10 +801,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
                 .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX) // not useful for DC.
-                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold());
+                .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
+                .setSvcVoltageMonitoring(false)
+                .setMaxSlackBusCount(1);
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
-                                                                                      indexTerms,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
                                                                                       parameters.isDcUseTransformerRatio());
 
@@ -807,7 +872,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxRealisticVoltage() == extension2.getMaxRealisticVoltage() &&
                 extension1.getReactiveRangeCheckMode() == extension2.getReactiveRangeCheckMode() &&
                 extension1.getLowImpedanceThreshold() == extension2.getLowImpedanceThreshold() &&
-                extension1.isNetworkCacheEnabled() == extension2.isNetworkCacheEnabled();
+                extension1.isNetworkCacheEnabled() == extension2.isNetworkCacheEnabled() &&
+                extension1.isSvcVoltageMonitoring() == extension2.isSvcVoltageMonitoring() &&
+                extension1.getStateVectorScalingMode() == extension2.getStateVectorScalingMode() &&
+                extension1.getMaxSlackBusCount() == extension2.getMaxSlackBusCount();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -852,7 +920,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxRealisticVoltage(extension.getMaxRealisticVoltage())
                     .setReactiveRangeCheckMode(extension.getReactiveRangeCheckMode())
                     .setLowImpedanceThreshold(extension.getLowImpedanceThreshold())
-                    .setNetworkCacheEnabled(extension.isNetworkCacheEnabled());
+                    .setNetworkCacheEnabled(extension.isNetworkCacheEnabled())
+                    .setSvcVoltageMonitoring(extension.isSvcVoltageMonitoring())
+                    .setStateVectorScalingMode(extension.getStateVectorScalingMode())
+                    .setMaxSlackBusCount(extension.getMaxSlackBusCount());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -26,7 +27,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private double droop;
 
-    private LfBatteryImpl(Battery battery, LfNetwork network, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
+    private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, battery.getTargetP());
         this.batteryRef = new Ref<>(battery);
         participating = true;
@@ -40,15 +41,17 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
             }
         }
 
-        if (!checkActivePowerControl(battery.getTargetP(), battery.getMinP(), battery.getMaxP(), plausibleActivePowerLimit, report)) {
+        if (!checkActivePowerControl(battery.getTargetP(), battery.getMinP(), battery.getMaxP(), parameters, report)) {
             participating = false;
         }
     }
 
-    public static LfBatteryImpl create(Battery battery, LfNetwork network, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
+    public static LfBatteryImpl create(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         Objects.requireNonNull(battery);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        return new LfBatteryImpl(battery, network, plausibleActivePowerLimit, report);
+        return new LfBatteryImpl(battery, network, parameters, report);
     }
 
     private Battery getBattery() {

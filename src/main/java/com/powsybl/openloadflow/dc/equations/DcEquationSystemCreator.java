@@ -14,15 +14,23 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public final class DcEquationSystem {
+public class DcEquationSystemCreator {
 
-    private DcEquationSystem() {
+    private final LfNetwork network;
+
+    private final DcEquationSystemCreationParameters creationParameters;
+
+    public DcEquationSystemCreator(LfNetwork network, DcEquationSystemCreationParameters creationParameters) {
+        this.network = Objects.requireNonNull(network);
+        this.creationParameters = Objects.requireNonNull(creationParameters);
     }
 
-    private static void createBuses(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+    private void createBuses(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         for (LfBus bus : network.getBuses()) {
             var p = equationSystem.createEquation(bus, DcEquationType.BUS_TARGET_P);
             bus.setP(p);
@@ -103,13 +111,12 @@ public final class DcEquationSystem {
         }
     }
 
-    private static void createBranches(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                       DcEquationSystemCreationParameters creationParameters) {
+    private void createBranches(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (branch.isZeroImpedance()) {
-                if (branch.isSpanningTreeEdge()) {
+            if (branch.isZeroImpedance(true)) {
+                if (branch.isSpanningTreeEdge(true)) {
                     createNonImpedantBranch(equationSystem, branch, bus1, bus2);
                 }
             } else {
@@ -118,12 +125,11 @@ public final class DcEquationSystem {
         }
     }
 
-    public static EquationSystem<DcVariableType, DcEquationType> create(LfNetwork network, DcEquationSystemCreationParameters creationParameters,
-                                                                        boolean withListener) {
-        EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>(creationParameters.isIndexTerms());
+    public EquationSystem<DcVariableType, DcEquationType> create(boolean withListener) {
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = new EquationSystem<>();
 
-        createBuses(network, equationSystem);
-        createBranches(network, equationSystem, creationParameters);
+        createBuses(equationSystem);
+        createBranches(equationSystem);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 

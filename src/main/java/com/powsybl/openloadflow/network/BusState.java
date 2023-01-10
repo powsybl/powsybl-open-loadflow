@@ -51,7 +51,6 @@ public class BusState extends BusDcState {
         element.setLoadTargetQ(loadTargetQ);
         element.setGenerationTargetQ(generationTargetQ);
         element.setVoltageControlEnabled(voltageControlEnabled);
-        element.setVoltageControlSwitchOffCount(0);
         if (shuntVoltageControlEnabled != null) {
             element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
         }

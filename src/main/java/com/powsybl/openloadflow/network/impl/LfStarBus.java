@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 
 import java.util.List;
 
@@ -60,11 +61,11 @@ public class LfStarBus extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var t3wt = getT3wt();
         Networks.setPropertyV(t3wt, v);
         Networks.setPropertyAngle(t3wt, angle);
 
-        super.updateState(reactiveLimits, writeSlackBus, false, false);
+        super.updateState(parameters);
     }
 }

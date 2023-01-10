@@ -229,7 +229,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, context.getParameters().getLoadFlowParameters(),
-                parametersExt, matrixFactory, connectivityFactory, false, true);
+                parametersExt, matrixFactory, connectivityFactory, false);
         dcParameters.getNetworkParameters().setBreakers(breakers);
 
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
