@@ -733,7 +733,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
-        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(),
+        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
                 parameters.getConnectivityFactory(), reporter);
 
         LoadingContext loadingContext = new LoadingContext();

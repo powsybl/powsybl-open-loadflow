@@ -47,11 +47,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final SlackBusSelector slackBusSelector;
 
+    private final int maxSlackBusCount;
+
     private final Map<String, LfBus> busesById = new LinkedHashMap<>();
 
     private final List<LfBus> busesByIndex = new ArrayList<>();
 
-    private LfBus slackBus;
+    private List<LfBus> slackBuses;
 
     private final List<LfBranch> branches = new ArrayList<>();
 
@@ -119,18 +121,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private Reporter reporter;
 
-    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
+    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
         this.numCC = numCC;
         this.numSC = numSC;
         this.slackBusSelector = Objects.requireNonNull(slackBusSelector);
+        this.maxSlackBusCount = maxSlackBusCount;
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
         this.reporter = Objects.requireNonNull(reporter);
     }
 
-    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector,
+    public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        this(numCC, numSC, slackBusSelector, connectivityFactory, Reporter.NO_OP);
+        this(numCC, numSC, slackBusSelector, maxSlackBusCount, connectivityFactory, Reporter.NO_OP);
     }
 
     public int getNumCC() {
@@ -150,15 +153,24 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private void invalidateSlack() {
-        slackBus = null;
+        if (slackBuses != null) {
+            for (var slackBus : slackBuses) {
+                slackBus.setSlack(false);
+            }
+            slackBuses.get(0).setReference(false);
+        }
+        slackBuses = null;
     }
 
-    public void updateSlack() {
-        if (slackBus == null) {
-            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex);
-            slackBus = selectedSlackBus.getBus();
-            LOGGER.info("Network {}, slack bus is '{}' (method='{}')", this, slackBus.getId(), selectedSlackBus.getSelectionMethod());
-            slackBus.setSlack(true);
+    public void updateSlackBuses() {
+        if (slackBuses == null) {
+            SelectedSlackBus selectedSlackBus = slackBusSelector.select(busesByIndex, maxSlackBusCount);
+            slackBuses = selectedSlackBus.getBuses();
+            LOGGER.info("Network {}, slack buses are {} (method='{}')", this, slackBuses, selectedSlackBus.getSelectionMethod());
+            for (var slackBus : slackBuses) {
+                slackBus.setSlack(true);
+            }
+            slackBuses.get(0).setReference(true);
         }
     }
 
@@ -233,8 +245,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public LfBus getSlackBus() {
-        updateSlack();
-        return slackBus;
+        return getSlackBuses().get(0);
+    }
+
+    public List<LfBus> getSlackBuses() {
+        updateSlackBuses();
+        return slackBuses;
     }
 
     public List<LfShunt> getShunts() {
@@ -409,7 +425,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public void writeJson(Writer writer) {
         Objects.requireNonNull(writer);
-        updateSlack();
+        updateSlackBuses();
         try (JsonGenerator jsonGenerator = new JsonFactory()
                 .createGenerator(writer)
                 .useDefaultPrettyPrinter()) {
