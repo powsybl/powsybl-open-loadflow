@@ -196,13 +196,14 @@ public class PiModelArray implements PiModel {
     }
 
     private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
+        int tapIndex = tapPosition - lowTapPosition;
         switch (allowedDirection) {
             case INCREASE:
-                return Range.between(tapPosition - lowTapPosition, models.size());
+                return Range.between(tapIndex, models.size() - 1);
             case DECREASE:
-                return Range.between(0, tapPosition - lowTapPosition + 1);
+                return Range.between(0, tapIndex);
             case BOTH:
-                return Range.between(0, models.size());
+                return Range.between(0, models.size() - 1);
             default:
                 throw new IllegalStateException("Unknown direction: " + allowedDirection);
         }
@@ -218,13 +219,14 @@ public class PiModelArray implements PiModel {
         int oldTapPosition = tapPosition;
         // find tap position with the closest r1 value without exceeding the maximum of taps to switch.
         double smallestDistance = Math.abs(deltaR1);
-        for (int p = positionRange.getMinimum(); p < positionRange.getMaximum(); p++) {
-            if (Math.abs(lowTapPosition + p - oldTapPosition) > maxTapShift) {
+        for (int positionIndex = positionRange.getMinimum(); positionIndex <= positionRange.getMaximum(); positionIndex++) {
+            int oldPositionIndex = oldTapPosition - lowTapPosition;
+            if (Math.abs(positionIndex - oldPositionIndex) > maxTapShift) { // we are not allowed in one outer loop run to go further than maxTapShift positions
                 continue;
             }
-            double distance = Math.abs(newR1 - models.get(p).getR1());
+            double distance = Math.abs(newR1 - models.get(positionIndex).getR1());
             if (distance < smallestDistance) {
-                tapPosition = lowTapPosition + p;
+                tapPosition = lowTapPosition + positionIndex;
                 smallestDistance = distance;
             }
         }
