@@ -33,7 +33,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
     private static final double TARGET_V_DIFF_EPS = 10e-4; // in PU, so < 0.1 Kv
-    private static final double SENSI_V_EPS = 10e-8;
+    private static final double SENSI_V_EPS = 10e-3;
 
     @Override
     public String getType() {
@@ -91,13 +91,15 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         for (LfBus controlledBus : controlledBuses) {
             double sensitivity = getCalculatedV(pilotBus)
                     .calculateSensi(sensitivities, controlledBusIndex[controlledBus.getNum()]);
+            // we need to filter very small sensitivity to avoid large target v shift
             if (Math.abs(sensitivity) > SENSI_V_EPS) {
                 // each primary voltage control proportionally participate to pilot bus voltage adjustment
                 double pvcTargetDv = svcTargetDv / controlledBuses.size() / sensitivity;
                 var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
                 double newPvcTargetV = primaryVoltageControl.getTargetValue() + pvcTargetDv;
                 LOGGER.trace("Adjust primary voltage control target of bus {}: {} -> {}",
-                        controlledBus.getId(), primaryVoltageControl.getTargetValue(), newPvcTargetV);
+                        controlledBus.getId(), primaryVoltageControl.getTargetValue() * controlledBus.getNominalV(),
+                        newPvcTargetV * controlledBus.getNominalV());
                 primaryVoltageControl.setTargetValue(newPvcTargetV);
             }
         }
@@ -137,7 +139,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             double svcTargetDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
             if (Math.abs(svcTargetDv) > TARGET_V_DIFF_EPS) {
                 LOGGER.debug("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
-                        secondaryVoltageControl.getZoneName(), pilotBus.getV(), secondaryVoltageControl.getTargetValue());
+                        secondaryVoltageControl.getZoneName(), pilotBus.getV() * pilotBus.getNominalV(),
+                        secondaryVoltageControl.getTargetValue() * pilotBus.getNominalV());
                 adjustPrimaryVoltageControlTargets(controlledBusIndex, sensitivities, controlledBuses, pilotBus, svcTargetDv);
                 adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
                 status = OuterLoopStatus.UNSTABLE;
