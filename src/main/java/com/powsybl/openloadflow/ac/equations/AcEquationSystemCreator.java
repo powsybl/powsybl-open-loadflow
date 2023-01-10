@@ -760,8 +760,8 @@ public class AcEquationSystemCreator {
                                                                                           VariableSet<AcVariableType> variableSet) {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : bus.getBranches()) {
-            if (branch.isZeroImpedance()) {
-                if (branch.isSpanningTreeEdge()) {
+            if (branch.isZeroImpedance(false)) {
+                if (branch.isSpanningTreeEdge(false)) {
                     EquationTerm<AcVariableType, AcEquationType> p = variableSet.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
                     if (branch.getBus2() == bus) {
                         p = p.minus();
