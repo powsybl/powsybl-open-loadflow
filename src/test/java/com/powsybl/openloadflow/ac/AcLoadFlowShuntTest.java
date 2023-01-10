@@ -500,7 +500,7 @@ class AcLoadFlowShuntTest {
         assertVoltageEquals(395.684, shuntG.getTerminal().getBusView().getBus());
 
         shuntG.setSectionCount(0);
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result4 = loadFlowRunner.run(network, parameters);
         assertTrue(result4.isOk());
         assertVoltageEquals(390.93, shuntG.getTerminal().getBusView().getBus());

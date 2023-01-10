@@ -83,7 +83,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         }
     }
 
-    public static final class InitVmBusEquationTerm extends AbstractBusEquationTerm<InitVmVariableType, InitVmEquationType> {
+    public static final class InitVmBusEquationTerm extends AbstractElementEquationTerm<LfBus, InitVmVariableType, InitVmEquationType> {
 
         private final List<Variable<InitVmVariableType>> variables;
 

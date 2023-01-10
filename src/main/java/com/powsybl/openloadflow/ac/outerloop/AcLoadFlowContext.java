@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
-import com.powsybl.openloadflow.ac.equations.AcEquationSystem;
+import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -35,7 +35,7 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     @Override
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         if (equationSystem == null) {
-            equationSystem = AcEquationSystem.create(network, parameters.getEquationSystemCreationParameters());
+            equationSystem = new AcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters()).create();
         }
         return equationSystem;
     }

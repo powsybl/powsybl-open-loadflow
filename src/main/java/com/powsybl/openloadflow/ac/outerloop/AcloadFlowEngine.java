@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -157,7 +158,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name());
+        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name(),
+                result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY);
 
         context.setResult(result);
 

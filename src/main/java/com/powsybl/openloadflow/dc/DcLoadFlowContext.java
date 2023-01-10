@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystem;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreator;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -29,7 +29,7 @@ public class DcLoadFlowContext extends AbstractLoadFlowContext<DcVariableType, D
     @Override
     public EquationSystem<DcVariableType, DcEquationType> getEquationSystem() {
         if (equationSystem == null) {
-            equationSystem = DcEquationSystem.create(network, parameters.getEquationSystemCreationParameters(), true);
+            equationSystem = new DcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters()).create(true);
         }
         return equationSystem;
     }

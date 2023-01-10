@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.equations.AbstractBranchEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -22,7 +22,7 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBranchEquationTerm<DcVariableType, DcEquationType> {
+public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, DcVariableType, DcEquationType> {
 
     protected final Variable<DcVariableType> ph1Var;
 
@@ -65,7 +65,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
         Objects.requireNonNull(dx);
         double dph1 = dx.get(ph1Var.getRow(), column);
         double dph2 = dx.get(ph2Var.getRow(), column);
-        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
+        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : element.getPiModel().getA1();
         return calculateSensi(dph1, dph2, da1);
     }
 
@@ -80,7 +80,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractBra
     protected abstract double calculateSensi(double ph1, double ph2, double a1);
 
     protected double a1() {
-        return a1Var != null ? sv.get(a1Var.getRow()) : branch.getPiModel().getA1();
+        return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
     }
 
     @Override

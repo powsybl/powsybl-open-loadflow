@@ -23,7 +23,7 @@ public interface LfShunt extends LfElement {
 
     void setG(double g);
 
-    void updateState(boolean dc);
+    void updateState(LfNetworkStateUpdateParameters parameters);
 
     boolean hasVoltageControlCapability();
 

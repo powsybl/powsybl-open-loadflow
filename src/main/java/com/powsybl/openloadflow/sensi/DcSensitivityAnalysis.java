@@ -216,7 +216,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                    LoadFlowParameters lfParameters) {
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                 true,
-                true,
                 lfParameters.isDcUseTransformerRatio());
 
         return new DcLoadFlowParameters(networkParameters,
@@ -832,7 +831,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             var dcLoadFlowParameters = createDcLoadFlowParameters(lfNetworkParameters, matrixFactory, lfParameters);
 
             // create DC equation system for sensitivity analysis
-            EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(lfNetwork, dcLoadFlowParameters.getEquationSystemCreationParameters(), false);
+            EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(lfNetwork, dcLoadFlowParameters.getEquationSystemCreationParameters()).create(false);
 
             // next we only work with valid factors
             var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter);

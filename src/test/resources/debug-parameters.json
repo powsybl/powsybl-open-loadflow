@@ -38,7 +38,10 @@
         "maxRealisticVoltage" : 1.5,
         "lowImpedanceThreshold" : 1.0E-8,
         "reactiveRangeCheckMode" : "MAX",
-        "networkCacheEnabled" : false
+        "networkCacheEnabled" : false,
+        "svcVoltageMonitoring" : true,
+        "stateVectorScalingMode" : "NONE",
+        "maxSlackBusCount" : 1
       }
     }
   },

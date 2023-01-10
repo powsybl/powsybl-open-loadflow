@@ -35,7 +35,6 @@ class DcLoadFlowEngineTest {
                                                                                       olfParameters,
                                                                                       new DenseMatrixFactory(),
                                                                                       new NaiveGraphConnectivityFactory<>(LfElement::getNum),
-                                                                                      false,
                                                                                       false);
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters()).get(0);
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {

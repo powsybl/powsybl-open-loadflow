@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -32,6 +31,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean slack = false;
 
+    protected boolean reference = false;
+
     protected double v;
 
     protected Evaluable calculatedV = NAN;
@@ -41,8 +42,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     private boolean hasGeneratorsWithSlope;
 
     protected boolean voltageControlEnabled = false;
-
-    protected int voltageControlSwitchOffCount = 0;
 
     protected double loadTargetP = 0;
 
@@ -57,6 +56,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected LfShunt shunt;
 
     protected LfShunt controllerShunt;
+
+    protected LfShunt svcShunt;
 
     protected final LfAggregatedLoadsImpl lfAggregatedLoads;
 
@@ -96,13 +97,24 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isSlack() {
-        network.updateSlack();
+        network.updateSlackBuses();
         return slack;
     }
 
     @Override
     public void setSlack(boolean slack) {
         this.slack = slack;
+    }
+
+    @Override
+    public boolean isReference() {
+        network.updateSlackBuses();
+        return reference;
+    }
+
+    @Override
+    public void setReference(boolean reference) {
+        this.reference = reference;
     }
 
     @Override
@@ -178,24 +190,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setVoltageControlEnabled(boolean voltageControlEnabled) {
         if (this.voltageControlEnabled != voltageControlEnabled) {
-            if (this.voltageControlEnabled) {
-                voltageControlSwitchOffCount++;
-            }
             this.voltageControlEnabled = voltageControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onVoltageControlChange(this, voltageControlEnabled);
             }
         }
-    }
-
-    @Override
-    public int getVoltageControlSwitchOffCount() {
-        return voltageControlSwitchOffCount;
-    }
-
-    @Override
-    public void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount) {
-        this.voltageControlSwitchOffCount = voltageControlSwitchOffCount;
     }
 
     void addLoad(Load load) {
@@ -226,35 +225,34 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    void addGenerator(Generator generator, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                      LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
-        add(LfGeneratorImpl.create(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode));
+    void addGenerator(Generator generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        add(LfGeneratorImpl.create(generator, network, parameters, report));
     }
 
-    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, boolean voltagePerReactivePowerControl,
-                                 boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                 double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+    void addStaticVarCompensator(StaticVarCompensator staticVarCompensator, LfNetworkParameters parameters,
+                                 LfNetworkLoadingReport report) {
         if (staticVarCompensator.getRegulationMode() != StaticVarCompensator.RegulationMode.OFF) {
-            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, voltagePerReactivePowerControl,
-                    breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+            LfStaticVarCompensatorImpl lfSvc = LfStaticVarCompensatorImpl.create(staticVarCompensator, network, this, parameters, report);
             add(lfSvc);
             if (lfSvc.getSlope() != 0) {
                 hasGeneratorsWithSlope = true;
             }
+            if (lfSvc.getB0() != 0) {
+                svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
+            }
         }
     }
 
-    void addVscConverterStation(VscConverterStation vscCs, boolean breakers, boolean reactiveLimits, LfNetworkLoadingReport report,
-                                double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
-        add(LfVscConverterStationImpl.create(vscCs, network, breakers, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode));
+    void addVscConverterStation(VscConverterStation vscCs, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        add(LfVscConverterStationImpl.create(vscCs, network, parameters, report));
     }
 
-    void addBattery(Battery generator, double plausibleActivePowerLimit, LfNetworkLoadingReport report) {
-        add(LfBatteryImpl.create(generator, network, plausibleActivePowerLimit, report));
+    void addBattery(Battery generator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        add(LfBatteryImpl.create(generator, network, parameters, report));
     }
 
-    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, boolean isShuntVoltageControl) {
-        if (!isShuntVoltageControl && !shuntCompensators.isEmpty()) {
+    void setShuntCompensators(List<ShuntCompensator> shuntCompensators, LfNetworkParameters parameters) {
+        if (!parameters.isShuntVoltageControl() && !shuntCompensators.isEmpty()) {
             shunt = new LfShuntImpl(shuntCompensators, network, this, false);
         } else {
             List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
@@ -395,6 +393,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public Optional<LfShunt> getSvcShunt() {
+        return Optional.ofNullable(svcShunt);
+    }
+
+    @Override
     public List<LfGenerator> getGenerators() {
         return generators;
     }
@@ -464,12 +467,12 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(voltageControlEnabled ? q.eval() * PerUnit.SB + loadTargetQ : generationTargetQ, reactiveLimits);
+        updateGeneratorsState(voltageControlEnabled ? q.eval() * PerUnit.SB + loadTargetQ : generationTargetQ, parameters.isReactiveLimits());
 
         // update load power
-        lfAggregatedLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), loadPowerFactorConstant);
+        lfAggregatedLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
 
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {

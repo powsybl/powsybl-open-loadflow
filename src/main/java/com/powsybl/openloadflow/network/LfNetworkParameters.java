@@ -34,6 +34,8 @@ public class LfNetworkParameters {
 
     public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX;
 
+    public static final int DEFAULT_MAX_SLACK_BUS_COUNT = 1;
+
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
@@ -79,6 +81,10 @@ public class LfNetworkParameters {
     private OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
+
+    private boolean svcVoltageMonitoring = true;
+
+    private int maxSlackBusCount = DEFAULT_MAX_SLACK_BUS_COUNT;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -281,12 +287,37 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isSvcVoltageMonitoring() {
+        return svcVoltageMonitoring;
+    }
+
+    public LfNetworkParameters setSvcVoltageMonitoring(boolean svcVoltageMonitoring) {
+        this.svcVoltageMonitoring = svcVoltageMonitoring;
+        return this;
+    }
+
     public Set<String> getLoaderPostProcessorSelection() {
         return loaderPostProcessorSelection;
     }
 
     public LfNetworkParameters setLoaderPostProcessorSelection(Set<String> loaderPostProcessorSelection) {
         this.loaderPostProcessorSelection = Objects.requireNonNull(loaderPostProcessorSelection);
+        return this;
+    }
+
+    public int getMaxSlackBusCount() {
+        return maxSlackBusCount;
+    }
+
+    public static int checkMaxSlackBusCount(int maxSlackBusCount) {
+        if (maxSlackBusCount < 1) {
+            throw new IllegalArgumentException("Max slack bus count should be >= 1");
+        }
+        return maxSlackBusCount;
+    }
+
+    public LfNetworkParameters setMaxSlackBusCount(int maxSlackBusCount) {
+        this.maxSlackBusCount = checkMaxSlackBusCount(maxSlackBusCount);
         return this;
     }
 
@@ -315,6 +346,8 @@ public class LfNetworkParameters {
                 ", loaderPostProcessorSelection=" + loaderPostProcessorSelection +
                 ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ", lowImpedanceThreshold=" + lowImpedanceThreshold +
+                ", svcVoltageMonitoring=" + svcVoltageMonitoring +
+                ", maxSlackBusCount=" + maxSlackBusCount +
                 ')';
     }
 }
