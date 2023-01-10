@@ -34,6 +34,8 @@ public class LfNetworkParameters {
 
     public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX;
 
+    public static final int DEFAULT_MAX_SLACK_BUS_COUNT = 1;
+
     public static final boolean SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE = false;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
@@ -83,6 +85,8 @@ public class LfNetworkParameters {
     private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
     private boolean svcVoltageMonitoring = true;
+
+    private int maxSlackBusCount = DEFAULT_MAX_SLACK_BUS_COUNT;
 
     private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
@@ -305,6 +309,22 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public int getMaxSlackBusCount() {
+        return maxSlackBusCount;
+    }
+
+    public static int checkMaxSlackBusCount(int maxSlackBusCount) {
+        if (maxSlackBusCount < 1) {
+            throw new IllegalArgumentException("Max slack bus count should be >= 1");
+        }
+        return maxSlackBusCount;
+    }
+
+    public LfNetworkParameters setMaxSlackBusCount(int maxSlackBusCount) {
+        this.maxSlackBusCount = checkMaxSlackBusCount(maxSlackBusCount);
+        return this;
+    }
+
     public boolean isSecondaryVoltageControl() {
         return secondaryVoltageControl;
     }
@@ -340,6 +360,7 @@ public class LfNetworkParameters {
                 ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ", svcVoltageMonitoring=" + svcVoltageMonitoring +
+                ", maxSlackBusCount=" + maxSlackBusCount +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ')';
     }

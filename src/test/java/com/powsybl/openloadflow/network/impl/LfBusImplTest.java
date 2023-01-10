@@ -149,7 +149,7 @@ class LfBusImplTest {
 
     private static List<LfGenerator> createLfGeneratorsWithInitQ(List<Double> initQs) {
         Network network = FourSubstationsNodeBreakerFactory.create();
-        LfNetwork lfNetwork = new LfNetwork(0, 0, new FirstSlackBusSelector(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LfNetwork lfNetwork = new LfNetwork(0, 0, new FirstSlackBusSelector(), 1, new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LfNetworkParameters parameters1 = new LfNetworkParameters()
                 .setPlausibleActivePowerLimit(100)
                 .setMinPlausibleTargetVoltage(0.9)

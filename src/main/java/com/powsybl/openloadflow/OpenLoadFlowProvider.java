@@ -153,7 +153,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                             result.getNetwork().getNumSC(),
                                                                             status,
                                                                             result.getNewtonRaphsonIterations(),
-                                                                            slackBusId,
+                                                                            slackBusId, // FIXME manage multiple slack buses
                                                                             result.getSlackBusActivePowerMismatch() * PerUnit.SB,
                                                                             result.getDistributedActivePower() * PerUnit.SB));
         }
@@ -205,7 +205,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 result.getNetwork().getNumSC(),
                 result.isSucceeded() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED,
                 0,
-                result.getNetwork().getSlackBus().getId(),
+                result.getNetwork().getSlackBus().getId(), // FIXME manage multiple slack buses
                 result.getSlackBusActivePowerMismatch() * PerUnit.SB,
                 Double.NaN);
     }

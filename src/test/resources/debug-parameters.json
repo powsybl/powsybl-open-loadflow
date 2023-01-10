@@ -41,6 +41,7 @@
         "networkCacheEnabled" : false,
         "svcVoltageMonitoring" : true,
         "stateVectorScalingMode" : "NONE",
+        "maxSlackBusCount" : 1,
         "secondaryVoltageControl" : false
       }
     }
