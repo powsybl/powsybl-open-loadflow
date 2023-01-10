@@ -33,6 +33,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
     private static final double TARGET_V_DIFF_EPS = 10e-4; // in PU, so < 0.1 Kv
+    private static final double SENSI_V_EPS = 10e-8;
 
     @Override
     public String getType() {
@@ -90,13 +91,15 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         for (LfBus controlledBus : controlledBuses) {
             double sensitivity = getCalculatedV(pilotBus)
                     .calculateSensi(sensitivities, controlledBusIndex[controlledBus.getNum()]);
-            // each primary voltage control proportionally participate to pilot bus voltage adjustment
-            double pvcTargetDv = svcTargetDv / controlledBuses.size() / sensitivity;
-            var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
-            double newPvcTargetV = primaryVoltageControl.getTargetValue() + pvcTargetDv;
-            LOGGER.trace("Adjust primary voltage control target of bus {}: {} -> {}",
-                    controlledBus.getId(), primaryVoltageControl.getTargetValue(), newPvcTargetV);
-            primaryVoltageControl.setTargetValue(newPvcTargetV);
+            if (Math.abs(sensitivity) > SENSI_V_EPS) {
+                // each primary voltage control proportionally participate to pilot bus voltage adjustment
+                double pvcTargetDv = svcTargetDv / controlledBuses.size() / sensitivity;
+                var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
+                double newPvcTargetV = primaryVoltageControl.getTargetValue() + pvcTargetDv;
+                LOGGER.trace("Adjust primary voltage control target of bus {}: {} -> {}",
+                        controlledBus.getId(), primaryVoltageControl.getTargetValue(), newPvcTargetV);
+                primaryVoltageControl.setTargetValue(newPvcTargetV);
+            }
         }
     }
 
