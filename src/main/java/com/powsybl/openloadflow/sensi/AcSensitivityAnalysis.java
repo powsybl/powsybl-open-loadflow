@@ -185,7 +185,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
      */
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
-                        SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen, boolean withBbsContingency) {
+                        SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(lfParameters);
@@ -195,7 +195,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         Objects.requireNonNull(reporter);
 
         Pair<Boolean, Boolean> hasBusTargetVoltage = hasBusTargetVoltage(factorReader, network);
-        boolean breakers = !allSwitchesToOpen.isEmpty() || withBbsContingency;
+        boolean breakers = !allSwitchesToOpen.isEmpty();
         if (breakers && Boolean.TRUE.equals(hasBusTargetVoltage.getLeft())) {
             // FIXME
             // a bus voltage function works only on a bus/branch topology and a switch contingency only works on a

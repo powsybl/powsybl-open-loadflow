@@ -158,11 +158,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
             Set<Switch> allSwitchesToOpen = new HashSet<>();
-            Set<String> allBusIdToLose = new HashSet<>();
             List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false,
                     sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                     sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc(),
-                    false, allBusIdToLose);
+                    false);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 
@@ -198,9 +197,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             }
 
             if (lfParameters.isDc()) {
-                dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen, !allBusIdToLose.isEmpty());
+                dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
             } else {
-                acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen, !allBusIdToLose.isEmpty());
+                acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
             }
         }, computationManager.getExecutor());
     }

@@ -777,12 +777,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
             cleanBranchIdsToOpen(lfNetwork, contingency);
 
-            contingency.postProcessing(lfNetwork);
-
             if (contingency.getBranchIdsToOpen().isEmpty()
                     && contingency.getHvdcIdsToOpen().isEmpty()
                     && contingency.getGeneratorIdsToLose().isEmpty()
-                    && contingency.getLoadIdsToShift().isEmpty()) { // FIXME
+                    && contingency.getLoadIdsToShift().isEmpty()) {
                 LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
             }
         }

@@ -76,10 +76,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        Set<String> allBusIdToLose = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen,
                 lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation(), allBusIdToLose);
+                lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation());
 
         // check actions validity
         checkActions(network, actions);
@@ -87,7 +86,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // try for find all switches to be operated as actions.
         Set<Switch> allSwitchesToClose = new HashSet<>();
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
-        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty() && allBusIdToLose.isEmpty());
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
 
         // create networks including all necessary switches
