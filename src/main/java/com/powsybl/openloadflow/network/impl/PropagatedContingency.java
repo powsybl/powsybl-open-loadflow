@@ -137,7 +137,7 @@ public class PropagatedContingency {
             if (contingencyPropagation) {
                 ContingencyTripping.createContingencyTripping(network, identifiable).traverse(switchesToOpen, terminalsToDisconnect);
             } else if (identifiable instanceof BusbarSection) {
-                ContingencyTripping.createContingencyTripping(network, identifiable).traverse(switchesToOpen, terminalsToDisconnect); // FIXME Florian.
+                ContingencyTripping.createBusbarSectionMinimalTripping(network, (BusbarSection) identifiable).traverse(switchesToOpen, terminalsToDisconnect);
             }
             terminalsToDisconnect.addAll(getTerminals(identifiable));
             if (identifiable instanceof Switch) {
