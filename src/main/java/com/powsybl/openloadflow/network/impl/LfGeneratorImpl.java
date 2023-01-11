@@ -38,7 +38,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         // get participation factor from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            boolean withDroop = activePowerControl.getDroop() != 0 && !Double.isNaN(activePowerControl.getDroop());
+            boolean withDroop = !Double.isNaN(activePowerControl.getDroop()) && activePowerControl.getDroop() != 0;
             participating = activePowerControl.isParticipate() && withDroop;
             if (withDroop) {
                 droop = activePowerControl.getDroop();
