@@ -2368,5 +2368,9 @@ class OpenSecurityAnalysisTest {
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
 
         assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+        assertEquals(3.0, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
+        assertEquals(2.0, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
+        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(
+                List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
     }
 }

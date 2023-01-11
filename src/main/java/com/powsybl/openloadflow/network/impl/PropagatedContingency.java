@@ -354,6 +354,5 @@ public class PropagatedContingency {
         }
 
         return Optional.of(new LfContingency(contingency.getId(), index, nbSynchronousComponents, buses, branches, shunts, busesLoadShift, generators, hvdcs, originalPowerShiftIds));
-
     }
 }

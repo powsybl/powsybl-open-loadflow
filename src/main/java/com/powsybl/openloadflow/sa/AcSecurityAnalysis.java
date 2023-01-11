@@ -31,6 +31,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
@@ -43,6 +44,7 @@ import com.powsybl.security.strategy.OperatorStrategy;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -247,7 +249,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         LOGGER.info("Post contingency '{}' simulation done on network {} in {} ms", lfContingency.getId(),
                 network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        var connectivityResult = new ConnectivityResult(lfContingency.getNbSynchronousComponents() - 1, 0, 0, 0, Collections.emptySet());
+        var connectivityResult = new ConnectivityResult(lfContingency.getNbSynchronousComponents() - 1,
+                0, lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
+                lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB, lfContingency.getDisconnectedElements());
 
         return new PostContingencyResult(contingency, status,
                                          new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
