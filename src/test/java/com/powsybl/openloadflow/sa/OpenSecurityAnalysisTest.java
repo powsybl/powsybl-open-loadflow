@@ -2373,4 +2373,18 @@ class OpenSecurityAnalysisTest {
         assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(
                 List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
     }
+
+    @Test
+    void testConnectivityResultOnSplitThreeCC() throws IOException {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34"), new BranchContingency("l45")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(), Reporter.NO_OP);
+
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+
+        assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+    }
 }
