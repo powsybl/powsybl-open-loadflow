@@ -121,11 +121,11 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
             switch (allowedDirection) {
                 case INCREASE:
-                    return Range.between(position, sectionsB.size());
+                    return Range.between(position, sectionsB.size() - 1);
                 case DECREASE:
-                    return Range.between(0, position + 1);
+                    return Range.between(0, position);
                 case BOTH:
-                    return Range.between(0, sectionsB.size());
+                    return Range.between(0, sectionsB.size() - 1);
                 default:
                     throw new IllegalStateException("Unknown direction: " + allowedDirection);
             }
@@ -140,8 +140,9 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             int oldTapPosition = position;
             // find tap position with the closest b value without exceeding the maximum of taps to switch.
             double smallestDistance = Math.abs(deltaB);
-            for (int p = positionRange.getMinimum(); p < positionRange.getMaximum(); p++) {
+            for (int p = positionRange.getMinimum(); p <= positionRange.getMaximum(); p++) {
                 if (Math.abs(p - oldTapPosition) > maxTapShift) {
+                    // we are not allowed in one outer loop run to go further than maxTapShift positions
                     continue;
                 }
                 double distance = Math.abs(newB - sectionsB.get(p));

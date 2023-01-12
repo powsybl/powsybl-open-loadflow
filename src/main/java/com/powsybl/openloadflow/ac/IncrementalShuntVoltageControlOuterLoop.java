@@ -185,11 +185,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                                                           JacobianMatrix<AcVariableType, AcEquationType> j) {
         DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerShunts.size());
         for (LfShunt controllerShunt : controllerShunts) {
-            Variable<AcVariableType> b = equationSystem.getVariable(controllerShunt.getNum(), AcVariableType.SHUNT_B);
-            equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B).ifPresent(equation -> {
-                var term = equation.getTerms().get(0);
-                rhs.set(equation.getColumn(), controllerShuntIndex[controllerShunt.getNum()], term.der(b));
-            });
+            equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.SHUNT_TARGET_B)
+                    .ifPresent(equation -> rhs.set(equation.getColumn(), controllerShuntIndex[controllerShunt.getNum()], 1d));
         }
         j.solveTransposed(rhs);
         return rhs;
