@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.network.*;
 public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVariableType, DcEquationType> {
 
     public DcEquationSystemUpdater(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        super(equationSystem);
+        super(equationSystem, true);
     }
 
     @Override

@@ -234,6 +234,26 @@ class AcLoadFlowTransformerControlTest {
     }
 
     @Test
+    void voltageControlT2wtTest8() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt2());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(7)
+                .setRegulationTerminal(t2wt.getTerminal2())
+                .setTargetV(34.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.43, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(4, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
     void remoteVoltageControlT2wtTest() {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
 
