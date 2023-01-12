@@ -47,7 +47,13 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
             }
         }
         if (parameters.isShuntCompensatorVoltageControlOn()) {
-            outerLoops.add(new ShuntVoltageControlOuterLoop());
+            if (parametersExt.getShuntVoltageControlMode() == OpenLoadFlowParameters.ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL) {
+                outerLoops.add(new ShuntVoltageControlOuterLoop());
+            } else if (parametersExt.getShuntVoltageControlMode() == OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL) {
+                outerLoops.add(new IncrementalShuntVoltageControlOuterLoop());
+            } else {
+                throw new IllegalStateException("Unknown shunt voltage control mode: " + parametersExt.getShuntVoltageControlMode());
+            }
         }
         return outerLoops;
     }

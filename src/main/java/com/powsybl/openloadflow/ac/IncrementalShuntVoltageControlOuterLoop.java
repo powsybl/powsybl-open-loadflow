@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -122,7 +121,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 // Not very efficient because sorting is performed at each iteration. However, in practical should not be an issue.
                 // Considering storing the controlers sorted already as same order is used everywhere else
                 for (LfShuntImpl.Controller controller : ((LfShuntImpl) controllerShunt).getControllers().stream().sorted(Comparator.comparing(LfShuntImpl.Controller::getBMagnitude)).collect(Collectors.toList())) {
-                    var controllerContext = contextData.getControllersContexts().get(controllerShunt.getId());
+                    var controllerContext = contextData.getControllersContexts().get(controller.getId());
                     if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
                         double previousB = controller.getB();
                         double deltaB = remainingDiffV / sensitivity;
@@ -141,6 +140,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 if (hasChanged) {
                     // FIX ME: Not safe casting either
                     ((LfShuntImpl) controllerShunt).updateB();
+                    ((LfShuntImpl) controllerShunt).updateG();
                     for (LfNetworkListener listener : controllerShunt.getNetwork().getListeners()) {
                         listener.onShuntTargetBChange(controllerShunt, controllerShunt.getB());
                     }

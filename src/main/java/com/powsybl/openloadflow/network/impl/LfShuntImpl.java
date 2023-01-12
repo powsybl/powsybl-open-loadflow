@@ -242,6 +242,10 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         return g;
     }
 
+    public void updateG() {
+        setG(controllers.stream().mapToDouble(Controller::getG).sum());
+    }
+
     @Override
     public void setG(double g) {
         this.g = g;

@@ -85,7 +85,7 @@ class OpenLoadFlowProviderTest {
     @Test
     void specificParametersTest() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
-        assertEquals(25, provider.getSpecificParametersNames().size());
+        assertEquals(26, provider.getSpecificParametersNames().size());
         LoadFlowParameters parameters = new LoadFlowParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())

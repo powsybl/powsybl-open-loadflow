@@ -41,6 +41,8 @@ class AcLoadFlowShuntTest {
     private Bus bus3;
     private Line l1;
     private Line l2;
+    private Generator generator;
+    private Load load;
     private ShuntCompensator shunt;
 
     private LoadFlow.Runner loadFlowRunner;
@@ -63,7 +65,7 @@ class AcLoadFlowShuntTest {
         bus1 = vl1.getBusBreakerView().newBus()
                 .setId("b1")
                 .add();
-        vl1.newGenerator()
+        generator = vl1.newGenerator()
                 .setId("g1")
                 .setConnectableBus("b1")
                 .setBus("b1")
@@ -81,7 +83,7 @@ class AcLoadFlowShuntTest {
         bus2 = vl2.getBusBreakerView().newBus()
                 .setId("b2")
                 .add();
-        vl2.newLoad()
+        load = vl2.newLoad()
                 .setId("ld1")
                 .setConnectableBus("b2")
                 .setBus("b2")
@@ -507,5 +509,57 @@ class AcLoadFlowShuntTest {
         assertEquals(1, shuntG.getSectionCount());
         assertActivePowerEquals(1.528, shuntG.getTerminal());
         assertReactivePowerEquals(-152.826, shuntG.getTerminal());
+    }
+
+    @Test
+    void testIncrementalVoltageControlBasic() {
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390.930, bus3);
+        assertEquals(1, shunt.getSectionCount());
+
+        shunt.setSectionCount(0);
+        shunt.setTargetDeadband(10);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(388.581, bus3);
+        assertEquals(0, shunt.getSectionCount());
+    }
+
+    @Test
+    void testIncrementalVoltageControlLargeDeadBand() {
+        // STILL WIP
+        parameters.setShuntCompensatorVoltageControlOn(false);
+        shunt.setSectionCount(0);
+        shunt.setTargetV(400.0);
+        shunt.setTargetDeadband(10000);
+        generator.setTargetV(400.0);
+        generator.setTargetP(150);
+        load.setP0(150);
+        load.setQ0(150);
+        l1.setR(100);
+        l1.setX(200);
+        l2.setR(0.001);
+        l2.setX(0.01);
+        LoadFlowResult result0 = loadFlowRunner.run(network, parameters);
+        assertTrue(result0.isOk());
+
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result1 = loadFlowRunner.run(network, parameters);
+        //assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result1.getComponentResults().get(0).getStatus());
+
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        shunt.setSectionCount(0);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(228.794, bus3);
+        assertEquals(0, shunt.getSectionCount());
     }
 }
