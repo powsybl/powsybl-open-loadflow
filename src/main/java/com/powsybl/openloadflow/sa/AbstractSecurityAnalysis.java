@@ -184,7 +184,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
         for (OperatorStrategy operatorStrategy : operatorStrategies) {
-            if (contingencyIds.contains(operatorStrategy.getContingencyId())) {
+            if (contingencyIds.contains(operatorStrategy.getContingencyContext().getContingencyId())) {
                 // check actions IDs exists
                 for (String actionId : operatorStrategy.getActionIds()) {
                     Action action = actionsById.get(actionId);
@@ -194,11 +194,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     }
                     neededActions.add(action);
                 }
-                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>())
+                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
                         .add(operatorStrategy);
             } else {
                 throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to contingency '"
-                        + operatorStrategy.getContingencyId() + "' but this contingency is not present in the list");
+                        + operatorStrategy.getContingencyContext().getContingencyId() + "' but this contingency is not present in the list");
             }
         }
         return operatorStrategiesByContingencyId;
@@ -253,7 +253,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                          Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency) {
         LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
-                operatorStrategy.getContingencyId(), network);
+                operatorStrategy.getContingencyContext().getContingencyId(), network);
 
         // get LF action for this operator strategy, as all actions have been previously checked against IIDM
         // network, an empty LF action means it is for another component (so another LF network) so we can
@@ -283,7 +283,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         stopwatch.stop();
 
         LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
-                operatorStrategy.getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new OperatorStrategyResult(operatorStrategy, status,
                 new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
