@@ -130,8 +130,8 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
-        assertVoltageEquals(142.131, b4);
-        assertVoltageEquals(14.51, b10);
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(142, b4);
+        assertVoltageEquals(14.537, b10);
     }
 }

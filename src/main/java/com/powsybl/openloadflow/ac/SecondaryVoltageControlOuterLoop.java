@@ -33,8 +33,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
-    private static final double TARGET_V_DIFF_EPS = 10e-4; // in PU, so < 0.1 Kv
-    private static final double SENSI_V_EPS = 10e-3;
+    private static final double TARGET_V_DIFF_EPS = 1e-1; // in Kv
+    private static final double SENSI_V_EPS = 1e-3;
 
     @Override
     public String getType() {
@@ -87,6 +87,16 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return (EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV(); // this is safe
     }
 
+    @SuppressWarnings("unchecked")
+    private static EquationTerm<AcEquationType, AcEquationType> getQ1(LfBranch branch) {
+        return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ1();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static EquationTerm<AcEquationType, AcEquationType> getQ2(LfBranch branch) {
+        return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
+    }
+
     private static void adjustPrimaryVoltageControlTargets(int[] controlledBusIndex, DenseMatrix sensitivities,
                                                            List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
         // without reactive limit:
@@ -119,17 +129,17 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                 double sensiVQ = 0;
                 for (LfBranch branch : controlledBus.getBranches()) {
                     if (branch.getBus1() == controlledBus) {
-                        EquationTerm<AcEquationType, AcEquationType> q1 = (EquationTerm<AcEquationType, AcEquationType>) branch.getQ1();
-                        sensiVQ += q1.calculateSensi(sensitivities, column);
+                        sensiVQ += getQ1(branch).calculateSensi(sensitivities, column);
                     } else if (branch.getBus2() == controlledBus) {
-                        EquationTerm<AcEquationType, AcEquationType> q2 = (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
-                        sensiVQ += q2.calculateSensi(sensitivities, column);
+                        sensiVQ += getQ2(branch).calculateSensi(sensitivities, column);
                     }
                     // disconnected at the other side, we can skip
-                    // FIXME: take into account shunts?
                 }
+                // FIXME: take into account shunts?
                 sqi[i] = sensiVQ;
-                si[i] = sensiVV / sensiVQ;
+                if (sensiVQ != 0) {
+                    si[i] = sensiVV / sensiVQ;
+                }
             }
         }
         double ss = Arrays.stream(si).sum();
@@ -137,9 +147,9 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         for (int i = 0; i < controlledBuses.size(); i++) {
             LfBus controlledBus = controlledBuses.get(i);
-            double dv = dq / sqi[i];
+            double dvi = dq / sqi[i];
             var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
-            double newPvcTargetV = primaryVoltageControl.getTargetValue() + dv;
+            double newPvcTargetV = primaryVoltageControl.getTargetValue() + dvi;
             LOGGER.debug("Adjust primary voltage control target of bus {}: {} -> {}",
                     controlledBus.getId(), primaryVoltageControl.getTargetValue() * controlledBus.getNominalV(),
                     newPvcTargetV * controlledBus.getNominalV());
@@ -179,7 +189,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             var controlledBuses = e.getValue();
             var pilotBus = secondaryVoltageControl.getPilotBus();
             double svcTargetDv = secondaryVoltageControl.getTargetValue() - pilotBus.getV();
-            if (Math.abs(svcTargetDv) > TARGET_V_DIFF_EPS) {
+            if (Math.abs(svcTargetDv) * pilotBus.getNominalV() > TARGET_V_DIFF_EPS) {
                 LOGGER.debug("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
                         secondaryVoltageControl.getZoneName(), pilotBus.getV() * pilotBus.getNominalV(),
                         secondaryVoltageControl.getTargetValue() * pilotBus.getNominalV());
