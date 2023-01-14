@@ -97,6 +97,20 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
     }
 
+    private static double calculateSensiVQ(DenseMatrix sensitivities, LfBus controlledBus, int column) {
+        double sensiVQ = 0;
+        for (LfBranch branch : controlledBus.getBranches()) {
+            if (branch.getBus1() == controlledBus) {
+                sensiVQ += getQ1(branch).calculateSensi(sensitivities, column);
+            } else if (branch.getBus2() == controlledBus) {
+                sensiVQ += getQ2(branch).calculateSensi(sensitivities, column);
+            }
+            // disconnected at the other side, we can skip
+        }
+        // FIXME: take into account shunts?
+        return sensiVQ;
+    }
+
     private static void adjustPrimaryVoltageControlTargets(int[] controlledBusIndex, DenseMatrix sensitivities,
                                                            List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
         // without reactive limit:
@@ -126,18 +140,9 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             double sensiVV = getCalculatedV(pilotBus).calculateSensi(sensitivities, column);
             // we need to filter very small sensitivity to avoid large target v shift
             if (Math.abs(sensiVV) > SENSI_V_EPS) {
-                double sensiVQ = 0;
-                for (LfBranch branch : controlledBus.getBranches()) {
-                    if (branch.getBus1() == controlledBus) {
-                        sensiVQ += getQ1(branch).calculateSensi(sensitivities, column);
-                    } else if (branch.getBus2() == controlledBus) {
-                        sensiVQ += getQ2(branch).calculateSensi(sensitivities, column);
-                    }
-                    // disconnected at the other side, we can skip
-                }
-                // FIXME: take into account shunts?
-                sqi[i] = sensiVQ;
+                double sensiVQ = calculateSensiVQ(sensitivities, controlledBus, column);
                 if (sensiVQ != 0) {
+                    sqi[i] = sensiVQ;
                     si[i] = sensiVV / sensiVQ;
                 }
             }
