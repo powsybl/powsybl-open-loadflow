@@ -91,6 +91,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                                                            List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
         // without reactive limit:
         // pilot_dv = sv1 * dv1 + sv2 * dv2 + ...
+        // dqi = dvi * sqi
         // pilot_dv = sv1 * (dq1 / sq1) + sv2 * (dq2 / sq2) + ...
         // pilot_dv = s1 * dq1 + s2 * dq2 + ...
         // si = svi / sqi
@@ -105,8 +106,10 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         // then recompute dq with remaining buses and new dv_pilot
         // until there is no more reactive limit violation
         //
-        // at the end: dvi = dq * si
+        // at the end:
+        // dvi = dq / sqi
         double[] si = new double[controlledBuses.size()];
+        double[] sqi = new double[controlledBuses.size()];
         for (int i = 0; i < controlledBuses.size(); i++) {
             LfBus controlledBus = controlledBuses.get(i);
             int column = controlledBusIndex[controlledBus.getNum()];
@@ -125,6 +128,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                     // disconnected at the other side, we can skip
                     // FIXME: take into account shunts?
                 }
+                sqi[i] = sensiVQ;
                 si[i] = sensiVV / sensiVQ;
             }
         }
@@ -133,10 +137,10 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         for (int i = 0; i < controlledBuses.size(); i++) {
             LfBus controlledBus = controlledBuses.get(i);
-            double dv = dq * si[i];
+            double dv = dq / sqi[i];
             var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
             double newPvcTargetV = primaryVoltageControl.getTargetValue() + dv;
-            LOGGER.trace("Adjust primary voltage control target of bus {}: {} -> {}",
+            LOGGER.debug("Adjust primary voltage control target of bus {}: {} -> {}",
                     controlledBus.getId(), primaryVoltageControl.getTargetValue() * controlledBus.getNominalV(),
                     newPvcTargetV * controlledBus.getNominalV());
             primaryVoltageControl.setTargetValue(newPvcTargetV);
