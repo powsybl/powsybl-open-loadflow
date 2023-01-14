@@ -152,6 +152,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         for (int i = 0; i < controlledBuses.size(); i++) {
             LfBus controlledBus = controlledBuses.get(i);
+            // TODO check reactive limit
             double dvi = dq / sqi[i];
             var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
             double newPvcTargetV = primaryVoltageControl.getTargetValue() + dvi;

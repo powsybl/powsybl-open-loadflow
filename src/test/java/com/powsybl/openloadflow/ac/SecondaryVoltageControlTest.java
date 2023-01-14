@@ -71,7 +71,7 @@ class SecondaryVoltageControlTest {
                 .setMaxQ(35)
                 .add();
         g6.newMinMaxReactiveLimits()
-                .setMinQ(-58)
+                .setMinQ(-61)
                 .setMaxQ(24)
                 .add();
         g8.newMinMaxReactiveLimits()
@@ -124,6 +124,22 @@ class SecondaryVoltageControlTest {
         // not so bad... reactive power shift are closed
         assertEquals(-9.085, q6 - g6.getTerminal().getQ(), DELTA_POWER);
         assertEquals(-7.918, q8 - g8.getTerminal().getQ(), DELTA_POWER);
+    }
+
+    @Test
+    void testReactiveLimits() {
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 14);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
+                                                                          new ControlUnit("B8-G"))))
+                .add();
+
+        parametersExt.setSecondaryVoltageControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        // VL6_0 at min q limit
     }
 
     @Test
