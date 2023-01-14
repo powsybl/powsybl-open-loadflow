@@ -113,6 +113,9 @@ class SecondaryVoltageControlTest {
         assertVoltageEquals(14, b10);
         assertVoltageEquals(12.5, b6);
         assertVoltageEquals(21.418, b8);
+        // not so bad... reactive power shift are closed
+        assertEquals(-9.085, q6 - g6.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(-7.918, q8 - g8.getTerminal().getQ(), DELTA_POWER);
     }
 
     @Test
