@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
@@ -87,21 +88,58 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     }
 
     private static void adjustPrimaryVoltageControlTargets(int[] controlledBusIndex, DenseMatrix sensitivities,
-                                                           List<LfBus> controlledBuses, LfBus pilotBus, double svcTargetDv) {
-        for (LfBus controlledBus : controlledBuses) {
-            double sensitivity = getCalculatedV(pilotBus)
-                    .calculateSensi(sensitivities, controlledBusIndex[controlledBus.getNum()]);
+                                                           List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
+        // without reactive limit:
+        // pilot_dv = sv1 * dv1 + sv2 * dv2 + ...
+        // pilot_dv = sv1 * (dq1 / sq1) + sv2 * (dq2 / sq2) + ...
+        // pilot_dv = s1 * dq1 + s2 * dq2 + ...
+        // si = svi / sqi
+        // we want all generator of the zone to provide same reactive power
+        // dq = dq1 = dq2 = ...
+        // dv_pilot = (s1 + s2 + ...) * dq
+        // dv_pilot = ss * dq
+        // dq = pilot_dv / ss
+        //
+        // for each bus, check qi + dq is out of reactive limit
+        // if yes remove from dv_pilot: (qlim - qi) * si
+        // then recompute dq with remaining buses and new dv_pilot
+        // until there is no more reactive limit violation
+        //
+        // at the end: dvi = dq * si
+        double[] si = new double[controlledBuses.size()];
+        for (int i = 0; i < controlledBuses.size(); i++) {
+            LfBus controlledBus = controlledBuses.get(i);
+            int column = controlledBusIndex[controlledBus.getNum()];
+            double sensiVV = getCalculatedV(pilotBus).calculateSensi(sensitivities, column);
             // we need to filter very small sensitivity to avoid large target v shift
-            if (Math.abs(sensitivity) > SENSI_V_EPS) {
-                // each primary voltage control proportionally participate to pilot bus voltage adjustment
-                double pvcTargetDv = svcTargetDv / controlledBuses.size() / sensitivity;
-                var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
-                double newPvcTargetV = primaryVoltageControl.getTargetValue() + pvcTargetDv;
-                LOGGER.trace("Adjust primary voltage control target of bus {}: {} -> {}",
-                        controlledBus.getId(), primaryVoltageControl.getTargetValue() * controlledBus.getNominalV(),
-                        newPvcTargetV * controlledBus.getNominalV());
-                primaryVoltageControl.setTargetValue(newPvcTargetV);
+            if (Math.abs(sensiVV) > SENSI_V_EPS) {
+                double sensiVQ = 0;
+                for (LfBranch branch : controlledBus.getBranches()) {
+                    if (branch.getBus1() == controlledBus) {
+                        EquationTerm<AcEquationType, AcEquationType> q1 = (EquationTerm<AcEquationType, AcEquationType>) branch.getQ1();
+                        sensiVQ += q1.calculateSensi(sensitivities, column);
+                    } else if (branch.getBus2() == controlledBus) {
+                        EquationTerm<AcEquationType, AcEquationType> q2 = (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
+                        sensiVQ += q2.calculateSensi(sensitivities, column);
+                    }
+                    // disconnected at the other side, we can skip
+                    // FIXME: take into account shunts?
+                }
+                si[i] = sensiVV / sensiVQ;
             }
+        }
+        double ss = Arrays.stream(si).sum();
+        double dq = pilotDv / ss;
+
+        for (int i = 0; i < controlledBuses.size(); i++) {
+            LfBus controlledBus = controlledBuses.get(i);
+            double dv = dq * si[i];
+            var primaryVoltageControl = controlledBus.getVoltageControl().orElseThrow();
+            double newPvcTargetV = primaryVoltageControl.getTargetValue() + dv;
+            LOGGER.trace("Adjust primary voltage control target of bus {}: {} -> {}",
+                    controlledBus.getId(), primaryVoltageControl.getTargetValue() * controlledBus.getNominalV(),
+                    newPvcTargetV * controlledBus.getNominalV());
+            primaryVoltageControl.setTargetValue(newPvcTargetV);
         }
     }
 
