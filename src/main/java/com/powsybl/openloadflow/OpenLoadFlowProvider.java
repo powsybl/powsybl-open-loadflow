@@ -322,10 +322,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 result = runDc(network, parameters, lfReporter);
             } else if (isDisym) {
                 result = runDisymAc(network, parameters, lfReporter);
-                System.out.println(" ==========> isDisym");
             } else {
                 result = runAc(network, parameters, lfReporter);
-                System.out.println(" xxxxxxx> isNotDisym");
             }
 
             stopwatch.stop();

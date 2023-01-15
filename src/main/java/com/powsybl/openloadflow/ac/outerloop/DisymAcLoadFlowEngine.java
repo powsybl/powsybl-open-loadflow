@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
+
 public class DisymAcLoadFlowEngine {
     private static final Logger LOGGER = LoggerFactory.getLogger(DisymAcLoadFlowEngine.class);
 

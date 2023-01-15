@@ -27,7 +27,6 @@ abstract class AbstractBranchDisymFlowEquationTerm extends AbstractBranchEquatio
     // Classical line parameters are replaced by a 12x12 admittance matrix
     protected final DenseMatrix mYodi;
 
-
     protected AbstractBranchDisymFlowEquationTerm(LfBranch branch) {
         super(branch);
         PiModel piModel = branch.getPiModel();

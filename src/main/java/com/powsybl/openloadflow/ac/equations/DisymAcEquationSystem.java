@@ -78,6 +78,30 @@ public final class DisymAcEquationSystem {
         qi.setActive(true);
         ph.setActive(true);
         qh.setActive(true);
+
+        // Handle generators at bus for homopolar and inverse
+        for (LfGenerator gen : bus.getGenerators()) {
+            // if there is at least one generating unit that is voltage controlling we model the equivalent in inverse and homopolar
+            // with a large admittance yg = g +jb to model a close connection of the bus to the ground (E_homopolar = 0 E_Inverse = 0)
+            if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER || gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
+                // homopolar sequence
+                GeneratorShuntReactiveEquationTerm qShuntGenHomo = new GeneratorShuntReactiveEquationTerm(gen, bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_HOMOPOLAR).addTerm(qShuntGenHomo);
+                GeneratorShuntActiveEquationTerm pShuntGenHomo = new GeneratorShuntActiveEquationTerm(gen, bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR).addTerm(pShuntGenHomo);
+
+                // inverse sequence
+                GeneratorShuntReactiveEquationTerm qShuntGenInv = new GeneratorShuntReactiveEquationTerm(gen, bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE).addTerm(qShuntGenInv);
+                GeneratorShuntActiveEquationTerm pShuntGenInv = new GeneratorShuntActiveEquationTerm(gen, bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pShuntGenInv);
+
+                break;
+
+            }
+
+        }
+
     }
 
     private static void createBusesEquations(LfNetwork network,
