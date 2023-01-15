@@ -110,22 +110,25 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
     }
 
-    private static double calculateSensiVQ(DenseMatrix sensitivities, LfBus controllerBus, int controlledBusSensiColumn) {
-        double sensiVQ = 0;
+    private static double calculateSensiVq(DenseMatrix sensitivities, LfBus controllerBus, int controlledBusSensiColumn) {
+        double sq = 0;
         for (LfBranch branch : controllerBus.getBranches()) {
             if (branch.getBus1() == controllerBus) {
-                sensiVQ += getQ1(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
+                sq += getQ1(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
             } else if (branch.getBus2() == controllerBus) {
-                sensiVQ += getQ2(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
+                sq += getQ2(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
             }
             // disconnected at the other side, we can skip
         }
         // FIXME: take into account shunts?
-        return sensiVQ;
+        return sq;
     }
 
-    private static double[] calculateControlledBusesSensiVv(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
-                                                            List<LfBus> controlledBuses, LfBus pilotBus) {
+    /**
+     * Calculate pilot bus voltage to controlled bus voltage sensitivity.
+     */
+    private static double[] calculateSensiVv(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
+                                             List<LfBus> controlledBuses, LfBus pilotBus) {
         double[] sensiVv = new double[controlledBuses.size()];
         for (int i = 0; i < controlledBuses.size(); i++) {
             LfBus controlledBus = controlledBuses.get(i);
@@ -135,17 +138,17 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return sensiVv;
     }
 
-    static class ControllerBusSensiVq {
+    static class SensiVq {
 
         final double[] sqi;
 
-        final double dq;
+        final double[] si;
 
         final Map<Integer, Integer> controllerBusIndex;
 
-        ControllerBusSensiVq(double[] sqi, double dq, Map<Integer, Integer> controllerBusIndex) {
+        SensiVq(double[] sqi, double[] si, Map<Integer, Integer> controllerBusIndex) {
             this.sqi = sqi;
-            this.dq = dq;
+            this.si = si;
             this.controllerBusIndex = controllerBusIndex;
         }
 
@@ -154,8 +157,13 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         }
     }
 
-    private static ControllerBusSensiVq calculateControllerBusesSensiVq(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
-                                                                        List<LfBus> controlledBuses, double[] sensiVv, double pilotDv) {
+    /**
+     * Calculate:
+     *  - controlled bus voltage to controller bus reactive power injection sensitivity.
+     *  - pilot bus voltage to controller bus reactive power injection sensitivity.
+     */
+    private static SensiVq calculateSensiVq(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
+                                            List<LfBus> controlledBuses, double[] svi) {
         // get list of all controllers of the zone
         List<LfBus> allControllerBuses = controlledBuses.stream()
                 .flatMap(controlledBus -> getControllerBuses(controlledBus).stream())
@@ -167,22 +175,20 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         for (int i = 0; i < controlledBuses.size(); i++) {
             LfBus controlledBus = controlledBuses.get(i);
             // we need to filter very small sensitivity to avoid large target v shift
-            if (Math.abs(sensiVv[i]) > SENSI_V_EPS) {
+            if (Math.abs(svi[i]) > SENSI_V_EPS) {
                 int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
                 for (LfBus controllerBus : getControllerBuses(controlledBus)) {
-                    double sensiVQ = calculateSensiVQ(sensitivities, controllerBus, controlledBusSensiColumn);
+                    double sq = calculateSensiVq(sensitivities, controllerBus, controlledBusSensiColumn);
                     int j = controllerBusIndex.get(controllerBus.getNum());
-                    if (sensiVQ != 0) {
-                        sqi[j] = sensiVQ;
-                        si[j] = sensiVv[i] / sensiVQ;
+                    if (sq != 0) {
+                        sqi[j] = sq;
+                        si[j] = svi[i] / sq;
                     }
                 }
             }
         }
-        double ss = Arrays.stream(si).sum();
-        double dq = pilotDv / ss;
 
-        return new ControllerBusSensiVq(sqi, dq, controllerBusIndex);
+        return new SensiVq(sqi, si, controllerBusIndex);
     }
 
     private static void adjustPrimaryVoltageControlTargets(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
@@ -207,14 +213,18 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         // at the end:
         // dvi = dq / sqi
 
-        double[] sensiVv = calculateControlledBusesSensiVv(busNumToSensiColumn, sensitivities, controlledBuses, pilotBus);
+        double[] svi = calculateSensiVv(busNumToSensiColumn, sensitivities, controlledBuses, pilotBus);
 
-        var sensiVq = calculateControllerBusesSensiVq(busNumToSensiColumn, sensitivities, controlledBuses, sensiVv, pilotDv);
+        var sensiVq = calculateSensiVq(busNumToSensiColumn, sensitivities, controlledBuses, svi);
+
+        // supposing we want all controller to shift to same amount of reactive power
+        double ss = Arrays.stream(sensiVq.si).sum();
+        double dq = pilotDv / ss;
 
         for (LfBus controlledBus : controlledBuses) {
             for (LfBus controllerBus : getControllerBuses(controlledBus)) {
                 double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
-                double newQ = q + sensiVq.dq;
+                double newQ = q + dq;
                 if (newQ < controllerBus.getMinQ()) {
                     LOGGER.debug("Controller bus '{}' reached min q limit", controllerBus.getId());
                 } else if (newQ > controllerBus.getMaxQ()) {
@@ -226,7 +236,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         for (LfBus controlledBus : controlledBuses) {
             double pvcDv = 0;
             for (LfBus controllerBus : getControllerBuses(controlledBus)) {
-                pvcDv += sensiVq.dq / sensiVq.getSqi(controllerBus);
+                pvcDv += dq / sensiVq.getSqi(controllerBus);
             }
             var pvc = controlledBus.getVoltageControl().orElseThrow();
             double newPvcTargetV = pvc.getTargetValue() + pvcDv;
