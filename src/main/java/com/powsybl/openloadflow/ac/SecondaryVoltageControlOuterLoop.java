@@ -191,33 +191,49 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return new SensiVq(sqi, si, controllerBusIndex);
     }
 
-    private static void checkControllersReactiveLimits(List<LfBus> controlledBuses, double dq) {
+    static class ReactiveLimitStop {
+
+        private final LfBus bus;
+
+        private final double dqLim;
+
+        ReactiveLimitStop(LfBus bus, double dqLim) {
+            this.bus = bus;
+            this.dqLim = dqLim;
+        }
+    }
+
+    private static List<ReactiveLimitStop> checkControllersReactiveLimits(List<LfBus> controlledBuses, double dq) {
+        List<ReactiveLimitStop> reactiveLimitStops = new ArrayList<>();
         for (LfBus controlledBus : controlledBuses) {
             for (LfBus controllerBus : getControllerBuses(controlledBus)) {
                 double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
                 double newQ = q + dq;
                 if (newQ < controllerBus.getMinQ()) {
                     LOGGER.debug("Controller bus '{}' reached min q limit", controllerBus.getId());
+                    reactiveLimitStops.add(new ReactiveLimitStop(controllerBus, q - controllerBus.getMinQ()));
                 } else if (newQ > controllerBus.getMaxQ()) {
                     LOGGER.debug("Controller bus '{}' reached max q limit", controllerBus.getId());
+                    reactiveLimitStops.add(new ReactiveLimitStop(controllerBus, controllerBus.getMaxQ() - q));
                 }
             }
         }
+        return reactiveLimitStops;
     }
 
     /**
      * <pre>
      * pilot_dv = sum_i(svi * dvi) where i are all controlled buses
-     * dvi is controlled bus (i.e primary voltage control) voltage variation, needed to each pilot bus target voltage
-     * svi is the sensitivity of controlled bus voltage to pilot bus
+     * dvi: controlled bus (i.e primary voltage control) voltage variation, needed to each pilot bus target voltage
+     * svi: the sensitivity of a controlled bus voltage to pilot bus
      * in the following equations i are controller buses and all svi and dvi of controlled buses are used for their
      * corresponding controller buses
      * dqi = dvi * sqi
-     * sqi is the sensitivity of controlled bus voltage to a controller bus reactive power injection
+     * sqi: the sensitivity of a controlled bus voltage to a controller bus reactive power injection
      * pilot_dv = sum_i(svi * (dqi / sqi))
      * pilot_dv = sum_i(si * dqi)
      * si = svi / sqi
-     * si is the sensitivity a pilot bus voltage to controller bus reactive power change
+     * si: the sensitivity of a controller bus reactive power to a pilot bus voltage
      * we want all generator of the zone to provide same reactive power to reach pilot bus target voltage
      * dq = dq1 = dq2 = ...
      * dv_pilot = sum_i(si) * dq
@@ -244,7 +260,10 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         // supposing we want all controllers to shift to same amount of reactive power
         double dq = pilotDv / Arrays.stream(sensiVq.si).sum();
 
-        checkControllersReactiveLimits(controlledBuses, dq);
+        List<ReactiveLimitStop> reactiveLimitStops = checkControllersReactiveLimits(controlledBuses, dq);
+        if (!reactiveLimitStops.isEmpty()) {
+
+        }
 
         for (LfBus controlledBus : controlledBuses) {
             double pvcDv = 0;
