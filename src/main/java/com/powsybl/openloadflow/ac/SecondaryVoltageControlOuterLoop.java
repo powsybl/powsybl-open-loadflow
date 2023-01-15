@@ -191,36 +191,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return new SensiVq(sqi, si, controllerBusIndex);
     }
 
-    private static void adjustPrimaryVoltageControlTargets(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
-                                                           List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
-        // without reactive limit:
-        // pilot_dv = sv1 * dv1 + sv2 * dv2 + ...
-        // dqi = dvi * sqi
-        // pilot_dv = sv1 * (dq1 / sq1) + sv2 * (dq2 / sq2) + ...
-        // pilot_dv = s1 * dq1 + s2 * dq2 + ...
-        // si = svi / sqi
-        // we want all generator of the zone to provide same reactive power
-        // dq = dq1 = dq2 = ...
-        // dv_pilot = (s1 + s2 + ...) * dq
-        // dv_pilot = ss * dq
-        // dq = pilot_dv / ss
-        //
-        // for each bus, check qi + dq is out of reactive limit
-        // if yes remove from dv_pilot: (qlim - qi) * si
-        // then recompute dq with remaining buses and new dv_pilot
-        // until there is no more reactive limit violation
-        //
-        // at the end:
-        // dvi = dq / sqi
-
-        double[] svi = calculateSensiVv(busNumToSensiColumn, sensitivities, controlledBuses, pilotBus);
-
-        var sensiVq = calculateSensiVq(busNumToSensiColumn, sensitivities, controlledBuses, svi);
-
-        // supposing we want all controller to shift to same amount of reactive power
-        double ss = Arrays.stream(sensiVq.si).sum();
-        double dq = pilotDv / ss;
-
+    private static void checkControllersReactiveLimits(List<LfBus> controlledBuses, double dq) {
         for (LfBus controlledBus : controlledBuses) {
             for (LfBus controllerBus : getControllerBuses(controlledBus)) {
                 double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
@@ -232,6 +203,48 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                 }
             }
         }
+    }
+
+    /**
+     * <pre>
+     * pilot_dv = sum_i(svi * dvi) where i are all controlled buses
+     * dvi is controlled bus (i.e primary voltage control) voltage variation, needed to each pilot bus target voltage
+     * svi is the sensitivity of controlled bus voltage to pilot bus
+     * in the following equations i are controller buses and all svi and dvi of controlled buses are used for their
+     * corresponding controller buses
+     * dqi = dvi * sqi
+     * sqi is the sensitivity of controlled bus voltage to a controller bus reactive power injection
+     * pilot_dv = sum_i(svi * (dqi / sqi))
+     * pilot_dv = sum_i(si * dqi)
+     * si = svi / sqi
+     * si is the sensitivity a pilot bus voltage to controller bus reactive power change
+     * we want all generator of the zone to provide same reactive power to reach pilot bus target voltage
+     * dq = dq1 = dq2 = ...
+     * dv_pilot = sum_i(si) * dq
+     * dq = pilot_dv / sum_i(si)
+     *
+     * for each bus, check qi + dq is out of reactive limit
+     * if yes remove from dv_pilot: (qlim - qi) * si
+     * then recompute dq with remaining buses and new dv_pilot
+     * until there is no more reactive limit violation
+     *
+     * at the end:
+     * dvi = dq / sqi
+     * </pre>
+     */
+    private static void adjustPrimaryVoltageControlTargets(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
+                                                           List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
+        // calculate sensitivity of controlled buses voltage to pilot bus voltage
+        double[] svi = calculateSensiVv(busNumToSensiColumn, sensitivities, controlledBuses, pilotBus);
+
+        // calculate sensitivity of controlled buses voltage to controller buses reactive power injection
+        // and sensitivity of controller bus reactive power injection to pilot bus voltage
+        var sensiVq = calculateSensiVq(busNumToSensiColumn, sensitivities, controlledBuses, svi);
+
+        // supposing we want all controllers to shift to same amount of reactive power
+        double dq = pilotDv / Arrays.stream(sensiVq.si).sum();
+
+        checkControllersReactiveLimits(controlledBuses, dq);
 
         for (LfBus controlledBus : controlledBuses) {
             double pvcDv = 0;
