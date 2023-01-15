@@ -25,8 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -134,12 +133,26 @@ class SecondaryVoltageControlTest {
                                                                           new ControlUnit("B8-G"))))
                 .add();
 
-        parametersExt.setSecondaryVoltageControl(true);
-
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
-        // VL6_0 at min q limit
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(14.261, b10);
+        assertVoltageEquals(12.84, b6);
+        assertVoltageEquals(21.8, b8);
+        assertReactivePowerEquals(52.054, g6.getTerminal()); // [-61, 24]
+        assertReactivePowerEquals(-188.795, g8.getTerminal()); // [-6, 200]
+
+        parametersExt.setSecondaryVoltageControl(true);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
+
+        assertVoltageEquals(14, b10);
+        assertVoltageEquals(12.708, b6);
+        assertVoltageEquals(20.6, b8);
+        assertReactivePowerEquals(48.699, g6.getTerminal()); // [-61, 24]
+        assertReactivePowerEquals(-154.212, g8.getTerminal()); // [-6, 200]
     }
 
     @Test
