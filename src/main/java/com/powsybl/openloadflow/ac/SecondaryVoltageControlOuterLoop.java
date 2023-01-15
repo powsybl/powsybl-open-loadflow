@@ -224,19 +224,21 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     /**
      * <pre>
      * pilot_dv = sum_i(svi * dvi) where i are all controlled buses
-     * dvi: controlled bus (i.e primary voltage control) voltage variation, needed to each pilot bus target voltage
-     * svi: the sensitivity of a controlled bus voltage to pilot bus
+     * dvi: controlled bus i (primary voltage control) voltage variation, needed to each pilot bus target voltage
+     * svi: the sensitivity of controlled bus i voltage to pilot bus
+     *
      * in the following equations i are controller buses and all svi and dvi of controlled buses are used for their
      * corresponding controller buses
      * dqi = dvi * sqi
-     * sqi: the sensitivity of a controlled bus voltage to a controller bus reactive power injection
+     * sqi: the sensitivity of a controlled bus voltage to its controller bus i reactive power injection
      * pilot_dv = sum_i(svi * (dqi / sqi))
      * pilot_dv = sum_i(si * dqi)
      * si = svi / sqi
-     * si: the sensitivity of a controller bus reactive power to a pilot bus voltage
-     * we want all generator of the zone to provide same reactive power to reach pilot bus target voltage
+     * si: the sensitivity of controller bus i reactive power injection to a pilot bus voltage
+     *
+     * we want all generators of the zone to provide same reactive power to reach pilot bus target voltage
      * dq = dq1 = dq2 = ...
-     * dv_pilot = sum_i(si) * dq
+     * pilot_dv = sum_i(si) * dq
      * dq = pilot_dv / sum_i(si)
      *
      * for each bus, check qi + dq is out of reactive limit
