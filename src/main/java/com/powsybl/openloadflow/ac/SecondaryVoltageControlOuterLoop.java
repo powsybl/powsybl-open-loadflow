@@ -155,27 +155,6 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         double getSqi(LfBus controllerBus) {
             return sqi[controllerBusIndex.get(controllerBus.getNum())];
         }
-
-        double getSi(LfBus controllerBus) {
-            return si[controllerBusIndex.get(controllerBus.getNum())];
-        }
-
-        double sumSi(Set<Integer> excludeControllerNums) {
-            Set<Integer> excludeControllerIndexes = excludeControllerNums.stream()
-                    .map(controllerBusIndex::get)
-                    .collect(Collectors.toSet());
-            double sum = 0;
-            for (int i = 0; i < si.length; i++) {
-                if (!excludeControllerIndexes.contains(i)) {
-                    sum += si[i];
-                }
-            }
-            return sum;
-        }
-
-        public Map<Integer, Integer> getControllerBusIndex() {
-            return controllerBusIndex;
-        }
     }
 
     /**
@@ -212,53 +191,6 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return new SensiVq(sqi, si, controllerBusIndex);
     }
 
-    static class ReactiveLimitStop {
-
-        private final LfBus controllerBus;
-
-        private final double dqLim;
-
-        ReactiveLimitStop(LfBus controllerBus, double dqLim) {
-            this.controllerBus = controllerBus;
-            this.dqLim = dqLim;
-        }
-
-        LfBus getControllerBus() {
-            return controllerBus;
-        }
-
-        double getDqLim() {
-            return dqLim;
-        }
-    }
-
-    private static Map<Integer, ReactiveLimitStop> checkControllersReactiveLimits(List<LfBus> controlledBuses, double dq) {
-        Map<Integer, ReactiveLimitStop> reactiveLimitStopByControllerNum = new HashMap<>();
-        for (LfBus controlledBus : controlledBuses) {
-            for (LfBus controllerBus : getControllerBuses(controlledBus)) {
-                double q = controllerBus.getQ().eval() + controllerBus.getLoadTargetQ();
-                double newQ = q + dq;
-                if (newQ < controllerBus.getMinQ()) {
-                    LOGGER.debug("Controller bus '{}' reached min q limit", controllerBus.getId());
-                    reactiveLimitStopByControllerNum.put(controllerBus.getNum(), new ReactiveLimitStop(controllerBus, q - controllerBus.getMinQ()));
-                } else if (newQ > controllerBus.getMaxQ()) {
-                    LOGGER.debug("Controller bus '{}' reached max q limit", controllerBus.getId());
-                    reactiveLimitStopByControllerNum.put(controllerBus.getNum(), new ReactiveLimitStop(controllerBus, controllerBus.getMaxQ() - q));
-                }
-            }
-        }
-        return reactiveLimitStopByControllerNum;
-    }
-
-    private static double calculateDq(double pilotDv, SensiVq sensiVq, Map<Integer, ReactiveLimitStop> reactiveLimitStopByControllerNum) {
-        double pilotDvLimit = 0; // part of pilot bus voltage change because of controller bus to limit
-        for (ReactiveLimitStop reactiveLimitStop : reactiveLimitStopByControllerNum.values()) {
-            pilotDvLimit += reactiveLimitStop.getDqLim() * sensiVq.getSi(reactiveLimitStop.getControllerBus());
-        }
-        double siSum = sensiVq.sumSi(reactiveLimitStopByControllerNum.keySet());
-        return siSum != 0 ? (pilotDv - pilotDvLimit) / siSum : 0;
-    }
-
     /**
      * <pre>
      * pilot_dv = sum_i(svi * dvi) where i are all controlled buses
@@ -279,12 +211,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
      * pilot_dv = sum_i(si) * dq
      * dq = pilot_dv / sum_i(si)
      *
-     * for each bus, check qi + dq is out of reactive limit
-     * if yes remove from dv_pilot: (qlim - qi) * si
-     * then recompute dq with remaining buses and new dv_pilot
-     * until there is no more reactive limit violation
-     *
-     * at the end:
+     * we can now compute new target v shift for all controlled buses (primary voltage control new target v)
      * dvi = dq / sqi
      * </pre>
      */
@@ -298,22 +225,12 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         var sensiVq = calculateSensiVq(busNumToSensiColumn, sensitivities, controlledBuses, svi);
 
         // supposing we want all controllers to shift to same amount of reactive power
-        double dq = calculateDq(pilotDv, sensiVq, Collections.emptyMap());
-
-        Map<Integer, ReactiveLimitStop> reactiveLimitStopByControllerNum = checkControllersReactiveLimits(controlledBuses, dq);
-        if (!reactiveLimitStopByControllerNum.isEmpty()) {
-            dq = calculateDq(pilotDv, sensiVq, reactiveLimitStopByControllerNum);
-        }
+        double dq = pilotDv / Arrays.stream(sensiVq.si).sum();
 
         for (LfBus controlledBus : controlledBuses) {
             double pvcDv = 0;
             for (LfBus controllerBus : getControllerBuses(controlledBus)) {
-                ReactiveLimitStop reactiveLimitStop = reactiveLimitStopByControllerNum.get(controllerBus.getNum());
-                if (reactiveLimitStop != null) {
-                    pvcDv += reactiveLimitStop.dqLim / sensiVq.getSqi(controllerBus);
-                } else {
-                    pvcDv += dq / sensiVq.getSqi(controllerBus);
-                }
+                pvcDv += dq / sensiVq.getSqi(controllerBus);
             }
             var pvc = controlledBus.getVoltageControl().orElseThrow();
             double newPvcTargetV = pvc.getTargetValue() + pvcDv;

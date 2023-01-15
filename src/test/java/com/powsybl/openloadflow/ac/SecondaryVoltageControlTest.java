@@ -146,13 +146,13 @@ class SecondaryVoltageControlTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(14, b10);
-        assertVoltageEquals(12.708, b6);
-        assertVoltageEquals(20.6, b8);
-        assertReactivePowerEquals(48.699, g6.getTerminal()); // [-61, 24]
-        assertReactivePowerEquals(-154.212, g8.getTerminal()); // [-6, 200]
+        assertVoltageEquals(12.505, b6);
+        assertVoltageEquals(21.418, b8);
+        assertReactivePowerEquals(61.0, g6.getTerminal()); // [-61, 24] => qmin
+        assertReactivePowerEquals(-180.829, g8.getTerminal()); // [-6, 200]
     }
 
     @Test
