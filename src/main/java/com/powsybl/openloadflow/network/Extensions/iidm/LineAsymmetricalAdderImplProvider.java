@@ -3,6 +3,7 @@ package com.powsybl.openloadflow.network.Extensions.iidm;
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.extensions.ExtensionAdderProvider;
 import com.powsybl.iidm.network.Line;
+
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
