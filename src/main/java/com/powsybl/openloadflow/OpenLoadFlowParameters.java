@@ -60,14 +60,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
      */
     public static final double SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE = 1.0;
 
-    // FIXME What is the value?
-    public static final double MAX_ACTIVE_POWER_MISMATCH = 1.0;
+    /** Default value of the maximum active power mismatch in MW **/
+    public static final double MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE = Math.pow(10, -2);
 
-    // FIXME What is the value?
-    public static final double MAX_REACTIVE_POWER_MISMATCH = 1.0;
+    /** Default value of the maximum reactive power mismatch in Mvar **/
+    public static final double MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE = Math.pow(10, -2);
 
-    // FIXME What is the value?
-    public static final double MAX_VOLTAGE_MISMATCH = 1.0;
+    /** Default value of the maximum voltage mismatch in kV **/
+    public static final double MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE = Math.pow(10, -2);
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
@@ -213,11 +213,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double plausibleActivePowerLimit = LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
-    private double maxActivePowerMismatch = MAX_ACTIVE_POWER_MISMATCH;
+    //FIXME NewtonRaphsonStoppingCriteriaType is also a new parameter here, for those 4 new parameters you have to create getters / setters like for all the other parameters to integrate them properly into OpenLoadFlowParameters.
+    private double maxActivePowerMismatch = MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE;
 
-    private double maxReactivePowerMismatch = MAX_REACTIVE_POWER_MISMATCH;
+    private double maxReactivePowerMismatch = MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE;
 
-    private double maxVoltageMismatch = MAX_VOLTAGE_MISMATCH;
+    private double maxVoltageMismatch = MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE;
 
     private double slackBusPMaxMismatch = SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE;
 
