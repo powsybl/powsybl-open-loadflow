@@ -286,12 +286,10 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         this.voltageControl = voltageControl;
     }
 
-    @Override
     public Optional<Double> getShuntVoltageControlTargetDeadband() {
         return Optional.ofNullable(shuntVoltageControlTargetDeadband);
     }
 
-    @Override
     public void setShuntVoltageControlTargetDeadband(Double shuntVoltageControlTargetDeadband) {
         this.shuntVoltageControlTargetDeadband = shuntVoltageControlTargetDeadband;
     }

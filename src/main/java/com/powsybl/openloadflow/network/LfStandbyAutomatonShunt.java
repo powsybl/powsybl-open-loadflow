@@ -103,16 +103,6 @@ public final class LfStandbyAutomatonShunt extends AbstractElement implements Lf
     }
 
     @Override
-    public Optional<Double> getShuntVoltageControlTargetDeadband() {
-        throw createUnsupportedForStandbyAutomatonShuntException();
-    }
-
-    @Override
-    public void setShuntVoltageControlTargetDeadband(Double shuntVoltageControlTargetDeadband) {
-        throw createUnsupportedForStandbyAutomatonShuntException();
-    }
-
-    @Override
     public double dispatchB() {
         throw createUnsupportedForStandbyAutomatonShuntException();
     }

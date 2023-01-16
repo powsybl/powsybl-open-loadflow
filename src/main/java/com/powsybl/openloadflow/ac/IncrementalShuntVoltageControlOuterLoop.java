@@ -116,11 +116,12 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
             for (LfShunt controllerShunt : sortedControllerShunts) {
                 double sensitivity = ((EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV())
                         .calculateSensi(sensitivities, controllerShuntIndex[controllerShunt.getNum()]);
-                double targetDeadband = controllerShunt.getShuntVoltageControlTargetDeadband().orElse(null);
                 // FIX ME: Not safe casting
+                LfShuntImpl controllerShuntImpl = (LfShuntImpl) controllerShunt;
+                double targetDeadband = controllerShuntImpl.getShuntVoltageControlTargetDeadband().orElse(null);
                 // Not very efficient because sorting is performed at each iteration. However, in practical should not be an issue.
                 // Considering storing the controlers sorted already as same order is used everywhere else
-                for (LfShuntImpl.Controller controller : ((LfShuntImpl) controllerShunt).getControllers().stream().sorted(Comparator.comparing(LfShuntImpl.Controller::getBMagnitude)).collect(Collectors.toList())) {
+                for (LfShuntImpl.Controller controller : controllerShuntImpl.getControllers().stream().sorted(Comparator.comparing(LfShuntImpl.Controller::getBMagnitude)).collect(Collectors.toList())) {
                     var controllerContext = contextData.getControllersContexts().get(controller.getId());
                     if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
                         double previousB = controller.getB();
@@ -138,9 +139,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                     }
                 }
                 if (hasChanged) {
-                    // FIX ME: Not safe casting either
-                    ((LfShuntImpl) controllerShunt).updateB();
-                    ((LfShuntImpl) controllerShunt).updateG();
+                    controllerShuntImpl.updateB();
+                    controllerShuntImpl.updateG();
                     for (LfNetworkListener listener : controllerShunt.getNetwork().getListeners()) {
                         listener.onShuntTargetBChange(controllerShunt, controllerShunt.getB());
                     }

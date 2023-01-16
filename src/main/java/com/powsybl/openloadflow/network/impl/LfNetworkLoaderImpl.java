@@ -718,7 +718,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 if (deadbandValue > 0) {
-                    controllerShunt.setShuntVoltageControlTargetDeadband(deadbandValue);
+                    // FIX ME: not safe casting
+                    LfShuntImpl controllerShuntImpl = (LfShuntImpl) controllerShunt;
+                    controllerShuntImpl.setShuntVoltageControlTargetDeadband(deadbandValue);
                 }
                 controlledBus.setShuntVoltageControl(voltageControl);
             }
@@ -728,7 +730,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 if (deadbandValue > 0) {
-                    controllerShunt.setShuntVoltageControlTargetDeadband(deadbandValue);
+                    // FIX ME: not safe casting
+                    LfShuntImpl controllerShuntImpl = (LfShuntImpl) controllerShunt;
+                    controllerShuntImpl.setShuntVoltageControlTargetDeadband(deadbandValue);
                 }
                 controlledBus.setShuntVoltageControl(voltageControl);
             });
