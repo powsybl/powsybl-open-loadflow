@@ -10,6 +10,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
@@ -84,59 +85,85 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return busIndex;
     }
 
-    private static DenseMatrix calculateSensitivityValues(List<LfBus> controllerBuses, Map<Integer, Integer> busNumToSensiColumn,
-                                                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                          JacobianMatrix<AcVariableType, AcEquationType> j) {
-        DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBuses.size());
-        for (LfBus controlledBus : controllerBuses) {
-            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                    .ifPresent(equation -> rhs.set(equation.getColumn(), busNumToSensiColumn.get(controlledBus.getNum()), 1d));
+    static class SensitivityContext {
+
+        private final Map<Integer, Integer> busNumToSensiColumn;
+
+        private final DenseMatrix sensitivities;
+
+        SensitivityContext(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities) {
+            this.busNumToSensiColumn = Objects.requireNonNull(busNumToSensiColumn);
+            this.sensitivities = Objects.requireNonNull(sensitivities);
         }
-        j.solveTransposed(rhs);
-        return rhs;
-    }
 
-    @SuppressWarnings("unchecked")
-    private static EquationTerm<AcVariableType, AcEquationType> getCalculatedV(LfBus pilotBus) {
-        return (EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV(); // this is safe
-    }
+        static SensitivityContext create(List<LfBus> buses, AcLoadFlowContext context) {
+            var busNumToSensiColumn = buildBusIndex(buses);
 
-    @SuppressWarnings("unchecked")
-    private static EquationTerm<AcEquationType, AcEquationType> getQ1(LfBranch branch) {
-        return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ1();
-    }
+            DenseMatrix sensitivities = calculateSensitivityValues(buses, busNumToSensiColumn, context.getEquationSystem(),
+                                                                   context.getJacobianMatrix());
 
-    @SuppressWarnings("unchecked")
-    private static EquationTerm<AcEquationType, AcEquationType> getQ2(LfBranch branch) {
-        return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
-    }
+            return new SensitivityContext(busNumToSensiColumn, sensitivities);
+        }
 
-    private static double calculateSensiVq(DenseMatrix sensitivities, LfBus controllerBus, int controlledBusSensiColumn) {
-        double sq = 0;
-        for (LfBranch branch : controllerBus.getBranches()) {
-            if (branch.getBus1() == controllerBus) {
-                sq += getQ1(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
-            } else if (branch.getBus2() == controllerBus) {
-                sq += getQ2(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
+        private static DenseMatrix calculateSensitivityValues(List<LfBus> controllerBuses, Map<Integer, Integer> busNumToSensiColumn,
+                                                              EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                              JacobianMatrix<AcVariableType, AcEquationType> j) {
+            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBuses.size());
+            for (LfBus controlledBus : controllerBuses) {
+                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
+                        .ifPresent(equation -> rhs.set(equation.getColumn(), busNumToSensiColumn.get(controlledBus.getNum()), 1d));
             }
-            // disconnected at the other side, we can skip
+            j.solveTransposed(rhs);
+            return rhs;
         }
-        // FIXME: take into account shunts?
-        return sq;
-    }
 
-    /**
-     * Calculate pilot bus voltage to controlled bus voltage sensitivity.
-     */
-    private static double[] calculateSensiVv(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
-                                             List<LfBus> controlledBuses, LfBus pilotBus) {
-        double[] sensiVv = new double[controlledBuses.size()];
-        for (int i = 0; i < controlledBuses.size(); i++) {
-            LfBus controlledBus = controlledBuses.get(i);
-            int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
-            sensiVv[i] = getCalculatedV(pilotBus).calculateSensi(sensitivities, controlledBusSensiColumn);
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<AcVariableType, AcEquationType> getCalculatedV(LfBus pilotBus) {
+            return (EquationTerm<AcVariableType, AcEquationType>) pilotBus.getCalculatedV(); // this is safe
         }
-        return sensiVv;
+
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<AcEquationType, AcEquationType> getQ1(LfBranch branch) {
+            return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ1();
+        }
+
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<AcEquationType, AcEquationType> getQ2(LfBranch branch) {
+            return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
+        }
+
+        /**
+         * Calculate controlled bus voltage to controller bus reactive power injection sensitivity.
+         */
+        double calculateSensiVq(LfBus controllerBus) {
+            LfBus controlledBus = controllerBus.getVoltageControl().orElseThrow().getControlledBus();
+            int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
+
+            double sq = 0;
+            for (LfBranch branch : controllerBus.getBranches()) {
+                if (branch.getBus1() == controllerBus) {
+                    sq += getQ1(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
+                } else if (branch.getBus2() == controllerBus) {
+                    sq += getQ2(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
+                }
+                // disconnected at the other side, we can skip
+            }
+            // FIXME: take into account shunts?
+            return sq;
+        }
+
+        /**
+         * Calculate controlled buses voltage to pilot bus voltage sensitivities.
+         */
+        double[] calculateSensiVv(List<LfBus> controlledBuses, LfBus pilotBus) {
+            double[] sensiVv = new double[controlledBuses.size()];
+            for (int i = 0; i < controlledBuses.size(); i++) {
+                LfBus controlledBus = controlledBuses.get(i);
+                int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
+                sensiVv[i] = getCalculatedV(pilotBus).calculateSensi(sensitivities, controlledBusSensiColumn);
+            }
+            return sensiVv;
+        }
     }
 
     static class SensiVq {
@@ -163,8 +190,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
      *  - controlled bus voltage to controller bus reactive power injection sensitivity.
      *  - pilot bus voltage to controller bus reactive power injection sensitivity.
      */
-    private static SensiVq calculateSensiVq(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
-                                            List<LfBus> controlledBuses, double[] svi) {
+    private static SensiVq calculateSensiVq(SensitivityContext sensitivityContext, List<LfBus> controlledBuses, double[] svi) {
         // get list of all controllers of the zone
         List<LfBus> allControllerBuses = controlledBuses.stream()
                 .flatMap(controlledBus -> getControllerBuses(controlledBus).stream())
@@ -177,9 +203,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             LfBus controlledBus = controlledBuses.get(i);
             // we need to filter very small sensitivity to avoid large target v shift
             if (Math.abs(svi[i]) > SENSI_V_EPS) {
-                int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
                 for (LfBus controllerBus : getControllerBuses(controlledBus)) {
-                    double sq = calculateSensiVq(sensitivities, controllerBus, controlledBusSensiColumn);
+                    double sq = sensitivityContext.calculateSensiVq(controllerBus);
                     int j = controllerBusIndex.get(controllerBus.getNum());
                     if (sq != 0) {
                         sqi[j] = sq;
@@ -195,7 +220,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     /**
      * <pre>
      * pilot_dv = sum_i(svi * dvi) where i are all controlled buses
-     * dvi: controlled bus i (primary voltage control) voltage variation, needed to each pilot bus target voltage
+     * dvi: controlled bus i (primary voltage control) voltage variation, needed to reach pilot bus target voltage
      * svi: the sensitivity of controlled bus i voltage to pilot bus
      *
      * in the following equations i are controller buses and all svi and dvi of controlled buses are used for their
@@ -216,14 +241,14 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
      * dvi = dq / sqi
      * </pre>
      */
-    private static void adjustPrimaryVoltageControlTargets(String zoneName, Map<Integer, Integer> busNumToSensiColumn,
-                                                           DenseMatrix sensitivities, List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
+    private static void adjustPrimaryVoltageControlTargets(String zoneName, SensitivityContext sensitivityContext,
+                                                           List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
         // calculate sensitivity of controlled buses voltage to pilot bus voltage
-        double[] svi = calculateSensiVv(busNumToSensiColumn, sensitivities, controlledBuses, pilotBus);
+        double[] svi = sensitivityContext.calculateSensiVv(controlledBuses, pilotBus);
 
         // calculate sensitivity of controlled buses voltage to controller buses reactive power injection
         // and sensitivity of controller bus reactive power injection to pilot bus voltage
-        var sensiVq = calculateSensiVq(busNumToSensiColumn, sensitivities, controlledBuses, svi);
+        var sensiVq = calculateSensiVq(sensitivityContext, controlledBuses, svi);
 
         // supposing we want all controllers to shift to same amount of reactive power
         double dq = pilotDv / Arrays.stream(sensiVq.si).sum();
@@ -261,12 +286,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         List<LfBus> allBusList = new ArrayList<>(allBusSet);
 
-        var busNumToSensiColumn = buildBusIndex(allBusList);
-
-        // calculate primary voltage control target voltage sensitivity to pilot bus voltage
-        DenseMatrix sensitivities = calculateSensitivityValues(allBusList, busNumToSensiColumn,
-                                                               context.getAcLoadFlowContext().getEquationSystem(),
-                                                               context.getAcLoadFlowContext().getJacobianMatrix());
+        SensitivityContext sensitivityContext = SensitivityContext.create(allBusList, context.getAcLoadFlowContext());
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
@@ -280,8 +300,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                 LOGGER.debug("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
                         secondaryVoltageControl.getZoneName(), pilotBus.getV() * pilotBus.getNominalV(),
                         secondaryVoltageControl.getTargetValue() * pilotBus.getNominalV());
-                adjustPrimaryVoltageControlTargets(secondaryVoltageControl.getZoneName(), busNumToSensiColumn, sensitivities,
-                                                   controlledBuses, pilotBus, svcTargetDv);
+                adjustPrimaryVoltageControlTargets(secondaryVoltageControl.getZoneName(), sensitivityContext, controlledBuses,
+                                                   pilotBus, svcTargetDv);
                 adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
                 status = OuterLoopStatus.UNSTABLE;
             }
