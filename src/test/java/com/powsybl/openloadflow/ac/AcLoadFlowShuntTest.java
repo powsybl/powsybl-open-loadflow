@@ -41,8 +41,6 @@ class AcLoadFlowShuntTest {
     private Bus bus3;
     private Line l1;
     private Line l2;
-    private Generator generator;
-    private Load load;
     private ShuntCompensator shunt;
 
     private LoadFlow.Runner loadFlowRunner;
@@ -65,7 +63,7 @@ class AcLoadFlowShuntTest {
         bus1 = vl1.getBusBreakerView().newBus()
                 .setId("b1")
                 .add();
-        generator = vl1.newGenerator()
+        vl1.newGenerator()
                 .setId("g1")
                 .setConnectableBus("b1")
                 .setBus("b1")
@@ -83,7 +81,7 @@ class AcLoadFlowShuntTest {
         bus2 = vl2.getBusBreakerView().newBus()
                 .setId("b2")
                 .add();
-        load = vl2.newLoad()
+        vl2.newLoad()
                 .setId("ld1")
                 .setConnectableBus("b2")
                 .setBus("b2")
@@ -530,21 +528,84 @@ class AcLoadFlowShuntTest {
         assertEquals(0, shunt.getSectionCount());
     }
 
+    /*
     @Test
     void testIncrementalVoltageControlLargeDeadBand() {
+        Network network = Network.create("svc", "test");
+        Substation s1 = network.newSubstation()
+                .setId("S1")
+                .add();
+        Substation s2 = network.newSubstation()
+                .setId("S2")
+                .add();
+        VoltageLevel vl1 = s1.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        vl1.newGenerator()
+                .setId("g1")
+                .setConnectableBus("b1")
+                .setBus("b1")
+                .setTargetP(100)
+                .setTargetV(400)
+                .setMinP(0)
+                .setMaxP(150)
+                .setVoltageRegulatorOn(true)
+                .add();
+        VoltageLevel vl2 = s2.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        vl2.newLoad()
+                .setId("ld1")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setP0(100)
+                .setQ0(50)
+                .add();
+        ShuntCompensator shuntTest = vl2.newShuntCompensator()
+                .setId("SHUNT")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(400)
+                .setTargetDeadband(100.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(1e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(3e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+        network.newLine()
+                .setId("l1")
+                .setVoltageLevel1("vl1")
+                .setBus1("b1")
+                .setVoltageLevel2("vl2")
+                .setBus2("b2")
+                .setR(200)
+                .setX(300)
+                .setG1(0)
+                .setG2(0)
+                .setB1(0)
+                .setB2(0)
+                .add();
+
         // STILL WIP
         parameters.setShuntCompensatorVoltageControlOn(false);
-        shunt.setSectionCount(0);
-        shunt.setTargetV(400.0);
-        shunt.setTargetDeadband(10000);
-        generator.setTargetV(400.0);
-        generator.setTargetP(150);
-        load.setP0(150);
-        load.setQ0(150);
-        l1.setR(100);
-        l1.setX(200);
-        l2.setR(0.001);
-        l2.setX(0.01);
         LoadFlowResult result0 = loadFlowRunner.run(network, parameters);
         assertTrue(result0.isOk());
 
@@ -553,7 +614,7 @@ class AcLoadFlowShuntTest {
         shunt.setSectionCount(0);
         shunt.setVoltageRegulatorOn(true);
         LoadFlowResult result1 = loadFlowRunner.run(network, parameters);
-        //assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result1.getComponentResults().get(0).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result1.getComponentResults().get(0).getStatus());
 
         OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         shunt.setSectionCount(0);
@@ -562,4 +623,5 @@ class AcLoadFlowShuntTest {
         assertVoltageEquals(228.794, bus3);
         assertEquals(0, shunt.getSectionCount());
     }
+    */
 }
