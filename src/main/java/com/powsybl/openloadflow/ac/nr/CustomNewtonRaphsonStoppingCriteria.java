@@ -17,24 +17,14 @@ import com.powsybl.openloadflow.equations.Vectors;
  */
 public class CustomNewtonRaphsonStoppingCriteria implements NewtonRaphsonStoppingCriteria {
 
-    /**
-     * Convergence epsilon per equation: 10^-4 in p.u => 10^-2 in Kv, Mw or MVar
-     */
-    //FIXME what to do with this value?
-    public static final double DEFAULT_CONV_EPS_PER_EQ = Math.pow(10, -4);
-
-    //FIXME what to do with this value?
-    private final double convEpsPerEq;
-
     private final double maxActivePowerMismatch;
 
     private final double maxReactivePowerMismatch;
 
     private final double maxVoltageMismatch;
 
-    public CustomNewtonRaphsonStoppingCriteria(double convEpsPerEq, double maxActivePowerMismatch,
+    public CustomNewtonRaphsonStoppingCriteria(double maxActivePowerMismatch,
                                                double maxReactivePowerMismatch, double maxVoltageMismatch) {
-        this.convEpsPerEq = convEpsPerEq;
         this.maxActivePowerMismatch = maxActivePowerMismatch;
         this.maxReactivePowerMismatch = maxReactivePowerMismatch;
         this.maxVoltageMismatch = maxVoltageMismatch;

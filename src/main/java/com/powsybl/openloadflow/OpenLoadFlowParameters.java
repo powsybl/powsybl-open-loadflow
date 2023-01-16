@@ -854,8 +854,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case UNIFORM_CRITERIA:
                 return new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
             case PER_EQUATION_TYPE_CRITERIA:
-                return new CustomNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq(),
-                        parametersExt.maxActivePowerMismatch, parametersExt.maxReactivePowerMismatch, parametersExt.maxVoltageMismatch);
+                return new CustomNewtonRaphsonStoppingCriteria(parametersExt.maxActivePowerMismatch,
+                        parametersExt.maxReactivePowerMismatch, parametersExt.maxVoltageMismatch);
             default:
                 throw new PowsyblException("Unknown Newton Raphson stopping criteria type: " + typeCriteria);
         }
