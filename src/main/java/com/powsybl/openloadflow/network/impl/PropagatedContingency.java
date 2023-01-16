@@ -165,6 +165,7 @@ public class PropagatedContingency {
                     break;
 
                 case GENERATOR:
+                case STATIC_VAR_COMPENSATOR:
                     generatorIdsToLose.add(connectable.getId());
                     break;
 

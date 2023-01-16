@@ -2385,4 +2385,18 @@ class OpenSecurityAnalysisTest {
         assertEquals(866.025, getPostContingencyResult(result, "BBS1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(Double.NaN, getPostContingencyResult(result, "BBS1").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
     }
+
+    @Test
+    void testBusBarSectionContingencyIssue() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "VL1_0"); // issue with slack bus to be disabled.
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        List<Contingency> contingencies = Stream.of("BBS2")
+                .map(id -> new Contingency(id, new BusbarSectionContingency(id)))
+                .collect(Collectors.toList());
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+    }
 }
