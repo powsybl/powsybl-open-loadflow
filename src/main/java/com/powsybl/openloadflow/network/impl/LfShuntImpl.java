@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class LfShuntImpl extends AbstractElement implements LfShunt {
+public class LfShuntImpl extends AbstractLfShunt {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
 

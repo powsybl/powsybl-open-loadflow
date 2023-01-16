@@ -16,7 +16,7 @@ import java.util.Optional;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public final class LfStandbyAutomatonShunt extends AbstractElement implements LfShunt {
+public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     private final LfStaticVarCompensator svc;
 

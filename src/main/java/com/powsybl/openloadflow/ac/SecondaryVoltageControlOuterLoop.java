@@ -17,11 +17,9 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.mutable.MutableDouble;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,6 +130,11 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             return (EquationTerm<AcEquationType, AcEquationType>) branch.getQ2();
         }
 
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<AcEquationType, AcEquationType> getQ(LfShunt shunt) {
+            return (EquationTerm<AcEquationType, AcEquationType>) shunt.getQ();
+        }
+
         /**
          * Calculate controlled bus voltage to controller bus reactive power injection sensitivity.
          */
@@ -139,17 +142,21 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             LfBus controlledBus = controllerBus.getVoltageControl().orElseThrow().getControlledBus();
             int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
 
-            double sq = 0;
+            MutableDouble sq = new MutableDouble();
             for (LfBranch branch : controllerBus.getBranches()) {
                 if (branch.getBus1() == controllerBus) {
-                    sq += getQ1(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
+                    sq.add(getQ1(branch).calculateSensi(sensitivities, controlledBusSensiColumn));
                 } else if (branch.getBus2() == controllerBus) {
-                    sq += getQ2(branch).calculateSensi(sensitivities, controlledBusSensiColumn);
+                    sq.add(getQ2(branch).calculateSensi(sensitivities, controlledBusSensiColumn));
                 }
                 // disconnected at the other side, we can skip
             }
-            // FIXME: take into account shunts?
-            return sq;
+
+            controllerBus.getShunt().ifPresent(shunt -> sq.add(getQ(shunt).calculateSensi(sensitivities, controlledBusSensiColumn)));
+            controllerBus.getControllerShunt().ifPresent(shunt -> sq.add(getQ(shunt).calculateSensi(sensitivities, controlledBusSensiColumn)));
+            controllerBus.getSvcShunt().ifPresent(shunt -> sq.add(getQ(shunt).calculateSensi(sensitivities, controlledBusSensiColumn)));
+
+            return sq.getValue();
         }
 
         /**

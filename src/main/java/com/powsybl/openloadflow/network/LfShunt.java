@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.Optional;
 
 /**
@@ -36,4 +38,8 @@ public interface LfShunt extends LfElement {
     Optional<ShuntVoltageControl> getVoltageControl();
 
     void setVoltageControl(ShuntVoltageControl voltageControl);
+
+    Evaluable getQ();
+
+    void setQ(Evaluable evaluable);
 }
