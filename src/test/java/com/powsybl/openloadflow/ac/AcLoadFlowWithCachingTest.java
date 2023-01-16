@@ -210,4 +210,30 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(3.912, l1.getTerminal1());
         assertActivePowerEquals(603.769, l2.getTerminal1());
     }
+
+    @Test
+    void testSwitchClose() {
+        var network = NodeBreakerNetworkFactory.create();
+        var l1 = network.getLine("L1");
+        var l2 = network.getLine("L2");
+        for (Switch sw : network.getSwitches()) {
+            sw.setRetained(sw.getId().equals("C"));
+        }
+        var c = network.getSwitch("C");
+        c.setOpen(true);
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(3.912, l1.getTerminal1());
+        assertActivePowerEquals(603.769, l2.getTerminal1());
+
+        network.getSwitch("C").setOpen(false);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(301.884, l1.getTerminal1());
+        assertActivePowerEquals(301.884, l2.getTerminal1());
+    }
 }

@@ -134,13 +134,13 @@ public enum NetworkCache {
             return found;
         }
 
-        private boolean onSwitchOpen(String switchId) {
+        private boolean onSwitchOpen(String switchId, boolean open) {
             boolean found = false;
             for (AcLoadFlowContext context : contexts) {
                 LfNetwork lfNetwork = context.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
-                    lfBranch.setDisabled(true);
+                    lfBranch.setDisabled(open);
                     context.setNetworkUpdated(true);
                     found = true;
                 }
@@ -179,7 +179,7 @@ public enum NetworkCache {
                         }
                     } else if (identifiable.getType() == IdentifiableType.SWITCH
                             && attribute.equals("open")) {
-                        if (onSwitchOpen(identifiable.getId())) {
+                        if (onSwitchOpen(identifiable.getId(), (boolean) newValue)) {
                             done = true;
                         }
                     }
