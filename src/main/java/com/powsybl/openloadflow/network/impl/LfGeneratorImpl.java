@@ -150,20 +150,4 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
     }
-
-    @Override
-    public void setRemoteTargetQ(double targetQ) {
-        setReactivePowerControl(getGenerator().getRegulatingTerminal(), targetQ);
-    }
-
-    @Override
-    public void setTargetV(double targetV) {
-        setVoltageControl(targetV, getGenerator().getTerminal(), getGenerator().getRegulatingTerminal(), parameters, report);
-    }
-
-    @Override
-    public void setVoltageRegulation(boolean voltageRegulation) {
-        getGenerator().setVoltageRegulatorOn(voltageRegulation);
-    }
-
 }

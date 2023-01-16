@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -347,13 +348,17 @@ public final class LfAction {
             });
 
             generatorUpdates.isVoltageRegulation().ifPresent(voltageRegulationOn ->
-                            generatorUpdates.getGenerator().setVoltageRegulation(voltageRegulationOn));
+                            generatorUpdates.getGenerator().getControlledBus().setVoltageControlEnabled(voltageRegulationOn));
 
             generatorUpdates.getTargetV().ifPresent(value -> {
-                generatorUpdates.getGenerator().setTargetV(value);
+                generatorUpdates.getGenerator().getControlledBus().getVoltageControl().ifPresentOrElse(
+                    voltageControl -> voltageControl.setTargetValue(value),
+                    () -> {
+                        throw new PowsyblException("GeneratorAction: No controlled bus for generator " + generatorUpdates.getGenerator().getId());
+                    });
             });
             generatorUpdates.getTargetQ().ifPresent(value -> {
-                generatorUpdates.getGenerator().setRemoteTargetQ(value);
+                generatorUpdates.getGenerator().getBus().setGenerationTargetQ(value);
             });
         }
     }
