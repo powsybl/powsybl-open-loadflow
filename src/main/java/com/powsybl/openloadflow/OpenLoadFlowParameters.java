@@ -851,9 +851,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private static NewtonRaphsonStoppingCriteria generateNewtonRaphsonStoppingCriteria(OpenLoadFlowParameters parametersExt,
                                                                                        NewtonRaphsonStoppingCriteriaType typeCriteria) {
         switch (typeCriteria) {
-            case DEFAULT_CRITERIA:
+            case UNIFORM_CRITERIA:
                 return new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
-            case CUSTOM_CRITERIA:
+            case PER_EQUATION_TYPE_CRITERIA:
                 return new CustomNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq(),
                         parametersExt.maxActivePowerMismatch, parametersExt.maxReactivePowerMismatch, parametersExt.maxVoltageMismatch);
             default:
@@ -864,7 +864,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
-        return createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, breakers, forceA1Var, NewtonRaphsonStoppingCriteriaType.DEFAULT_CRITERIA);
+        return createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, breakers, forceA1Var, NewtonRaphsonStoppingCriteriaType.UNIFORM_CRITERIA);
     }
 
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

@@ -7,6 +7,6 @@
 package com.powsybl.openloadflow.ac.nr;
 
 public enum NewtonRaphsonStoppingCriteriaType {
-    DEFAULT_CRITERIA,
-    CUSTOM_CRITERIA
+    UNIFORM_CRITERIA,
+    PER_EQUATION_TYPE_CRITERIA
 }
