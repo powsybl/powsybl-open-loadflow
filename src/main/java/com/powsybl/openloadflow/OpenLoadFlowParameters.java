@@ -696,6 +696,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", loadPowerFactorConstant=" + loadPowerFactorConstant +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
                 ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
+                ", maxActivePowerMismatch=" + maxActivePowerMismatch +
+                ", maxReactivePowerMismatch=" + maxReactivePowerMismatch +
+                ", maxVoltageMismatch=" + maxVoltageMismatch +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
                 ", maxIteration=" + maxIteration +
