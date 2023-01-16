@@ -213,7 +213,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double plausibleActivePowerLimit = LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
 
-    //FIXME NewtonRaphsonStoppingCriteriaType is also a new parameter here, for those 4 new parameters you have to create getters / setters like for all the other parameters to integrate them properly into OpenLoadFlowParameters.
     private double maxActivePowerMismatch = MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE;
 
     private double maxReactivePowerMismatch = MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE;
@@ -388,6 +387,33 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setNewtonRaphsonConvEpsPerEq(double newtonRaphsonConvEpsPerEq) {
         this.newtonRaphsonConvEpsPerEq = newtonRaphsonConvEpsPerEq;
+        return this;
+    }
+
+    public double getMaxActivePowerMismatch() {
+        return maxActivePowerMismatch;
+    }
+
+    public OpenLoadFlowParameters setMaxActivePowerMismatch(double maxActivePowerMismatch) {
+        this.maxActivePowerMismatch = maxActivePowerMismatch;
+        return this;
+    }
+
+    public double getMaxReactivePowerMismatch() {
+        return maxReactivePowerMismatch;
+    }
+
+    public OpenLoadFlowParameters setMaxReactivePowerMismatch(double maxReactivePowerMismatch) {
+        this.maxReactivePowerMismatch = maxReactivePowerMismatch;
+        return this;
+    }
+
+    public double getMaxVoltageMismatch() {
+        return maxVoltageMismatch;
+    }
+
+    public OpenLoadFlowParameters setMaxVoltageMismatch(double maxVoltageMismatch) {
+        this.maxVoltageMismatch = maxVoltageMismatch;
         return this;
     }
 
@@ -854,8 +880,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case UNIFORM_CRITERIA:
                 return new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
             case PER_EQUATION_TYPE_CRITERIA:
-                return new CustomNewtonRaphsonStoppingCriteria(parametersExt.maxActivePowerMismatch,
-                        parametersExt.maxReactivePowerMismatch, parametersExt.maxVoltageMismatch);
+                return new CustomNewtonRaphsonStoppingCriteria(parametersExt.getMaxActivePowerMismatch(),
+                        parametersExt.getMaxReactivePowerMismatch(), parametersExt.getMaxVoltageMismatch());
             default:
                 throw new PowsyblException("Unknown Newton Raphson stopping criteria type: " + typeCriteria);
         }
