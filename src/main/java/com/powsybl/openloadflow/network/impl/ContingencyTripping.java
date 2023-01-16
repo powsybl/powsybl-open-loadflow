@@ -81,7 +81,8 @@ public class ContingencyTripping {
             // To have the minimal tripping ("no propagation") with a busbar section we still need to traverse the
             // voltage level starting from that busbar section, stopping at first switch encountered (which will be
             // marked as retained afterwards), in order to have the smallest lost bus in breaker view
-            // Note that neighbourTerminals is not filled up, as we don't want to propagate to neighbouring voltage levels
+            // Note that neighbourTerminals is not filled up: we don't want to propagate to neighbouring voltage levels as
+            // this is a minimal tripping ("no propagation")
             (nodeBefore, sw, nodeAfter) -> {
                 if (sw != null) {
                     if (!sw.isOpen()) {
