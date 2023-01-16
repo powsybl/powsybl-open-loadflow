@@ -164,7 +164,7 @@ public final class Networks {
                 }
             }
 
-            return new LfNetworkList(lfNetworks, new LfNetworkList.VariantCleaner(network, workingVariantId, tmpVariantId));
+            return new LfNetworkList(lfNetworks, new LfNetworkList.DefaultVariantCleaner(network, workingVariantId, tmpVariantId));
         }
     }
 

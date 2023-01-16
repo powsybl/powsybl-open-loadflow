@@ -8,6 +8,8 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
@@ -16,15 +18,18 @@ import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcLoadFlowFromCache {
+
+    private static final int MAX_PLAUSIBLE_SWITCHES_TO_RETAIN = 10;
 
     private final Network network;
 
@@ -41,9 +46,31 @@ public class AcLoadFlowFromCache {
         this.reporter = Objects.requireNonNull(reporter);
     }
 
+    private void configureSwitches(Set<Switch> switchesToOpen, Set<Switch> switchesToClose) {
+        List<Switch> retainedSwitches = network.getSwitchStream()
+                .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER
+                        && sw.isRetained())
+                .collect(Collectors.toList());
+        // if number of switch to retain is small, we can consider that open ones could be closed during simulation
+        // and closed ones could be opened during simulation
+        if (retainedSwitches.size() < MAX_PLAUSIBLE_SWITCHES_TO_RETAIN) {
+            for (Switch sw : retainedSwitches) {
+                if (sw.isOpen()) {
+                    switchesToClose.add(sw);
+                } else {
+                    switchesToOpen.add(sw);
+                }
+            }
+            acParameters.getNetworkParameters().setBreakers(true);
+        }
+    }
+
     private List<AcLoadFlowContext> initContexts(NetworkCache.Entry entry) {
         List<AcLoadFlowContext> contexts;
-        try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), reporter)) {
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Switch> switchesToClose = new HashSet<>();
+        configureSwitches(switchesToOpen, switchesToClose);
+        try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), switchesToOpen, switchesToClose, reporter)) {
             contexts = lfNetworkList.getList()
                     .stream()
                     .map(n -> new AcLoadFlowContext(n, acParameters))

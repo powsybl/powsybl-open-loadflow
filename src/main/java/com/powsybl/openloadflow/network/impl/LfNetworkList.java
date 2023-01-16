@@ -18,22 +18,80 @@ import java.util.Optional;
  */
 public class LfNetworkList implements AutoCloseable {
 
-    public static class VariantCleaner {
+    public interface VariantCleaner {
 
-        private final Network network;
+        Network getNetwork();
 
-        private final String workingVariantId;
+        String getWorkingVariantId();
 
-        private final String tmpVariantId;
+        String getTmpVariantId();
 
-        public VariantCleaner(Network network, String workingVariantId, String tmpVariantId) {
+        void clean();
+    }
+
+    public abstract static class AbstractVariantCleaner implements VariantCleaner {
+
+        protected final Network network;
+
+        protected final String workingVariantId;
+
+        protected final String tmpVariantId;
+
+        protected AbstractVariantCleaner(Network network, String workingVariantId, String tmpVariantId) {
             this.network = Objects.requireNonNull(network);
-            this.workingVariantId = Objects.requireNonNull(workingVariantId);
-            this.tmpVariantId = Objects.requireNonNull(tmpVariantId);
+            this.workingVariantId = workingVariantId;
+            this.tmpVariantId = tmpVariantId;
         }
 
+        @Override
+        public Network getNetwork() {
+            return network;
+        }
+
+        @Override
+        public String getWorkingVariantId() {
+            return workingVariantId;
+        }
+
+        @Override
+        public String getTmpVariantId() {
+            return tmpVariantId;
+        }
+    }
+
+    public static class DefaultVariantCleaner extends AbstractVariantCleaner {
+
+        public DefaultVariantCleaner(Network network, String workingVariantId, String tmpVariantId) {
+            super(network, Objects.requireNonNull(workingVariantId), Objects.requireNonNull(tmpVariantId));
+        }
+
+        @Override
         public void clean() {
             network.getVariantManager().removeVariant(tmpVariantId);
+            network.getVariantManager().setWorkingVariant(workingVariantId);
+        }
+    }
+
+    public static class VariantRemover extends AbstractVariantCleaner {
+
+        public VariantRemover(Network network, String tmpVariantId) {
+            super(network, null, Objects.requireNonNull(tmpVariantId));
+        }
+
+        @Override
+        public void clean() {
+            network.getVariantManager().removeVariant(tmpVariantId);
+        }
+    }
+
+    public static class WorkingVariantReverter extends AbstractVariantCleaner {
+
+        public WorkingVariantReverter(Network network, String workingVariantId) {
+            super(network, Objects.requireNonNull(workingVariantId), null);
+        }
+
+        @Override
+        public void clean() {
             network.getVariantManager().setWorkingVariant(workingVariantId);
         }
     }
@@ -61,9 +119,13 @@ public class LfNetworkList implements AutoCloseable {
     }
 
     public VariantCleaner release() {
-        VariantCleaner variantCleanerToReturn = variantCleaner;
-        variantCleaner = null;
-        return variantCleanerToReturn;
+        if (variantCleaner != null) {
+            // only need to switch back to working variant but not to remove the variant
+            VariantRemover variantRemover = new VariantRemover(variantCleaner.getNetwork(), variantCleaner.getTmpVariantId());
+            variantCleaner = new WorkingVariantReverter(variantCleaner.getNetwork(), variantCleaner.getWorkingVariantId());
+            return variantRemover;
+        }
+        return null;
     }
 
     @Override
