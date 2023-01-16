@@ -92,4 +92,10 @@ public interface LfGenerator extends PropertyBag {
     ReactivePowerControl.ControlledSide getControlledBranchSide();
 
     double getRemoteTargetQ();
+
+    void setRemoteTargetQ(double targetQ);
+
+    void setTargetV(double targetV);
+
+    void setVoltageRegulation(boolean voltageRegulation);
 }

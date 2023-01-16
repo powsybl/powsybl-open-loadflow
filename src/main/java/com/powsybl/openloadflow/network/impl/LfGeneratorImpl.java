@@ -32,11 +32,18 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double participationFactor;
 
+    private LfNetworkParameters parameters;
+
+    private LfNetworkLoadingReport report;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP());
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
+
+        this.parameters = parameters;
+        this.report = report;
         // get participation factor and droop from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
@@ -143,4 +150,20 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
     }
+
+    @Override
+    public void setRemoteTargetQ(double targetQ) {
+        setReactivePowerControl(getGenerator().getRegulatingTerminal(), targetQ);
+    }
+
+    @Override
+    public void setTargetV(double targetV) {
+        setVoltageControl(targetV, getGenerator().getTerminal(), getGenerator().getRegulatingTerminal(), parameters, report);
+    }
+
+    @Override
+    public void setVoltageRegulation(boolean voltageRegulation) {
+        getGenerator().setVoltageRegulatorOn(voltageRegulation);
+    }
+
 }
