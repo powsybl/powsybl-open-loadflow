@@ -341,4 +341,10 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     public String toString() {
         return getId();
     }
+
+    public void setRemoteTargetQ(double targetQ) { }
+
+    public void setTargetV(double targetV) { }
+
+    public void setVoltageRegulation(boolean voltageRegulation) { }
 }
