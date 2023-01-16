@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -215,8 +216,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
      * dvi = dq / sqi
      * </pre>
      */
-    private static void adjustPrimaryVoltageControlTargets(Map<Integer, Integer> busNumToSensiColumn, DenseMatrix sensitivities,
-                                                           List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
+    private static void adjustPrimaryVoltageControlTargets(String zoneName, Map<Integer, Integer> busNumToSensiColumn,
+                                                           DenseMatrix sensitivities, List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
         // calculate sensitivity of controlled buses voltage to pilot bus voltage
         double[] svi = calculateSensiVv(busNumToSensiColumn, sensitivities, controlledBuses, pilotBus);
 
@@ -227,6 +228,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         // supposing we want all controllers to shift to same amount of reactive power
         double dq = pilotDv / Arrays.stream(sensiVq.si).sum();
 
+        LOGGER.trace("Control units of zone '{}' need to be adjusted of {} MW", zoneName, dq * PerUnit.SB);
+
         for (LfBus controlledBus : controlledBuses) {
             double pvcDv = 0;
             for (LfBus controllerBus : getControllerBuses(controlledBus)) {
@@ -234,7 +237,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             }
             var pvc = controlledBus.getVoltageControl().orElseThrow();
             double newPvcTargetV = pvc.getTargetValue() + pvcDv;
-            LOGGER.debug("Adjust primary voltage control target of bus {}: {} -> {}",
+            LOGGER.trace("Adjust primary voltage control target of bus '{}': {} -> {}",
                     controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
                     newPvcTargetV * controlledBus.getNominalV());
             pvc.setTargetValue(newPvcTargetV);
@@ -277,7 +280,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                 LOGGER.debug("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
                         secondaryVoltageControl.getZoneName(), pilotBus.getV() * pilotBus.getNominalV(),
                         secondaryVoltageControl.getTargetValue() * pilotBus.getNominalV());
-                adjustPrimaryVoltageControlTargets(busNumToSensiColumn, sensitivities, controlledBuses, pilotBus, svcTargetDv);
+                adjustPrimaryVoltageControlTargets(secondaryVoltageControl.getZoneName(), busNumToSensiColumn, sensitivities,
+                                                   controlledBuses, pilotBus, svcTargetDv);
                 adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
                 status = OuterLoopStatus.UNSTABLE;
             }
