@@ -34,10 +34,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
-import com.powsybl.security.action.Action;
-import com.powsybl.security.action.LineConnectionAction;
-import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.action.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;
@@ -2257,5 +2254,71 @@ class OpenSecurityAnalysisTest {
         // Compare results
         assertEquals(network.getLine("S_SO_2").getTerminal1().getP(), brRel.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getBranch("S_SO_2").getTerminal2().getP(), brRel.getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLoadAction() {
+        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        network.getLine("l24").newActivePowerLimits1().setPermanentLimit(150).add();
+
+        List<Contingency> contingencies = Stream.of("l2")
+                .map(id -> new Contingency(id, new LoadContingency(id)))
+                .collect(Collectors.toList());
+
+        List<Action> actions = List.of(new LoadActionBuilder().withId("action1").withLoadId("l4").withRelativeValue(false).withActivePowerValue(90).build(),
+                                       new LoadActionBuilder().withId("action2").withLoadId("l1").withRelativeValue(true).withActivePowerValue(50).build(),
+                                       new LoadActionBuilder().withId("action3").withLoadId("l2").withRelativeValue(true).withActivePowerValue(10).build());
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "l2", new AnyViolationCondition(), List.of("action1", "action2")),
+                                                            new OperatorStrategy("strategy2", "l2", new AnyViolationCondition(), List.of("action3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "l2");
+        assertEquals(200.0, postContingencyResult.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(57.142, postContingencyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-71.43, postContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(200.0, operatorStrategyResult.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-14.287, operatorStrategyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-71.43, operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        OperatorStrategyResult operatorStrategyResult2 = getOperatorStrategyResult(result, "strategy2");
+        assertEquals(200.0, operatorStrategyResult2.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(57.142, operatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-71.43, operatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        parameters.setDc(true);
+
+        SecurityAnalysisResult dcResult = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        PostContingencyResult dcPostContingencyResult = getPostContingencyResult(dcResult, "l2");
+        assertEquals(200.0, dcPostContingencyResult.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(57.142, dcPostContingencyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-71.428, dcPostContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        OperatorStrategyResult dcOperatorStrategyResult = getOperatorStrategyResult(dcResult, "strategy1");
+        assertEquals(200.0, dcOperatorStrategyResult.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-14.286, dcOperatorStrategyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-71.428, dcOperatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        OperatorStrategyResult dcOperatorStrategyResult2 = getOperatorStrategyResult(dcResult, "strategy2");
+        assertEquals(200.0, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(57.142, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-71.428, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 }
