@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.Vectors;
+import com.powsybl.openloadflow.util.PerUnit;
 
 /**
  * @author Alexandre Le Jean <alexandre.le-jean at artelys.com>
@@ -42,7 +43,7 @@ public class CustomNewtonRaphsonStoppingCriteria implements NewtonRaphsonStoppin
                 case BRANCH_TARGET_P:
                 case BUS_TARGET_P:
                 case DUMMY_TARGET_P:
-                    if (fx[idx] >= maxActivePowerMismatch) {
+                    if (Math.abs(fx[idx]) * PerUnit.SB >= maxActivePowerMismatch) {
                         return false;
                     }
                     break;
@@ -50,14 +51,17 @@ public class CustomNewtonRaphsonStoppingCriteria implements NewtonRaphsonStoppin
                 case BUS_TARGET_Q:
                 case DISTR_Q:
                 case DUMMY_TARGET_Q:
-                    if (fx[idx] >= maxReactivePowerMismatch) {
+                    if (Math.abs(fx[idx]) * PerUnit.SB >= maxReactivePowerMismatch) {
                         return false;
                     }
                     break;
                 case BUS_TARGET_V:
                 case BUS_TARGET_V_WITH_SLOPE:
                 case ZERO_V:
-                    if (fx[idx] >= maxVoltageMismatch) {
+                    if (Math.abs(fx[idx]) >= maxVoltageMismatch) {
+                    // FIXME, condition must be : Math.abs(fx[idx]) * PerUnit.zb(idx_nominal_voltage) >= maxVoltageMismatch
+                    //  We need the value NominalVoltage associated to the equation
+                    //  either get the value or the associated BUS to fetch the information
                         return false;
                     }
                     break;
