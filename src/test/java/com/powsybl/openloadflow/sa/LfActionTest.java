@@ -61,23 +61,23 @@ class LfActionTest extends AbstractConverterTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            LfAction lfAction = LfAction.create(switchAction, lfNetwork).orElseThrow();
+            LfAction lfAction = LfAction.create(switchAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
             String loadId = "LOAD";
             Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
             PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
                     Collections.singletonList(contingency), new HashSet<>(), false, false, false, true).get(0);
             propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
-                LfAction.apply(List.of(lfAction), lfNetwork, lfContingency);
+                LfAction.apply(List.of(lfAction), lfNetwork, lfContingency, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
                 assertTrue(lfNetwork.getBranchById("C").isDisabled());
                 assertEquals("C", lfAction.getDisabledBranch().getId());
                 assertNull(lfAction.getEnabledBranch());
             });
 
-            assertTrue(LfAction.create(new SwitchAction("switchAction", "S", true), lfNetwork).isEmpty());
-            assertTrue(LfAction.create(new LineConnectionAction("A line action", "x", true), lfNetwork).isEmpty());
-            assertTrue(LfAction.create(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3), lfNetwork).isEmpty());
+            assertTrue(LfAction.create(new SwitchAction("switchAction", "S", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
+            assertTrue(LfAction.create(new LineConnectionAction("A line action", "x", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
+            assertTrue(LfAction.create(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
             var lineAction = new LineConnectionAction("A line action", "L1", true, false);
-            assertEquals("Line connection action: only open line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork)).getMessage());
+            assertEquals("Line connection action: only open line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers())).getMessage());
         }
     }
 }
