@@ -7,29 +7,29 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfElement;
 
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractBranchEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractNamedEquationTerm<V, E> {
+public abstract class AbstractElementEquationTerm<T extends LfElement, V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractNamedEquationTerm<V, E> {
 
-    protected final LfBranch branch;
+    protected final T element;
 
-    protected AbstractBranchEquationTerm(LfBranch branch) {
-        super(!Objects.requireNonNull(branch).isDisabled());
-        this.branch = branch;
+    protected AbstractElementEquationTerm(T element) {
+        super(!Objects.requireNonNull(element).isDisabled());
+        this.element = element;
     }
 
     @Override
     public ElementType getElementType() {
-        return ElementType.BRANCH;
+        return element.getType();
     }
 
     @Override
     public int getElementNum() {
-        return branch.getNum();
+        return element.getNum();
     }
 }

@@ -10,7 +10,7 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.Extensions.AsymBus;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -64,7 +64,7 @@ public class NewtonRaphson {
                 .collect(Collectors.toList());
     }
 
-    private NewtonRaphsonStatus runIteration() {
+    private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling) {
         LOGGER.debug("Start iteration {}", iteration);
 
         try {
@@ -76,6 +76,8 @@ public class NewtonRaphson {
                 return NewtonRaphsonStatus.SOLVER_FAILED;
             }
             // f(x) now contains dx
+
+            svScaling.apply(equationVector.getArray(), equationSystem);
 
             // update x and f(x) will be automatically updated
             equationSystem.getStateVector().minus(equationVector.getArray());
@@ -95,6 +97,9 @@ public class NewtonRaphson {
 
             // test stopping criteria and log norm(fx)
             NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray());
+
+            testResult = svScaling.applyAfter(equationSystem.getStateVector(), equationVector, targetVector,
+                                              parameters.getStoppingCriteria(), testResult);
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
@@ -134,17 +139,7 @@ public class NewtonRaphson {
 
                 case DUMMY_P:
                 case DUMMY_Q:
-                //case BUS_V_HOMOPOLAR: // when balanced, homopolar and inverse sequence should be zero
-                case BUS_PHI_HOMOPOLAR:
-                //case BUS_V_INVERSE:
-                case BUS_PHI_INVERSE:
                     x[v.getRow()] = 0;
-                    break;
-
-                case BUS_V_HOMOPOLAR: // when balanced, homopolar and inverse sequence should be zero
-                case BUS_V_INVERSE:
-                    // TODO : check if this has an influence on init [J]
-                    x[v.getRow()] = 1;
                     break;
 
                 default:
@@ -161,33 +156,10 @@ public class NewtonRaphson {
             switch (v.getType()) {
                 case BUS_V:
                     network.getBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
-                    //System.out.println(">>>>>>>> UPDATE V(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI:
                     network.getBus(v.getElementNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
-                    break;
-
-                case BUS_V_HOMOPOLAR:
-                    AsymBus asymBusVh = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusVh.setvHomopolar(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
-                    //System.out.println(">>>>>>>> UPDATE V_H(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
-                    break;
-
-                case BUS_PHI_HOMOPOLAR:
-                    AsymBus asymBusPhiH = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusPhiH.setAngleHompolar(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
-                    break;
-
-                case BUS_V_INVERSE:
-                    AsymBus asymBusVi = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusVi.setvInverse(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
-                    //System.out.println(">>>>>>>> UPDATE V_I(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
-                    break;
-
-                case BUS_PHI_INVERSE:
-                    AsymBus asymBusPhiI = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusPhiI.setAngleInverse(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
                     break;
 
                 case SHUNT_B:
@@ -214,16 +186,21 @@ public class NewtonRaphson {
     }
 
     private boolean isStateUnrealistic() {
-        List<String> busesOutOfNormalVoltageRange = new ArrayList<>();
+        Map<String, Double> busesOutOfNormalVoltageRange = new LinkedHashMap<>();
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             if (v.getType() == AcVariableType.BUS_V && !network.getBus(v.getElementNum()).isFictitious()) {
                 double value = equationSystem.getStateVector().get(v.getRow());
                 if (value < parameters.getMinRealisticVoltage() || value > parameters.getMaxRealisticVoltage()) {
-                    busesOutOfNormalVoltageRange.add(network.getBus(v.getElementNum()).getId());
+                    busesOutOfNormalVoltageRange.put(network.getBus(v.getElementNum()).getId(), value);
                 }
             }
         }
         if (!busesOutOfNormalVoltageRange.isEmpty()) {
+            if (LOGGER.isTraceEnabled()) {
+                for (var e : busesOutOfNormalVoltageRange.entrySet()) {
+                    LOGGER.trace("Bus '{}' has an unrealistic voltage magnitude: {} pu", e.getKey(), e.getValue());
+                }
+            }
             LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
                     busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
         }
@@ -237,10 +214,15 @@ public class NewtonRaphson {
 
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
+        NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray());
+        LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
+
+        StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters.getStateVectorScalingMode(), initialTestResult);
+
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration();
+            NewtonRaphsonStatus newStatus = runIteration(svScaling);
             if (newStatus != null) {
                 status = newStatus;
                 break;
@@ -260,6 +242,7 @@ public class NewtonRaphson {
             updateNetwork();
         }
 
-        return new NewtonRaphsonResult(status, iteration, network.getSlackBus().getMismatchP());
+        double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
+        return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);
     }
 }

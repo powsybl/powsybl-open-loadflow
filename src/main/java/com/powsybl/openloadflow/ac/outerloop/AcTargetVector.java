@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
@@ -123,6 +122,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
             case DISTR_SHUNT_B:
             case DUMMY_TARGET_P:
             case DUMMY_TARGET_Q:
+            case BUS_DISTR_SLACK_P:
             case BUS_TARGET_P_INVERSE: // TODO : for now we do not support unbalanced injections at buses, therefore target is for now zero for inverse and homopolar sequences
             case BUS_TARGET_Q_INVERSE:
             case BUS_TARGET_P_HOMOPOLAR:
@@ -134,11 +134,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 throw new IllegalStateException("Unknown state variable type: " + equation.getType());
         }
 
-        for (EquationTerm<AcVariableType, AcEquationType> term : equation.getTerms()) {
-            if (term.isActive() && term.hasRhs()) {
-                targets[equation.getColumn()] -= term.rhs();
-            }
-        }
+        targets[equation.getColumn()] -= equation.rhs();
     }
 
     public AcTargetVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {

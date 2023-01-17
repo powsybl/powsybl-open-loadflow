@@ -21,8 +21,6 @@ import java.util.Optional;
  */
 public interface LfBranch extends LfElement {
 
-    double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
-
     enum BranchType {
         LINE,
         TRANSFO_2,
@@ -107,7 +105,7 @@ public interface LfBranch extends LfElement {
 
     Optional<DiscretePhaseControl> getDiscretePhaseControl();
 
-    void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc);
+    void updateState(LfNetworkStateUpdateParameters parameters);
 
     void updateFlows(double p1, double q1, double p2, double q2);
 
@@ -141,11 +139,11 @@ public interface LfBranch extends LfElement {
 
     double computeApparentPower2();
 
-    boolean isZeroImpedanceBranch(boolean dc);
+    boolean isZeroImpedance(boolean dc);
 
-    void setSpanningTreeEdge(boolean spanningTreeEdge);
+    void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge);
 
-    boolean isSpanningTreeEdge();
+    boolean isSpanningTreeEdge(boolean dc);
 
     Evaluable getA1();
 
@@ -176,5 +174,5 @@ public interface LfBranch extends LfElement {
 
     boolean isConnectedAtBothSides();
 
-    void setMinZ(boolean dc);
+    void setMinZ(double lowImpedanceThreshold);
 }
