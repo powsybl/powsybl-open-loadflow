@@ -1,11 +1,11 @@
 {
   "version" : "1.0",
   "load-flow-parameters" : {
-    "version" : "1.7",
+    "version" : "1.8",
     "voltageInitMode" : "UNIFORM_VALUES",
     "transformerVoltageControlOn" : false,
     "phaseShifterRegulationOn" : false,
-    "noGeneratorReactiveLimits" : false,
+    "useReactiveLimits" : true,
     "twtSplitShuntAdmittance" : false,
     "shuntCompensatorVoltageControlOn" : false,
     "readSlackBus" : true,
@@ -25,7 +25,6 @@
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,
         "plausibleActivePowerLimit" : 5000.0,
-        "addRatioToLinesWithDifferentNominalVoltageAtBothEnds" : true,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
         "maxIteration" : 30,
@@ -36,7 +35,13 @@
         "minPlausibleTargetVoltage" : 0.8,
         "maxPlausibleTargetVoltage" : 1.2,
         "minRealisticVoltage" : 0.5,
-        "maxRealisticVoltage" : 1.5
+        "maxRealisticVoltage" : 1.5,
+        "lowImpedanceThreshold" : 1.0E-8,
+        "reactiveRangeCheckMode" : "MAX",
+        "networkCacheEnabled" : false,
+        "svcVoltageMonitoring" : true,
+        "stateVectorScalingMode" : "NONE",
+        "maxSlackBusCount" : 1
       }
     }
   },
