@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.network.*;
 public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
     public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        super(equationSystem);
+        super(equationSystem, false);
     }
 
     @Override
