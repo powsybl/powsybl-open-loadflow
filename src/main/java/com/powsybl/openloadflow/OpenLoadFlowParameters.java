@@ -101,6 +101,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME = "plausibleActivePowerLimit";
 
+    public static final String NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME = "newtonRaphsonStoppingCriteriaType";
+
+    public static final String MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME = "maxActivePowerMismatch";
+
+    public static final String MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME = "maxReactivePowerMismatch";
+
+    public static final String MAX_VOLTAGE_MISMATCH_PARAM_NAME = "maxVoltageMismatch";
+
     public static final String SLACK_BUS_P_MAX_MISMATCH_NAME = "slackBusPMaxMismatch";
 
     public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME = "voltagePerReactivePowerControl";
@@ -176,7 +184,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT),
         new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, Collections.emptyList(), ParameterScope.TECHNICAL),
         new Parameter(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT),
-        new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)
+        new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE),
+        new Parameter(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, ParameterType.STRING, "Newton raphson stopping criteria type", NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE),
+        new Parameter(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum active power for per equation stopping criteria", MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE),
+        new Parameter(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum reactive power for per equation stopping criteria", MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE),
+        new Parameter(MAX_VOLTAGE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum voltage for per equation stopping criteria", MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -606,6 +618,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 )
                 .setLoadPowerFactorConstant(config.getBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE))
                 .setPlausibleActivePowerLimit(config.getDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE))
+                .setNewtonRaphsonStoppingCriteriaType(config.getEnumProperty(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, NewtonRaphsonStoppingCriteriaType.class, NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE))
+                .setMaxActivePowerMismatch(config.getDoubleProperty(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE))
+                .setMaxReactivePowerMismatch(config.getDoubleProperty(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME, MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE))
+                .setMaxVoltageMismatch(config.getDoubleProperty(MAX_VOLTAGE_MISMATCH_PARAM_NAME, MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE))
                 .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
                 .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
                 .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
@@ -651,6 +667,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setLoadPowerFactorConstant(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME))
                 .ifPresent(prop -> this.setPlausibleActivePowerLimit(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME))
+                .ifPresent(prop -> this.setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.valueOf(prop)));
+        Optional.ofNullable(properties.get(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxActivePowerMismatch(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxReactivePowerMismatch(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MAX_VOLTAGE_MISMATCH_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxVoltageMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(SLACK_BUS_P_MAX_MISMATCH_NAME))
                 .ifPresent(prop -> this.setSlackBusPMaxMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME))
