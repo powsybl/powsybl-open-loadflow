@@ -139,11 +139,11 @@ public interface LfBranch extends LfElement {
 
     double computeApparentPower2();
 
-    boolean isZeroImpedance();
+    boolean isZeroImpedance(boolean dc);
 
-    void setSpanningTreeEdge(boolean spanningTreeEdge);
+    void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge);
 
-    boolean isSpanningTreeEdge();
+    boolean isSpanningTreeEdge(boolean dc);
 
     Evaluable getA1();
 
@@ -174,5 +174,5 @@ public interface LfBranch extends LfElement {
 
     boolean isConnectedAtBothSides();
 
-    void setMinZ(boolean dc, double lowImpedanceThreshold);
+    void setMinZ(double lowImpedanceThreshold);
 }

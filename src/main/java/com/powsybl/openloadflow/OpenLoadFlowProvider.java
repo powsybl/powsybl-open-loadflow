@@ -23,7 +23,10 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.*;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -39,7 +42,6 @@ import com.powsybl.openloadflow.util.*;
 import com.powsybl.tools.PowsyblCoreVersion;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
-import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,7 +130,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
-                computeZeroImpedanceFlows(result.getNetwork());
+                computeZeroImpedanceFlows(result.getNetwork(), false);
             }
 
             LoadFlowResult.ComponentResult.Status status;
@@ -152,7 +154,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                             result.getNetwork().getNumSC(),
                                                                             status,
                                                                             result.getNewtonRaphsonIterations(),
-                                                                            slackBusId,
+                                                                            slackBusId, // FIXME manage multiple slack buses
                                                                             result.getSlackBusActivePowerMismatch() * PerUnit.SB,
                                                                             result.getDistributedActivePower() * PerUnit.SB));
         }
@@ -160,12 +162,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private void computeZeroImpedanceFlows(LfNetwork network) {
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.createZeroImpedanceSubGraph();
-        if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
-            SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
-            new ZeroImpedanceFlows(zeroImpedanceSubGraph, spanningTree).compute();
-        }
+    private void computeZeroImpedanceFlows(LfNetwork network, boolean dc) {
+        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.getZeroImpedanceNetwork(dc).getSubGraph();
+        SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = network.getZeroImpedanceNetwork(dc).getSpanningTree();
+        new ZeroImpedanceFlows(zeroImpedanceSubGraph, spanningTree, dc).compute();
     }
 
     private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, Reporter reporter) {
@@ -198,7 +198,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
-            computeZeroImpedanceFlows(result.getNetwork());
+            computeZeroImpedanceFlows(result.getNetwork(), true);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(
@@ -206,7 +206,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 result.getNetwork().getNumSC(),
                 result.isSucceeded() ? LoadFlowResult.ComponentResult.Status.CONVERGED : LoadFlowResult.ComponentResult.Status.FAILED,
                 0,
-                result.getNetwork().getSlackBus().getId(),
+                result.getNetwork().getSlackBus().getId(), // FIXME manage multiple slack buses
                 result.getSlackBusActivePowerMismatch() * PerUnit.SB,
                 Double.NaN);
     }
