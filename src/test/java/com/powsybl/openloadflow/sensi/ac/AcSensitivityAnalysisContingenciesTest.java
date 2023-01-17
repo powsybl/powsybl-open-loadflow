@@ -1214,8 +1214,8 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
-        assertEquals(0.269, result.getBranchFlow1SensitivityValue("l45", "g1", "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.356, result.getBranchFlow1SensitivityValue("l45", "g1", "l25"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-0.144, result.getBranchFlow1SensitivityValue("l45", "g1", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.269, result.getBranchFlow1SensitivityValue("l45", "g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.356, result.getBranchFlow1SensitivityValue("l45", "g1", "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.144, result.getBranchFlow1SensitivityValue("l45", "g1", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 }
