@@ -377,7 +377,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     case BUS_TARGET_VOLTAGE:
                         // a generator or a two windings transformer.
                         // shunt contingency not supported yet.
-                        // phase shifter in a three windings transformer not supported yet.
+                        // ratio tap changer in a three windings transformer not supported yet.
                         return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getBranchIdsToOpen().contains(variableId);
                     case TRANSFORMER_PHASE:
                         // a phase shifter on a two windings transformer.
@@ -932,8 +932,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             default:
                 throw new PowsyblException("Three transformer variable type " + type + " cannot be converted to a leg");
         }
-        if (l == null || l.getPhaseTapChanger() == null) {
-            throw new PowsyblException("Three windings transformer '" + transformerId + "' leg on side '" + type + "' is not a phase shifter");
+        if (l.getPhaseTapChanger() == null) {
+            throw new PowsyblException("Three windings transformer '" + transformerId + "' leg on side '" + type + "' has no phase tap changer");
         }
     }
 
