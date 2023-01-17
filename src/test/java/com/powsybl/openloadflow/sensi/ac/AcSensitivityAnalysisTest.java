@@ -1206,9 +1206,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
         SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("LINE_12", "T3wT", ThreeWindingsTransformer.Side.ONE);
-        assertThrows(CompletionException.class, () ->
-                sensiRunner.run(network, List.of(factorPhase1), Collections.emptyList(), Collections.emptyList(), sensiParameters),
-                "Three windings transformer 'T3wT' leg on side 'TRANSFORMER_PHASE_1' has no phase tap changer");
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, List.of(factorPhase1), Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Three windings transformer 'T3wT' leg on side 'TRANSFORMER_PHASE_1' has no phase tap changer", e.getCause().getMessage());
     }
 
     @Test
@@ -1217,8 +1217,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
         SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("LINE_12", "transfo", ThreeWindingsTransformer.Side.ONE);
-        assertThrows(CompletionException.class, () ->
-                        sensiRunner.run(network, List.of(factorPhase1), Collections.emptyList(), Collections.emptyList(), sensiParameters),
-                "Three windings transformer 'transfo' not found");
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, List.of(factorPhase1), Collections.emptyList(), Collections.emptyList(), sensiParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Three windings transformer 'transfo' not found", e.getCause().getMessage());
     }
 }
