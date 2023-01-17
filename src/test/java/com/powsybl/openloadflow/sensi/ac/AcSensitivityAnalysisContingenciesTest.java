@@ -589,12 +589,12 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         // FIXME
 //        assertEquals(loadFlowDiff.get("l12"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l12"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l13"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l13"), "l25"), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l23"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l23"), "l25"), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(0d, hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l25"), "l25"), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l45"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l45"), "l25"), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l46"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l46"), "l25"), LoadFlowAssert.DELTA_POWER);
-//        assertEquals(loadFlowDiff.get("l56"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l56"), "l25"), LoadFlowAssert.DELTA_POWER);
+//        assertEquals(loadFlowDiff.get("l13"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l13"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+//        assertEquals(loadFlowDiff.get("l23"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l23"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+//        assertEquals(0d, hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l25"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+//        assertEquals(loadFlowDiff.get("l45"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l45"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+//        assertEquals(loadFlowDiff.get("l46"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l46"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+//        assertEquals(loadFlowDiff.get("l56"), hvdcWriter.getBranchFlow1SensitivityValue(Pair.of("hvdc34", "l56"), "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
