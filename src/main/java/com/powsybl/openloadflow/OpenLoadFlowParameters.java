@@ -60,6 +60,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
      */
     public static final double SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE = 1.0;
 
+    public static final NewtonRaphsonStoppingCriteriaType NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE = NewtonRaphsonStoppingCriteriaType.UNIFORM_CRITERIA;
+
     /** Default value of the maximum active power mismatch in MW **/
     public static final double MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE = Math.pow(10, -2);
 
@@ -212,6 +214,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean loadPowerFactorConstant = LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE;
 
     private double plausibleActivePowerLimit = LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
+
+    private NewtonRaphsonStoppingCriteriaType newtonRaphsonStoppingCriteriaType = NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE;
 
     private double maxActivePowerMismatch = MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE;
 
@@ -387,6 +391,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setNewtonRaphsonConvEpsPerEq(double newtonRaphsonConvEpsPerEq) {
         this.newtonRaphsonConvEpsPerEq = newtonRaphsonConvEpsPerEq;
+        return this;
+    }
+
+    public NewtonRaphsonStoppingCriteriaType getNewtonRaphsonStoppingCriteriaType() {
+        return newtonRaphsonStoppingCriteriaType;
+    }
+
+    public OpenLoadFlowParameters setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType newtonRaphsonStoppingCriteriaType) {
+        this.newtonRaphsonStoppingCriteriaType = newtonRaphsonStoppingCriteriaType;
         return this;
     }
 
@@ -695,6 +708,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", lowImpedanceBranchMode=" + lowImpedanceBranchMode +
                 ", loadPowerFactorConstant=" + loadPowerFactorConstant +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
+                ", newtonRaphsonStoppingCriteriaType=" + newtonRaphsonStoppingCriteriaType +
                 ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
                 ", maxActivePowerMismatch=" + maxActivePowerMismatch +
                 ", maxReactivePowerMismatch=" + maxReactivePowerMismatch +
@@ -877,28 +891,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return acParameters;
     }
 
-    private static NewtonRaphsonStoppingCriteria generateNewtonRaphsonStoppingCriteria(OpenLoadFlowParameters parametersExt,
-                                                                                       NewtonRaphsonStoppingCriteriaType typeCriteria) {
-        switch (typeCriteria) {
+    private static NewtonRaphsonStoppingCriteria generateNewtonRaphsonStoppingCriteria(OpenLoadFlowParameters parametersExt) {
+        switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
             case UNIFORM_CRITERIA:
                 return new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
             case PER_EQUATION_TYPE_CRITERIA:
                 return new CustomNewtonRaphsonStoppingCriteria(parametersExt.getMaxActivePowerMismatch(),
                         parametersExt.getMaxReactivePowerMismatch(), parametersExt.getMaxVoltageMismatch());
             default:
-                throw new PowsyblException("Unknown Newton Raphson stopping criteria type: " + typeCriteria);
+                throw new PowsyblException("Unknown Newton Raphson stopping criteria type: " + parametersExt.getNewtonRaphsonStoppingCriteriaType());
         }
     }
 
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
-        return createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, breakers, forceA1Var, NewtonRaphsonStoppingCriteriaType.UNIFORM_CRITERIA);
-    }
-
-    public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          boolean breakers, boolean forceA1Var, NewtonRaphsonStoppingCriteriaType typeCriteria) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
@@ -908,7 +915,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
-                .setStoppingCriteria(generateNewtonRaphsonStoppingCriteria(parametersExt, typeCriteria))
+                .setStoppingCriteria(generateNewtonRaphsonStoppingCriteria(parametersExt))
                 .setMaxIteration(parametersExt.getMaxIteration())
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
