@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.equations.AbstractBranchEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.network.Extensions.AsymLine;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.network.PiModel;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-abstract class AbstractBranchDisymFlowEquationTerm extends AbstractBranchEquationTerm<AcVariableType, AcEquationType> {
+abstract class AbstractBranchDisymFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
     //protected final double b1;
     //protected final double b2;

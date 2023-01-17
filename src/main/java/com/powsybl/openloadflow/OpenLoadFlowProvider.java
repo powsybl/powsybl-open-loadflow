@@ -182,7 +182,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         OpenLoadFlowParameters.logAc(parameters, parametersExt);
 
-        DisymAcLoadFlowParameters acParameters = OpenLoadFlowParameters.createDisymAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, reporter);
+        DisymAcLoadFlowParameters acParameters = OpenLoadFlowParameters.createDisymAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory);
 
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getType).collect(Collectors.toList()));
@@ -202,12 +202,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         for (DisymAcLoadFlowResult result : results) {
             // update network state
             if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                result.getNetwork().updateState(!parameters.isNoGeneratorReactiveLimits(),
+                var updateParameters = new LfNetworkStateUpdateParameters(!parameters.isNoGeneratorReactiveLimits(),
                         parameters.isWriteSlackBus(),
                         parameters.isPhaseShifterRegulationOn(),
                         parameters.isTransformerVoltageControlOn(),
-                        parameters.isDistributedSlack() && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                        parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(), parameters.isDc());
+                        parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
+                        parameters.isDc());
+                result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
                 computeZeroImpedanceFlows(result.getNetwork(), parameters.isDc());

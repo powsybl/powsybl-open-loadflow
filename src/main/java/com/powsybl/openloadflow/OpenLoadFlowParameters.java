@@ -728,15 +728,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static DisymAcLoadFlowParameters createDisymAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          Reporter reporter) {
-        return createDisymAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, reporter, false, false);
+                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+        return createDisymAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, false, false);
     }
 
     public static DisymAcLoadFlowParameters createDisymAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          Reporter reporter, boolean breakers, boolean forceA1Var) {
-        DisymAcLoadFlowParameters acParameters = createDisymAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, reporter, breakers, forceA1Var);
+                                                          boolean breakers, boolean forceA1Var) {
+        DisymAcLoadFlowParameters acParameters = createDisymAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, breakers, forceA1Var);
         if (parameters.isReadSlackBus()) {
             acParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, acParameters.getNetworkParameters().getSlackBusSelector()));
         }
@@ -745,14 +744,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static DisymAcLoadFlowParameters createDisymAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                                                     MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                                                    Reporter reporter, boolean breakers, boolean forceA1Var) {
+                                                                                    boolean breakers, boolean forceA1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
         var equationSystemCreationParameters = new DisymAcEquationSystemCreationParameters(forceA1Var);
 
-        VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory, reporter);
+        VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))

@@ -139,7 +139,17 @@ public class NewtonRaphson {
 
                 case DUMMY_P:
                 case DUMMY_Q:
+                    //case BUS_V_HOMOPOLAR: // when balanced, homopolar and inverse sequence should be zero
+                case BUS_PHI_HOMOPOLAR:
+                    //case BUS_V_INVERSE:
+                case BUS_PHI_INVERSE:
                     x[v.getRow()] = 0;
+                    break;
+
+                case BUS_V_HOMOPOLAR: // when balanced, homopolar and inverse sequence should be zero
+                case BUS_V_INVERSE:
+                    // TODO : check if this has an influence on init [J]
+                    x[v.getRow()] = 1;
                     break;
 
                 default:

@@ -179,11 +179,11 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     }
 
     protected double r1() {
-        return r1Var != null ? sv.get(r1Var.getRow()) : branch.getPiModel().getR1();
+        return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
     }
 
     protected double a1() {
-        return a1Var != null ? sv.get(a1Var.getRow()) : branch.getPiModel().getA1();
+        return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
     }
 
     protected double r(int i) {
