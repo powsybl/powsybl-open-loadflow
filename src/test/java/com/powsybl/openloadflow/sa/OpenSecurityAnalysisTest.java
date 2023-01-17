@@ -2273,8 +2273,8 @@ class OpenSecurityAnalysisTest {
                                        new LoadActionBuilder().withId("action2").withLoadId("l1").withRelativeValue(true).withActivePowerValue(50).build(),
                                        new LoadActionBuilder().withId("action3").withLoadId("l2").withRelativeValue(true).withActivePowerValue(10).build());
 
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "l2", new AnyViolationCondition(), List.of("action1", "action2")),
-                                                            new OperatorStrategy("strategy2", "l2", new AnyViolationCondition(), List.of("action3")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action1", "action2")),
+                                                            new OperatorStrategy("strategy2", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
