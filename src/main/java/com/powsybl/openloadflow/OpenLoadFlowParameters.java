@@ -650,7 +650,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Voltage initialization mode override: {}", parametersExt.getVoltageInitModeOverride());
         LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
         LOGGER.info("Balance type: {}", parameters.getBalanceType());
-        LOGGER.info("Reactive limits: {}", !parameters.isNoGeneratorReactiveLimits());
+        LOGGER.info("Reactive limits: {}", parameters.isUseReactiveLimits());
         LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
         LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
         LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
@@ -730,7 +730,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactivePowerRemoteControl(parametersExt.hasReactivePowerRemoteControl())
                 .setDc(parameters.isDc())
                 .setShuntVoltageControl(parameters.isShuntCompensatorVoltageControlOn())
-                .setReactiveLimits(!parameters.isNoGeneratorReactiveLimits())
+                .setReactiveLimits(parameters.isUseReactiveLimits())
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
