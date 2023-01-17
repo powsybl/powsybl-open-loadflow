@@ -14,6 +14,7 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -24,10 +25,7 @@ import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.*;
-import com.powsybl.security.action.Action;
-import com.powsybl.security.action.LineConnectionAction;
-import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.action.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;
@@ -153,15 +151,23 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
+                case LoadAction.NAME: {
+                    LoadAction loadAction = (LoadAction) action;
+                    if (network.getLoad(loadAction.getLoadId()) == null) {
+                        throw new PowsyblException("Load '" + loadAction.getLoadId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
         }
     }
 
-    protected static Map<String, LfAction> createLfActions(LfNetwork network, Set<Action> actions) {
+    protected static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, boolean breakers) {
         return actions.stream()
-                .map(action -> LfAction.create(action, network))
+                .map(action -> LfAction.create(action, lfNetwork, network, breakers))
                 .flatMap(Optional::stream)
                 .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
@@ -251,7 +257,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected OperatorStrategyResult runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,
                                                          LimitViolationManager preContingencyLimitViolationManager,
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                                         Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency) {
+                                                         Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
+                                                         LoadFlowParameters.BalanceType balanceType) {
         LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                 operatorStrategy.getContingencyContext().getContingencyId(), network);
 
@@ -263,7 +270,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        LfAction.apply(operatorStrategyLfActions, network, contingency);
+        LfAction.apply(operatorStrategyLfActions, network, contingency, balanceType);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
