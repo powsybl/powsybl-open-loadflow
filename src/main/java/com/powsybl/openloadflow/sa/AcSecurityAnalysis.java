@@ -35,6 +35,7 @@ import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.results.ConnectivityResult;
 import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
@@ -253,7 +254,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                                          new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
                                          postContingencyNetworkResult.getBranchResults(),
                                          postContingencyNetworkResult.getBusResults(),
-                                         postContingencyNetworkResult.getThreeWindingsTransformerResults());
+                                         postContingencyNetworkResult.getThreeWindingsTransformerResults(),
+                                         new ConnectivityResult(0, 0, 0, 0, Collections.emptySet()));
     }
 
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, AcLoadFlowContext context, OperatorStrategy operatorStrategy,

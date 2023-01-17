@@ -33,10 +33,7 @@ import com.powsybl.security.action.Action;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.detectors.LoadingLimitType;
 import com.powsybl.security.monitor.StateMonitor;
-import com.powsybl.security.results.BranchResult;
-import com.powsybl.security.results.OperatorStrategyResult;
-import com.powsybl.security.results.PostContingencyResult;
-import com.powsybl.security.results.PreContingencyResult;
+import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
@@ -212,7 +209,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             });
 
             PostContingencyResult pcResult = new PostContingencyResult(contingency, PostContingencyComputationStatus.CONVERGED, new ArrayList<>(violations.values()),
-                    new ArrayList<>(postContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList());
+                    new ArrayList<>(postContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList(), new ConnectivityResult(0, 0, 0, 0, Collections.emptySet()));
             context.getPostContingencyResultPerContingencyId().put(contingency.getId(), pcResult);
             postContingencyResults.add(pcResult);
         }

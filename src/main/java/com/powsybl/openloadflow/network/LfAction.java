@@ -139,7 +139,7 @@ public final class LfAction {
             if (branch.getPiModel() instanceof SimplePiModel) {
                 throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + action.getTransformerId() + "}");
             } else {
-                var tapPositionChange = new TapPositionChange(branch, action.getValue(), action.isRelativeValue());
+                var tapPositionChange = new TapPositionChange(branch, action.getTapPosition(), action.isRelativeValue());
                 return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange, null));
             }
         }
