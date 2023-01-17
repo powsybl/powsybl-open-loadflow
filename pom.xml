@@ -48,7 +48,7 @@
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
 
-        <powsybl-core.version>5.1.0-SNAPSHOT</powsybl-core.version>
+        <powsybl-core.version>5.1.0-RC1</powsybl-core.version>
     </properties>
 
     <build>
