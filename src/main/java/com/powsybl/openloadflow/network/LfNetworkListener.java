@@ -13,6 +13,8 @@ public interface LfNetworkListener {
 
     void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
+    void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage);
+
     void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled);
 
     void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled);
@@ -27,9 +29,7 @@ public interface LfNetworkListener {
 
     void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ);
 
-    void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition);
-
-    void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition);
-
     void onDisableChange(LfElement element, boolean disabled);
+
+    void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition);
 }

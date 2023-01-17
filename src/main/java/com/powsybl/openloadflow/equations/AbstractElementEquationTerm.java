@@ -7,29 +7,29 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractBusEquationTerm<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractNamedEquationTerm<V, E> {
+public abstract class AbstractElementEquationTerm<T extends LfElement, V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractNamedEquationTerm<V, E> {
 
-    protected final LfBus bus;
+    protected final T element;
 
-    protected AbstractBusEquationTerm(LfBus bus) {
-        super(!Objects.requireNonNull(bus).isDisabled());
-        this.bus = bus;
+    protected AbstractElementEquationTerm(T element) {
+        super(!Objects.requireNonNull(element).isDisabled());
+        this.element = element;
     }
 
     @Override
     public ElementType getElementType() {
-        return ElementType.BUS;
+        return element.getType();
     }
 
     @Override
     public int getElementNum() {
-        return bus.getNum();
+        return element.getNum();
     }
 }

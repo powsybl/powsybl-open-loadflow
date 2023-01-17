@@ -8,9 +8,11 @@
       + Outer loop Distributed slack on generation
          Iteration 0: slack bus active power (-1.4404045651219555 MW) distributed in 1 iterations
          Iteration 1: already balanced
+      + Outer loop Voltage monitoring
       + Outer loop Reactive limits
       + Outer loop Distributed slack on generation
          Iteration 1: already balanced
+      + Outer loop Voltage monitoring
       + Outer loop Reactive limits
   + Sensitivity analysis on network 'sim1'
     + Network CC0 SC0
@@ -18,4 +20,5 @@
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+      + Outer loop Voltage monitoring
       + Outer loop Reactive limits

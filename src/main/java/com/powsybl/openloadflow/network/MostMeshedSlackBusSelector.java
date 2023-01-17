@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
@@ -17,7 +18,7 @@ import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
     @Override
-    public SelectedSlackBus select(List<LfBus> buses) {
+    public SelectedSlackBus select(List<LfBus> buses, int limit) {
         double[] nominalVoltages = buses.stream()
                 .filter(bus -> !bus.isFictitious())
                 .map(LfBus::getNominalV).mapToDouble(Double::valueOf).toArray();
@@ -25,12 +26,14 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
                 .withEstimationType(Percentile.EstimationType.R_3)
                 .evaluate(nominalVoltages, 90);
 
-        // select non fictitious and most meshed bus among buses with highest nominal voltage
-        LfBus slackBus = buses.stream()
+        // select non-fictitious and most meshed bus among buses with the highest nominal voltage
+        List<LfBus> slackBuses = buses.stream()
             .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
-            .max(Comparator.comparingInt((LfBus bus) -> bus.getBranches().size()).thenComparing(Comparator.comparing(LfBus::getId).reversed()))
-            .orElseThrow(AssertionError::new);
+            .sorted(Comparator.comparingInt((LfBus bus) -> bus.getBranches().size())
+                    .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
+            .limit(limit)
+            .collect(Collectors.toList());
 
-        return new SelectedSlackBus(slackBus, "Most meshed bus");
+        return new SelectedSlackBus(slackBuses, "Most meshed bus");
     }
 }

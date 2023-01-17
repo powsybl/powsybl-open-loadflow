@@ -24,7 +24,7 @@ public class VoltageControl {
 
     private final Set<LfBus> controllers;
 
-    private final double targetValue;
+    private double targetValue;
 
     public VoltageControl(LfBus controlled, double targetValue) {
         this.controlled = controlled;
@@ -34,6 +34,13 @@ public class VoltageControl {
 
     public double getTargetValue() {
         return targetValue;
+    }
+
+    public void setTargetValue(double targetValue) {
+        if (targetValue != this.targetValue) {
+            this.targetValue = targetValue;
+            controlled.getNetwork().getListeners().forEach(l -> l.onVoltageControlTargetChange(this, targetValue));
+        }
     }
 
     public LfBus getControlledBus() {
@@ -104,7 +111,7 @@ public class VoltageControl {
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
             for (LfGenerator generator : controllerBus.getGenerators()) {
-                double maxRangeQ = generator.getMaxRangeQ();
+                double maxRangeQ = generator.getRangeQ(LfGenerator.ReactiveRangeMode.MAX);
                 // if one reactive range is not plausible, we fallback to uniform keys
                 if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || maxRangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
                     return createUniformReactiveKeys(controllerBuses);

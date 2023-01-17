@@ -8,6 +8,10 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.TypedValue;
+import com.powsybl.openloadflow.lf.LoadFlowEngine;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -30,7 +34,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcloadFlowEngine {
+public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowResult> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcloadFlowEngine.class);
 
@@ -40,6 +44,7 @@ public class AcloadFlowEngine {
         this.context = Objects.requireNonNull(context);
     }
 
+    @Override
     public AcLoadFlowContext getContext() {
         return context;
     }
@@ -79,6 +84,7 @@ public class AcloadFlowEngine {
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE);
     }
 
+    @Override
     public AcLoadFlowResult run() {
         LOGGER.info("Start AC loadflow on network {}", context.getNetwork());
 
@@ -152,7 +158,10 @@ public class AcloadFlowEngine {
 
         LOGGER.info("Ac loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name());
+        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name(),
+                result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED ? TypedValue.INFO_SEVERITY : TypedValue.ERROR_SEVERITY);
+
+        context.setResult(result);
 
         return result;
     }
@@ -167,7 +176,7 @@ public class AcloadFlowEngine {
                                     .run();
                         }
                     }
-                    return new AcLoadFlowResult(n, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, Double.NaN);
+                    return AcLoadFlowResult.createNoCalculationResult(n);
                 })
                 .collect(Collectors.toList());
     }

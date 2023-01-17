@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.ShuntCompensator;
+import com.powsybl.iidm.network.ShuntCompensatorLinearModel;
+import com.powsybl.iidm.network.ShuntCompensatorModel;
+import com.powsybl.iidm.network.ShuntCompensatorNonLinearModel;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -23,7 +26,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
 
-    private final List<ShuntCompensator> shuntCompensators;
+    private final List<Ref<ShuntCompensator>> shuntCompensatorsRefs;
 
     private final LfBus bus;
 
@@ -97,14 +100,14 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
         super(network);
-        this.shuntCompensators = Objects.requireNonNull(shuntCompensators);
+        shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream().map(Ref::new).collect(Collectors.toList());
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
         this.bus = Objects.requireNonNull(bus);
         this.voltageControlCapability = voltageControlCapability;
         double nominalV = shuntCompensators.get(0).getTerminal().getVoltageLevel().getNominalV(); // has to be the same for all shunts
-        zb = nominalV * nominalV / PerUnit.SB;
+        zb = PerUnit.zb(nominalV);
         b = zb * shuntCompensators.stream()
                 .mapToDouble(ShuntCompensator::getB)
                 .sum();
@@ -152,7 +155,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public List<String> getOriginalIds() {
-        return shuntCompensators.stream().map(ShuntCompensator::getId).collect(Collectors.toList());
+        return shuntCompensatorsRefs.stream().map(scRef -> scRef.get().getId()).collect(Collectors.toList());
     }
 
     @Override
@@ -241,21 +244,23 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public void updateState(boolean dc) {
-        if (dc) {
-            for (ShuntCompensator sc : shuntCompensators) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
+        if (parameters.isDc()) {
+            for (var scRef : shuntCompensatorsRefs) {
+                var sc = scRef.get();
                 sc.getTerminal().setP(0);
             }
         } else {
             double vSquare = bus.getV() * bus.getV() * bus.getNominalV() * bus.getNominalV();
             if (!voltageControlCapability) {
-                for (ShuntCompensator sc : shuntCompensators) {
+                for (var scRef : shuntCompensatorsRefs) {
+                    var sc = scRef.get();
                     sc.getTerminal().setP(sc.getG() * vSquare);
                     sc.getTerminal().setQ(-sc.getB() * vSquare);
                 }
             } else {
-                for (int i = 0; i < shuntCompensators.size(); i++) {
-                    ShuntCompensator sc = shuntCompensators.get(i);
+                for (int i = 0; i < shuntCompensatorsRefs.size(); i++) {
+                    ShuntCompensator sc = shuntCompensatorsRefs.get(i).get();
                     sc.getTerminal().setP(controllers.get(i).getG() * vSquare / zb);
                     sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / zb);
                     sc.setSectionCount(controllers.get(i).getPosition());

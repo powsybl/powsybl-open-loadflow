@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.HvdcConverterStations;
 import com.powsybl.openloadflow.network.impl.LfDanglingLineBus;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -143,6 +144,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         boolean isFunctionConnectedToSlackComponent(Set<LfBus> lostBuses, Set<LfBranch> lostBranches);
 
+        boolean isVariableInContingency(PropagatedContingency propagatedContingency);
+
         SensitivityFactorGroup<V, E> getGroup();
 
         void setGroup(SensitivityFactorGroup<V, E> group);
@@ -152,7 +155,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         private final int index;
 
-        private final String variableId;
+        protected final String variableId;
 
         private final String functionId;
 
@@ -357,21 +360,48 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         public boolean isFunctionConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
             return isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches);
         }
+
+        @Override
+        public boolean isVariableInContingency(PropagatedContingency contingency) {
+            if (contingency != null) {
+                switch (variableType) {
+                    case INJECTION_ACTIVE_POWER:
+                    case HVDC_LINE_ACTIVE_POWER:
+                        // a load, a generator, a dangling line, an LCC or a VSC converter station.
+                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getOriginalPowerShiftIds().contains(variableId);
+                    case BUS_TARGET_VOLTAGE:
+                        // a generator or a two windings transformer.
+                        // shunt contingency not supported yet.
+                        // phase shifter in a three windings transformer not supported yet.
+                        return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getBranchIdsToOpen().contains(variableId);
+                    case TRANSFORMER_PHASE:
+                        // a phase shifter on a two windings transformer.
+                        return contingency.getBranchIdsToOpen().contains(variableId);
+                    default:
+                        return false;
+                }
+            } else {
+                return false;
+            }
+        }
     }
 
     static class MultiVariablesLfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> extends AbstractLfSensitivityFactor<V, E> {
 
         private final Map<LfElement, Double> weightedVariableElements;
 
+        private final Set<String> originalVariableSetIds;
+
         MultiVariablesLfSensitivityFactor(int index, String variableId, String functionId,
                                           LfElement functionElement, SensitivityFunctionType functionType,
                                           Map<LfElement, Double> weightedVariableElements, SensitivityVariableType variableType,
-                                          ContingencyContext contingencyContext) {
+                                          ContingencyContext contingencyContext, Set<String> originalVariableSetIds) {
             super(index, variableId, functionId, functionElement, functionType, variableType, contingencyContext);
             this.weightedVariableElements = weightedVariableElements;
             if (weightedVariableElements.isEmpty()) {
                 status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
             }
+            this.originalVariableSetIds = originalVariableSetIds;
         }
 
         public Map<LfElement, Double> getWeightedVariableElements() {
@@ -384,9 +414,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
         @Override
         public boolean isVariableConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
-            if (!isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches)) {
-                return false;
-            }
             for (LfElement lfElement : getVariableElements()) {
                 if (isElementConnectedToSlackComponent(lfElement, disabledBuses, disabledBranches)) {
                     return true;
@@ -398,6 +425,19 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         @Override
         public boolean isFunctionConnectedToSlackComponent(Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
             return isElementConnectedToSlackComponent(functionElement, disabledBuses, disabledBranches);
+        }
+
+        @Override
+        public boolean isVariableInContingency(PropagatedContingency contingency) {
+            if (contingency != null) {
+                int sizeCommonIds = (int) Stream.concat(contingency.getGeneratorIdsToLose().stream(), contingency.getOriginalPowerShiftIds().stream())
+                        .distinct()
+                        .filter(originalVariableSetIds::contains)
+                        .count();
+                return sizeCommonIds == originalVariableSetIds.size();
+            } else {
+                return false;
+            }
         }
     }
 
@@ -623,33 +663,49 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches) {
+    protected void setPredefinedResults(Collection<LfSensitivityFactor<V, E>> lfFactors, Set<LfBus> disabledBuses,
+                                        Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
         for (LfSensitivityFactor<V, E> factor : lfFactors) {
-            if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
-                // after a contingency, we check if the factor function and the variable are in different connected components
-                boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches);
-                boolean functionConnected = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
-                if (!variableConnected && functionConnected) {
-                    // VALID_ONLY_FOR_FUNCTION status
-                    factor.setSensitivityValuePredefinedResult(0d);
-                } else if (!variableConnected && !functionConnected) {
-                    // SKIP status
-                    factor.setSensitivityValuePredefinedResult(Double.NaN);
-                    factor.setFunctionPredefinedResult(Double.NaN);
-                } else if (variableConnected && !functionConnected) {
+            Pair<Optional<Double>, Optional<Double>> predefinedResults = getPredefinedResults(factor, disabledBuses, disabledBranches, propagatedContingency);
+            predefinedResults.getLeft().ifPresent(factor::setSensitivityValuePredefinedResult);
+            predefinedResults.getRight().ifPresent(factor::setFunctionPredefinedResult);
+        }
+    }
+
+    protected Pair<Optional<Double>, Optional<Double>> getPredefinedResults(LfSensitivityFactor<V, E> factor, Set<LfBus> disabledBuses,
+                                                                            Set<LfBranch> disabledBranches, PropagatedContingency propagatedContingency) {
+        Double sensitivityValuePredefinedResult = null;
+        Double functionPredefinedResult = null;
+        if (factor.getStatus() == LfSensitivityFactor.Status.VALID) {
+            // after a contingency, we check if the factor function and the variable are in different connected components
+            // or if the variable is in contingency. Note that a branch in contingency is considered as not connected to the slack component.
+            boolean variableConnected = factor.isVariableConnectedToSlackComponent(disabledBuses, disabledBranches) && !factor.isVariableInContingency(propagatedContingency);
+            boolean functionConnectedToSlackComponent = factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches);
+            if (variableConnected) {
+                if (!functionConnectedToSlackComponent) {
                     // ZERO status
-                    factor.setSensitivityValuePredefinedResult(0d);
-                    factor.setFunctionPredefinedResult(Double.NaN);
-                }
-            } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
-                factor.setSensitivityValuePredefinedResult(0d);
-                if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
-                    factor.setFunctionPredefinedResult(Double.NaN);
+                    sensitivityValuePredefinedResult = 0d;
+                    functionPredefinedResult = Double.NaN;
                 }
             } else {
-                throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
+                if (functionConnectedToSlackComponent) {
+                    // VALID_ONLY_FOR_FUNCTION status
+                    sensitivityValuePredefinedResult = 0d;
+                } else {
+                    // SKIP status
+                    sensitivityValuePredefinedResult = Double.NaN;
+                    functionPredefinedResult = Double.NaN;
+                }
             }
+        } else if (factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION) {
+            sensitivityValuePredefinedResult = 0d;
+            if (!factor.isFunctionConnectedToSlackComponent(disabledBuses, disabledBranches)) {
+                functionPredefinedResult = Double.NaN;
+            }
+        } else {
+            throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
         }
+        return Pair.of(Optional.ofNullable(sensitivityValuePredefinedResult), Optional.ofNullable(functionPredefinedResult));
     }
 
     protected boolean rescaleGlsk(SensitivityFactorGroupList<V, E> factorGroups, Set<LfBus> nonConnectedBuses) {
@@ -724,8 +780,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             if (contingency.getBranchIdsToOpen().isEmpty()
                     && contingency.getHvdcIdsToOpen().isEmpty()
                     && contingency.getGeneratorIdsToLose().isEmpty()
-                    && contingency.getLoadIdsToShift().isEmpty()) {
-                LOGGER.warn("Contingency {} has no impact", contingency.getContingency().getId());
+                    && contingency.getBusIdsToShift().isEmpty()) {
+                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
             }
         }
     }
@@ -815,15 +871,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {
         if (busCache.isEmpty()) {
-            if (breakers) {
-                network.getBusBreakerView()
-                        .getBusStream()
-                        .forEach(bus -> busCache.put(bus.getId(), bus));
-            } else {
-                network.getBusView()
-                        .getBusStream()
-                        .forEach(bus -> busCache.put(bus.getId(), bus));
-            }
+            Networks.getBuses(network, breakers).forEach(bus -> busCache.put(bus.getId(), bus));
         }
         Bus bus = busCache.get(busId);
         if (bus == null) {
@@ -905,6 +953,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         final SensitivityFactorHolder<V, E> factorHolder = new SensitivityFactorHolder<>();
 
         final Map<String, Map<LfElement, Double>> injectionBusesByVariableId = new LinkedHashMap<>();
+        final Map<String, Set<String>> originalVariableSetIdsByVariableId = new LinkedHashMap<>();
         final Map<String, Bus> busCache = new HashMap<>();
         int[] factorIndex = new int[1];
         factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
@@ -917,9 +966,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
                         Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
-                        if (injectionLfBuses == null) {
+                        Set<String> originalVariableSetIds = originalVariableSetIdsByVariableId.get(variableId);
+                        if (injectionLfBuses == null && originalVariableSetIds == null) {
                             injectionLfBuses = new LinkedHashMap<>();
+                            originalVariableSetIds = new HashSet<>();
                             injectionBusesByVariableId.put(variableId, injectionLfBuses);
+                            originalVariableSetIdsByVariableId.put(variableId, originalVariableSetIds);
                             SensitivityVariableSet set = variableSetsById.get(variableId);
                             if (set == null) {
                                 throw new PowsyblException("Variable set '" + variableId + "' not found");
@@ -933,6 +985,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                                     continue;
                                 }
                                 injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
+                                originalVariableSetIds.add(variable.getId());
                             }
                             if (!skippedInjection.isEmpty() && LOGGER.isWarnEnabled()) {
                                 LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
@@ -940,7 +993,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                         }
                         factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
                                     functionId, functionElement, functionType,
-                                    injectionLfBuses, variableType, contingencyContext));
+                                    injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
                     } else {
                         throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                     }
@@ -968,17 +1021,20 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
                     // => we create a multi (bi) variables factor
                     Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
+                    Set<String> originalVariableSetIds = new HashSet<>(2);
                     if (bus1 != null) {
                         // FIXME: for LCC, Q changes when P changes
                         injectionLfBuses.put(bus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
+                        originalVariableSetIds.add(hvdcLine.getConverterStation1().getId());
                     }
                     if (bus2 != null) {
                         // FIXME: for LCC, Q changes when P changes
                         injectionLfBuses.put(bus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
+                        originalVariableSetIds.add(hvdcLine.getConverterStation2().getId());
                     }
 
                     factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
-                            functionId, functionElement, functionType, injectionLfBuses, variableType, contingencyContext));
+                            functionId, functionElement, functionType, injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
                 } else {
                     LfElement functionElement;
                     LfElement variableElement;

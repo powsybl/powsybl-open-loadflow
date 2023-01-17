@@ -20,7 +20,7 @@
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>0.24.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -48,7 +48,7 @@
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
 
-        <powsybl-core.version>4.10.1</powsybl-core.version>
+        <powsybl-core.version>5.1.0-RC1</powsybl-core.version>
     </properties>
 
     <build>
@@ -176,8 +176,7 @@
 
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-commons</artifactId>
-            <type>test-jar</type>
+            <artifactId>powsybl-commons-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

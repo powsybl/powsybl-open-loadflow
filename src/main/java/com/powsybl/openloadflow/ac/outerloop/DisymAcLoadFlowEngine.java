@@ -2,6 +2,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -145,7 +146,7 @@ public class DisymAcLoadFlowEngine {
 
         LOGGER.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DisymAc loadflow complete on network {} (result={})", context.getNetwork(), result);
 
-        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name());
+        Reports.reportAcLfComplete(context.getNetwork().getReporter(), result.getNewtonRaphsonStatus().name(), TypedValue.INFO_SEVERITY);
 
         return result;
     }

@@ -76,7 +76,7 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
     }
 
     public <E extends Enum<E> & Quantity> EquationTerm<V, E> createTerm() {
-        return new EquationTerm.VariableEquationTerm<>(this);
+        return new VariableEquationTerm<>(this);
     }
 
     @Override
