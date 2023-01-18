@@ -996,13 +996,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         int[] factorIndex = new int[1];
         factorReader.read((functionType, functionId, variableType, variableId, variableSet, contingencyContext) -> {
             if (variableSet) {
-                if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
-                    || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
-                    || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
-                    || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3) {
-                    LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
-                    LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+                if (isActivePowerFunctionType(functionType)) {
                     if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
+                        LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
+                        LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
                         Set<String> originalVariableSetIds = originalVariableSetIdsByVariableId.get(variableId);
                         if (injectionLfBuses == null && originalVariableSetIds == null) {
@@ -1039,11 +1036,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     throw createFunctionTypeNotSupportedException(functionType);
                 }
             } else {
-                if ((functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER ||
-                      functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 ||
-                      functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2 ||
-                      functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3)
-                     && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
+                if (isActivePowerFunctionType(functionType) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
                     LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                     LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
 
@@ -1076,14 +1069,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 } else {
                     LfElement functionElement;
                     LfElement variableElement;
-                    if (functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
-                        || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
-                        || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
-                        || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3
-                        || functionType == SensitivityFunctionType.BRANCH_CURRENT
-                        || functionType == SensitivityFunctionType.BRANCH_CURRENT_1
-                        || functionType == SensitivityFunctionType.BRANCH_CURRENT_2
-                        || functionType == SensitivityFunctionType.BRANCH_CURRENT_3) {
+                    if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         switch (variableType) {
@@ -1128,6 +1114,20 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             factorIndex[0]++;
         });
         return factorHolder;
+    }
+
+    public static boolean isActivePowerFunctionType(SensitivityFunctionType functionType) {
+        return functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER
+                || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+                || functionType == SensitivityFunctionType.BRANCH_ACTIVE_POWER_3;
+    }
+
+    public static boolean isCurrentFunctionType(SensitivityFunctionType functionType) {
+        return functionType == SensitivityFunctionType.BRANCH_CURRENT
+                || functionType == SensitivityFunctionType.BRANCH_CURRENT_1
+                || functionType == SensitivityFunctionType.BRANCH_CURRENT_2
+                || functionType == SensitivityFunctionType.BRANCH_CURRENT_3;
     }
 
     public Pair<Boolean, Boolean> hasBusTargetVoltage(SensitivityFactorReader factorReader, Network network) {
