@@ -75,7 +75,7 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
     @Override
     public double calculateSensi(DenseMatrix dx, int column) {
         double dv = dx.get(vVar.getRow(), column);
-        double db = bVar != null ? dx.get(bVar.getRow(), column) : element.getB(); // or 0 instead of element.getB() ?
+        double db = bVar != null ? dx.get(bVar.getRow(), column) : 0;
         double v = v();
         double b = b();
         return dqdv(v, b) * dv + dqdb(v) * db;
