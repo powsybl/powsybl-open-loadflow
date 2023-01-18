@@ -151,7 +151,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(NETWORK_CACHE_ENABLED_NAME, ParameterType.BOOLEAN, "Network cache enabled", NETWORK_CACHE_ENABLED_DEFAULT_VALUE),
         new Parameter(SVC_VOLTAGE_MONITORING_NAME, ParameterType.BOOLEAN, "SVC voltage monitoring", SVC_VOLTAGE_MONITORING_DEFAULT_VALUE),
         new Parameter(STATE_VECTOR_SCALING_MODE_NAME, ParameterType.STRING, "State vector scaling mode", NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE.name(), getEnumPossibleValues(StateVectorScalingMode.class)),
-        new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack bus count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT)
+        new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT)
     );
 
     public enum VoltageInitModeOverride {
