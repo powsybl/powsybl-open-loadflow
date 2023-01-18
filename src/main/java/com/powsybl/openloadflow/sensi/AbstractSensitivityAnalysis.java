@@ -1201,7 +1201,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 LfBus bus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
                 return bus.getNominalV();
             default:
-                throw new IllegalArgumentException("Unknown function type " + factor.getVariableType());
+                throw new IllegalArgumentException("Unknown variable type " + factor.getVariableType());
         }
     }
 
