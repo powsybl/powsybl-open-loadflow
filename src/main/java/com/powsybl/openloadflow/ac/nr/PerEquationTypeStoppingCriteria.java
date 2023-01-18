@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 /**
  * @author Alexandre Le Jean <alexandre.le-jean at artelys.com>
  */
-public class CustomNewtonRaphsonStoppingCriteria implements NewtonRaphsonStoppingCriteria {
+public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCriteria {
 
     // FIXME Any idea for the name?
     private final double defaultValueAlpha = Math.pow(10, -5);
@@ -36,8 +36,8 @@ public class CustomNewtonRaphsonStoppingCriteria implements NewtonRaphsonStoppin
 
     private final double maxVoltageMismatch;
 
-    public CustomNewtonRaphsonStoppingCriteria(double maxActivePowerMismatch,
-                                               double maxReactivePowerMismatch, double maxVoltageMismatch) {
+    public PerEquationTypeStoppingCriteria(double maxActivePowerMismatch,
+                                           double maxReactivePowerMismatch, double maxVoltageMismatch) {
         this.maxActivePowerMismatch = maxActivePowerMismatch;
         this.maxReactivePowerMismatch = maxReactivePowerMismatch;
         this.maxVoltageMismatch = maxVoltageMismatch;
