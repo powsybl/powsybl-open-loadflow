@@ -97,11 +97,23 @@ public final class DisymAcEquationSystem {
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pShuntGenInv);
 
                 break;
-
             }
-
         }
 
+        double espilon = 0.00001;
+        // Handle load at bus for homopolar and inverse
+        if (Math.abs(bus.getLoadTargetP()) > espilon) {
+            LoadShuntActiveEquationTerm pLoadShuntHomo = new LoadShuntActiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR).addTerm(pLoadShuntHomo);
+            LoadShuntActiveEquationTerm pLoadShuntInv = new LoadShuntActiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pLoadShuntInv);
+        }
+        if (Math.abs(bus.getLoadTargetQ()) > espilon) {
+            LoadShuntReactiveEquationTerm qLoadShuntHomo = new LoadShuntReactiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_HOMOPOLAR).addTerm(qLoadShuntHomo);
+            LoadShuntReactiveEquationTerm qLoadShuntInv = new LoadShuntReactiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE).addTerm(qLoadShuntInv);
+        }
     }
 
     private static void createBusesEquations(LfNetwork network,

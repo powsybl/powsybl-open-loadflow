@@ -167,7 +167,7 @@ public class NewtonRaphson {
             switch (v.getType()) {
                 case BUS_V:
                     network.getBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
-                    //System.out.println(">>>>>>>> UPDATE V(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
+                    System.out.println(">>>>>>>> UPDATE V(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI:
@@ -177,7 +177,7 @@ public class NewtonRaphson {
                 case BUS_V_HOMOPOLAR:
                     AsymBus asymBusVh = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
                     asymBusVh.setvHomopolar(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
-                    //System.out.println(">>>>>>>> UPDATE V_H(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
+                    System.out.println(">>>>>>>> UPDATE V_H(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI_HOMOPOLAR:
@@ -188,7 +188,7 @@ public class NewtonRaphson {
                 case BUS_V_INVERSE:
                     AsymBus asymBusVi = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
                     asymBusVi.setvInverse(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
-                    //System.out.println(">>>>>>>> UPDATE V_I(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
+                    System.out.println(">>>>>>>> UPDATE V_I(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI_INVERSE:

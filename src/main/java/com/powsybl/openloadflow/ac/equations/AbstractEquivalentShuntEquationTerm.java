@@ -5,23 +5,20 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
 
 import java.util.Objects;
 
-/**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- */
-public abstract class AbstractGeneratorShuntEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
+public abstract class AbstractEquivalentShuntEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
     //protected final LfShunt shunt;
-    protected final LfGenerator gen;
+    //protected final LfGenerator gen;
+    protected final LfBus bus;
 
     protected final Variable<AcVariableType> vVar;
 
-    protected AbstractGeneratorShuntEquationTerm(LfGenerator gen, LfBus bus, VariableSet<AcVariableType> variableSet, DisymAcSequenceType sequenceType) {
+    protected AbstractEquivalentShuntEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, DisymAcSequenceType sequenceType) {
         super(true);
-        this.gen = gen;
+        this.bus = bus;
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         AcVariableType vType = null;
@@ -47,7 +44,7 @@ public abstract class AbstractGeneratorShuntEquationTerm extends AbstractNamedEq
 
     @Override
     public int getElementNum() {
-        return gen.getBus().getNum(); // TODO : check if acceptable
+        return bus.getNum(); // TODO : check if acceptable
     }
 
     protected double v() {

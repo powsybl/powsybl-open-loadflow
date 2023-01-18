@@ -62,8 +62,7 @@ public final class GenericBranchTerm {
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
-        //return -ri * rj * vgi * vhj * (yxijgh * Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj)); // TODO : update negative sign?
-        return ri * rj * vgi * vhj * (yxijgh * Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj)); // TODO : update negative sign?
+        return ri * rj * vgi * vhj * (yxijgh * Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj));
     }
 
     public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
@@ -188,12 +187,13 @@ public final class GenericBranchTerm {
     public static double dtxdr1(int i, int j, int g, int h,
                                 double ri, double rj, double ai, double aj, double vgi, double vhj, double thgi, double thhj, double yxijgh, double yyijgh) {
         // tx = ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj)) ;
+        double tmpVal = vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj));
         if (i == 1 && g == 1 && j == 1 && h == 1) {
-            return 2 * ri * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj));
-        } else if (i == 1 && g == 1) {
-            return rj * vgi * vhj * (yxijgh * -Math.sin(ai - aj + thgi - thhj) - yyijgh * Math.cos(ai - aj + thgi - thhj));
-        } else if (j == 1 && h == 1) {
-            return ri * vgi * vhj * (yxijgh * -Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj));
+            return 2 * ri * tmpVal;
+        } else if (i == 1) {
+            return rj * vgi * vhj * tmpVal;
+        } else if (j == 1) {
+            return ri * vgi * vhj * tmpVal;
         }
         return 0;
     }
@@ -436,7 +436,7 @@ public final class GenericBranchTerm {
         } else if (j == 1) {
             return ri * vgi * vhj * tmpTerm;
         }
-        return 0; // TODO : check shoyuld never be 0
+        return 0; // TODO : check should never be 0
     }
 
     public static double dtydv1i(int i, int j, int g, int h,
