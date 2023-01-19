@@ -146,9 +146,14 @@ public enum NetworkCache {
         private boolean onShuntUpdate(ShuntCompensator shunt, String attribute) {
             return onInjectionUpdate(shunt, attribute, (context, lfBus) -> {
                 if (attribute.equals("sectionCount")) {
-                    LfShunt lfShunt = lfBus.getShunt().orElseThrow();
-                    lfShunt.reInit();
-                    return true;
+                    if (!lfBus.getControllerShunt().isPresent()) {
+                        LfShunt lfShunt = lfBus.getShunt().orElseThrow();
+                        lfShunt.reInit();
+                        return true;
+                    } else {
+                        LOGGER.info("Shunt compensator {} is controlling voltage or connected to a bus containing a shunt compensator" +
+                                "with an active voltage control: not supported", shunt.getId());
+                    }
                 }
                 return false;
             });

@@ -203,4 +203,40 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(0, shunt.getTerminal());
         assertReactivePowerEquals(-152.826, shunt.getTerminal());
     }
+
+    @Test
+    void testShunt2() {
+        var network = ShuntNetworkFactory.create();
+        var shunt = network.getShuntCompensator("SHUNT");
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        loadFlowRunner.run(network, parameters); // Run a first LF before changing a parameter.
+        parameters.setSimulShunt(true);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        loadFlowRunner.run(network, parameters);
+        assertActivePowerEquals(0, shunt.getTerminal());
+        assertReactivePowerEquals(-152.826, shunt.getTerminal());
+        assertEquals(1, shunt.getSectionCount());
+
+        shunt.setSectionCount(0);
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has been invalidated
+    }
+
+    @Test
+    void testShunt3() {
+        var network = ShuntNetworkFactory.createWithTwoShuntCompensators();
+        var shunt = network.getShuntCompensator("SHUNT"); // with voltage control capabilities.
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        loadFlowRunner.run(network, parameters);
+        parameters.setSimulShunt(true);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        loadFlowRunner.run(network, parameters);
+        assertActivePowerEquals(0, shunt.getTerminal());
+        assertReactivePowerEquals(-152.826, shunt.getTerminal());
+        assertEquals(1, shunt.getSectionCount());
+
+        shunt.setSectionCount(1);
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has been invalidated
+    }
 }

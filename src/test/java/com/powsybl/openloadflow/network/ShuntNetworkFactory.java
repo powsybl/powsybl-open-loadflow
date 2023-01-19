@@ -112,4 +112,29 @@ public final class ShuntNetworkFactory {
                 .add();
         return network;
     }
+
+    public static Network createWithTwoShuntCompensators() {
+        Network network = create();
+        VoltageLevel vl3 = network.getVoltageLevel("vl3");
+        vl3.newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(false)
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(1e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(3e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+        return network;
+    }
 }
