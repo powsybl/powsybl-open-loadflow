@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalAdder;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.joda.time.DateTime;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -97,7 +96,6 @@ public class DisymTest {
         assertReactivePowerEquals(-1, line1.getTerminal2());
     }*/
 
-    @Disabled
     @Test
     void fourNodesBalancedTest() {
 
@@ -113,7 +111,7 @@ public class DisymTest {
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setDisym(true);
+                .setDisym(false);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
