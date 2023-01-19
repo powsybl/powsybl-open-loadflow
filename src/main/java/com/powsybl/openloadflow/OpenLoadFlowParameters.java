@@ -777,12 +777,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
 
         return new AcLoadFlowParameters(networkParameters,
-                equationSystemCreationParameters,
-                newtonRaphsonParameters,
-                outerLoops,
-                matrixFactory,
-                voltageInitializer,
-                parametersExt.isDisym());
+                                        equationSystemCreationParameters,
+                                        newtonRaphsonParameters,
+                                        outerLoops,
+                                        matrixFactory,
+                                        voltageInitializer,
+                                        parametersExt.isDisym());
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
