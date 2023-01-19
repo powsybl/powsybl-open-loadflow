@@ -597,6 +597,104 @@ class AcLoadFlowShuntTest {
         assertEquals(9, shuntCompensator3.getSectionCount());
     }
 
+    @Test
+    void testOppositeSignBIncremental() {
+        ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(1)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(-1e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(-3e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390.931, bus3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(0, shunt2.getSectionCount());
+    }
+
+    @Test
+    void testNonLinearControlersIncremental() {
+        shunt.setVoltageRegulatorOn(false);
+        ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(1)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(-3e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(4e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+        ShuntCompensator shunt3 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT3")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(1)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(-3e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(4e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390.930, bus3);
+        assertEquals(0, shunt.getSectionCount());
+        assertEquals(2, shunt2.getSectionCount());
+        assertEquals(1, shunt3.getSectionCount());
+
+        shunt2.setSectionCount(1);
+        shunt2.setTargetDeadband(2.0);
+        shunt3.setSectionCount(1);
+        shunt3.setTargetDeadband(2.0);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        // FIX ME
+        //assertVoltageEquals(390.931, bus3);
+        //assertEquals(0, shunt.getSectionCount());
+        //assertEquals(2, shunt2.getSectionCount());
+        //assertEquals(2, shunt3.getSectionCount());
+    }
+
     /*
     @Test
     void testIncrementalVoltageControlLargeDeadBand() {

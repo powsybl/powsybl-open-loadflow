@@ -34,6 +34,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalShuntVoltageControlOuterLoop.class);
 
+    // Maximum number of directional inversions for each controler during incremental outerloop
     private static final int MAX_DIRECTION_CHANGE = 2;
 
     private static final class ControllerContext {
@@ -118,11 +119,11 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                         .calculateSensi(sensitivities, controllerShuntIndex[controllerShunt.getNum()]);
                 // FIX ME: Not safe casting
                 LfShuntImpl controllerShuntImpl = (LfShuntImpl) controllerShunt;
-                double targetDeadband = controllerShuntImpl.getShuntVoltageControlTargetDeadband().orElse(null);
                 // Not very efficient because sorting is performed at each iteration. However, in practical should not be an issue.
                 // Considering storing the controlers sorted already as same order is used everywhere else
                 for (LfShuntImpl.Controller controller : controllerShuntImpl.getControllers().stream().sorted(Comparator.comparing(LfShuntImpl.Controller::getBMagnitude)).collect(Collectors.toList())) {
                     var controllerContext = contextData.getControllersContexts().get(controller.getId());
+                    double targetDeadband = controller.getShuntVoltageControlTargetDeadband().orElse(null);
                     if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
                         double previousB = controller.getB();
                         double deltaB = remainingDiffV / sensitivity;
@@ -132,7 +133,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                             remainingDiffV -= (controller.getB() - previousB) * sensitivity;
                             hasChanged = true;
                             status.setValue(OuterLoopStatus.UNSTABLE);
-                            LOGGER.debug("Increment shunt susceptance of '{}': {} -> {}", controller.getId(), previousB, controller.getB());
+                            LOGGER.debug("Increment shunt susceptance value of '{}': {} -> {}", controller.getId(), previousB, controller.getB());
                         }
                     } else {
                         LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(), targetDeadband, Math.abs(diffV));
