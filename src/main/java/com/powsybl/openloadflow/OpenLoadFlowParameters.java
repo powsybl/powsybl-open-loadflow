@@ -16,12 +16,10 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.ac.equations.DisymAcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.StateVectorScalingMode;
 import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.DisymAcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
@@ -228,6 +226,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private StateVectorScalingMode stateVectorScalingMode = NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE;
 
     private int maxSlackBusCount = LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT;
+
+    private boolean disym = false;
 
     @Override
     public String getName() {
@@ -467,6 +467,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxSlackBusCount(int maxSlackBusCount) {
         this.maxSlackBusCount = LfNetworkParameters.checkMaxSlackBusCount(maxSlackBusCount);
+        return this;
+    }
+
+    public boolean isDisym() {
+        return disym;
+    }
+
+    public OpenLoadFlowParameters setDisym(boolean disym) {
+        this.disym = disym;
         return this;
     }
 
@@ -736,49 +745,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, false, false);
     }
 
-    public static DisymAcLoadFlowParameters createDisymAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        return createDisymAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, false, false);
-    }
-
-    public static DisymAcLoadFlowParameters createDisymAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                          MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                          boolean breakers, boolean forceA1Var) {
-        DisymAcLoadFlowParameters acParameters = createDisymAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, breakers, forceA1Var);
-        if (parameters.isReadSlackBus()) {
-            acParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, acParameters.getNetworkParameters().getSlackBusSelector()));
-        }
-        return acParameters;
-    }
-
-    public static DisymAcLoadFlowParameters createDisymAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
-                                                                                    MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
-                                                                                    boolean breakers, boolean forceA1Var) {
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
-
-        var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
-
-        var equationSystemCreationParameters = new DisymAcEquationSystemCreationParameters(forceA1Var);
-
-        VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
-
-        var newtonRaphsonParameters = new NewtonRaphsonParameters()
-                .setStoppingCriteria(new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq()))
-                .setMaxIteration(parametersExt.getMaxIteration())
-                .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
-                .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage());
-
-        OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
-        List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
-
-        return new DisymAcLoadFlowParameters(networkParameters,
-                                        equationSystemCreationParameters,
-                                        newtonRaphsonParameters,
-                                        outerLoops,
-                                        matrixFactory,
-                                        voltageInitializer);
-    }
-
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
@@ -815,7 +781,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 newtonRaphsonParameters,
                 outerLoops,
                 matrixFactory,
-                voltageInitializer);
+                voltageInitializer,
+                parametersExt.isDisym());
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

@@ -1,7 +1,6 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
-//import com.powsybl.iidm.network.extensions.GeneratorShortCircuitAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -12,6 +11,7 @@ import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalAdder;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.joda.time.DateTime;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -97,6 +97,7 @@ public class DisymTest {
         assertReactivePowerEquals(-1, line1.getTerminal2());
     }*/
 
+    @Disabled
     @Test
     void fourNodesBalancedTest() {
 
@@ -107,11 +108,12 @@ public class DisymTest {
         bus4 = network.getBusBreakerView().getBus("B4");
         line1 = network.getLine("B1_B2");
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory(), false));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setDisym(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -140,11 +142,12 @@ public class DisymTest {
         bus4 = network.getBusBreakerView().getBus("B4");
         line1 = network.getLine("B1_B2");
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory(), true));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setDisym(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());

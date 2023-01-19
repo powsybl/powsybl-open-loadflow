@@ -23,7 +23,10 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.*;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -61,8 +64,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private boolean forcePhaseControlOffAndAddAngle1Var = false; // just for unit testing
 
-    private boolean isDisym = false;
-
     public OpenLoadFlowProvider() {
         this(new SparseMatrixFactory());
     }
@@ -74,20 +75,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     public OpenLoadFlowProvider(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
-    }
-
-    public OpenLoadFlowProvider(boolean isDisym) {
-        this(new SparseMatrixFactory(), isDisym);
-    }
-
-    public OpenLoadFlowProvider(MatrixFactory matrixFactory, boolean isDisym) {
-        this(matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>(), isDisym);
-    }
-
-    public OpenLoadFlowProvider(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, boolean isDisym) {
-        this.matrixFactory = Objects.requireNonNull(matrixFactory);
-        this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
-        this.isDisym = isDisym;
     }
 
     public void setForcePhaseControlOffAndAddAngle1Var(boolean forcePhaseControlOffAndAddAngle1Var) {
@@ -175,75 +162,6 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private LoadFlowResult runDisymAc(Network network, LoadFlowParameters parameters, Reporter reporter) {
-
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("run of Disym AC load flow: {}");
-        }
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
-        OpenLoadFlowParameters.logAc(parameters, parametersExt);
-
-        DisymAcLoadFlowParameters acParameters = OpenLoadFlowParameters.createDisymAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory);
-
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Outer loops: {}", acParameters.getOuterLoops().stream().map(OuterLoop::getType).collect(Collectors.toList()));
-        }
-
-        List<DisymAcLoadFlowResult> results = DisymAcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
-
-        Networks.resetState(network);
-
-        boolean ok = results.stream().anyMatch(result -> result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED);
-        // reset slack buses if at least one component has converged
-        if (ok && parameters.isWriteSlackBus()) {
-            SlackTerminal.reset(network);
-        }
-
-        List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
-        for (DisymAcLoadFlowResult result : results) {
-            // update network state
-            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                var updateParameters = new LfNetworkStateUpdateParameters(!parameters.isNoGeneratorReactiveLimits(),
-                        parameters.isWriteSlackBus(),
-                        parameters.isPhaseShifterRegulationOn(),
-                        parameters.isTransformerVoltageControlOn(),
-                        parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
-                        parameters.isDc());
-                result.getNetwork().updateState(updateParameters);
-
-                // zero or low impedance branch flows computation
-                computeZeroImpedanceFlows(result.getNetwork(), parameters.isDc());
-            }
-
-            LoadFlowResult.ComponentResult.Status status;
-            switch (result.getNewtonRaphsonStatus()) {
-                case CONVERGED:
-                    status = LoadFlowResult.ComponentResult.Status.CONVERGED;
-                    break;
-                case MAX_ITERATION_REACHED:
-                    status = LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-                    break;
-                case SOLVER_FAILED:
-                    status = LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-                    break;
-                default:
-                    status = LoadFlowResult.ComponentResult.Status.FAILED;
-                    break;
-            }
-            // FIXME a null slack bus ID should be allowed
-            String slackBusId = result.getNetwork().isValid() ? result.getNetwork().getSlackBus().getId() : "";
-            componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
-                    result.getNetwork().getNumSC(),
-                    status,
-                    result.getNewtonRaphsonIterations(),
-                    slackBusId,
-                    result.getSlackBusActivePowerMismatch() * PerUnit.SB,
-                    result.getDistributedActivePower() * PerUnit.SB));
-        }
-
-        return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
-    }
-
     private void computeZeroImpedanceFlows(LfNetwork network, boolean dc) {
         Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.getZeroImpedanceNetwork(dc).getSubGraph();
         SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = network.getZeroImpedanceNetwork(dc).getSpanningTree();
@@ -316,17 +234,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 
-            /*LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, lfReporter)
-                                                      : runAc(network, parameters, lfReporter);*/
-
-            LoadFlowResult result;
-            if (parameters.isDc()) {
-                result = runDc(network, parameters, lfReporter);
-            } else if (isDisym) {
-                result = runDisymAc(network, parameters, lfReporter);
-            } else {
-                result = runAc(network, parameters, lfReporter);
-            }
+            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, lfReporter)
+                                                      : runAc(network, parameters, lfReporter);
 
             stopwatch.stop();
             LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));

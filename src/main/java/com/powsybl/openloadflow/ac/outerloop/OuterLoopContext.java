@@ -27,8 +27,4 @@ public interface OuterLoopContext {
     AcLoadFlowContext getAcLoadFlowContext();
 
     void setAcLoadFlowContext(AcLoadFlowContext acLoadFlowContext);
-
-    DisymAcLoadFlowContext getDisymAcLoadFlowContext();
-
-    void setDisymAcLoadFlowContext(DisymAcLoadFlowContext acLoadFlowContext);
 }
