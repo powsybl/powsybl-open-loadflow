@@ -30,14 +30,17 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private VoltageInitializer voltageInitializer;
 
+    private final boolean disym;
+
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
                                 NewtonRaphsonParameters newtonRaphsonParameters, List<OuterLoop> outerLoops, MatrixFactory matrixFactory,
-                                VoltageInitializer voltageInitializer) {
+                                VoltageInitializer voltageInitializer, boolean disym) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
+        this.disym = disym;
     }
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
@@ -60,6 +63,10 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
     }
 
+    public boolean isDisym() {
+        return disym;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -69,6 +76,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).collect(Collectors.toList()) +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
                 ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
+                ", disym=" + disym +
                 ')';
     }
 }

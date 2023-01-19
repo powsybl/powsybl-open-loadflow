@@ -24,7 +24,12 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
 
     public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
+    }
+
+    public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                     boolean deriveA1, boolean deriveR1, DisymAcSequenceType sequenceType) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
