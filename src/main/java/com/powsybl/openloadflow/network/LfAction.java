@@ -74,8 +74,6 @@ public final class LfAction {
         // Reference to the generator
         private final LfGenerator generator;
 
-        private final Optional<Boolean> relativeActivePower;
-
         private final Optional<Double> activePowerValue;
 
         private final Optional<Boolean> voltageRegulation;
@@ -84,10 +82,9 @@ public final class LfAction {
 
         private final Optional<Double> targetQ;
 
-        private GeneratorUpdates(LfGenerator generator, Optional<Boolean> relativeActivePower, Optional<Double> activePowerValue,
+        private GeneratorUpdates(LfGenerator generator, Optional<Double> activePowerValue,
                                  Optional<Boolean> voltageRegulation, Optional<Double> targetV, Optional<Double> targetQ) {
             this.generator = generator;
-            this.relativeActivePower = relativeActivePower;
             this.activePowerValue = activePowerValue;
             this.voltageRegulation = voltageRegulation;
             this.targetV = targetV;
@@ -96,10 +93,6 @@ public final class LfAction {
 
         public LfGenerator getGenerator() {
             return generator;
-        }
-
-        public Optional<Boolean> isRelativeActivePower() {
-            return relativeActivePower;
         }
 
         public Optional<Double> getActivePowerValue() {
@@ -117,6 +110,7 @@ public final class LfAction {
         public Optional<Double> getTargetQ() {
             return targetQ;
         }
+
     }
 
     private final String id;
@@ -233,7 +227,24 @@ public final class LfAction {
     private static Optional<LfAction> create(GeneratorAction action, LfNetwork network) {
         LfGenerator generator = network.getGeneratorById(action.getGeneratorId());
         if (generator != null) {
-            var generatorUpdates = new GeneratorUpdates(generator, action.isActivePowerRelativeValue(), action.getActivePowerValue(), action.isVoltageRegulatorOn(), action.getTargetV(), action.getTargetQ());
+            Optional<Double> newTargetP = Optional.empty();
+            if (action.getActivePowerValue().isPresent()) {
+                boolean relativeValue = action.isActivePowerRelativeValue().isPresent() & action.isActivePowerRelativeValue().get();
+                newTargetP = Optional.of(action.getActivePowerValue().get() / PerUnit.SB + (relativeValue ? generator.getTargetP() : 0d));
+            }
+
+            Optional<Double> newTargetQ = Optional.empty();
+            if (action.getTargetQ().isPresent()) {
+                newTargetQ = Optional.of(action.getTargetQ().get() / PerUnit.SB);
+            }
+
+            Optional<Double> newTargetV = Optional.empty();
+            if (action.getTargetV().isPresent()) {
+                newTargetV = Optional.of(action.getTargetV().get() / generator.getControlledBus().getNominalV());
+            }
+
+            //var generatorUpdates = new GeneratorUpdates(generator, action.isActivePowerRelativeValue(), action.getActivePowerValue(), action.isVoltageRegulatorOn(), action.getTargetV(), action.getTargetQ());
+            var generatorUpdates = new GeneratorUpdates(generator, newTargetP, action.isVoltageRegulatorOn(), newTargetV, newTargetQ);
             return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorUpdates));
         }
         return Optional.empty();
@@ -340,11 +351,7 @@ public final class LfAction {
 
         if (generatorUpdates != null) {
             generatorUpdates.getActivePowerValue().ifPresent(activePowerValue -> {
-                double newActivePowerValue = activePowerValue; // Is default to be relative or absolute ?
-                if (generatorUpdates.isRelativeActivePower().isPresent() && generatorUpdates.isRelativeActivePower().get()) {
-                    newActivePowerValue += generatorUpdates.getGenerator().getTargetP();
-                }
-                generatorUpdates.getGenerator().setTargetP(newActivePowerValue);
+                generatorUpdates.getGenerator().setTargetP(activePowerValue);
             });
 
             generatorUpdates.isVoltageRegulation().ifPresent(voltageRegulationOn ->
