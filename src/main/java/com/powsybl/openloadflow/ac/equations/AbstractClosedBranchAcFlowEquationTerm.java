@@ -37,16 +37,44 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
+    private static AcVariableType getVoltageMagnitudeType(DisymAcSequenceType sequenceType) {
+        switch (sequenceType) {
+            case DIRECT:
+                return AcVariableType.BUS_V;
+            case INVERSE:
+                return AcVariableType.BUS_V_INVERSE;
+            case HOMOPOLAR:
+                return AcVariableType.BUS_V_HOMOPOLAR;
+            default:
+                throw new IllegalStateException("Unknown sequence type " + sequenceType);
+        }
+    }
+
+    private static AcVariableType getVoltageAngleType(DisymAcSequenceType sequenceType) {
+        switch (sequenceType) {
+            case DIRECT:
+                return AcVariableType.BUS_PHI;
+            case INVERSE:
+                return AcVariableType.BUS_PHI_INVERSE;
+            case HOMOPOLAR:
+                return AcVariableType.BUS_PHI_HOMOPOLAR;
+            default:
+                throw new IllegalStateException("Unknown sequence type " + sequenceType);
+        }
+    }
+
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1) {
+                                                     boolean deriveA1, boolean deriveR1, DisymAcSequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
-        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
-        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
-        ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
-        ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
+        AcVariableType vType = getVoltageMagnitudeType(sequenceType);
+        AcVariableType angleType = getVoltageAngleType(sequenceType);
+        v1Var = variableSet.getVariable(bus1.getNum(), vType);
+        v2Var = variableSet.getVariable(bus2.getNum(), vType);
+        ph1Var = variableSet.getVariable(bus1.getNum(), angleType);
+        ph2Var = variableSet.getVariable(bus2.getNum(), angleType);
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
         variables.add(v1Var);

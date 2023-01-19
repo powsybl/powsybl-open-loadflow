@@ -731,24 +731,24 @@ public final class DisymAcEquationSystem {
             if (!disconnectionAsymmetry) {
                 // no assymmetry is detected with this line, we handle the equations as decoupled
                 // direct
-                p1 = new ClosedBranchSide1ActiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
-                q1 = new ClosedBranchSide1ReactiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
-                p2 = new ClosedBranchSide2ActiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
-                q2 = new ClosedBranchSide2ReactiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
+                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
+                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
+                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
+                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
                 i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
 
                 // homopolar
-                ph1 = new ClosedBranchSide1ActiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
-                qh1 = new ClosedBranchSide1ReactiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
-                ph2 = new ClosedBranchSide2ActiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
-                qh2 = new ClosedBranchSide2ReactiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
+                ph1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
+                qh1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
+                ph2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
+                qh2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
 
                 // inverse
-                pi1 = new ClosedBranchSide1ActiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
-                qi1 = new ClosedBranchSide1ReactiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
-                pi2 = new ClosedBranchSide2ActiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
-                qi2 = new ClosedBranchSide2ReactiveFlowDisymDecoupledEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
+                pi1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
+                qi1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
+                pi2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
+                qi2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
                 // direct

@@ -25,7 +25,12 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
 
     public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                          boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
+    }
+
+    public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                         boolean deriveA1, boolean deriveR1, DisymAcSequenceType sequenceType) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
 
     @Override
