@@ -703,7 +703,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     .attr(GraphVizAttribute.shape, "ellipse")
                     .attr(GraphVizAttribute.style, "filled")
                     .attr(GraphVizAttribute.fontsize, "10");
-
         }
         for (LfBranch branch : branches) {
             LfBus bus1 = branch.getBus1();
