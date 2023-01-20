@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.PerUnit;
 import org.anarres.graphviz.builder.GraphVizAttribute;
 import org.anarres.graphviz.builder.GraphVizEdge;
 import org.anarres.graphviz.builder.GraphVizGraph;
@@ -28,13 +29,13 @@ public class GraphVizGraphBuilder {
         StringBuilder builder = new StringBuilder(bus.getId());
         if (bus.getGenerationTargetP() != 0 || bus.getGenerationTargetQ() != 0) {
             builder.append("\ngen=")
-                    .append(String.format("%.1f", bus.getGenerationTargetP())).append(" MW ")
-                    .append(String.format("%.1f", bus.getGenerationTargetQ())).append(" MVar");
+                    .append(String.format("%.1f", bus.getGenerationTargetP() * PerUnit.SB)).append(" MW ")
+                    .append(String.format("%.1f", bus.getGenerationTargetQ() * PerUnit.SB)).append(" MVar");
         }
         if (bus.getLoadTargetP() != 0 || bus.getLoadTargetQ() != 0) {
             builder.append("\nload=")
-                    .append(String.format("%.1f", bus.getLoadTargetP())).append(" MW ")
-                    .append(String.format("%.1f", bus.getLoadTargetQ())).append(" MVar");
+                    .append(String.format("%.1f", bus.getLoadTargetP() * PerUnit.SB)).append(" MW ")
+                    .append(String.format("%.1f", bus.getLoadTargetQ() * PerUnit.SB)).append(" MVar");
         }
         return builder.toString();
     }
