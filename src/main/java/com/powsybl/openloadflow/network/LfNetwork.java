@@ -691,7 +691,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private String getEdgeColor(LfBranch branch, boolean dc) {
-        return branch.isZeroImpedance(dc) && branch.isSpanningTreeEdge(dc) ? "red" : "black";
+        if (branch.isZeroImpedance(dc)) {
+            return branch.isSpanningTreeEdge(dc) ? "red" : "green";
+        }
+        return "black";
     }
 
     public GraphVizGraph createGraphViz(boolean dc) {
