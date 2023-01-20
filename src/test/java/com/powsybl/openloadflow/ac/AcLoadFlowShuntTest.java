@@ -587,16 +587,15 @@ class AcLoadFlowShuntTest {
         assertEquals(1, shunt3.getSectionCount());
 
         shunt2.setSectionCount(1);
-        shunt2.setTargetDeadband(2.0);
+        shunt2.setTargetV(408.0);
         shunt3.setSectionCount(1);
-        shunt3.setTargetDeadband(2.0);
+        shunt3.setTargetV(408.0);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
-        // FIX ME
-        //assertVoltageEquals(390.931, bus3);
-        //assertEquals(0, shunt.getSectionCount());
-        //assertEquals(2, shunt2.getSectionCount());
-        //assertEquals(2, shunt3.getSectionCount());
+        assertVoltageEquals(408.150, bus3);
+        assertEquals(0, shunt.getSectionCount());
+        assertEquals(2, shunt2.getSectionCount());
+        assertEquals(2, shunt3.getSectionCount());
     }
 
     /*
