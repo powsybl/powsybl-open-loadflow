@@ -36,4 +36,6 @@ public interface LfShunt extends LfElement {
     Optional<ShuntVoltageControl> getVoltageControl();
 
     void setVoltageControl(ShuntVoltageControl voltageControl);
+
+    void reInit();
 }
