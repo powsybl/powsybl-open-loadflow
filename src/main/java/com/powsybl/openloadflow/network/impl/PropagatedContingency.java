@@ -299,7 +299,7 @@ public class PropagatedContingency {
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
-        int nbSynchronousComponents = connectivity.getNbConnectedComponents();
+        int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
         Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
 
@@ -353,6 +353,6 @@ public class PropagatedContingency {
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, nbSynchronousComponents, buses, branches, shunts, busesLoadShift, generators, hvdcs, originalPowerShiftIds));
+        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, buses, branches, shunts, busesLoadShift, generators, hvdcs, originalPowerShiftIds));
     }
 }

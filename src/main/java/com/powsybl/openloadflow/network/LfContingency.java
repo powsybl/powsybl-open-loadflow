@@ -29,7 +29,7 @@ public class LfContingency {
 
     private final int index;
 
-    private final int nbSynchronousComponents;
+    private final int createdSynchronousComponentsCount;
 
     private final Set<LfBus> disabledBuses;
 
@@ -51,11 +51,11 @@ public class LfContingency {
 
     private Set<String> disconnectedElements;
 
-    public LfContingency(String id, int index, int nbSynchronousComponents, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Map<LfShunt, AdmittanceShift> shuntsShift,
+    public LfContingency(String id, int index, int createdSynchronousComponentsCount, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Map<LfShunt, AdmittanceShift> shuntsShift,
                          Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> lostGenerators, Set<LfHvdc> disabledHvdcs, Set<String> originalPowerShiftIds) {
         this.id = Objects.requireNonNull(id);
         this.index = index;
-        this.nbSynchronousComponents = nbSynchronousComponents;
+        this.createdSynchronousComponentsCount = createdSynchronousComponentsCount;
         this.disabledBuses = Objects.requireNonNull(disabledBuses);
         this.disabledBranches = Objects.requireNonNull(disabledBranches);
         this.disabledHvdcs = Objects.requireNonNull(disabledHvdcs);
@@ -92,8 +92,8 @@ public class LfContingency {
         return index;
     }
 
-    public int getNbSynchronousComponents() {
-        return nbSynchronousComponents;
+    public int getCreatedSynchronousComponentsCount() {
+        return createdSynchronousComponentsCount;
     }
 
     public Set<LfBus> getDisabledBuses() {

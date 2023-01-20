@@ -248,7 +248,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         LOGGER.info("Post contingency '{}' simulation done on network {} in {} ms", lfContingency.getId(),
                 network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        var connectivityResult = new ConnectivityResult(lfContingency.getNbSynchronousComponents() - 1,
+        var connectivityResult = new ConnectivityResult(lfContingency.getCreatedSynchronousComponentsCount(),
                 0, lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
                 lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB, lfContingency.getDisconnectedElements());
 
