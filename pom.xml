@@ -105,6 +105,10 @@
             <artifactId>slf4j-toys</artifactId>
             <version>${slf4jtoys.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.anarres.graphviz</groupId>
+            <artifactId>graphviz-builder</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.powsybl</groupId>

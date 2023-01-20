@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
+import org.anarres.graphviz.builder.*;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
@@ -681,9 +682,42 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
+    public void writeGraphViz(Writer writer) {
+        try {
+            createGraphViz().writeTo(writer);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public GraphVizGraph createGraphViz() {
+        GraphVizGraph graph = new GraphVizGraph().label(getId());
+        GraphVizScope scope = new GraphVizScope.Impl();
+        for (LfBus bus : busesByIndex) {
+            graph.node(scope, bus.getNum())
+                    .label(bus.getId())
+                    .attr(GraphVizAttribute.shape, "ellipse")
+                    .attr(GraphVizAttribute.style, "filled")
+                    .attr(GraphVizAttribute.fontsize, "10");
+
+        }
+        for (LfBranch branch : branches) {
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 != null && bus2 != null) {
+                graph.edge(scope, bus1.getNum(), bus2.getNum())
+                        .label().append(branch.getId());
+            }
+        }
+        return graph;
+    }
+
+    public String getId() {
+        return "{CC" + numCC + " SC" + numSC + '}';
+    }
+
     @Override
     public String toString() {
-        return "{CC" + numCC +
-            " SC" + numSC + '}';
+        return getId();
     }
 }

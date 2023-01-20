@@ -1,0 +1,12 @@
+digraph G {
+	node [shape=box];
+	compound=true;
+	label="\{CC0 SC0\}";
+	n0 [label="VLGEN_0",shape="ellipse",style="filled",fontsize="10"];
+	n1 [label="VLHV1_0",shape="ellipse",style="filled",fontsize="10"];
+	n2 [label="VLHV2_0",shape="ellipse",style="filled",fontsize="10"];
+	n3 [label="VLLOAD_0",shape="ellipse",style="filled",fontsize="10"];
+	n0 -> n1 [label="NGEN_NHV1"];
+	n2 -> n3 [label="NHV2_NLOAD"];
+	n1 -> n2 [label="NHV1_NHV2_1NHV1_NHV2_2"];
+}
