@@ -705,7 +705,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             if (bus1 != null && bus2 != null) {
-                graph.edge(scope, bus1.getNum(), bus2.getNum())
+                graph.edge(scope, bus1.getNum(), bus2.getNum(), branch.getNum())
                         .label().append(branch.getId());
             }
         }

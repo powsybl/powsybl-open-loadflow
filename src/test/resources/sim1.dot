@@ -7,6 +7,7 @@ digraph G {
 	n2 [label="VLHV2_0",shape="ellipse",style="filled",fontsize="10"];
 	n3 [label="VLLOAD_0",shape="ellipse",style="filled",fontsize="10"];
 	n0 -> n1 [label="NGEN_NHV1"];
-	n1 -> n2 [label="NHV1_NHV2_1NHV1_NHV2_2"];
+	n1 -> n2 [label="NHV1_NHV2_1"];
+	n1 -> n2 [label="NHV1_NHV2_2"];
 	n2 -> n3 [label="NHV2_NLOAD"];
 }
