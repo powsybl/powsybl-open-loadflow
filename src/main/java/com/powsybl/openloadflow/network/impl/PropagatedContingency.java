@@ -304,6 +304,10 @@ public class PropagatedContingency {
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
                 .forEach(connectivity::removeEdge);
 
+        network.getBranches().stream().filter(branch -> branch.isZeroImpedance(false) && !branch.isSpanningTreeEdge(false))
+                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .forEach(connectivity::removeEdge);
+
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();

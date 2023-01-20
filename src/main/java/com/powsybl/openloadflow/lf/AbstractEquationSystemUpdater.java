@@ -39,6 +39,7 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
 
     protected void updateElementEquations(LfElement element, boolean enable) {
         if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedance(dc) && ((LfBranch) element).isSpanningTreeEdge(dc)) {
+            System.out.println(element.getId());
             updateNonImpedantBranchEquations((LfBranch) element, enable);
         } else {
             // update all equations related to the element

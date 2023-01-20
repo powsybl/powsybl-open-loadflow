@@ -128,6 +128,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     private void initMatrix() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
+        System.out.println(equationSystem.writeToString());
         int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getIndex().getSortedVariablesToFind().size();
         if (rowCount != columnCount) {

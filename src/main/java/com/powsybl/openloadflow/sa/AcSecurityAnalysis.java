@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
@@ -41,6 +42,8 @@ import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
 import com.powsybl.security.strategy.OperatorStrategy;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -165,6 +168,15 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
 
                                 distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+
+                                StringWriter writer = new StringWriter();
+                                lfNetwork.writeGraphViz(writer, false);
+                                writer.flush();
+                                System.out.println(writer.toString());
+
+                                for (LfBranch branch : lfNetwork.getBranches()) {
+                                    System.out.println(branch.getId() + " " + branch.getNum());
+                                }
 
                                 var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
                                                                                          lfContingency, preContingencyLimitViolationManager,

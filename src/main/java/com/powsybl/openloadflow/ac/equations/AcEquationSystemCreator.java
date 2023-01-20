@@ -336,6 +336,7 @@ public class AcEquationSystemCreator {
             bus1.setCalculatedV(vTerm);
             // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
+            System.out.println("dummy_q " + branch.getNum() + " " + branch.getId());
             var dummyQ = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q);
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
                     .orElseThrow()
