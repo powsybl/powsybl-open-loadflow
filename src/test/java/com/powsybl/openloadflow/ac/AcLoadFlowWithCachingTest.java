@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.iidm.xml.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -235,5 +236,19 @@ class AcLoadFlowWithCachingTest {
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(301.884, l1.getTerminal1());
         assertActivePowerEquals(301.884, l2.getTerminal1());
+    }
+
+    @Test
+    void testSwitchOpeningIssue() {
+        var network = MetrixTutorialSixBusesFactory.create();
+        for (Switch sw : network.getSwitches()) {
+            sw.setRetained(sw.getId().equals("SOO1_SOO1_DJ_OMN"));
+        }
+        var c = network.getSwitch("SOO1_SOO1_DJ_OMN");
+        c.setOpen(false);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        c.setOpen(true);
+        result = loadFlowRunner.run(network, parameters);
     }
 }
