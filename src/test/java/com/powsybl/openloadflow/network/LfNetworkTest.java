@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.google.common.io.ByteStreams;
 import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.iidm.network.ComponentConstants;
@@ -29,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -185,8 +183,7 @@ class LfNetworkTest extends AbstractConverterTest {
         try (StringWriter writer = new StringWriter()) {
             lfNetwork.writeGraphViz(writer);
             writer.flush();
-            assertEquals(new String(ByteStreams.toByteArray(Objects.requireNonNull(getClass().getResourceAsStream("/sim1.dot"))), StandardCharsets.UTF_8),
-                    writer.toString());
+            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/sim1.dot")), writer.toString());
         }
     }
 }
