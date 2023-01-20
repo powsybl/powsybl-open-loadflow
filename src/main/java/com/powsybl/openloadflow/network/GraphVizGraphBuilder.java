@@ -28,12 +28,12 @@ public class GraphVizGraphBuilder {
         StringBuilder builder = new StringBuilder(bus.getId());
         if (bus.getGenerationTargetP() != 0 || bus.getGenerationTargetQ() != 0) {
             builder.append("\ngen=")
-                    .append(String.format("%.1f", bus.getGenerationTargetP())).append(" MW, ")
+                    .append(String.format("%.1f", bus.getGenerationTargetP())).append(" MW ")
                     .append(String.format("%.1f", bus.getGenerationTargetQ())).append(" MVar");
         }
         if (bus.getLoadTargetP() != 0 || bus.getLoadTargetQ() != 0) {
             builder.append("\nload=")
-                    .append(String.format("%.1f", bus.getLoadTargetP())).append(" MW, ")
+                    .append(String.format("%.1f", bus.getLoadTargetP())).append(" MW ")
                     .append(String.format("%.1f", bus.getLoadTargetQ())).append(" MVar");
         }
         return builder.toString();
