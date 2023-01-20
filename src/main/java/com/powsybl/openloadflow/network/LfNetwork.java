@@ -682,15 +682,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    public void writeGraphViz(Writer writer) {
+    public void writeGraphViz(Writer writer, boolean dc) {
         try {
-            createGraphViz().writeTo(writer);
+            createGraphViz(dc).writeTo(writer);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    public GraphVizGraph createGraphViz() {
+    private String getEdgeColor(LfBranch branch, boolean dc) {
+        return branch.isZeroImpedance(dc) && branch.isSpanningTreeEdge(dc) ? "red" : "black";
+    }
+
+    public GraphVizGraph createGraphViz(boolean dc) {
         GraphVizGraph graph = new GraphVizGraph().label(getId());
         GraphVizScope scope = new GraphVizScope.Impl();
         for (LfBus bus : busesByIndex) {
@@ -705,8 +709,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             if (bus1 != null && bus2 != null) {
-                graph.edge(scope, bus1.getNum(), bus2.getNum(), branch.getNum())
-                        .label().append(branch.getId());
+                GraphVizEdge edge = graph.edge(scope, bus1.getNum(), bus2.getNum(), branch.getNum());
+                edge.label().append(branch.getId());
+                edge.attr(GraphVizAttribute.fillcolor, getEdgeColor(branch, dc));
             }
         }
         return graph;

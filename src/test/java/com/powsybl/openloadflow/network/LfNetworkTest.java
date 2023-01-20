@@ -181,7 +181,7 @@ class LfNetworkTest extends AbstractConverterTest {
         Network network = EurostagTutorialExample1Factory.create();
         LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters()).get(0);
         try (StringWriter writer = new StringWriter()) {
-            lfNetwork.writeGraphViz(writer);
+            lfNetwork.writeGraphViz(writer, false);
             writer.flush();
             ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/sim1.dot")), writer.toString());
         }
