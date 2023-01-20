@@ -47,6 +47,7 @@
         <jafama.version>2.3.2</jafama.version>
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
+        <graphviz-builder.version>1.0.12</graphviz-builder.version>
 
         <powsybl-core.version>5.1.0-RC1</powsybl-core.version>
     </properties>
@@ -108,6 +109,7 @@
         <dependency>
             <groupId>org.anarres.graphviz</groupId>
             <artifactId>graphviz-builder</artifactId>
+            <version>${graphviz-builder.version}</version>
         </dependency>
 
         <dependency>
