@@ -682,6 +682,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
+    public void writeGraphViz(Path file, boolean dc) {
+        try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+            writeGraphViz(writer, dc);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     public void writeGraphViz(Writer writer, boolean dc) {
         try {
             GraphVizGraph gvGraph = new GraphVizGraphBuilder(this).build(dc);
