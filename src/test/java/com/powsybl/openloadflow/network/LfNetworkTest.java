@@ -190,5 +190,9 @@ class LfNetworkTest extends AbstractConverterTest {
     void testGraphViz() throws IOException {
         testGraphViz(EurostagTutorialExample1Factory.create(), false, "sim1.dot");
         testGraphViz(NodeBreakerNetworkFactory.create(), true, "nb.dot");
+        // with a disconnected line
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
+        testGraphViz(network, false, "sim1_disconnected.dot");
     }
 }
