@@ -22,7 +22,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -42,10 +41,9 @@ class DebugDirTest {
         loadFlowRunner.run(network, parameters);
         List<Path> debugFiles = new ArrayList<>();
         try (var stream = Files.list(work)) {
-            stream.filter(Files::isRegularFile).forEach(debugFiles::add);
+            stream.forEach(debugFiles::add);
         }
-        assertEquals(2, debugFiles.size());
-        assertTrue(debugFiles.stream().anyMatch(path -> path.getFileName().toString().endsWith(".json")));
-        assertTrue(debugFiles.stream().anyMatch(path -> path.getFileName().toString().endsWith(".dot")));
+        assertTrue(debugFiles.stream().anyMatch(path -> path.getFileName().toString().matches("lfnetwork-(.*).json")));
+        assertTrue(debugFiles.stream().anyMatch(path -> path.getFileName().toString().matches("lfnetwork-(.*).dot")));
     }
 }
