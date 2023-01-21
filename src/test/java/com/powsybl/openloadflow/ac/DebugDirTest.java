@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -35,14 +36,16 @@ class DebugDirTest {
         var loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         FileSystem fileSystem = PlatformConfig.defaultConfig().getConfigDir().orElseThrow().getFileSystem();
-        Path work = fileSystem.getPath("/work");
+        Path debugDir = fileSystem.getPath("/work/debug");
+        Files.createDirectories(debugDir);
         OpenLoadFlowParameters.create(parameters)
-                .setDebugDir(work.toString());
+                .setDebugDir(debugDir.toString());
         loadFlowRunner.run(network, parameters);
         List<Path> debugFiles = new ArrayList<>();
-        try (var stream = Files.list(work)) {
+        try (var stream = Files.list(debugDir)) {
             stream.forEach(debugFiles::add);
         }
+        assertEquals(2, debugFiles.size());
         assertTrue(debugFiles.stream().anyMatch(path -> path.getFileName().toString().matches("lfnetwork-(.*).json")));
         assertTrue(debugFiles.stream().anyMatch(path -> path.getFileName().toString().matches("lfnetwork-(.*).dot")));
     }
