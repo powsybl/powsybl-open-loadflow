@@ -7,10 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.PerUnit;
-import org.anarres.graphviz.builder.GraphVizAttribute;
-import org.anarres.graphviz.builder.GraphVizEdge;
-import org.anarres.graphviz.builder.GraphVizGraph;
-import org.anarres.graphviz.builder.GraphVizScope;
+import org.anarres.graphviz.builder.*;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -82,7 +79,8 @@ public class GraphVizGraphBuilder {
             if (bus1 != null && bus2 != null) {
                 GraphVizEdge edge = graph.edge(scope, bus1.getNum(), bus2.getNum(), branch.getNum());
                 edge.label().append(getEdgeLabel(branch));
-                edge.attr(GraphVizAttribute.fillcolor, getEdgeColor(branch, dc));
+                edge.attr(GraphVizAttribute.color, getEdgeColor(branch, dc))
+                        .attr(GraphVizAttribute.dir, "none");
             }
         }
         return graph;

@@ -176,14 +176,19 @@ class LfNetworkTest extends AbstractConverterTest {
         assertEquals(2, result.getComponentResults().size());
     }
 
-    @Test
-    void testGraphViz() throws IOException {
-        Network network = EurostagTutorialExample1Factory.create();
-        LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters()).get(0);
+    private static void testGraphViz(Network network, boolean breakers, String ref) throws IOException {
+        LfNetworkParameters parameters = new LfNetworkParameters().setBreakers(breakers);
+        LfNetwork lfNetwork = Networks.load(network, parameters).get(0);
         try (StringWriter writer = new StringWriter()) {
             lfNetwork.writeGraphViz(writer, false);
             writer.flush();
-            ComparisonUtils.compareTxt(Objects.requireNonNull(getClass().getResourceAsStream("/sim1.dot")), writer.toString());
+            ComparisonUtils.compareTxt(Objects.requireNonNull(LfNetworkTest.class.getResourceAsStream("/" + ref)), writer.toString());
         }
+    }
+
+    @Test
+    void testGraphViz() throws IOException {
+        testGraphViz(EurostagTutorialExample1Factory.create(), false, "sim1.dot");
+        testGraphViz(NodeBreakerNetworkFactory.create(), true, "nb.dot");
     }
 }
