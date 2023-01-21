@@ -12,6 +12,7 @@ import org.anarres.graphviz.builder.GraphVizEdge;
 import org.anarres.graphviz.builder.GraphVizGraph;
 import org.anarres.graphviz.builder.GraphVizScope;
 
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -29,13 +30,13 @@ public class GraphVizGraphBuilder {
         StringBuilder builder = new StringBuilder(bus.getId());
         if (bus.getGenerationTargetP() != 0 || bus.getGenerationTargetQ() != 0) {
             builder.append("\ngen=")
-                    .append(String.format("%.1f", bus.getGenerationTargetP() * PerUnit.SB)).append(" MW ")
-                    .append(String.format("%.1f", bus.getGenerationTargetQ() * PerUnit.SB)).append(" MVar");
+                    .append(String.format(Locale.US, "%.1f", bus.getGenerationTargetP() * PerUnit.SB)).append(" MW ")
+                    .append(String.format(Locale.US, "%.1f", bus.getGenerationTargetQ() * PerUnit.SB)).append(" MVar");
         }
         if (bus.getLoadTargetP() != 0 || bus.getLoadTargetQ() != 0) {
             builder.append("\nload=")
-                    .append(String.format("%.1f", bus.getLoadTargetP() * PerUnit.SB)).append(" MW ")
-                    .append(String.format("%.1f", bus.getLoadTargetQ() * PerUnit.SB)).append(" MVar");
+                    .append(String.format(Locale.US, "%.1f", bus.getLoadTargetP() * PerUnit.SB)).append(" MW ")
+                    .append(String.format(Locale.US, "%.1f", bus.getLoadTargetQ() * PerUnit.SB)).append(" MVar");
         }
         return builder.toString();
     }
@@ -44,10 +45,10 @@ public class GraphVizGraphBuilder {
         StringBuilder builder = new StringBuilder(branch.getId());
         PiModel piModel = branch.getPiModel();
         if (piModel.getR1() != 1) {
-            builder.append("\nr1=").append(String.format("%.3f", piModel.getR1()));
+            builder.append("\nr1=").append(String.format(Locale.US, "%.3f", piModel.getR1()));
         }
         if (piModel.getA1() != 0) {
-            builder.append("\na1=").append(String.format("%.3f", piModel.getA1()));
+            builder.append("\na1=").append(String.format(Locale.US, "%.3f", piModel.getA1()));
         }
         return builder.toString();
     }
