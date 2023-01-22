@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.ShuntCompensator;
 import com.powsybl.iidm.network.ShuntCompensatorLinearModel;
 import com.powsybl.iidm.network.ShuntCompensatorModel;
@@ -109,12 +110,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
         this.voltageControlCapability = voltageControlCapability;
         double nominalV = nominalVoltageMapping.get(shuntCompensators.get(0).getTerminal()); // has to be the same for all shunts
         zb = PerUnit.zb(nominalV);
-        b = zb * shuntCompensators.stream()
-                .mapToDouble(ShuntCompensator::getB)
-                .sum();
-        g = zb * shuntCompensators.stream()
-                .mapToDouble(ShuntCompensator::getG)
-                .sum();
+        b = computeB(shuntCompensators, zb);
+        g = computeG(shuntCompensators, zb);
 
         if (voltageControlCapability) {
             shuntCompensators.forEach(shuntCompensator -> {
@@ -142,6 +139,18 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 controllers.add(new Controller(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount()));
             });
         }
+    }
+
+    private static double computeG(List<ShuntCompensator> shuntCompensators, double zb) {
+        return zb * shuntCompensators.stream()
+                .mapToDouble(ShuntCompensator::getG)
+                .sum();
+    }
+
+    private static double computeB(List<ShuntCompensator> shuntCompensators, double zb) {
+        return zb * shuntCompensators.stream()
+                .mapToDouble(ShuntCompensator::getB)
+                .sum();
     }
 
     @Override
@@ -268,5 +277,15 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 }
             }
         }
+    }
+
+    @Override
+    public void reInit() {
+        if (voltageControlCapability) {
+            throw new PowsyblException("Cannot re-init a shunt compensator with voltage control capabilities");
+        }
+        List<ShuntCompensator> shuntCompensators = shuntCompensatorsRefs.stream().map(Ref::get).collect(Collectors.toList());
+        b = computeB(shuntCompensators, zb);
+        g = computeG(shuntCompensators, zb);
     }
 }

@@ -120,7 +120,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         for (AcLoadFlowResult result : results) {
             // update network state
             if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                var updateParameters = new LfNetworkStateUpdateParameters(!parameters.isNoGeneratorReactiveLimits(),
+                var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
