@@ -49,6 +49,6 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
     }
 
     protected static boolean checkTargetDeadband(Double targetDeadband, double difference) {
-        return (targetDeadband != null && Math.abs(difference) > targetDeadband / 2) || targetDeadband == null;
+        return targetDeadband == null || Math.abs(difference) > targetDeadband / 2;
     }
 }
