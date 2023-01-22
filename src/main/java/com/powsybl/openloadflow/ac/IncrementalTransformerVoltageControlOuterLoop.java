@@ -142,13 +142,13 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
     }
 
-    private static double getTargetDeadband(TransformerVoltageControl voltageControl) {
+    private static double getHalfTargetDeadband(TransformerVoltageControl voltageControl) {
         double minTargetDeadband = MIN_TARGET_DEADBAND_KV / voltageControl.getControlled().getNominalV();
         return voltageControl.getControllers().stream()
                 .flatMap(controller -> controller.getTransformerVoltageControlTargetDeadband().stream())
                 .filter(targetDeadband -> targetDeadband > minTargetDeadband)
                 .min(Double::compareTo)
-                .orElse(minTargetDeadband);
+                .orElse(minTargetDeadband) / 2;
     }
 
     private boolean adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, ContextData contextData, SensitivityContext sensitivities,
@@ -168,7 +168,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private boolean adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, ContextData contextData,
-                                                 SensitivityContext sensitivityContext, double diffV, double targetDeadband) {
+                                                 SensitivityContext sensitivityContext, double diffV, double halfTargetDeadband) {
         MutableBoolean adjusted = new MutableBoolean(false);
 
         List<Integer> previousTapPositions = controllerBranches.stream()
@@ -183,7 +183,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         while (hasChanged.booleanValue()) {
             hasChanged.setValue(false);
             for (LfBranch controllerBranch : controllerBranches) {
-                if (Math.abs(remainingDiffV.getValue()) > targetDeadband / 2) {
+                if (Math.abs(remainingDiffV.getValue()) > halfTargetDeadband) {
                     var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
                     double sensitivity = sensitivityContext.calculateSensiRV(controllerBranch, controlledBus);
                     PiModel piModel = controllerBranch.getPiModel();
@@ -241,17 +241,17 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         controlledBuses.forEach(controlledBus -> {
             TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
             double diffV = getDiffV(voltageControl);
-            double targetDeadband = getTargetDeadband(voltageControl);
-            if (Math.abs(diffV) > targetDeadband / 2) {
+            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+            if (Math.abs(diffV) > halfTargetDeadband) {
                 controlledBusesOutsideOfDeadband.add(controlledBus.getId());
                 List<LfBranch> controllers = voltageControl.getControllers();
-                LOGGER.trace("Controlled bus '{}' ({} controllers) is ouside of its deadband ({} KV) and could need a voltage adjustment of {} KV",
-                        controlledBus.getId(), controllers.size(), targetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
+                LOGGER.trace("Controlled bus '{}' ({} controllers) is ouside of its deadband (half is {} KV) and could need a voltage adjustment of {} KV",
+                        controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
                 boolean adjusted;
                 if (controllers.size() == 1) {
                     adjusted = adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV);
                 } else {
-                    adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, targetDeadband);
+                    adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband);
                 }
                 if (adjusted) {
                     controlledBusesAdjusted.add(controlledBus.getId());
