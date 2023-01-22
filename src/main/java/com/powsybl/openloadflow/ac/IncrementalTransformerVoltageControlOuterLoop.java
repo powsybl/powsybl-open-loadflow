@@ -167,7 +167,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private boolean adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, ContextData contextData,
-                                                 SensitivityContext sensitivityContext, double diffV) {
+                                                 SensitivityContext sensitivityContext, double diffV, double targetDeadband) {
         MutableBoolean adjusted = new MutableBoolean(false);
 
         List<Integer> previousTapPositions = controllerBranches.stream()
@@ -182,17 +182,19 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         while (hasChanged.booleanValue()) {
             hasChanged.setValue(false);
             for (LfBranch controllerBranch : controllerBranches) {
-                var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                double sensitivity = sensitivityContext.calculateSensiRV(controllerBranch, controlledBus);
-                PiModel piModel = controllerBranch.getPiModel();
-                double previousR1 = piModel.getR1();
-                double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
-                piModel.updateTapPositionR1(deltaR1, 1, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                    updateAllowedDirection(controllerContext, direction);
-                    remainingDiffV.add(-(piModel.getR1() - previousR1) * sensitivity);
-                    hasChanged.setValue(true);
-                    adjusted.setValue(true);
-                });
+                if (Math.abs(remainingDiffV.getValue()) > targetDeadband) {
+                    var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+                    double sensitivity = sensitivityContext.calculateSensiRV(controllerBranch, controlledBus);
+                    PiModel piModel = controllerBranch.getPiModel();
+                    double previousR1 = piModel.getR1();
+                    double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
+                    piModel.updateTapPositionR1(deltaR1, 1, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                        updateAllowedDirection(controllerContext, direction);
+                        remainingDiffV.add(-(piModel.getR1() - previousR1) * sensitivity);
+                        hasChanged.setValue(true);
+                        adjusted.setValue(true);
+                    });
+                }
             }
         }
 
@@ -242,7 +244,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                         if (controllers.size() == 1) {
                             adjusted = adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV);
                         } else {
-                            adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV);
+                            adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, targetDeadband);
                         }
                         if (adjusted) {
                             controlledBusesAdjusted.add(controlledBus.getId());
