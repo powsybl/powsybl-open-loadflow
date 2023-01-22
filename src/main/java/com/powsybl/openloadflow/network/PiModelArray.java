@@ -275,6 +275,6 @@ public class PiModelArray implements PiModel {
 
     @Override
     public Range<Integer> getTapPositionRange() {
-        return Range.between(lowTapPosition, lowTapPosition + models.size());
+        return Range.between(lowTapPosition, lowTapPosition + models.size() - 1);
     }
 }
