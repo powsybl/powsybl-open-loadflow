@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import net.jafama.FastMath;
+import org.apache.commons.lang3.Range;
 
 import java.util.Optional;
 
@@ -184,6 +185,11 @@ public class SimplePiModel implements PiModel {
 
     @Override
     public PiModel setTapPosition(int tapPosition) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
+    @Override
+    public Range<Integer> getTapPositionRange() {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 }

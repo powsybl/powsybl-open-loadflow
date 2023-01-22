@@ -17,15 +17,15 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.*;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -34,8 +34,9 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerVoltageControlOuterLoop.class);
 
-    private static final int MAX_TAP_SHIFT = 3;
+    private static final int MAX_TAP_SHIFT = 5;
     private static final int MAX_DIRECTION_CHANGE = 2;
+    private static final double MIN_TARGET_DEADBAND_KV = 0.1; // Kv
 
     private static final class ControllerContext {
 
@@ -140,52 +141,72 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
     }
 
-    private void adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, ContextData contextData, SensitivityContext sensitivities,
-                                         double diffV, MutableObject<OuterLoopStatus> status) {
-        // only one transformer controls a bus
-        var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-        Double targetDeadband = controllerBranch.getTransformerVoltageControlTargetDeadband().orElse(null);
-        if (checkTargetDeadband(targetDeadband, diffV)) {
-            double sensitivity = sensitivities.calculateSensiRV(controllerBranch, controlledBus);
-            double previousR1 = controllerBranch.getPiModel().getR1();
-            double deltaR1 = diffV / sensitivity;
-            controllerBranch.getPiModel().updateTapPositionR1(deltaR1, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                updateAllowedDirection(controllerContext, direction);
-                LOGGER.debug("Round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
-                status.setValue(OuterLoopStatus.UNSTABLE);
-            });
-        } else {
-            LOGGER.trace("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controllerBranch.getId(), targetDeadband, Math.abs(diffV));
-        }
+    private static double getTargetDeadband(TransformerVoltageControl voltageControl) {
+        double minTargetDeadband = MIN_TARGET_DEADBAND_KV / voltageControl.getControlled().getNominalV();
+        return voltageControl.getControllers().stream()
+                .flatMap(controller -> controller.getTransformerVoltageControlTargetDeadband().stream())
+                .filter(targetDeadband -> targetDeadband > minTargetDeadband)
+                .min(Double::compareTo)
+                .orElse(minTargetDeadband);
     }
 
-    private void adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, ContextData contextData,
-                                              SensitivityContext sensitivityContext, double diffV, MutableObject<OuterLoopStatus> status) {
-        // several transformers control the same bus
-        double remainingDiffV = diffV;
-        boolean hasChanged = true;
-        while (hasChanged) {
-            hasChanged = false;
+    private boolean adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, ContextData contextData, SensitivityContext sensitivities,
+                                            double diffV) {
+        // only one transformer controls a bus
+        var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+        double sensitivity = sensitivities.calculateSensiRV(controllerBranch, controlledBus);
+        PiModel piModel = controllerBranch.getPiModel();
+        int previousTapPosition = piModel.getTapPosition();
+        double deltaR1 = diffV / sensitivity;
+        return piModel.updateTapPositionR1(deltaR1, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).map(direction -> {
+            updateAllowedDirection(controllerContext, direction);
+            LOGGER.debug("Controller branch '{}' adjust tap from {} to {} (full range: {})", controllerBranch.getId(),
+                    previousTapPosition, piModel.getTapPosition(), piModel.getTapPositionRange());
+            return direction;
+        }).isPresent();
+    }
+
+    private boolean adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, ContextData contextData,
+                                                 SensitivityContext sensitivityContext, double diffV) {
+        MutableBoolean adjusted = new MutableBoolean(false);
+
+        List<Integer> previousTapPositions = controllerBranches.stream()
+                .map(controllerBranch -> controllerBranch.getPiModel().getTapPosition())
+                .collect(Collectors.toList());
+
+        // several transformers control the same bus, to give to chance to all controllers to adjust controlled bus
+        // voltage and to help distributing tap changes among all controllers, we try to adjust voltage by allowing
+        // one tap change at a time for each controller
+        MutableDouble remainingDiffV = new MutableDouble(diffV);
+        MutableBoolean hasChanged = new MutableBoolean(true);
+        while (hasChanged.booleanValue()) {
+            hasChanged.setValue(false);
             for (LfBranch controllerBranch : controllerBranches) {
                 var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                Double targetDeadband = controllerBranch.getTransformerVoltageControlTargetDeadband().orElse(null);
-                if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
-                    double sensitivity = sensitivityContext.calculateSensiRV(controllerBranch, controlledBus);
-                    double previousR1 = controllerBranch.getPiModel().getR1();
-                    double deltaR1 = remainingDiffV / sensitivity;
-                    PiModel.Direction direction = controllerBranch.getPiModel().updateTapPositionR1(deltaR1, 1, controllerContext.getAllowedDirection()).orElse(null);
-                    if (direction != null) {
-                        updateAllowedDirection(controllerContext, direction);
-                        remainingDiffV -= (controllerBranch.getPiModel().getR1() - previousR1) * sensitivity;
-                        hasChanged = true;
-                        status.setValue(OuterLoopStatus.UNSTABLE);
-                        LOGGER.debug("[Shared control] round voltage ratio of '{}': {} -> {}", controllerBranch.getId(), previousR1, controllerBranch.getPiModel().getR1());
-                    }
-                } else {
-                    LOGGER.trace("Controller branch '{}' is in its deadband: deadband {} vs voltage difference {}", controllerBranch.getId(), targetDeadband, Math.abs(diffV));
-                }
+                double sensitivity = sensitivityContext.calculateSensiRV(controllerBranch, controlledBus);
+                PiModel piModel = controllerBranch.getPiModel();
+                double previousR1 = piModel.getR1();
+                double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
+                piModel.updateTapPositionR1(deltaR1, 1, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                    updateAllowedDirection(controllerContext, direction);
+                    remainingDiffV.add(-(piModel.getR1() - previousR1) * sensitivity);
+                    hasChanged.setValue(true);
+                    adjusted.setValue(true);
+                });
             }
         }
+
+        for (int i = 0; i < controllerBranches.size(); i++) {
+            LfBranch controllerBranch = controllerBranches.get(i);
+            PiModel piModel = controllerBranch.getPiModel();
+            int previousTapPosition = previousTapPositions.get(i);
+            if (piModel.getTapPosition() != previousTapPosition) {
+                LOGGER.debug("Controller branch '{}' (from a shared control) adjust tap from {} to {} (full range: {})", controllerBranch.getId(),
+                        previousTapPosition, piModel.getTapPosition(), piModel.getTapPositionRange());
+            }
+        }
+
+        return adjusted.booleanValue();
     }
 
     @Override
@@ -200,20 +221,41 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
+        List<String> controlledBusesNeedAdjustment = new ArrayList<>();
+        List<String> controlledBusesAdjusted = new ArrayList<>();
+
         network.getBuses().stream()
                 .filter(LfBus::isTransformerVoltageControlled)
                 .forEach(controlledBus -> {
                     TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
                     double targetV = voltageControl.getTargetValue();
                     double v = voltageControl.getControlled().getV();
-                    double diffV = targetV - v;
-                    List<LfBranch> controllers = voltageControl.getControllers();
-                    if (controllers.size() == 1) {
-                        adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV, status);
-                    } else {
-                        adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, status);
+                    double diffV = Math.abs(targetV - v);
+                    double targetDeadband = getTargetDeadband(voltageControl);
+                    if (diffV > targetDeadband) {
+                        controlledBusesNeedAdjustment.add(controlledBus.getId());
+                        List<LfBranch> controllers = voltageControl.getControllers();
+                        LOGGER.debug("Controlled bus '{}' ({} controllers) needs a voltage adjustment: {} (deadband={})",
+                                controlledBus.getId(), controllers.size(), diffV * controlledBus.getNominalV(),
+                                targetDeadband * controlledBus.getNominalV());
+                        boolean adjusted;
+                        if (controllers.size() == 1) {
+                            adjusted = adjustWithOneController(controllers.get(0), controlledBus, contextData, sensitivityContext, diffV);
+                        } else {
+                            adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV);
+                        }
+                        if (adjusted) {
+                            controlledBusesAdjusted.add(controlledBus.getId());
+                            status.setValue(OuterLoopStatus.UNSTABLE);
+                        }
                     }
                 });
+
+        if (!controlledBusesNeedAdjustment.isEmpty()) {
+            LOGGER.info("{} controlled buses needed a voltage adjustment, {} done", controlledBusesNeedAdjustment.size(),
+                    controlledBusesAdjusted.size());
+        }
+
         return status.getValue();
     }
 }

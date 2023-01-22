@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.apache.commons.lang3.Range;
+
 import java.util.Optional;
 
 /**
@@ -85,4 +87,6 @@ public interface PiModel {
     int getTapPosition();
 
     PiModel setTapPosition(int tapPosition);
+
+    Range<Integer> getTapPositionRange();
 }

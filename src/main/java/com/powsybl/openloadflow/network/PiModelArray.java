@@ -258,7 +258,7 @@ public class PiModelArray implements PiModel {
 
     @Override
     public int getTapPosition() {
-        return this.tapPosition;
+        return tapPosition;
     }
 
     @Override
@@ -271,5 +271,10 @@ public class PiModelArray implements PiModel {
             listener.onTapPositionChange(branch, oldTapPosition, tapPosition);
         }
         return this;
+    }
+
+    @Override
+    public Range<Integer> getTapPositionRange() {
+        return Range.between(lowTapPosition, lowTapPosition + models.size());
     }
 }
