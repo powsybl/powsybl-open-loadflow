@@ -260,11 +260,11 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             }
         });
 
-        if (!controlledBusesOutsideOfDeadband.isEmpty()) {
+        if (!controlledBusesOutsideOfDeadband.isEmpty() && LOGGER.isInfoEnabled()) {
             Map<String, Double> largestMismatches = controlledBuses.stream()
-                    .map(controlledBus -> Pair.of(controlledBus.getId(), getDiffV(controlledBus.getTransformerVoltageControl().orElseThrow()) * controlledBus.getNominalV()))
-                    .filter(p -> p.getRight() > 1) // > 1Kv
-                    .limit(5) // 5 largest
+                    .map(controlledBus -> Pair.of(controlledBus.getId(), Math.abs(getDiffV(controlledBus.getTransformerVoltageControl().orElseThrow()) * controlledBus.getNominalV())))
+                    .sorted((p1, p2) -> Double.compare(p2.getRight(), p1.getRight()))
+                    .limit(3) // 3 largest
                     .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (key1, key2) -> key1, LinkedHashMap::new));
             LOGGER.info("{} controlled bus voltages are outside of their target deadband, largest ones are: {}",
                     controlledBusesOutsideOfDeadband.size(), largestMismatches);
