@@ -36,7 +36,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalTransformerVoltageControlOuterLoop.class);
 
-    private static final int MAX_TAP_SHIFT = 3;
+    public static final int DEFAULT_MAX_TAP_SHIFT = 3;
+
     private static final int MAX_DIRECTION_CHANGE = 2;
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // Kv
 
@@ -66,6 +67,12 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         private Map<String, ControllerContext> getControllersContexts() {
             return controllersContexts;
         }
+    }
+
+    private final int maxTapShift;
+
+    public IncrementalTransformerVoltageControlOuterLoop(int maxTapShift) {
+        this.maxTapShift = maxTapShift;
     }
 
     @Override
@@ -160,7 +167,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         PiModel piModel = controllerBranch.getPiModel();
         int previousTapPosition = piModel.getTapPosition();
         double deltaR1 = diffV / sensitivity;
-        return piModel.updateTapPositionR1(deltaR1, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).map(direction -> {
+        return piModel.updateTapPositionR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).map(direction -> {
             updateAllowedDirection(controllerContext, direction);
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
