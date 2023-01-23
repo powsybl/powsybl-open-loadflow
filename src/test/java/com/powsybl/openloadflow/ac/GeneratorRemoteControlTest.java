@@ -61,7 +61,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         tr3 = network.getTwoWindingsTransformer("tr3");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                   .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
@@ -236,7 +236,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testWith3GeneratorsAndFirstGeneratorToLimit() {
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits()
                 .setMinQ(-50)
                 .setMaxQ(50)
@@ -568,7 +568,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testReactiveRangeCheckMode() {
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         Network network = EurostagTutorialExample1Factory.create();
         VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
         Bus nload = vlload.getBusBreakerView().getBus("NLOAD");
