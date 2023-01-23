@@ -872,20 +872,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (twt == null) {
             throw new PowsyblException("Three windings transformer '" + transformerId + "' not found");
         }
-        ThreeWindingsTransformer.Leg l;
-        switch (type) {
-            case TRANSFORMER_PHASE_1:
-                l = twt.getLeg1();
-                break;
-            case TRANSFORMER_PHASE_2:
-                l = twt.getLeg2();
-                break;
-            case TRANSFORMER_PHASE_3:
-                l = twt.getLeg3();
-                break;
-            default:
-                throw new PowsyblException("Three transformer variable type " + type + " cannot be converted to a leg");
-        }
+        ThreeWindingsTransformer.Leg l = twt.getLegs().get(getLegNumber(type));
         if (l.getPhaseTapChanger() == null) {
             throw new PowsyblException("Three windings transformer '" + transformerId + "' leg on side '" + type + "' has no phase tap changer");
         }
@@ -1185,31 +1172,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     }
 
     protected static int getLegNumber(SensitivityFunctionType type) {
-        switch (type) {
-            case BRANCH_ACTIVE_POWER_1:
-            case BRANCH_CURRENT_1:
-                return 1;
-            case BRANCH_ACTIVE_POWER_2:
-            case BRANCH_CURRENT_2:
-                return 2;
-            case BRANCH_ACTIVE_POWER_3:
-            case BRANCH_CURRENT_3:
-                return 3;
-            default:
-                throw new PowsyblException("Cannot convert function type " + type + " to a leg number");
-        }
+        return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert function type " + type + " to a leg number"));
     }
 
     protected static int getLegNumber(SensitivityVariableType type) {
-        switch (type) {
-            case TRANSFORMER_PHASE_1:
-                return 1;
-            case TRANSFORMER_PHASE_2:
-                return 2;
-            case TRANSFORMER_PHASE_3:
-                return 3;
-            default:
-                throw new PowsyblException("Cannot convert variable type " + type + " to a leg number");
-        }
+        return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert variable type " + type + " to a leg number"));
     }
 }
