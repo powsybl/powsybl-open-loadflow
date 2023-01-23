@@ -39,7 +39,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     public static final int DEFAULT_MAX_TAP_SHIFT = 3;
 
     private static final int MAX_DIRECTION_CHANGE = 2;
-    private static final double MIN_TARGET_DEADBAND_KV = 0.1; // Kv
+    private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
     private static final class ControllerContext {
 
@@ -270,7 +270,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             if (Math.abs(diffV) > halfTargetDeadband) {
                 controlledBusesOutsideOfDeadband.add(controlledBus.getId());
                 List<LfBranch> controllers = voltageControl.getControllers();
-                LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} KV) and could need a voltage adjustment of {} KV",
+                LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
                         controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
                 boolean adjusted;
                 if (controllers.size() == 1) {
