@@ -126,7 +126,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String DEBUG_DIR_PARAM_NAME = "debugDir";
 
-    public static final String TRANSFORMER_VOLTAGE_CONTROL_MAX_TAP_SHIFT_PER_OUTER_LOOP_PARAM_NAME = "transformerVoltageControlMaxTapShiftPerOuterLoop";
+    public static final String INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME = "incrementalTransformerVoltageControlOuterLoopMaxTapShift";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -159,7 +159,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(STATE_VECTOR_SCALING_MODE_NAME, ParameterType.STRING, "State vector scaling mode", NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE.name(), getEnumPossibleValues(StateVectorScalingMode.class)),
         new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT),
         new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, Collections.emptyList(), ParameterScope.TECHNICAL),
-        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MAX_TAP_SHIFT_PER_OUTER_LOOP_PARAM_NAME, ParameterType.INTEGER, "Transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT)
+        new Parameter(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT)
     );
 
     public enum VoltageInitModeOverride {
@@ -237,7 +237,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private String debugDir = LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE;
 
-    private int transformerVoltageControlMaxTapShiftPerOuterLoop = IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
+    private int incrementalTransformerVoltageControlOuterLoopMaxTapShift = IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
 
     @Override
     public String getName() {
@@ -489,15 +489,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public int getTransformerVoltageControlMaxTapShiftPerOuterLoop() {
-        return transformerVoltageControlMaxTapShiftPerOuterLoop;
+    public int getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() {
+        return incrementalTransformerVoltageControlOuterLoopMaxTapShift;
     }
 
-    public OpenLoadFlowParameters setTransformerVoltageControlMaxTapShiftPerOuterLoop(int transformerVoltageControlMaxTapShiftPerOuterLoop) {
-        if (transformerVoltageControlMaxTapShiftPerOuterLoop < 1) {
-            throw new IllegalArgumentException("Invalid max tap shift value: " + transformerVoltageControlMaxTapShiftPerOuterLoop);
+    public OpenLoadFlowParameters setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(int incrementalTransformerVoltageControlOuterLoopMaxTapShift) {
+        if (incrementalTransformerVoltageControlOuterLoopMaxTapShift < 1) {
+            throw new IllegalArgumentException("Invalid max tap shift value: " + incrementalTransformerVoltageControlOuterLoopMaxTapShift);
         }
-        this.transformerVoltageControlMaxTapShiftPerOuterLoop = transformerVoltageControlMaxTapShiftPerOuterLoop;
+        this.incrementalTransformerVoltageControlOuterLoopMaxTapShift = incrementalTransformerVoltageControlOuterLoopMaxTapShift;
         return this;
     }
 
@@ -538,7 +538,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE))
                 .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT))
                 .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE))
-                .setTransformerVoltageControlMaxTapShiftPerOuterLoop(config.getIntProperty(TRANSFORMER_VOLTAGE_CONTROL_MAX_TAP_SHIFT_PER_OUTER_LOOP_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT)));
+                .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT)));
         return parameters;
     }
 
@@ -599,8 +599,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMaxSlackBusCount(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(DEBUG_DIR_PARAM_NAME))
                 .ifPresent(this::setDebugDir);
-        Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MAX_TAP_SHIFT_PER_OUTER_LOOP_PARAM_NAME))
-                .ifPresent(prop -> this.setTransformerVoltageControlMaxTapShiftPerOuterLoop(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME))
+                .ifPresent(prop -> this.setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(Integer.parseInt(prop)));
         return this;
     }
 
@@ -633,7 +633,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", maxSlackBusCount=" + maxSlackBusCount +
                 ", debugDir=" + debugDir +
-                ", transformerVoltageControlMaxTapShiftPerOuterLoop=" + transformerVoltageControlMaxTapShiftPerOuterLoop +
+                ", incrementalTransformerVoltageControlOuterLoopMaxTapShift=" + incrementalTransformerVoltageControlOuterLoopMaxTapShift +
                 ')';
     }
 
@@ -705,7 +705,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("State vector scaling mode: {}", parametersExt.getStateVectorScalingMode());
         LOGGER.info("Max slack bus count: {}", parametersExt.getMaxSlackBusCount());
         LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
-        LOGGER.info("Transformer voltage control max tap shift per outer loop: {}", parametersExt.getTransformerVoltageControlMaxTapShiftPerOuterLoop());
+        LOGGER.info("Incremental transformer voltage control outer loop max tap shift: {}", parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -931,7 +931,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getStateVectorScalingMode() == extension2.getStateVectorScalingMode() &&
                 extension1.getMaxSlackBusCount() == extension2.getMaxSlackBusCount() &&
                 Objects.equals(extension1.getDebugDir(), extension2.getDebugDir()) &&
-                extension1.getTransformerVoltageControlMaxTapShiftPerOuterLoop() == extension2.getTransformerVoltageControlMaxTapShiftPerOuterLoop();
+                extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -981,7 +981,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setStateVectorScalingMode(extension.getStateVectorScalingMode())
                     .setMaxSlackBusCount(extension.getMaxSlackBusCount())
                     .setDebugDir(extension.getDebugDir())
-                    .setTransformerVoltageControlMaxTapShiftPerOuterLoop(extension.getTransformerVoltageControlMaxTapShiftPerOuterLoop());
+                    .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }
