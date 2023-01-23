@@ -63,6 +63,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         if (parameters.isShuntCompensatorVoltageControlOn()) {
             outerLoops.add(new ShuntVoltageControlOuterLoop());
         }
+        // secondary voltage control
         if (parametersExt.isSecondaryVoltageControl()) {
             outerLoops.add(new SecondaryVoltageControlOuterLoop());
         }
