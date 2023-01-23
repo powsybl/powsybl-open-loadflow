@@ -58,7 +58,7 @@ class AcLoadFlowShuntTest {
         l2 = network.getLine("l2");
         shunt = network.getShuntCompensator("SHUNT");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
