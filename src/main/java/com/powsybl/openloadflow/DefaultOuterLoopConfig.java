@@ -32,7 +32,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         if (parametersExt.isSvcVoltageMonitoring()) {
             outerLoops.add(new MonitoringVoltageOuterLoop());
         }
-        if (!parameters.isNoGeneratorReactiveLimits()) {
+        if (parameters.isUseReactiveLimits()) {
             outerLoops.add(new ReactiveLimitsOuterLoop());
         }
         if (parameters.isTransformerVoltageControlOn()) {

@@ -211,7 +211,7 @@ class AcLoadFlowWithCachingTest {
 
         assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
         loadFlowRunner.run(network, parameters); // Run a first LF before changing a parameter.
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());
@@ -229,7 +229,7 @@ class AcLoadFlowWithCachingTest {
 
         assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
         loadFlowRunner.run(network, parameters);
-        parameters.setSimulShunt(true);
+        parameters.setShuntCompensatorVoltageControlOn(true);
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());

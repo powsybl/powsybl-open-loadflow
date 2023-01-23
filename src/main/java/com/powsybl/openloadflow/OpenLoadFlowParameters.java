@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.commons.parameters.Parameter;
+import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.commons.parameters.ParameterType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -126,6 +127,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_SLACK_BUS_COUNT_NAME = "maxSlackBusCount";
 
+    public static final String DEBUG_DIR_PARAM_NAME = "debugDir";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -156,7 +159,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(NETWORK_CACHE_ENABLED_NAME, ParameterType.BOOLEAN, "Network cache enabled", NETWORK_CACHE_ENABLED_DEFAULT_VALUE),
         new Parameter(SVC_VOLTAGE_MONITORING_NAME, ParameterType.BOOLEAN, "SVC voltage monitoring", SVC_VOLTAGE_MONITORING_DEFAULT_VALUE),
         new Parameter(STATE_VECTOR_SCALING_MODE_NAME, ParameterType.STRING, "State vector scaling mode", NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE.name(), getEnumPossibleValues(StateVectorScalingMode.class)),
-        new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT)
+        new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT),
+        new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, Collections.emptyList(), ParameterScope.TECHNICAL)
     );
 
     public enum VoltageInitModeOverride {
@@ -238,6 +242,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private StateVectorScalingMode stateVectorScalingMode = NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE;
 
     private int maxSlackBusCount = LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT;
+
+    private String debugDir = LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -489,6 +495,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public String getDebugDir() {
+        return debugDir;
+    }
+
+    public OpenLoadFlowParameters setDebugDir(String debugDir) {
+        this.debugDir = debugDir;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -525,7 +540,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE))
                 .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
                 .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE))
-                .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT)));
+                .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT))
+                .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -586,6 +602,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setStateVectorScalingMode(StateVectorScalingMode.valueOf(prop)));
         Optional.ofNullable(properties.get(MAX_SLACK_BUS_COUNT_NAME))
                 .ifPresent(prop -> this.setMaxSlackBusCount(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(DEBUG_DIR_PARAM_NAME))
+                .ifPresent(this::setDebugDir);
         return this;
     }
 
@@ -618,6 +636,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", svcVoltageMonitoring=" + svcVoltageMonitoring +
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", maxSlackBusCount=" + maxSlackBusCount +
+                ", debugDir=" + debugDir +
                 ')';
     }
 
@@ -653,6 +672,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("DC power factor: {}", parametersExt.getDcPowerFactor());
+        LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
     }
 
     /**
@@ -687,6 +707,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Static var compensator voltage monitoring: {}", parametersExt.isSvcVoltageMonitoring());
         LOGGER.info("State vector scaling mode: {}", parametersExt.getStateVectorScalingMode());
         LOGGER.info("Max slack bus count: {}", parametersExt.getMaxSlackBusCount());
+        LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -751,7 +772,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveRangeCheckMode(parametersExt.getReactiveRangeCheckMode())
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(parametersExt.isSvcVoltageMonitoring())
-                .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount());
+                .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
+                .setDebugDir(parametersExt.getDebugDir());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -910,7 +932,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isNetworkCacheEnabled() == extension2.isNetworkCacheEnabled() &&
                 extension1.isSvcVoltageMonitoring() == extension2.isSvcVoltageMonitoring() &&
                 extension1.getStateVectorScalingMode() == extension2.getStateVectorScalingMode() &&
-                extension1.getMaxSlackBusCount() == extension2.getMaxSlackBusCount();
+                extension1.getMaxSlackBusCount() == extension2.getMaxSlackBusCount() &&
+                Objects.equals(extension1.getDebugDir(), extension2.getDebugDir());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -959,7 +982,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setNetworkCacheEnabled(extension.isNetworkCacheEnabled())
                     .setSvcVoltageMonitoring(extension.isSvcVoltageMonitoring())
                     .setStateVectorScalingMode(extension.getStateVectorScalingMode())
-                    .setMaxSlackBusCount(extension.getMaxSlackBusCount());
+                    .setMaxSlackBusCount(extension.getMaxSlackBusCount())
+                    .setDebugDir(extension.getDebugDir());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }
