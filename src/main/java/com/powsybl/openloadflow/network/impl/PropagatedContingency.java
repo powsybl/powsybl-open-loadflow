@@ -166,6 +166,7 @@ public class PropagatedContingency {
 
                 case GENERATOR:
                 case STATIC_VAR_COMPENSATOR:
+                case BATTERY:
                     generatorIdsToLose.add(connectable.getId());
                     break;
 
@@ -333,7 +334,8 @@ public class PropagatedContingency {
         Set<LfGenerator> generators = new HashSet<>(1);
         for (String generatorId : generatorIdsToLose) {
             LfGenerator generator = network.getGeneratorById(generatorId);
-            if (generator != null) { // could be in another component
+            LfBus bus = generator.getBus();
+            if (generator != null && !buses.contains(bus)) { // could be in another component
                 generators.add(generator);
             }
         }

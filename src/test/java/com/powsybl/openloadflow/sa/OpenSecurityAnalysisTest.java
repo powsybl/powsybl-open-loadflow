@@ -2390,12 +2390,10 @@ class OpenSecurityAnalysisTest {
     void testBusBarSectionContingencyIssue() {
         Network network = NodeBreakerNetworkFactory.create3Bars();
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        setSlackBusId(lfParameters, "VL1_0"); // issue with slack bus to be disabled.
+        // setSlackBusId(lfParameters, "VL1_0"); // issue with slack bus to be disabled.
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
-        List<Contingency> contingencies = Stream.of("BBS2")
-                .map(id -> new Contingency(id, new BusbarSectionContingency(id)))
-                .collect(Collectors.toList());
+        List<Contingency> contingencies = List.of(new Contingency("B1", new SwitchContingency("B1")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
     }

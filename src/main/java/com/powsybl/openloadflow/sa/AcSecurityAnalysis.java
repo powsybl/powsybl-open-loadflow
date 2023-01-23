@@ -169,15 +169,6 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
                                 distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                                StringWriter writer = new StringWriter();
-                                lfNetwork.writeGraphViz(writer, false);
-                                writer.flush();
-                                System.out.println(writer.toString());
-
-                                for (LfBranch branch : lfNetwork.getBranches()) {
-                                    System.out.println(branch.getId() + " " + branch.getNum());
-                                }
-
                                 var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
                                                                                          lfContingency, preContingencyLimitViolationManager,
                                                                                          securityAnalysisParameters.getIncreasedViolationsParameters(),
