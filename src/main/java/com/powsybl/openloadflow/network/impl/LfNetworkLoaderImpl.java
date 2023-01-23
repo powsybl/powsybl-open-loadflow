@@ -12,20 +12,24 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
@@ -811,6 +815,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (report.generatorsWithInconsistentTargetVoltage > 0) {
             LOGGER.warn("Network {}: {} generators have an inconsistent target voltage and have been discarded from voltage control",
                     lfNetwork, report.generatorsWithInconsistentTargetVoltage);
+        }
+
+        if (parameters.getDebugDir() != null) {
+            Path debugDir = DebugUtil.getDebugDir(parameters.getDebugDir());
+            String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
+            lfNetwork.writeJson(debugDir.resolve("lfnetwork-" + dateStr + ".json"));
+            lfNetwork.writeGraphViz(debugDir.resolve("lfnetwork-" + dateStr + ".dot"), parameters.isDc());
         }
 
         return lfNetwork;
