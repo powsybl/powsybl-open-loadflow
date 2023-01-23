@@ -43,9 +43,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             if (withDroop) {
                 droop = activePowerControl.getDroop();
             }
+            this.setParticipationFactor(activePowerControl.getParticipationFactor());
         }
 
-        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), parameters, report)) {
+        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), this.getParticipationFactor(), parameters, report)) {
             participating = false;
         }
 

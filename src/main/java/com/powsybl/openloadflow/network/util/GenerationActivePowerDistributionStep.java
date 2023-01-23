@@ -26,7 +26,9 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
 
     public enum ParticipationType {
         MAX,
-        TARGET
+        TARGET,
+        PARTICIPATION_FACTOR,
+        REMAINING_MARGIN
     }
 
     private ParticipationType participationType;
@@ -112,6 +114,12 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 break;
             case TARGET:
                 factor = Math.abs(generator.getTargetP());
+                break;
+            case PARTICIPATION_FACTOR:
+                factor = generator.getParticipationFactor();
+                break;
+            case REMAINING_MARGIN:
+                factor = Math.max(0.0, generator.getMaxP() - generator.getTargetP());
                 break;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);

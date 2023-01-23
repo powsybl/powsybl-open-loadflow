@@ -771,7 +771,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(parametersExt.isSvcVoltageMonitoring())
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
-                .setDebugDir(parametersExt.getDebugDir());
+                .setDebugDir(parametersExt.getDebugDir())
+                .setBalanceType(parameters.getBalanceType());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

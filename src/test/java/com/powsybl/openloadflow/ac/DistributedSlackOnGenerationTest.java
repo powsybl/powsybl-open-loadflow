@@ -93,6 +93,55 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    void testProportionalToGenerationPMaxBalanceType() {
+        // decrease g1 max limit power, so that distributed slack algo reach the g1 max
+        g1.setMaxP(105);
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-105, g1.getTerminal());
+        assertActivePowerEquals(-249.285, g2.getTerminal());
+        assertActivePowerEquals(-106.429, g3.getTerminal());
+        assertActivePowerEquals(-139.286, g4.getTerminal());
+    }
+
+    @Test
+    void testProportionalToGenerationParticipationFactorBalanceType() {
+        // decrease g1 max limit power, so that distributed slack algo reach the g1 max
+        g1.setMaxP(100);
+
+        // set participationFactor
+        g2.getExtension(ActivePowerControl.class).setParticipationFactor(3.0);
+        g3.getExtension(ActivePowerControl.class).setParticipationFactor(2.0);
+        g4.getExtension(ActivePowerControl.class).setParticipationFactor(1.0);
+
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-100, g1.getTerminal());
+        assertActivePowerEquals(-260, g2.getTerminal());
+        assertActivePowerEquals(-130, g3.getTerminal());
+        assertActivePowerEquals(-110, g4.getTerminal());
+    }
+
+    @Test
+    void testProportionalToGenerationRemainingMarginBalanceType() {
+        // decrease g1 max limit power, so that distributed slack algo reach the g1 max
+        g1.setMaxP(105);
+
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-102.667, g1.getTerminal());
+        assertActivePowerEquals(-253.333, g2.getTerminal());
+        assertActivePowerEquals(-122.0, g3.getTerminal());
+        assertActivePowerEquals(-122.0, g4.getTerminal());
+    }
+
+    @Test
     void maxTest() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(105);

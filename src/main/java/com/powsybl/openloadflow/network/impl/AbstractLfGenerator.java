@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -25,6 +26,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfGenerator.class);
 
     private static final double POWER_EPSILON_SI = 1e-4;
+
+    private double participationFactor = 0.0;
 
     protected static final double DEFAULT_DROOP = 4; // why not
 
@@ -301,8 +304,18 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         // nothing to do
     }
 
-    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, LfNetworkParameters parameters,
-                                              LfNetworkLoadingReport report) {
+    @Override
+    public void setParticipationFactor(double participationFactor) {
+        this.participationFactor = participationFactor;
+    }
+
+    @Override
+    public double getParticipationFactor() {
+        return participationFactor;
+    }
+
+    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, double participationFactor,
+                                              LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         boolean participating = true;
         if (Math.abs(targetP) < POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
@@ -332,6 +345,12 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
                     getId(), maxP, minP);
             report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
+            participating = false;
+        }
+        if ((parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR) && Double.isNaN(participationFactor)) {
+            LOGGER.trace("Discard generator '{}' from active power control because balanceType is PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR and participationFactor is {}",
+                    getId(), participationFactor);
+            report.generatorsWithNaNParticipationFactor++;
             participating = false;
         }
         return participating;

@@ -32,4 +32,6 @@ class LfNetworkLoadingReport {
     int nonImpedantBranches = 0;
 
     int generatorsWithInconsistentTargetVoltage = 0;
+
+    int generatorsWithNaNParticipationFactor = 0;
 }

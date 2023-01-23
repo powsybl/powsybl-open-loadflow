@@ -67,6 +67,12 @@ public interface LfGenerator extends PropertyBag {
         return 0;
     }
 
+    void setParticipationFactor(double participationFactor);
+
+    default double getParticipationFactor() {
+        return 0.0;
+    }
+
     double getCalculatedQ();
 
     void setCalculatedQ(double calculatedQ);

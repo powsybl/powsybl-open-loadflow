@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -89,6 +90,8 @@ public class LfNetworkParameters {
     private int maxSlackBusCount = DEFAULT_MAX_SLACK_BUS_COUNT;
 
     private String debugDir = DEBUG_DIR_DEFAULT_VALUE;
+
+    private LoadFlowParameters.BalanceType balanceType = LoadFlowParameters.DEFAULT_BALANCE_TYPE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -334,6 +337,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public LoadFlowParameters.BalanceType getBalanceType() {
+        return balanceType;
+    }
+
+    public LfNetworkParameters setBalanceType(LoadFlowParameters.BalanceType balanceType) {
+        this.balanceType = balanceType;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -362,6 +374,7 @@ public class LfNetworkParameters {
                 ", svcVoltageMonitoring=" + svcVoltageMonitoring +
                 ", maxSlackBusCount=" + maxSlackBusCount +
                 ", debugDir=" + debugDir +
+                ", balanceType=" + balanceType +
                 ')';
     }
 }
