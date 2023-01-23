@@ -42,6 +42,7 @@
         "svcVoltageMonitoring" : true,
         "stateVectorScalingMode" : "NONE",
         "maxSlackBusCount" : 1,
+        "debugDir" : null,
         "transformerVoltageControlMaxTapShiftPerOuterLoop" : 3
       }
     }
