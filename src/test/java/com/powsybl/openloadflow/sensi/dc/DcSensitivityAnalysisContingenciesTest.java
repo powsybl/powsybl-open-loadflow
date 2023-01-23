@@ -20,7 +20,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisParameters;
-import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
+import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.joda.time.DateTime;
@@ -1669,7 +1669,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         String fileName = contingenciesFile.getFileName().toString();
         String dateStr = fileName.substring(14, fileName.length() - 5);
-        DateTime date = DateTime.parse(dateStr, DateTimeFormat.forPattern(OpenSensitivityAnalysisProvider.DATE_TIME_FORMAT));
+        DateTime date = DateTime.parse(dateStr, DateTimeFormat.forPattern(DebugUtil.DATE_TIME_FORMAT));
 
         List<SensitivityValue> values2 = sensiProvider.replay(date, fileSystem.getPath(debugDir));
 

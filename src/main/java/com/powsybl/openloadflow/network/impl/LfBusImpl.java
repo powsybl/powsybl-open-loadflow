@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
+import com.powsybl.openloadflow.network.Extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -112,5 +113,29 @@ public class LfBusImpl extends AbstractLfBus {
             return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
                     .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, getAngle())).collect(Collectors.toList());
         }
+    }
+
+    @Override
+    public double getTargetP() {
+        AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        if (asymBus != null) {
+            System.out.println(">>>>>>>> GetTargetP() of bus = " + this.getId() + " is asymmetric and mofified");
+            return getGenerationTargetP();
+            // we use the detection of the asymmetry extension at bus to check if we are in dissym calculation
+            // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on vd, vi, vo (equivalent fortescue representation
+        }
+        return getGenerationTargetP() - getLoadTargetP();
+    }
+
+    @Override
+    public double getTargetQ() {
+        AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        if (asymBus != null) {
+            System.out.println(">>>>>>>> GetTargetQ() of bus = " + this.getId() + " is asymmetric and mofified");
+            return getGenerationTargetQ();
+            // we use the detection of the asymmetry extension at bus to check if we are in dissym calculation
+            // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on vd, vi, vo (equivalent fortescue representation
+        }
+        return getGenerationTargetQ() - getLoadTargetQ();
     }
 }

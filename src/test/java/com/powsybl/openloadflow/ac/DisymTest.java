@@ -154,11 +154,11 @@ public class DisymTest {
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(94.04882547240338, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(92.11678685308421, bus2); // balanced = 99.79736062173895
         //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
-        assertVoltageEquals(87.23277502568793, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(83.04444696212482, bus3); // balanced = 99.54462759204546
         //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
-        assertVoltageEquals(86.94476224294887, bus4); // balanced = 99.29252809145005
+        assertVoltageEquals(83.23009848707621, bus4); // balanced = 99.29252809145005
         //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
     }
 
