@@ -227,7 +227,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setReactivePowerRemoteControl(lfParametersExt.hasReactivePowerRemoteControl())
                 .setDc(lfParameters.isDc())
                 .setShuntVoltageControl(lfParameters.isShuntCompensatorVoltageControlOn())
-                .setReactiveLimits(!lfParameters.isNoGeneratorReactiveLimits())
+                .setReactiveLimits(lfParameters.isUseReactiveLimits())
                 .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage());

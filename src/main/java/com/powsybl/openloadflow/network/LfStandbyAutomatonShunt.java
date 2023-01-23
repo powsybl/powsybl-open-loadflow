@@ -111,4 +111,9 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // nothing to do
     }
+
+    @Override
+    public void reInit() {
+        // nothing to do
+    }
 }

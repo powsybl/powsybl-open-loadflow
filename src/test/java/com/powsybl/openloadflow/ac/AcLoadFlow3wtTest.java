@@ -44,7 +44,7 @@ class AcLoadFlow3wtTest {
         bus3 = network.getBusBreakerView().getBus("b3");
         twt = network.getThreeWindingsTransformer("3wt");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);

@@ -49,7 +49,7 @@ class DistributedSlackOnGenerationTest {
         g3 = network.getGenerator("g3");
         g4 = network.getGenerator("g4");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
