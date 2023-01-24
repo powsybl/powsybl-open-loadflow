@@ -143,7 +143,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBus.getCalculatedV();
         }
 
-        double calculateSensiRV(LfBranch controllerBranch, LfBus controlledBus) {
+        double calculateSensitivityFromRToV(LfBranch controllerBranch, LfBus controlledBus) {
             return getCalculatedV(controlledBus)
                     .calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
         }
@@ -153,7 +153,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                                             double diffV, List<String> controlledBusesWithAllItsControllersToLimit) {
         // only one transformer controls a bus
         var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-        double sensitivity = sensitivities.calculateSensiRV(controllerBranch, controlledBus);
+        double sensitivity = sensitivities.calculateSensitivityFromRToV(controllerBranch, controlledBus);
         PiModel piModel = controllerBranch.getPiModel();
         int previousTapPosition = piModel.getTapPosition();
         double deltaR1 = diffV / sensitivity;
@@ -189,7 +189,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             for (LfBranch controllerBranch : controllerBranches) {
                 if (Math.abs(remainingDiffV.getValue()) > halfTargetDeadband) {
                     var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                    double sensitivity = sensitivityContext.calculateSensiRV(controllerBranch, controlledBus);
+                    double sensitivity = sensitivityContext.calculateSensitivityFromRToV(controllerBranch, controlledBus);
                     PiModel piModel = controllerBranch.getPiModel();
                     double previousR1 = piModel.getR1();
                     double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
