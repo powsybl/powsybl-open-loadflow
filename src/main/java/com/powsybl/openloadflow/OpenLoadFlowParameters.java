@@ -68,8 +68,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     /** Default value of the maximum reactive power mismatch in Mvar **/
     public static final double MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE = Math.pow(10, -2);
 
-    /** Default value of the maximum voltage mismatch in kV **/
-    public static final double MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE = Math.pow(10, -2);
+    /** Default value of the maximum voltage mismatch in pu **/
+    public static final double MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE = Math.pow(10, -4);
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 

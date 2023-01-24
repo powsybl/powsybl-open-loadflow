@@ -71,9 +71,6 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
                 case BUS_TARGET_V_WITH_SLOPE:
                 case ZERO_V:
                     if (Math.abs(fx[idx]) >= maxVoltageMismatch) {
-                    // FIXME, condition must be : Math.abs(fx[idx]) * PerUnit.zb(idx_nominal_voltage) >= maxVoltageMismatch
-                    //  We need the value NominalVoltage associated to the equation
-                    //  either get the value or the associated BUS to fetch the information
                         return false;
                     }
                     break;

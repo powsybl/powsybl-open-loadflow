@@ -28,7 +28,7 @@
         "newtonRaphsonStoppingCriteriaType" : "UNIFORM_CRITERIA",
         "maxActivePowerMismatch" : 0.01,
         "maxReactivePowerMismatch" : 0.01,
-        "maxVoltageMismatch" : 0.01,
+        "maxVoltageMismatch" : 1.0E-4,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
         "maxIteration" : 30,
