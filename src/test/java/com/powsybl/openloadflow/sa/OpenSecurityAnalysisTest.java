@@ -2271,11 +2271,11 @@ class OpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
 
         List<Action> actions = List.of(new LoadActionBuilder().withId("action1").withLoadId("l4").withRelativeValue(false).withActivePowerValue(90).build(),
-                new LoadActionBuilder().withId("action2").withLoadId("l1").withRelativeValue(true).withActivePowerValue(50).build(),
-                new LoadActionBuilder().withId("action3").withLoadId("l2").withRelativeValue(true).withActivePowerValue(10).build());
+                                       new LoadActionBuilder().withId("action2").withLoadId("l1").withRelativeValue(true).withActivePowerValue(50).build(),
+                                       new LoadActionBuilder().withId("action3").withLoadId("l2").withRelativeValue(true).withActivePowerValue(10).build());
 
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action1", "action2")),
-                new OperatorStrategy("strategy2", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action3")));
+                                                            new OperatorStrategy("strategy2", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -2343,7 +2343,7 @@ class OpenSecurityAnalysisTest {
         assertFalse(result.getPostContingencyResults().isEmpty());
     }
 
-    void testConnectivityResultWhenNoSplit() throws IOException {
+    void testConnectivityResultWhenNoSplit() {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l12")));
@@ -2357,7 +2357,7 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void testConnectivityResultOnSplit() throws IOException {
+    void testConnectivityResultOnSplit() {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
@@ -2370,12 +2370,11 @@ class OpenSecurityAnalysisTest {
         assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
         assertEquals(3.0, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
         assertEquals(2.0, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
-        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(
-                List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
+        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
     }
 
     @Test
-    void testConnectivityResultOnSplitThreeCC() throws IOException {
+    void testConnectivityResultOnSplitThreeCC() {
         Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34"), new BranchContingency("l45")));

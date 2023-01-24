@@ -49,7 +49,7 @@ public class LfContingency {
 
     private double disconnectedGenerationActivePower;
 
-    private Set<String> disconnectedElements;
+    private Set<String> disconnectedElementIds;
 
     public LfContingency(String id, int index, int createdSynchronousComponentsCount, Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Map<LfShunt, AdmittanceShift> shuntsShift,
                          Map<LfBus, PowerShift> busesLoadShift, Set<LfGenerator> lostGenerators, Set<LfHvdc> disabledHvdcs, Set<String> originalPowerShiftIds) {
@@ -65,23 +65,26 @@ public class LfContingency {
         this.originalPowerShiftIds = Objects.requireNonNull(originalPowerShiftIds);
         this.disconnectedLoadActivePower = 0.0;
         this.disconnectedGenerationActivePower = 0.0;
-        this.disconnectedElements = new HashSet<>();
+        this.disconnectedElementIds = new HashSet<>();
 
         for (LfBus bus : disabledBuses) {
             disconnectedLoadActivePower += bus.getLoadTargetP();
             disconnectedGenerationActivePower += bus.getGenerationTargetP();
-            disconnectedElements.addAll(bus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.toList()));
-            disconnectedElements.addAll(bus.getAggregatedLoads().getOriginalIds());
+            disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.toList()));
+            disconnectedElementIds.addAll(bus.getAggregatedLoads().getOriginalIds());
+            bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
+            bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
         }
         for (Map.Entry<LfBus, PowerShift> e : busesLoadShift.entrySet()) {
             disconnectedLoadActivePower += e.getValue().getActive();
         }
         for (LfGenerator generator : lostGenerators) {
             disconnectedGenerationActivePower += generator.getTargetP();
-            disconnectedElements.add(generator.getId());
+            disconnectedElementIds.add(generator.getId());
         }
-        disconnectedElements.addAll(originalPowerShiftIds);
-        disconnectedElements.addAll(disabledBranches.stream().map(LfBranch::getId).collect(Collectors.toList()));
+        disconnectedElementIds.addAll(originalPowerShiftIds);
+        disconnectedElementIds.addAll(disabledBranches.stream().map(LfBranch::getId).collect(Collectors.toList()));
+        // FIXME: shuntsShift has to be included in the disconnected elements.
     }
 
     public String getId() {
@@ -116,8 +119,8 @@ public class LfContingency {
         return lostGenerators;
     }
 
-    public Set<String> getDisconnectedElements() {
-        return disconnectedElements;
+    public Set<String> getDisconnectedElementIds() {
+        return disconnectedElementIds;
     }
 
     public double getActivePowerLoss() {
