@@ -18,17 +18,11 @@ import com.powsybl.openloadflow.util.PerUnit;
  */
 public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCriteria {
 
-    // FIXME Any idea for the name?
-    private final double defaultValueAlpha = Math.pow(10, -5);
+    private final double maxDefaultAngleMismatch = Math.pow(10, -5);
 
-    // FIXME Any idea for the name?
-    private final double defaultValueRho = Math.pow(10, -5);
+    private final double maxDefaultRatioMismatch = Math.pow(10, -5);
 
-    // FIXME Any idea for the name?
-    private final double defaultValueB = Math.pow(10, -5);
-
-    // FIXME Any idea for the name?
-    private final double defaultValuePhi = Math.pow(10, -5);
+    private final double maxDefaultSusceptanceMismatch = Math.pow(10, -4);
 
     private final double maxActivePowerMismatch;
 
@@ -74,27 +68,22 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
                         return false;
                     }
                     break;
-                //FIXME is the following list of cases correct?
                 case BRANCH_TARGET_RHO1:
                 case DISTR_RHO:
-                    if (Math.abs(fx[idx]) >= defaultValueRho) {
+                    if (Math.abs(fx[idx]) >= maxDefaultRatioMismatch) {
                         return false;
                     }
                     break;
                 case DISTR_SHUNT_B:
                 case SHUNT_TARGET_B:
-                    if (Math.abs(fx[idx]) >= defaultValueB) {
+                    if (Math.abs(fx[idx]) >= maxDefaultSusceptanceMismatch) {
                         return false;
                     }
                     break;
                 case BUS_TARGET_PHI:
                 case ZERO_PHI:
-                    if (Math.abs(fx[idx]) >= defaultValuePhi) {
-                        return false;
-                    }
-                    break;
                 case BRANCH_TARGET_ALPHA1:
-                    if (Math.abs(fx[idx]) >= defaultValueAlpha) {
+                    if (Math.abs(fx[idx]) >= maxDefaultAngleMismatch) {
                         return false;
                     }
                     break;
