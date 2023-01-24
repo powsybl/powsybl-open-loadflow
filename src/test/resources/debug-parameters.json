@@ -43,6 +43,7 @@
         "stateVectorScalingMode" : "NONE",
         "maxSlackBusCount" : 1,
         "debugDir" : null,
+        "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
         "disym" : false
       }
     }
