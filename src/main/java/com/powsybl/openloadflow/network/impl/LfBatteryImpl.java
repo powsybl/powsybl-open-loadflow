@@ -27,7 +27,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private double droop;
 
-    private double participationFactor;
+    private double participationFactor = 0.0;
 
     private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, battery.getTargetP());

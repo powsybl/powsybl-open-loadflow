@@ -30,7 +30,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double droop;
 
-    private double participationFactor;
+    private double participationFactor = 0.0;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP());
