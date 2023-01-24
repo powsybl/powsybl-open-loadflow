@@ -650,7 +650,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
-        double deadbandValue = rtc.getTargetDeadband() / regulatingTerminalNominalV;
+        Double targetDeadband = rtc.getTargetDeadband() > 0 ? rtc.getTargetDeadband() / regulatingTerminalNominalV : null;
 
         controlledBus.getTransformerVoltageControl().ifPresentOrElse(vc -> {
             LOGGER.trace("Controlled bus '{}' already has a transformer voltage control: a shared control is created", controlledBus.getId());
@@ -660,16 +660,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             vc.addController(controllerBranch);
             controllerBranch.setVoltageControl(vc);
-            if (deadbandValue > 0) {
-                controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+            if (targetDeadband != null) {
+                Double oldTargetDeadband = vc.getTargetDeadband().orElse(null);
+                if (oldTargetDeadband == null) {
+                    vc.setTargetDeadband(targetDeadband);
+                } else {
+                    // merge target deadbands by taking minimum
+                    vc.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+                }
             }
         }, () -> {
-                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue);
+                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue, targetDeadband);
                 voltageControl.addController(controllerBranch);
                 controllerBranch.setVoltageControl(voltageControl);
-                if (deadbandValue > 0) {
-                    controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
-                }
                 controlledBus.setTransformerVoltageControl(voltageControl);
             });
     }

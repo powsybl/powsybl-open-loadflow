@@ -94,8 +94,8 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                     double targetV = voltageControl.getTargetValue();
                     double v = voltageControl.getControlled().getV();
                     double diffV = targetV - v;
-                    Double targetDeadband = branch.getTransformerVoltageControlTargetDeadband().orElse(null);
-                    if (checkTargetDeadband(targetDeadband, diffV)) {
+                    double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+                    if (Math.abs(diffV) > halfTargetDeadband) {
                         branch.setVoltageControlEnabled(true);
                         status.setValue(OuterLoopStatus.UNSTABLE);
                     }
