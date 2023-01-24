@@ -27,6 +27,8 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private double droop;
 
+    private double participationFactor;
+
     private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, battery.getTargetP());
         this.batteryRef = new Ref<>(battery);
@@ -35,11 +37,13 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         // get participation factor from extension
         ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
-            if (activePowerControl.getDroop() != 0) {
+            participating = activePowerControl.isParticipate();
+            if (!Double.isNaN(activePowerControl.getDroop())) {
                 droop = activePowerControl.getDroop();
             }
-            this.setParticipationFactor(activePowerControl.getParticipationFactor());
+            if (!Double.isNaN(activePowerControl.getParticipationFactor())) {
+                participationFactor = activePowerControl.getParticipationFactor();
+            }
         }
 
         if (!checkActivePowerControl(battery.getTargetP(), battery.getMinP(), battery.getMaxP(), parameters, report)) {
@@ -97,6 +101,11 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     @Override
     public double getDroop() {
         return droop;
+    }
+
+    @Override
+    public double getParticipationFactor() {
+        return participationFactor;
     }
 
     @Override

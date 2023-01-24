@@ -47,7 +47,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> generator.isParticipating() && getParticipationFactor(generator) != 0 && !Double.isNaN(getParticipationFactor(generator)))
+                .filter(generator -> isParticipating(generator) && getParticipationFactor(generator) != 0)
                 .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
                 .collect(Collectors.toList());
     }
@@ -91,7 +91,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
             }
 
             if (newTargetP != targetP) {
-                LOGGER.trace("Rescale '{}' active power target: {} -> {}",
+                LOGGER.error("Rescale '{}' active power target: {} -> {}",
                         generator.getId(), targetP * PerUnit.SB, newTargetP * PerUnit.SB);
                 generator.setTargetP(newTargetP);
                 done += newTargetP - targetP;
@@ -125,5 +125,22 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
         }
         return factor;
+    }
+
+    private boolean isParticipating(LfGenerator generator) {
+        boolean isParticipating;
+        switch (participationType) {
+            case MAX:
+                isParticipating = generator.isParticipating() && generator.getDroop() != 0;
+                break;
+            case REMAINING_MARGIN:
+            case TARGET:
+            case PARTICIPATION_FACTOR:
+                isParticipating = generator.isParticipating();
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
+        }
+        return isParticipating;
     }
 }

@@ -26,8 +26,6 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     private static final double POWER_EPSILON_SI = 1e-4;
 
-    private double participationFactor = 0.0;
-
     protected static final double DEFAULT_DROOP = 4; // why not
 
     protected final LfNetwork network;
@@ -303,18 +301,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         // nothing to do
     }
 
-    @Override
-    public void setParticipationFactor(double participationFactor) {
-        this.participationFactor = participationFactor;
-    }
-
-    @Override
-    public double getParticipationFactor() {
-        return participationFactor;
-    }
-
-    protected boolean checkActivePowerControl(double targetP, double minP, double maxP,
-                                              LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, LfNetworkParameters parameters,
+                                              LfNetworkLoadingReport report) {
         boolean participating = true;
         if (Math.abs(targetP) < POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
