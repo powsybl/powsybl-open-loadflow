@@ -26,7 +26,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
             case AFTER_GENERATOR_VOLTAGE_CONTROL:
                 return new TransformerVoltageControlOuterLoop();
             case INCREMENTAL_VOLTAGE_CONTROL:
-                return new IncrementalTransformerVoltageControlOuterLoop();
+                return new IncrementalTransformerVoltageControlOuterLoop(parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
             default:
                 throw new IllegalStateException("Unknown transformer voltage control mode: " + parametersExt.getTransformerVoltageControlMode());
         }
