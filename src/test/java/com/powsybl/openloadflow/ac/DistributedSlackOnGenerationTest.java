@@ -167,7 +167,6 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void zeroParticipatingGeneratorsTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
         g2.getExtension(ActivePowerControl.class).setDroop(-3);
@@ -208,7 +207,6 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     void nonParticipatingBus() {
-
         //B1 and B2 are located in germany the rest is in france
         Substation b1s = network.getSubstation("b1_s");
         b1s.setCountry(Country.GE);
