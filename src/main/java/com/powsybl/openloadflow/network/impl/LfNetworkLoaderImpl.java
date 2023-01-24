@@ -713,7 +713,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
-        double deadbandValue = shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV;
+        Double targetDeadband = shuntCompensator.getTargetDeadband() > 0 ? shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV : null;
 
         controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
             LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
@@ -725,10 +725,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
+                if (targetDeadband != null) {
+                    Double oldTargetDeadband = voltageControl.getTargetDeadband().orElse(null);
+                    if (oldTargetDeadband == null) {
+                        voltageControl.setTargetDeadband(targetDeadband);
+                    } else {
+                        // merge target deadbands by taking minimum
+                        voltageControl.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+                    }
+                }
             }
         }, () -> {
                 // we create a new shunt voltage control.
-                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue);
+                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue, targetDeadband);
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);

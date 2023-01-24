@@ -34,8 +34,10 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalShuntVoltageControlOuterLoop.class);
 
-    // Maximum number of directional inversions for each controler during incremental outerloop
+    // Maximum number of directional inversions for each controller during incremental outerloop
     private static final int MAX_DIRECTION_CHANGE = 2;
+
+    private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
     private static final class ControllerContext {
 
@@ -72,10 +74,6 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 .collect(Collectors.toList());
     }
 
-    protected static boolean checkTargetDeadband(Double targetDeadband, double difference) {
-        return (targetDeadband != null && Math.abs(difference) > targetDeadband / 2) || targetDeadband == null;
-    }
-
     @Override
     public String getType() {
         return "Incremental Shunt voltage control";
@@ -107,8 +105,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         }
     }
 
-    private void adjustB(List<LfShunt> sortedControllerShunts, LfBus controlledBus, ContextData contextData, int[] controllerShuntIndex,
-                                              DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
+    private void adjustB(ShuntVoltageControl voltageControl, List<LfShunt> sortedControllerShunts, LfBus controlledBus, ContextData contextData,
+                         int[] controllerShuntIndex, DenseMatrix sensitivities, double diffV, MutableObject<OuterLoopStatus> status) {
         // several shunts control the same bus
         double remainingDiffV = diffV;
         boolean hasChanged = true;
@@ -120,11 +118,11 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 // FIX ME: Not safe casting
                 LfShuntImpl controllerShuntImpl = (LfShuntImpl) controllerShunt;
                 // Not very efficient because sorting is performed at each iteration. However, in practical should not be an issue.
-                // Considering storing the controlers sorted already as same order is used everywhere else
+                // Considering storing the controllers sorted already as same order is used everywhere else
                 for (LfShuntImpl.Controller controller : controllerShuntImpl.getControllers().stream().sorted(Comparator.comparing(LfShuntImpl.Controller::getBMagnitude)).collect(Collectors.toList())) {
                     var controllerContext = contextData.getControllersContexts().get(controller.getId());
-                    double targetDeadband = controller.getShuntVoltageControlTargetDeadband().orElse(null);
-                    if (checkTargetDeadband(targetDeadband, remainingDiffV)) {
+                    double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+                    if (Math.abs(remainingDiffV) > halfTargetDeadband) {
                         double previousB = controller.getB();
                         double deltaB = remainingDiffV / sensitivity;
                         LfShuntImpl.Controller.Direction direction = controller.updateTapPositionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
@@ -136,7 +134,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                             LOGGER.debug("Increment shunt susceptance value of '{}': {} -> {}", controller.getId(), previousB, controller.getB());
                         }
                     } else {
-                        LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(), targetDeadband, Math.abs(diffV));
+                        LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(), halfTargetDeadband, Math.abs(diffV)); // perunit ?
                     }
                 }
                 if (hasChanged) {
@@ -176,7 +174,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                     double v = voltageControl.getControlled().getV();
                     double diffV = targetV - v;
                     List<LfShunt> sortedControllers = voltageControl.getControllers().stream().sorted(Comparator.comparing(LfShunt::getBMagnitude)).collect(Collectors.toList());
-                    adjustB(sortedControllers, controlledBus, contextData, controllerShuntIndex, sensitivities, diffV, status);
+                    adjustB(voltageControl, sortedControllers, controlledBus, contextData, controllerShuntIndex, sensitivities, diffV, status);
                 });
         return status.getValue();
     }
@@ -191,5 +189,9 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         }
         j.solveTransposed(rhs);
         return rhs;
+    }
+
+    protected static double getHalfTargetDeadband(ShuntVoltageControl voltageControl) {
+        return voltageControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_KV / voltageControl.getControlled().getNominalV()) / 2;
     }
 }

@@ -58,9 +58,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
         private final double bMagnitude;
 
-        protected Double shuntVoltageControlTargetDeadband;
-
-        public Controller(String id, List<Double> sectionsB, List<Double> sectionsG, int position, double shuntVoltageControlTargetDeadband) {
+        public Controller(String id, List<Double> sectionsB, List<Double> sectionsG, int position) {
             this.id = Objects.requireNonNull(id);
             this.sectionsB = Objects.requireNonNull(sectionsB);
             this.sectionsG = Objects.requireNonNull(sectionsG);
@@ -68,7 +66,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             double bMin = Math.min(sectionsB.get(0), sectionsB.get(sectionsB.size() - 1));
             double bMax = Math.max(sectionsB.get(0), sectionsB.get(sectionsB.size() - 1));
             this.bMagnitude = Math.abs(bMax - bMin);
-            this.shuntVoltageControlTargetDeadband = shuntVoltageControlTargetDeadband;
         }
 
         public String getId() {
@@ -97,10 +94,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
         public double getBMagnitude() {
             return bMagnitude;
-        }
-
-        public Optional<Double> getShuntVoltageControlTargetDeadband() {
-            return Optional.ofNullable(shuntVoltageControlTargetDeadband);
         }
 
         public enum Direction {
@@ -205,9 +198,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                         }
                         break;
                 }
-                double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
-                double deadbandValue = Math.max(shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV, 0.0);
-                controllers.add(new Controller(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount(), deadbandValue));
+                controllers.add(new Controller(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount()));
             });
         }
     }
