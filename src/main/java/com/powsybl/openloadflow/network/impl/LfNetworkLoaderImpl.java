@@ -820,11 +820,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsWithInconsistentTargetVoltage);
         }
 
-        if (report.generatorsWithNaNParticipationFactor > 0) {
-            LOGGER.warn("Network {}: {} generators have been discarded from active power control because they have NaN participation factors",
-                    lfNetwork, report.generatorsWithNaNParticipationFactor);
-        }
-
         if (parameters.getDebugDir() != null) {
             Path debugDir = DebugUtil.getDebugDir(parameters.getDebugDir());
             String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);

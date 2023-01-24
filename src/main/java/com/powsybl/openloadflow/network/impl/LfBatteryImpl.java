@@ -42,7 +42,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
             this.setParticipationFactor(activePowerControl.getParticipationFactor());
         }
 
-        if (!checkActivePowerControl(battery.getTargetP(), battery.getMinP(), battery.getMaxP(), this.getParticipationFactor(), parameters, report)) {
+        if (!checkActivePowerControl(battery.getTargetP(), battery.getMinP(), battery.getMaxP(), parameters, report)) {
             participating = false;
         }
     }
