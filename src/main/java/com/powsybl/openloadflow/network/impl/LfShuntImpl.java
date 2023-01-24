@@ -38,7 +38,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     private boolean voltageControlEnabled = false;
 
-    private final List<Controller> controllers = new ArrayList<>();
+    private List<Controller> controllers = new ArrayList<>();
 
     private double b;
 
@@ -130,18 +130,18 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             }
         }
 
-        public Optional<Direction> updateTapPositionB(double deltaB, int maxTapShift, AllowedDirection allowedDirection) {
-            // an increase allowed direction means that the tap could increase.
-            // a decrease allowed direction means that the tap could decrease.
+        public Optional<Direction> updateSectionB(double deltaB, int maxSectionShift, AllowedDirection allowedDirection) {
+            // an increase allowed direction means that the section could increase.
+            // a decrease allowed direction means that the section could decrease.
             double newB = getB() + deltaB;
             Range<Integer> positionRange = getAllowedPositionRange(allowedDirection);
 
-            int oldTapPosition = position;
-            // find tap position with the closest b value without exceeding the maximum of taps to switch.
+            int oldSection = position;
+            // find section with the closest b value without exceeding the maximum of sections to switch.
             double smallestDistance = Math.abs(deltaB);
             for (int p = positionRange.getMinimum(); p <= positionRange.getMaximum(); p++) {
-                if (Math.abs(p - oldTapPosition) > maxTapShift) {
-                    // we are not allowed in one outer loop run to go further than maxTapShift positions
+                if (Math.abs(p - oldSection) > maxSectionShift) {
+                    // we are not allowed in one outer loop run to go further than maxSectionShift sections
                     continue;
                 }
                 double distance = Math.abs(newB - sectionsB.get(p));
@@ -151,9 +151,10 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 }
             }
 
-            boolean hasChanged = position != oldTapPosition;
+            boolean hasChanged = position != oldSection;
             if (hasChanged) {
-                return Optional.of(position - oldTapPosition > 0 ? Direction.INCREASE : Direction.DECREASE);
+                LOGGER.debug("Controller '{}' change section from {} to {}", id, oldSection, position);
+                return Optional.of(position - oldSection > 0 ? Direction.INCREASE : Direction.DECREASE);
             }
             return Optional.empty();
         }
@@ -200,6 +201,10 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 }
                 controllers.add(new Controller(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount()));
             });
+            // Controllers are always enabled, a contingency with shunt compensator with voltage control on is not supported yet.
+            controllers = controllers.stream()
+                    .sorted(Comparator.comparingDouble(Controller::getBMagnitude).reversed())
+                    .collect(Collectors.toList());
         }
     }
 
@@ -308,20 +313,17 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                 smallestDistance = distance;
             }
         }
-        LOGGER.trace("Round B shift of shunt '{}': {} -> {}", controller.getId(), b, controller.getB());
+        LOGGER.trace("Round B shift of shunt '{}': {} -> {}", controller.getId(), b * zb, controller.getB() * zb);
     }
 
     @Override
     public double dispatchB() {
-        List<Controller> sortedControllers = controllers.stream()
-                .sorted(Comparator.comparing(Controller::getBMagnitude))
-                .collect(Collectors.toList());
         double residueB = b;
-        int remainingControllers = sortedControllers.size();
-        for (Controller sortedController : sortedControllers) {
+        int remainingControllers = controllers.size();
+        for (Controller controller : controllers) {
             double bToDispatchByController = residueB / remainingControllers--;
-            roundBToClosestSection(bToDispatchByController, sortedController);
-            residueB -= sortedController.getB();
+            roundBToClosestSection(bToDispatchByController, controller);
+            residueB -= controller.getB();
         }
         b = controllers.stream().mapToDouble(Controller::getB).sum();
         return residueB;

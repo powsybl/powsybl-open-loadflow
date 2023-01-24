@@ -160,34 +160,33 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         while (hasChanged) {
             hasChanged = false;
             for (LfShunt controllerShunt : sortedControllerShunts) {
-                double sensitivity = sensitivityContext.calculateSensitivityFromBToV(controllerShunt, controlledBus);
-                // FIX ME: Not safe casting
-                LfShuntImpl controllerShuntImpl = (LfShuntImpl) controllerShunt;
-                // Not very efficient because sorting is performed at each iteration. However, in practical should not be an issue.
-                // Considering storing the controllers sorted already as same order is used everywhere else
-                for (LfShuntImpl.Controller controller : controllerShuntImpl.getControllers().stream().sorted(Comparator.comparing(LfShuntImpl.Controller::getBMagnitude)).collect(Collectors.toList())) {
-                    var controllerContext = contextData.getControllersContexts().get(controller.getId());
-                    double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-                    if (Math.abs(remainingDiffV) > halfTargetDeadband) {
-                        double previousB = controller.getB();
-                        double deltaB = remainingDiffV / sensitivity;
-                        LfShuntImpl.Controller.Direction direction = controller.updateTapPositionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
-                        if (direction != null) {
-                            updateAllowedDirection(controllerContext, direction);
-                            remainingDiffV -= (controller.getB() - previousB) * sensitivity;
-                            hasChanged = true;
-                            status.setValue(OuterLoopStatus.UNSTABLE);
-                            LOGGER.debug("Increment shunt susceptance value of '{}': {} -> {}", controller.getId(), previousB, controller.getB());
+                if (controllerShunt instanceof LfShuntImpl) {
+                    double sensitivity = sensitivityContext.calculateSensitivityFromBToV(controllerShunt, controlledBus);
+                    LfShuntImpl controllerShuntImpl = (LfShuntImpl) controllerShunt;
+                    for (LfShuntImpl.Controller controller : controllerShuntImpl.getControllers()) {
+                        var controllerContext = contextData.getControllersContexts().get(controller.getId());
+                        double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+                        if (Math.abs(remainingDiffV) > halfTargetDeadband) {
+                            double previousB = controller.getB();
+                            double deltaB = remainingDiffV / sensitivity;
+                            LfShuntImpl.Controller.Direction direction = controller.updateSectionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
+                            if (direction != null) {
+                                updateAllowedDirection(controllerContext, direction);
+                                remainingDiffV -= (controller.getB() - previousB) * sensitivity;
+                                hasChanged = true;
+                                status.setValue(OuterLoopStatus.UNSTABLE);
+                            }
+                        } else {
+                            LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(),
+                                    halfTargetDeadband * controlledBus.getNominalV(), Math.abs(diffV) * controlledBus.getNominalV());
                         }
-                    } else {
-                        LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(), halfTargetDeadband, Math.abs(diffV)); // perunit ?
                     }
-                }
-                if (hasChanged) {
-                    controllerShuntImpl.updateB();
-                    controllerShuntImpl.updateG();
-                    for (LfNetworkListener listener : controllerShunt.getNetwork().getListeners()) {
-                        listener.onShuntTargetBChange(controllerShunt, controllerShunt.getB());
+                    if (hasChanged) {
+                        controllerShuntImpl.updateB();
+                        controllerShuntImpl.updateG();
+                        for (LfNetworkListener listener : controllerShunt.getNetwork().getListeners()) {
+                            listener.onShuntTargetBChange(controllerShunt, controllerShunt.getB());
+                        }
                     }
                 }
             }
@@ -210,9 +209,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 .filter(LfBus::isShuntVoltageControlled)
                 .forEach(controlledBus -> {
                     ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
-                    double targetV = voltageControl.getTargetValue();
-                    double v = voltageControl.getControlled().getV();
-                    double diffV = targetV - v;
+                    double diffV = voltageControl.getTargetValue() - voltageControl.getControlled().getV();
                     List<LfShunt> sortedControllers = voltageControl.getControllers().stream().sorted(Comparator.comparing(LfShunt::getBMagnitude)).collect(Collectors.toList());
                     adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);
                 });
