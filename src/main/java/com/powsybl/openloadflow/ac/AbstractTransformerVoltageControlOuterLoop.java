@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,8 @@ import java.util.stream.Collectors;
 public abstract class AbstractTransformerVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTransformerVoltageControlOuterLoop.class);
+
+    private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
     protected static List<LfBranch> getControllerBranches(LfNetwork network) {
         return network.getBranches()
@@ -48,7 +51,7 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
         return status;
     }
 
-    protected static boolean checkTargetDeadband(Double targetDeadband, double difference) {
-        return targetDeadband == null || Math.abs(difference) > targetDeadband / 2;
+    protected static double getHalfTargetDeadband(TransformerVoltageControl voltageControl) {
+        return voltageControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_KV / voltageControl.getControlled().getNominalV()) / 2;
     }
 }

@@ -121,8 +121,6 @@ public interface LfBranch extends LfElement {
 
     Optional<TransformerVoltageControl> getVoltageControl();
 
-    Optional<Double> getTransformerVoltageControlTargetDeadband();
-
     boolean isVoltageControlEnabled();
 
     void setVoltageControlEnabled(boolean voltageControlEnabled);
@@ -130,8 +128,6 @@ public interface LfBranch extends LfElement {
     boolean isVoltageController();
 
     void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
-
-    void setTransformerVoltageControlTargetDeadband(Double transformerVoltageControlTargetDeadband);
 
     BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
 

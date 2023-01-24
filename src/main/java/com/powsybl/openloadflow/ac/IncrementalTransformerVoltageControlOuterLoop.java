@@ -39,7 +39,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     public static final int DEFAULT_MAX_TAP_SHIFT = 3;
 
     private static final int MAX_DIRECTION_CHANGE = 2;
-    private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
     private static final class ControllerContext {
 
@@ -148,15 +147,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             return getCalculatedV(controlledBus)
                     .calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
         }
-    }
-
-    private static double getHalfTargetDeadband(TransformerVoltageControl voltageControl) {
-        double minTargetDeadband = MIN_TARGET_DEADBAND_KV / voltageControl.getControlled().getNominalV();
-        return voltageControl.getControllers().stream()
-                .flatMap(controller -> controller.getTransformerVoltageControlTargetDeadband().stream())
-                .filter(targetDeadband -> targetDeadband > minTargetDeadband)
-                .min(Double::compareTo)
-                .orElse(minTargetDeadband) / 2;
     }
 
     private boolean adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, ContextData contextData, SensitivityContext sensitivities,
