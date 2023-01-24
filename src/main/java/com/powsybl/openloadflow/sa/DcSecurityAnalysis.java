@@ -28,6 +28,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.sensi.OpenSensitivityAnalysisProvider;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.detectors.DefaultLimitViolationDetector;
@@ -51,7 +52,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         private final List<Contingency> contingencies;
         private final DefaultLimitViolationDetector detector;
         private final double dcPowerFactor;
-        private final Map<String, PostContingencyResult> postContingencyResultPerContingencyId = new HashMap<>();
+
+        private final List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+
+        private final List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
 
         public DcSecurityAnalysisContext(SecurityAnalysisParameters saParameters,
                                          List<Contingency> contingencyList,
@@ -94,8 +98,12 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             return dcPowerFactor;
         }
 
-        Map<String, PostContingencyResult> getPostContingencyResultPerContingencyId() {
-            return postContingencyResultPerContingencyId;
+        List<PostContingencyResult> getPostContingencyResults() {
+            return postContingencyResults;
+        }
+
+        List<OperatorStrategyResult> getOperatorStrategyResults() {
+            return operatorStrategyResults;
         }
     }
 
@@ -133,12 +141,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 .run(network, workingVariantId, context.getFactors(), context.getContingencies(), variableSets, sensitivityAnalysisParameters, computationManager, Reporter.NO_OP);
 
         PreContingencyResult preContingencyResult = createPreContingencyResults(context, result);
-
-        List<PostContingencyResult> postContingencyResults = createPostContingencyResults(context, result);
-
-        List<OperatorStrategyResult> operatorStrategyResult = createOperatorStrategyResults(context, operatorStrategies, actions);
-
-        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, operatorStrategyResult));
+        computePostContingencyAndOperatorStrategyResults(context, result, operatorStrategies, actions);
+        return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, context.getPostContingencyResults(), context.getOperatorStrategyResults()));
     }
 
     private PreContingencyResult createPreContingencyResults(DcSecurityAnalysisContext context, SensitivityAnalysisResult result) {
@@ -164,11 +168,13 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         return new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED, limitViolations, branchResults, Collections.emptyList(), Collections.emptyList());
     }
 
-    private List<PostContingencyResult> createPostContingencyResults(DcSecurityAnalysisContext context, SensitivityAnalysisResult res) {
+    private void computePostContingencyAndOperatorStrategyResults(DcSecurityAnalysisContext context, SensitivityAnalysisResult res, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
 
-        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+        //Post contingency results from Sensitivity analysis
+        Map<String, LimitViolationsResult> limitViolationPerContingency = new HashMap<>();
+        Map<String, List<BranchResult>> branchResultsPerContingency = new HashMap<>();
         for (Contingency contingency : context.getContingencies()) {
-            Map<String, BranchResult> postContingencyBranchResults = new HashMap<>();
+            List<BranchResult> postContingencyBranchResults = new ArrayList<>();
             List<SensitivityValue> values = res.getValues(contingency.getId());
             Map<Pair<String, Branch.Side>, LimitViolation> violations = new HashMap<>();
             double branchInContingencyP1 = Double.NaN;
@@ -184,7 +190,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 if (isBranchMonitored(branchId, contingency)) {
                     BranchResult preContingencyBranchResult = context.getPreContingencyAllBranchResults().get(branchId);
                     double flowTransfer = Double.isNaN(branchInContingencyP1) ? Double.NaN : (v.getFunctionReference() - preContingencyBranchResult.getP1()) / branchInContingencyP1;
-                    postContingencyBranchResults.put(branchId, new BranchResult(branchId, v.getFunctionReference(), Double.NaN, i1,
+                    postContingencyBranchResults.add(new BranchResult(branchId, v.getFunctionReference(), Double.NaN, i1,
                             -v.getFunctionReference(), Double.NaN, i2, flowTransfer));
                 }
                 context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(v.getFunctionReference()), violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
@@ -198,16 +204,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 }
             });
 
-            PostContingencyResult pcResult = new PostContingencyResult(contingency, PostContingencyComputationStatus.CONVERGED, new ArrayList<>(violations.values()),
-                    new ArrayList<>(postContingencyBranchResults.values()), Collections.emptyList(), Collections.emptyList(), new ConnectivityResult(0, 0, 0, 0, Collections.emptySet()));
-
-            context.getPostContingencyResultPerContingencyId().put(contingency.getId(), pcResult);
-            postContingencyResults.add(pcResult);
+            //Do not create the postContingencyResult now, save the needed data and create them later when ConnectivityResults are available
+            limitViolationPerContingency.put(contingency.getId(), new LimitViolationsResult(new ArrayList<>(violations.values())));
+            branchResultsPerContingency.put(contingency.getId(), postContingencyBranchResults);
         }
-        return postContingencyResults;
-    }
-
-    private List<OperatorStrategyResult> createOperatorStrategyResults(DcSecurityAnalysisContext context, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
 
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(context.getParameters().getLoadFlowParameters());
         Set<Switch> allSwitchesToOpen = new HashSet<>();
@@ -230,10 +230,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         dcParameters.getNetworkParameters().setBreakers(breakers);
 
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
-            return lfNetworks.getLargest().filter(LfNetwork::isValid)
-                    .map(largestNetwork -> runActionSimulations(context, largestNetwork, dcParameters, propagatedContingencies,
-                            operatorStrategies, actionsById, neededActions))
-                    .orElse(Collections.emptyList());
+            Optional<LfNetwork> largestNetwork = lfNetworks.getLargest();
+            if (largestNetwork.isPresent() && largestNetwork.get().isValid()) {
+                contingencyAndActionSimulation(context, largestNetwork.get(), dcParameters, propagatedContingencies,
+                        operatorStrategies, actionsById, neededActions, limitViolationPerContingency, branchResultsPerContingency);
+            }
         }
     }
 
@@ -254,48 +255,55 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         return 1000 * activePower / (Math.sqrt(3) * cosPhi * voltage);
     }
 
-    private List<OperatorStrategyResult> runActionSimulations(DcSecurityAnalysisContext context, LfNetwork lfNetwork, DcLoadFlowParameters parameters,
+    private void contingencyAndActionSimulation(DcSecurityAnalysisContext context, LfNetwork lfNetwork, DcLoadFlowParameters parameters,
                                                               List<PropagatedContingency> propagatedContingencies, List<OperatorStrategy> operatorStrategies,
-                                                              Map<String, Action> actionsById, Set<Action> neededActions) {
-
+                                                              Map<String, Action> actionsById, Set<Action> neededActions,
+                                                              Map<String, LimitViolationsResult> limitViolationPerContingency,
+                                                              Map<String, List<BranchResult>> postContingencyBranchResults) {
         // Run initial load flow and save state
         DcLoadFlowContext lfContext = new DcLoadFlowContext(lfNetwork, parameters);
         new DcLoadFlowEngine(lfContext).run();
         NetworkState networkState = NetworkState.save(lfNetwork);
-
-        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(context.getParameters());
-        boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
-
         var preContingencyLimitViolationManager = new LimitViolationManager();
         preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, false);
         Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
 
-        List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
+        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
+        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, false);
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(context.getParameters());
+
         while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
             PropagatedContingency propagatedContingency = contingencyIt.next();
-            List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId());
-
-            if (operatorStrategiesForThisContingency == null) {
-                break;
-            }
-            for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-                var postContingencyResult = context.getPostContingencyResultPerContingencyId().get(propagatedContingency.getContingency().getId());
-                if (checkCondition(operatorStrategy, postContingencyResult.getLimitViolationsResult())) {
-                    propagatedContingency.toLfContingency(lfNetwork)
+            propagatedContingency.toLfContingency(lfNetwork)
                             .ifPresent(lfContingency -> {
                                 lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
-                                OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
-                                                                                    lfActionById, createResultExtension, lfContingency, parameters.getBalanceType());
-                                operatorStrategyResults.add(result);
+                                ConnectivityResult connectivityResult = new ConnectivityResult(lfContingency.getCreatedSynchronousComponentsCount(), 0, lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
+                                        lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB, lfContingency.getDisconnectedElementIds());
+
+                                LimitViolationsResult violationsResult = limitViolationPerContingency.get(propagatedContingency.getContingency().getId());
+                                //Create the contingency result
+                                context.getPostContingencyResults().add(new PostContingencyResult(propagatedContingency.getContingency(), PostContingencyComputationStatus.CONVERGED, violationsResult,
+                                        postContingencyBranchResults.get(propagatedContingency.getContingency().getId()), Collections.emptyList(), Collections.emptyList(), connectivityResult));
+
+                                List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId());
+                                if (operatorStrategiesForThisContingency != null) {
+                                    for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
+                                        if (checkCondition(operatorStrategy, violationsResult)) {
+                                            NetworkState networkStatePostContingency = NetworkState.save(lfNetwork);
+                                            //Iterate on the action for this contingency
+                                            //Now do we have to run an action ?
+                                            context.getOperatorStrategyResults().add(
+                                                    runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
+                                                            lfActionById, openSecurityAnalysisParameters.isCreateResultExtension(), lfContingency, parameters.getBalanceType()));
+
+                                            networkStatePostContingency.restore();
+                                        }
+                                    }
+                                }
                                 networkState.restore();
                             });
-                }
-            }
         }
-        return operatorStrategyResults;
     }
 
     @Override

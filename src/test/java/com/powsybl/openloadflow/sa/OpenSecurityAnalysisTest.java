@@ -2347,12 +2347,20 @@ class OpenSecurityAnalysisTest {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l12")));
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(), Reporter.NO_OP);
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
 
+        //Test AC
+        parameters.getLoadFlowParameters().setDc(false);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
         var postContingencyResult = result.getPostContingencyResults().get(0);
-
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(0, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
 
+        //Test DC
+        parameters.getLoadFlowParameters().setDc(true);
+        result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(0, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
     }
 
@@ -2361,12 +2369,26 @@ class OpenSecurityAnalysisTest {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+
+        //Test AC
+        parameters.getLoadFlowParameters().setDc(false);
+
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(), Reporter.NO_OP);
-
         PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
-
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+        assertEquals(3.0, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
+        assertEquals(2.0, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
+        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(
+                List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
 
+        //Test DC
+        parameters.getLoadFlowParameters().setDc(true);
+
+        result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
         assertEquals(3.0, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
         assertEquals(2.0, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
@@ -2378,12 +2400,20 @@ class OpenSecurityAnalysisTest {
         Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34"), new BranchContingency("l45")));
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(), Reporter.NO_OP);
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
 
+        //Test AC
+        parameters.getLoadFlowParameters().setDc(false);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
         PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
-
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
 
+        //Test DC
+        parameters.getLoadFlowParameters().setDc(true);
+        runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
     }
 }
