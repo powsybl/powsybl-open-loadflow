@@ -44,17 +44,17 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         private final MutableInt directionChangeCount = new MutableInt();
 
-        private PiModel.AllowedDirection allowedDirection = PiModel.AllowedDirection.BOTH;
+        private AllowedDirection allowedDirection = AllowedDirection.BOTH;
 
         public MutableInt getDirectionChangeCount() {
             return directionChangeCount;
         }
 
-        private PiModel.AllowedDirection getAllowedDirection() {
+        private AllowedDirection getAllowedDirection() {
             return allowedDirection;
         }
 
-        private void setAllowedDirection(PiModel.AllowedDirection allowedDirection) {
+        private void setAllowedDirection(AllowedDirection allowedDirection) {
             this.allowedDirection = Objects.requireNonNull(allowedDirection);
         }
     }
@@ -92,7 +92,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
     }
 
-    private static void updateAllowedDirection(ControllerContext controllerContext, PiModel.Direction direction) {
+    private static void updateAllowedDirection(ControllerContext controllerContext, Direction direction) {
         if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
             if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
                 // both vs increase or decrease

@@ -96,27 +96,6 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
             return bMagnitude;
         }
 
-        public enum Direction {
-            INCREASE(AllowedDirection.INCREASE),
-            DECREASE(AllowedDirection.DECREASE);
-
-            private final AllowedDirection allowedDirection;
-
-            Direction(AllowedDirection allowedDirection) {
-                this.allowedDirection = allowedDirection;
-            }
-
-            public AllowedDirection getAllowedDirection() {
-                return allowedDirection;
-            }
-        }
-
-        public enum AllowedDirection {
-            INCREASE,
-            DECREASE,
-            BOTH
-        }
-
         private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
             switch (allowedDirection) {
                 case INCREASE:

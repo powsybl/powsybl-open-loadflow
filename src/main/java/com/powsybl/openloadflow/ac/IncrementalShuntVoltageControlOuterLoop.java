@@ -44,17 +44,17 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
         private final MutableInt directionChangeCount = new MutableInt();
 
-        private LfShuntImpl.Controller.AllowedDirection allowedDirection = LfShuntImpl.Controller.AllowedDirection.BOTH;
+        private AllowedDirection allowedDirection = AllowedDirection.BOTH;
 
         public MutableInt getDirectionChangeCount() {
             return directionChangeCount;
         }
 
-        private LfShuntImpl.Controller.AllowedDirection getAllowedDirection() {
+        private AllowedDirection getAllowedDirection() {
             return allowedDirection;
         }
 
-        private void setAllowedDirection(LfShuntImpl.Controller.AllowedDirection allowedDirection) {
+        private void setAllowedDirection(AllowedDirection allowedDirection) {
             this.allowedDirection = Objects.requireNonNull(allowedDirection);
         }
     }
@@ -89,7 +89,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         }
     }
 
-    private static void updateAllowedDirection(ControllerContext controllerContext, LfShuntImpl.Controller.Direction direction) {
+    private static void updateAllowedDirection(ControllerContext controllerContext, Direction direction) {
         if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
             if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
                 // both vs increase or decrease
@@ -169,7 +169,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                         if (Math.abs(remainingDiffV) > halfTargetDeadband) {
                             double previousB = controller.getB();
                             double deltaB = remainingDiffV / sensitivity;
-                            LfShuntImpl.Controller.Direction direction = controller.updateSectionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
+                            Direction direction = controller.updateSectionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
                             if (direction != null) {
                                 updateAllowedDirection(controllerContext, direction);
                                 remainingDiffV -= (controller.getB() - previousB) * sensitivity;
