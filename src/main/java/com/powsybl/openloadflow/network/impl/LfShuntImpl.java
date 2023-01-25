@@ -13,8 +13,6 @@ import com.powsybl.iidm.network.ShuntCompensatorModel;
 import com.powsybl.iidm.network.ShuntCompensatorNonLinearModel;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,7 +23,22 @@ import java.util.stream.Collectors;
  */
 public class LfShuntImpl extends AbstractLfShunt {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LfShuntImpl.class);
+    private final class ControllerImpl extends Controller {
+
+        private ControllerImpl(String id, List<Double> sectionsB, List<Double> sectionsG, int position) {
+            super(id, sectionsB, sectionsG, position);
+        }
+
+        @Override
+        public Optional<Direction> updateSectionB(double deltaB, int maxSectionShift, AllowedDirection allowedDirection) {
+            Optional<Direction> direction = super.updateSectionB(deltaB, maxSectionShift, allowedDirection);
+            if (direction.isPresent()) { // it means position has changed
+                setG(controllers.stream().mapToDouble(Controller::getG).sum());
+                setB(controllers.stream().mapToDouble(Controller::getB).sum());
+            }
+            return direction;
+        }
+    }
 
     private final List<Ref<ShuntCompensator>> shuntCompensatorsRefs;
 
@@ -37,64 +50,13 @@ public class LfShuntImpl extends AbstractLfShunt {
 
     private boolean voltageControlEnabled = false;
 
-    private final List<Controller> controllers = new ArrayList<>();
+    private List<Controller> controllers = new ArrayList<>();
 
     private double b;
 
     private final double zb;
 
     private double g;
-
-    private static class Controller {
-
-        private final String id;
-
-        private final List<Double> sectionsB;
-
-        private final List<Double> sectionsG;
-
-        private int position;
-
-        private final double bMagnitude;
-
-        public Controller(String id, List<Double> sectionsB, List<Double> sectionsG, int position) {
-            this.id = Objects.requireNonNull(id);
-            this.sectionsB = Objects.requireNonNull(sectionsB);
-            this.sectionsG = Objects.requireNonNull(sectionsG);
-            this.position = position;
-            double bMin = Math.min(sectionsB.get(0), sectionsB.get(sectionsB.size() - 1));
-            double bMax = Math.max(sectionsB.get(0), sectionsB.get(sectionsB.size() - 1));
-            this.bMagnitude = Math.abs(bMax - bMin);
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public List<Double> getSectionsB() {
-            return sectionsB;
-        }
-
-        public int getPosition() {
-            return position;
-        }
-
-        public void setPosition(int position) {
-            this.position = position;
-        }
-
-        public double getB() {
-            return sectionsB.get(this.position);
-        }
-
-        public double getG() {
-            return sectionsG.get(this.position);
-        }
-
-        public double getBMagnitude() {
-            return bMagnitude;
-        }
-    }
 
     public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean voltageControlCapability) {
         // if withVoltageControl equals to true, all shunt compensators that are listed must control voltage.
@@ -135,8 +97,12 @@ public class LfShuntImpl extends AbstractLfShunt {
                         }
                         break;
                 }
-                controllers.add(new Controller(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount()));
+                controllers.add(new ControllerImpl(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount()));
             });
+            // Controllers are always enabled, a contingency with shunt compensator with voltage control on is not supported yet.
+            controllers = controllers.stream()
+                    .sorted(Comparator.comparingDouble(Controller::getBMagnitude).reversed())
+                    .collect(Collectors.toList());
         }
     }
 
@@ -174,7 +140,12 @@ public class LfShuntImpl extends AbstractLfShunt {
 
     @Override
     public void setB(double b) {
-        this.b = b;
+        if (b != this.b) {
+            this.b = b;
+            for (LfNetworkListener listener : getNetwork().getListeners()) {
+                listener.onShuntSusceptanceChange(this, b);
+            }
+        }
     }
 
     @Override
@@ -222,6 +193,10 @@ public class LfShuntImpl extends AbstractLfShunt {
         this.voltageControl = voltageControl;
     }
 
+    public List<Controller> getControllers() {
+        return controllers;
+    }
+
     private void roundBToClosestSection(double b, Controller controller) {
         List<Double> sections = controller.getSectionsB();
         // find tap position with the closest b value
@@ -233,20 +208,17 @@ public class LfShuntImpl extends AbstractLfShunt {
                 smallestDistance = distance;
             }
         }
-        LOGGER.trace("Round B shift of shunt '{}': {} -> {}", controller.getId(), b, controller.getB());
+        LOGGER.trace("Round B shift of shunt '{}': {} -> {}", controller.getId(), b * zb, controller.getB() * zb);
     }
 
     @Override
     public double dispatchB() {
-        List<Controller> sortedControllers = controllers.stream()
-                .sorted(Comparator.comparing(Controller::getBMagnitude))
-                .collect(Collectors.toList());
         double residueB = b;
-        int remainingControllers = sortedControllers.size();
-        for (Controller sortedController : sortedControllers) {
+        int remainingControllers = controllers.size();
+        for (Controller controller : controllers) {
             double bToDispatchByController = residueB / remainingControllers--;
-            roundBToClosestSection(bToDispatchByController, sortedController);
-            residueB -= sortedController.getB();
+            roundBToClosestSection(bToDispatchByController, controller);
+            residueB -= controller.getB();
         }
         b = controllers.stream().mapToDouble(Controller::getB).sum();
         return residueB;
