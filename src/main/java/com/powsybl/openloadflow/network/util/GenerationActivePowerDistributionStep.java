@@ -47,7 +47,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> isParticipating(generator) && getParticipationFactor(generator) > 0)
+                .filter(generator -> isParticipating(generator))
                 .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
                 .collect(Collectors.toList());
     }
@@ -133,10 +133,14 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
             case MAX:
                 isParticipating = generator.isParticipating() && generator.getDroop() != 0;
                 break;
-            case REMAINING_MARGIN:
             case TARGET:
-            case PARTICIPATION_FACTOR:
                 isParticipating = generator.isParticipating();
+                break;
+            case PARTICIPATION_FACTOR:
+                isParticipating = generator.isParticipating() && generator.getParticipationFactor() > 0;
+                break;
+            case REMAINING_MARGIN:
+                isParticipating = generator.isParticipating() && generator.getMaxP() > generator.getTargetP();
                 break;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
