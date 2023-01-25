@@ -45,7 +45,6 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                 break;
             case BRANCH:
             case HVDC:
-            case SHUNT_COMPENSATOR:
                 // nothing to do.
                 break;
             default:
