@@ -112,18 +112,19 @@ class DistributedSlackOnGenerationTest {
         g1.setMaxP(100);
 
         // set participationFactor
+        // g1 NaN participationFactor should be discarded
         g2.getExtension(ActivePowerControl.class).setParticipationFactor(3.0);
-        g3.getExtension(ActivePowerControl.class).setParticipationFactor(2.0);
-        g4.getExtension(ActivePowerControl.class).setParticipationFactor(1.0);
+        g3.getExtension(ActivePowerControl.class).setParticipationFactor(1.0);
+        g4.getExtension(ActivePowerControl.class).setParticipationFactor(-4.0); // Should be discarded
 
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
         assertTrue(result.isOk());
         assertActivePowerEquals(-100, g1.getTerminal());
-        assertActivePowerEquals(-260, g2.getTerminal());
-        assertActivePowerEquals(-130, g3.getTerminal());
-        assertActivePowerEquals(-110, g4.getTerminal());
+        assertActivePowerEquals(-290, g2.getTerminal());
+        assertActivePowerEquals(-120, g3.getTerminal());
+        assertActivePowerEquals(-90, g4.getTerminal());
     }
 
     @Test
