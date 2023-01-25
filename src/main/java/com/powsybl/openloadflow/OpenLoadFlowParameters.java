@@ -74,6 +74,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final TransformerVoltageControlMode TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
 
+    public static final ShuntVoltageControlMode SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -101,6 +103,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String VOLTAGE_INIT_MODE_OVERRIDE_NAME = "voltageInitModeOverride";
 
     public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME = "transformerVoltageControlMode";
+
+    public static final String SHUNT_VOLTAGE_CONTROL_MODE_NAME = "shuntVoltageControlMode";
 
     public static final String DC_POWER_FACTOR_NAME = "dcPowerFactor";
 
@@ -147,6 +151,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
         new Parameter(VOLTAGE_INIT_MODE_OVERRIDE_NAME, ParameterType.STRING, "Voltage init mode override", VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE.name(), getEnumPossibleValues(VoltageInitModeOverride.class)),
         new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, ParameterType.STRING, "Transformer voltage control mode", TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(TransformerVoltageControlMode.class)),
+        new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class)),
         new Parameter(DC_POWER_FACTOR_NAME, ParameterType.DOUBLE, "DC approximation power factor", DC_POWER_FACTOR_DEFAULT_VALUE),
         new Parameter(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, ParameterType.DOUBLE, "Min plausible target voltage", LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
         new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
@@ -171,6 +176,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum TransformerVoltageControlMode {
         WITH_GENERATOR_VOLTAGE_CONTROL,
         AFTER_GENERATOR_VOLTAGE_CONTROL,
+        INCREMENTAL_VOLTAGE_CONTROL
+    }
+
+    public enum ShuntVoltageControlMode {
+        WITH_GENERATOR_VOLTAGE_CONTROL,
         INCREMENTAL_VOLTAGE_CONTROL
     }
 
@@ -206,6 +216,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private VoltageInitModeOverride voltageInitModeOverride = VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE;
 
     private TransformerVoltageControlMode transformerVoltageControlMode = TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
+
+    private ShuntVoltageControlMode shuntVoltageControlMode = SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
 
     private double dcPowerFactor = DC_POWER_FACTOR_DEFAULT_VALUE;
 
@@ -380,6 +392,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public ShuntVoltageControlMode getShuntVoltageControlMode() {
+        return shuntVoltageControlMode;
+    }
+
+    public OpenLoadFlowParameters setShuntVoltageControlMode(ShuntVoltageControlMode shuntVoltageControlMode) {
+        this.shuntVoltageControlMode = Objects.requireNonNull(shuntVoltageControlMode);
+        return this;
+    }
+
     public double getDcPowerFactor() {
         return dcPowerFactor;
     }
@@ -536,6 +557,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
+                .setShuntVoltageControlMode(config.getEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_NAME, ShuntVoltageControlMode.class, SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
@@ -586,6 +608,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setVoltageInitModeOverride(VoltageInitModeOverride.valueOf(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME))
                 .ifPresent(prop -> this.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(SHUNT_VOLTAGE_CONTROL_MODE_NAME))
+                .ifPresent(prop -> this.setShuntVoltageControlMode(ShuntVoltageControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(DC_POWER_FACTOR_NAME))
                 .ifPresent(prop -> this.setDcPowerFactor(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME))
@@ -632,6 +656,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", newtonRaphsonConvEpsPerEq=" + newtonRaphsonConvEpsPerEq +
                 ", voltageInitModeOverride=" + voltageInitModeOverride +
                 ", transformerVoltageControlMode=" + transformerVoltageControlMode +
+                ", shuntVoltageControlMode=" + shuntVoltageControlMode +
                 ", dcPowerFactor=" + dcPowerFactor +
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
@@ -931,6 +956,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getNewtonRaphsonConvEpsPerEq() == extension2.getNewtonRaphsonConvEpsPerEq() &&
                 extension1.getVoltageInitModeOverride() == extension2.getVoltageInitModeOverride() &&
                 extension1.getTransformerVoltageControlMode() == extension2.getTransformerVoltageControlMode() &&
+                extension1.getShuntVoltageControlMode() == extension2.getShuntVoltageControlMode() &&
                 extension1.getDcPowerFactor() == extension2.getDcPowerFactor() &&
                 extension1.getMinPlausibleTargetVoltage() == extension2.getMinPlausibleTargetVoltage() &&
                 extension1.getMaxPlausibleTargetVoltage() == extension2.getMaxPlausibleTargetVoltage() &&
@@ -981,6 +1007,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setNewtonRaphsonConvEpsPerEq(extension.getNewtonRaphsonConvEpsPerEq())
                     .setVoltageInitModeOverride(extension.getVoltageInitModeOverride())
                     .setTransformerVoltageControlMode(extension.getTransformerVoltageControlMode())
+                    .setShuntVoltageControlMode(extension.getShuntVoltageControlMode())
                     .setDcPowerFactor(extension.getDcPowerFactor())
                     .setMinPlausibleTargetVoltage(extension.getMinPlausibleTargetVoltage())
                     .setMaxPlausibleTargetVoltage(extension.getMaxPlausibleTargetVoltage())
