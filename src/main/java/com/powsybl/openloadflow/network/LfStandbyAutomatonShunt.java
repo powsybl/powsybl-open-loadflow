@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -114,6 +115,21 @@ public final class LfStandbyAutomatonShunt extends AbstractElement implements Lf
 
     @Override
     public void reInit() {
+        // nothing to do
+    }
+
+    @Override
+    public List<Controller> getControllers() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void updateG() {
+        // nothing to do
+    }
+
+    @Override
+    public void updateB() {
         // nothing to do
     }
 }

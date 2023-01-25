@@ -18,7 +18,6 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
@@ -81,10 +80,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         // All shunt voltage control are disabled for the first equation system resolution.
         for (LfShunt shunt : getControllerShunts(context.getNetwork())) {
             shunt.getVoltageControl().ifPresent(voltageControl -> shunt.setVoltageControlEnabled(false));
-            if (shunt instanceof LfShuntImpl) { // it could only be that indeed.
-                for (LfShuntImpl.Controller lfShuntController : ((LfShuntImpl) shunt).getControllers()) {
-                    contextData.getControllersContexts().put(lfShuntController.getId(), new ControllerContext());
-                }
+            for (LfShunt.Controller lfShuntController : shunt.getControllers()) {
+                contextData.getControllersContexts().put(lfShuntController.getId(), new ControllerContext());
             }
         }
     }
@@ -160,10 +157,10 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         while (hasChanged) {
             hasChanged = false;
             for (LfShunt controllerShunt : sortedControllerShunts) {
-                if (controllerShunt instanceof LfShuntImpl) {
+                List<LfShunt.Controller> controllers = controllerShunt.getControllers();
+                if (!controllers.isEmpty()) {
                     double sensitivity = sensitivityContext.calculateSensitivityFromBToV(controllerShunt, controlledBus);
-                    LfShuntImpl controllerShuntImpl = (LfShuntImpl) controllerShunt;
-                    for (LfShuntImpl.Controller controller : controllerShuntImpl.getControllers()) {
+                    for (LfShunt.Controller controller : controllers) {
                         var controllerContext = contextData.getControllersContexts().get(controller.getId());
                         double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
                         if (Math.abs(remainingDiffV) > halfTargetDeadband) {
@@ -182,8 +179,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                         }
                     }
                     if (hasChanged) {
-                        controllerShuntImpl.updateB();
-                        controllerShuntImpl.updateG();
+                        controllerShunt.updateB();
+                        controllerShunt.updateG();
                         for (LfNetworkListener listener : controllerShunt.getNetwork().getListeners()) {
                             listener.onShuntTargetBChange(controllerShunt, controllerShunt.getB());
                         }
