@@ -67,7 +67,7 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onShuntTargetBChange(LfShunt shunt, double bTarget) {
+    public void onShuntSusceptanceChange(LfShunt shunt, double b) {
         // empty
     }
 }

@@ -182,9 +182,6 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                     if (hasChanged) {
                         controllerShunt.updateB();
                         controllerShunt.updateG();
-                        for (LfNetworkListener listener : controllerShunt.getNetwork().getListeners()) {
-                            listener.onShuntTargetBChange(controllerShunt, controllerShunt.getB());
-                        }
                     }
                 }
             }

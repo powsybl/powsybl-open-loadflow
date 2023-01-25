@@ -123,7 +123,12 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
 
     @Override
     public void setB(double b) {
-        this.b = b;
+        if (b != this.b) {
+            this.b = b;
+            for (LfNetworkListener listener : getNetwork().getListeners()) {
+                listener.onShuntSusceptanceChange(this, b);
+            }
+        }
     }
 
     @Override

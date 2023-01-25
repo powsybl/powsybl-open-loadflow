@@ -59,7 +59,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
-        public void onShuntTargetBChange(LfShunt shunt, double bTarget) {
+        public void onShuntSusceptanceChange(LfShunt shunt, double b) {
             invalidateValues();
         }
     };
