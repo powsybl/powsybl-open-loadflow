@@ -491,14 +491,15 @@ class AcLoadFlowShuntTest {
     void testSharedIncrementalVoltageRemote() {
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
         ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
+        shuntCompensator2.setSectionCount(2);
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
         parameters.setShuntCompensatorVoltageControlOn(true);
         OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertVoltageEquals(401.967, network.getBusBreakerView().getBus("b4"));
-        assertEquals(10, shuntCompensator2.getSectionCount());
-        assertEquals(9, shuntCompensator3.getSectionCount());
+        assertEquals(11, shuntCompensator2.getSectionCount());
+        assertEquals(8, shuntCompensator3.getSectionCount());
     }
 
     @Test

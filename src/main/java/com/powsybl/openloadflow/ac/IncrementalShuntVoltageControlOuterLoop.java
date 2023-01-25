@@ -205,7 +205,9 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 .forEach(controlledBus -> {
                     ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
                     double diffV = voltageControl.getTargetValue() - voltageControl.getControlled().getV();
-                    List<LfShunt> sortedControllers = voltageControl.getControllers().stream().sorted(Comparator.comparing(LfShunt::getBMagnitude)).collect(Collectors.toList());
+                    List<LfShunt> sortedControllers = voltageControl.getControllers().stream()
+                            .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
+                            .collect(Collectors.toList());
                     adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);
                 });
         return status.getValue();
