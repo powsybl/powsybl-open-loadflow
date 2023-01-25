@@ -1,4 +1,5 @@
 /**
+ * Copyright (c) 2022, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
  * Copyright (c) 2021, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,8 +29,8 @@ import java.util.stream.Collectors;
 
 /**
  * @author Hadrien Godard <hadrien.godard at artelys.com>
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-
 public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalShuntVoltageControlOuterLoop.class);
