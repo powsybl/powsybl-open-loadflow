@@ -195,7 +195,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         Objects.requireNonNull(reporter);
 
         Pair<Boolean, Boolean> hasBusTargetVoltage = hasBusTargetVoltage(factorReader, network);
-        boolean breakers = !allSwitchesToOpen.isEmpty();
+        boolean withBusContingency = contingencies.stream().anyMatch(propagatedContingency -> !propagatedContingency.getBusIdsToLose().isEmpty());
+        boolean breakers = !allSwitchesToOpen.isEmpty() || withBusContingency;
         if (breakers && Boolean.TRUE.equals(hasBusTargetVoltage.getLeft())) {
             // FIXME
             // a bus voltage function works only on a bus/branch topology and a switch contingency only works on a

@@ -2321,4 +2321,40 @@ class OpenSecurityAnalysisTest {
         assertEquals(57.142, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-71.428, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testBusContingency() {
+        Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits();
+        network.getGenerator("GEN").setMaxP(900).setMinP(0);
+        network.getGenerator("GEN2").setMaxP(900).setMinP(0);
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        List<Contingency> contingencies = Stream.of("NLOAD")
+                .map(id -> new Contingency(id, new BusContingency(id)))
+                .collect(Collectors.toList());
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        NetworkResult preContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
+        assertEquals(456.769, preContingencyNetworkResult.getBranchResult("NHV1_NHV2_1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(456.769, preContingencyNetworkResult.getBranchResult("NHV1_NHV2_2").getI1(), LoadFlowAssert.DELTA_I);
+
+        assertEquals(91.606, getPostContingencyResult(result, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(91.606, getPostContingencyResult(result, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_2").getI1(), LoadFlowAssert.DELTA_I);
+
+        lfParameters.setDc(true);
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        NetworkResult preContingencyNetworkResult2 = result2.getPreContingencyResult().getNetworkResult();
+        assertEquals(455.803, preContingencyNetworkResult2.getBranchResult("NHV1_NHV2_1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(455.803, preContingencyNetworkResult2.getBranchResult("NHV1_NHV2_2").getI1(), LoadFlowAssert.DELTA_I);
+
+        assertEquals(0.0, getPostContingencyResult(result2, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(0.0, getPostContingencyResult(result2, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_2").getI1(), LoadFlowAssert.DELTA_I);
+    }
 }

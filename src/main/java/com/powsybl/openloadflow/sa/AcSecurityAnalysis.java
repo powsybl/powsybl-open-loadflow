@@ -81,13 +81,15 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                 lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
                 lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation());
 
+        boolean withBusContingency = propagatedContingencies.stream().anyMatch(propagatedContingency -> !propagatedContingency.getBusIdsToLose().isEmpty());
+
         // check actions validity
         checkActions(network, actions);
 
         // try for find all switches to be operated as actions.
         Set<Switch> allSwitchesToClose = new HashSet<>();
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
-        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty()) || withBusContingency;
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
 
         // create networks including all necessary switches

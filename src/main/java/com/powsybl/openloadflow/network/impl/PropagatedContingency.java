@@ -43,6 +43,8 @@ public class PropagatedContingency {
 
     private final Set<String> originalPowerShiftIds;
 
+    private final Set<String> busIdsToLose;
+
     public Contingency getContingency() {
         return contingency;
     }
@@ -79,10 +81,14 @@ public class PropagatedContingency {
         return originalPowerShiftIds;
     }
 
+    public Set<String> getBusIdsToLose() {
+        return busIdsToLose;
+    }
+
     public PropagatedContingency(Contingency contingency, int index, Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen,
                                  Set<Switch> switchesToOpen, Set<String> generatorIdsToLose,
                                  Map<String, PowerShift> busIdsToShift, Map<String, AdmittanceShift> shuntIdsToShift,
-                                 Set<String> originalPowerShiftIds) {
+                                 Set<String> originalPowerShiftIds, Set<String> busIdsToLose) {
         this.contingency = Objects.requireNonNull(contingency);
         this.index = index;
         this.branchIdsToOpen = Objects.requireNonNull(branchIdsToOpen);
@@ -92,6 +98,7 @@ public class PropagatedContingency {
         this.busIdsToShift = Objects.requireNonNull(busIdsToShift);
         this.shuntIdsToShift = Objects.requireNonNull(shuntIdsToShift);
         this.originalPowerShiftIds = Objects.requireNonNull(originalPowerShiftIds);
+        this.busIdsToLose = Objects.requireNonNull(busIdsToLose);
 
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
@@ -130,20 +137,30 @@ public class PropagatedContingency {
                                                 boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation, boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        Set<String> busIdsToLose = new HashSet<>();
 
         // process elements of the contingency
         for (ContingencyElement element : contingency.getElements()) {
             Identifiable<?> identifiable = getIdentifiable(network, element);
-            if (contingencyPropagation) {
-                ContingencyTripping.createContingencyTripping(network, identifiable).traverse(switchesToOpen, terminalsToDisconnect);
-            }
-            terminalsToDisconnect.addAll(getTerminals(identifiable));
-            if (identifiable instanceof Switch) {
-                switchesToOpen.add((Switch) identifiable);
+            if (identifiable.getType().equals(IdentifiableType.BUS)) {
+                Bus bus = (Bus) identifiable;
+                if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.BUS_BREAKER) {
+                    busIdsToLose.add(identifiable.getId());
+                } else {
+                    throw new UnsupportedOperationException("Unsupported contingency element type " + element.getType() + ": voltage level should be in bus/breaker topology");
+                }
+            } else {
+                if (contingencyPropagation) {
+                    ContingencyTripping.createContingencyTripping(network, identifiable).traverse(switchesToOpen, terminalsToDisconnect);
+                }
+                terminalsToDisconnect.addAll(getTerminals(identifiable));
+                if (identifiable instanceof Switch) {
+                    switchesToOpen.add((Switch) identifiable);
+                }
             }
         }
 
-        boolean breakers = !switchesToOpen.isEmpty();
+        boolean breakers = !switchesToOpen.isEmpty() || !busIdsToLose.isEmpty();
 
         Set<String> branchIdsToOpen = new LinkedHashSet<>();
         Set<String> hvdcIdsToOpen = new HashSet<>();
@@ -216,7 +233,7 @@ public class PropagatedContingency {
         }
 
         return new PropagatedContingency(contingency, index, branchIdsToOpen, hvdcIdsToOpen, switchesToOpen,
-                                         generatorIdsToLose, busIdsToShift, shuntIdsToShift, originalPowerShiftIds);
+                                         generatorIdsToLose, busIdsToShift, shuntIdsToShift, originalPowerShiftIds, busIdsToLose);
     }
 
     private static void addPowerShift(Terminal terminal, Map<String, PowerShift> busIdsToShift, PowerShift powerShift, boolean breakers) {
@@ -278,6 +295,10 @@ public class PropagatedContingency {
                 identifiable = network.getThreeWindingsTransformer(element.getId());
                 identifiableType = "Three windings transformer";
                 break;
+            case BUS:
+                identifiable = network.getBusBreakerView().getBus(element.getId());
+                identifiableType = "Configured bus";
+                break;
             default:
                 throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
         }
@@ -287,7 +308,23 @@ public class PropagatedContingency {
         return identifiable;
     }
 
+    public void update(LfNetwork network) {
+        // update branches to open connected with buses in contingency. This is an approximation:
+        // these branches are indeed just open at one side.
+        for (String busId : busIdsToLose) {
+            LfBus bus = network.getBusById(busId);
+            bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
+        }
+    }
+
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
+        // update branches to open connected with buses in contingency. This is an approximation:
+        // these branches are indeed just open at one side.
+        for (String busId : busIdsToLose) {
+            LfBus bus = network.getBusById(busId);
+            bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
+        }
+
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
