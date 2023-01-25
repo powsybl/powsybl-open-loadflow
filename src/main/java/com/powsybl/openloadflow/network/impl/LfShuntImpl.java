@@ -23,6 +23,23 @@ import java.util.stream.Collectors;
  */
 public class LfShuntImpl extends AbstractElement implements LfShunt {
 
+    private final class ControllerImpl extends Controller {
+
+        private ControllerImpl(String id, List<Double> sectionsB, List<Double> sectionsG, int position) {
+            super(id, sectionsB, sectionsG, position);
+        }
+
+        @Override
+        public Optional<Direction> updateSectionB(double deltaB, int maxSectionShift, AllowedDirection allowedDirection) {
+            Optional<Direction> direction = super.updateSectionB(deltaB, maxSectionShift, allowedDirection);
+            if (direction.isPresent()) { // it means position has changed
+                setG(controllers.stream().mapToDouble(Controller::getG).sum());
+                setB(controllers.stream().mapToDouble(Controller::getB).sum());
+            }
+            return direction;
+        }
+    }
+
     private final List<Ref<ShuntCompensator>> shuntCompensatorsRefs;
 
     private final LfBus bus;
@@ -80,7 +97,7 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
                         }
                         break;
                 }
-                controllers.add(new Controller(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount()));
+                controllers.add(new ControllerImpl(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount()));
             });
             // Controllers are always enabled, a contingency with shunt compensator with voltage control on is not supported yet.
             controllers = controllers.stream()
@@ -132,18 +149,8 @@ public class LfShuntImpl extends AbstractElement implements LfShunt {
     }
 
     @Override
-    public void updateB() {
-        setB(controllers.stream().mapToDouble(Controller::getB).sum());
-    }
-
-    @Override
     public double getG() {
         return g;
-    }
-
-    @Override
-    public void updateG() {
-        setG(controllers.stream().mapToDouble(Controller::getG).sum());
     }
 
     @Override

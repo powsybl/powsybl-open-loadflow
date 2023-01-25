@@ -122,14 +122,4 @@ public final class LfStandbyAutomatonShunt extends AbstractElement implements Lf
     public List<Controller> getControllers() {
         return Collections.emptyList();
     }
-
-    @Override
-    public void updateG() {
-        // nothing to do
-    }
-
-    @Override
-    public void updateB() {
-        // nothing to do
-    }
 }

@@ -145,8 +145,4 @@ public interface LfShunt extends LfElement {
     void reInit();
 
     List<Controller> getControllers();
-
-    void updateB();
-
-    void updateG();
 }

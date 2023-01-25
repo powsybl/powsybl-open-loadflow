@@ -179,10 +179,6 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                                     halfTargetDeadband * controlledBus.getNominalV(), Math.abs(diffV) * controlledBus.getNominalV());
                         }
                     }
-                    if (hasChanged) {
-                        controllerShunt.updateB();
-                        controllerShunt.updateG();
-                    }
                 }
             }
         }
