@@ -19,12 +19,12 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.*;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -40,34 +40,6 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
-    private static final class ControllerContext {
-
-        private final MutableInt directionChangeCount = new MutableInt();
-
-        private AllowedDirection allowedDirection = AllowedDirection.BOTH;
-
-        public MutableInt getDirectionChangeCount() {
-            return directionChangeCount;
-        }
-
-        private AllowedDirection getAllowedDirection() {
-            return allowedDirection;
-        }
-
-        private void setAllowedDirection(AllowedDirection allowedDirection) {
-            this.allowedDirection = Objects.requireNonNull(allowedDirection);
-        }
-    }
-
-    private static final class ContextData {
-
-        private final Map<String, ControllerContext> controllersContexts = new HashMap<>();
-
-        private Map<String, ControllerContext> getControllersContexts() {
-            return controllersContexts;
-        }
-    }
-
     @Override
     public String getType() {
         return "Incremental Shunt voltage control";
@@ -75,19 +47,19 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
     @Override
     public void initialize(OuterLoopContext context) {
-        var contextData = new ContextData();
+        var contextData = new IncrementalContextData();
         context.setData(contextData);
 
         // All shunt voltage control are disabled for the first equation system resolution.
         for (LfShunt shunt : getControllerShunts(context.getNetwork())) {
             shunt.getVoltageControl().ifPresent(voltageControl -> shunt.setVoltageControlEnabled(false));
             for (LfShunt.Controller lfShuntController : shunt.getControllers()) {
-                contextData.getControllersContexts().put(lfShuntController.getId(), new ControllerContext());
+                contextData.getControllersContexts().put(lfShuntController.getId(), new IncrementalContextData.ControllerContext());
             }
         }
     }
 
-    private static void updateAllowedDirection(ControllerContext controllerContext, Direction direction) {
+    private static void updateAllowedDirection(IncrementalContextData.ControllerContext controllerContext, Direction direction) {
         if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
             if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
                 // both vs increase or decrease
@@ -150,7 +122,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 .collect(Collectors.toList());
     }
 
-    private void adjustB(ShuntVoltageControl voltageControl, List<LfShunt> sortedControllerShunts, LfBus controlledBus, ContextData contextData,
+    private void adjustB(ShuntVoltageControl voltageControl, List<LfShunt> sortedControllerShunts, LfBus controlledBus, IncrementalContextData contextData,
                          SensitivityContext sensitivityContext, double diffV, MutableObject<OuterLoopStatus> status) {
         // several shunts control the same bus
         double remainingDiffV = diffV;
@@ -190,7 +162,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
         LfNetwork network = context.getNetwork();
         AcLoadFlowContext loadFlowContext = context.getAcLoadFlowContext();
-        var contextData = (ContextData) context.getData();
+        var contextData = (IncrementalContextData) context.getData();
 
         List<LfShunt> controllerShunts = getControllerShunts(network);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShunts,

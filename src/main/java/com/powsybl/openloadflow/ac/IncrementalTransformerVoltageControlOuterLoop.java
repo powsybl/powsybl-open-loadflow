@@ -20,13 +20,15 @@ import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableDouble;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -39,34 +41,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     public static final int DEFAULT_MAX_TAP_SHIFT = 3;
 
     private static final int MAX_DIRECTION_CHANGE = 2;
-
-    private static final class ControllerContext {
-
-        private final MutableInt directionChangeCount = new MutableInt();
-
-        private AllowedDirection allowedDirection = AllowedDirection.BOTH;
-
-        public MutableInt getDirectionChangeCount() {
-            return directionChangeCount;
-        }
-
-        private AllowedDirection getAllowedDirection() {
-            return allowedDirection;
-        }
-
-        private void setAllowedDirection(AllowedDirection allowedDirection) {
-            this.allowedDirection = Objects.requireNonNull(allowedDirection);
-        }
-    }
-
-    private static final class ContextData {
-
-        private final Map<String, ControllerContext> controllersContexts = new HashMap<>();
-
-        private Map<String, ControllerContext> getControllersContexts() {
-            return controllersContexts;
-        }
-    }
 
     private final int maxTapShift;
 
@@ -81,18 +55,18 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     @Override
     public void initialize(OuterLoopContext context) {
-        var contextData = new ContextData();
+        var contextData = new IncrementalContextData();
         context.setData(contextData);
 
         // All transformer voltage control are disabled as in this outer loop voltage adjustment is not
         // done into the equation system
         for (LfBranch branch : getControllerBranches(context.getNetwork())) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
-            contextData.getControllersContexts().put(branch.getId(), new ControllerContext());
+            contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext());
         }
     }
 
-    private static void updateAllowedDirection(ControllerContext controllerContext, Direction direction) {
+    private static void updateAllowedDirection(IncrementalContextData.ControllerContext controllerContext, Direction direction) {
         if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
             if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
                 // both vs increase or decrease
@@ -149,7 +123,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
     }
 
-    private boolean adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, ContextData contextData, SensitivityContext sensitivities,
+    private boolean adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivities,
                                             double diffV, List<String> controlledBusesWithAllItsControllersToLimit) {
         // only one transformer controls a bus
         var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
@@ -170,7 +144,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }).isPresent();
     }
 
-    private boolean adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, ContextData contextData,
+    private boolean adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, IncrementalContextData contextData,
                                                  SensitivityContext sensitivityContext, double diffV, double halfTargetDeadband,
                                                  List<String> controlledBusesWithAllItsControllersToLimit) {
         MutableBoolean adjusted = new MutableBoolean(false);
@@ -238,7 +212,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         LfNetwork network = context.getNetwork();
         AcLoadFlowContext loadFlowContext = context.getAcLoadFlowContext();
-        var contextData = (ContextData) context.getData();
+        var contextData = (IncrementalContextData) context.getData();
 
         List<LfBranch> controllerBranches = getControllerBranches(network);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
