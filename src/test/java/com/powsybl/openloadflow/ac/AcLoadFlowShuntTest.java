@@ -412,4 +412,190 @@ class AcLoadFlowShuntTest {
         assertActivePowerEquals(1.528, shuntG.getTerminal());
         assertReactivePowerEquals(-152.826, shuntG.getTerminal());
     }
+
+    @Test
+    void testIncrementalVoltageControl() {
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        shunt.setSectionCount(0);
+        shunt.setVoltageRegulatorOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390.930, bus3);
+        assertEquals(1, shunt.getSectionCount());
+
+        shunt.setSectionCount(0);
+        shunt.setTargetDeadband(10);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(388.581, bus3);
+        assertEquals(0, shunt.getSectionCount());
+    }
+
+    @Test
+    void testIncrementalVoltageRemote() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
+        shuntCompensator2.setVoltageRegulatorOn(false);
+        ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(402.011, network.getBusBreakerView().getBus("b4"));
+        assertEquals(0, shuntCompensator2.getSectionCount());
+        assertEquals(19, shuntCompensator3.getSectionCount());
+
+        shuntCompensator3.setTargetDeadband(0.1);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(399.602, network.getBusBreakerView().getBus("b4"));
+        assertEquals(0, shuntCompensator2.getSectionCount());
+        assertEquals(27, shuntCompensator3.getSectionCount());
+    }
+
+    @Test
+    void testSharedIncrementalVoltage() {
+        shunt.setSectionCount(2);
+        ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(0)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(1e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(3e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390.931, bus3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(0, shunt2.getSectionCount());
+    }
+
+    @Test
+    void testSharedIncrementalVoltageRemote() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        ShuntCompensator shuntCompensator2 = network.getShuntCompensator("SHUNT2");
+        shuntCompensator2.setSectionCount(2);
+        ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(401.967, network.getBusBreakerView().getBus("b4"));
+        assertEquals(11, shuntCompensator2.getSectionCount());
+        assertEquals(8, shuntCompensator3.getSectionCount());
+    }
+
+    @Test
+    void testOppositeSignBIncremental() {
+        ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(1)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(-1e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(-3e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390.931, bus3);
+        assertEquals(1, shunt.getSectionCount());
+        assertEquals(0, shunt2.getSectionCount());
+    }
+
+    @Test
+    void testNonLinearControlersIncremental() {
+        shunt.setVoltageRegulatorOn(false);
+        ShuntCompensator shunt2 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT2")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(1)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(-3e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(4e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+        ShuntCompensator shunt3 = network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT3")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(1)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(l2.getTerminal1())
+                .setTargetV(393)
+                .setTargetDeadband(5.0)
+                .newNonLinearModel()
+                .beginSection()
+                .setB(-3e-3)
+                .setG(0.0)
+                .endSection()
+                .beginSection()
+                .setB(4e-3)
+                .setG(0.)
+                .endSection()
+                .add()
+                .add();
+
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(390.930, bus3);
+        assertEquals(0, shunt.getSectionCount());
+        assertEquals(2, shunt2.getSectionCount());
+        assertEquals(1, shunt3.getSectionCount());
+
+        shunt2.setSectionCount(1);
+        shunt2.setTargetV(408.0);
+        shunt3.setSectionCount(1);
+        shunt3.setTargetV(408.0);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(408.150, bus3);
+        assertEquals(0, shunt.getSectionCount());
+        assertEquals(2, shunt2.getSectionCount());
+        assertEquals(2, shunt3.getSectionCount());
+    }
 }
