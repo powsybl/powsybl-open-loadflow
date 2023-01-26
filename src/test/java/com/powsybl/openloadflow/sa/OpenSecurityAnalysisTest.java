@@ -2321,4 +2321,24 @@ class OpenSecurityAnalysisTest {
         assertEquals(57.142, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-71.428, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testDcEquationSystemUpdater() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters().setDc(true);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        String id = network.getTwoWindingsTransformer("tr2").getId();
+        List<Contingency> contingencies = List.of(new Contingency(id, new TwoWindingsTransformerContingency(id)));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Action> actions = List.of(new LoadActionBuilder().withId("action").withLoadId("l4").withRelativeValue(false).withActivePowerValue(260).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("tr2"), new TrueCondition(), List.of("action")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
+        assertFalse(result.getPostContingencyResults().isEmpty());
+    }
 }
