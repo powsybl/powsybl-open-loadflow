@@ -122,6 +122,15 @@ class LfNetworkTest extends AbstractConverterTest {
     }
 
     @Test
+    void testVsc() {
+        Network network = HvdcNetworkFactory.createVsc();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(2, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertEquals(0.0, lfNetwork.getGeneratorById("cs2").getParticipationFactor(), 1E-6);
+    }
+
+    @Test
     void testMultipleConnectedComponentsACMainComponent() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
