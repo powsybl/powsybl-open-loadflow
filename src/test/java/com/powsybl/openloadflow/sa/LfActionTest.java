@@ -10,6 +10,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
+import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -23,18 +24,14 @@ import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.security.action.LineConnectionAction;
-import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.security.action.SwitchAction;
+import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.security.action.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -82,5 +79,31 @@ class LfActionTest extends AbstractConverterTest {
             var lineAction = new LineConnectionAction("A line action", "L1", true, false);
             assertEquals("Line connection action: only open line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers())).getMessage());
         }
+    }
+
+    @Test
+    void testLfActionGeneratorUpdatesUpdateQ() {
+
+        Network network = NodeBreakerNetworkFactory.create();
+        String genId = "G";
+        Generator actedOnGenerator = network.getGenerator(genId);
+        double deltaTargetQ = 2d;
+        double newTargetQ = actedOnGenerator.getTargetP() + deltaTargetQ;
+        GeneratorAction generatorAction =
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withActivePowerRelativeValue(false).withActivePowerValue(newTargetQ).build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
+            lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+            assertEquals(newTargetQ/ PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
+            assertEquals(genId, generatorAction.getGeneratorId());
+        }
+
+        assert true;
     }
 }
