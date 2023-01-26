@@ -121,6 +121,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private LfZeroImpedanceNetwork acLfZeroImpedanceNetwork;
 
     private Reporter reporter;
+    private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
@@ -701,6 +702,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public String getId() {
         return "{CC" + numCC + " SC" + numSC + '}';
+    }
+
+    public void addSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
+        secondaryVoltageControls.add(Objects.requireNonNull(secondaryVoltageControl));
+    }
+
+    public List<LfSecondaryVoltageControl> getSecondaryVoltageControls() {
+        return secondaryVoltageControls;
     }
 
     @Override

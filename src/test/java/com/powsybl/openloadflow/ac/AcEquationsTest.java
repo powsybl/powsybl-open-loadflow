@@ -204,7 +204,7 @@ class AcEquationsTest {
 
         var sv = new StateVector(new double[] {V_1, B});
 
-        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, Double.NaN},
+        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, -1.7369285516652369},
                 eval(new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, true), variables, sv));
     }
 
