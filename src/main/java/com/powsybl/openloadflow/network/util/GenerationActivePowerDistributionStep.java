@@ -47,7 +47,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(this::isParticipating)
+                .filter(generator -> isParticipating(generator) && getParticipationFactor(generator) != 0)
                 .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
                 .collect(Collectors.toList());
     }
