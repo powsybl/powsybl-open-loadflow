@@ -80,7 +80,7 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    void testProportionalToGenerationP() {
+    void testProportionalToP() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(105);
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
@@ -95,7 +95,7 @@ class DistributedSlackOnGenerationTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void testProportionalToGenerationParticipationFactor() {
+    void testProportionalToParticipationFactor() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(100);
 
@@ -117,7 +117,7 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    void testProportionalToGenerationRemainingMargin() {
+    void testProportionalToRemainingMargin() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(105);
 
@@ -129,6 +129,21 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-253.333, g2.getTerminal());
         assertActivePowerEquals(-122.0, g3.getTerminal());
         assertActivePowerEquals(-122.0, g4.getTerminal());
+    }
+
+    @Test
+    void testProportionalToRemainingMarginPmaxBelowTargetP() {
+        // decrease g1 max limit power below target P
+        g1.setMaxP(90);
+
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-100.0, g1.getTerminal());
+        assertActivePowerEquals(-254.545, g2.getTerminal());
+        assertActivePowerEquals(-122.727, g3.getTerminal());
+        assertActivePowerEquals(-122.727, g4.getTerminal());
     }
 
     @Test
@@ -234,5 +249,17 @@ class DistributedSlackOnGenerationTest {
                 .add();
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
                 "Failed to distribute slack bus active power mismatch, 504.9476825313616 MW remains");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void notParticipatingTest() {
+        g1.getExtension(ActivePowerControl.class).setParticipate(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-100, g1.getTerminal());
+        assertActivePowerEquals(-251.428, g2.getTerminal());
+        assertActivePowerEquals(-107.142, g3.getTerminal());
+        assertActivePowerEquals(-141.428, g4.getTerminal());
     }
 }

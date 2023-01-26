@@ -130,12 +130,13 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         switch (participationType) {
             case MAX:
                 return generator.getDroop() != 0;
-            case TARGET:
-                return true;
             case PARTICIPATION_FACTOR:
                 return generator.getParticipationFactor() > 0;
+            case TARGET:
             case REMAINING_MARGIN:
-                return generator.getMaxP() > generator.getTargetP();
+                // nothing more to do here
+                // the check whether TargetP is within Pmin-Pmax range was already included in generator.isParticipating()
+                return true;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
         }
