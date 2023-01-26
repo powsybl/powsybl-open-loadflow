@@ -31,7 +31,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         REMAINING_MARGIN
     }
 
-    private ParticipationType participationType;
+    private final ParticipationType participationType;
 
     public GenerationActivePowerDistributionStep(ParticipationType pParticipationType) {
         this.participationType = pParticipationType;
@@ -47,7 +47,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
         return buses.stream()
                 .filter(bus -> bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
-                .filter(generator -> isParticipating(generator))
+                .filter(this::isParticipating)
                 .map(generator -> new ParticipatingElement(generator, getParticipationFactor(generator)))
                 .collect(Collectors.toList());
     }
@@ -107,44 +107,37 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     }
 
     private double getParticipationFactor(LfGenerator generator) {
-        double factor;
         switch (participationType) {
             case MAX:
-                factor = generator.getMaxP() / generator.getDroop();
-                break;
+                return generator.getMaxP() / generator.getDroop();
             case TARGET:
-                factor = Math.abs(generator.getTargetP());
-                break;
+                return Math.abs(generator.getTargetP());
             case PARTICIPATION_FACTOR:
-                factor = generator.getParticipationFactor();
-                break;
+                return generator.getParticipationFactor();
             case REMAINING_MARGIN:
-                factor = Math.max(0.0, generator.getMaxP() - generator.getTargetP());
-                break;
+                return Math.max(0.0, generator.getMaxP() - generator.getTargetP());
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
         }
-        return factor;
     }
 
     private boolean isParticipating(LfGenerator generator) {
-        boolean isParticipating;
+        // check first if generator is set to be participating
+        if (!generator.isParticipating()) {
+            return false;
+        }
+        // then depending on participation type, a generator may be found to not participate
         switch (participationType) {
             case MAX:
-                isParticipating = generator.isParticipating() && generator.getDroop() != 0;
-                break;
+                return generator.getDroop() != 0;
             case TARGET:
-                isParticipating = generator.isParticipating();
-                break;
+                return true;
             case PARTICIPATION_FACTOR:
-                isParticipating = generator.isParticipating() && generator.getParticipationFactor() > 0;
-                break;
+                return generator.getParticipationFactor() > 0;
             case REMAINING_MARGIN:
-                isParticipating = generator.isParticipating() && generator.getMaxP() > generator.getTargetP();
-                break;
+                return generator.getMaxP() > generator.getTargetP();
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
         }
-        return isParticipating;
     }
 }
