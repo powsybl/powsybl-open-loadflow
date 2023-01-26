@@ -146,6 +146,7 @@ public class AcEquationSystemCreator {
     private static void createShuntEquation(LfShunt shunt, LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem, boolean deriveB) {
         ShuntCompensatorReactiveFlowEquationTerm q = new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet(), deriveB);
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(q);
+        shunt.setQ(q);
         ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
     }

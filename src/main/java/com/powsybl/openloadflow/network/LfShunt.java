@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
 import org.apache.commons.lang3.Range;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,4 +146,8 @@ public interface LfShunt extends LfElement {
     void reInit();
 
     List<Controller> getControllers();
+
+    Evaluable getQ();
+
+    void setQ(Evaluable evaluable);
 }
