@@ -1,5 +1,6 @@
 /**
  * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2023, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Caio Luke <caio.luke at artelys.com>
  */
 public class GenerationActivePowerDistributionStep implements ActivePowerDistribution.Step {
 
