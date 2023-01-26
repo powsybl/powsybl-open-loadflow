@@ -262,4 +262,52 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-107.142, g3.getTerminal());
         assertActivePowerEquals(-141.428, g4.getTerminal());
     }
+
+    @Test
+    void batteryTest() {
+        Network network = DistributedSlackNetworkFactory.createWithBattery();
+        Generator g1 = network.getGenerator("g1");
+        Generator g2 = network.getGenerator("g2");
+        Generator g3 = network.getGenerator("g3");
+        Generator g4 = network.getGenerator("g4");
+        Battery bat1 = network.getBattery("bat1");
+        Battery bat2 = network.getBattery("bat2");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(123, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+        assertActivePowerEquals(-115.122, g1.getTerminal());
+        assertActivePowerEquals(-245.368, g2.getTerminal());
+        assertActivePowerEquals(-105.123, g3.getTerminal());
+        assertActivePowerEquals(-135.369, g4.getTerminal());
+        assertActivePowerEquals(-2, bat1.getTerminal());
+        assertActivePowerEquals(2.983, bat2.getTerminal());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void batteryTestProportionalToParticipationFactor() {
+        Network network = DistributedSlackNetworkFactory.createWithBattery();
+        Generator g1 = network.getGenerator("g1");
+        Generator g2 = network.getGenerator("g2");
+        Generator g3 = network.getGenerator("g3");
+        Generator g4 = network.getGenerator("g4");
+        Battery bat1 = network.getBattery("bat1");
+        Battery bat2 = network.getBattery("bat2");
+        g1.getExtension(ActivePowerControl.class).setParticipationFactor(Double.NaN);
+        g2.getExtension(ActivePowerControl.class).setParticipationFactor(3.0);
+        g3.getExtension(ActivePowerControl.class).setParticipationFactor(1.0);
+        g4.getExtension(ActivePowerControl.class).setParticipationFactor(-4.0); // Should be discarded
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(1, result.getComponentResults().size());
+        assertEquals(123, result.getComponentResults().get(0).getDistributedActivePower(), LoadFlowAssert.DELTA_POWER);
+        assertActivePowerEquals(-100, g1.getTerminal());
+        assertActivePowerEquals(-288.5, g2.getTerminal());
+        assertActivePowerEquals(-119.5, g3.getTerminal());
+        assertActivePowerEquals(-90, g4.getTerminal());
+        assertActivePowerEquals(-2, bat1.getTerminal());
+        assertActivePowerEquals(0, bat2.getTerminal());
+    }
 }
