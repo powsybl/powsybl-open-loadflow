@@ -2343,6 +2343,7 @@ class OpenSecurityAnalysisTest {
         assertFalse(result.getPostContingencyResults().isEmpty());
     }
 
+    @Test
     void testConnectivityResultWhenNoSplit() {
         Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
