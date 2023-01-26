@@ -100,7 +100,7 @@ class LfActionTest extends AbstractConverterTest {
             LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
             lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-            assertEquals(newTargetQ/ PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
+            assertEquals(newTargetQ / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
             assertEquals(genId, generatorAction.getGeneratorId());
         }
 
