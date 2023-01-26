@@ -12,7 +12,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlUnit;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
@@ -864,7 +863,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
                     // filter missing control units and find corresponding primary voltage control, controlled bus
                     Set<LfBus> controlledBuses = controlZone.getControlUnits().stream()
-                            .flatMap(controlUnit -> getControlUnitRegulatingTerminal(network, controlUnit).stream())
+                            .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
                             .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
                             .collect(Collectors.toCollection((Supplier<Set<LfBus>>) LinkedHashSet::new));
                     if (controlledBuses.size() != controlZone.getControlUnits().size()) {
@@ -878,18 +877,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }, () -> LOGGER.warn("None of the pilot buses of control zone '{}' is valid", controlZone.getName()));
         }
         LOGGER.info("Network {}: {} secondary control zones have been created", lfNetwork, lfNetwork.getSecondaryVoltageControls().size());
-    }
-
-    private static Optional<Terminal> getControlUnitRegulatingTerminal(Network network, ControlUnit controlUnit) {
-        Generator generator = network.getGenerator(controlUnit.getId());
-        if (generator != null) {
-            return Optional.of(generator.getRegulatingTerminal());
-        }
-        VscConverterStation vscConverterStation = network.getVscConverterStation(controlUnit.getId());
-        if (vscConverterStation != null) {
-            return Optional.of(vscConverterStation.getRegulatingTerminal());
-        }
-        return Optional.empty();
     }
 
     private static Optional<Bus> findPilotBus(Network network, boolean breaker, List<String> busbarSectionsOrBusesId) {
