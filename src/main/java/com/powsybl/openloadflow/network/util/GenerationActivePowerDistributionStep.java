@@ -134,8 +134,9 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
                 return generator.getParticipationFactor() > 0;
             case TARGET:
             case REMAINING_MARGIN:
-                // nothing more to do here
-                // the check whether TargetP is within Pmin-Pmax range was already included in generator.isParticipating()
+                // nothing more to do here: the check whether TargetP is within Pmin-Pmax range
+                // was already made in AbstractLfGenerator#checkActivePowerControl
+                // whose result is reflected in generator.isParticipating()
                 return true;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + participationType);
