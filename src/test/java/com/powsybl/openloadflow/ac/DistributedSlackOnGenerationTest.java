@@ -49,6 +49,7 @@ class DistributedSlackOnGenerationTest {
         g3 = network.getGenerator("g3");
         g4 = network.getGenerator("g4");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        // Note that in core, default balance type is proportional to generation Pmax
         parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(true);
         OpenLoadFlowParameters.create(parameters)
@@ -79,7 +80,7 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    void testProportionalToGenerationPBalanceType() {
+    void testProportionalToGenerationP() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(105);
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
@@ -93,26 +94,14 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    void testProportionalToGenerationPMaxBalanceType() {
-        // decrease g1 max limit power, so that distributed slack algo reach the g1 max
-        g1.setMaxP(105);
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-
-        assertTrue(result.isOk());
-        assertActivePowerEquals(-105, g1.getTerminal());
-        assertActivePowerEquals(-249.285, g2.getTerminal());
-        assertActivePowerEquals(-106.429, g3.getTerminal());
-        assertActivePowerEquals(-139.286, g4.getTerminal());
-    }
-
-    @Test
-    void testProportionalToGenerationParticipationFactorBalanceType() {
+    @SuppressWarnings("unchecked")
+    void testProportionalToGenerationParticipationFactor() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(100);
 
         // set participationFactor
         // g1 NaN participationFactor should be discarded
+        g1.getExtension(ActivePowerControl.class).setParticipationFactor(Double.NaN);
         g2.getExtension(ActivePowerControl.class).setParticipationFactor(3.0);
         g3.getExtension(ActivePowerControl.class).setParticipationFactor(1.0);
         g4.getExtension(ActivePowerControl.class).setParticipationFactor(-4.0); // Should be discarded
@@ -128,7 +117,7 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
-    void testProportionalToGenerationRemainingMarginBalanceType() {
+    void testProportionalToGenerationRemainingMargin() {
         // decrease g1 max limit power, so that distributed slack algo reach the g1 max
         g1.setMaxP(105);
 
@@ -168,6 +157,7 @@ class DistributedSlackOnGenerationTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void zeroParticipatingGeneratorsTest() {
         g1.getExtension(ActivePowerControl.class).setDroop(2);
         g2.getExtension(ActivePowerControl.class).setDroop(-3);
