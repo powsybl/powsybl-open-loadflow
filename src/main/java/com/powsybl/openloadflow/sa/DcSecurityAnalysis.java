@@ -245,8 +245,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
             return lfNetworks.getLargest().filter(LfNetwork::isValid)
                     .map(largestNetwork -> runActionSimulations(context, largestNetwork, dcParameters, propagatedContingencies,
-                                operatorStrategies, actionsById, neededActions)
-                    ).orElse(Collections.emptyList());
+                                operatorStrategies, actionsById, neededActions))
+                    .orElse(Collections.emptyList());
         }
     }
 
