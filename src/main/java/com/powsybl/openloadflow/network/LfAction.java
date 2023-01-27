@@ -230,13 +230,14 @@ public final class LfAction {
             Optional<Double> newTargetP = Optional.empty();
             Optional<Double> activePowerValue = action.getActivePowerValue();
             if (activePowerValue.isPresent()) {
-                boolean relativeValue = action.isActivePowerRelativeValue().isPresent() && action.isActivePowerRelativeValue().get();
-                newTargetP = Optional.of(activePowerValue.get() / PerUnit.SB + (relativeValue ? generator.getTargetP() : 0d));
+                // A GeneratorAction CANNOT be created if only one of the activePowerValue or isActivePowerRelative is empty
+                Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
+                newTargetP = Optional.of(activePowerValue.get() / PerUnit.SB + ((relativeValue.isPresent() && relativeValue.get()) ? generator.getTargetP() : 0d));
             }
 
             Optional<Double> newTargetQ = action.getTargetQ();
             if (newTargetQ.isPresent()) {
-                newTargetQ = Optional.of(action.getTargetQ().get() / PerUnit.SB);
+                newTargetQ = Optional.of(newTargetQ.get() / PerUnit.SB);
             }
 
             Optional<Double> newTargetV = action.getTargetV();
