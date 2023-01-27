@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.contingency.Contingency;
@@ -100,15 +101,15 @@ class LfActionTest extends AbstractConverterTest {
     }
 
     @Test
-    void testLfActionGeneratorUpdatesUpdateQ() {
+    void testLfActionGeneratorUpdatesUpdateP() {
 
         Network network = NodeBreakerNetworkFactory.create();
         String genId = "G";
         Generator actedOnGenerator = network.getGenerator(genId);
-        double deltaTargetQ = 2d;
-        double newTargetQ = actedOnGenerator.getTargetP() + deltaTargetQ;
+        double deltaTargetP = 2d;
+        double newTargetP = actedOnGenerator.getTargetP() + deltaTargetP;
         GeneratorAction generatorAction =
-                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withActivePowerRelativeValue(false).withActivePowerValue(newTargetQ).build();
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withActivePowerRelativeValue(false).withActivePowerValue(newTargetP).build();
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
@@ -118,7 +119,32 @@ class LfActionTest extends AbstractConverterTest {
             LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
             lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
 
-            assertEquals(newTargetQ / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
+            assertEquals(newTargetP / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
+            assertEquals(genId, generatorAction.getGeneratorId());
+        }
+
+    }
+
+    @Test
+    void testLfActionGeneratorUpdatesUpdatePRelativeValue() {
+
+        Network network = NodeBreakerNetworkFactory.create();
+        String genId = "G";
+        Generator actedOnGenerator = network.getGenerator(genId);
+        double deltaTargetP = 2d;
+        double newTargetP = actedOnGenerator.getTargetP() + deltaTargetP;
+        GeneratorAction generatorAction =
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(deltaTargetP).build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
+            lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+            assertEquals(newTargetP / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
             assertEquals(genId, generatorAction.getGeneratorId());
         }
 
@@ -185,4 +211,59 @@ class LfActionTest extends AbstractConverterTest {
             assertEquals(genId, generatorAction.getGeneratorId());
         }
     }
+
+    @Test
+    void testGeneratorUpdateSetTargetQ() {
+        Network network = NodeBreakerNetworkFactory.create();
+        String genId = "G";
+        Generator actedOnGenerator = network.getGenerator(genId);
+        double deltaTargetQ = 2d;
+        double newTargetQ = actedOnGenerator.getTargetQ() + deltaTargetQ;
+        GeneratorAction generatorAction =
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withTargetQ(newTargetQ).build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
+            try {
+                lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+            } catch (Exception e) {
+                assertTrue(e instanceof PowsyblException);
+                assertEquals("GeneratorUpdates: setTargetQ not implemented yet.", e.getMessage());
+            }
+
+            assertEquals(genId, generatorAction.getGeneratorId());
+        }
+    }
+
+    @Test
+    void testGeneratorUpdateSetTargetV() {
+        Network network = NodeBreakerNetworkFactory.create();
+        String genId = "G";
+        Generator actedOnGenerator = network.getGenerator(genId);
+        double deltaTargetV = 2d;
+        double newTargetV = actedOnGenerator.getTargetV() + deltaTargetV;
+        GeneratorAction generatorAction =
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withTargetV(newTargetV).build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
+            try {
+                lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+            } catch (Exception e) {
+                assertTrue(e instanceof PowsyblException);
+                assertEquals("GeneratorUpdates: setTargetV not implemented yet.", e.getMessage());
+            }
+
+            assertEquals(genId, generatorAction.getGeneratorId());
+        }
+    }
+
 }

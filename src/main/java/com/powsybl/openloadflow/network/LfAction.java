@@ -228,19 +228,20 @@ public final class LfAction {
         LfGenerator generator = network.getGeneratorById(action.getGeneratorId());
         if (generator != null) {
             Optional<Double> newTargetP = Optional.empty();
-            if (action.getActivePowerValue().isPresent()) {
+            Optional<Double> activePowerValue = action.getActivePowerValue();
+            if (activePowerValue.isPresent()) {
                 boolean relativeValue = action.isActivePowerRelativeValue().isPresent() && action.isActivePowerRelativeValue().get();
-                newTargetP = Optional.of(action.getActivePowerValue().get() / PerUnit.SB + (relativeValue ? generator.getTargetP() : 0d));
+                newTargetP = Optional.of(activePowerValue.get() / PerUnit.SB + (relativeValue ? generator.getTargetP() : 0d));
             }
 
-            Optional<Double> newTargetQ = Optional.empty();
-            if (action.getTargetQ().isPresent()) {
+            Optional<Double> newTargetQ = action.getTargetQ();
+            if (newTargetQ.isPresent()) {
                 newTargetQ = Optional.of(action.getTargetQ().get() / PerUnit.SB);
             }
 
-            Optional<Double> newTargetV = Optional.empty();
-            if (action.getTargetV().isPresent()) {
-                newTargetV = Optional.of(action.getTargetV().get() / generator.getControlledBus().getNominalV());
+            Optional<Double> newTargetV = action.getTargetV();
+            if (newTargetV.isPresent()) {
+                newTargetV = Optional.of(newTargetV.get() / generator.getControlledBus().getNominalV());
             }
             var generatorUpdates = new GeneratorUpdates(generator, newTargetP, action.isVoltageRegulatorOn(), newTargetV, newTargetQ);
             return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorUpdates));
@@ -354,13 +355,20 @@ public final class LfAction {
                             generatorUpdates.getGenerator().getControlledBus().setVoltageControlEnabled(voltageRegulationOn));
 
             generatorUpdates.getTargetV().ifPresent(value -> {
+                throw new PowsyblException("GeneratorUpdates: setTargetV not implemented yet.");
+            });
+                    /* value ->
                 generatorUpdates.getGenerator().getControlledBus().getVoltageControl().ifPresentOrElse(
                     voltageControl -> voltageControl.setTargetValue(value),
                     () -> {
                         throw new PowsyblException("GeneratorAction: No controlled bus for generator " + generatorUpdates.getGenerator().getId());
-                    });
+                    })
+            ); */
+            generatorUpdates.getTargetQ().ifPresent(value -> {
+                throw new PowsyblException("GeneratorUpdates: setTargetQ not implemented yet.");
             });
-            generatorUpdates.getTargetQ().ifPresent(value -> generatorUpdates.getGenerator().getBus().setGenerationTargetQ(value));
+
+                    /* value -> generatorUpdates.getGenerator().getBus().setGenerationTargetQ(value)); */
         }
     }
 }
