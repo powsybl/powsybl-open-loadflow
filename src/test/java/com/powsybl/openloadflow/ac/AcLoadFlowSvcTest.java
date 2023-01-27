@@ -114,7 +114,7 @@ class AcLoadFlowSvcTest {
     void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);

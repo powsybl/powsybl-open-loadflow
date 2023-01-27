@@ -1268,7 +1268,7 @@ class OpenSecurityAnalysisTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        parameters.setNoGeneratorReactiveLimits(true);
+        parameters.setUseReactiveLimits(false);
 
         List<Contingency> contingencies = List.of(new Contingency("g1", new GeneratorContingency("g1")),
                 new Contingency("l34", new BranchContingency("l34")),
@@ -2320,5 +2320,25 @@ class OpenSecurityAnalysisTest {
         assertEquals(200.0, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(57.142, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-71.428, dcOperatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testDcEquationSystemUpdater() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters().setDc(true);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        String id = network.getTwoWindingsTransformer("tr2").getId();
+        List<Contingency> contingencies = List.of(new Contingency(id, new TwoWindingsTransformerContingency(id)));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Action> actions = List.of(new LoadActionBuilder().withId("action").withLoadId("l4").withRelativeValue(false).withActivePowerValue(260).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("tr2"), new TrueCondition(), List.of("action")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
+        assertFalse(result.getPostContingencyResults().isEmpty());
     }
 }

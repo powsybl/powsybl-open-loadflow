@@ -32,4 +32,6 @@ public interface LfNetworkListener {
     void onDisableChange(LfElement element, boolean disabled);
 
     void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition);
+
+    void onShuntSusceptanceChange(LfShunt shunt, double b);
 }

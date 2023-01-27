@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
+import org.anarres.graphviz.builder.GraphVizGraph;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
@@ -120,6 +121,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private LfZeroImpedanceNetwork acLfZeroImpedanceNetwork;
 
     private Reporter reporter;
+    private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
@@ -681,9 +683,37 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
+    public void writeGraphViz(Path file, boolean dc) {
+        try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+            writeGraphViz(writer, dc);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public void writeGraphViz(Writer writer, boolean dc) {
+        try {
+            GraphVizGraph gvGraph = new GraphVizGraphBuilder(this).build(dc);
+            gvGraph.writeTo(writer);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public String getId() {
+        return "{CC" + numCC + " SC" + numSC + '}';
+    }
+
+    public void addSecondaryVoltageControl(LfSecondaryVoltageControl secondaryVoltageControl) {
+        secondaryVoltageControls.add(Objects.requireNonNull(secondaryVoltageControl));
+    }
+
+    public List<LfSecondaryVoltageControl> getSecondaryVoltageControls() {
+        return secondaryVoltageControls;
+    }
+
     @Override
     public String toString() {
-        return "{CC" + numCC +
-            " SC" + numSC + '}';
+        return getId();
     }
 }

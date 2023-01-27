@@ -13,10 +13,7 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Injection;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -151,12 +148,33 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return createBranchFlowPerPSTAngle(functionId, variableId, null, side);
     }
 
+    protected static SensitivityFactor createBranchFlowPerTransformerLegPSTAngle(String functionId, String variableId, ThreeWindingsTransformer.Side side) {
+        SensitivityVariableType fVariable = side.equals(ThreeWindingsTransformer.Side.ONE) ? SensitivityVariableType.TRANSFORMER_PHASE_1
+                : side.equals(ThreeWindingsTransformer.Side.TWO) ? SensitivityVariableType.TRANSFORMER_PHASE_2
+                : SensitivityVariableType.TRANSFORMER_PHASE_3;
+        return new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, functionId, fVariable, variableId, false, ContingencyContext.all());
+    }
+
+    protected static SensitivityFactor createTransformerLegFlowPerInjectionIncrease(String functionId, String variableId, ThreeWindingsTransformer.Side side) {
+        SensitivityFunctionType ftype = side.equals(ThreeWindingsTransformer.Side.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                : side.equals(ThreeWindingsTransformer.Side.TWO) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+                : SensitivityFunctionType.BRANCH_ACTIVE_POWER_3;
+        return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
+    }
+
     protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId) {
         return createBranchFlowPerPSTAngle(functionId, variableId, null, Branch.Side.ONE);
     }
 
     protected static SensitivityFactor createBranchIntensityPerInjectionIncrease(String functionId, String variableId, Branch.Side side) {
         SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+        return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
+    }
+
+    protected static SensitivityFactor createTransformerLegIntensityPerInjectionIncrease(String functionId, String variableId, ThreeWindingsTransformer.Side side) {
+        SensitivityFunctionType ftype = side.equals(ThreeWindingsTransformer.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1
+                : side.equals(ThreeWindingsTransformer.Side.TWO) ? SensitivityFunctionType.BRANCH_CURRENT_2
+                : SensitivityFunctionType.BRANCH_CURRENT_3;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
@@ -318,7 +336,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Branch 'b' not found", e.getCause().getMessage());
+        assertEquals("Branch, dangling line or leg of 'b' not found", e.getCause().getMessage());
     }
 
     protected void testEmptyFactors(boolean dc) {

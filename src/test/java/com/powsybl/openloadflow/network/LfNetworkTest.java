@@ -27,9 +27,11 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -120,6 +122,15 @@ class LfNetworkTest extends AbstractConverterTest {
     }
 
     @Test
+    void testVsc() {
+        Network network = HvdcNetworkFactory.createVsc();
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        assertEquals(2, lfNetworks.size());
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        assertEquals(0.0, lfNetwork.getGeneratorById("cs2").getParticipationFactor(), 1E-6);
+    }
+
+    @Test
     void testMultipleConnectedComponentsACMainComponent() {
         Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -172,5 +183,25 @@ class LfNetworkTest extends AbstractConverterTest {
 
         assertTrue(result.isOk());
         assertEquals(2, result.getComponentResults().size());
+    }
+
+    private static void testGraphViz(Network network, boolean breakers, String ref) throws IOException {
+        LfNetworkParameters parameters = new LfNetworkParameters().setBreakers(breakers);
+        LfNetwork lfNetwork = Networks.load(network, parameters).get(0);
+        try (StringWriter writer = new StringWriter()) {
+            lfNetwork.writeGraphViz(writer, false);
+            writer.flush();
+            ComparisonUtils.compareTxt(Objects.requireNonNull(LfNetworkTest.class.getResourceAsStream("/" + ref)), writer.toString());
+        }
+    }
+
+    @Test
+    void testGraphViz() throws IOException {
+        testGraphViz(EurostagTutorialExample1Factory.create(), false, "sim1.dot");
+        testGraphViz(NodeBreakerNetworkFactory.create(), true, "nb.dot");
+        // with a disconnected line
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
+        testGraphViz(network, false, "sim1_disconnected.dot");
     }
 }
