@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.contingency.Contingency;
@@ -50,6 +52,22 @@ class LfActionTest extends AbstractConverterTest {
     @AfterEach
     public void tearDown() throws IOException {
         super.tearDown();
+    }
+
+    static class UnknownAction extends AbstractAction {
+
+        static final String NAME = "unknown-action";
+
+        @JsonCreator
+        protected UnknownAction(@JsonProperty("id") String id) {
+            super(id);
+        }
+
+        @JsonProperty(value = "type", access = JsonProperty.Access.READ_ONLY)
+        @Override
+        public String getType() {
+            return NAME;
+        }
     }
 
     @Test
@@ -104,6 +122,67 @@ class LfActionTest extends AbstractConverterTest {
             assertEquals(genId, generatorAction.getGeneratorId());
         }
 
-        assert true;
+    }
+
+    @Test
+    void testLfActionGeneratorUpdatesEmptyAction() {
+
+        Network network = NodeBreakerNetworkFactory.create();
+        String genId = "no-G";
+        double newTargetQ = 2d;
+        GeneratorAction generatorAction =
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withActivePowerRelativeValue(false).withActivePowerValue(newTargetQ).build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            assertFalse(LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isPresent());
+        }
+
+    }
+
+    @Test
+    void testUnknownLfAction() {
+        UnknownAction action = new UnknownAction("UselessAction");
+
+        Network network = NodeBreakerNetworkFactory.create();
+
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            try {
+                LfAction lfAction = LfAction.create(action, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
+                lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+            } catch (Exception e) {
+                assertTrue(e instanceof UnsupportedOperationException);
+            }
+
+        }
+    }
+
+    @Test
+    void testEmptyGeneratorAction() {
+        Network network = NodeBreakerNetworkFactory.create();
+        String genId = "G";
+        Generator actedOnGenerator = network.getGenerator(genId);
+
+        GeneratorAction generatorAction =
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
+            lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+            assertEquals(genId, generatorAction.getGeneratorId());
+        }
     }
 }
