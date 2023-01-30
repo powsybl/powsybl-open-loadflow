@@ -87,17 +87,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                   JacobianMatrix<AcVariableType, AcEquationType> j) {
-            controllerBranchIndex = createControllerBranchIndex(network, controllerBranches);
+            controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
             sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, j);
-        }
-
-        private static int[] createControllerBranchIndex(LfNetwork network, List<LfBranch> controllerBranches) {
-            int[] controllerBranchIndex = new int[network.getBranches().size()];
-            for (int i = 0; i < controllerBranches.size(); i++) {
-                LfBranch controllerBranch = controllerBranches.get(i);
-                controllerBranchIndex[controllerBranch.getNum()] = i;
-            }
-            return controllerBranchIndex;
         }
 
         private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,

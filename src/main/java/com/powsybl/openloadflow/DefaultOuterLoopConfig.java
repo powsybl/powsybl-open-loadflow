@@ -64,7 +64,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
         // phase shifter control
         if (parameters.isPhaseShifterRegulationOn()) {
-            outerLoops.add(new PhaseControlOuterLoop());
+            outerLoops.add(new IncrementalPhaseControlOuterLoop());
         }
         // transformer voltage control
         if (parameters.isTransformerVoltageControlOn()) {

@@ -21,7 +21,7 @@ public class PiModelArray implements PiModel {
 
     private final int lowTapPosition;
 
-    private int tapPosition;
+    private int tapPositionIndex;
 
     private double a1 = Double.NaN;
 
@@ -34,11 +34,11 @@ public class PiModelArray implements PiModel {
     public PiModelArray(List<PiModel> models, int lowTapPosition, int tapPosition) {
         this.models = Objects.requireNonNull(models);
         this.lowTapPosition = lowTapPosition;
-        this.tapPosition = tapPosition;
+        tapPositionIndex = tapPosition - lowTapPosition;
     }
 
     private PiModel getModel() {
-        return models.get(tapPosition - lowTapPosition);
+        return models.get(tapPositionIndex);
     }
 
     @Override
@@ -131,10 +131,10 @@ public class PiModelArray implements PiModel {
 
         // find tap position with the closest a1 value
         double smallestDistance = Math.abs(a1 - getModel().getA1());
-        for (int p = 0; p < models.size(); p++) {
-            double distance = Math.abs(a1 - models.get(p).getA1());
+        for (int i = 0; i < models.size(); i++) {
+            double distance = Math.abs(a1 - models.get(i).getA1());
             if (distance < smallestDistance) {
-                tapPosition = lowTapPosition + p;
+                tapPositionIndex = i;
                 smallestDistance = distance;
             }
         }
@@ -149,10 +149,10 @@ public class PiModelArray implements PiModel {
 
         // find tap position with the closest r1 value
         double smallestDistance = Math.abs(r1 - getModel().getR1());
-        for (int p = 0; p < models.size(); p++) {
-            double distance = Math.abs(r1 - models.get(p).getR1());
+        for (int i = 0; i < models.size(); i++) {
+            double distance = Math.abs(r1 - models.get(i).getR1());
             if (distance < smallestDistance) {
-                tapPosition = lowTapPosition + p;
+                tapPositionIndex = i;
                 smallestDistance = distance;
             }
         }
@@ -168,40 +168,39 @@ public class PiModelArray implements PiModel {
         double previousA1 = Double.NaN;
         double nextA1 = Double.NaN;
         boolean hasChanged = false;
-        int oldTapPosition = tapPosition;
-        if (tapPosition < lowTapPosition + models.size() - 1) {
-            nextA1 = models.get(tapPosition - lowTapPosition + 1).getA1(); // abs?
+        int oldTapPositionIndex = tapPositionIndex;
+        if (tapPositionIndex < models.size() - 1) {
+            nextA1 = models.get(tapPositionIndex + 1).getA1(); // abs?
         }
-        if (tapPosition > lowTapPosition) {
-            previousA1 = models.get(tapPosition - lowTapPosition - 1).getA1(); // abs?
+        if (tapPositionIndex > 0) {
+            previousA1 = models.get(tapPositionIndex - 1).getA1(); // abs?
         }
         if (!Double.isNaN(previousA1) &&
                 ((direction == Direction.INCREASE && previousA1 > a1) || (direction == Direction.DECREASE && previousA1 < a1))) {
-            tapPosition = tapPosition - 1;
+            tapPositionIndex--;
             a1 = Double.NaN;
             hasChanged = true;
         }
         if (!Double.isNaN(nextA1) &&
                 ((direction == Direction.INCREASE && nextA1 > a1) || (direction == Direction.DECREASE && nextA1 < a1))) {
-            tapPosition = tapPosition + 1;
+            tapPositionIndex++;
             a1 = Double.NaN;
             hasChanged = true;
         }
         if (hasChanged) {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onTapPositionChange(branch, oldTapPosition, tapPosition);
+                listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, lowTapPosition + tapPositionIndex);
             }
         }
         return hasChanged;
     }
 
     private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
-        int tapIndex = tapPosition - lowTapPosition;
         switch (allowedDirection) {
             case INCREASE:
-                return Range.between(tapIndex, models.size() - 1);
+                return Range.between(tapPositionIndex, models.size() - 1);
             case DECREASE:
-                return Range.between(0, tapIndex);
+                return Range.between(0, tapPositionIndex);
             case BOTH:
                 return Range.between(0, models.size() - 1);
             default:
@@ -216,28 +215,27 @@ public class PiModelArray implements PiModel {
         double newR1 = getR1() + deltaR1;
         Range<Integer> positionRange = getAllowedPositionRange(allowedDirection);
 
-        int oldTapPosition = tapPosition;
+        int oldPositionIndex = tapPositionIndex;
         // find tap position with the closest r1 value without exceeding the maximum of taps to switch.
         double smallestDistance = Math.abs(deltaR1);
-        for (int positionIndex = positionRange.getMinimum(); positionIndex <= positionRange.getMaximum(); positionIndex++) {
-            int oldPositionIndex = oldTapPosition - lowTapPosition;
-            if (Math.abs(positionIndex - oldPositionIndex) > maxTapShift) { // we are not allowed in one outer loop run to go further than maxTapShift positions
+        for (int i = positionRange.getMinimum(); i <= positionRange.getMaximum(); i++) {
+            if (Math.abs(i - oldPositionIndex) > maxTapShift) { // we are not allowed in one outer loop run to go further than maxTapShift positions
                 continue;
             }
-            double distance = Math.abs(newR1 - models.get(positionIndex).getR1());
+            double distance = Math.abs(newR1 - models.get(i).getR1());
             if (distance < smallestDistance) {
-                tapPosition = lowTapPosition + positionIndex;
+                tapPositionIndex = i;
                 smallestDistance = distance;
             }
         }
 
-        boolean hasChanged = tapPosition != oldTapPosition;
+        boolean hasChanged = tapPositionIndex != oldPositionIndex;
         if (hasChanged) {
             r1 = Double.NaN;
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onTapPositionChange(branch, oldTapPosition, tapPosition);
+                listener.onTapPositionChange(branch, lowTapPosition + oldPositionIndex, lowTapPosition + tapPositionIndex);
             }
-            return Optional.of(tapPosition - oldTapPosition > 0 ? Direction.INCREASE : Direction.DECREASE);
+            return Optional.of(tapPositionIndex - oldPositionIndex > 0 ? Direction.INCREASE : Direction.DECREASE);
         }
         return Optional.empty();
     }
@@ -258,17 +256,17 @@ public class PiModelArray implements PiModel {
 
     @Override
     public int getTapPosition() {
-        return tapPosition;
+        return lowTapPosition + tapPositionIndex;
     }
 
     @Override
     public PiModel setTapPosition(int tapPosition) {
-        int oldTapPosition = this.tapPosition;
-        this.tapPosition = tapPosition;
+        int oldTapPositionIndex = tapPositionIndex;
+        tapPositionIndex = lowTapPosition + tapPosition;
         r1 = Double.NaN;
         a1 = Double.NaN;
         for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-            listener.onTapPositionChange(branch, oldTapPosition, tapPosition);
+            listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, tapPosition);
         }
         return this;
     }
