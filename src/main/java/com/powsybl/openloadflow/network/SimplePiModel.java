@@ -141,7 +141,7 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public boolean shiftToOneTapPositionToChangeA1(Direction direction) {
+    public boolean shiftOneTapPositionToChangeA1(Direction direction) {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 

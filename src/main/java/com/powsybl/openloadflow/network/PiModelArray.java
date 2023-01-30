@@ -196,7 +196,7 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean shiftToOneTapPositionToChangeA1(Direction direction) {
+    public boolean shiftOneTapPositionToChangeA1(Direction direction) {
         // an increase direction means that A1 should increase.
         // a decrease direction means that A1 should decrease.
         double currentA1 = getA1();
