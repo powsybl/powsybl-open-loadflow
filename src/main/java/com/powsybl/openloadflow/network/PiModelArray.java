@@ -141,6 +141,37 @@ public class PiModelArray implements PiModel {
         return closestTapPositionIndex;
     }
 
+    private Optional<Direction> updateTapPosition(double targetValue, ToDoubleFunction<PiModel> valueGetter,
+                                                  Range<Integer> positionIndexRange, int maxTapShift) {
+        int oldPositionIndex = tapPositionIndex;
+
+        // find tap position with the closest value without exceeding the maximum of taps to switch.
+        tapPositionIndex = findClosestTapPosition(targetValue, valueGetter, positionIndexRange, maxTapShift);
+
+        if (tapPositionIndex != oldPositionIndex) {
+            for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
+                listener.onTapPositionChange(branch, lowTapPosition + oldPositionIndex, lowTapPosition + tapPositionIndex);
+            }
+
+            return Optional.of(tapPositionIndex - oldPositionIndex > 0 ? Direction.INCREASE : Direction.DECREASE);
+        }
+
+        return Optional.empty();
+    }
+
+    private Range<Integer> getAllowedPositionIndexRange(AllowedDirection allowedDirection) {
+        switch (allowedDirection) {
+            case INCREASE:
+                return Range.between(tapPositionIndex, models.size() - 1);
+            case DECREASE:
+                return Range.between(0, tapPositionIndex);
+            case BOTH:
+                return Range.between(0, models.size() - 1);
+            default:
+                throw new IllegalStateException("Unknown direction: " + allowedDirection);
+        }
+    }
+
     @Override
     public void roundA1ToClosestTap() {
         if (Double.isNaN(a1)) {
@@ -197,37 +228,6 @@ public class PiModelArray implements PiModel {
             }
         }
         return hasChanged;
-    }
-
-    private Range<Integer> getAllowedPositionIndexRange(AllowedDirection allowedDirection) {
-        switch (allowedDirection) {
-            case INCREASE:
-                return Range.between(tapPositionIndex, models.size() - 1);
-            case DECREASE:
-                return Range.between(0, tapPositionIndex);
-            case BOTH:
-                return Range.between(0, models.size() - 1);
-            default:
-                throw new IllegalStateException("Unknown direction: " + allowedDirection);
-        }
-    }
-
-    private Optional<Direction> updateTapPosition(double targetValue, ToDoubleFunction<PiModel> valueGetter,
-                                                  Range<Integer> positionIndexRange, int maxTapShift) {
-        int oldPositionIndex = tapPositionIndex;
-
-        // find tap position with the closest value without exceeding the maximum of taps to switch.
-        tapPositionIndex = findClosestTapPosition(targetValue, valueGetter, positionIndexRange, maxTapShift);
-
-        if (tapPositionIndex != oldPositionIndex) {
-            for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onTapPositionChange(branch, lowTapPosition + oldPositionIndex, lowTapPosition + tapPositionIndex);
-            }
-
-            return Optional.of(tapPositionIndex - oldPositionIndex > 0 ? Direction.INCREASE : Direction.DECREASE);
-        }
-
-        return Optional.empty();
     }
 
     @Override
