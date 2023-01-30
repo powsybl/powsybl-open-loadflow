@@ -199,35 +199,34 @@ public class PiModelArray implements PiModel {
     public boolean updateTapPositionA1(Direction direction) {
         // an increase direction means that A1 should increase.
         // a decrease direction means that A1 should decrease.
-        this.a1 = getA1();
-        double previousA1 = Double.NaN;
-        double nextA1 = Double.NaN;
-        boolean hasChanged = false;
+        double currentA1 = getA1();
         int oldTapPositionIndex = tapPositionIndex;
+
         if (tapPositionIndex < models.size() - 1) {
-            nextA1 = models.get(tapPositionIndex + 1).getA1(); // abs?
+            double nextA1 = models.get(tapPositionIndex + 1).getA1(); // abs?
+            if ((direction == Direction.INCREASE && nextA1 > currentA1)
+                    || (direction == Direction.DECREASE && nextA1 < currentA1)) {
+                tapPositionIndex++;
+            }
         }
+
         if (tapPositionIndex > 0) {
-            previousA1 = models.get(tapPositionIndex - 1).getA1(); // abs?
+            double previousA1 = models.get(tapPositionIndex - 1).getA1(); // abs?
+            if ((direction == Direction.INCREASE && previousA1 > currentA1)
+                    || (direction == Direction.DECREASE && previousA1 < currentA1)) {
+                tapPositionIndex--;
+            }
         }
-        if (!Double.isNaN(previousA1) &&
-                ((direction == Direction.INCREASE && previousA1 > a1) || (direction == Direction.DECREASE && previousA1 < a1))) {
-            tapPositionIndex--;
+
+        if (tapPositionIndex != oldTapPositionIndex) {
             a1 = Double.NaN;
-            hasChanged = true;
-        }
-        if (!Double.isNaN(nextA1) &&
-                ((direction == Direction.INCREASE && nextA1 > a1) || (direction == Direction.DECREASE && nextA1 < a1))) {
-            tapPositionIndex++;
-            a1 = Double.NaN;
-            hasChanged = true;
-        }
-        if (hasChanged) {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
                 listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, lowTapPosition + tapPositionIndex);
             }
+            return true;
         }
-        return hasChanged;
+
+        return false;
     }
 
     @Override
