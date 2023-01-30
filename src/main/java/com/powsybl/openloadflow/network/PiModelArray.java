@@ -196,7 +196,7 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean updateTapPositionA1(Direction direction) {
+    public boolean shiftToOneTapPositionToChangeA1(Direction direction) {
         // an increase direction means that A1 should increase.
         // a decrease direction means that A1 should decrease.
         double currentA1 = getA1();
@@ -230,7 +230,7 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
+    public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
         double newR1 = getR1() + deltaR1;
         Range<Integer> positionIndexRange = getAllowedPositionIndexRange(allowedDirection);
         Optional<Direction> direction = updateTapPosition(newR1, PiModel::getR1, positionIndexRange, maxTapShift);
