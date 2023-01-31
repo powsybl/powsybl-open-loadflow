@@ -47,9 +47,6 @@
         "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
         "secondaryVoltageControl" : false,
         "disym" : false
-        "debugDir" : null,
-        "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
-        "secondaryVoltageControl" : false
       }
     }
   },
