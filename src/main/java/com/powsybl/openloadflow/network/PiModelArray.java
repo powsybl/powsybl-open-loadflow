@@ -267,7 +267,7 @@ public class PiModelArray implements PiModel {
         }
         if (lowTapPosition + tapPosition != tapPositionIndex) {
             int oldTapPositionIndex = tapPositionIndex;
-            tapPositionIndex = lowTapPosition + tapPosition;
+            tapPositionIndex = tapPosition - lowTapPosition;
             r1 = Double.NaN;
             continuousR1 = Double.NaN;
             a1 = Double.NaN;
