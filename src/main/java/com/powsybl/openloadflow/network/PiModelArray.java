@@ -141,8 +141,8 @@ public class PiModelArray implements PiModel {
         return closestTapPositionIndex;
     }
 
-    private Optional<Direction> updateTapPosition(double targetValue, ToDoubleFunction<PiModel> valueGetter,
-                                                  Range<Integer> positionIndexRange, int maxTapShift) {
+    private Optional<Direction> updateTapPositionToReachTargetValue(double targetValue, ToDoubleFunction<PiModel> valueGetter,
+                                                                    Range<Integer> positionIndexRange, int maxTapShift) {
         int oldPositionIndex = tapPositionIndex;
 
         // find tap position with the closest value without exceeding the maximum of taps to switch.
@@ -179,7 +179,7 @@ public class PiModelArray implements PiModel {
         }
 
         // find tap position with the closest a1 value
-        updateTapPosition(a1, PiModel::getA1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE);
+        updateTapPositionToReachTargetValue(a1, PiModel::getA1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE);
         a1 = Double.NaN;
     }
 
@@ -190,7 +190,7 @@ public class PiModelArray implements PiModel {
         }
 
         // find tap position with the closest r1 value
-        updateTapPosition(r1, PiModel::getR1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE);
+        updateTapPositionToReachTargetValue(r1, PiModel::getR1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE);
         continuousR1 = r1;
         r1 = Double.NaN;
     }
@@ -233,7 +233,7 @@ public class PiModelArray implements PiModel {
     public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
         double newR1 = getR1() + deltaR1;
         Range<Integer> positionIndexRange = getAllowedPositionIndexRange(allowedDirection);
-        Optional<Direction> direction = updateTapPosition(newR1, PiModel::getR1, positionIndexRange, maxTapShift);
+        Optional<Direction> direction = updateTapPositionToReachTargetValue(newR1, PiModel::getR1, positionIndexRange, maxTapShift);
         if (direction.isPresent()) {
             r1 = Double.NaN;
         }
