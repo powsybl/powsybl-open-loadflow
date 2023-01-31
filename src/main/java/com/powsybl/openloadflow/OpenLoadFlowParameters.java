@@ -71,6 +71,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     /** Default value of the maximum voltage mismatch in pu **/
     public static final double MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE = Math.pow(10, -4);
 
+    public static final double MAX_ANGLE_MISMATCH_DEFAULT_VALUE = Math.pow(10, -5);
+
+    public static final double MAX_RATIO_MISMATCH_DEFAULT_VALUE = Math.pow(10, -5);
+
+    public static final double MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE = Math.pow(10, -4);
+
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
     public static final double DC_POWER_FACTOR_DEFAULT_VALUE = 1.0;
@@ -108,6 +114,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME = "maxReactivePowerMismatch";
 
     public static final String MAX_VOLTAGE_MISMATCH_PARAM_NAME = "maxVoltageMismatch";
+
+    public static final String MAX_ANGLE_MISMATCH_PARAM_NAME = "maxAngleMismatch";
+
+    public static final String MAX_RATIO_MISMATCH_PARAM_NAME = "maxRatioMismatch";
+
+    public static final String MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME = "maxSusceptanceMismatch";
 
     public static final String SLACK_BUS_P_MAX_MISMATCH_NAME = "slackBusPMaxMismatch";
 
@@ -188,7 +200,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, ParameterType.STRING, "Newton raphson stopping criteria type", NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE.name()),
         new Parameter(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum active power for per equation stopping criteria", MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum reactive power for per equation stopping criteria", MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE),
-        new Parameter(MAX_VOLTAGE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum voltage for per equation stopping criteria", MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE)
+        new Parameter(MAX_VOLTAGE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum voltage for per equation stopping criteria", MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE),
+        new Parameter(MAX_ANGLE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum angle for per equation stopping criteria", MAX_ANGLE_MISMATCH_DEFAULT_VALUE),
+        new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
+        new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -234,6 +249,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double maxReactivePowerMismatch = MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE;
 
     private double maxVoltageMismatch = MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE;
+
+    private double maxAngleMismatch = MAX_ANGLE_MISMATCH_DEFAULT_VALUE;
+
+    private double maxRatioMismatch = MAX_RATIO_MISMATCH_DEFAULT_VALUE;
+
+    private double maxSusceptanceMismatch = MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE;
 
     private double slackBusPMaxMismatch = SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE;
 
@@ -442,6 +463,33 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getMaxAngleMismatch() {
+        return maxAngleMismatch;
+    }
+
+    public OpenLoadFlowParameters setMaxAngleMismatch(double maxAngleMismatch) {
+        this.maxAngleMismatch = maxAngleMismatch;
+        return this;
+    }
+
+    public double getMaxRatioMismatch() {
+        return maxRatioMismatch;
+    }
+
+    public OpenLoadFlowParameters setMaxRatioMismatch(double maxRatioMismatch) {
+        this.maxRatioMismatch = maxRatioMismatch;
+        return this;
+    }
+
+    public double getMaxSusceptanceMismatch() {
+        return maxSusceptanceMismatch;
+    }
+
+    public OpenLoadFlowParameters setMaxSusceptanceMismatch(double maxSusceptanceMismatch) {
+        this.maxSusceptanceMismatch = maxSusceptanceMismatch;
+        return this;
+    }
+
     public VoltageInitModeOverride getVoltageInitModeOverride() {
         return voltageInitModeOverride;
     }
@@ -622,6 +670,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxActivePowerMismatch(config.getDoubleProperty(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE))
                 .setMaxReactivePowerMismatch(config.getDoubleProperty(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME, MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE))
                 .setMaxVoltageMismatch(config.getDoubleProperty(MAX_VOLTAGE_MISMATCH_PARAM_NAME, MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE))
+                .setMaxAngleMismatch(config.getDoubleProperty(MAX_ANGLE_MISMATCH_PARAM_NAME, MAX_ANGLE_MISMATCH_DEFAULT_VALUE))
+                .setMaxRatioMismatch(config.getDoubleProperty(MAX_RATIO_MISMATCH_PARAM_NAME, MAX_RATIO_MISMATCH_DEFAULT_VALUE))
+                .setMaxSusceptanceMismatch(config.getDoubleProperty(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE))
                 .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
                 .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
                 .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
@@ -675,6 +726,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMaxReactivePowerMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_VOLTAGE_MISMATCH_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxVoltageMismatch(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MAX_ANGLE_MISMATCH_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxAngleMismatch(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MAX_RATIO_MISMATCH_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxRatioMismatch(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxSusceptanceMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(SLACK_BUS_P_MAX_MISMATCH_NAME))
                 .ifPresent(prop -> this.setSlackBusPMaxMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME))
@@ -737,6 +794,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", maxActivePowerMismatch=" + maxActivePowerMismatch +
                 ", maxReactivePowerMismatch=" + maxReactivePowerMismatch +
                 ", maxVoltageMismatch=" + maxVoltageMismatch +
+                ", maxAngleMismatch=" + maxAngleMismatch +
+                ", maxRatioMismatch=" + maxRatioMismatch +
+                ", maxSusceptanceMismatch=" + maxSusceptanceMismatch +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
                 ", maxIteration=" + maxIteration +
@@ -921,7 +981,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 return new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
             case PER_EQUATION_TYPE_CRITERIA:
                 return new PerEquationTypeStoppingCriteria(parametersExt.getMaxActivePowerMismatch(),
-                        parametersExt.getMaxReactivePowerMismatch(), parametersExt.getMaxVoltageMismatch());
+                        parametersExt.getMaxReactivePowerMismatch(), parametersExt.getMaxVoltageMismatch(),
+                        parametersExt.getMaxAngleMismatch(), parametersExt.getMaxRatioMismatch(),
+                        parametersExt.getMaxSusceptanceMismatch());
             default:
                 throw new PowsyblException("Unknown Newton Raphson stopping criteria type: " + parametersExt.getNewtonRaphsonStoppingCriteriaType());
         }

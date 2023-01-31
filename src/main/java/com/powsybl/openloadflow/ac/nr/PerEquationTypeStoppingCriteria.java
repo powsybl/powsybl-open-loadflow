@@ -18,11 +18,11 @@ import com.powsybl.openloadflow.util.PerUnit;
  */
 public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCriteria {
 
-    private final double maxDefaultAngleMismatch = Math.pow(10, -5);
+    private final double maxDefaultAngleMismatch;
 
-    private final double maxDefaultRatioMismatch = Math.pow(10, -5);
+    private final double maxDefaultRatioMismatch;
 
-    private final double maxDefaultSusceptanceMismatch = Math.pow(10, -4);
+    private final double maxDefaultSusceptanceMismatch;
 
     private final double maxActivePowerMismatch;
 
@@ -31,10 +31,15 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
     private final double maxVoltageMismatch;
 
     public PerEquationTypeStoppingCriteria(double maxActivePowerMismatch,
-                                           double maxReactivePowerMismatch, double maxVoltageMismatch) {
+                                           double maxReactivePowerMismatch, double maxVoltageMismatch,
+                                           double maxDefaultAngleMismatch, double maxDefaultRatioMismatch,
+                                           double maxDefaultSusceptanceMismatch) {
         this.maxActivePowerMismatch = maxActivePowerMismatch;
         this.maxReactivePowerMismatch = maxReactivePowerMismatch;
         this.maxVoltageMismatch = maxVoltageMismatch;
+        this.maxDefaultAngleMismatch = maxDefaultAngleMismatch;
+        this.maxDefaultRatioMismatch = maxDefaultRatioMismatch;
+        this.maxDefaultSusceptanceMismatch = maxDefaultSusceptanceMismatch;
     }
 
     private double computeNorm(double[] fx) {
