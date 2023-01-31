@@ -406,6 +406,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public ShuntVoltageControlMode getShuntVoltageControlMode() {
+        return shuntVoltageControlMode;
+    }
+
+    public OpenLoadFlowParameters setShuntVoltageControlMode(ShuntVoltageControlMode shuntVoltageControlMode) {
+        this.shuntVoltageControlMode = Objects.requireNonNull(shuntVoltageControlMode);
+        return this;
+    }
+
     public double getDcPowerFactor() {
         return dcPowerFactor;
     }
@@ -505,6 +514,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setMaxSlackBusCount(int maxSlackBusCount) {
         this.maxSlackBusCount = LfNetworkParameters.checkMaxSlackBusCount(maxSlackBusCount);
+        return this;
+    }
+
+    public boolean isSecondaryVoltageControl() {
+        return secondaryVoltageControl;
+    }
+
+    public OpenLoadFlowParameters setSecondaryVoltageControl(boolean secondaryVoltageControl) {
+        this.secondaryVoltageControl = secondaryVoltageControl;
         return this;
     }
 
