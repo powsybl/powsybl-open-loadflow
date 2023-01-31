@@ -241,6 +241,17 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
+    public Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+        double newA1 = getA1() + deltaA1;
+        Range<Integer> positionIndexRange = getAllowedPositionIndexRange(allowedDirection);
+        Optional<Direction> direction = updateTapPositionToReachTargetValue(newA1, PiModel::getA1, positionIndexRange, maxTapShift);
+        if (direction.isPresent()) {
+            a1 = Double.NaN;
+        }
+        return direction;
+    }
+
+    @Override
     public boolean setMinZ(double minZ, boolean dc) {
         boolean done = false;
         for (PiModel model : models) {

@@ -15,9 +15,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.network.DiscretePhaseControl;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.List;
@@ -85,6 +83,8 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+
         LfNetwork network = context.getNetwork();
 
         List<LfBranch> controllerBranches = getControllerBranches(network);
@@ -101,10 +101,26 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                                                         context.getAcLoadFlowContext().getJacobianMatrix());
 
         for (DiscretePhaseControl phaseControl : currentLimiterPhaseControls) {
-            double s = sensitivityContext.calculateSensitivityFromA2I(phaseControl.getController(), phaseControl.getControlled());
-            System.out.println(phaseControl.getController().getId() + " " + (s * PerUnit.SB));
+            LfBranch controller = phaseControl.getController();
+            double sensiA2I = sensitivityContext.calculateSensitivityFromA2I(controller, phaseControl.getControlled());
+            double i1 = controller.getI1().eval();
+            if (i1 > phaseControl.getTargetValue()) {
+                System.out.println(controller.getId());
+                double ib = PerUnit.ib(controller.getBus1().getNominalV());
+                System.out.println("i1=" + (i1 * ib));
+                System.out.println("targetValue=" + (phaseControl.getTargetValue() * ib));
+                double di = i1 - phaseControl.getTargetValue();
+                double da = Math.toRadians(di / -sensiA2I);
+                System.out.println("di=" + (di * ib));
+                System.out.println("da=" + Math.toDegrees(da));
+                PiModel piModel = controller.getPiModel();
+                System.out.println("tap=" + piModel.getTapPosition());
+                piModel.updateTapPositionToReachNewA1(da, 100, AllowedDirection.BOTH);
+                System.out.println("tap=" + piModel.getTapPosition());
+                status = OuterLoopStatus.UNSTABLE;
+            }
         }
 
-        return OuterLoopStatus.STABLE;
+        return status;
     }
 }
