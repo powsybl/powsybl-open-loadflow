@@ -41,11 +41,11 @@ public final class GenericBranchTerm {
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
+        double conjYyijgh = -equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
-        return ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj)); // TODO : update
+        return ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - conjYyijgh * Math.sin(ai - aj + thgi - thhj)); // TODO : update
     }
 
     public static double ty(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm) {
@@ -58,11 +58,11 @@ public final class GenericBranchTerm {
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
+        double conjYyijgh = -equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
-        return ri * rj * vgi * vhj * (yxijgh * Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj));
+        return ri * rj * vgi * vhj * (yxijgh * Math.sin(ai - aj + thgi - thhj) + conjYyijgh * Math.cos(ai - aj + thgi - thhj));
     }
 
     public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
@@ -77,39 +77,39 @@ public final class GenericBranchTerm {
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
+        double conjYyijgh = -equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // TODO: use conjugate?
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         Objects.requireNonNull(variable);
         if (variable.getType() == AcVariableType.BUS_V && di == 1) {
-            return dtxdv1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdv1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V && di == 2) {
-            return dtxdv2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdv2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 1) {
-            return dtxdph1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdph1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
-            return dtxdph2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdph2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return dtxda1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxda1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return dtxdr1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdr1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_INVERSE && di == 1) {
-            return dtxdv1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdv1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_INVERSE && di == 2) {
-            return dtxdv2i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdv2i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI_INVERSE && di == 1) {
-            return dtxdph1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdph1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI_INVERSE && di == 2) {
-            return dtxdph2i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdph2i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_HOMOPOLAR && di == 1) {
-            return dtxdv1h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdv1h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_HOMOPOLAR && di == 2) {
-            return dtxdv2h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdv2h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI_HOMOPOLAR && di == 1) {
-            return dtxdph1h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdph1h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI_HOMOPOLAR && di == 2) {
-            return dtxdph2h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtxdph2h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -318,39 +318,39 @@ public final class GenericBranchTerm {
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
+        double conjYyijgh = -equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         Objects.requireNonNull(variable);
         if (variable.getType() == AcVariableType.BUS_V && di == 1) {
-            return dtydv1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydv1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V && di == 2) {
-            return dtydv2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydv2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 1) {
-            return dtydph1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydph1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
-            return dtydph2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydph2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return dtyda1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtyda1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return dtydr1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydr1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_INVERSE && di == 1) {
-            return dtydv1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydv1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_INVERSE && di == 2) {
-            return dtydv2i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydv2i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI_INVERSE && di == 1) {
-            return dtydph1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydph1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI_INVERSE && di == 2) {
-            return dtydph2i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydph2i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_HOMOPOLAR && di == 1) {
-            return dtydv1h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydv1h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_HOMOPOLAR && di == 2) {
-            return dtydv2h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydv2h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI_HOMOPOLAR && di == 1) {
-            return dtydph1h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydph1h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI_HOMOPOLAR && di == 2) {
-            return dtydph2h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, yyijgh);
+            return dtydph2h(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

@@ -172,6 +172,7 @@ public class NewtonRaphson {
 
                 case BUS_PHI:
                     network.getBus(v.getElementNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
+                    System.out.println(">>>>>>>> UPDATE PH(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
                     break;
 
                 case BUS_V_HOMOPOLAR:
@@ -183,6 +184,7 @@ public class NewtonRaphson {
                 case BUS_PHI_HOMOPOLAR:
                     AsymBus asymBusPhiH = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
                     asymBusPhiH.setAngleHompolar(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
+                    System.out.println(">>>>>>>> UPDATE PH_H(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
                     break;
 
                 case BUS_V_INVERSE:
@@ -194,6 +196,7 @@ public class NewtonRaphson {
                 case BUS_PHI_INVERSE:
                     AsymBus asymBusPhiI = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
                     asymBusPhiI.setAngleInverse(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
+                    System.out.println(">>>>>>>> UPDATE PH_I(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
                     break;
 
                 case SHUNT_B:

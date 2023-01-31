@@ -120,7 +120,8 @@ public class LfBusImpl extends AbstractLfBus {
         AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus != null) {
             System.out.println(">>>>>>>> GetTargetP() of bus = " + this.getId() + " is asymmetric and mofified");
-            return getGenerationTargetP();
+            //return getGenerationTargetP(); // TODO : uncomment when we will use a ABC constant load
+            return getGenerationTargetP() - getLoadTargetP(); // test with constant fortescue load
             // we use the detection of the asymmetry extension at bus to check if we are in dissym calculation
             // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on vd, vi, vo (equivalent fortescue representation
         }
@@ -132,7 +133,8 @@ public class LfBusImpl extends AbstractLfBus {
         AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus != null) {
             System.out.println(">>>>>>>> GetTargetQ() of bus = " + this.getId() + " is asymmetric and mofified");
-            return getGenerationTargetQ();
+            //return getGenerationTargetQ(); // TODO : uncomment when we will use a ABC constant load
+            return getGenerationTargetQ() - getLoadTargetQ(); // test with constant fortescue load
             // we use the detection of the asymmetry extension at bus to check if we are in dissym calculation
             // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on vd, vi, vo (equivalent fortescue representation
         }

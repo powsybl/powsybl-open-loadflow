@@ -317,6 +317,15 @@ public class AsymLineAdmittanceTerms {
         DenseMatrix yabcF = yabc.times(fBloc);
         DenseMatrix yodi = fInverseBloc.times(yabcF);
 
+        // clean matrix in case after fortescue and inverse multiplication
+        for (int i = 0; i < 12; i++) {
+            for (int j = 0; j < 12; j++) {
+                if (Math.abs(yodi.get(i, j)) < 0.00000001) {
+                    yodi.set(i, j, 0.);
+                }
+            }
+        }
+
         return yodi;
     }
 

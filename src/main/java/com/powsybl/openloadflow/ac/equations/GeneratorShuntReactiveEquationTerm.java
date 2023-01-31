@@ -15,7 +15,7 @@ public class GeneratorShuntReactiveEquationTerm extends AbstractEquivalentShuntR
 
     @Override
     protected double b() {
-        return 2;
+        return 10000;
     } // TODO : check acceptable large value for target V close to zero
 
     @Override
