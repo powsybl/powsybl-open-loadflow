@@ -58,7 +58,7 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
     @Override
     protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
         if (mstSaved.isEmpty()) {
-            throw new AssertionError("Corrupted connectivity cache");
+            throw new IllegalArgumentException("Corrupted connectivity cache");
         }
         mst = mstSaved.pollLast();
         componentSets = null;
