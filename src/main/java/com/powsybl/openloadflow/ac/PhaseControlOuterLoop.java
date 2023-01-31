@@ -104,10 +104,10 @@ public class PhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
         PiModel piModel = controllerBranch.getPiModel();
         if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
             boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
-            return isSensibilityPositive ? piModel.updateTapPositionA1(Direction.DECREASE) : piModel.updateTapPositionA1(Direction.INCREASE);
+            return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
         } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
             boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
-            return isSensibilityPositive ? piModel.updateTapPositionA1(Direction.DECREASE) : piModel.updateTapPositionA1(Direction.INCREASE);
+            return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
         }
         return false;
     }

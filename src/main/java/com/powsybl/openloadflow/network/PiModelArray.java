@@ -11,6 +11,7 @@ import org.apache.commons.lang3.Range;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.ToDoubleFunction;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -123,79 +124,42 @@ public class PiModelArray implements PiModel {
         return this;
     }
 
-    @Override
-    public void roundA1ToClosestTap() {
-        if (Double.isNaN(a1)) {
-            return; // nothing to do because a1 has not been modified
-        }
-
-        // find tap position with the closest a1 value
-        double smallestDistance = Math.abs(a1 - getModel().getA1());
-        for (int i = 0; i < models.size(); i++) {
-            double distance = Math.abs(a1 - models.get(i).getA1());
+    private int findClosestTapPosition(double targetValue, ToDoubleFunction<PiModel> valueGetter,
+                                       Range<Integer> positionIndexRange, int maxTapShift) {
+        int closestTapPositionIndex = tapPositionIndex;
+        double smallestDistance = Math.abs(targetValue - valueGetter.applyAsDouble(models.get(tapPositionIndex)));
+        for (int i = positionIndexRange.getMinimum(); i <= positionIndexRange.getMaximum(); i++) {
+            if (Math.abs(i - tapPositionIndex) > maxTapShift) { // we are not allowed to go further than maxTapShift positions
+                continue;
+            }
+            double distance = Math.abs(targetValue - valueGetter.applyAsDouble(models.get(i)));
             if (distance < smallestDistance) {
-                tapPositionIndex = i;
+                closestTapPositionIndex = i;
                 smallestDistance = distance;
             }
         }
-        a1 = Double.NaN;
+        return closestTapPositionIndex;
     }
 
-    @Override
-    public void roundR1ToClosestTap() {
-        if (Double.isNaN(r1)) {
-            return; // nothing to do because r1 has not been modified
-        }
+    private Optional<Direction> updateTapPositionToReachTargetValue(double targetValue, ToDoubleFunction<PiModel> valueGetter,
+                                                                    Range<Integer> positionIndexRange, int maxTapShift) {
+        int oldPositionIndex = tapPositionIndex;
 
-        // find tap position with the closest r1 value
-        double smallestDistance = Math.abs(r1 - getModel().getR1());
-        for (int i = 0; i < models.size(); i++) {
-            double distance = Math.abs(r1 - models.get(i).getR1());
-            if (distance < smallestDistance) {
-                tapPositionIndex = i;
-                smallestDistance = distance;
-            }
-        }
-        continuousR1 = r1;
-        r1 = Double.NaN;
-    }
+        // find tap position with the closest value without exceeding the maximum of taps to switch.
+        tapPositionIndex = findClosestTapPosition(targetValue, valueGetter, positionIndexRange, maxTapShift);
 
-    @Override
-    public boolean updateTapPositionA1(Direction direction) {
-        // an increase direction means that A1 should increase.
-        // a decrease direction means that A1 should decrease.
-        this.a1 = getA1();
-        double previousA1 = Double.NaN;
-        double nextA1 = Double.NaN;
-        boolean hasChanged = false;
-        int oldTapPositionIndex = tapPositionIndex;
-        if (tapPositionIndex < models.size() - 1) {
-            nextA1 = models.get(tapPositionIndex + 1).getA1(); // abs?
-        }
-        if (tapPositionIndex > 0) {
-            previousA1 = models.get(tapPositionIndex - 1).getA1(); // abs?
-        }
-        if (!Double.isNaN(previousA1) &&
-                ((direction == Direction.INCREASE && previousA1 > a1) || (direction == Direction.DECREASE && previousA1 < a1))) {
-            tapPositionIndex--;
-            a1 = Double.NaN;
-            hasChanged = true;
-        }
-        if (!Double.isNaN(nextA1) &&
-                ((direction == Direction.INCREASE && nextA1 > a1) || (direction == Direction.DECREASE && nextA1 < a1))) {
-            tapPositionIndex++;
-            a1 = Double.NaN;
-            hasChanged = true;
-        }
-        if (hasChanged) {
+        if (tapPositionIndex != oldPositionIndex) {
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, lowTapPosition + tapPositionIndex);
+                listener.onTapPositionChange(branch, lowTapPosition + oldPositionIndex, lowTapPosition + tapPositionIndex);
             }
+
+            return Optional.of(tapPositionIndex - oldPositionIndex > 0 ? Direction.INCREASE : Direction.DECREASE);
         }
-        return hasChanged;
+
+        return Optional.empty();
     }
 
-    private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
+    private Range<Integer> getAllowedPositionIndexRange(AllowedDirection allowedDirection) {
         switch (allowedDirection) {
             case INCREASE:
                 return Range.between(tapPositionIndex, models.size() - 1);
@@ -209,35 +173,71 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
-        // an increase allowed direction means that the tap could increase.
-        // a decrease allowed direction means that the tap could decrease.
-        double newR1 = getR1() + deltaR1;
-        Range<Integer> positionRange = getAllowedPositionRange(allowedDirection);
+    public void roundA1ToClosestTap() {
+        if (Double.isNaN(a1)) {
+            return; // nothing to do because a1 has not been modified
+        }
 
-        int oldPositionIndex = tapPositionIndex;
-        // find tap position with the closest r1 value without exceeding the maximum of taps to switch.
-        double smallestDistance = Math.abs(deltaR1);
-        for (int i = positionRange.getMinimum(); i <= positionRange.getMaximum(); i++) {
-            if (Math.abs(i - oldPositionIndex) > maxTapShift) { // we are not allowed in one outer loop run to go further than maxTapShift positions
-                continue;
-            }
-            double distance = Math.abs(newR1 - models.get(i).getR1());
-            if (distance < smallestDistance) {
-                tapPositionIndex = i;
-                smallestDistance = distance;
+        // find tap position with the closest a1 value
+        updateTapPositionToReachTargetValue(a1, PiModel::getA1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE);
+        a1 = Double.NaN;
+    }
+
+    @Override
+    public void roundR1ToClosestTap() {
+        if (Double.isNaN(r1)) {
+            return; // nothing to do because r1 has not been modified
+        }
+
+        // find tap position with the closest r1 value
+        updateTapPositionToReachTargetValue(r1, PiModel::getR1, getAllowedPositionIndexRange(AllowedDirection.BOTH), Integer.MAX_VALUE);
+        continuousR1 = r1;
+        r1 = Double.NaN;
+    }
+
+    @Override
+    public boolean shiftOneTapPositionToChangeA1(Direction direction) {
+        // an increase direction means that A1 should increase.
+        // a decrease direction means that A1 should decrease.
+        double currentA1 = getA1();
+        int oldTapPositionIndex = tapPositionIndex;
+
+        if (tapPositionIndex < models.size() - 1) {
+            double nextA1 = models.get(tapPositionIndex + 1).getA1(); // abs?
+            if ((direction == Direction.INCREASE && nextA1 > currentA1)
+                    || (direction == Direction.DECREASE && nextA1 < currentA1)) {
+                tapPositionIndex++;
             }
         }
 
-        boolean hasChanged = tapPositionIndex != oldPositionIndex;
-        if (hasChanged) {
-            r1 = Double.NaN;
+        if (tapPositionIndex > 0) {
+            double previousA1 = models.get(tapPositionIndex - 1).getA1(); // abs?
+            if ((direction == Direction.INCREASE && previousA1 > currentA1)
+                    || (direction == Direction.DECREASE && previousA1 < currentA1)) {
+                tapPositionIndex--;
+            }
+        }
+
+        if (tapPositionIndex != oldTapPositionIndex) {
+            a1 = Double.NaN;
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onTapPositionChange(branch, lowTapPosition + oldPositionIndex, lowTapPosition + tapPositionIndex);
+                listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, lowTapPosition + tapPositionIndex);
             }
-            return Optional.of(tapPositionIndex - oldPositionIndex > 0 ? Direction.INCREASE : Direction.DECREASE);
+            return true;
         }
-        return Optional.empty();
+
+        return false;
+    }
+
+    @Override
+    public Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection) {
+        double newR1 = getR1() + deltaR1;
+        Range<Integer> positionIndexRange = getAllowedPositionIndexRange(allowedDirection);
+        Optional<Direction> direction = updateTapPositionToReachTargetValue(newR1, PiModel::getR1, positionIndexRange, maxTapShift);
+        if (direction.isPresent()) {
+            r1 = Double.NaN;
+        }
+        return direction;
     }
 
     @Override
@@ -261,12 +261,19 @@ public class PiModelArray implements PiModel {
 
     @Override
     public PiModel setTapPosition(int tapPosition) {
-        int oldTapPositionIndex = tapPositionIndex;
-        tapPositionIndex = lowTapPosition + tapPosition;
-        r1 = Double.NaN;
-        a1 = Double.NaN;
-        for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-            listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, tapPosition);
+        Range<Integer> tapPositionRange = getTapPositionRange();
+        if (!tapPositionRange.contains(tapPosition)) {
+            throw new IllegalArgumentException("Tap position " + tapPosition + " out of range " + tapPositionRange);
+        }
+        if (lowTapPosition + tapPosition != tapPositionIndex) {
+            int oldTapPositionIndex = tapPositionIndex;
+            tapPositionIndex = tapPosition - lowTapPosition;
+            r1 = Double.NaN;
+            continuousR1 = Double.NaN;
+            a1 = Double.NaN;
+            for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
+                listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, tapPosition);
+            }
         }
         return this;
     }
