@@ -87,15 +87,18 @@ class PiModelArrayTest {
     void testRoundR1ToClosestTap() {
         piModelArray.roundR1ToClosestTap();
         assertEquals(2, piModelArray.getTapPosition());
+        assertTrue(Double.isNaN(piModelArray.getContinuousR1()));
         piModelArray.setR1(1.3d);
         assertEquals(1.3d, piModelArray.getR1(), 0d);
         piModelArray.roundR1ToClosestTap();
         assertEquals(3, piModelArray.getTapPosition());
         assertEquals(1.2d, piModelArray.getR1(), 0d);
+        assertEquals(1.3d, piModelArray.getContinuousR1(), 0d);
     }
 
     @Test
     void testUpdateTapPositionToReachNewR1() {
-
+        piModelArray.updateTapPositionToReachNewR1(-0.08d, 1, AllowedDirection.BOTH);
+        assertEquals(1, piModelArray.getTapPosition());
     }
 }
