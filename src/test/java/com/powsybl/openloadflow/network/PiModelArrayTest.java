@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -20,8 +21,10 @@ import org.mockito.Mockito;
  */
 class PiModelArrayTest {
 
-    @Test
-    void test() {
+    private PiModelArray piModelArray;
+
+    @BeforeEach
+    void setUp() {
         SimplePiModel piModel1 = new SimplePiModel()
                 .setR(1)
                 .setX(2.4)
@@ -41,13 +44,58 @@ class PiModelArrayTest {
         Mockito.when(network.getListeners()).thenReturn(Collections.emptyList());
         LfBranch branch = Mockito.mock(LfBranch.class);
         Mockito.when(branch.getNetwork()).thenReturn(network);
-        PiModelArray piModelArray = new PiModelArray(List.of(piModel1, piModel2, piModel3), 1, 2);
+        piModelArray = new PiModelArray(List.of(piModel1, piModel2, piModel3), 1, 2);
         piModelArray.setBranch(branch);
+    }
+
+    @Test
+    void test() {
         assertEquals(2, piModelArray.getTapPosition());
         assertEquals(Range.between(1, 3), piModelArray.getTapPositionRange());
         var e = assertThrows(IllegalArgumentException.class, () -> piModelArray.setTapPosition(4));
         assertEquals("Tap position 4 out of range [1..3]", e.getMessage());
         piModelArray.setTapPosition(1);
         assertEquals(1, piModelArray.getTapPosition());
+    }
+
+    @Test
+    void testShiftOneTapPositionToChangeA1() {
+        assertTrue(piModelArray.shiftOneTapPositionToChangeA1(Direction.DECREASE));
+        assertEquals(1, piModelArray.getTapPosition());
+        assertFalse(piModelArray.shiftOneTapPositionToChangeA1(Direction.DECREASE));
+        assertEquals(1, piModelArray.getTapPosition());
+        assertTrue(piModelArray.shiftOneTapPositionToChangeA1(Direction.INCREASE));
+        assertEquals(2, piModelArray.getTapPosition());
+        assertTrue(piModelArray.shiftOneTapPositionToChangeA1(Direction.INCREASE));
+        assertEquals(3, piModelArray.getTapPosition());
+        assertFalse(piModelArray.shiftOneTapPositionToChangeA1(Direction.INCREASE));
+        assertEquals(3, piModelArray.getTapPosition());
+    }
+
+    @Test
+    void testRoundA1ToClosestTap() {
+        piModelArray.roundA1ToClosestTap();
+        assertEquals(2, piModelArray.getTapPosition());
+        piModelArray.setA1(0.04d);
+        assertEquals(0.04d, piModelArray.getA1(), 0d);
+        piModelArray.roundA1ToClosestTap();
+        assertEquals(1, piModelArray.getTapPosition());
+        assertEquals(0d, piModelArray.getA1(), 0d);
+    }
+
+    @Test
+    void testRoundR1ToClosestTap() {
+        piModelArray.roundR1ToClosestTap();
+        assertEquals(2, piModelArray.getTapPosition());
+        piModelArray.setR1(1.3d);
+        assertEquals(1.3d, piModelArray.getR1(), 0d);
+        piModelArray.roundR1ToClosestTap();
+        assertEquals(3, piModelArray.getTapPosition());
+        assertEquals(1.2d, piModelArray.getR1(), 0d);
+    }
+
+    @Test
+    void testUpdateTapPositionToReachNewR1() {
+
     }
 }
