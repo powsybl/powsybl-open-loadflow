@@ -155,7 +155,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
 
     protected void checkVertex(V vertex) {
         if (!graph.containsVertex(vertex)) {
-            throw new AssertionError("given vertex " + vertex + " is not in the graph");
+            throw new IllegalArgumentException("given vertex " + vertex + " is not in the graph");
         }
     }
 
