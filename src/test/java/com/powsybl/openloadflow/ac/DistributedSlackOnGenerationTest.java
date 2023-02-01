@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -311,5 +312,49 @@ class DistributedSlackOnGenerationTest {
         assertActivePowerEquals(-90, g4.getTerminal());
         assertActivePowerEquals(-2, bat1.getTerminal());
         assertActivePowerEquals(0, bat2.getTerminal());
+    }
+
+    @Test
+    void testActivePowerExtensionWithoutDroop() {
+        Network network = EurostagTutorialExample1Factory.create();
+        Generator gen = network.getGenerator("GEN");
+        gen.setMaxP(800);
+        gen.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(false)
+                .withParticipationFactor(0.5)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-605.560, gen.getTerminal());
+    }
+
+    @Test
+    void testActivePowerExtensionWithZeroDroop() {
+        Network network = EurostagTutorialExample1Factory.create();
+        Generator gen = network.getGenerator("GEN");
+        gen.setMaxP(800);
+        gen.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(true)
+                .withParticipationFactor(0.5)
+                .withDroop(0.0)
+                .add();
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
+                "Failed to distribute slack bus active power mismatch, -1.4404045651219555 MW remains");
+    }
+
+    @Test
+    void testActivePowerExtension3() {
+        Network network = EurostagTutorialExample1Factory.create();
+        Generator gen = network.getGenerator("GEN");
+        gen.setMaxP(800);
+        gen.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(false)
+                .withParticipationFactor(0.5)
+                .withDroop(0.0)
+                .add();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(-605.560, gen.getTerminal());
     }
 }

@@ -37,12 +37,12 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         // get participation factor from extension
         ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate();
+            boolean extensionParticipate = activePowerControl.isParticipate();
             if (!Double.isNaN(activePowerControl.getDroop())) {
-                droop = activePowerControl.getDroop();
+                droop = extensionParticipate ? activePowerControl.getDroop() : 0.0;
             }
             if (activePowerControl.getParticipationFactor() > 0) {
-                participationFactor = activePowerControl.getParticipationFactor();
+                participationFactor = extensionParticipate ? activePowerControl.getParticipationFactor() : 0.0;
             }
         }
 
