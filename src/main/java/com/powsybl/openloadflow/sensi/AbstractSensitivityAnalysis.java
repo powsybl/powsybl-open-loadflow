@@ -752,7 +752,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             if (contingency.getBranchIdsToOpen().isEmpty()
                     && contingency.getHvdcIdsToOpen().isEmpty()
                     && contingency.getGeneratorIdsToLose().isEmpty()
-                    && contingency.getBusIdsToShift().isEmpty()) {
+                    && contingency.getBusIdsToShift().isEmpty()
+                    && contingency.getBusIdsToLose().isEmpty()) {
                 LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
             }
         }

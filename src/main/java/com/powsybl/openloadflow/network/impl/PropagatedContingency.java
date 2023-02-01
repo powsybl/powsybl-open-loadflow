@@ -313,7 +313,10 @@ public class PropagatedContingency {
         // these branches are indeed just open at one side.
         for (String busId : busIdsToLose) {
             LfBus bus = network.getBusById(busId);
-            bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
+            if (!bus.isSlack()) {
+                // slack bus disabling is not supported
+                bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
+            }
         }
     }
 
@@ -322,7 +325,10 @@ public class PropagatedContingency {
         // these branches are indeed just open at one side.
         for (String busId : busIdsToLose) {
             LfBus bus = network.getBusById(busId);
-            System.out.println(bus.getId());
+            if (bus.isSlack()) {
+                // slack bus disabling is not supported
+                return Optional.empty();
+            }
             bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
         }
 

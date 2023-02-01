@@ -2428,8 +2428,9 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
-        List<Contingency> contingencies = Stream.of("NLOAD")
-                .map(id -> new Contingency(id, new BusContingency(id)))
+        List<Contingency> contingencies = network.getBusBreakerView().getBusStream()
+                .filter(bus -> !bus.getId().equals("NGEN"))
+                .map(bus -> new Contingency(bus.getId(), new BusContingency(bus.getId())))
                 .collect(Collectors.toList());
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
@@ -2442,6 +2443,7 @@ class OpenSecurityAnalysisTest {
 
         assertEquals(91.606, getPostContingencyResult(result, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(91.606, getPostContingencyResult(result, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(0.024, getPostContingencyResult(result, "NHV2").getNetworkResult().getBranchResult("NGEN_NHV1").getI1(), LoadFlowAssert.DELTA_I);
 
         lfParameters.setDc(true);
         SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
@@ -2452,5 +2454,6 @@ class OpenSecurityAnalysisTest {
 
         assertEquals(0.0, getPostContingencyResult(result2, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(0.0, getPostContingencyResult(result2, "NLOAD").getNetworkResult().getBranchResult("NHV1_NHV2_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(0.0, getPostContingencyResult(result, "NHV2").getNetworkResult().getBranchResult("NGEN_NHV1").getI1(), LoadFlowAssert.DELTA_I);
     }
 }
