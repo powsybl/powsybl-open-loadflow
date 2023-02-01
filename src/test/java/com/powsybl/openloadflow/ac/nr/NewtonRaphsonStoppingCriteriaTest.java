@@ -129,4 +129,25 @@ class NewtonRaphsonStoppingCriteriaTest {
         assertFalse(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
     }
+
+    @Test
+    void testAngleConvergedPerEquationCriteria() {
+        OpenLoadFlowParameters.create(parameters)
+                .setMaxAngleMismatch(1E-22)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+    }
+
+    @Test
+    void testAngleMaxIterationPerEquationCriteria() {
+        OpenLoadFlowParameters.create(parameters)
+                .setMaxAngleMismatch(0)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+    }
 }
