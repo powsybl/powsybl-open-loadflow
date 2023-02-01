@@ -100,6 +100,12 @@ public final class ActivePowerDistribution {
             case PROPORTIONAL_TO_GENERATION_P:
                 step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.TARGET);
                 break;
+            case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR:
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.PARTICIPATION_FACTOR);
+                break;
+            case PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN:
+                step = new GenerationActivePowerDistributionStep(GenerationActivePowerDistributionStep.ParticipationType.REMAINING_MARGIN);
+                break;
             default:
                 throw new UnsupportedOperationException("Unknown balance type mode: " + balanceType);
         }

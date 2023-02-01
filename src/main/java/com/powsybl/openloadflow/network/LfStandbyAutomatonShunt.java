@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -16,7 +17,7 @@ import java.util.Optional;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public final class LfStandbyAutomatonShunt extends AbstractElement implements LfShunt {
+public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     private final LfStaticVarCompensator svc;
 
@@ -115,5 +116,10 @@ public final class LfStandbyAutomatonShunt extends AbstractElement implements Lf
     @Override
     public void reInit() {
         // nothing to do
+    }
+
+    @Override
+    public List<Controller> getControllers() {
+        return Collections.emptyList();
     }
 }

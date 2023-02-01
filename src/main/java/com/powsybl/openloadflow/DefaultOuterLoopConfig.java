@@ -32,6 +32,17 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
     }
 
+    private static OuterLoop createShuntVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+        switch (parametersExt.getShuntVoltageControlMode()) {
+            case WITH_GENERATOR_VOLTAGE_CONTROL:
+                return new ShuntVoltageControlOuterLoop();
+            case INCREMENTAL_VOLTAGE_CONTROL:
+                return new IncrementalShuntVoltageControlOuterLoop();
+            default:
+                throw new IllegalStateException("Unknown shunt voltage control mode: " + parametersExt.getShuntVoltageControlMode());
+        }
+    }
+
     private static OuterLoop createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
         return new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch());
@@ -61,7 +72,11 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
         // shunt compensator voltage control
         if (parameters.isShuntCompensatorVoltageControlOn()) {
-            outerLoops.add(new ShuntVoltageControlOuterLoop());
+            outerLoops.add(createShuntVoltageControlOuterLoop(parametersExt));
+        }
+        // secondary voltage control
+        if (parametersExt.isSecondaryVoltageControl()) {
+            outerLoops.add(new SecondaryVoltageControlOuterLoop());
         }
         return outerLoops;
     }

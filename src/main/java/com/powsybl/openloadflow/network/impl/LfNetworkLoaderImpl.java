@@ -11,6 +11,9 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -713,6 +716,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
+        Double targetDeadband = shuntCompensator.getTargetDeadband() > 0 ? shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV : null;
 
         controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
             LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
@@ -724,10 +728,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
+                if (targetDeadband != null) {
+                    Double oldTargetDeadband = voltageControl.getTargetDeadband().orElse(null);
+                    if (oldTargetDeadband == null) {
+                        voltageControl.setTargetDeadband(targetDeadband);
+                    } else {
+                        // merge target deadbands by taking minimum
+                        voltageControl.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+                    }
+                }
             }
         }, () -> {
                 // we create a new shunt voltage control.
-                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue);
+                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue, targetDeadband);
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
@@ -739,7 +752,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
+    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
         LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
                 parameters.getConnectivityFactory(), reporter);
 
@@ -776,6 +789,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
         fixAllVoltageControls(lfNetwork, parameters);
+
+        // secondary voltage controls
+        createSecondaryVoltageControls(network, parameters, lfNetwork);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
@@ -830,6 +846,56 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return lfNetwork;
     }
 
+    private static void createSecondaryVoltageControls(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork) {
+        if (!parameters.isSecondaryVoltageControl()) {
+            return;
+        }
+        SecondaryVoltageControl svc = network.getExtension(SecondaryVoltageControl.class);
+        if (svc == null) {
+            return;
+        }
+        for (ControlZone controlZone : svc.getControlZones()) {
+            PilotPoint pilotPoint = controlZone.getPilotPoint();
+            // only keep control zone if its pilot bus is in this LF network
+            findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionsOrBusesIds()).ifPresentOrElse(pilotBus -> {
+                LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
+                if (lfPilotBus != null) { // could be in another LF network (another component)
+                    double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
+                    // filter missing control units and find corresponding primary voltage control, controlled bus
+                    Set<LfBus> controlledBuses = controlZone.getControlUnits().stream()
+                            .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
+                            .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
+                            .collect(Collectors.toCollection((Supplier<Set<LfBus>>) LinkedHashSet::new));
+                    if (controlledBuses.size() != controlZone.getControlUnits().size()) {
+                        LOGGER.debug("{}/{} control units have been mapped to a LF bus", controlledBuses.size(), controlZone.getControlUnits().size());
+                    }
+                    if (!controlledBuses.isEmpty()) {
+                        var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, controlledBuses);
+                        lfNetwork.addSecondaryVoltageControl(lfSvc);
+                    }
+                }
+            }, () -> LOGGER.warn("None of the pilot buses of control zone '{}' is valid", controlZone.getName()));
+        }
+        LOGGER.info("Network {}: {} secondary control zones have been created", lfNetwork, lfNetwork.getSecondaryVoltageControls().size());
+    }
+
+    private static Optional<Bus> findPilotBus(Network network, boolean breaker, List<String> busbarSectionsOrBusesId) {
+        for (String busbarSectionOrBusId : busbarSectionsOrBusesId) {
+            // node/breaker case
+            BusbarSection bbs = network.getBusbarSection(busbarSectionOrBusId);
+            if (bbs != null) {
+                return Optional.ofNullable(Networks.getBus(bbs.getTerminal(), breaker));
+            }
+            // bus/breaker case
+            Bus configuredBus = network.getBusBreakerView().getBus(busbarSectionOrBusId);
+            if (configuredBus != null) {
+                return breaker ? Optional.of(configuredBus)
+                        : Optional.ofNullable(configuredBus.getVoltageLevel().getBusView().getMergedBus(configuredBus.getId()));
+            }
+        }
+        return Optional.empty();
+    }
+
     @Override
     public List<LfNetwork> load(Network network, LfNetworkParameters parameters, Reporter reporter) {
         Objects.requireNonNull(network);
@@ -877,7 +943,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numCc = networkKey.getLeft();
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
-                    return create(numCc, numSc, lfBuses, switchesByCc.get(networkKey), parameters,
+                    return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), parameters,
                             Reports.createLfNetworkReporter(reporter, numCc, numSc));
                 })
                 .collect(Collectors.toList());

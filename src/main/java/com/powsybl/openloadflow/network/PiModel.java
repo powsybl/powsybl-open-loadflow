@@ -55,30 +55,9 @@ public interface PiModel {
 
     void roundR1ToClosestTap();
 
-    enum Direction {
-        INCREASE(AllowedDirection.INCREASE),
-        DECREASE(AllowedDirection.DECREASE);
+    boolean shiftOneTapPositionToChangeA1(Direction direction);
 
-        private final AllowedDirection allowedDirection;
-
-        Direction(AllowedDirection allowedDirection) {
-            this.allowedDirection = allowedDirection;
-        }
-
-        public AllowedDirection getAllowedDirection() {
-            return allowedDirection;
-        }
-    }
-
-    enum AllowedDirection {
-        INCREASE,
-        DECREASE,
-        BOTH
-    }
-
-    boolean updateTapPositionA1(Direction direction);
-
-    Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection);
+    Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection);
 
     boolean setMinZ(double minZ, boolean dc);
 

@@ -18,8 +18,8 @@ public class ShuntVoltageControl extends AbstractDiscreteVoltageControl {
 
     private final List<LfShunt> controllers = new ArrayList<>();
 
-    public ShuntVoltageControl(LfBus controlled, double targetValue) {
-        super(controlled, targetValue);
+    public ShuntVoltageControl(LfBus controlled, double targetValue, Double targetDeadband) {
+        super(controlled, targetValue, targetDeadband);
     }
 
     public List<LfShunt> getControllers() {

@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
@@ -69,6 +70,15 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
+    }
+
+    @Override
+    public double calculateSensi(DenseMatrix dx, int column) {
+        double dv = dx.get(vVar.getRow(), column);
+        double db = bVar != null ? dx.get(bVar.getRow(), column) : 0;
+        double v = v();
+        double b = b();
+        return dqdv(v, b) * dv + dqdb(v) * db;
     }
 
     @Override

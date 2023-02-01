@@ -74,6 +74,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final TransformerVoltageControlMode TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
 
+    public static final ShuntVoltageControlMode SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -102,6 +104,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME = "transformerVoltageControlMode";
 
+    public static final String SHUNT_VOLTAGE_CONTROL_MODE_NAME = "shuntVoltageControlMode";
+
     public static final String DC_POWER_FACTOR_NAME = "dcPowerFactor";
 
     public static final String MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME = "minPlausibleTargetVoltage";
@@ -128,6 +132,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME = "incrementalTransformerVoltageControlOuterLoopMaxTapShift";
 
+    public static final String SECONDARY_VOLTAGE_CONTROL_PARAM_NAME = "secondaryVoltageControl";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -147,6 +153,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
         new Parameter(VOLTAGE_INIT_MODE_OVERRIDE_NAME, ParameterType.STRING, "Voltage init mode override", VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE.name(), getEnumPossibleValues(VoltageInitModeOverride.class)),
         new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, ParameterType.STRING, "Transformer voltage control mode", TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(TransformerVoltageControlMode.class)),
+        new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class)),
         new Parameter(DC_POWER_FACTOR_NAME, ParameterType.DOUBLE, "DC approximation power factor", DC_POWER_FACTOR_DEFAULT_VALUE),
         new Parameter(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, ParameterType.DOUBLE, "Min plausible target voltage", LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
         new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
@@ -159,7 +166,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(STATE_VECTOR_SCALING_MODE_NAME, ParameterType.STRING, "State vector scaling mode", NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE.name(), getEnumPossibleValues(StateVectorScalingMode.class)),
         new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT),
         new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, Collections.emptyList(), ParameterScope.TECHNICAL),
-        new Parameter(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT)
+        new Parameter(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT),
+        new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -171,6 +179,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum TransformerVoltageControlMode {
         WITH_GENERATOR_VOLTAGE_CONTROL,
         AFTER_GENERATOR_VOLTAGE_CONTROL,
+        INCREMENTAL_VOLTAGE_CONTROL
+    }
+
+    public enum ShuntVoltageControlMode {
+        WITH_GENERATOR_VOLTAGE_CONTROL,
         INCREMENTAL_VOLTAGE_CONTROL
     }
 
@@ -207,6 +220,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private TransformerVoltageControlMode transformerVoltageControlMode = TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
 
+    private ShuntVoltageControlMode shuntVoltageControlMode = SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
+
     private double dcPowerFactor = DC_POWER_FACTOR_DEFAULT_VALUE;
 
     private double minPlausibleTargetVoltage = LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
@@ -238,6 +253,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private String debugDir = LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE;
 
     private int incrementalTransformerVoltageControlOuterLoopMaxTapShift = IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
+
+    private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -378,6 +395,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public ShuntVoltageControlMode getShuntVoltageControlMode() {
+        return shuntVoltageControlMode;
+    }
+
+    public OpenLoadFlowParameters setShuntVoltageControlMode(ShuntVoltageControlMode shuntVoltageControlMode) {
+        this.shuntVoltageControlMode = Objects.requireNonNull(shuntVoltageControlMode);
+        return this;
+    }
+
     public double getDcPowerFactor() {
         return dcPowerFactor;
     }
@@ -480,6 +506,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isSecondaryVoltageControl() {
+        return secondaryVoltageControl;
+    }
+
+    public OpenLoadFlowParameters setSecondaryVoltageControl(boolean secondaryVoltageControl) {
+        this.secondaryVoltageControl = secondaryVoltageControl;
+        return this;
+    }
+
     public String getDebugDir() {
         return debugDir;
     }
@@ -525,6 +560,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
+                .setShuntVoltageControlMode(config.getEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_NAME, ShuntVoltageControlMode.class, SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
@@ -538,7 +574,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE))
                 .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT))
                 .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE))
-                .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT)));
+                .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT))
+                .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -575,6 +612,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setVoltageInitModeOverride(VoltageInitModeOverride.valueOf(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME))
                 .ifPresent(prop -> this.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(SHUNT_VOLTAGE_CONTROL_MODE_NAME))
+                .ifPresent(prop -> this.setShuntVoltageControlMode(ShuntVoltageControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(DC_POWER_FACTOR_NAME))
                 .ifPresent(prop -> this.setDcPowerFactor(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME))
@@ -601,6 +640,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(this::setDebugDir);
         Optional.ofNullable(properties.get(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME))
                 .ifPresent(prop -> this.setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME))
+                .ifPresent(prop -> this.setSecondaryVoltageControl(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -621,6 +662,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", newtonRaphsonConvEpsPerEq=" + newtonRaphsonConvEpsPerEq +
                 ", voltageInitModeOverride=" + voltageInitModeOverride +
                 ", transformerVoltageControlMode=" + transformerVoltageControlMode +
+                ", shuntVoltageControlMode=" + shuntVoltageControlMode +
                 ", dcPowerFactor=" + dcPowerFactor +
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
@@ -634,6 +676,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", maxSlackBusCount=" + maxSlackBusCount +
                 ", debugDir=" + debugDir +
                 ", incrementalTransformerVoltageControlOuterLoopMaxTapShift=" + incrementalTransformerVoltageControlOuterLoopMaxTapShift +
+                ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ')';
     }
 
@@ -706,6 +749,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Max slack bus count: {}", parametersExt.getMaxSlackBusCount());
         LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
         LOGGER.info("Incremental transformer voltage control outer loop max tap shift: {}", parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+        LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -771,7 +815,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(parametersExt.isSvcVoltageMonitoring())
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
-                .setDebugDir(parametersExt.getDebugDir());
+                .setDebugDir(parametersExt.getDebugDir())
+                .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -919,6 +964,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getNewtonRaphsonConvEpsPerEq() == extension2.getNewtonRaphsonConvEpsPerEq() &&
                 extension1.getVoltageInitModeOverride() == extension2.getVoltageInitModeOverride() &&
                 extension1.getTransformerVoltageControlMode() == extension2.getTransformerVoltageControlMode() &&
+                extension1.getShuntVoltageControlMode() == extension2.getShuntVoltageControlMode() &&
                 extension1.getDcPowerFactor() == extension2.getDcPowerFactor() &&
                 extension1.getMinPlausibleTargetVoltage() == extension2.getMinPlausibleTargetVoltage() &&
                 extension1.getMaxPlausibleTargetVoltage() == extension2.getMaxPlausibleTargetVoltage() &&
@@ -931,7 +977,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getStateVectorScalingMode() == extension2.getStateVectorScalingMode() &&
                 extension1.getMaxSlackBusCount() == extension2.getMaxSlackBusCount() &&
                 Objects.equals(extension1.getDebugDir(), extension2.getDebugDir()) &&
-                extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift();
+                extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() &&
+                extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -969,6 +1016,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setNewtonRaphsonConvEpsPerEq(extension.getNewtonRaphsonConvEpsPerEq())
                     .setVoltageInitModeOverride(extension.getVoltageInitModeOverride())
                     .setTransformerVoltageControlMode(extension.getTransformerVoltageControlMode())
+                    .setShuntVoltageControlMode(extension.getShuntVoltageControlMode())
                     .setDcPowerFactor(extension.getDcPowerFactor())
                     .setMinPlausibleTargetVoltage(extension.getMinPlausibleTargetVoltage())
                     .setMaxPlausibleTargetVoltage(extension.getMaxPlausibleTargetVoltage())
@@ -981,7 +1029,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setStateVectorScalingMode(extension.getStateVectorScalingMode())
                     .setMaxSlackBusCount(extension.getMaxSlackBusCount())
                     .setDebugDir(extension.getDebugDir())
-                    .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
+                    .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift())
+                    .setSecondaryVoltageControl(extension.isSecondaryVoltageControl());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

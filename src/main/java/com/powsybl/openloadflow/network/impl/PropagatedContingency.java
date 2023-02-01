@@ -322,6 +322,7 @@ public class PropagatedContingency {
         // these branches are indeed just open at one side.
         for (String busId : busIdsToLose) {
             LfBus bus = network.getBusById(busId);
+            System.out.println(bus.getId());
             bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
         }
 
@@ -336,6 +337,7 @@ public class PropagatedContingency {
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
+        int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
         Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
 
@@ -389,6 +391,6 @@ public class PropagatedContingency {
             return Optional.empty();
         }
 
-        return Optional.of(new LfContingency(contingency.getId(), index, buses, branches, shunts, busesLoadShift, generators, hvdcs, originalPowerShiftIds));
+        return Optional.of(new LfContingency(contingency.getId(), index, createdSynchronousComponents, buses, branches, shunts, busesLoadShift, generators, hvdcs, originalPowerShiftIds));
     }
 }
