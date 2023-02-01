@@ -1218,4 +1218,24 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(0.356, result.getBranchFlow1SensitivityValue("l45", "g1", "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.144, result.getBranchFlow1SensitivityValue("l45", "g1", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testBusContingency() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "NGEN", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "LOAD"),
+                                                  createBranchFlowPerInjectionIncrease("NHV1_NHV2_2", "LOAD"),
+                                                  createBranchFlowPerInjectionIncrease("NHV2_NLOAD", "LOAD"),
+                                                  createBranchFlowPerInjectionIncrease("NGEN_NHV1", "LOAD"));
+
+        List<Contingency> contingencies = network.getBusBreakerView().getBusStream()
+                .filter(bus -> !bus.getId().equals("NGEN"))
+                .map(bus -> new Contingency(bus.getId(), new BusContingency(bus.getId())))
+                .collect(Collectors.toList());
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+    }
 }
