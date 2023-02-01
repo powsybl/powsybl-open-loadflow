@@ -111,15 +111,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     && branch.getBus1() != null && branch.getBus2() != null);
         }
 
-        private static SpanningTreeAlgorithm.SpanningTree<LfBranch> createZeroImpedanceSpanningTree(Graph<LfBus, LfBranch> zeroImpedanceSubGraph, boolean dc) {
-            if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
-                SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
-                for (LfBranch branch : spanningTree.getEdges()) {
-                    branch.setSpanningTreeEdge(dc, true);
-                }
-                return spanningTree;
+        private static SpanningTreeAlgorithm.SpanningTree<LfBranch> createZeroImpedanceSpanningTree(Graph<LfBus, LfBranch> subSubGraph, boolean dc) {
+            var spanningTree = new KruskalMinimumSpanningTree<>(subSubGraph).getSpanningTree();
+            for (LfBranch branch : spanningTree.getEdges()) {
+                branch.setSpanningTreeEdge(dc, true);
             }
-            return null;
+            return spanningTree;
         }
 
         public Graph<LfBus, LfBranch> getSubGraph() {
