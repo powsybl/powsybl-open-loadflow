@@ -20,7 +20,6 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -471,8 +470,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // If min impedance is set, there is no zero-impedance branch
         if (!parameters.isDc() && !parameters.isMinImpedance()) {
             // Merge the discrete voltage control in each zero impedance connected set
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.getZeroImpedanceNetwork(false).getSubGraph()).connectedSets();
-            connectedSets.forEach(connectedSet -> mergeVoltageControls(connectedSet, parameters));
+            for (LfNetwork.LfZeroImpedanceNetwork zeroImpedanceNetwork : lfNetwork.getZeroImpedanceNetworks(false)) {
+                mergeVoltageControls(zeroImpedanceNetwork.getSubGraph().vertexSet(), parameters);
+            }
         }
     }
 

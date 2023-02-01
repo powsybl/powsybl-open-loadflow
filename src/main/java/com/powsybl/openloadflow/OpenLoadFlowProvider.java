@@ -40,8 +40,6 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.openloadflow.util.*;
 import com.powsybl.tools.PowsyblCoreVersion;
-import org.jgrapht.Graph;
-import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,9 +161,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     private void computeZeroImpedanceFlows(LfNetwork network, boolean dc) {
-        Graph<LfBus, LfBranch> zeroImpedanceSubGraph = network.getZeroImpedanceNetwork(dc).getSubGraph();
-        SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = network.getZeroImpedanceNetwork(dc).getSpanningTree();
-        new ZeroImpedanceFlows(zeroImpedanceSubGraph, spanningTree, dc).compute();
+        for (LfNetwork.LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(dc)) {
+            new ZeroImpedanceFlows(zeroImpedanceNetwork.getSubGraph(), zeroImpedanceNetwork.getSpanningTree(), dc)
+                    .compute();
+        }
     }
 
     private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, Reporter reporter) {
