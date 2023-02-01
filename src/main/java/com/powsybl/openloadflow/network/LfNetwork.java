@@ -90,7 +90,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
         public LfZeroImpedanceNetwork(Graph<LfBus, LfBranch> subGraph, SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree) {
             this.subGraph = Objects.requireNonNull(subGraph);
-            this.spanningTree = spanningTree;
+            this.spanningTree = Objects.requireNonNull(spanningTree);
         }
 
         public static List<LfZeroImpedanceNetwork> create(LfNetwork network, boolean dc) {
