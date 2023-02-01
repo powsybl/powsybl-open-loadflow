@@ -20,6 +20,7 @@ import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.jgrapht.graph.AsSubgraph;
+import org.jgrapht.graph.MaskSubgraph;
 import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,12 +85,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     public static class LfZeroImpedanceNetwork {
 
-        private final Graph<LfBus, LfBranch> subGraph;
+        private final Graph<LfBus, LfBranch> graph;
 
         private final SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree;
 
-        public LfZeroImpedanceNetwork(Graph<LfBus, LfBranch> subGraph, SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree) {
-            this.subGraph = Objects.requireNonNull(subGraph);
+        public LfZeroImpedanceNetwork(Graph<LfBus, LfBranch> graph, SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree) {
+            this.graph = Objects.requireNonNull(graph);
             this.spanningTree = Objects.requireNonNull(spanningTree);
         }
 
@@ -100,7 +101,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(subGraph).connectedSets();
             for (Set<LfBus> connectedSet : connectedSets) {
                 var subSubGraph = new AsSubgraph<>(subGraph, connectedSet);
-                var spanningTree = createZeroImpedanceSpanningTree(subSubGraph, dc);
+                var spanningTree = updateZeroImpedanceSpanningTree(subSubGraph, dc);
                 zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(subGraph, spanningTree));
             }
             return zeroImpedanceNetworks;
@@ -111,16 +112,22 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
                     && branch.getBus1() != null && branch.getBus2() != null);
         }
 
-        private static SpanningTreeAlgorithm.SpanningTree<LfBranch> createZeroImpedanceSpanningTree(Graph<LfBus, LfBranch> subSubGraph, boolean dc) {
-            var spanningTree = new KruskalMinimumSpanningTree<>(subSubGraph).getSpanningTree();
+        private static SpanningTreeAlgorithm.SpanningTree<LfBranch> updateZeroImpedanceSpanningTree(Graph<LfBus, LfBranch> subGraph, boolean dc) {
+            // reset status
+            for (LfBranch branch : subGraph.edgeSet()) {
+                branch.setSpanningTreeEdge(dc, false);
+            }
+            // computer spanning tree on enabled subgraph
+            var enabledSubGraph = new MaskSubgraph<>(subGraph, LfElement::isDisabled, LfElement::isDisabled);
+            var spanningTree = new KruskalMinimumSpanningTree<>(enabledSubGraph).getSpanningTree();
             for (LfBranch branch : spanningTree.getEdges()) {
                 branch.setSpanningTreeEdge(dc, true);
             }
             return spanningTree;
         }
 
-        public Graph<LfBus, LfBranch> getSubGraph() {
-            return subGraph;
+        public Graph<LfBus, LfBranch> getGraph() {
+            return graph;
         }
 
         public SpanningTreeAlgorithm.SpanningTree<LfBranch> getSpanningTree() {

@@ -162,7 +162,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     private void computeZeroImpedanceFlows(LfNetwork network, boolean dc) {
         for (LfNetwork.LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(dc)) {
-            new ZeroImpedanceFlows(zeroImpedanceNetwork.getSubGraph(), zeroImpedanceNetwork.getSpanningTree(), dc)
+            new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), dc)
                     .compute();
         }
     }
