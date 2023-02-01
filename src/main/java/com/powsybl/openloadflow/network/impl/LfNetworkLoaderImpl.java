@@ -470,7 +470,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // If min impedance is set, there is no zero-impedance branch
         if (!parameters.isDc() && !parameters.isMinImpedance()) {
             // Merge the discrete voltage control in each zero impedance connected set
-            for (LfNetwork.LfZeroImpedanceNetwork zeroImpedanceNetwork : lfNetwork.getZeroImpedanceNetworks(false)) {
+            for (LfZeroImpedanceNetwork zeroImpedanceNetwork : lfNetwork.getZeroImpedanceNetworks(false)) {
                 mergeVoltageControls(zeroImpedanceNetwork.getGraph().vertexSet(), parameters);
             }
         }

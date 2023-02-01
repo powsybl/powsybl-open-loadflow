@@ -16,11 +16,6 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.anarres.graphviz.builder.GraphVizGraph;
 import org.jgrapht.Graph;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
-import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
-import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
-import org.jgrapht.graph.AsSubgraph;
-import org.jgrapht.graph.MaskSubgraph;
 import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,58 +77,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
-
-    public static class LfZeroImpedanceNetwork {
-
-        private final Graph<LfBus, LfBranch> graph;
-
-        private final SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree;
-
-        public LfZeroImpedanceNetwork(Graph<LfBus, LfBranch> graph, SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree) {
-            this.graph = Objects.requireNonNull(graph);
-            this.spanningTree = Objects.requireNonNull(spanningTree);
-        }
-
-        public static List<LfZeroImpedanceNetwork> create(LfNetwork network, boolean dc) {
-            Objects.requireNonNull(network);
-            List<LfZeroImpedanceNetwork> zeroImpedanceNetworks = new ArrayList<>();
-            var subGraph = createZeroImpedanceSubGraph(network, dc);
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(subGraph).connectedSets();
-            for (Set<LfBus> connectedSet : connectedSets) {
-                var subSubGraph = new AsSubgraph<>(subGraph, connectedSet);
-                var spanningTree = updateZeroImpedanceSpanningTree(subSubGraph, dc);
-                zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(subGraph, spanningTree));
-            }
-            return zeroImpedanceNetworks;
-        }
-
-        private static Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(LfNetwork network, boolean dc) {
-            return network.createSubGraph(branch -> branch.isZeroImpedance(dc)
-                    && branch.getBus1() != null && branch.getBus2() != null);
-        }
-
-        private static SpanningTreeAlgorithm.SpanningTree<LfBranch> updateZeroImpedanceSpanningTree(Graph<LfBus, LfBranch> subGraph, boolean dc) {
-            // reset status
-            for (LfBranch branch : subGraph.edgeSet()) {
-                branch.setSpanningTreeEdge(dc, false);
-            }
-            // computer spanning tree on enabled subgraph
-            var enabledSubGraph = new MaskSubgraph<>(subGraph, LfElement::isDisabled, LfElement::isDisabled);
-            var spanningTree = new KruskalMinimumSpanningTree<>(enabledSubGraph).getSpanningTree();
-            for (LfBranch branch : spanningTree.getEdges()) {
-                branch.setSpanningTreeEdge(dc, true);
-            }
-            return spanningTree;
-        }
-
-        public Graph<LfBus, LfBranch> getGraph() {
-            return graph;
-        }
-
-        public SpanningTreeAlgorithm.SpanningTree<LfBranch> getSpanningTree() {
-            return spanningTree;
-        }
-    }
 
     private List<LfZeroImpedanceNetwork> dcLfZeroImpedanceNetworks;
 
@@ -610,7 +553,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return dc ? dcLfZeroImpedanceNetworks : acLfZeroImpedanceNetworks;
     }
 
-    private Graph<LfBus, LfBranch> createSubGraph(Predicate<LfBranch> branchFilter) {
+    Graph<LfBus, LfBranch> createSubGraph(Predicate<LfBranch> branchFilter) {
         Objects.requireNonNull(branchFilter);
 
         List<LfBranch> filteredBranches = getBranches().stream()

@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -40,6 +43,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected TransformerVoltageControl voltageControl;
 
     protected boolean voltageControlEnabled = false;
+
+    protected LfZeroImpedanceNetwork dcZeroImpedanceNetwork;
+
+    protected LfZeroImpedanceNetwork acZeroImpedanceNetwork;
 
     protected boolean dcSpanningTreeEdge = false;
 
@@ -247,6 +254,22 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
+    public Optional<LfZeroImpedanceNetwork> getZeroImpedanceNetwork(boolean dc) {
+        network.updateZeroImpedanceCache(dc);
+        return Optional.ofNullable(dc ? dcZeroImpedanceNetwork : acZeroImpedanceNetwork);
+    }
+
+    @Override
+    public void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
+        Objects.requireNonNull(zeroImpedanceNetwork);
+        if (dc) {
+            dcZeroImpedanceNetwork = zeroImpedanceNetwork;
+        } else {
+            acZeroImpedanceNetwork = zeroImpedanceNetwork;
+        }
+    }
+
+    @Override
     public void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge) {
         if (dc) {
             dcSpanningTreeEdge = spanningTreeEdge;
@@ -303,6 +326,22 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
         } else {
             return piModel.getZ() < lowImpedanceThreshold;
+        }
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        if (disabled != this.disabled) {
+            this.disabled = disabled;
+
+            // recompute zero impedance graph spanning tree as this branch could have been chosen as an edge of the spanning
+            // it has to be done before notifying so that listener have a up to date spanning tree status
+            getZeroImpedanceNetwork(true).ifPresent(LfZeroImpedanceNetwork::updateSpanningTree);
+            getZeroImpedanceNetwork(false).ifPresent(LfZeroImpedanceNetwork::updateSpanningTree);
+
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onDisableChange(this, disabled);
+            }
         }
     }
 }
