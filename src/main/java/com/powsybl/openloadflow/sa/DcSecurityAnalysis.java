@@ -192,6 +192,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
             @Override
             public void writeContingencyStatus(int i, SensitivityAnalysisResult.Status status) {
+                // Nothing to do
             }
 
         };
@@ -202,7 +203,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         LimitViolationsResult limitViolations = new LimitViolationsResult(new ArrayList<>(context.getPreContingencyLimitViolationsMap().values()));
         PreContingencyResult preContingencyResult = new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED, limitViolations, branchResults, Collections.emptyList(), Collections.emptyList());
 
-        preparePostContingencyResults(context, violationsPerContingency);
+        preparePostContingencyViolationsResults(context, violationsPerContingency);
 
         List<OperatorStrategyResult> operatorStrategyResult = createOperatorStrategyResults(context, operatorStrategies, actions);
 
@@ -216,7 +217,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, operatorStrategyResult));
     }
 
-    private void preparePostContingencyResults(DcSecurityAnalysisContext context, Map<String, Map<Pair<String, Branch.Side>, LimitViolation>> violationsPerContingency) {
+    private void preparePostContingencyViolationsResults(DcSecurityAnalysisContext context, Map<String, Map<Pair<String, Branch.Side>, LimitViolation>> violationsPerContingency) {
 
         for (Contingency contingency : context.getContingencies()) {
             context.getPreContingencyLimitViolationsMap().forEach((subjectSideId, preContingencyViolation) -> {
