@@ -40,6 +40,7 @@ import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext> {
 
@@ -145,7 +146,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             }
         };
 
-        List<BranchResult> branchResults = new ArrayList<>();
         Map<String, Map<Pair<String, Branch.Side>, LimitViolation>> violationsPerContingency = new HashMap<>();
         SensitivityResultWriter valueWriter = new SensitivityResultWriter() {
             @Override
@@ -162,9 +162,6 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                     context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(functionReference), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
                     context.getDetector().checkCurrent(branch, Branch.Side.ONE, i1, violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
                     context.getDetector().checkCurrent(branch, Branch.Side.TWO, i2, violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                    if (isBranchMonitored(branchId, null)) {
-                        branchResults.add(branchResult);
-                    }
                 } else {
                     Contingency contingency = context.getContingencies().get(contingencyIndex);
                     //PostContingency Data
@@ -201,7 +198,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 .run(network, workingVariantId, factorReader, valueWriter, context.getContingencies(), variableSets, sensitivityAnalysisParameters, computationManager, Reporter.NO_OP);
 
         LimitViolationsResult limitViolations = new LimitViolationsResult(new ArrayList<>(context.getPreContingencyLimitViolationsMap().values()));
-        PreContingencyResult preContingencyResult = new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED, limitViolations, branchResults, Collections.emptyList(), Collections.emptyList());
+        PreContingencyResult preContingencyResult = new PreContingencyResult(LoadFlowResult.ComponentResult.Status.CONVERGED, limitViolations,
+                context.getPreContingencyAllBranchResults().values().stream().filter(br -> isBranchMonitored(br.getBranchId(), null)).collect(Collectors.toList()),
+                Collections.emptyList(), Collections.emptyList());
 
         preparePostContingencyViolationsResults(context, violationsPerContingency);
 
