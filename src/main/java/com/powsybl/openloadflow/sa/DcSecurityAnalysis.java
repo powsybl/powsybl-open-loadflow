@@ -146,13 +146,14 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             }
         };
 
-        Map<String, Map<Pair<String, Branch.Side>, LimitViolation>> violationsPerContingency = new HashMap<>();
+        Map<String, List<LimitViolation>> violationsPerContingency = new HashMap<>();
         SensitivityResultWriter valueWriter = new SensitivityResultWriter() {
             @Override
             public void writeSensitivityValue(int factorContext, int contingencyIndex, double value, double functionReference) {
                 SensitivityFactor factor = context.getFactors().get(factorContext);
+
+                //Work based on the fact all sensitivity values from pre contingency will be processed before post contingency
                 if (contingencyIndex == -1) {
-                    //PreContingency Data
                     String branchId = factor.getFunctionId();
                     Branch<?> branch = network.getBranch(branchId);
                     double i1 = currentActivePower(Math.abs(functionReference), branch.getTerminal1().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
@@ -164,9 +165,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                     context.getDetector().checkCurrent(branch, Branch.Side.TWO, i2, violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
                 } else {
                     Contingency contingency = context.getContingencies().get(contingencyIndex);
-                    //PostContingency Data
                     List<BranchResult> branchResultList = context.getBranchResultsPerContingencyId().computeIfAbsent(contingency.getId(), k -> new ArrayList<>());
-                    Map<Pair<String, Branch.Side>, LimitViolation> violations = violationsPerContingency.computeIfAbsent(contingency.getId(), k -> new HashMap<>());
+                    List<LimitViolation> violations = violationsPerContingency.computeIfAbsent(contingency.getId(), k -> new ArrayList<>());
                     double branchInContingencyP1 = Double.NaN;
                     if (contingency.getElements().size() == 1 && contingency.getElements().get(0).getType() == ContingencyElementType.BRANCH) {
                         branchInContingencyP1 = context.getPreContingencyAllBranchResults().get(contingency.getElements().get(0).getId()).getP1();
@@ -181,9 +181,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                         branchResultList.add(new BranchResult(branchId, functionReference, Double.NaN, i1,
                                 -functionReference, Double.NaN, i2, flowTransfer));
                     }
-                    context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(functionReference), violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                    context.getDetector().checkCurrent(branch, Branch.Side.ONE, i1, violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                    context.getDetector().checkCurrent(branch, Branch.Side.TWO, i2, violation -> violations.put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                    context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(functionReference), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                    context.getDetector().checkCurrent(branch, Branch.Side.ONE, i1, violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                    context.getDetector().checkCurrent(branch, Branch.Side.TWO, i2, violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
                 }
             }
 
@@ -202,30 +202,25 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 context.getPreContingencyAllBranchResults().values().stream().filter(br -> isBranchMonitored(br.getBranchId(), null)).collect(Collectors.toList()),
                 Collections.emptyList(), Collections.emptyList());
 
-        preparePostContingencyViolationsResults(context, violationsPerContingency);
+        contingencies.forEach(c -> context.getLimitViolationsPerContingencyId().put(c.getId(),
+                new LimitViolationsResult(new ArrayList<>(violationsPerContingency.get(c.getId())), Collections.emptyList())));
 
         List<OperatorStrategyResult> operatorStrategyResult = createOperatorStrategyResults(context, operatorStrategies, actions);
 
         List<PostContingencyResult> postContingencyResults = new ArrayList<>();
         for (Contingency contingency : contingencies) {
             postContingencyResults.add(new PostContingencyResult(contingency, PostContingencyComputationStatus.CONVERGED,
-                    context.getLimitViolationsPerContingencyId().get(contingency.getId()), context.getBranchResultsPerContingencyId().get(contingency.getId()),
+                    context.getLimitViolationsPerContingencyId().get(contingency.getId()),
+                    context.getBranchResultsPerContingencyId().get(contingency.getId()),
                     Collections.emptyList(), Collections.emptyList(), context.getConnectivityResultPerContingencyId().get(contingency.getId())));
         }
-
         return new SecurityAnalysisReport(new SecurityAnalysisResult(preContingencyResult, postContingencyResults, operatorStrategyResult));
     }
 
-    private void preparePostContingencyViolationsResults(DcSecurityAnalysisContext context, Map<String, Map<Pair<String, Branch.Side>, LimitViolation>> violationsPerContingency) {
-
-        for (Contingency contingency : context.getContingencies()) {
-            context.getPreContingencyLimitViolationsMap().forEach((subjectSideId, preContingencyViolation) -> {
-                LimitViolation postContingencyViolation = violationsPerContingency.get(contingency.getId()).get(subjectSideId);
-                if (LimitViolationManager.violationWeakenedOrEquivalent(preContingencyViolation, postContingencyViolation, context.getParameters().getIncreasedViolationsParameters())) {
-                    violationsPerContingency.get(contingency.getId()).remove(subjectSideId);
-                }
-            });
-            context.getLimitViolationsPerContingencyId().put(contingency.getId(), new LimitViolationsResult(new ArrayList<>(violationsPerContingency.get(contingency.getId()).values()), Collections.emptyList()));
+    private void checkViolationWeakenedOrEquivalentAndAdd(DcSecurityAnalysisContext context, LimitViolation violationToAdd, List<LimitViolation> violations) {
+        LimitViolation preContingencyViolation = context.getPreContingencyLimitViolationsMap().get(Pair.of(violationToAdd.getSubjectId(), violationToAdd.getSide()));
+        if (preContingencyViolation == null || !LimitViolationManager.violationWeakenedOrEquivalent(preContingencyViolation, violationToAdd, context.getParameters().getIncreasedViolationsParameters())) {
+            violations.add(violationToAdd);
         }
     }
 
