@@ -15,15 +15,15 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
-import com.powsybl.openloadflow.network.LfAction;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -146,6 +146,7 @@ class LfActionTest extends AbstractConverterTest {
 
             assertEquals(newTargetP / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
             assertEquals(genId, generatorAction.getGeneratorId());
+            assertEquals(newTargetP, network.getGenerator(genId).getTargetP());
         }
 
     }
@@ -264,6 +265,54 @@ class LfActionTest extends AbstractConverterTest {
 
             assertEquals(genId, generatorAction.getGeneratorId());
         }
+    }
+
+    static class LfActionAcRunner extends LoadFlow.Runner {
+
+        private LoadFlowParameters parameters;
+
+        public LfActionAcRunner(){
+            super(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+            parameters = new LoadFlowParameters().setUseReactiveLimits(false)
+                    .setDistributedSlack(false);
+            OpenLoadFlowParameters.create(parameters).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        }
+
+        public LoadFlowParameters getParameters() {
+            return parameters;
+        }
+    }
+
+    @Test
+    void testGeneratorUpdatesTargetPProportionalToP() {
+        LfActionAcRunner runner = new LfActionAcRunner();
+        Network network = NodeBreakerNetworkFactory.create();
+        String genId = "G";
+        Generator actedOnGenerator = network.getGenerator(genId);
+        double deltaTargetP = 2d;
+        double newTargetP = actedOnGenerator.getTargetP() + deltaTargetP;
+        GeneratorAction generatorAction =
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(deltaTargetP).build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
+            lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+            assertEquals(newTargetP / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
+            assertEquals(genId, generatorAction.getGeneratorId());
+
+            LoadFlowResult result = runner.run(network, runner.getParameters());
+            assertTrue(result.isOk());
+
+            assertEquals(newTargetP, network.getGenerator(genId).getTargetP());
+
+
+        }
+
     }
 
 }

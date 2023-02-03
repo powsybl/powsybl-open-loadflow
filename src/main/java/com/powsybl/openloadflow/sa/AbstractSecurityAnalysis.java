@@ -159,6 +159,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
+                case GeneratorAction.NAME: {
+                    GeneratorAction generatorAction = (GeneratorAction) action;
+                    if (network.getGenerator(generatorAction.getGeneratorId()) == null) {
+                        throw new PowsyblException("Generator '" + generatorAction.getGeneratorId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }

@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.loadflow.validation.BalanceType;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -232,7 +233,10 @@ public final class LfAction {
             if (activePowerValue.isPresent()) {
                 // A GeneratorAction CANNOT be created if only one of the activePowerValue or isActivePowerRelative is empty
                 Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
-                newTargetP = Optional.of(activePowerValue.get() / PerUnit.SB + ((relativeValue.isPresent() && relativeValue.get()) ? generator.getTargetP() : 0d));
+                if (!(relativeValue.isPresent() && relativeValue.get())) {
+                    throw new PowsyblException("LfAction.GeneratorUpdates: setTargetP with an absolute power value is not supported yet.");
+                }
+                newTargetP = Optional.of(activePowerValue.get() / PerUnit.SB + generator.getTargetP());
             }
 
             Optional<Double> newTargetQ = action.getTargetQ();
@@ -350,7 +354,9 @@ public final class LfAction {
         }
 
         if (generatorUpdates != null) {
-            generatorUpdates.getActivePowerValue().ifPresent(activePowerValue -> generatorUpdates.getGenerator().setTargetP(activePowerValue));
+            generatorUpdates.getActivePowerValue().ifPresent(activePowerValue -> {
+                generatorUpdates.getGenerator().setTargetP(activePowerValue);
+            });
 
             generatorUpdates.isVoltageRegulation().ifPresent(voltageRegulationOn ->
                             generatorUpdates.getGenerator().getControlledBus().setVoltageControlEnabled(voltageRegulationOn));

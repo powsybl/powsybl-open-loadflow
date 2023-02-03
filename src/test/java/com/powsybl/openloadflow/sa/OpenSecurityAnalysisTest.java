@@ -14,6 +14,7 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -31,6 +32,7 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfGeneratorImpl;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
@@ -43,6 +45,7 @@ import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
+import org.apache.commons.math3.util.ArithmeticUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -2404,5 +2407,115 @@ class OpenSecurityAnalysisTest {
         postContingencyResult = result.getPostContingencyResults().get(0);
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+    }
+
+    @Test
+    void testSecurityAnalysisWithGeneratorActionRelativeTargetV() {
+        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = FourBusNetworkFactory.create();
+        Stream.of("g1","g2","g4").forEach(id -> network.getGenerator(id).setMaxP(network.getGenerator(id).getMaxP() + 3.0d));
+
+        // Disconnect line between buses 1 and 3
+        final String droppedLine = "l13";
+        List<Contingency> contingencies = Stream.of(droppedLine)
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+
+        final String g1 = "g1";
+        final double delta_g1 = 2.0d;
+
+        final String g2 = "g2";
+        final double delta_g2 = 3.0d;
+        List<Action> actions = List.of( // Add generator actions
+                new GeneratorActionBuilder().withId("genAction_" + g1).withGeneratorId(g1).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(delta_g1).build(),
+                new GeneratorActionBuilder().withId("genAction_" + g2).withGeneratorId(g2).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(delta_g2).build());
+
+        List<OperatorStrategy> operatorStrategies = List.of(
+                new OperatorStrategy("strategyL1", ContingencyContext.specificContingency(droppedLine), new TrueCondition(), List.of("genAction_" + g1)),
+                new OperatorStrategy("strategyL3", ContingencyContext.specificContingency(droppedLine), new TrueCondition(), List.of("genAction_" + g2)));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        // This means we should have no impact on the contribution factor to the slack.
+        parameters.setDistributedSlack(true).setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        OpenLoadFlowParameters.create(parameters).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        // final double expectedPAtG1 = Stream.of("l12","l13", "l14").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP1()).reduce(0d, (a,b) -> a+b);
+        final double expectedPAtG1 = Stream.of("l12","l13", "l14").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP1()).reduce(0d, Double::sum);
+        assertEquals(1.9998447468193346, expectedPAtG1); // 1.9998447468193346 is close to 2.0 pu!
+
+        final double expectedPAtG4 = Stream.of("l14","l34").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
+        assertEquals(0.9998555462687488, expectedPAtG4); // This is pretty much 1 pu
+
+        // Let's now check the results of the security analysis with operator strategy.
+        // Let's start with checking that the contingency indeed happened
+        assertDoesNotThrow(() -> result.getPreContingencyResult().getNetworkResult().getBranchResult("l13").getP1());
+        assertThrows(NullPointerException.class, () -> getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l13").getP1());
+
+        // Ground truth loadflow.
+        // Apply contingency by hand
+        network.getLine(droppedLine).getTerminal1().disconnect();
+        network.getLine(droppedLine).getTerminal2().disconnect();
+        // Apply remedial action
+        double originalTargetP = network.getGenerator("g1").getTargetP();
+        network.getGenerator("g1").setTargetP(originalTargetP + delta_g1);
+        LoadFlow.run(network, parameters);
+        // Compare results
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER*10);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER*10);
+
+        // reverse action and apply second remedial action
+        network.getGenerator("g1").setTargetP(originalTargetP);
+        originalTargetP = network.getGenerator("g2").getTargetP();
+        network.getGenerator("g2").setTargetP(originalTargetP+delta_g2);
+        LoadFlow.run(network, parameters);
+
+        // Bon, au générateur 1, à 10-2 près, on a les même résultats (en ayant augmenté les pmax de tous les générateurs de 3 pu)
+
+        // Verify that the newly added clack has been correctly distributed
+        // -> First strategy // OperatorStrategy
+        final double expectedPAtG1OpStrategyG1 = Stream.of("l12", "l14").map(id -> Math.abs(getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult(id).getP1())).reduce(0d, Double::sum);
+        assertEquals(3.2856944642728267, expectedPAtG1OpStrategyG1); // This is close to 3.2 = 2 + 2 - 0.8
+        final double expectedPAtG2OpStrategyG1 = getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP1() +
+                getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l23").getP1();
+        assertEquals(3.643364817532415, expectedPAtG2OpStrategyG1); // This is close to 1.2 = 2 - 0.8
+        final double expectedPAtG4OpStrategyG1 = Stream.of("l14", "l34").map(id -> getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
+        assertEquals(0.42858232187911693, expectedPAtG4OpStrategyG1); // This is close to 0.6 = 1 - 0.4
+
+        final double sometests = Stream.of("l12", "l14").map(id -> {
+            var branchResult = getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult(id);
+            return Math.abs(branchResult.getP1()) + Math.abs(branchResult.getP2());
+        }).reduce(0d, Double::sum);
+        assertEquals(0.0d, sometests);
+        final double expectedPAtG1OpStrategyG2 = Stream.of("l12", "l14").map(id -> Math.abs(getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult(id).getP1())).reduce(0d, Double::sum);
+        assertEquals(3.199989729949623, expectedPAtG1OpStrategyG2);
+
+
+
+        assertEquals(578.3, result.getPreContingencyResult().getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(0.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(292.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(0.0, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(318.3, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(583.5, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(302.0, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(0.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(431.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(302.2, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(583.5, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(583.5, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(302.2, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        // getBranchResult("P1") -> Sum of branch results starting from nodes/buses should add up to targetP
     }
 }
