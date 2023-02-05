@@ -244,7 +244,7 @@ class EquationsTest {
 
         assertArrayEquals(new double[] {4.275919696380507E-5, 7.98163392892194E-5, 0, 0, Double.NaN},
                 eval(new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, variableSet), variables, sv));
-        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, -1.7369285516652369},
+        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, 0, -1.7369285516652369},
                 eval(new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, true), variables, sv));
     }
 
