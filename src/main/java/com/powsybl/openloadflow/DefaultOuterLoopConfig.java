@@ -43,6 +43,17 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
     }
 
+    private static OuterLoop createPhaseShifterControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+        switch (parametersExt.getPhaseShifterControlMode()) {
+            case CONTINUOUS_WITH_DISCRETISATION:
+                return new PhaseControlOuterLoop();
+            case INCREMENTAL:
+                return new IncrementalPhaseControlOuterLoop();
+            default:
+                throw new IllegalStateException("Unknown phase shifter control mode: " + parametersExt.getPhaseShifterControlMode());
+        }
+    }
+
     private static OuterLoop createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
         return new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch());
@@ -64,7 +75,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
         // phase shifter control
         if (parameters.isPhaseShifterRegulationOn()) {
-            outerLoops.add(new IncrementalPhaseControlOuterLoop());
+            outerLoops.add(createPhaseShifterControlOuterLoop(parametersExt));
         }
         // transformer voltage control
         if (parameters.isTransformerVoltageControlOn()) {
