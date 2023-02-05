@@ -66,18 +66,21 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         }
 
         @SuppressWarnings("unchecked")
-        private static EquationTerm<AcVariableType, AcEquationType> getI(LfBranch controlledBranch) {
+        private static EquationTerm<AcVariableType, AcEquationType> getI1(LfBranch controlledBranch) {
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getI1();
         }
 
-        double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch) {
-            EquationTerm<AcVariableType, AcEquationType> i = getI(controlledBranch);
+        double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch, EquationTerm<AcVariableType, AcEquationType> i) {
             double sensi = i.calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
             if (controllerBranch == controlledBranch) {
                 var a1Var = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_ALPHA1);
                 sensi += Math.toRadians(i.der(a1Var));
             }
             return sensi;
+        }
+
+        double calculateSensitivityFromA2I1(LfBranch controllerBranch, LfBranch controlledBranch) {
+            return calculateSensitivityFromA2I(controllerBranch, controlledBranch, getI1(controlledBranch));
         }
     }
 
@@ -102,7 +105,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
         for (DiscretePhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controller = phaseControl.getController();
-            double sensiA2I = sensitivityContext.calculateSensitivityFromA2I(controller, phaseControl.getControlled());
+            double sensiA2I = sensitivityContext.calculateSensitivityFromA2I1(controller, phaseControl.getControlled());
             double i1 = controller.getI1().eval();
             if (i1 > phaseControl.getTargetValue()) {
                 System.out.println(controller.getId());
