@@ -46,7 +46,7 @@ class AcLoadFlowPhaseShifterTest {
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true)
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);

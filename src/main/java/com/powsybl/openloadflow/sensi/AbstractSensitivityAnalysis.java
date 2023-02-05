@@ -56,42 +56,6 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
     }
 
-    protected static Terminal getEquipmentRegulatingTerminal(Network network, String equipmentId) {
-        Generator generator = network.getGenerator(equipmentId);
-        if (generator != null) {
-            return generator.getRegulatingTerminal();
-        }
-        StaticVarCompensator staticVarCompensator = network.getStaticVarCompensator(equipmentId);
-        if (staticVarCompensator != null) {
-            return staticVarCompensator.getRegulatingTerminal();
-        }
-        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(equipmentId);
-        if (t2wt != null) {
-            RatioTapChanger rtc = t2wt.getRatioTapChanger();
-            if (rtc != null) {
-                return rtc.getRegulationTerminal();
-            }
-        }
-        ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(equipmentId);
-        if (t3wt != null) {
-            for (ThreeWindingsTransformer.Leg leg : t3wt.getLegs()) {
-                RatioTapChanger rtc = leg.getRatioTapChanger();
-                if (rtc != null && rtc.isRegulating()) {
-                    return rtc.getRegulationTerminal();
-                }
-            }
-        }
-        ShuntCompensator shuntCompensator = network.getShuntCompensator(equipmentId);
-        if (shuntCompensator != null) {
-            return shuntCompensator.getRegulatingTerminal();
-        }
-        VscConverterStation vsc = network.getVscConverterStation(equipmentId);
-        if (vsc != null) {
-            return vsc.getTerminal(); // local regulation only
-        }
-        return null;
-    }
-
     interface LfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
 
         enum Status {
@@ -928,8 +892,8 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     }
 
     private static void checkRegulatingTerminal(Network network, String equipmentId) {
-        Terminal terminal = getEquipmentRegulatingTerminal(network, equipmentId);
-        if (terminal == null) {
+        Optional<Terminal> terminal = Networks.getEquipmentRegulatingTerminal(network, equipmentId);
+        if (terminal.isEmpty()) {
             throw new PowsyblException("Regulating terminal for '" + equipmentId + "' not found");
         }
     }
@@ -1068,7 +1032,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                             functionId, functionElement, functionType, injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
                 } else {
                     LfElement functionElement;
-                    LfElement variableElement;
+                    LfElement variableElement = null;
                     if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
@@ -1097,10 +1061,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                         functionElement = lfNetwork.getBusById(functionId);
                         if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
                             checkRegulatingTerminal(network, variableId);
-                            Terminal regulatingTerminal = getEquipmentRegulatingTerminal(network, variableId);
-                            assert regulatingTerminal != null; // this cannot fail because it is checked in checkRegulatingTerminal
-                            Bus regulatedBus = breakers ? regulatingTerminal.getBusBreakerView().getBus() : regulatingTerminal.getBusView().getBus();
-                            variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
+                            Optional<Terminal> regulatingTerminal = Networks.getEquipmentRegulatingTerminal(network, variableId);
+                            if (regulatingTerminal.isPresent()) { // this cannot fail because it is checked in checkRegulatingTerminal
+                                Bus regulatedBus = breakers ? regulatingTerminal.get().getBusBreakerView().getBus() : regulatingTerminal.get().getBusView().getBus();
+                                variableElement = regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
+                            }
                         } else {
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }

@@ -79,12 +79,12 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                             ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement().equals(factor.getFunctionElement())) {
                         // add nabla_p eta, fr specific cases
                         // the only case currently: if we are computing the sensitivity of a phasetap change on itself
-                        Variable<AcVariableType> phi1Var = factor.getFunctionEquationTerm().getVariables()
+                        Variable<AcVariableType> a1Var = factor.getFunctionEquationTerm().getVariables()
                                 .stream()
-                                .filter(var -> var.getElementNum() == factor.getFunctionElement().getNum() && var.getType().equals(AcVariableType.BRANCH_ALPHA1))
+                                .filter(v -> v.getElementNum() == factor.getFunctionElement().getNum() && v.getType() == AcVariableType.BRANCH_ALPHA1)
                                 .findAny()
                                 .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
-                        sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var));
+                        sensi += Math.toRadians(factor.getFunctionEquationTerm().der(a1Var));
                     }
                 }
                 if (factor.getFunctionPredefinedResult() != null) {
@@ -227,7 +227,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setReactivePowerRemoteControl(lfParametersExt.hasReactivePowerRemoteControl())
                 .setDc(lfParameters.isDc())
                 .setShuntVoltageControl(lfParameters.isShuntCompensatorVoltageControlOn())
-                .setReactiveLimits(!lfParameters.isNoGeneratorReactiveLimits())
+                .setReactiveLimits(lfParameters.isUseReactiveLimits())
                 .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage());

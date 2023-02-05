@@ -16,11 +16,12 @@ import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.network.ShuntNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -182,5 +183,60 @@ class AcLoadFlowWithCachingTest {
         network.getLoad("LOAD").remove();
 
         assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+    }
+
+    @Test
+    void testShunt() {
+        var network = ShuntNetworkFactory.create();
+        var shunt = network.getShuntCompensator("SHUNT");
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        assertActivePowerEquals(0, shunt.getTerminal());
+        assertReactivePowerEquals(0, shunt.getTerminal());
+
+        shunt.setSectionCount(1);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has not been invalidated but updated
+
+        loadFlowRunner.run(network, parameters);
+        assertActivePowerEquals(0, shunt.getTerminal());
+        assertReactivePowerEquals(-152.826, shunt.getTerminal());
+    }
+
+    @Test
+    void testShunt2() {
+        var network = ShuntNetworkFactory.create();
+        var shunt = network.getShuntCompensator("SHUNT");
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        loadFlowRunner.run(network, parameters); // Run a first LF before changing a parameter.
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        loadFlowRunner.run(network, parameters);
+        assertActivePowerEquals(0, shunt.getTerminal());
+        assertReactivePowerEquals(-152.826, shunt.getTerminal());
+        assertEquals(1, shunt.getSectionCount());
+
+        shunt.setSectionCount(0);
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has been invalidated
+    }
+
+    @Test
+    void testShunt3() {
+        var network = ShuntNetworkFactory.createWithTwoShuntCompensators();
+        var shunt = network.getShuntCompensator("SHUNT"); // with voltage control capabilities.
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+        loadFlowRunner.run(network, parameters);
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+        loadFlowRunner.run(network, parameters);
+        assertActivePowerEquals(0, shunt.getTerminal());
+        assertReactivePowerEquals(-152.826, shunt.getTerminal());
+        assertEquals(1, shunt.getSectionCount());
+
+        shunt.setSectionCount(1);
+        assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has been invalidated
     }
 }

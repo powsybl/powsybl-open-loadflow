@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -18,9 +19,12 @@ abstract class AbstractDiscreteVoltageControl implements DiscreteVoltageControl 
 
     private final double targetValue;
 
-    protected AbstractDiscreteVoltageControl(LfBus controlled, double targetValue) {
+    private Double targetDeadband;
+
+    protected AbstractDiscreteVoltageControl(LfBus controlled, double targetValue, Double targetDeadband) {
         this.controlled = Objects.requireNonNull(controlled);
         this.targetValue = targetValue;
+        this.targetDeadband = targetDeadband;
     }
 
     @Override
@@ -31,5 +35,15 @@ abstract class AbstractDiscreteVoltageControl implements DiscreteVoltageControl 
     @Override
     public LfBus getControlled() {
         return controlled;
+    }
+
+    @Override
+    public Optional<Double> getTargetDeadband() {
+        return Optional.ofNullable(targetDeadband);
+    }
+
+    @Override
+    public void setTargetDeadband(Double targetDeadband) {
+        this.targetDeadband = targetDeadband;
     }
 }

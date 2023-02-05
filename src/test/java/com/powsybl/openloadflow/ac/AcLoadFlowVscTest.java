@@ -28,7 +28,7 @@ class AcLoadFlowVscTest {
         Network network = HvdcNetworkFactory.createVsc();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true)
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -75,7 +75,7 @@ class AcLoadFlowVscTest {
         vscConverterStation.setVoltageRegulatorOn(true); //FIXME
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -96,7 +96,7 @@ class AcLoadFlowVscTest {
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true)
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
