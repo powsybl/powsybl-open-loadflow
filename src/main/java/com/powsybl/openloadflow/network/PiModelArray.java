@@ -251,20 +251,25 @@ public class PiModelArray implements PiModel {
         return direction;
     }
 
-    @Override
-    public Optional<Direction> probeDirectionToShiftA1(double deltaA1) {
-        if (deltaA1 == 0) {
-            throw new IllegalArgumentException("DeltaA1 should not be zero");
+    private Optional<Direction> probeDirectionToShiftValue(double delta, ToDoubleFunction<PiModel> valueGetter) {
+        if (delta == 0) {
+            throw new IllegalArgumentException("Delta should not be zero");
         }
+        double value = valueGetter.applyAsDouble(models.get(tapPositionIndex));
         if (tapPositionIndex > 0
-                && Math.signum(deltaA1) == Math.signum(models.get(tapPositionIndex - 1).getA1() - models.get(tapPositionIndex).getA1())) {
+                && Math.signum(delta) == Math.signum(valueGetter.applyAsDouble(models.get(tapPositionIndex - 1)) - value)) {
             return Optional.of(Direction.DECREASE);
         }
         if (tapPositionIndex < models.size() - 1
-                && Math.signum(deltaA1) == Math.signum(models.get(tapPositionIndex + 1).getA1() - models.get(tapPositionIndex).getA1())) {
+                && Math.signum(delta) == Math.signum(valueGetter.applyAsDouble(models.get(tapPositionIndex + 1)) - value)) {
             return Optional.of(Direction.INCREASE);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public Optional<Direction> probeDirectionToShiftA1(double deltaA1) {
+        return probeDirectionToShiftValue(deltaA1, PiModel::getA1);
     }
 
     @Override
