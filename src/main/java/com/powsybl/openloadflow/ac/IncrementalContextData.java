@@ -7,11 +7,11 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.openloadflow.network.AllowedDirection;
+import com.powsybl.openloadflow.network.Direction;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -19,6 +19,12 @@ import java.util.Objects;
 class IncrementalContextData {
 
     static final class ControllerContext {
+
+        private final int maxDirectionChange;
+
+        ControllerContext(int maxDirectionChange) {
+            this.maxDirectionChange = maxDirectionChange;
+        }
 
         private final MutableInt directionChangeCount = new MutableInt();
 
@@ -32,8 +38,16 @@ class IncrementalContextData {
             return allowedDirection;
         }
 
-        void setAllowedDirection(AllowedDirection allowedDirection) {
-            this.allowedDirection = Objects.requireNonNull(allowedDirection);
+        void updateAllowedDirection(Direction direction) {
+            if (directionChangeCount.getValue() <= maxDirectionChange) {
+                if (!allowedDirection.equals(direction.getAllowedDirection())) {
+                    // both vs increase or decrease
+                    // increase vs decrease
+                    // decrease vs increase
+                    directionChangeCount.increment();
+                }
+                allowedDirection = direction.getAllowedDirection();
+            }
         }
     }
 
