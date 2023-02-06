@@ -30,17 +30,13 @@ class IncrementalContextData {
 
         private AllowedDirection allowedDirection = AllowedDirection.BOTH;
 
-        MutableInt getDirectionChangeCount() {
-            return directionChangeCount;
-        }
-
         AllowedDirection getAllowedDirection() {
             return allowedDirection;
         }
 
         void updateAllowedDirection(Direction direction) {
             if (directionChangeCount.getValue() <= maxDirectionChange) {
-                if (!allowedDirection.equals(direction.getAllowedDirection())) {
+                if (allowedDirection != direction.getAllowedDirection()) {
                     // both vs increase or decrease
                     // increase vs decrease
                     // decrease vs increase
