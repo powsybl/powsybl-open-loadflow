@@ -17,6 +17,10 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.Range;
+import org.apache.commons.lang3.mutable.MutableObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,6 +31,11 @@ import java.util.stream.Collectors;
  */
 public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalPhaseControlOuterLoop.class);
+
+    private static final int MAX_DIRECTION_CHANGE = 2;
+    private static final int MAX_TAP_SHIFT = Integer.MAX_VALUE;
+
     @Override
     public String getType() {
         return "Incremental phase control";
@@ -34,7 +43,15 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
     @Override
     public void initialize(OuterLoopContext context) {
-        fixPhaseShifterNecessaryForConnectivity(context.getNetwork());
+        var contextData = new IncrementalContextData();
+        context.setData(contextData);
+
+        List<LfBranch> controllerBranches = getControllerBranches(context.getNetwork());
+        for (LfBranch controllerBranch : controllerBranches) {
+            contextData.getControllersContexts().put(controllerBranch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
+        }
+
+        fixPhaseShifterNecessaryForConnectivity(context.getNetwork(), controllerBranches);
     }
 
     static class SensitivityContext {
@@ -95,7 +112,9 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
+        final MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
+
+        var contextData = (IncrementalContextData) context.getData();
 
         LfNetwork network = context.getNetwork();
 
@@ -113,26 +132,45 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                                                         context.getAcLoadFlowContext().getJacobianMatrix());
 
         for (DiscretePhaseControl phaseControl : currentLimiterPhaseControls) {
-            LfBranch controller = phaseControl.getController();
-            double sensiA2I = sensitivityContext.calculateSensitivityFromA2I1(controller, phaseControl.getControlled());
-            double i1 = controller.getI1().eval();
+            LfBranch controllerBranch = phaseControl.getController();
+            LfBranch controlledBranch = phaseControl.getControlled();
+            double sensiA2I = sensitivityContext.calculateSensitivityFromA2I1(controllerBranch, controlledBranch);
+            double i1 = controllerBranch.getI1().eval();
             if (i1 > phaseControl.getTargetValue()) {
-                System.out.println(controller.getId());
-                double ib = PerUnit.ib(controller.getBus1().getNominalV());
-                System.out.println("i1=" + (i1 * ib));
-                System.out.println("targetValue=" + (phaseControl.getTargetValue() * ib));
+                var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+                double ib = PerUnit.ib(controllerBranch.getBus1().getNominalV());
                 double di = phaseControl.getTargetValue() - i1;
                 double da = Math.toRadians(di / sensiA2I);
-                System.out.println("di=" + (di * ib));
-                System.out.println("da=" + Math.toDegrees(da));
-                PiModel piModel = controller.getPiModel();
-                System.out.println("tap=" + piModel.getTapPosition());
-                piModel.updateTapPositionToReachNewA1(da, 100, AllowedDirection.BOTH);
-                System.out.println("tap=" + piModel.getTapPosition());
-                status = OuterLoopStatus.UNSTABLE;
+                LOGGER.trace("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {} ° is required",
+                        controlledBranch.getId(), i1 * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
+                PiModel piModel = controllerBranch.getPiModel();
+
+                int oldTapPosition = piModel.getTapPosition();
+                Range<Integer> tapPositionRange = piModel.getTapPositionRange();
+                piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresentOrElse(direction -> {
+                    controllerContext.updateAllowedDirection(direction);
+                    status.setValue(OuterLoopStatus.UNSTABLE);
+                }, () -> {
+                        // as we are above target value, we have to try to move at least to one tap position
+                        // even if current tap position is the closest one to the target value (but still above)
+                        if (controllerContext.getAllowedDirection() == AllowedDirection.DECREASE
+                                && piModel.getTapPosition() > tapPositionRange.getMinimum()) {
+                            piModel.setTapPosition(piModel.getTapPosition() - 1);
+                            status.setValue(OuterLoopStatus.UNSTABLE);
+                        } else if (controllerContext.getAllowedDirection() == AllowedDirection.INCREASE
+                                && piModel.getTapPosition() < tapPositionRange.getMaximum()) {
+                            piModel.setTapPosition(piModel.getTapPosition() + 1);
+                            status.setValue(OuterLoopStatus.UNSTABLE);
+                        }
+                    });
+
+                if (piModel.getTapPosition() != oldTapPosition) {
+                    LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
+                            oldTapPosition, piModel.getTapPosition(), tapPositionRange);
+                }
             }
         }
 
-        return status;
+        return status.getValue();
     }
 }

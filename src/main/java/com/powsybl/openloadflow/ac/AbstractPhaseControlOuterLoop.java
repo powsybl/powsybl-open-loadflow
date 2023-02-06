@@ -24,14 +24,16 @@ public abstract class AbstractPhaseControlOuterLoop implements OuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPhaseControlOuterLoop.class);
 
+    protected AbstractPhaseControlOuterLoop() {
+    }
+
     protected static List<LfBranch> getControllerBranches(LfNetwork network) {
         return network.getBranches().stream()
                 .filter(branch -> !branch.isDisabled() && branch.isPhaseController())
                 .collect(Collectors.toList());
     }
 
-    protected static void fixPhaseShifterNecessaryForConnectivity(LfNetwork network) {
-        List<LfBranch> controllerBranches = getControllerBranches(network);
+    protected static void fixPhaseShifterNecessaryForConnectivity(LfNetwork network, List<LfBranch> controllerBranches) {
         if (!controllerBranches.isEmpty()) {
             List<LfBranch> disabledBranches = network.getBranches().stream()
                     .filter(LfElement::isDisabled)

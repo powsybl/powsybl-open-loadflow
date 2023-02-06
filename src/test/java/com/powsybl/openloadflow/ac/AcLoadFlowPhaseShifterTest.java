@@ -497,7 +497,8 @@ class AcLoadFlowPhaseShifterTest {
 
         t2wt.getPhaseTapChanger().setRegulating(true);
         result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
+        assertTrue(result.isOk());
+        assertCurrentEquals(48.482, t2wt.getTerminal1());
     }
 
     @Test

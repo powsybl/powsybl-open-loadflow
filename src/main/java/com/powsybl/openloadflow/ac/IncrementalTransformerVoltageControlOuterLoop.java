@@ -62,19 +62,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         // done into the equation system
         for (LfBranch branch : getControllerBranches(context.getNetwork())) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
-            contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext());
-        }
-    }
-
-    private static void updateAllowedDirection(IncrementalContextData.ControllerContext controllerContext, Direction direction) {
-        if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
-            if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
-                // both vs increase or decrease
-                // increase vs decrease
-                // decrease vs increase
-                controllerContext.getDirectionChangeCount().increment();
-            }
-            controllerContext.setAllowedDirection(direction.getAllowedDirection());
+            contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
     }
 
@@ -123,7 +111,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         int previousTapPosition = piModel.getTapPosition();
         double deltaR1 = diffV / sensitivity;
         return piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).map(direction -> {
-            updateAllowedDirection(controllerContext, direction);
+            controllerContext.updateAllowedDirection(direction);
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
                     previousTapPosition, piModel.getTapPosition(), tapPositionRange);
@@ -159,7 +147,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     double previousR1 = piModel.getR1();
                     double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
                     piModel.updateTapPositionToReachNewR1(deltaR1, 1, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                        updateAllowedDirection(controllerContext, direction);
+                        controllerContext.updateAllowedDirection(direction);
                         remainingDiffV.add(-(piModel.getR1() - previousR1) * sensitivity);
                         hasChanged.setValue(true);
                         adjusted.setValue(true);

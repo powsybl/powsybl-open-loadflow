@@ -41,7 +41,7 @@ public class PhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
                 .collect(Collectors.toList())) {
             controllerBranch.setPhaseControlEnabled(true);
         }
-        fixPhaseShifterNecessaryForConnectivity(context.getNetwork());
+        fixPhaseShifterNecessaryForConnectivity(context.getNetwork(), controllerBranches);
     }
 
     @Override
