@@ -252,6 +252,22 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
+    public Optional<Direction> probeDirectionToShiftA1(double deltaA1) {
+        if (deltaA1 == 0) {
+            throw new IllegalArgumentException("DeltaA1 should not be zero");
+        }
+        if (tapPositionIndex > 0
+                && Math.signum(deltaA1) == Math.signum(models.get(tapPositionIndex - 1).getA1() - models.get(tapPositionIndex).getA1())) {
+            return Optional.of(Direction.DECREASE);
+        }
+        if (tapPositionIndex < models.size() - 1
+                && Math.signum(deltaA1) == Math.signum(models.get(tapPositionIndex + 1).getA1() - models.get(tapPositionIndex).getA1())) {
+            return Optional.of(Direction.INCREASE);
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public boolean setMinZ(double minZ, boolean dc) {
         boolean done = false;
         for (PiModel model : models) {

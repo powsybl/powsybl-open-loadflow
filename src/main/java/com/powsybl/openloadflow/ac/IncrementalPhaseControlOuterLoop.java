@@ -141,7 +141,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                 double ib = PerUnit.ib(controllerBranch.getBus1().getNominalV());
                 double di = phaseControl.getTargetValue() - i1;
                 double da = Math.toRadians(di / sensiA2I);
-                LOGGER.trace("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {} ° is required",
+                LOGGER.trace("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
                         controlledBranch.getId(), i1 * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
                 PiModel piModel = controllerBranch.getPiModel();
 
@@ -153,14 +153,26 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                 }, () -> {
                         // as we are above target value, we have to try to move at least to one tap position
                         // even if current tap position is the closest one to the target value (but still above)
-                        if (controllerContext.getAllowedDirection() == AllowedDirection.DECREASE
-                                && piModel.getTapPosition() > tapPositionRange.getMinimum()) {
-                            piModel.setTapPosition(piModel.getTapPosition() - 1);
-                            status.setValue(OuterLoopStatus.UNSTABLE);
-                        } else if (controllerContext.getAllowedDirection() == AllowedDirection.INCREASE
-                                && piModel.getTapPosition() < tapPositionRange.getMaximum()) {
-                            piModel.setTapPosition(piModel.getTapPosition() + 1);
-                            status.setValue(OuterLoopStatus.UNSTABLE);
+                        switch (controllerContext.getAllowedDirection()) {
+                            case INCREASE:
+                                if (piModel.getTapPosition() < tapPositionRange.getMaximum()) {
+                                    piModel.setTapPosition(piModel.getTapPosition() + 1);
+                                    status.setValue(OuterLoopStatus.UNSTABLE);
+                                }
+                                break;
+                            case DECREASE:
+                                if (piModel.getTapPosition() > tapPositionRange.getMinimum()) {
+                                    piModel.setTapPosition(piModel.getTapPosition() - 1);
+                                    status.setValue(OuterLoopStatus.UNSTABLE);
+                                }
+                                break;
+                            case BOTH:
+                                // first tap change, we need to probe the direction
+                                piModel.probeDirectionToShiftA1(da).ifPresent(direction -> {
+                                    piModel.setTapPosition(piModel.getTapPosition() + (direction == Direction.INCREASE ? 1 : -1));
+                                    status.setValue(OuterLoopStatus.UNSTABLE);
+                                });
+                                break;
                         }
                     });
 

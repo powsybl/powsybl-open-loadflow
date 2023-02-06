@@ -155,6 +155,11 @@ public class SimplePiModel implements PiModel {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 
+    @Override
+    public Optional<Direction> probeDirectionToShiftA1(double deltaA1) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
     private void rescaleZ(double z) {
         double ksi = getKsi();
         r = z * FastMath.sin(ksi);
