@@ -126,6 +126,8 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         LfNetwork mainNetwork = lfNetworks.get(0);
         LfBus lfStarBus = mainNetwork.getBusById("3WT_BUS0");
         assertTrue(lfStarBus instanceof LfStarBus);
+        assertTrue(lfStarBus.getCountry().isPresent());
+        assertEquals(Country.FR, lfStarBus.getCountry().get());
         assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
     }
 

@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -15,6 +16,7 @@ import com.powsybl.security.results.BusResult;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -34,8 +36,10 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final boolean breakers;
 
+    private final Country country;
+
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
-                        boolean participating) {
+                        boolean participating, Country country) {
         super(network, v, angle, parameters.isDistributedOnConformLoad());
         this.busRef = new Ref<>(bus);
         nominalV = bus.getVoltageLevel().getNominalV();
@@ -43,12 +47,13 @@ public class LfBusImpl extends AbstractLfBus {
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
         this.breakers = parameters.isBreakers();
+        this.country = country;
     }
 
-    public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {
+    public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating, Country country) {
         Objects.requireNonNull(bus);
         Objects.requireNonNull(parameters);
-        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), parameters, participating);
+        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), parameters, participating, country);
     }
 
     private Bus getBus() {
@@ -112,5 +117,10 @@ public class LfBusImpl extends AbstractLfBus {
             return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
                     .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, getAngle())).collect(Collectors.toList());
         }
+    }
+
+    @Override
+    public Optional<Country> getCountry() {
+        return Optional.ofNullable(country);
     }
 }

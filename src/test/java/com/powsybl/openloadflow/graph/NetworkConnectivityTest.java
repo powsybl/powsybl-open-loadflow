@@ -51,7 +51,7 @@ class NetworkConnectivityTest {
     }
 
     @Test
-    void testReaddEdge() {
+    void testReadEdge() {
         // Testing cutting an edge then adding it back
         testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum), true);
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);

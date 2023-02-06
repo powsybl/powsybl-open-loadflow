@@ -12,6 +12,7 @@ import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.commons.parameters.ParameterType;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -134,6 +135,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String SECONDARY_VOLTAGE_CONTROL_PARAM_NAME = "secondaryVoltageControl";
 
+    public static final String COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME = "countriesToFilterSlackBus";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -167,7 +170,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT),
         new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, Collections.emptyList(), ParameterScope.TECHNICAL),
         new Parameter(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT),
-        new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)
+        new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE),
+        new Parameter(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME, ParameterType.STRING_LIST, "filter countries on which the slack bus is selected", LfNetworkParameters.COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -256,6 +260,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
+    private Set<Country> countriesToFilterSlackBus = new HashSet<>(LfNetworkParameters.COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE);
+
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -272,6 +278,22 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public List<String> getSlackBusesIds() {
         return slackBusesIds;
+    }
+
+    public OpenLoadFlowParameters setCountriesStrToFilterSlackBus(List<String> countries) {
+        return this.setCountriesToFilterSlackBus(countries
+                .stream()
+                .map(Country::valueOf)
+                .collect(Collectors.toSet()));
+    }
+
+    public Set<Country> getCountriesToFilterSlackBus() {
+        return countriesToFilterSlackBus;
+    }
+
+    public OpenLoadFlowParameters setCountriesToFilterSlackBus(Set<Country> countries) {
+        this.countriesToFilterSlackBus = countries;
+        return this;
     }
 
     public OpenLoadFlowParameters setSlackBusesIds(List<String> slackBusesIds) {
@@ -575,7 +597,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT))
                 .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE))
                 .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT))
-                .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)));
+                .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
+                .setCountriesStrToFilterSlackBus(config.getStringListProperty(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME, Collections.emptyList())));
         return parameters;
     }
 
@@ -642,6 +665,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setSecondaryVoltageControl(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME))
+                .ifPresent(prop -> this.setCountriesStrToFilterSlackBus(Arrays.asList(prop.split("[:,]"))));
         return this;
     }
 
@@ -677,6 +702,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", debugDir=" + debugDir +
                 ", incrementalTransformerVoltageControlOuterLoopMaxTapShift=" + incrementalTransformerVoltageControlOuterLoopMaxTapShift +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
+                ", countriesStrToFilterSlackBus=" + countriesToFilterSlackBus +
                 ')';
     }
 
@@ -713,6 +739,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
         LOGGER.info("DC power factor: {}", parametersExt.getDcPowerFactor());
         LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
+        LOGGER.info("Countries to filter slack bus : {}", parametersExt.getCountriesToFilterSlackBus());
     }
 
     /**
@@ -750,6 +777,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
         LOGGER.info("Incremental transformer voltage control outer loop max tap shift: {}", parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
         LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
+        LOGGER.info("Countries to filter slack bus : {}", parametersExt.getCountriesToFilterSlackBus());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -816,7 +844,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSvcVoltageMonitoring(parametersExt.isSvcVoltageMonitoring())
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
                 .setDebugDir(parametersExt.getDebugDir())
-                .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl());
+                .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl())
+                .setCountriesToFilterSlackBus(parametersExt.getCountriesToFilterSlackBus());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -837,7 +866,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
+                parametersExt.getPlausibleActivePowerLimit(), parametersExt.getCountriesToFilterSlackBus());
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
@@ -876,7 +906,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static DcLoadFlowParameters createDcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
+                parametersExt.getPlausibleActivePowerLimit(), parametersExt.getCountriesToFilterSlackBus());
 
         var networkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
@@ -902,7 +933,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX) // not useful for DC.
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(false)
-                .setMaxSlackBusCount(1);
+                .setMaxSlackBusCount(1)
+                .setCountriesToFilterSlackBus(parametersExt.getCountriesToFilterSlackBus());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
@@ -978,7 +1010,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxSlackBusCount() == extension2.getMaxSlackBusCount() &&
                 Objects.equals(extension1.getDebugDir(), extension2.getDebugDir()) &&
                 extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() &&
-                extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl();
+                extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
+                extension1.getCountriesToFilterSlackBus().equals(extension2.getCountriesToFilterSlackBus());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1030,7 +1063,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxSlackBusCount(extension.getMaxSlackBusCount())
                     .setDebugDir(extension.getDebugDir())
                     .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift())
-                    .setSecondaryVoltageControl(extension.isSecondaryVoltageControl());
+                    .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
+                    .setCountriesToFilterSlackBus(extension.getCountriesToFilterSlackBus());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

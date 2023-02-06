@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.math.matrix.DenseMatrixFactory;
@@ -61,31 +60,31 @@ class OpenLoadFlowProviderTest {
                      acParameters.toString());
     }
 
-    private static VoltageInitializer getExtendedVoltageInitializer(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        LfNetworkParameters networkParameters = OpenLoadFlowParameters.getNetworkParameters(parameters, parametersExt, new FirstSlackBusSelector(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false);
+    private static VoltageInitializer getExtendedVoltageInitializer(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        LfNetworkParameters networkParameters = OpenLoadFlowParameters.getNetworkParameters(parameters, parametersExt,
+                new FirstSlackBusSelector(Collections.emptySet()), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false);
         return OpenLoadFlowParameters.getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, new DenseMatrixFactory());
     }
 
     @Test
     void testGetExtendedVoltageInitializer() {
-        Network network = EurostagTutorialExample1Factory.create();
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof UniformValueVoltageInitializer);
+        assertTrue(getExtendedVoltageInitializer(parameters, parametersExt) instanceof UniformValueVoltageInitializer);
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof PreviousValueVoltageInitializer);
+        assertTrue(getExtendedVoltageInitializer(parameters, parametersExt) instanceof PreviousValueVoltageInitializer);
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof DcValueVoltageInitializer);
+        assertTrue(getExtendedVoltageInitializer(parameters, parametersExt) instanceof DcValueVoltageInitializer);
         parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.VOLTAGE_MAGNITUDE);
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof VoltageMagnitudeInitializer);
+        assertTrue(getExtendedVoltageInitializer(parameters, parametersExt) instanceof VoltageMagnitudeInitializer);
         parametersExt.setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE);
-        assertTrue(getExtendedVoltageInitializer(network, parameters, parametersExt) instanceof FullVoltageInitializer);
+        assertTrue(getExtendedVoltageInitializer(parameters, parametersExt) instanceof FullVoltageInitializer);
     }
 
     @Test
     void specificParametersTest() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
-        assertEquals(29, provider.getSpecificParameters().size());
+        assertEquals(30, provider.getSpecificParameters().size());
         LoadFlowParameters parameters = new LoadFlowParameters();
 
         provider.loadSpecificParameters(Collections.emptyMap())

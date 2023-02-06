@@ -6,7 +6,12 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Country;
+
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -14,8 +19,21 @@ import java.util.stream.Collectors;
  */
 public class FirstSlackBusSelector implements SlackBusSelector {
 
+    private final Set<Country> countriesToSelectSlackBus;
+
+    public FirstSlackBusSelector() {
+        this(Collections.emptySet());
+    }
+
+    public FirstSlackBusSelector(Set<Country> countriesToSelectSlackBus) {
+        this.countriesToSelectSlackBus = Objects.requireNonNull(countriesToSelectSlackBus);
+    }
+
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
-        return new SelectedSlackBus(buses.stream().limit(limit).collect(Collectors.toList()), "First bus");
+        return new SelectedSlackBus(buses.stream()
+                .filter(bus -> this.countriesToSelectSlackBus.isEmpty() || bus.getCountry().isEmpty() ||
+                        this.countriesToSelectSlackBus.contains(bus.getCountry().get()))
+                .limit(limit).collect(Collectors.toList()), "First bus");
     }
 }

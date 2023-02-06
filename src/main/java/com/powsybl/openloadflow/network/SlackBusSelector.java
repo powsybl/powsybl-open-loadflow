@@ -6,8 +6,12 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Country;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -16,18 +20,25 @@ public interface SlackBusSelector {
 
     SelectedSlackBus select(List<LfBus> buses, int limit);
 
-    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds, double plausibleActivePowerLimit) {
+    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds,
+                                     double plausibleActivePowerLimit) {
+        return fromMode(mode, slackBusesIds, plausibleActivePowerLimit, Collections.emptySet());
+    }
+
+    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds,
+                                     double plausibleActivePowerLimit,
+                                     Set<Country> countriesToSelectSlackBus) {
         Objects.requireNonNull(mode);
         Objects.requireNonNull(slackBusesIds);
         switch (mode) {
             case FIRST:
-                return new FirstSlackBusSelector();
+                return new FirstSlackBusSelector(countriesToSelectSlackBus);
             case MOST_MESHED:
-                return new MostMeshedSlackBusSelector();
+                return new MostMeshedSlackBusSelector(countriesToSelectSlackBus);
             case NAME:
                 return new NameSlackBusSelector(slackBusesIds);
             case LARGEST_GENERATOR:
-                return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit);
+                return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit, countriesToSelectSlackBus);
             default:
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
         }

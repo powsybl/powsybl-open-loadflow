@@ -40,6 +40,7 @@ class LfBusImplTest {
         Network network = Network.create("svc", "test");
         Substation s1 = network.newSubstation()
                 .setId("S1")
+                .setCountry(Country.FR)
                 .add();
         VoltageLevel vl1 = s1.newVoltageLevel()
                 .setId("vl1")
@@ -103,7 +104,7 @@ class LfBusImplTest {
                 .setQ0(100)
                 .setP0(0)
                 .add();
-        Line line = network.newLine()
+        network.newLine()
                 .setId("line")
                 .setVoltageLevel1("vl1")
                 .setVoltageLevel2("vl2")
@@ -133,7 +134,7 @@ class LfBusImplTest {
 
         LfNetworkParameters parameters = new LfNetworkParameters()
                 .setBreakers(true);
-        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, parameters, true);
+        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, parameters, true, null);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
         lfBus.addStaticVarCompensator(svc1, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc2, parameters, lfNetworkLoadingReport);
@@ -223,5 +224,13 @@ class LfBusImplTest {
         double qToDispatch = -21;
         Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, qToDispatch),
                 "the generator list to dispatch Q can not be empty");
+    }
+
+    @Test
+    void testBusHasCountryAttributeAfterLoading() {
+        Assertions.assertTrue(lfNetwork.getBusById("vl1_0").getCountry().isPresent());
+        Assertions.assertTrue(lfNetwork.getBusById("vl2_0").getCountry().isPresent());
+        Assertions.assertEquals(Country.FR, lfNetwork.getBusById("vl1_0").getCountry().get());
+        Assertions.assertEquals(Country.FR, lfNetwork.getBusById("vl2_0").getCountry().get());
     }
 }

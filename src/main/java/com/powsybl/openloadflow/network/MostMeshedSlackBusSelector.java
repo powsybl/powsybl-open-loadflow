@@ -6,16 +6,26 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.powsybl.iidm.network.Country;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class MostMeshedSlackBusSelector implements SlackBusSelector {
+
+    private final Set<Country> countriesToSelectSlackBus;
+
+    public MostMeshedSlackBusSelector() {
+        this(Collections.emptySet());
+    }
+
+    public MostMeshedSlackBusSelector(Set<Country> countriesToSelectSlackBus) {
+        this.countriesToSelectSlackBus = Objects.requireNonNull(countriesToSelectSlackBus);
+    }
 
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
@@ -28,11 +38,13 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
         // select non-fictitious and most meshed bus among buses with the highest nominal voltage
         List<LfBus> slackBuses = buses.stream()
-            .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
-            .sorted(Comparator.comparingInt((LfBus bus) -> bus.getBranches().size())
-                    .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
-            .limit(limit)
-            .collect(Collectors.toList());
+                .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
+                .filter(bus -> this.countriesToSelectSlackBus.isEmpty() || bus.getCountry().isEmpty() ||
+                        this.countriesToSelectSlackBus.contains(bus.getCountry().get()))
+                .sorted(Comparator.comparingInt((LfBus bus) -> bus.getBranches().size())
+                        .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
+                .limit(limit)
+                .collect(Collectors.toList());
 
         return new SelectedSlackBus(slackBuses, "Most meshed bus");
     }

@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -40,7 +41,9 @@ public class LfNetworkParameters {
 
     public static final boolean SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE = false;
 
-    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+    public static final List<Country> COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE = Collections.emptyList();
+
+    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(Collections.emptySet());
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
@@ -93,6 +96,17 @@ public class LfNetworkParameters {
     private String debugDir = DEBUG_DIR_DEFAULT_VALUE;
 
     private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
+
+    private Set<Country> countriesToFilterSlackBus = Collections.emptySet();
+
+    public Set<Country> getCountriesToFilterSlackBus() {
+        return countriesToFilterSlackBus;
+    }
+
+    public LfNetworkParameters setCountriesToFilterSlackBus(Set<Country> countries) {
+        this.countriesToFilterSlackBus = countries;
+        return this;
+    }
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
