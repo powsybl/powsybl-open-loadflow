@@ -565,14 +565,19 @@ class AcLoadFlowPhaseShifterTest {
                                                             controllerBranches,
                                                             lfContext.getEquationSystem(),
                                                             lfContext.getJacobianMatrix());
-            double sensi = sensitivityContext.calculateSensitivityFromA2I1(ps1, ps1);
             double da10 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(0).getAlpha();
             double da12 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(2).getAlpha();
             double ib = PerUnit.ib(ps1.getBus1().getNominalV());
-            double di1t10p = sensi * da10 * ib;
-            double di1t12p = sensi * da12 * ib;
+            double sensi1 = sensitivityContext.calculateSensitivityFromA2I1(ps1, ps1);
+            double di1t10p = sensi1 * da10 * ib;
+            double di1t12p = sensi1 * da12 * ib;
             assertEquals(43.007011829925496, di1t10p, 0d);
             assertEquals(-43.007011829925496, di1t12p, 0d);
+            double sensi2 = sensitivityContext.calculateSensitivityFromA2I2(ps1, ps1);
+            double di2t10p = sensi2 * da10 * ib;
+            double di2t12p = sensi2 * da12 * ib;
+            assertEquals(43.007011829925496, di2t10p, 0d);
+            assertEquals(-43.007011829925496, di2t12p, 0d);
         }
     }
 }

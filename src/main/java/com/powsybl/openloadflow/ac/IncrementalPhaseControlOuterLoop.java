@@ -70,6 +70,11 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getI1();
         }
 
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<AcVariableType, AcEquationType> getI2(LfBranch controlledBranch) {
+            return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getI2();
+        }
+
         double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch, EquationTerm<AcVariableType, AcEquationType> i) {
             double sensi = i.calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
             if (controllerBranch == controlledBranch) {
@@ -81,6 +86,10 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
         double calculateSensitivityFromA2I1(LfBranch controllerBranch, LfBranch controlledBranch) {
             return calculateSensitivityFromA2I(controllerBranch, controlledBranch, getI1(controlledBranch));
+        }
+
+        double calculateSensitivityFromA2I2(LfBranch controllerBranch, LfBranch controlledBranch) {
+            return calculateSensitivityFromA2I(controllerBranch, controlledBranch, getI2(controlledBranch));
         }
     }
 
@@ -112,8 +121,8 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                 double ib = PerUnit.ib(controller.getBus1().getNominalV());
                 System.out.println("i1=" + (i1 * ib));
                 System.out.println("targetValue=" + (phaseControl.getTargetValue() * ib));
-                double di = i1 - phaseControl.getTargetValue();
-                double da = Math.toRadians(di / -sensiA2I);
+                double di = phaseControl.getTargetValue() - i1;
+                double da = Math.toRadians(di / sensiA2I);
                 System.out.println("di=" + (di * ib));
                 System.out.println("da=" + Math.toDegrees(da));
                 PiModel piModel = controller.getPiModel();
