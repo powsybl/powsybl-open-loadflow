@@ -177,7 +177,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                     });
 
                 if (piModel.getTapPosition() != oldTapPosition) {
-                    LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
+                    LOGGER.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
                             oldTapPosition, piModel.getTapPosition(), tapPositionRange);
                 }
             }
