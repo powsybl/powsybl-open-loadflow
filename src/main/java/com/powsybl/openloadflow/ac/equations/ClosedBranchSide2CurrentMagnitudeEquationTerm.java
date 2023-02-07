@@ -124,7 +124,7 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
     }
 
     private static double di2da1(double y, double ksi, double g2, double b2, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return -di2dph1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2);
+        return di2dph1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2);
     }
 
     @Override
