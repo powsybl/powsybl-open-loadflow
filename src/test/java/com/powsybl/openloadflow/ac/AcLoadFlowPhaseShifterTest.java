@@ -375,8 +375,6 @@ class AcLoadFlowPhaseShifterTest {
                 .setLoadTapChangingCapabilities(false)
                 .setTapPosition(0)
                 .beginStep()
-                    .setR(0)
-                    .setX(0)
                     .setRho(0.9)
                 .endStep()
                 .add();
