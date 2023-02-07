@@ -936,33 +936,21 @@ class OpenSecurityAnalysisTest {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
 
         network.newLine().setId("L3")
-                .setVoltageLevel1("VL1")
                 .setConnectableBus1("B1")
                 .setBus1("B1")
-                .setVoltageLevel2("VL2")
                 .setConnectableBus2("B2")
                 .setBus2("B2")
                 .setR(4.0)
                 .setX(200.0)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
                 .add();
 
         network.newLine().setId("L4")
-                .setVoltageLevel1("VL3")
                 .setConnectableBus1("B3")
                 .setBus1("B3")
-                .setVoltageLevel2("VL2")
                 .setConnectableBus2("B2")
                 .setBus2("B2")
                 .setR(4.0)
                 .setX(200.0)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
                 .add();
 
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");

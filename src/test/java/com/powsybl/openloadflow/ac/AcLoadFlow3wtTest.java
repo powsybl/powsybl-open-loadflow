@@ -79,8 +79,6 @@ class AcLoadFlow3wtTest {
                 .beginStep()
                     .setR(5)
                     .setX(10)
-                    .setG(0)
-                    .setB(0)
                     .setRho(0.9)
                 .endStep()
             .add();
@@ -97,29 +95,20 @@ class AcLoadFlow3wtTest {
         PhaseTapChanger ptc = twt.getLeg2().newPhaseTapChanger()
                 .setTapPosition(0)
                 .beginStep()
-                .setR(0)
-                .setX(0)
-                .setG(0)
-                .setB(0)
-                .setRho(1)
                 .setAlpha(0)
                 .endStep()
                 .add();
         // create a transformer between bus 1 / bus2 in parallel of leg1 / leg2
         TwoWindingsTransformer twtParallel = s.newTwoWindingsTransformer()
                 .setId("2wt")
-                .setVoltageLevel1("vl1")
                 .setBus1("b1")
                 .setConnectableBus1("b1")
-                .setVoltageLevel2("vl2")
                 .setBus2("b2")
                 .setConnectableBus2("b2")
                 .setRatedU1(390)
                 .setRatedU2(220)
                 .setR(4)
                 .setX(80)
-                .setG(0)
-                .setB(0)
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());

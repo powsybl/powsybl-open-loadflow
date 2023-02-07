@@ -273,18 +273,12 @@ class AcLoadFlowPhaseShifterTest {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
         network.newLine()
                 .setId("L3")
-                .setVoltageLevel1("VL1")
                 .setConnectableBus1("B1")
                 .setBus1("B1")
-                .setVoltageLevel2("VL2")
                 .setConnectableBus2("B2")
                 .setBus2("B2")
                 .setR(4.0)
                 .setX(10.0)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
                 .add();
         line1.getTerminal1().disconnect();
         parameters.setPhaseShifterRegulationOn(true);
@@ -393,10 +387,6 @@ class AcLoadFlowPhaseShifterTest {
                 .setLoadTapChangingCapabilities(false)
                 .setTapPosition(0)
                 .beginStep()
-                    .setR(0)
-                    .setX(0)
-                    .setG(0)
-                    .setB(0)
                     .setRho(0.9)
                 .endStep()
                 .add();
