@@ -31,19 +31,23 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double droop;
 
+    private double participationFactor;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report,
                             NominalVoltageMapping nominalVoltageMapping) {
         super(network, generator.getTargetP());
         this.generatorRef = new Ref<>(generator);
         participating = true;
         droop = DEFAULT_DROOP;
-        // get participation factor from extension
+        // get participation factor and droop from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            boolean withDroop = !Double.isNaN(activePowerControl.getDroop()) && activePowerControl.getDroop() != 0;
-            participating = activePowerControl.isParticipate() && withDroop;
-            if (withDroop) {
+            participating = activePowerControl.isParticipate();
+            if (!Double.isNaN(activePowerControl.getDroop())) {
                 droop = activePowerControl.getDroop();
+            }
+            if (activePowerControl.getParticipationFactor() > 0) {
+                participationFactor = activePowerControl.getParticipationFactor();
             }
         }
 
@@ -127,6 +131,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public double getDroop() {
         return droop;
+    }
+
+    @Override
+    public double getParticipationFactor() {
+        return participationFactor;
     }
 
     @Override

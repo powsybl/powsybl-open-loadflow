@@ -145,6 +145,8 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
             return di1dph2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(a1Var)) {
             return di1da1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+        } else if (variable.equals(r1Var)) {
+            throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

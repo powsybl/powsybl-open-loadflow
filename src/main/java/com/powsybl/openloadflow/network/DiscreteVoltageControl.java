@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.Optional;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -14,4 +16,8 @@ public interface DiscreteVoltageControl {
     double getTargetValue();
 
     LfBus getControlled();
+
+    Optional<Double> getTargetDeadband();
+
+    void setTargetDeadband(Double targetDeadband);
 }

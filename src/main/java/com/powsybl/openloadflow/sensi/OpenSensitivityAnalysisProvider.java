@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
@@ -37,6 +36,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.NominalVoltageMapping;
 import com.powsybl.openloadflow.network.SimpleNominalVoltageMapping;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
@@ -55,13 +55,13 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 @AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
-
-    public static final String DATE_TIME_FORMAT = "yyyy-dd-M--HH-mm-ss-SSS";
 
     private final DcSensitivityAnalysis dcSensitivityAnalysis;
 
@@ -171,9 +171,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
             // debugging
             if (sensitivityAnalysisParametersExt.getDebugDir() != null) {
-                Path debugDir = PlatformConfig.defaultConfig().getConfigDir()
-                        .map(dir -> dir.getFileSystem().getPath(sensitivityAnalysisParametersExt.getDebugDir()))
-                        .orElseThrow(() -> new PowsyblException("Cannot write to debug directory as no configuration directory has been defined"));
+                Path debugDir = DebugUtil.getDebugDir(sensitivityAnalysisParametersExt.getDebugDir());
                 String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
 
                 NetworkXml.write(network, debugDir.resolve("network-" + dateStr + ".xiidm"));
