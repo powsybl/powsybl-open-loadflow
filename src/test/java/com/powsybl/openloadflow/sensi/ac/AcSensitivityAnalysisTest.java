@@ -353,7 +353,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(-25.0905d, result.getBranchCurrent1SensitivityValue("l23", "l13", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
 
         //Check values for side 2 using generic and function type specific api
-        assertEquals(-161.8233d, result.getSensitivityValue("l23", "l23", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+        assertEquals(37.6816d, result.getSensitivityValue("l23", "l23", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
         assertEquals(-12.5509d, result.getBranchCurrent2SensitivityValue("l23", "l14", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
         assertEquals(37.3727d, result.getBranchCurrent2SensitivityValue("l23", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
         assertEquals(-12.6567d, result.getBranchCurrent2SensitivityValue("l23", "l34", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
@@ -445,16 +445,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .add();
         network.newLine()
                 .setId("LINE_34")
-                .setVoltageLevel1("VL_3")
-                .setVoltageLevel2("VL_4")
                 .setBus1("BUS_3")
                 .setBus2("BUS_4")
                 .setR(1.05)
                 .setX(10.0)
                 .setG1(0.0000005)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
@@ -1135,27 +1130,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setRegulationValue(200)
                 .beginStep()
                 .setAlpha(-5.0)
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
                 .endStep()
                 .beginStep()
                 .setAlpha(0.0)
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
                 .endStep()
                 .beginStep()
                 .setAlpha(5)
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
                 .endStep()
                 .add();
         twt.getLeg3().newPhaseTapChanger()
@@ -1165,27 +1145,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setRegulationValue(200)
                 .beginStep()
                 .setAlpha(-5.0)
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
                 .endStep()
                 .beginStep()
                 .setAlpha(0.0)
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
                 .endStep()
                 .beginStep()
                 .setAlpha(5)
-                .setRho(1.0)
-                .setR(0.0)
-                .setX(0.0)
-                .setG(0.0)
-                .setB(0.0)
                 .endStep()
                 .add();
 

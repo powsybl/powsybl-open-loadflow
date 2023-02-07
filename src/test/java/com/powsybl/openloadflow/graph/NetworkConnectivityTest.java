@@ -97,7 +97,7 @@ class NetworkConnectivityTest {
         assertEquals(2, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
         assertEquals(3, connectivity.getNbConnectedComponents());
 
-        AssertionError e = assertThrows(AssertionError.class, () -> connectivity.getComponentNumber(null));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> connectivity.getComponentNumber(null));
         assertEquals("given vertex null is not in the graph", e.getMessage());
     }
 
@@ -151,7 +151,7 @@ class NetworkConnectivityTest {
         assertEquals(createVerticesSet("b4_vl_0", "b5_vl_0", "b6_vl_0", "b7_vl_0", "b1_vl_0", "b2_vl_0", "b3_vl_0"),
             connectivity.getNonConnectedVertices(lfNetwork.getBusById("b10_vl_0")));
 
-        AssertionError e = assertThrows(AssertionError.class, () -> connectivity.getNonConnectedVertices(null));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> connectivity.getNonConnectedVertices(null));
         assertEquals("given vertex null is not in the graph", e.getMessage());
     }
 
@@ -166,7 +166,7 @@ class NetworkConnectivityTest {
         assertEquals(createVerticesSet("b4_vl_0", "b5_vl_0", "b8_vl_0", "b9_vl_0", "b10_vl_0"),
             connectivity.getConnectedComponent(lfNetwork.getBusById("b10_vl_0")));
 
-        AssertionError e = assertThrows(AssertionError.class, () -> connectivity.getConnectedComponent(null));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> connectivity.getConnectedComponent(null));
         assertEquals("given vertex null is not in the graph", e.getMessage());
     }
 
