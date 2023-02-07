@@ -121,8 +121,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr2")
@@ -136,8 +134,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(398)
                 .setR(1)
                 .setX(36)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr3")
@@ -151,8 +147,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(397)
                 .setR(2)
                 .setX(50)
-                .setG(0)
-                .setB(0)
                 .add();
 
         return network;
@@ -255,8 +249,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr2")
@@ -270,8 +262,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr3")
@@ -285,8 +275,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
 
         return network;
@@ -367,9 +355,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setR(1.05)
                 .setX(10.0)
                 .setG1(0.0000005)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         return network;
@@ -690,8 +675,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .newLeg1()
                 .setR(2.0)
                 .setX(10.0)
-                .setG(0.0)
-                .setB(0.0)
                 .setRatedU(130.0)
                 .setVoltageLevel("VL_2")
                 .setConnectableBus("BUS_2")
@@ -700,8 +683,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .newLeg2()
                 .setR(2.0)
                 .setX(10.0)
-                .setG(0.0)
-                .setB(0.0)
                 .setRatedU(30.0)
                 .setVoltageLevel("VL_3")
                 .setConnectableBus("BUS_3")
@@ -710,8 +691,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .newLeg3()
                 .setR(2.0)
                 .setX(10.0)
-                .setG(0.0)
-                .setB(0.0)
                 .setRatedU(10.0)
                 .setVoltageLevel("VL_4")
                 .setConnectableBus("BUS_4")
@@ -937,8 +916,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr2")
@@ -952,8 +929,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr3")
@@ -967,8 +942,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
 
         return network;

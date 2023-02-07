@@ -140,10 +140,6 @@ class AcLoadFlowBoundaryTest {
                 .setBus2("BUS_3")
                 .setR(0.0)
                 .setX(100)
-                .setG1(0.)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

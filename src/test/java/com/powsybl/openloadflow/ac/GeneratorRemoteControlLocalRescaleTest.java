@@ -84,8 +84,6 @@ class GeneratorRemoteControlLocalRescaleTest {
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));

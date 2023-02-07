@@ -96,8 +96,6 @@ class AcloadFlowReactiveLimitsTest {
                 .setRatedU2(400.0)
                 .setR(0.24 / 1800 * zb380)
                 .setX(Math.sqrt(10 * 10 - 0.24 * 0.24) / 1800 * zb380)
-                .setG(0.0)
-                .setB(0.0)
                 .add();
 
         // fix active power balance

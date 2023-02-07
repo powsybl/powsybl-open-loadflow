@@ -96,8 +96,6 @@ public class T3wtFactory extends AbstractLoadFlowNetworkFactory {
             .setRatedU(380)
             .setR(0.08)
             .setX(47.3)
-            .setG(0)
-            .setB(0)
             .add()
             .newLeg2()
             .setVoltageLevel("vl2")

@@ -269,10 +269,6 @@ class AcLoadFlowPhaseShifterTest {
                 .setBus2("B2")
                 .setR(4.0)
                 .setX(10.0)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
                 .add();
         line1.getTerminal1().disconnect();
         parameters.setPhaseShifterRegulationOn(true);
@@ -383,8 +379,6 @@ class AcLoadFlowPhaseShifterTest {
                 .beginStep()
                     .setR(0)
                     .setX(0)
-                    .setG(0)
-                    .setB(0)
                     .setRho(0.9)
                 .endStep()
                 .add();

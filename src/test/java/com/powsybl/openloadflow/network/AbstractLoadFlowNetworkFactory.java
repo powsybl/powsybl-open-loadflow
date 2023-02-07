@@ -111,10 +111,6 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setConnectableBus2(b2.getId())
                 .setR(0)
                 .setX(x)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
     }
 
@@ -140,8 +136,6 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setRatedU2(rho)
                 .setR(0)
                 .setX(x)
-                .setG(0)
-                .setB(0)
                 .add();
     }
 
@@ -157,8 +151,6 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setRatedU(rho1)
             .setR(0)
             .setX(x1)
-            .setG(0)
-            .setB(0)
             .add()
             .newLeg2()
             .setVoltageLevel(b2.getVoltageLevel().getId())
@@ -167,8 +159,6 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setRatedU(rho2)
             .setR(0)
             .setX(x2)
-            .setG(0)
-            .setB(0)
             .add()
             .newLeg3()
             .setVoltageLevel(b3.getVoltageLevel().getId())
@@ -177,8 +167,6 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setRatedU(rho3)
             .setR(0)
             .setX(x3)
-            .setG(0)
-            .setB(0)
             .add()
             .add();
     }
@@ -190,8 +178,6 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setConnectableBus(b.getId())
             .setR(0)
             .setX(x)
-            .setG(0)
-            .setB(0)
             .setP0(p0)
             .setQ0(q0)
             .add();

@@ -109,10 +109,6 @@ class LfBusImplTest {
                 .setVoltageLevel2("vl2")
                 .setBus1("b1")
                 .setBus2("b2")
-                .setB1(0)
-                .setB2(0)
-                .setG1(0)
-                .setG2(0)
                 .setR(1)
                 .setX(1)
                 .add();

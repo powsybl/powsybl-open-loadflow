@@ -113,10 +113,6 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                .setBus2("b2")
                .setR(1)
                .setX(3)
-               .setG1(0)
-               .setG2(0)
-               .setB1(0)
-               .setB2(0)
                .add();
 
         network.newHvdcLine()
@@ -241,10 +237,6 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                .setBus2("b2")
                .setR(1)
                .setX(3)
-               .setG1(0)
-               .setG2(0)
-               .setB1(0)
-               .setB2(0)
                .add();
 
         network.newHvdcLine()
@@ -285,11 +277,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         TwoWindingsTransformer twt = createTransformer(network, "test_s", b4, b5, "l45", 0.1f, 1d);
         twt.newPhaseTapChanger().setTapPosition(0)
             .beginStep()
-            .setR(0)
             .setX(0.1f)
-            .setG(0)
-            .setB(0)
-            .setRho(1)
             .setAlpha(1)
             .endStep()
             .add();
@@ -415,11 +403,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         TwoWindingsTransformer twt = createTransformer(network, "test_s", b2, b3, "l23", 0.1f, 1d);
         twt.newPhaseTapChanger().setTapPosition(0)
             .beginStep()
-            .setR(0)
             .setX(0.1f)
-            .setG(0)
-            .setB(0)
-            .setRho(1)
             .setAlpha(1)
             .endStep()
             .add();

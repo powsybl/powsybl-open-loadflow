@@ -84,10 +84,6 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setBus2("b2")
                 .setR(1)
                 .setX(1)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
 
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
@@ -177,10 +173,6 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setBus2("b3")
                 .setR(1)
                 .setX(1)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
         network.newLine()
                 .setId("l2")
@@ -192,10 +184,6 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setBus2("b3")
                 .setR(1)
                 .setX(1)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
 
         LfNetworkParameters parameters = new LfNetworkParameters()
@@ -269,10 +257,6 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setBus2("b2")
                 .setR(1)
                 .setX(1)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
 
         VoltageLevel vl3 = s.newVoltageLevel()
@@ -301,10 +285,6 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setBus2("b3")
                 .setR(1)
                 .setX(1)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
 
         LfNetworkParameters parameters = new LfNetworkParameters()

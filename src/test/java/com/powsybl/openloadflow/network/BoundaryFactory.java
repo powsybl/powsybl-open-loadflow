@@ -78,10 +78,6 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus2("b2")
                 .setR(1)
                 .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
         return network;
     }
@@ -122,10 +118,6 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus2("b3")
                 .setR(10)
                 .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
         network.newLine()
                 .setId("l32")
@@ -135,10 +127,6 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus2("b2")
                 .setR(10)
                 .setX(10)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
 
         network.getDanglingLine("dl1").setP0(91);
@@ -244,10 +232,6 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus2("xnode")
                 .setR(0.0)
                 .setX(0.1)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
         network.newLine()
                 .setId("l23")
@@ -257,10 +241,6 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus2("b3")
                 .setR(0)
                 .setX(0.08)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
         network.newLine()
                 .setId("l34")
@@ -270,10 +250,6 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus2("b4")
                 .setR(0)
                 .setX(1.0)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
 
         return network;
@@ -364,19 +340,11 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("h1")
                 .setR(0.0)
                 .setX(0.1)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add()
                 .newHalfLine2()
                 .setId("h2")
                 .setR(0)
                 .setX(0.08)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add()
                 .setBus1("b1")
                 .setVoltageLevel1("vl1")
@@ -392,10 +360,6 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus2("b4")
                 .setR(0)
                 .setX(1.0)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
 
         return network;

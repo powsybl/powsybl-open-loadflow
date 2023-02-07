@@ -153,8 +153,6 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setRatedU2(399)
                 .setR(1)
                 .setX(100)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr24")
@@ -168,8 +166,6 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setRatedU2(397)
                 .setR(0.5)
                 .setX(20)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr34")
@@ -183,8 +179,6 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setRatedU2(397)
                 .setR(0.5)
                 .setX(10)
-                .setG(0)
-                .setB(0)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));

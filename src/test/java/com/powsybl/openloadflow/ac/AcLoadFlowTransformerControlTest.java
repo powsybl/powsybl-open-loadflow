@@ -287,9 +287,6 @@ class AcLoadFlowTransformerControlTest {
                 .setR(1.05)
                 .setX(10.0)
                 .setG1(0.0000005)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         t2wt.getRatioTapChanger()
@@ -352,9 +349,6 @@ class AcLoadFlowTransformerControlTest {
                 .setR(1.05)
                 .setX(10.0)
                 .setG1(0.0000005)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         parameters.setTransformerVoltageControlOn(true);
@@ -397,10 +391,7 @@ class AcLoadFlowTransformerControlTest {
         twt.getPhaseTapChanger().remove();
         twt.newRatioTapChanger().setTapPosition(0)
                 .beginStep()
-                .setR(0)
                 .setX(0.1f)
-                .setG(0)
-                .setB(0)
                 .setRho(1)
                 .endStep()
                 .add();
@@ -642,9 +633,6 @@ class AcLoadFlowTransformerControlTest {
                 .setR(0.5)
                 .setX(1.0)
                 .setG1(0.0000005)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         t3wt.getLeg2().getRatioTapChanger()
@@ -715,10 +703,6 @@ class AcLoadFlowTransformerControlTest {
                 .setBus2("BUS_3")
                 .setR(0.)
                 .setX(0.)
-                .setG1(0.)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         Line line53 = network.newLine()
@@ -729,10 +713,6 @@ class AcLoadFlowTransformerControlTest {
                 .setBus2("BUS_3")
                 .setR(0.)
                 .setX(0.)
-                .setG1(0.)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         t2wt = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()

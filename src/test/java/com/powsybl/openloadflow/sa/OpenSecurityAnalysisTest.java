@@ -944,10 +944,6 @@ class OpenSecurityAnalysisTest {
                 .setBus2("B2")
                 .setR(4.0)
                 .setX(200.0)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
                 .add();
 
         network.newLine().setId("L4")
@@ -959,10 +955,6 @@ class OpenSecurityAnalysisTest {
                 .setBus2("B2")
                 .setR(4.0)
                 .setX(200.0)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
                 .add();
 
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");

@@ -79,8 +79,6 @@ class AcLoadFlow3wtTest {
                 .beginStep()
                     .setR(5)
                     .setX(10)
-                    .setG(0)
-                    .setB(0)
                     .setRho(0.9)
                 .endStep()
             .add();
@@ -97,11 +95,6 @@ class AcLoadFlow3wtTest {
         PhaseTapChanger ptc = twt.getLeg2().newPhaseTapChanger()
                 .setTapPosition(0)
                 .beginStep()
-                .setR(0)
-                .setX(0)
-                .setG(0)
-                .setB(0)
-                .setRho(1)
                 .setAlpha(0)
                 .endStep()
                 .add();
@@ -118,8 +111,6 @@ class AcLoadFlow3wtTest {
                 .setRatedU2(220)
                 .setR(4)
                 .setX(80)
-                .setG(0)
-                .setB(0)
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());

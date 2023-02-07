@@ -109,10 +109,6 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setBus2("b5")
                 .setR(0)
                 .setX(0)
-                .setB1(0)
-                .setG1(0)
-                .setB2(0)
-                .setG2(0)
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
