@@ -155,7 +155,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
             NominalVoltageMapping nominalVoltageMapping = lfParameters.isDc()
                     ? SimpleNominalVoltageMapping.create(network, lfParametersExt.getNominalVoltagePerUnitResolution())
-                    : NoOpNominalVoltageMapping.INSTANCE;
+                    : SimpleNominalVoltageMapping.NONE;
 
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
