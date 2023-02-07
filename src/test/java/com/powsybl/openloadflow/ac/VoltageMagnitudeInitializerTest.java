@@ -127,18 +127,12 @@ public class VoltageMagnitudeInitializerTest {
         l9101.setX(newX);
         network.newLine()
                 .setId("L9-10-2")
-                .setVoltageLevel1("VL9")
                 .setConnectableBus1("B9")
                 .setBus1("B9")
-                .setVoltageLevel2("VL10")
                 .setConnectableBus2("B10")
                 .setBus2("B10")
                 .setR(0)
                 .setX(newX)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
         VoltageMagnitudeInitializer initializer = new VoltageMagnitudeInitializer(false, new DenseMatrixFactory(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
@@ -181,10 +175,6 @@ public class VoltageMagnitudeInitializerTest {
         var twt49 = network.getTwoWindingsTransformer("T4-9-1");
         twt49.newRatioTapChanger()
                 .beginStep()
-                    .setR(0)
-                    .setX(0)
-                    .setG(0)
-                    .setB(0)
                     .setRho(1)
                 .endStep()
                 .setTapPosition(0)
