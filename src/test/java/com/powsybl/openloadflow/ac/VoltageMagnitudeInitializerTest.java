@@ -127,10 +127,8 @@ public class VoltageMagnitudeInitializerTest {
         l9101.setX(newX);
         network.newLine()
                 .setId("L9-10-2")
-                .setVoltageLevel1("VL9")
                 .setConnectableBus1("B9")
                 .setBus1("B9")
-                .setVoltageLevel2("VL10")
                 .setConnectableBus2("B10")
                 .setBus2("B10")
                 .setR(0)

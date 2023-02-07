@@ -96,9 +96,7 @@ class AcLoadFlowSvcTest {
                 .add();
         l1 = network.newLine()
                 .setId("l1")
-                .setVoltageLevel1("vl1")
                 .setBus1("b1")
-                .setVoltageLevel2("vl2")
                 .setBus2("b2")
                 .setR(1)
                 .setX(3)

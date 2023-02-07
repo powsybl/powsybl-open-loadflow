@@ -143,10 +143,8 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr14")
-                .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
@@ -156,10 +154,8 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr24")
-                .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
                 .setConnectableBus1(b2.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
@@ -169,10 +165,8 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr34")
-                .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
                 .setConnectableBus1(b3.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)

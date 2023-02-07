@@ -445,8 +445,6 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .add();
         network.newLine()
                 .setId("LINE_34")
-                .setVoltageLevel1("VL_3")
-                .setVoltageLevel2("VL_4")
                 .setBus1("BUS_3")
                 .setBus2("BUS_4")
                 .setR(1.05)

@@ -134,8 +134,6 @@ class AcLoadFlowBoundaryTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         network.newLine()
                 .setId("LINE_23")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
                 .setBus1("BUS_2")
                 .setBus2("BUS_3")
                 .setR(0.0)

@@ -280,8 +280,6 @@ class AcLoadFlowTransformerControlTest {
 
         Line line34 = network.newLine()
                 .setId("LINE_34")
-                .setVoltageLevel1("VL_3")
-                .setVoltageLevel2("VL_4")
                 .setBus1("BUS_3")
                 .setBus2("BUS_4")
                 .setR(1.05)
@@ -342,8 +340,6 @@ class AcLoadFlowTransformerControlTest {
 
         Line line34 = network.newLine()
                 .setId("LINE_34")
-                .setVoltageLevel1("VL_3")
-                .setVoltageLevel2("VL_4")
                 .setBus1("BUS_3")
                 .setBus2("BUS_4")
                 .setR(1.05)
@@ -626,8 +622,6 @@ class AcLoadFlowTransformerControlTest {
 
         Line line35 = network.newLine()
                 .setId("LINE_35")
-                .setVoltageLevel1("VL_3")
-                .setVoltageLevel2("VL_5")
                 .setBus1("BUS_3")
                 .setBus2("BUS_5")
                 .setR(0.5)
@@ -697,8 +691,6 @@ class AcLoadFlowTransformerControlTest {
 
         Line line43 = network.newLine()
                 .setId("LINE_43")
-                .setVoltageLevel1("VL_4")
-                .setVoltageLevel2("VL_3")
                 .setBus1("BUS_4")
                 .setBus2("BUS_3")
                 .setR(0.)
@@ -707,8 +699,6 @@ class AcLoadFlowTransformerControlTest {
 
         Line line53 = network.newLine()
                 .setId("LINE_53")
-                .setVoltageLevel1("VL_5")
-                .setVoltageLevel2("VL_3")
                 .setBus1("BUS_5")
                 .setBus2("BUS_3")
                 .setR(0.)
@@ -717,8 +707,6 @@ class AcLoadFlowTransformerControlTest {
 
         t2wt = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_5")
                 .setRatedU1(132.0)
                 .setRatedU2(33.0)
                 .setR(17.0)
@@ -760,8 +748,6 @@ class AcLoadFlowTransformerControlTest {
 
         t2wt2 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT2")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_4")
                 .setRatedU1(132.0)
                 .setRatedU2(33.0)
                 .setR(17.0)

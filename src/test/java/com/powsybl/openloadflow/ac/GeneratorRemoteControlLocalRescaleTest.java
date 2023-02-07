@@ -74,10 +74,8 @@ class GeneratorRemoteControlLocalRescaleTest {
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
-                .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
-                .setVoltageLevel2(vl2.getId())
                 .setBus2(b2.getId())
                 .setConnectableBus2(b2.getId())
                 .setRatedU1(20.5)

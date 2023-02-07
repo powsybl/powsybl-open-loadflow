@@ -101,10 +101,8 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .add();
         network.newLine()
                 .setId("ln1")
-                .setVoltageLevel1("vl3")
                 .setConnectableBus1("b3")
                 .setBus1("b3")
-                .setVoltageLevel2("vl5")
                 .setConnectableBus2("b5")
                 .setBus2("b5")
                 .setR(0)

@@ -105,8 +105,6 @@ class LfBusImplTest {
                 .add();
         Line line = network.newLine()
                 .setId("line")
-                .setVoltageLevel1("vl1")
-                .setVoltageLevel2("vl2")
                 .setBus1("b1")
                 .setBus2("b2")
                 .setR(1)

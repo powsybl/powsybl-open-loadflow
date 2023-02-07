@@ -86,11 +86,9 @@ class AcloadFlowReactiveLimitsTest {
         int zb380 = 380 * 380 / 100;
         ngen2Nhv1 = p1.newTwoWindingsTransformer()
                 .setId("NGEN2_NHV1")
-                .setVoltageLevel1("VLGEN2")
                 .setBus1("NGEN2")
                 .setConnectableBus1("NGEN2")
                 .setRatedU1(24.0)
-                .setVoltageLevel2("VLHV1")
                 .setBus2("NHV1")
                 .setConnectableBus2("NHV1")
                 .setRatedU2(400.0)

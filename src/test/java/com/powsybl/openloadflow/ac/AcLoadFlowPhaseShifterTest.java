@@ -261,10 +261,8 @@ class AcLoadFlowPhaseShifterTest {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
         network.newLine()
                 .setId("L3")
-                .setVoltageLevel1("VL1")
                 .setConnectableBus1("B1")
                 .setBus1("B1")
-                .setVoltageLevel2("VL2")
                 .setConnectableBus2("B2")
                 .setBus2("B2")
                 .setR(4.0)

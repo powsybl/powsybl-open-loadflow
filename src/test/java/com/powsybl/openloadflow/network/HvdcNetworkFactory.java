@@ -107,9 +107,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newLine()
                .setId("l12")
-               .setVoltageLevel1("vl1")
                .setBus1("b1")
-               .setVoltageLevel2("vl2")
                .setBus2("b2")
                .setR(1)
                .setX(3)
@@ -231,9 +229,7 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newLine()
                .setId("l12")
-               .setVoltageLevel1("vl1")
                .setBus1("b1")
-               .setVoltageLevel2("vl2")
                .setBus2("b2")
                .setR(1)
                .setX(3)

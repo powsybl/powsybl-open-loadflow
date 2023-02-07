@@ -101,10 +101,8 @@ class AcLoadFlow3wtTest {
         // create a transformer between bus 1 / bus2 in parallel of leg1 / leg2
         TwoWindingsTransformer twtParallel = s.newTwoWindingsTransformer()
                 .setId("2wt")
-                .setVoltageLevel1("vl1")
                 .setBus1("b1")
                 .setConnectableBus1("b1")
-                .setVoltageLevel2("vl2")
                 .setBus2("b2")
                 .setConnectableBus2("b2")
                 .setRatedU1(390)
