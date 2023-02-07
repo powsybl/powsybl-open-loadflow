@@ -54,19 +54,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         for (LfShunt shunt : getControllerShunts(context.getNetwork())) {
             shunt.getVoltageControl().ifPresent(voltageControl -> shunt.setVoltageControlEnabled(false));
             for (LfShunt.Controller lfShuntController : shunt.getControllers()) {
-                contextData.getControllersContexts().put(lfShuntController.getId(), new IncrementalContextData.ControllerContext());
+                contextData.getControllersContexts().put(lfShuntController.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
             }
-        }
-    }
-
-    private static void updateAllowedDirection(IncrementalContextData.ControllerContext controllerContext, Direction direction) {
-        if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
-            if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
-                // both vs increase or decrease
-                // increase vs decrease or decrease vs increase
-                controllerContext.getDirectionChangeCount().increment();
-            }
-            controllerContext.setAllowedDirection(direction.getAllowedDirection());
         }
     }
 
@@ -141,7 +130,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                             double deltaB = remainingDiffV / sensitivity;
                             Direction direction = controller.updateSectionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
                             if (direction != null) {
-                                updateAllowedDirection(controllerContext, direction);
+                                controllerContext.updateAllowedDirection(direction);
                                 remainingDiffV -= (controller.getB() - previousB) * sensitivity;
                                 hasChanged = true;
                                 status.setValue(OuterLoopStatus.UNSTABLE);
