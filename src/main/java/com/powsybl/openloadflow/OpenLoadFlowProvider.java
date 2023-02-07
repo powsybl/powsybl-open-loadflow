@@ -173,7 +173,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
 
-        NominalVoltageMapping nominalVoltageMapping = SimpleNominalVoltageMapping.create(network, parametersExt.getNominalVoltagePerUnitResolution());
+        NominalVoltageMapping nominalVoltageMapping = NoOpNominalVoltageMapping.INSTANCE;
 
         List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, nominalVoltageMapping, new LfNetworkLoaderImpl(), dcParameters, reporter);
 

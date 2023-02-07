@@ -60,25 +60,53 @@ class NominalVoltageMappingTest {
         assertEquals(Map.of(131d, 135d, 138d, 135d), nominalVoltageMapping.get());
     }
 
+    private Map<String, Double> getBusVoltages() {
+        return network.getBusView().getBusStream().collect(Collectors.toMap(Identifiable::getId, Bus::getV));
+    }
+
+    private Map<String, Double> getBusAngles() {
+        return network.getBusView().getBusStream().collect(Collectors.toMap(Identifiable::getId, Bus::getAngle));
+    }
+
+    private static void compareValues(Map<String, Double> values1, Map<String, Double> values2) {
+        assertEquals(values1.size(), values2.size());
+        for (var e : values2.entrySet()) {
+            double v1 = e.getValue();
+            double v2 = values1.get(e.getKey());
+            assertEquals(v1, v2, 10e-11); // differences at 10e-12
+        }
+    }
+
     @Test
-    void testRun() {
+    void testRunAc() {
         parametersExt.setNominalVoltagePerUnitResolution(0.1);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(7, result.getComponentResults().get(0).getIterationCount());
-        Map<String, Double> voltages1 = network.getBusView().getBusStream().collect(Collectors.toMap(Identifiable::getId, Bus::getV));
+        Map<String, Double> voltages1 = getBusVoltages();
 
         parametersExt.setNominalVoltagePerUnitResolution(0);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(7, result.getComponentResults().get(0).getIterationCount());
-        Map<String, Double> voltages2 = network.getBusView().getBusStream().collect(Collectors.toMap(Identifiable::getId, Bus::getV));
+        Map<String, Double> voltages2 = getBusVoltages();
 
-        assertEquals(voltages1.size(), voltages2.size());
-        for (var e : voltages2.entrySet()) {
-            double nominalV1 = e.getValue();
-            double nominalV2 = voltages1.get(e.getKey());
-            assertEquals(nominalV1, nominalV2, 10e-11); // differences at 10e-12
-        }
+        compareValues(voltages1, voltages2);
+    }
+
+    @Test
+    void testRunDc() {
+        parameters.setDc(true);
+        parametersExt.setNominalVoltagePerUnitResolution(0.1);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        Map<String, Double> angles1 = getBusAngles();
+
+        parametersExt.setNominalVoltagePerUnitResolution(0);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        Map<String, Double> angles2 = getBusAngles();
+
+        compareValues(angles1, angles2);
     }
 }
