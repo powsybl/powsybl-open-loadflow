@@ -136,9 +136,7 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setNode2(2)
                 .setR(3.0)
                 .setX(33.0)
-                .setG1(0.0)
                 .setB1(386E-6 / 2)
-                .setG2(0.0)
                 .setB2(386E-6 / 2)
                 .add();
         network.newLine()
@@ -149,9 +147,7 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setNode2(1)
                 .setR(3.0)
                 .setX(33.0)
-                .setG1(0.0)
                 .setB1(386E-6 / 2)
-                .setG2(0.0)
                 .setB2(386E-6 / 2)
                 .add();
         return network;
