@@ -101,10 +101,9 @@ public class PropagatedContingency {
                               load.getQ0() / PerUnit.SB); // ensurePowerFactorConstant is not supported.
     }
 
-    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies,
-                                                         Set<Switch> allSwitchesToOpen, boolean shuntCompensatorVoltageControlOn,
-                                                         boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation,
-                                                         boolean contingencyPropagation) {
+    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen, Set<Switch> allSwitchesToClose,
+                                                         boolean contingencyPropagation, boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
@@ -112,10 +111,19 @@ public class PropagatedContingency {
                     PropagatedContingency.prepare(network, contingency, index, contingencyPropagation);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
+            if (breakers) {
+                // we are already in bus/breaker view from the actions analysis
+                // we are able to complete the propagated contingencies
+                propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
+            }
         }
-        boolean breakers = !allSwitchesToOpen.isEmpty();
-        for (PropagatedContingency propagatedContingency : propagatedContingencies) {
-            propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
+        if (!breakers) {
+            // the action analysis does not force to the bus/breaker view.
+            breakers = !allSwitchesToOpen.isEmpty();
+            // propagated contingencies have to be completed using the bus/view ids or the bus/breaker view ids.
+            for (PropagatedContingency propagatedContingency : propagatedContingencies) {
+                propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
+            }
         }
         return propagatedContingencies;
     }
