@@ -66,8 +66,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final double DC_POWER_FACTOR_DEFAULT_VALUE = 1.0;
 
-    private static final boolean NETWORK_CACHE_ENABLED_DEFAULT_VALUE = false;
-
     public static final boolean SVC_VOLTAGE_MONITORING_DEFAULT_VALUE = true;
 
     public static final VoltageInitModeOverride VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE = VoltageInitModeOverride.NONE;
@@ -161,7 +159,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_REALISTIC_VOLTAGE_NAME, ParameterType.DOUBLE, "Max realistic voltage", NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE),
         new Parameter(REACTIVE_RANGE_CHECK_MODE_NAME, ParameterType.STRING, "Reactive range check mode", LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class)),
         new Parameter(LOW_IMPEDANCE_THRESHOLD_NAME, ParameterType.DOUBLE, "Low impedance threshold in per unit", LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE),
-        new Parameter(NETWORK_CACHE_ENABLED_NAME, ParameterType.BOOLEAN, "Network cache enabled", NETWORK_CACHE_ENABLED_DEFAULT_VALUE),
+        new Parameter(NETWORK_CACHE_ENABLED_NAME, ParameterType.BOOLEAN, "Network cache enabled", LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE),
         new Parameter(SVC_VOLTAGE_MONITORING_NAME, ParameterType.BOOLEAN, "SVC voltage monitoring", SVC_VOLTAGE_MONITORING_DEFAULT_VALUE),
         new Parameter(STATE_VECTOR_SCALING_MODE_NAME, ParameterType.STRING, "State vector scaling mode", NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE.name(), getEnumPossibleValues(StateVectorScalingMode.class)),
         new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT),
@@ -242,7 +240,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
-    private boolean networkCacheEnabled = NETWORK_CACHE_ENABLED_DEFAULT_VALUE;
+    private boolean networkCacheEnabled = LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE;
 
     private boolean svcVoltageMonitoring = SVC_VOLTAGE_MONITORING_DEFAULT_VALUE;
 
@@ -568,9 +566,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
                 .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
                 .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
-                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE))
                 .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE))
-                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, NETWORK_CACHE_ENABLED_DEFAULT_VALUE))
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE))
                 .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE))
                 .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT))
                 .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE))
@@ -816,7 +814,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSvcVoltageMonitoring(parametersExt.isSvcVoltageMonitoring())
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
                 .setDebugDir(parametersExt.getDebugDir())
-                .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl());
+                .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl())
+                .setCacheEnabled(parametersExt.isNetworkCacheEnabled());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

@@ -6,14 +6,21 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface Ref<T> {
+class StrongRef<T> implements Ref<T> {
 
-    T get();
+    private final T value;
 
-    static <T> Ref<T> create(T identifiable, boolean cacheEnabled) {
-        return cacheEnabled ? new WeakRef<>(identifiable) : new StrongRef<>(identifiable);
+    StrongRef(T identifiable) {
+        this.value = Objects.requireNonNull(identifiable);
+    }
+
+    @Override
+    public T get() {
+        return value;
     }
 }
