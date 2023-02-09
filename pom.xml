@@ -199,12 +199,6 @@
             <artifactId>powsybl-iidm-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-commons-test</artifactId>
-            <version>5.1.0-RC1</version>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
 </project>
 
