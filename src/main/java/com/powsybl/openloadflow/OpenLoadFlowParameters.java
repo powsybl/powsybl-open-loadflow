@@ -64,19 +64,19 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final NewtonRaphsonStoppingCriteriaType NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE = NewtonRaphsonStoppingCriteriaType.UNIFORM_CRITERIA;
 
     /** Default value of the maximum active power mismatch in MW **/
-    public static final double MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE = Math.pow(10, -2);
+    public static final double MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE = 1e-2;
 
     /** Default value of the maximum reactive power mismatch in Mvar **/
-    public static final double MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE = Math.pow(10, -2);
+    public static final double MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE = 1e-2;
 
     /** Default value of the maximum voltage mismatch in pu **/
-    public static final double MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE = Math.pow(10, -4);
+    public static final double MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE = 1e-4;
 
-    public static final double MAX_ANGLE_MISMATCH_DEFAULT_VALUE = Math.pow(10, -5);
+    public static final double MAX_ANGLE_MISMATCH_DEFAULT_VALUE = 1e-5;
 
-    public static final double MAX_RATIO_MISMATCH_DEFAULT_VALUE = Math.pow(10, -5);
+    public static final double MAX_RATIO_MISMATCH_DEFAULT_VALUE = 1e-5;
 
-    public static final double MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE = Math.pow(10, -4);
+    public static final double MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE = 1e-4;
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
