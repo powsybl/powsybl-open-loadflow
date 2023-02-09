@@ -334,9 +334,11 @@ public class PropagatedContingency {
         Set<LfGenerator> generators = new HashSet<>(1);
         for (String generatorId : generatorIdsToLose) {
             LfGenerator generator = network.getGeneratorById(generatorId);
-            LfBus bus = generator.getBus();
-            if (generator != null && !buses.contains(bus)) { // could be in another component
-                generators.add(generator);
+            if (generator != null) { // could be in another component FIXME
+                LfBus bus = generator.getBus();
+                if (bus != null && !buses.contains(bus)) {
+                    generators.add(generator);
+                }
             }
         }
 
