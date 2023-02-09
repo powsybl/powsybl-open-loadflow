@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.IncrementalTransformerVoltageControlOuterLoop;
+import com.powsybl.openloadflow.ac.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.DefaultNewtonRaphsonStoppingCriteria;
@@ -132,6 +133,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String SECONDARY_VOLTAGE_CONTROL_PARAM_NAME = "secondaryVoltageControl";
 
+    public static final String REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME = "ReactiveLimitsMaxPqPvSwitch";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -165,7 +168,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT),
         new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, Collections.emptyList(), ParameterScope.TECHNICAL),
         new Parameter(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT),
-        new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)
+        new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE),
+        new Parameter(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ParameterType.INTEGER, "Reactive limits maximum Pq Pv switch", ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV)
     );
 
     public enum VoltageInitModeOverride {
@@ -253,6 +257,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int incrementalTransformerVoltageControlOuterLoopMaxTapShift = IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
 
     private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
+
+    private int reactiveLimitsMaxPqPvSwitch = ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV;
 
     @Override
     public String getName() {
@@ -534,6 +540,18 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public int getReactiveLimitsMaxPqPvSwitch() {
+        return reactiveLimitsMaxPqPvSwitch;
+    }
+
+    public OpenLoadFlowParameters setReactiveLimitsMaxPqPvSwitch(int reactiveLimitsMaxPqPvSwitch) {
+        if (reactiveLimitsMaxPqPvSwitch < 0) {
+            throw new IllegalArgumentException("Invalid max Pq Pv switch value: " + reactiveLimitsMaxPqPvSwitch);
+        }
+        this.reactiveLimitsMaxPqPvSwitch = reactiveLimitsMaxPqPvSwitch;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -573,7 +591,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT))
                 .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE))
                 .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT))
-                .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE)));
+                .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
+                .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV)));
         return parameters;
     }
 
@@ -640,6 +659,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setSecondaryVoltageControl(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME))
+                .ifPresent(prop -> this.setReactiveLimitsMaxPqPvSwitch(Integer.parseInt(prop)));
         return this;
     }
 
@@ -675,6 +696,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", debugDir=" + debugDir +
                 ", incrementalTransformerVoltageControlOuterLoopMaxTapShift=" + incrementalTransformerVoltageControlOuterLoopMaxTapShift +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
+                ", reactiveLimitsMaxPqPvSwitch=" + reactiveLimitsMaxPqPvSwitch +
                 ')';
     }
 
@@ -748,6 +770,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
         LOGGER.info("Incremental transformer voltage control outer loop max tap shift: {}", parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
         LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
+        LOGGER.info("Reactive limits maximum Pq Pv switch: {}", parametersExt.getReactiveLimitsMaxPqPvSwitch());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -977,7 +1000,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMaxSlackBusCount() == extension2.getMaxSlackBusCount() &&
                 Objects.equals(extension1.getDebugDir(), extension2.getDebugDir()) &&
                 extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() &&
-                extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl();
+                extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
+                extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1029,7 +1053,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMaxSlackBusCount(extension.getMaxSlackBusCount())
                     .setDebugDir(extension.getDebugDir())
                     .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift())
-                    .setSecondaryVoltageControl(extension.isSecondaryVoltageControl());
+                    .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
+                    .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }
