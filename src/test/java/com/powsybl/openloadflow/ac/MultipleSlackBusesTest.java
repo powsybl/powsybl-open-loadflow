@@ -40,7 +40,7 @@ class MultipleSlackBusesTest {
         network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true)
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setMaxSlackBusCount(2);
