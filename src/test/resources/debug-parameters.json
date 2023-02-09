@@ -45,7 +45,8 @@
         "maxSlackBusCount" : 1,
         "debugDir" : null,
         "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
-        "secondaryVoltageControl" : false
+        "secondaryVoltageControl" : false,
+        "reactiveLimitsMaxPqPvSwitch" : 3
       }
     }
   },
