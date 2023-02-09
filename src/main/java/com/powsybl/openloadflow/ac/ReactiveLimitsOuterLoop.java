@@ -36,7 +36,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
     private static final Comparator<PvToPqBus> BY_ID_COMPARATOR = Comparator.comparing(pvToPqBus -> pvToPqBus.controllerBus.getId());
 
-    private static final int MAX_SWITCH_PQ_PV = 2;
+    private static final int MAX_SWITCH_PQ_PV = 3;
 
     private static final class ContextData {
 
