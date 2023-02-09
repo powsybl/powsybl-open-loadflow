@@ -993,7 +993,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return acParameters;
     }
 
-    private static NewtonRaphsonStoppingCriteria generateNewtonRaphsonStoppingCriteria(OpenLoadFlowParameters parametersExt) {
+    private static NewtonRaphsonStoppingCriteria createNewtonRaphsonStoppingCriteria(OpenLoadFlowParameters parametersExt) {
         switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
             case UNIFORM_CRITERIA:
                 return new DefaultNewtonRaphsonStoppingCriteria(parametersExt.getNewtonRaphsonConvEpsPerEq());
@@ -1019,7 +1019,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
-                .setStoppingCriteria(generateNewtonRaphsonStoppingCriteria(parametersExt))
+                .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
                 .setMaxIteration(parametersExt.getMaxIteration())
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
