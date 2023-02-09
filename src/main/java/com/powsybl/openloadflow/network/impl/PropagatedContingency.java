@@ -315,9 +315,21 @@ public class PropagatedContingency {
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
         Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
 
+        if (connectivity.getConnectedComponent(network.getSlackBus()).size() == 1) {
+            System.out.println(contingency.getId() + " :isolated slack bus");
+            connectivity.undoTemporaryChanges();
+            return Optional.empty();
+        }
+
         // we should manage branches open at one side.
         for (LfBus bus : buses) {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
+        }
+
+        for (LfHvdc hvdcLine : network.getHvdcs()) {
+            if (buses.contains(hvdcLine.getBus1()) || buses.contains(hvdcLine.getBus2())) {
+                hvdcIdsToOpen.add(hvdcLine.getId());
+            }
         }
 
         // reset connectivity to discard triggered branches
