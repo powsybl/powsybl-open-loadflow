@@ -49,11 +49,12 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
     }
 
     @Override
-    public NewtonRaphsonStoppingCriteria.TestResult applyAfter(StateVector stateVector,
+    public NewtonRaphsonStoppingCriteria.TestResult applyAfter(EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                EquationVector<AcVariableType, AcEquationType> equationVector,
                                                                TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                NewtonRaphsonStoppingCriteria stoppingCriteria,
                                                                NewtonRaphsonStoppingCriteria.TestResult testResult) {
+        StateVector stateVector = equationSystem.getStateVector();
         if (lastTestResult != null) {
             double stepSize = 1;
             NewtonRaphsonStoppingCriteria.TestResult currentTestResult = testResult;
@@ -78,7 +79,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
                 equationVector.minus(targetVector);
 
                 // and recompute new norm
-                currentTestResult = stoppingCriteria.test(equationVector.getArray(), null);
+                currentTestResult = stoppingCriteria.test(equationVector.getArray(), equationSystem);
 
                 iteration++;
             }

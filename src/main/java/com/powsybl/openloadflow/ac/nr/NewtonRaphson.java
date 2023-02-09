@@ -98,7 +98,7 @@ public class NewtonRaphson {
             // test stopping criteria and log norm(fx)
             NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
 
-            testResult = svScaling.applyAfter(equationSystem.getStateVector(), equationVector, targetVector,
+            testResult = svScaling.applyAfter(equationSystem, equationVector, targetVector,
                                               parameters.getStoppingCriteria(), testResult);
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
