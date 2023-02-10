@@ -86,29 +86,17 @@ public final class ShuntNetworkFactory {
                 .add();
         network.newLine()
                 .setId("l1")
-                .setVoltageLevel1("vl1")
                 .setBus1("b1")
-                .setVoltageLevel2("vl2")
                 .setBus2("b2")
                 .setR(1)
                 .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
         network.newLine()
                 .setId("l2")
-                .setVoltageLevel1("vl3")
                 .setBus1("b3")
-                .setVoltageLevel2("vl2")
                 .setBus2("b2")
                 .setR(1)
                 .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
         return network;
     }
