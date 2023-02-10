@@ -447,8 +447,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxActivePowerMismatch(double maxActivePowerMismatch) {
-        if (maxActivePowerMismatch < 0) {
-            throw new PowsyblException("maxActivePowerMismatch must be greater or equal to 0");
+        if (maxActivePowerMismatch <= 0) {
+            throw new PowsyblException("maxActivePowerMismatch must be greater to 0");
         }
         this.maxActivePowerMismatch = maxActivePowerMismatch;
         return this;
@@ -459,8 +459,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxReactivePowerMismatch(double maxReactivePowerMismatch) {
-        if (maxReactivePowerMismatch < 0) {
-            throw new PowsyblException("maxReactivePowerMismatch must be greater or equal to 0");
+        if (maxReactivePowerMismatch <= 0) {
+            throw new PowsyblException("maxReactivePowerMismatch must be greater to 0");
         }
         this.maxReactivePowerMismatch = maxReactivePowerMismatch;
         return this;
@@ -471,8 +471,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxVoltageMismatch(double maxVoltageMismatch) {
-        if (maxVoltageMismatch < 0) {
-            throw new PowsyblException("maxVoltageMismatch must be greater or equal to 0");
+        if (maxVoltageMismatch <= 0) {
+            throw new PowsyblException("maxVoltageMismatch must be greater to 0");
         }
         this.maxVoltageMismatch = maxVoltageMismatch;
         return this;
@@ -483,8 +483,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxAngleMismatch(double maxAngleMismatch) {
-        if (maxAngleMismatch < 0) {
-            throw new PowsyblException("maxAngleMismatch must be greater or equal to 0");
+        if (maxAngleMismatch <= 0) {
+            throw new PowsyblException("maxAngleMismatch must be greater to 0");
         }
         this.maxAngleMismatch = maxAngleMismatch;
         return this;
@@ -495,8 +495,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxRatioMismatch(double maxRatioMismatch) {
-        if (maxRatioMismatch < 0) {
-            throw new PowsyblException("maxRatioMismatch must be greater or equal to 0");
+        if (maxRatioMismatch <= 0) {
+            throw new PowsyblException("maxRatioMismatch must be greater to 0");
         }
         this.maxRatioMismatch = maxRatioMismatch;
         return this;
@@ -507,8 +507,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setMaxSusceptanceMismatch(double maxSusceptanceMismatch) {
-        if (maxSusceptanceMismatch < 0) {
-            throw new PowsyblException("maxSusceptanceMismatch must be greater or equal to 0");
+        if (maxSusceptanceMismatch <= 0) {
+            throw new PowsyblException("maxSusceptanceMismatch must be greater to 0");
         }
         this.maxSusceptanceMismatch = maxSusceptanceMismatch;
         return this;

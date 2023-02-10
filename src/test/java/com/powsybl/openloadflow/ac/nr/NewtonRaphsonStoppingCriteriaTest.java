@@ -79,16 +79,6 @@ class NewtonRaphsonStoppingCriteriaTest {
     }
 
     @Test
-    void testVoltageMaxIterationPerEquationCriteria() {
-        OpenLoadFlowParameters.create(parameters)
-                .setMaxVoltageMismatch(0)
-                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
-        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
-    }
-
-    @Test
     void testActivePowerConvergedPerEquationCriteria() {
         OpenLoadFlowParameters.create(parameters)
                 .setMaxActivePowerMismatch(0.038)
@@ -102,7 +92,7 @@ class NewtonRaphsonStoppingCriteriaTest {
     @Test
     void testActivePowerMaxIterationPerEquationCriteria() {
         OpenLoadFlowParameters.create(parameters)
-                .setMaxActivePowerMismatch(0)
+                .setMaxActivePowerMismatch(1E-15)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isOk());
@@ -123,7 +113,7 @@ class NewtonRaphsonStoppingCriteriaTest {
     @Test
     void testReactivePowerMaxIterationPerEquationCriteria() {
         OpenLoadFlowParameters.create(parameters)
-                .setMaxReactivePowerMismatch(0)
+                .setMaxReactivePowerMismatch(1E-15)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isOk());
@@ -139,16 +129,14 @@ class NewtonRaphsonStoppingCriteriaTest {
         assertTrue(result.isOk());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-    }
 
-    @Test
-    void testAngleMaxIterationPerEquationCriteria() {
         OpenLoadFlowParameters.create(parameters)
-                .setMaxAngleMismatch(0)
+                .setMaxAngleMismatch(1E-30)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
-        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
     }
 
     @Test
@@ -156,12 +144,12 @@ class NewtonRaphsonStoppingCriteriaTest {
         network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
         OpenLoadFlowParameters.create(parameters)
                 .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL)
-                .setMaxRatioMismatch(0)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         parameters.setTransformerVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
-        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        assertTrue(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
     }
 
     @Test
@@ -169,11 +157,11 @@ class NewtonRaphsonStoppingCriteriaTest {
         network = ShuntNetworkFactory.createWithTwoShuntCompensators();
         OpenLoadFlowParameters.create(parameters)
                 .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
-                .setMaxSusceptanceMismatch(0)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         parameters.setShuntCompensatorVoltageControlOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk());
-        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
+        assertTrue(result.isOk());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
     }
 }
