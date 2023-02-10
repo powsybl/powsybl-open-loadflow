@@ -280,7 +280,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             @Override
             public void visitLoad(Load load) {
-                lfBus.addLoad(load);
+                lfBus.addLoad(load, parameters);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(load, lfBus));
             }
 
@@ -320,7 +320,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
                         break;
                     case LCC:
-                        lfBus.addLccConverterStation((LccConverterStation) converterStation);
+                        lfBus.addLccConverterStation((LccConverterStation) converterStation, parameters);
                         loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
                         break;
                     default:
@@ -375,7 +375,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
-            LfStarBus lfBus0 = new LfStarBus(lfNetwork, t3wt);
+            LfStarBus lfBus0 = new LfStarBus(lfNetwork, t3wt, parameters);
             lfNetwork.addBus(lfBus0);
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
