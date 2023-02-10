@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.AbstractPropertyBag;
 import com.powsybl.openloadflow.network.LfAggregatedLoads;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
@@ -41,8 +42,8 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
         return loadsRefs.stream().map(r -> r.get().getId()).collect(Collectors.toList());
     }
 
-    void add(Load load) {
-        loadsRefs.add(new Ref<>(load));
+    void add(Load load, LfNetworkParameters parameters) {
+        loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
         loadsStatus.put(load.getId(), false);
         initialized = false;
     }
