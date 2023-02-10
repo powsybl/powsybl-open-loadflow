@@ -25,7 +25,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch, LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
-        this.branchRef = new Ref<>(branch);
+        this.branchRef = Ref.create(branch, parameters.isCacheEnabled());
     }
 
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, LfNetworkParameters parameters) {
