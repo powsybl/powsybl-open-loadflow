@@ -244,7 +244,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, context.getParameters().getLoadFlowParameters(),
                 parametersExt, matrixFactory, connectivityFactory, false);
-        dcParameters.getNetworkParameters().setBreakers(breakers);
+        dcParameters.getNetworkParameters()
+                .setBreakers(breakers)
+                .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
             return lfNetworks.getLargest().filter(LfNetwork::isValid)
