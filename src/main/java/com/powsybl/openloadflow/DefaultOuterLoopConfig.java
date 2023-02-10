@@ -60,7 +60,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
             outerLoops.add(new MonitoringVoltageOuterLoop());
         }
         if (parameters.isUseReactiveLimits()) {
-            outerLoops.add(new ReactiveLimitsOuterLoop());
+            outerLoops.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch()));
         }
         // phase shifter control
         if (parameters.isPhaseShifterRegulationOn()) {
