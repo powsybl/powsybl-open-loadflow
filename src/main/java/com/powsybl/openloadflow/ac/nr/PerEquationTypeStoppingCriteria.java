@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -92,6 +93,8 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
                         return false;
                     }
                     break;
+                default:
+                    throw new PowsyblException("Unknown equation term");
             }
         }
         return true;
