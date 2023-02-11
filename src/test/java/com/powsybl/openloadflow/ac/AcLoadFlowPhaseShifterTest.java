@@ -515,6 +515,7 @@ class AcLoadFlowPhaseShifterTest {
         assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
         assertActivePowerEquals(83.686, t2wt.getTerminal1());
 
+        t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
         t2wt.getPhaseTapChanger().setRegulationValue(10);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
