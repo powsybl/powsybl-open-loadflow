@@ -59,18 +59,30 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
     static class SensitivityContext {
 
+        private final List<LfBranch> controllerBranches;
+
         private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-        private final DenseMatrix sensitivities;
+        private final JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix;
 
         private final int[] controllerBranchIndex;
+
+        private DenseMatrix sensitivities;
 
         public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                   JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
+            this.controllerBranches = Objects.requireNonNull(controllerBranches);
             this.equationSystem = Objects.requireNonNull(equationSystem);
+            this.jacobianMatrix = Objects.requireNonNull(jacobianMatrix);
             controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
-            sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, jacobianMatrix);
+        }
+
+        private DenseMatrix getSensitivities() {
+            if (sensitivities == null) {
+                sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, jacobianMatrix);
+            }
+            return sensitivities;
         }
 
         private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
@@ -105,11 +117,11 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getP2();
         }
 
-        double calculateSensitivityFromA2S(LfBranch controllerBranch, LfBranch controlledBranch, EquationTerm<AcVariableType, AcEquationType> i) {
-            double sensi = i.calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
+        double calculateSensitivityFromA2S(LfBranch controllerBranch, LfBranch controlledBranch, EquationTerm<AcVariableType, AcEquationType> s) {
+            double sensi = s.calculateSensi(getSensitivities(), controllerBranchIndex[controllerBranch.getNum()]);
             if (controllerBranch == controlledBranch) {
                 var a1Var = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_ALPHA1);
-                sensi += Math.toRadians(i.der(a1Var));
+                sensi += Math.toRadians(s.der(a1Var));
             }
             return sensi;
         }
@@ -144,7 +156,6 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         for (DiscretePhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controllerBranch = phaseControl.getController();
             LfBranch controlledBranch = phaseControl.getControlled();
-            double sensiA2I = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, controlledBranch, phaseControl.getControlledSide());
             var i = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
                     ? controlledBranch.getI1() : controlledBranch.getI2();
             double iValue = i.eval();
@@ -152,7 +163,8 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                 var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
                 double ib = PerUnit.ib(controllerBranch.getBus1().getNominalV());
                 double di = phaseControl.getTargetValue() - iValue;
-                double da = Math.toRadians(di / sensiA2I);
+                double a2i = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, controlledBranch, phaseControl.getControlledSide());
+                double da = Math.toRadians(di / a2i);
                 LOGGER.debug("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
                         controlledBranch.getId(), iValue * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
                 PiModel piModel = controllerBranch.getPiModel();
