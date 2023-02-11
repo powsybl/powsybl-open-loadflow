@@ -15,13 +15,17 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.DiscretePhaseControl;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.Range;
-import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -110,26 +114,19 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         }
     }
 
-    @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        final MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
+    private static boolean checkCurrentLimiterPhaseControls(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                            JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix,
+                                                            IncrementalContextData contextData, List<DiscretePhaseControl> currentLimiterPhaseControls) {
+        MutableBoolean updated = new MutableBoolean(false);
 
-        var contextData = (IncrementalContextData) context.getData();
-
-        LfNetwork network = context.getNetwork();
-
-        List<LfBranch> controllerBranches = getControllerBranches(network);
-
-        // find list of phase controls that are in current limiter
-        List<DiscretePhaseControl> currentLimiterPhaseControls = controllerBranches.stream()
-                .flatMap(branch -> branch.getDiscretePhaseControl().stream())
-                .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.LIMITER)
+        List<LfBranch> controllerBranches = currentLimiterPhaseControls.stream()
+                .map(DiscretePhaseControl::getController)
                 .collect(Collectors.toList());
 
         var sensitivityContext = new SensitivityContext(network,
                                                         controllerBranches,
-                                                        context.getAcLoadFlowContext().getEquationSystem(),
-                                                        context.getAcLoadFlowContext().getJacobianMatrix());
+                                                        equationSystem,
+                                                        jacobianMatrix);
 
         for (DiscretePhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controllerBranch = phaseControl.getController();
@@ -149,7 +146,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                 Range<Integer> tapPositionRange = piModel.getTapPositionRange();
                 piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                     controllerContext.updateAllowedDirection(direction);
-                    status.setValue(OuterLoopStatus.UNSTABLE);
+                    updated.setValue(true);
                 });
 
                 if (piModel.getTapPosition() != oldTapPosition) {
@@ -159,6 +156,50 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             }
         }
 
-        return status.getValue();
+        return updated.booleanValue();
+    }
+
+    @Override
+    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+
+        var contextData = (IncrementalContextData) context.getData();
+
+        LfNetwork network = context.getNetwork();
+
+        List<LfBranch> controllerBranches = getControllerBranches(network);
+
+        // find list of phase controls that are in current limiter and active power control
+        List<DiscretePhaseControl> activePowerControlPhaseControls = new ArrayList<>();
+        List<DiscretePhaseControl> currentLimiterPhaseControls = new ArrayList<>();
+        for (LfBranch controllerBranch : controllerBranches) {
+            controllerBranch.getDiscretePhaseControl().ifPresent(phaseControl -> {
+                switch (phaseControl.getMode()) {
+                    case CONTROLLER:
+                        activePowerControlPhaseControls.add(phaseControl);
+                        break;
+                    case LIMITER:
+                        currentLimiterPhaseControls.add(phaseControl);
+                        break;
+                    default:
+                        break;
+                }
+            });
+        }
+
+        if (!currentLimiterPhaseControls.isEmpty()
+                && checkCurrentLimiterPhaseControls(network,
+                                                    context.getAcLoadFlowContext().getEquationSystem(),
+                                                    context.getAcLoadFlowContext().getJacobianMatrix(),
+                                                    contextData,
+                                                    currentLimiterPhaseControls)) {
+            status = OuterLoopStatus.UNSTABLE;
+        }
+
+        if (!activePowerControlPhaseControls.isEmpty()) {
+            // TODO
+        }
+
+        return status;
     }
 }
