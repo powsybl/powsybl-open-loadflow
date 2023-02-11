@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -96,7 +95,17 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getI2();
         }
 
-        double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch, EquationTerm<AcVariableType, AcEquationType> i) {
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<AcVariableType, AcEquationType> getP1(LfBranch controlledBranch) {
+            return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getP1();
+        }
+
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<AcVariableType, AcEquationType> getP2(LfBranch controlledBranch) {
+            return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getP2();
+        }
+
+        double calculateSensitivityFromA2S(LfBranch controllerBranch, LfBranch controlledBranch, EquationTerm<AcVariableType, AcEquationType> i) {
             double sensi = i.calculateSensi(sensitivities, controllerBranchIndex[controllerBranch.getNum()]);
             if (controllerBranch == controlledBranch) {
                 var a1Var = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_ALPHA1);
@@ -106,40 +115,46 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         }
 
         double calculateSensitivityFromA2I1(LfBranch controllerBranch, LfBranch controlledBranch) {
-            return calculateSensitivityFromA2I(controllerBranch, controlledBranch, getI1(controlledBranch));
+            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, getI1(controlledBranch));
         }
 
         double calculateSensitivityFromA2I2(LfBranch controllerBranch, LfBranch controlledBranch) {
-            return calculateSensitivityFromA2I(controllerBranch, controlledBranch, getI2(controlledBranch));
+            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, getI2(controlledBranch));
+        }
+
+        double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch,
+                                           DiscretePhaseControl.ControlledSide controlledSide) {
+            var i = controlledSide == DiscretePhaseControl.ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
+            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, i);
+        }
+
+        double calculateSensitivityFromA2P1(LfBranch controllerBranch, LfBranch controlledBranch) {
+            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, getP1(controlledBranch));
+        }
+
+        double calculateSensitivityFromA2P2(LfBranch controllerBranch, LfBranch controlledBranch) {
+            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, getP2(controlledBranch));
         }
     }
 
-    private static boolean checkCurrentLimiterPhaseControls(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                            JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix,
-                                                            IncrementalContextData contextData, List<DiscretePhaseControl> currentLimiterPhaseControls) {
+    private static boolean checkCurrentLimiterPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
+                                                            List<DiscretePhaseControl> currentLimiterPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
-
-        List<LfBranch> controllerBranches = currentLimiterPhaseControls.stream()
-                .map(DiscretePhaseControl::getController)
-                .collect(Collectors.toList());
-
-        var sensitivityContext = new SensitivityContext(network,
-                                                        controllerBranches,
-                                                        equationSystem,
-                                                        jacobianMatrix);
 
         for (DiscretePhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controllerBranch = phaseControl.getController();
             LfBranch controlledBranch = phaseControl.getControlled();
-            double sensiA2I = sensitivityContext.calculateSensitivityFromA2I1(controllerBranch, controlledBranch);
-            double i1 = controllerBranch.getI1().eval();
-            if (i1 > phaseControl.getTargetValue()) {
+            double sensiA2I = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, controlledBranch, phaseControl.getControlledSide());
+            var i = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
+                    ? controlledBranch.getI1() : controlledBranch.getI2();
+            double iValue = i.eval();
+            if (iValue > phaseControl.getTargetValue()) {
                 var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
                 double ib = PerUnit.ib(controllerBranch.getBus1().getNominalV());
-                double di = phaseControl.getTargetValue() - i1;
+                double di = phaseControl.getTargetValue() - iValue;
                 double da = Math.toRadians(di / sensiA2I);
                 LOGGER.debug("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
-                        controlledBranch.getId(), i1 * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
+                        controlledBranch.getId(), iValue * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
                 PiModel piModel = controllerBranch.getPiModel();
 
                 int oldTapPosition = piModel.getTapPosition();
@@ -159,6 +174,20 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         return updated.booleanValue();
     }
 
+    private static boolean checkActivePowerTargetPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
+                                                               List<DiscretePhaseControl> activePowerTargetPhaseControls) {
+        MutableBoolean updated = new MutableBoolean(false);
+
+        for (DiscretePhaseControl phaseControl : activePowerTargetPhaseControls) {
+            LfBranch controllerBranch = phaseControl.getController();
+            LfBranch controlledBranch = phaseControl.getControlled();
+
+            // TODO
+        }
+
+        return updated.booleanValue();
+    }
+
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
@@ -170,13 +199,13 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         List<LfBranch> controllerBranches = getControllerBranches(network);
 
         // find list of phase controls that are in current limiter and active power control
-        List<DiscretePhaseControl> activePowerControlPhaseControls = new ArrayList<>();
+        List<DiscretePhaseControl> activePowerTargetPhaseControls = new ArrayList<>();
         List<DiscretePhaseControl> currentLimiterPhaseControls = new ArrayList<>();
         for (LfBranch controllerBranch : controllerBranches) {
             controllerBranch.getDiscretePhaseControl().ifPresent(phaseControl -> {
                 switch (phaseControl.getMode()) {
                     case CONTROLLER:
-                        activePowerControlPhaseControls.add(phaseControl);
+                        activePowerTargetPhaseControls.add(phaseControl);
                         break;
                     case LIMITER:
                         currentLimiterPhaseControls.add(phaseControl);
@@ -187,17 +216,25 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             });
         }
 
-        if (!currentLimiterPhaseControls.isEmpty()
-                && checkCurrentLimiterPhaseControls(network,
-                                                    context.getAcLoadFlowContext().getEquationSystem(),
-                                                    context.getAcLoadFlowContext().getJacobianMatrix(),
-                                                    contextData,
-                                                    currentLimiterPhaseControls)) {
-            status = OuterLoopStatus.UNSTABLE;
-        }
+        if (!currentLimiterPhaseControls.isEmpty() || !activePowerTargetPhaseControls.isEmpty()) {
+            var sensitivityContext = new SensitivityContext(network,
+                                                            controllerBranches,
+                                                            context.getAcLoadFlowContext().getEquationSystem(),
+                                                            context.getAcLoadFlowContext().getJacobianMatrix());
 
-        if (!activePowerControlPhaseControls.isEmpty()) {
-            // TODO
+            if (!currentLimiterPhaseControls.isEmpty()
+                    && checkCurrentLimiterPhaseControls(sensitivityContext,
+                                                        contextData,
+                                                        currentLimiterPhaseControls)) {
+                status = OuterLoopStatus.UNSTABLE;
+            }
+
+            if (!activePowerTargetPhaseControls.isEmpty()
+                    && checkActivePowerTargetPhaseControls(sensitivityContext,
+                                                           contextData,
+                                                           activePowerTargetPhaseControls)) {
+                status = OuterLoopStatus.UNSTABLE;
+            }
         }
 
         return status;
