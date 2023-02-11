@@ -201,7 +201,7 @@ public class PiModelArray implements PiModel {
             int nextTapPositionIndex;
             while ((nextTapPositionIndex = nextTapPositionIndex(currentTapPositionIndex, remainingValueShift, models, valueGetter)) != -1) {
                 if (!positionIndexRange.contains(nextTapPositionIndex)
-                        || Math.abs(currentTapPositionIndex - tapPositionIndex) > maxTapShift) {
+                        || Math.abs(nextTapPositionIndex - tapPositionIndex) > maxTapShift) {
                     break;
                 }
                 double value = valueGetter.applyAsDouble(models.get(currentTapPositionIndex));

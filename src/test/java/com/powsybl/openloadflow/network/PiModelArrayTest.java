@@ -148,5 +148,6 @@ class PiModelArrayTest {
         assertEquals(2, new FirstTapPositionAboveFinder(0.12).find(piModelArray.getModels(), 0, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
         assertEquals(2, new FirstTapPositionAboveFinder(5).find(piModelArray.getModels(), 0, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
         assertEquals(1, new FirstTapPositionAboveFinder(5).find(piModelArray.getModels(), 0, PiModel::getA1, Range.between(0, 1), Integer.MAX_VALUE));
+        assertEquals(1, new FirstTapPositionAboveFinder(5).find(piModelArray.getModels(), 0, PiModel::getA1, Range.between(0, 2), 1));
     }
 }
