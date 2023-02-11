@@ -141,35 +141,26 @@ public class PiModelArray implements PiModel {
         return closestTapPositionIndex;
     }
 
+    private boolean isDescending(int n1, int n2, double valueShift, ToDoubleFunction<PiModel> valueGetter) {
+        return valueShift > 0 ? valueGetter.applyAsDouble(models.get(n1)) < valueGetter.applyAsDouble(models.get(n2))
+                              : valueGetter.applyAsDouble(models.get(n1)) > valueGetter.applyAsDouble(models.get(n2));
+    }
+
     int nextTapPositionIndex(int i, double valueShift, ToDoubleFunction<PiModel> valueGetter) {
-        double value = valueGetter.applyAsDouble(models.get(i));
-        if (valueShift > 0) {
-            if (i == 0 && valueGetter.applyAsDouble(models.get(i + 1)) < value) {
-                return -1;
-            }
-            if (i > 0 && valueGetter.applyAsDouble(models.get(i - 1)) > value) {
-                return i - 1;
-            }
-            if (i < models.size() - 1 && valueGetter.applyAsDouble(models.get(i + 1)) > value) {
-                return i + 1;
-            }
-            if (i == models.size() - 1 && valueGetter.applyAsDouble(models.get(i - 1)) < value) {
-                return -1;
-            }
+        if (valueShift == 0) {
+            return -1;
         }
-        if (valueShift < 0) {
-            if (i == 0 && valueGetter.applyAsDouble(models.get(i + 1)) > value) {
-                return -1;
-            }
-            if (i > 0 && valueGetter.applyAsDouble(models.get(i - 1)) < value) {
-                return i - 1;
-            }
-            if (i < models.size() - 1 && valueGetter.applyAsDouble(models.get(i + 1)) < value) {
-                return i + 1;
-            }
-            if (i == models.size() - 1 && valueGetter.applyAsDouble(models.get(i - 1)) > value) {
-                return -1;
-            }
+        if (i == 0 && isDescending(i + 1, i, valueShift, valueGetter)) {
+            return -1;
+        }
+        if (i > 0 && isDescending(i, i - 1, valueShift, valueGetter)) {
+            return i - 1;
+        }
+        if (i < models.size() - 1 && isDescending(i, i + 1, valueShift, valueGetter)) {
+            return i + 1;
+        }
+        if (i == models.size() - 1 && isDescending(i, i - 1, valueShift, valueGetter)) {
+            return -1;
         }
         return -1;
     }

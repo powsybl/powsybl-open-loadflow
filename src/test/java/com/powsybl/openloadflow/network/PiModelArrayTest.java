@@ -22,27 +22,31 @@ import org.mockito.Mockito;
 class PiModelArrayTest {
 
     private PiModelArray piModelArray;
+    private SimplePiModel piModel1;
+    private SimplePiModel piModel2;
+    private SimplePiModel piModel3;
+    private LfBranch branch;
 
     @BeforeEach
     void setUp() {
-        SimplePiModel piModel1 = new SimplePiModel()
+        piModel1 = new SimplePiModel()
                 .setR(1)
                 .setX(2.4)
                 .setR1(1)
                 .setA1(0);
-        SimplePiModel piModel2 = new SimplePiModel()
+        piModel2 = new SimplePiModel()
                 .setR(1.01)
                 .setX(2.41)
                 .setR1(1.1)
                 .setA1(0.1);
-        SimplePiModel piModel3 = new SimplePiModel()
+        piModel3 = new SimplePiModel()
                 .setR(1.05)
                 .setX(2.43)
                 .setR1(1.2)
                 .setA1(0.2);
         LfNetwork network = Mockito.mock(LfNetwork.class);
         Mockito.when(network.getListeners()).thenReturn(Collections.emptyList());
-        LfBranch branch = Mockito.mock(LfBranch.class);
+        branch = Mockito.mock(LfBranch.class);
         Mockito.when(branch.getNetwork()).thenReturn(network);
         piModelArray = new PiModelArray(List.of(piModel1, piModel2, piModel3), 1, 2);
         piModelArray.setBranch(branch);
@@ -114,6 +118,22 @@ class PiModelArrayTest {
         assertEquals(-1, piModelArray.nextTapPositionIndex(2, 0.01, PiModel::getA1));
         assertEquals(1, piModelArray.nextTapPositionIndex(2, -0.01, PiModel::getA1));
         assertEquals(1, piModelArray.nextTapPositionIndex(2, -1, PiModel::getA1));
+    }
+
+    @Test
+    void nextTapPositionIndexOnReversePiModelArrayTest() {
+        PiModelArray reversedPiModelArray = new PiModelArray(List.of(piModel3, piModel2, piModel1), 1, 2);
+        reversedPiModelArray.setBranch(branch);
+        assertEquals(2, reversedPiModelArray.nextTapPositionIndex(1, -0.01, PiModel::getA1));
+        assertEquals(0, reversedPiModelArray.nextTapPositionIndex(1, 0.01, PiModel::getA1));
+        assertEquals(2, reversedPiModelArray.nextTapPositionIndex(1, -0.5, PiModel::getA1));
+        assertEquals(0, reversedPiModelArray.nextTapPositionIndex(1, 0.5, PiModel::getA1));
+        assertEquals(1, reversedPiModelArray.nextTapPositionIndex(0, -0.01, PiModel::getA1));
+        assertEquals(-1, reversedPiModelArray.nextTapPositionIndex(0, 0.01, PiModel::getA1));
+        assertEquals(-1, reversedPiModelArray.nextTapPositionIndex(0, 1, PiModel::getA1));
+        assertEquals(1, reversedPiModelArray.nextTapPositionIndex(2, 0.01, PiModel::getA1));
+        assertEquals(-1, reversedPiModelArray.nextTapPositionIndex(2, -0.01, PiModel::getA1));
+        assertEquals(-1, reversedPiModelArray.nextTapPositionIndex(2, -1, PiModel::getA1));
     }
 
     @Test
