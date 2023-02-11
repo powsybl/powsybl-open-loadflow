@@ -168,22 +168,19 @@ public class PiModelArray implements PiModel {
     int findFirstTapPositionAbove(double valueShift, ToDoubleFunction<PiModel> valueGetter,
                                   Range<Integer> positionIndexRange, int maxTapShift) {
         int currentTapPositionIndex = tapPositionIndex;
-        int nextTapPositionIndex;
         double remainingValueShift = valueShift;
+        int nextTapPositionIndex;
         while ((nextTapPositionIndex = nextTapPositionIndex(currentTapPositionIndex, remainingValueShift, valueGetter)) != -1) {
-            if (!positionIndexRange.contains(nextTapPositionIndex)) {
-                break;
-            }
-            if (Math.abs(nextTapPositionIndex - currentTapPositionIndex) > maxTapShift) {
+            if (!positionIndexRange.contains(nextTapPositionIndex)
+                    || Math.abs(nextTapPositionIndex - currentTapPositionIndex) > maxTapShift) {
                 break;
             }
             double value = valueGetter.applyAsDouble(models.get(currentTapPositionIndex));
             double nextValue = valueGetter.applyAsDouble(models.get(nextTapPositionIndex));
             currentTapPositionIndex = nextTapPositionIndex;
-            if (remainingValueShift < 0 && value + remainingValueShift > nextValue) {
-                break;
-            }
-            if (remainingValueShift > 0 && value + remainingValueShift < nextValue) {
+            // stop when shift is not enough to go to next position
+            if ((remainingValueShift < 0 && value + remainingValueShift > nextValue)
+                    || (remainingValueShift > 0 && value + remainingValueShift < nextValue)) {
                 break;
             }
             remainingValueShift -= nextValue - value;
