@@ -37,6 +37,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
     private static final int MAX_TAP_SHIFT = Integer.MAX_VALUE;
     private static final double MIN_TARGET_DEADBAND = 1 / PerUnit.SB; // 1 MW
     private static final double SENSI_EPS = 1e-6;
+    private static final double PHASE_SHIFT_CROSS_IMPACT_COEFF = 0.75;
 
     @Override
     public String getType() {
@@ -150,18 +151,19 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             double iValue = i.eval();
             if (iValue > phaseControl.getTargetValue()) {
                 var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                LfBus bus = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
-                        ? controllerBranch.getBus1() : controllerBranch.getBus2();
-                double ib = PerUnit.ib(bus.getNominalV());
                 double di = phaseControl.getTargetValue() - iValue;
                 double a2i = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, controlledBranch, phaseControl.getControlledSide());
                 if (Math.abs(a2i) > SENSI_EPS) {
                     double da = Math.toRadians(di / a2i);
+                    LfBus bus = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
+                            ? controlledBranch.getBus1() : controlledBranch.getBus2();
+                    double ib = PerUnit.ib(bus.getNominalV());
                     LOGGER.trace("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
                             controlledBranch.getId(), iValue * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
                     PiModel piModel = controllerBranch.getPiModel();
 
                     int oldTapPosition = piModel.getTapPosition();
+                    double oldA1 = piModel.getA1();
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
                     piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                         controllerContext.updateAllowedDirection(direction);
@@ -171,12 +173,43 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                     if (piModel.getTapPosition() != oldTapPosition) {
                         LOGGER.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
+
+                        double discreteDa = piModel.getA1() - oldA1;
+                        checkImpactOnOtherPhaseShifters(sensitivityContext, phaseControl, currentLimiterPhaseControls, discreteDa);
                     }
                 }
             }
         }
 
         return updated.booleanValue();
+    }
+
+    private static void checkImpactOnOtherPhaseShifters(SensitivityContext sensitivityContext, DiscretePhaseControl phaseControl,
+                                                        List<DiscretePhaseControl> currentLimiterPhaseControls, double da) {
+        LfBranch controllerBranch = phaseControl.getController();
+        for (DiscretePhaseControl otherPhaseControl : currentLimiterPhaseControls) {
+            if (otherPhaseControl != phaseControl) {
+                LfBranch otherControlledBranch = otherPhaseControl.getControlled();
+                var i = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
+                        ? otherControlledBranch.getI1() : otherControlledBranch.getI2();
+                double iValue = i.eval();
+                if (iValue > otherPhaseControl.getTargetValue()) {
+                    // get cross sensitivity of the phase shifter controller branch on the other phase shifter controlled branch
+                    double crossA2i = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, otherControlledBranch,
+                            otherPhaseControl.getControlledSide());
+                    if (Math.abs(crossA2i) > SENSI_EPS) {
+                        LfBus bus = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
+                                ? otherControlledBranch.getBus1() : otherControlledBranch.getBus2();
+                        double ib = PerUnit.ib(bus.getNominalV());
+                        double di = Math.toDegrees(da) * crossA2i;
+                        if (di > PHASE_SHIFT_CROSS_IMPACT_COEFF * Math.abs(otherPhaseControl.getTargetValue() - iValue)) {
+                            LOGGER.warn("Controller branch '{}' tap change significantly impact (≈ {} A) another phase shifter current also above its limit '{}', simulation might not be reliable",
+                                    controllerBranch.getId(), di * ib, otherPhaseControl.getController().getId());
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static double getHalfTargetDeadband(DiscretePhaseControl phaseControl) {
