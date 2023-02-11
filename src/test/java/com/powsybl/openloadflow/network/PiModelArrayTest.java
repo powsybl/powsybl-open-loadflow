@@ -101,4 +101,37 @@ class PiModelArrayTest {
         piModelArray.updateTapPositionToReachNewR1(-0.08d, 1, AllowedDirection.BOTH);
         assertEquals(1, piModelArray.getTapPosition());
     }
+
+    @Test
+    void nextTapPositionIndexTest() {
+        assertEquals(0, piModelArray.nextTapPositionIndex(1, -0.01, PiModel::getA1));
+        assertEquals(2, piModelArray.nextTapPositionIndex(1, 0.01, PiModel::getA1));
+        assertEquals(0, piModelArray.nextTapPositionIndex(1, -0.5, PiModel::getA1));
+        assertEquals(2, piModelArray.nextTapPositionIndex(1, 0.5, PiModel::getA1));
+        assertEquals(-1, piModelArray.nextTapPositionIndex(0, -0.01, PiModel::getA1));
+        assertEquals(1, piModelArray.nextTapPositionIndex(0, 0.01, PiModel::getA1));
+        assertEquals(1, piModelArray.nextTapPositionIndex(0, 1, PiModel::getA1));
+        assertEquals(-1, piModelArray.nextTapPositionIndex(2, 0.01, PiModel::getA1));
+        assertEquals(1, piModelArray.nextTapPositionIndex(2, -0.01, PiModel::getA1));
+        assertEquals(1, piModelArray.nextTapPositionIndex(2, -1, PiModel::getA1));
+    }
+
+    @Test
+    void findFirstTapPositionAboveTest() {
+        assertEquals(0, piModelArray.findFirstTapPositionAbove(-0.01, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
+        piModelArray.setTapPosition(3);
+        assertEquals(1, piModelArray.findFirstTapPositionAbove(-0.01, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
+        piModelArray.setTapPosition(3);
+        assertEquals(0, piModelArray.findFirstTapPositionAbove(-0.11, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
+        piModelArray.setTapPosition(3);
+        assertEquals(0, piModelArray.findFirstTapPositionAbove(-100, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
+        piModelArray.setTapPosition(1);
+        assertEquals(1, piModelArray.findFirstTapPositionAbove(0.01, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
+        piModelArray.setTapPosition(1);
+        assertEquals(2, piModelArray.findFirstTapPositionAbove(0.12, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
+        piModelArray.setTapPosition(1);
+        assertEquals(2, piModelArray.findFirstTapPositionAbove(5, PiModel::getA1, Range.between(0, 2), Integer.MAX_VALUE));
+        piModelArray.setTapPosition(1);
+        assertEquals(1, piModelArray.findFirstTapPositionAbove(5, PiModel::getA1, Range.between(0, 1), Integer.MAX_VALUE));
+    }
 }

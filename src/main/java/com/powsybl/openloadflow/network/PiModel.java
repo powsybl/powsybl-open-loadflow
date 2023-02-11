@@ -61,8 +61,6 @@ public interface PiModel {
 
     Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection);
 
-    Optional<Direction> probeDirectionToShiftA1(double deltaA1);
-
     boolean setMinZ(double minZ, boolean dc);
 
     void setBranch(LfBranch branch);
