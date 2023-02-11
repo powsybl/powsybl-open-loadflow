@@ -126,6 +126,7 @@ class PiModelArrayTest {
     void nextTapPositionIndexOnReversePiModelArrayTest() {
         PiModelArray reversedPiModelArray = new PiModelArray(List.of(piModel3, piModel2, piModel1), 1, 2);
         reversedPiModelArray.setBranch(branch);
+        assertEquals(-1, nextTapPositionIndex(1, 0, reversedPiModelArray.getModels(), PiModel::getA1));
         assertEquals(2, nextTapPositionIndex(1, -0.01, reversedPiModelArray.getModels(), PiModel::getA1));
         assertEquals(0, nextTapPositionIndex(1, 0.01, reversedPiModelArray.getModels(), PiModel::getA1));
         assertEquals(2, nextTapPositionIndex(1, -0.5, reversedPiModelArray.getModels(), PiModel::getA1));

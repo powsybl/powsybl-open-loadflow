@@ -37,7 +37,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
     private static final int MAX_TAP_SHIFT = Integer.MAX_VALUE;
     private static final double MIN_TARGET_DEADBAND = 1 / PerUnit.SB; // 1 MW
     private static final double SENSI_EPS = 1e-6;
-    private static final double PHASE_SHIFT_CROSS_IMPACT_COEFF = 0.75;
+    private static final double PHASE_SHIFT_CROSS_IMPACT_MARGIN = 0.75;
 
     @Override
     public String getType() {
@@ -205,7 +205,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                             otherPhaseControl.getControlledSide());
                     double ib = computeIb(otherPhaseControl);
                     double di = Math.toDegrees(da) * crossA2i;
-                    if (di > PHASE_SHIFT_CROSS_IMPACT_COEFF * Math.abs(otherPhaseControl.getTargetValue() - i)) {
+                    if (di > PHASE_SHIFT_CROSS_IMPACT_MARGIN * (i - otherPhaseControl.getTargetValue())) {
                         LOGGER.warn("Controller branch '{}' tap change significantly impact (≈ {} A) another phase shifter current also above its limit '{}', simulation might not be reliable",
                                 controllerBranch.getId(), di * ib, otherPhaseControl.getControlled().getId());
                     }
