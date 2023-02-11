@@ -321,10 +321,22 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+    public Optional<Direction> updateTapPositionToExceedNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
         Range<Integer> positionIndexRange = getAllowedPositionIndexRange(allowedDirection);
         Optional<Direction> direction = updateTapPosition(PiModel::getA1, positionIndexRange, maxTapShift,
                 new FirstTapPositionAboveFinder(deltaA1));
+        if (direction.isPresent()) {
+            a1 = Double.NaN;
+        }
+        return direction;
+    }
+
+    @Override
+    public Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+        double newA1 = getA1() + deltaA1;
+        Range<Integer> positionIndexRange = getAllowedPositionIndexRange(allowedDirection);
+        Optional<Direction> direction = updateTapPosition(PiModel::getA1, positionIndexRange, maxTapShift,
+                new ClosestTapPositionFinder(newA1));
         if (direction.isPresent()) {
             a1 = Double.NaN;
         }

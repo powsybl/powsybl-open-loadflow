@@ -15,10 +15,7 @@ import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.network.DiscretePhaseControl;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -38,6 +35,8 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
     private static final int MAX_DIRECTION_CHANGE = 2;
     private static final int MAX_TAP_SHIFT = Integer.MAX_VALUE;
+    private static final double MIN_TARGET_DEADBAND = 1 / PerUnit.SB; // 1 MW
+    private static final double SENSI_EPS = 1e-6;
 
     @Override
     public String getType() {
@@ -126,26 +125,16 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             return sensi;
         }
 
-        double calculateSensitivityFromA2I1(LfBranch controllerBranch, LfBranch controlledBranch) {
-            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, getI1(controlledBranch));
-        }
-
-        double calculateSensitivityFromA2I2(LfBranch controllerBranch, LfBranch controlledBranch) {
-            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, getI2(controlledBranch));
-        }
-
         double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch,
                                            DiscretePhaseControl.ControlledSide controlledSide) {
             var i = controlledSide == DiscretePhaseControl.ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
             return calculateSensitivityFromA2S(controllerBranch, controlledBranch, i);
         }
 
-        double calculateSensitivityFromA2P1(LfBranch controllerBranch, LfBranch controlledBranch) {
-            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, getP1(controlledBranch));
-        }
-
-        double calculateSensitivityFromA2P2(LfBranch controllerBranch, LfBranch controlledBranch) {
-            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, getP2(controlledBranch));
+        double calculateSensitivityFromA2P(LfBranch controllerBranch, LfBranch controlledBranch,
+                                           DiscretePhaseControl.ControlledSide controlledSide) {
+            var p = controlledSide == DiscretePhaseControl.ControlledSide.ONE ? getP1(controlledBranch) : getP2(controlledBranch);
+            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, p);
         }
     }
 
@@ -161,24 +150,28 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             double iValue = i.eval();
             if (iValue > phaseControl.getTargetValue()) {
                 var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                double ib = PerUnit.ib(controllerBranch.getBus1().getNominalV());
+                LfBus bus = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
+                        ? controllerBranch.getBus1() : controllerBranch.getBus2();
+                double ib = PerUnit.ib(bus.getNominalV());
                 double di = phaseControl.getTargetValue() - iValue;
                 double a2i = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, controlledBranch, phaseControl.getControlledSide());
-                double da = Math.toRadians(di / a2i);
-                LOGGER.debug("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
-                        controlledBranch.getId(), iValue * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
-                PiModel piModel = controllerBranch.getPiModel();
+                if (Math.abs(a2i) > SENSI_EPS) {
+                    double da = Math.toRadians(di / a2i);
+                    LOGGER.trace("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
+                            controlledBranch.getId(), iValue * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
+                    PiModel piModel = controllerBranch.getPiModel();
 
-                int oldTapPosition = piModel.getTapPosition();
-                Range<Integer> tapPositionRange = piModel.getTapPositionRange();
-                piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                    controllerContext.updateAllowedDirection(direction);
-                    updated.setValue(true);
-                });
+                    int oldTapPosition = piModel.getTapPosition();
+                    Range<Integer> tapPositionRange = piModel.getTapPositionRange();
+                    piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                        controllerContext.updateAllowedDirection(direction);
+                        updated.setValue(true);
+                    });
 
-                if (piModel.getTapPosition() != oldTapPosition) {
-                    LOGGER.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
-                            oldTapPosition, piModel.getTapPosition(), tapPositionRange);
+                    if (piModel.getTapPosition() != oldTapPosition) {
+                        LOGGER.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
+                                oldTapPosition, piModel.getTapPosition(), tapPositionRange);
+                    }
                 }
             }
         }
@@ -186,15 +179,44 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         return updated.booleanValue();
     }
 
-    private static boolean checkActivePowerTargetPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                               List<DiscretePhaseControl> activePowerTargetPhaseControls) {
+    private static double getHalfTargetDeadband(DiscretePhaseControl phaseControl) {
+        return Math.max(phaseControl.getTargetDeadband(), MIN_TARGET_DEADBAND) / 2;
+    }
+
+    private static boolean checkActivePowerControlPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
+                                                                List<DiscretePhaseControl> activePowerControlPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
 
-        for (DiscretePhaseControl phaseControl : activePowerTargetPhaseControls) {
+        for (DiscretePhaseControl phaseControl : activePowerControlPhaseControls) {
             LfBranch controllerBranch = phaseControl.getController();
             LfBranch controlledBranch = phaseControl.getControlled();
+            var p = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
+                    ? controlledBranch.getP1() : controlledBranch.getP2();
+            double pValue = p.eval();
+            double halfTargetDeadband = getHalfTargetDeadband(phaseControl);
+            if (Math.abs(pValue - phaseControl.getTargetValue()) > halfTargetDeadband) {
+                var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+                double dp = phaseControl.getTargetValue() - pValue;
+                double a2p = sensitivityContext.calculateSensitivityFromA2P(controllerBranch, controlledBranch, phaseControl.getControlledSide());
+                if (Math.abs(a2p) > SENSI_EPS) {
+                    double da = Math.toRadians(dp / a2p);
+                    LOGGER.trace("Controlled branch '{}' active power is {} MW and out of target value {} MW (half deadband={} MW), a phase shift of {}° is required",
+                            controlledBranch.getId(), pValue * PerUnit.SB, phaseControl.getTargetValue() * PerUnit.SB, halfTargetDeadband * PerUnit.SB, Math.toDegrees(da));
+                    PiModel piModel = controllerBranch.getPiModel();
 
-            // TODO
+                    int oldTapPosition = piModel.getTapPosition();
+                    Range<Integer> tapPositionRange = piModel.getTapPositionRange();
+                    piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                        controllerContext.updateAllowedDirection(direction);
+                        updated.setValue(true);
+                    });
+
+                    if (piModel.getTapPosition() != oldTapPosition) {
+                        LOGGER.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),
+                                oldTapPosition, piModel.getTapPosition(), tapPositionRange);
+                    }
+                }
+            }
         }
 
         return updated.booleanValue();
@@ -211,13 +233,13 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         List<LfBranch> controllerBranches = getControllerBranches(network);
 
         // find list of phase controls that are in current limiter and active power control
-        List<DiscretePhaseControl> activePowerTargetPhaseControls = new ArrayList<>();
+        List<DiscretePhaseControl> activePowerControlPhaseControls = new ArrayList<>();
         List<DiscretePhaseControl> currentLimiterPhaseControls = new ArrayList<>();
         for (LfBranch controllerBranch : controllerBranches) {
             controllerBranch.getDiscretePhaseControl().ifPresent(phaseControl -> {
                 switch (phaseControl.getMode()) {
                     case CONTROLLER:
-                        activePowerTargetPhaseControls.add(phaseControl);
+                        activePowerControlPhaseControls.add(phaseControl);
                         break;
                     case LIMITER:
                         currentLimiterPhaseControls.add(phaseControl);
@@ -228,7 +250,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             });
         }
 
-        if (!currentLimiterPhaseControls.isEmpty() || !activePowerTargetPhaseControls.isEmpty()) {
+        if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
             var sensitivityContext = new SensitivityContext(network,
                                                             controllerBranches,
                                                             context.getAcLoadFlowContext().getEquationSystem(),
@@ -241,10 +263,10 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                 status = OuterLoopStatus.UNSTABLE;
             }
 
-            if (!activePowerTargetPhaseControls.isEmpty()
-                    && checkActivePowerTargetPhaseControls(sensitivityContext,
-                                                           contextData,
-                                                           activePowerTargetPhaseControls)) {
+            if (!activePowerControlPhaseControls.isEmpty()
+                    && checkActivePowerControlPhaseControls(sensitivityContext,
+                                                            contextData,
+                                                            activePowerControlPhaseControls)) {
                 status = OuterLoopStatus.UNSTABLE;
             }
         }

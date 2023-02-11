@@ -468,7 +468,7 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    void incrementalPhaseShifterTest() {
+    void incrementalPhaseShifterCurrentLimiterTest() {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
         t2wt.getPhaseTapChanger()
                 .setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
@@ -489,6 +489,37 @@ class AcLoadFlowPhaseShifterTest {
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertCurrentEquals(48.482, t2wt.getTerminal1());
+    }
+
+    @Test
+    void incrementalPhaseShifterActivePowerControlTest() {
+        selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
+        t2wt.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(false)
+                .setTapPosition(1)
+                .setRegulationTerminal(t2wt.getTerminal1())
+                .setRegulationValue(100); // in MW
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertActivePowerEquals(50.088, t2wt.getTerminal1());
+
+        t2wt.getPhaseTapChanger().setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(2, t2wt.getPhaseTapChanger().getTapPosition());
+        assertActivePowerEquals(83.686, t2wt.getTerminal1());
+
+        t2wt.getPhaseTapChanger().setRegulationValue(10);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertEquals(0, t2wt.getPhaseTapChanger().getTapPosition());
+        assertActivePowerEquals(16.541, t2wt.getTerminal1());
     }
 
     @Test
@@ -559,12 +590,12 @@ class AcLoadFlowPhaseShifterTest {
             double da10 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(0).getAlpha();
             double da12 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(2).getAlpha();
             double ib = PerUnit.ib(ps1.getBus1().getNominalV());
-            double sensi1 = sensitivityContext.calculateSensitivityFromA2I1(ps1, ps1);
+            double sensi1 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, DiscretePhaseControl.ControlledSide.ONE);
             double di1t10p = sensi1 * da10 * ib;
             double di1t12p = sensi1 * da12 * ib;
             assertEquals(43.007011829925496, di1t10p, 0d);
             assertEquals(-43.007011829925496, di1t12p, 0d);
-            double sensi2 = sensitivityContext.calculateSensitivityFromA2I2(ps1, ps1);
+            double sensi2 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, DiscretePhaseControl.ControlledSide.TWO);
             double di2t10p = sensi2 * da10 * ib;
             double di2t12p = sensi2 * da12 * ib;
             assertEquals(43.007011829925496, di2t10p, 0d);
