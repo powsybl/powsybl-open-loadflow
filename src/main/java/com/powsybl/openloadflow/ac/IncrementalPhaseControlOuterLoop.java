@@ -203,13 +203,11 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                     // get cross sensitivity of the phase shifter controller branch on the other phase shifter controlled branch
                     double crossA2i = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, otherControlledBranch,
                             otherPhaseControl.getControlledSide());
-                    if (Math.abs(crossA2i) > SENSI_EPS) {
-                        double ib = computeIb(otherPhaseControl);
-                        double di = Math.toDegrees(da) * crossA2i;
-                        if (di > PHASE_SHIFT_CROSS_IMPACT_COEFF * Math.abs(otherPhaseControl.getTargetValue() - i)) {
-                            LOGGER.warn("Controller branch '{}' tap change significantly impact (≈ {} A) another phase shifter current also above its limit '{}', simulation might not be reliable",
-                                    controllerBranch.getId(), di * ib, otherPhaseControl.getControlled().getId());
-                        }
+                    double ib = computeIb(otherPhaseControl);
+                    double di = Math.toDegrees(da) * crossA2i;
+                    if (di > PHASE_SHIFT_CROSS_IMPACT_COEFF * Math.abs(otherPhaseControl.getTargetValue() - i)) {
+                        LOGGER.warn("Controller branch '{}' tap change significantly impact (≈ {} A) another phase shifter current also above its limit '{}', simulation might not be reliable",
+                                controllerBranch.getId(), di * ib, otherPhaseControl.getControlled().getId());
                     }
                 }
             }
