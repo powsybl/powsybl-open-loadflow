@@ -68,21 +68,21 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
         public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                  JacobianMatrix<AcVariableType, AcEquationType> j) {
+                                  JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
             this.equationSystem = Objects.requireNonNull(equationSystem);
             controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
-            sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, j);
+            sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, jacobianMatrix);
         }
 
         private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                              JacobianMatrix<AcVariableType, AcEquationType> j) {
+                                                              JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
             DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
             for (LfBranch controllerBranch : controllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
                         .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], Math.toRadians(1d)));
             }
-            j.solveTransposed(rhs);
+            jacobianMatrix.solveTransposed(rhs);
             return rhs;
         }
 
