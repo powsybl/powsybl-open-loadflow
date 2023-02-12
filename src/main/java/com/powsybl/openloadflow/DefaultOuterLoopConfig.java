@@ -7,8 +7,8 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.*;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 
 import java.util.ArrayList;
