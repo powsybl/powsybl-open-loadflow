@@ -253,11 +253,11 @@ class OpenLoadFlowParametersTest {
         Map<String, String> updateParametersMap = new HashMap<>();
         updateParametersMap.put("slackBusSelectionMode", "MOST_MESHED");
         updateParametersMap.put("voltageRemoteControl", "false");
-        updateParametersMap.put("maxIteration", "10");
+        updateParametersMap.put("maxNewtonRaphsonIterations", "10");
         parameters.update(updateParametersMap);
         assertEquals(SlackBusSelectionMode.MOST_MESHED, parameters.getSlackBusSelectionMode());
         assertFalse(parameters.hasVoltageRemoteControl());
-        assertEquals(10, parameters.getMaxIteration());
+        assertEquals(10, parameters.getMaxNewtonRaphsonIterations());
         assertFalse(parameters.hasReactivePowerRemoteControl());
     }
 
@@ -282,7 +282,7 @@ class OpenLoadFlowParametersTest {
         assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
         var pe = OpenLoadFlowParameters.create(p);
         assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
-        pe.setMaxIteration(20);
+        pe.setMaxNewtonRaphsonIterations(20);
         assertTrue(OpenLoadFlowParameters.equals(p, OpenLoadFlowParameters.clone(p)));
         assertFalse(OpenLoadFlowParameters.equals(new LoadFlowParameters(), OpenLoadFlowParameters.clone(p)));
     }

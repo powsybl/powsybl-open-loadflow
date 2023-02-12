@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,7 @@ public class NewtonRaphson {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-    private int iteration = 0;
+    private int cumulatedIterations = 0;
 
     private final JacobianMatrix<AcVariableType, AcEquationType> j;
 
@@ -64,8 +65,8 @@ public class NewtonRaphson {
                 .collect(Collectors.toList());
     }
 
-    private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling) {
-        LOGGER.debug("Start iteration {}", iteration);
+    private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling, MutableInt iterations) {
+        LOGGER.debug("Start iteration {}/{}", iterations, parameters.getMaxIterations());
 
         try {
             // solve f(x) = j * dx
@@ -109,7 +110,8 @@ public class NewtonRaphson {
 
             return null;
         } finally {
-            iteration++;
+            iterations.increment();
+            cumulatedIterations++;
         }
     }
 
@@ -221,15 +223,16 @@ public class NewtonRaphson {
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
-        while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration(svScaling);
+        MutableInt iterations = new MutableInt();
+        while (iterations.getValue() <= parameters.getMaxIterations()) {
+            NewtonRaphsonStatus newStatus = runIteration(svScaling, iterations);
             if (newStatus != null) {
                 status = newStatus;
                 break;
             }
         }
 
-        if (iteration >= parameters.getMaxIteration()) {
+        if (iterations.getValue() >= parameters.getMaxIterations()) {
             status = NewtonRaphsonStatus.MAX_ITERATION_REACHED;
         }
 
@@ -243,6 +246,6 @@ public class NewtonRaphson {
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);
+        return new NewtonRaphsonResult(status, iterations.getValue(), cumulatedIterations, slackBusActivePowerMismatch);
     }
 }

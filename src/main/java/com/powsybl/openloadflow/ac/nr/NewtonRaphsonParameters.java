@@ -13,22 +13,18 @@ import java.util.Objects;
  */
 public class NewtonRaphsonParameters {
 
-    public static final int DEFAULT_MAX_ITERATION = 30;
+    public static final int DEFAULT_MAX_ITERATIONS = 20;
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
     public static final StateVectorScalingMode DEFAULT_STATE_VECTOR_SCALING_MODE = StateVectorScalingMode.NONE;
 
-    private int maxIteration = DEFAULT_MAX_ITERATION;
+    private int maxIterations = DEFAULT_MAX_ITERATIONS;
 
     private double minRealisticVoltage = DEFAULT_MIN_REALISTIC_VOLTAGE;
 
     private double maxRealisticVoltage = DEFAULT_MAX_REALISTIC_VOLTAGE;
 
     private StateVectorScalingMode stateVectorScalingMode = DEFAULT_STATE_VECTOR_SCALING_MODE;
-
-    public int getMaxIteration() {
-        return maxIteration;
-    }
 
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
@@ -39,8 +35,12 @@ public class NewtonRaphsonParameters {
         return maxIteration;
     }
 
-    public NewtonRaphsonParameters setMaxIteration(int maxIteration) {
-        this.maxIteration = checkMaxIteration(maxIteration);
+    public int getMaxIterations() {
+        return maxIterations;
+    }
+
+    public NewtonRaphsonParameters setMaxIterations(int maxIterations) {
+        this.maxIterations = checkMaxIteration(maxIterations);
         return this;
     }
 
@@ -83,7 +83,7 @@ public class NewtonRaphsonParameters {
     @Override
     public String toString() {
         return "NewtonRaphsonParameters(" +
-                "maxIteration=" + maxIteration +
+                "maxIterations=" + maxIterations +
                 ", minRealisticVoltage=" + minRealisticVoltage +
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +

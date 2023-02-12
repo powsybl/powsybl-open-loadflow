@@ -19,11 +19,11 @@ class NewtonRaphsonParametersTest {
     @Test
     void test() {
         NewtonRaphsonParameters parameters = new NewtonRaphsonParameters();
-        assertEquals(30, parameters.getMaxIteration());
-        parameters.setMaxIteration(40);
-        assertEquals(40, parameters.getMaxIteration());
+        assertEquals(30, parameters.getMaxIterations());
+        parameters.setMaxIterations(40);
+        assertEquals(40, parameters.getMaxIterations());
         try {
-            parameters.setMaxIteration(-3);
+            parameters.setMaxIterations(-3);
             fail();
         } catch (IllegalArgumentException ignored) {
         }

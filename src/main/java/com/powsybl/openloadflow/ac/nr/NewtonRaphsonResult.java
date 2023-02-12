@@ -13,18 +13,18 @@ import java.util.Objects;
  */
 public class NewtonRaphsonResult {
 
-    private final int iteration;
+    private final int iterations;
+
+    private final int cumulatedIterations;
 
     private final NewtonRaphsonStatus status;
 
     private final double slackBusActivePowerMismatch;
 
-    public NewtonRaphsonResult(NewtonRaphsonStatus status, int iteration, double slackBusActivePowerMismatch) {
-        if (iteration < 0) {
-            throw new IllegalArgumentException("Invalid iteration value: " + iteration);
-        }
+    public NewtonRaphsonResult(NewtonRaphsonStatus status, int iterations, int cumulatedIterations, double slackBusActivePowerMismatch) {
         this.status = Objects.requireNonNull(status);
-        this.iteration = iteration;
+        this.iterations = iterations;
+        this.cumulatedIterations = cumulatedIterations;
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
     }
 
@@ -32,8 +32,12 @@ public class NewtonRaphsonResult {
         return status;
     }
 
-    public int getIteration() {
-        return iteration;
+    public int getIterations() {
+        return iterations;
+    }
+
+    public int getCumulatedIterations() {
+        return cumulatedIterations;
     }
 
     public double getSlackBusActivePowerMismatch() {
