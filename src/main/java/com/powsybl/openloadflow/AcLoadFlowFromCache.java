@@ -9,10 +9,10 @@ package com.powsybl.openloadflow;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 
