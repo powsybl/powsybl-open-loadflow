@@ -14,14 +14,10 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ac.IncrementalPhaseControlOuterLoop.SensitivityContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalPhaseControlOuterLoop.SensitivityContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -33,7 +29,8 @@ import java.util.Collections;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>

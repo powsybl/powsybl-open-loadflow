@@ -7,14 +7,10 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.OuterLoopContext;
 import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEquationTerm;
-import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.Direction;
 import com.powsybl.openloadflow.network.DiscretePhaseControl;
 import com.powsybl.openloadflow.network.LfBranch;

@@ -4,14 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.ac.OuterLoopContext;
+import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
@@ -57,7 +57,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         fixPhaseShifterNecessaryForConnectivity(context.getNetwork(), controllerBranches);
     }
 
-    static class SensitivityContext {
+    public static class SensitivityContext {
 
         private final List<LfBranch> controllerBranches;
 
@@ -126,7 +126,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             return sensi;
         }
 
-        double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch,
+        public double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch,
                                            DiscretePhaseControl.ControlledSide controlledSide) {
             var i = controlledSide == DiscretePhaseControl.ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
             return calculateSensitivityFromA2S(controllerBranch, controlledBranch, i);
