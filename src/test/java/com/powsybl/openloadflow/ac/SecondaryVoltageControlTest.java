@@ -107,22 +107,22 @@ class SecondaryVoltageControlTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(14.4, b10);
-        assertVoltageEquals(12.94, b6);
-        assertVoltageEquals(22.3, b8);
+        assertVoltageEquals(13.018, b6);
+        assertVoltageEquals(22.001, b8);
         // not so bad... reactive power shift are closed
-        assertEquals(0.146, q6 - g6.getTerminal().getQ(), DELTA_POWER);
-        assertEquals(15.037, q8 - g8.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(5.047, q6 - g6.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(4.247, q8 - g8.getTerminal().getQ(), DELTA_POWER);
 
         pilotPoint.setTargetV(14);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(14, b10);
-        assertVoltageEquals(12.649, b6);
-        assertVoltageEquals(20.832, b8);
+        assertVoltageEquals(12.5, b6);
+        assertVoltageEquals(21.418, b8);
         // not so bad... reactive power shift are closed
-        assertEquals(-0.238, q6 - g6.getTerminal().getQ(), DELTA_POWER);
-        assertEquals(-27.178, q8 - g8.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(-9.085, q6 - g6.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(-7.918, q8 - g8.getTerminal().getQ(), DELTA_POWER);
     }
 
     @Test
@@ -146,13 +146,13 @@ class SecondaryVoltageControlTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(14, b10);
-        assertVoltageEquals(12.649, b6);
-        assertVoltageEquals(20.832, b8);
-        assertReactivePowerEquals(52.292, g6.getTerminal()); // [-61, 24] => qmin
-        assertReactivePowerEquals(-161.616, g8.getTerminal()); // [-6, 200]
+        assertVoltageEquals(12.505, b6);
+        assertVoltageEquals(21.418, b8);
+        assertReactivePowerEquals(61.0, g6.getTerminal()); // [-61, 24] => qmin
+        assertReactivePowerEquals(-180.829, g8.getTerminal()); // [-6, 200]
     }
 
     @Test

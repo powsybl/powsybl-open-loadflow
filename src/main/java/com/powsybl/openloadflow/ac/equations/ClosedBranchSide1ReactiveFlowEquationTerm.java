@@ -40,7 +40,7 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
                 + dq1dv1(y, cosKsi, b1, v1, r1, v2, cosTheta) * dv1
                 + dq1dv2(y, v1, r1, cosTheta) * dv2
                 + dq1da1(y, v1, r1, v2, sinTheta) * da1
-                + dq1dr1(y, cosKsi, b1, v1, r1, v2, cosTheta);
+                + dq1dr1(y, cosKsi, b1, v1, r1, v2, cosTheta) * dr1;
     }
 
     public static double q1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {
