@@ -117,25 +117,20 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getP2();
         }
 
-        double calculateSensitivityFromA2S(LfBranch controllerBranch, LfBranch controlledBranch, EquationTerm<AcVariableType, AcEquationType> s) {
-            double sensi = s.calculateSensi(getSensitivities(), controllerBranchIndex[controllerBranch.getNum()]);
-            if (controllerBranch == controlledBranch) {
-                var a1Var = equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_ALPHA1);
-                sensi += Math.toRadians(s.der(a1Var));
-            }
-            return sensi;
+        double calculateSensitivityFromA2S(LfBranch controllerBranch, EquationTerm<AcVariableType, AcEquationType> s) {
+            return s.calculateSensi(getSensitivities(), controllerBranchIndex[controllerBranch.getNum()]);
         }
 
         public double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch,
                                            DiscretePhaseControl.ControlledSide controlledSide) {
             var i = controlledSide == DiscretePhaseControl.ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
-            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, i);
+            return calculateSensitivityFromA2S(controllerBranch, i);
         }
 
         double calculateSensitivityFromA2P(LfBranch controllerBranch, LfBranch controlledBranch,
                                            DiscretePhaseControl.ControlledSide controlledSide) {
             var p = controlledSide == DiscretePhaseControl.ControlledSide.ONE ? getP1(controlledBranch) : getP2(controlledBranch);
-            return calculateSensitivityFromA2S(controllerBranch, controlledBranch, p);
+            return calculateSensitivityFromA2S(controllerBranch, p);
         }
     }
 
