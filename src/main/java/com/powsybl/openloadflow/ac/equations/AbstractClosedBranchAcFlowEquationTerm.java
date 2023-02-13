@@ -106,8 +106,8 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
         double dph2 = dx.get(ph2Var.getRow(), column);
         double dv1 = dx.get(v1Var.getRow(), column);
         double dv2 = dx.get(v2Var.getRow(), column);
-        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : element.getPiModel().getA1();
-        double dr1 = r1Var != null ? dx.get(r1Var.getRow(), column) : element.getPiModel().getR1();
+        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : 0;
+        double dr1 = r1Var != null ? dx.get(r1Var.getRow(), column) : 0;
         return calculateSensi(dph1, dph2, dv1, dv2, da1, dr1);
     }
 
