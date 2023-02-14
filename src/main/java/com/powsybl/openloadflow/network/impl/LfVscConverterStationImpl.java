@@ -27,7 +27,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, HvdcConverterStations.getConverterStationTargetP(station));
-        this.stationRef = new Ref<>(station);
+        this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 
         // local control only
