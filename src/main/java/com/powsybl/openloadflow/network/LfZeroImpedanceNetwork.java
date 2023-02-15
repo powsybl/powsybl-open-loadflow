@@ -61,7 +61,7 @@ public class LfZeroImpedanceNetwork {
         var enabledSubGraph = new MaskSubgraph<>(graph, LfElement::isDisabled, LfElement::isDisabled);
         spanningTree = new KruskalMinimumSpanningTree<>(enabledSubGraph).getSpanningTree();
         Set<LfBranch> spanningTreeEdges = spanningTree.getEdges();
-        for (LfBranch branch : graph.edgeSet()) {
+        for (LfBranch branch : enabledSubGraph.edgeSet()) {
             branch.setSpanningTreeEdge(dc, spanningTreeEdges.contains(branch));
         }
     }
