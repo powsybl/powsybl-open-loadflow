@@ -254,12 +254,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public Optional<LfZeroImpedanceNetwork> getZeroImpedanceNetwork(boolean dc) {
-        network.updateZeroImpedanceCache(dc);
-        return Optional.ofNullable(dc ? dcZeroImpedanceNetwork : acZeroImpedanceNetwork);
-    }
-
-    @Override
     public void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
         Objects.requireNonNull(zeroImpedanceNetwork);
         if (dc) {
@@ -343,9 +337,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     public void setDisabled(boolean disabled) {
         if (disabled != this.disabled) {
             // recompute zero impedance graph spanning tree as this branch could have been chosen as an edge of the spanning
-            // it has to be done before notifying so that listener have a up to date spanning tree status
-            getZeroImpedanceNetwork(true).ifPresent(LfZeroImpedanceNetwork::updateSpanningTree);
-            getZeroImpedanceNetwork(false).ifPresent(LfZeroImpedanceNetwork::updateSpanningTree);
+            // it has to be done before notifying so that listener have an up to date spanning tree status
+            if (dcZeroImpedanceNetwork != null) {
+                dcZeroImpedanceNetwork.updateSpanningTree();
+            }
+            if (acZeroImpedanceNetwork != null) {
+                acZeroImpedanceNetwork.updateSpanningTree();
+            }
         }
         super.setDisabled(disabled);
     }
