@@ -23,10 +23,10 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -169,6 +169,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         OpenLoadFlowParameters.logDc(parameters, parametersExt);
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
+        dcParameters.getNetworkParameters()
+                .setCacheEnabled(false); // force not caching as not supported in DC LF
 
         List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reporter);
 

@@ -34,10 +34,13 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
         double theta = theta1(ksi, ph1(), a1(), ph2());
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
+        double cosKsi = FastMath.cos(ksi);
         return dq1dph1(y, v1, r1, v2, sinTheta) * dph1
                 + dq1dph2(y, v1, r1, v2, sinTheta) * dph2
-                + dq1dv1(y, FastMath.cos(ksi), b1, v1, r1, v2, cosTheta) * dv1
-                + dq1dv2(y, v1, r1, cosTheta) * dv2;
+                + dq1dv1(y, cosKsi, b1, v1, r1, v2, cosTheta) * dv1
+                + dq1dv2(y, v1, r1, cosTheta) * dv2
+                + dq1da1(y, v1, r1, v2, sinTheta) * da1
+                + dq1dr1(y, cosKsi, b1, v1, r1, v2, cosTheta) * dr1;
     }
 
     public static double q1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {

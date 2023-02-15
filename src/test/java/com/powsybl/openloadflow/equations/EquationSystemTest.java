@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
-import com.powsybl.openloadflow.ac.outerloop.AcTargetVector;
+import com.powsybl.openloadflow.ac.AcTargetVector;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreator;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
@@ -243,7 +243,7 @@ class EquationSystemTest {
         Variable<AcVariableType> v1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_PHI);
         assertEquals(0.559170, i1.der(v1var), 10E-6);
-        assertThrows(IllegalStateException.class, () -> i1.der(ph1var));
+        assertThrows(IllegalArgumentException.class, () -> i1.der(ph1var));
     }
 
     @Test
@@ -261,6 +261,6 @@ class EquationSystemTest {
         Variable<AcVariableType> v2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_V);
         Variable<AcVariableType> ph2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_PHI);
         assertEquals(0.55917, i2.der(v2var), 10E-6);
-        assertThrows(IllegalStateException.class, () -> i2.der(ph2var));
+        assertThrows(IllegalArgumentException.class, () -> i2.der(ph2var));
     }
 }

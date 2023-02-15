@@ -27,7 +27,7 @@ public class LfSwitch extends AbstractLfBranch {
 
     public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch, LfNetworkParameters parameters) {
         super(network, bus1, bus2, new SimplePiModel(), parameters);
-        this.switchRef = new Ref<>(aSwitch);
+        this.switchRef = Ref.create(aSwitch, parameters.isCacheEnabled());
     }
 
     private Switch getSwitch() {

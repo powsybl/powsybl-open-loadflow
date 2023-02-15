@@ -4,15 +4,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.OuterLoopContext;
+import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
@@ -62,19 +62,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         // done into the equation system
         for (LfBranch branch : getControllerBranches(context.getNetwork())) {
             branch.getVoltageControl().ifPresent(voltageControl -> branch.setVoltageControlEnabled(false));
-            contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext());
-        }
-    }
-
-    private static void updateAllowedDirection(IncrementalContextData.ControllerContext controllerContext, Direction direction) {
-        if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
-            if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
-                // both vs increase or decrease
-                // increase vs decrease
-                // decrease vs increase
-                controllerContext.getDirectionChangeCount().increment();
-            }
-            controllerContext.setAllowedDirection(direction.getAllowedDirection());
+            contextData.getControllersContexts().put(branch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
         }
     }
 
@@ -132,7 +120,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         int previousTapPosition = piModel.getTapPosition();
         double deltaR1 = diffV / sensitivity;
         return piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).map(direction -> {
-            updateAllowedDirection(controllerContext, direction);
+            controllerContext.updateAllowedDirection(direction);
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
                     previousTapPosition, piModel.getTapPosition(), tapPositionRange);
@@ -168,7 +156,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     double previousR1 = piModel.getR1();
                     double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
                     piModel.updateTapPositionToReachNewR1(deltaR1, 1, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                        updateAllowedDirection(controllerContext, direction);
+                        controllerContext.updateAllowedDirection(direction);
                         remainingDiffV.add(-(piModel.getR1() - previousR1) * sensitivity);
                         hasChanged.setValue(true);
                         adjusted.setValue(true);

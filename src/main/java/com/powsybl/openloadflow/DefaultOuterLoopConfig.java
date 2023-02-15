@@ -7,8 +7,8 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.*;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
             outerLoops.add(new MonitoringVoltageOuterLoop());
         }
         if (parameters.isUseReactiveLimits()) {
-            outerLoops.add(new ReactiveLimitsOuterLoop());
+            outerLoops.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch()));
         }
         // phase shifter control
         if (parameters.isPhaseShifterRegulationOn()) {
