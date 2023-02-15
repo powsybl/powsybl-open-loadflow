@@ -8,7 +8,9 @@ package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -29,13 +31,6 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
         equationSystem.getEquation(branch.getNum(), DcEquationType.DUMMY_TARGET_P)
                 .orElseThrow()
                 .setActive(!enable);
-    }
-
-    @Override
-    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
-        if (dc) {
-            updateNonImpedantBranchEquations(branch, spanningTree);
-        }
     }
 
     @Override

@@ -8,7 +8,10 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.LfShunt;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -57,13 +60,6 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         equationSystem.getEquation(branch.getNum(), AcEquationType.DUMMY_TARGET_Q)
                 .orElseThrow()
                 .setActive(!enable);
-    }
-
-    @Override
-    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
-        if (!dc) {
-            updateNonImpedantBranchEquations(branch, spanningTree);
-        }
     }
 
     @Override
