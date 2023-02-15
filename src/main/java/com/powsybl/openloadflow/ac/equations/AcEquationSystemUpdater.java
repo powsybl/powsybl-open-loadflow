@@ -60,6 +60,13 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
+        if (!dc) {
+            updateNonImpedantBranchEquations(branch, spanningTree);
+        }
+    }
+
+    @Override
     public void onDisableChange(LfElement element, boolean disabled) {
         updateElementEquations(element, !disabled);
         switch (element.getType()) {

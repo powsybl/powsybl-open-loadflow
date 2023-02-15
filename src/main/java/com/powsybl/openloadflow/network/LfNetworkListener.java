@@ -34,4 +34,6 @@ public interface LfNetworkListener {
     void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition);
 
     void onShuntSusceptanceChange(LfShunt shunt, double b);
+
+    void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree);
 }

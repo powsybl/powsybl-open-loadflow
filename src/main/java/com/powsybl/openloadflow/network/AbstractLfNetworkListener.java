@@ -70,4 +70,9 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onShuntSusceptanceChange(LfShunt shunt, double b) {
         // empty
     }
+
+    @Override
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
+        // empty
+    }
 }

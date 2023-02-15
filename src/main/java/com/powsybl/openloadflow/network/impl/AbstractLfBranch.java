@@ -272,9 +272,19 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge) {
         if (dc) {
-            dcSpanningTreeEdge = spanningTreeEdge;
+            if (spanningTreeEdge != dcSpanningTreeEdge) {
+                dcSpanningTreeEdge = spanningTreeEdge;
+                for (LfNetworkListener listener : network.getListeners()) {
+                    listener.onZeroImpedanceNetworkSpanningTreeChange(this, dc, spanningTreeEdge);
+                }
+            }
         } else {
-            acSpanningTreeEdge = spanningTreeEdge;
+            if (spanningTreeEdge != acSpanningTreeEdge) {
+                acSpanningTreeEdge = spanningTreeEdge;
+                for (LfNetworkListener listener : network.getListeners()) {
+                    listener.onZeroImpedanceNetworkSpanningTreeChange(this, dc, spanningTreeEdge);
+                }
+            }
         }
     }
 
@@ -332,16 +342,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setDisabled(boolean disabled) {
         if (disabled != this.disabled) {
-            this.disabled = disabled;
-
             // recompute zero impedance graph spanning tree as this branch could have been chosen as an edge of the spanning
             // it has to be done before notifying so that listener have a up to date spanning tree status
             getZeroImpedanceNetwork(true).ifPresent(LfZeroImpedanceNetwork::updateSpanningTree);
             getZeroImpedanceNetwork(false).ifPresent(LfZeroImpedanceNetwork::updateSpanningTree);
-
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onDisableChange(this, disabled);
-            }
         }
+        super.setDisabled(disabled);
     }
 }

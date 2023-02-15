@@ -43,7 +43,7 @@ public class DcEquationSystemCreator {
     }
 
     public static void createNonImpedantBranch(EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                               LfBranch branch, LfBus bus1, LfBus bus2) {
+                                               LfBranch branch, LfBus bus1, LfBus bus2, boolean spanningTree) {
         boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), DcEquationType.BUS_TARGET_PHI);
         boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), DcEquationType.BUS_TARGET_PHI);
         if (!(hasPhi1 && hasPhi2)) {
@@ -52,7 +52,8 @@ public class DcEquationSystemCreator {
             equationSystem.createEquation(branch, DcEquationType.ZERO_PHI)
                     .addTerm(equationSystem.getVariable(bus1.getNum(), DcVariableType.BUS_PHI).createTerm())
                     .addTerm(equationSystem.getVariable(bus2.getNum(), DcVariableType.BUS_PHI).<DcEquationType>createTerm()
-                                         .minus());
+                                         .minus())
+                    .setActive(!branch.isDisabled() && spanningTree);
 
             // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
@@ -69,7 +70,7 @@ public class DcEquationSystemCreator {
             // on case of switch opening
             equationSystem.createEquation(branch, DcEquationType.DUMMY_TARGET_P)
                     .addTerm(dummyP.createTerm())
-                    .setActive(branch.isDisabled()); // inverted logic
+                    .setActive(branch.isDisabled() || !spanningTree); // inverted logic
         } else {
             throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
         }
@@ -116,9 +117,7 @@ public class DcEquationSystemCreator {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
             if (branch.isZeroImpedance(true)) {
-                if (branch.isSpanningTreeEdge(true)) {
-                    createNonImpedantBranch(equationSystem, branch, bus1, bus2);
-                }
+                createNonImpedantBranch(equationSystem, branch, bus1, bus2, branch.isSpanningTreeEdge(true));
             } else {
                 createImpedantBranch(equationSystem, creationParameters, branch, bus1, bus2);
             }

@@ -41,7 +41,7 @@ public class LfZeroImpedanceNetwork {
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         for (Set<LfBus> connectedSet : connectedSets) {
             var subGraph = new AsSubgraph<>(graph, connectedSet);
-            var zeroImpedanceNetwork = new LfZeroImpedanceNetwork(dc, graph);
+            var zeroImpedanceNetwork = new LfZeroImpedanceNetwork(dc, subGraph);
             for (LfBranch branch : subGraph.edgeSet()) {
                 branch.setZeroImpedanceNetwork(dc, zeroImpedanceNetwork);
             }
@@ -57,15 +57,12 @@ public class LfZeroImpedanceNetwork {
     }
 
     public void updateSpanningTree() {
-        // reset status
-        for (LfBranch branch : graph.edgeSet()) {
-            branch.setSpanningTreeEdge(dc, false);
-        }
         // computer spanning tree on enabled subgraph
         var enabledSubGraph = new MaskSubgraph<>(graph, LfElement::isDisabled, LfElement::isDisabled);
         spanningTree = new KruskalMinimumSpanningTree<>(enabledSubGraph).getSpanningTree();
-        for (LfBranch branch : spanningTree.getEdges()) {
-            branch.setSpanningTreeEdge(dc, true);
+        Set<LfBranch> spanningTreeEdges = spanningTree.getEdges();
+        for (LfBranch branch : graph.edgeSet()) {
+            branch.setSpanningTreeEdge(dc, spanningTreeEdges.contains(branch));
         }
     }
 
