@@ -104,9 +104,7 @@ public class LfZeroImpedanceNetwork {
                 zeroImpedanceNetworks.remove(this);
                 for (Set<LfBus> connectedSet : connectedSets) {
                     var subGraph = new AsSubgraph<>(graph, connectedSet);
-                    if (subGraph.vertexSet().size() > 1) {
-                        zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
-                    }
+                    zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
                 }
             } else {
                 boolean atLeastOneOfDisablingBranchIsPartOfSpanningTree = disabledBranches.stream()

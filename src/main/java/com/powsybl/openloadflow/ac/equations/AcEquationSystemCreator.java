@@ -821,7 +821,7 @@ public class AcEquationSystemCreator {
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
-        network.addListener(new AcEquationSystemUpdater(equationSystem));
+        network.addListener(new DebugLfNetworkListener(new AcEquationSystemUpdater(equationSystem)));
 
         return equationSystem;
     }
