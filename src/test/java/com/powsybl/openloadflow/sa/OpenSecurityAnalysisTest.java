@@ -14,7 +14,6 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -32,7 +31,6 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfGeneratorImpl;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
@@ -45,7 +43,6 @@ import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import com.powsybl.security.strategy.OperatorStrategy;
-import org.apache.commons.math3.util.ArithmeticUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -2410,13 +2407,13 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void testSecurityAnalysisWithGeneratorActionRelativeTargetV() {
+    void testSecurityAnalysisWithGeneratorActionRelativeTargetP() {
         MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = FourBusNetworkFactory.create();
-        Stream.of("g1","g2","g4").forEach(id -> network.getGenerator(id).setMaxP(network.getGenerator(id).getMaxP() + 3.0d));
+        Stream.of("g1", "g2", "g4").forEach(id -> network.getGenerator(id).setMaxP(network.getGenerator(id).getMaxP() + 3.0d));
 
         // Disconnect line between buses 1 and 3
         final String droppedLine = "l13";
@@ -2425,13 +2422,13 @@ class OpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
 
         final String g1 = "g1";
-        final double delta_g1 = 2.0d;
+        final double deltaG1 = 2.0d;
 
         final String g2 = "g2";
-        final double delta_g2 = 3.0d;
-        List<Action> actions = List.of( // Add generator actions
-                new GeneratorActionBuilder().withId("genAction_" + g1).withGeneratorId(g1).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(delta_g1).build(),
-                new GeneratorActionBuilder().withId("genAction_" + g2).withGeneratorId(g2).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(delta_g2).build());
+        final double deltaG2 = 3.0d;
+        List<Action> actions = List.of(// Add generator actions
+                new GeneratorActionBuilder().withId("genAction_" + g1).withGeneratorId(g1).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(deltaG1).build(),
+                new GeneratorActionBuilder().withId("genAction_" + g2).withGeneratorId(g2).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(deltaG2).build());
 
         List<OperatorStrategy> operatorStrategies = List.of(
                 new OperatorStrategy("strategyL1", ContingencyContext.specificContingency(droppedLine), new TrueCondition(), List.of("genAction_" + g1)),
@@ -2450,10 +2447,10 @@ class OpenSecurityAnalysisTest {
                 operatorStrategies, actions, Reporter.NO_OP);
 
         // final double expectedPAtG1 = Stream.of("l12","l13", "l14").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP1()).reduce(0d, (a,b) -> a+b);
-        final double expectedPAtG1 = Stream.of("l12","l13", "l14").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP1()).reduce(0d, Double::sum);
+        final double expectedPAtG1 = Stream.of("l12", "l13", "l14").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP1()).reduce(0d, Double::sum);
         assertEquals(1.9998447468193346, expectedPAtG1); // 1.9998447468193346 is close to 2.0 pu!
 
-        final double expectedPAtG4 = Stream.of("l14","l34").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
+        final double expectedPAtG4 = Stream.of("l14", "l34").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
         assertEquals(0.9998555462687488, expectedPAtG4); // This is pretty much 1 pu
 
         // Let's now check the results of the security analysis with operator strategy.
@@ -2467,16 +2464,16 @@ class OpenSecurityAnalysisTest {
         network.getLine(droppedLine).getTerminal2().disconnect();
         // Apply remedial action
         double originalTargetP = network.getGenerator("g1").getTargetP();
-        network.getGenerator("g1").setTargetP(originalTargetP + delta_g1);
+        network.getGenerator("g1").setTargetP(originalTargetP + deltaG1);
         LoadFlow.run(network, parameters);
         // Compare results
-        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER*10);
-        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER*10);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER * 10);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER * 10);
 
         // reverse action and apply second remedial action
         network.getGenerator("g1").setTargetP(originalTargetP);
         originalTargetP = network.getGenerator("g2").getTargetP();
-        network.getGenerator("g2").setTargetP(originalTargetP+delta_g2);
+        network.getGenerator("g2").setTargetP(originalTargetP + deltaG2);
         LoadFlow.run(network, parameters);
 
         // Bon, au générateur 1, à 10-2 près, on a les même résultats (en ayant augmenté les pmax de tous les générateurs de 3 pu)
@@ -2498,8 +2495,6 @@ class OpenSecurityAnalysisTest {
         assertEquals(0.0d, sometests);
         final double expectedPAtG1OpStrategyG2 = Stream.of("l12", "l14").map(id -> Math.abs(getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult(id).getP1())).reduce(0d, Double::sum);
         assertEquals(3.199989729949623, expectedPAtG1OpStrategyG2);
-
-
 
         assertEquals(578.3, result.getPreContingencyResult().getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(0.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);

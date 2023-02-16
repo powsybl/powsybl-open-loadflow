@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.loadflow.validation.BalanceType;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -225,8 +224,8 @@ public final class LfAction {
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(GeneratorAction action, LfNetwork network) {
-        LfGenerator generator = network.getGeneratorById(action.getGeneratorId());
+    private static Optional<LfAction> create(GeneratorAction action, LfNetwork lfNetwork) {
+        LfGenerator generator = lfNetwork.getGeneratorById(action.getGeneratorId());
         if (generator != null) {
             Optional<Double> newTargetP = Optional.empty();
             Optional<Double> activePowerValue = action.getActivePowerValue();
@@ -234,7 +233,7 @@ public final class LfAction {
                 // A GeneratorAction CANNOT be created if only one of the activePowerValue or isActivePowerRelative is empty
                 Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
                 if (!(relativeValue.isPresent() && relativeValue.get())) {
-                    throw new PowsyblException("LfAction.GeneratorUpdates: setTargetP with an absolute power value is not supported yet.");
+                    throw new UnsupportedOperationException("LfAction.GeneratorUpdates: setTargetP with an absolute power value is not supported yet.");
                 }
                 newTargetP = Optional.of(activePowerValue.get() / PerUnit.SB + generator.getTargetP());
             }
