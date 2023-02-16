@@ -44,10 +44,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean voltageControlEnabled = false;
 
-    protected LfZeroImpedanceNetwork dcZeroImpedanceNetwork;
-
-    protected LfZeroImpedanceNetwork acZeroImpedanceNetwork;
-
     protected boolean dcSpanningTreeEdge = false;
 
     protected boolean acSpanningTreeEdge = false;
@@ -254,16 +250,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
-        Objects.requireNonNull(zeroImpedanceNetwork);
-        if (dc) {
-            dcZeroImpedanceNetwork = zeroImpedanceNetwork;
-        } else {
-            acZeroImpedanceNetwork = zeroImpedanceNetwork;
-        }
-    }
-
-    @Override
     public void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge) {
         if (dc) {
             if (spanningTreeEdge != dcSpanningTreeEdge) {
@@ -333,18 +319,43 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
+    private void updateZeroImpedanceNetworks(boolean disabled, boolean dc) {
+        if (isZeroImpedance(dc)) {
+            LfZeroImpedanceNetwork zn1 = bus1.getZeroImpedanceNetwork(dc);
+            LfZeroImpedanceNetwork zn2 = bus2.getZeroImpedanceNetwork(dc);
+            if (zn1 != null && zn2 != null) {
+                if (disabled) {
+                    if (zn1 == zn2) {
+                        // zero impedance network split (maybe)
+                        zn1.split();
+                    } else {
+                        // branch disabling does not change anything as both side were not part of same zero
+                        // impedance network
+                    }
+                } else {
+                    if (zn1 != zn2) {
+                        // zero impedance network merge
+                        LfZeroImpedanceNetwork.merge(zn1, zn2, this);
+                    } else {
+                        // branch enabling does not change anything as both side were already part of same
+                        // zero impedance network.
+                        // spanning tree calculation is still valid even if with the new branch could have been
+                        // different
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public void setDisabled(boolean disabled) {
         if (disabled != this.disabled) {
-            // recompute zero impedance graph spanning tree as this branch could have been chosen as an edge of the spanning
-            // it has to be done before notifying so that listener have an up to date spanning tree status
-            if (dcZeroImpedanceNetwork != null) {
-                dcZeroImpedanceNetwork.updateSpanningTree();
+            this.disabled = disabled;
+            if (bus1 != null && bus2 != null) {
+                updateZeroImpedanceNetworks(disabled, false);
+                updateZeroImpedanceNetworks(disabled, true);
             }
-            if (acZeroImpedanceNetwork != null) {
-                acZeroImpedanceNetwork.updateSpanningTree();
-            }
+            notifyDisable();
         }
-        super.setDisabled(disabled);
     }
 }

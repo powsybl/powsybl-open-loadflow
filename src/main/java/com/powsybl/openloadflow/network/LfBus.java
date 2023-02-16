@@ -164,4 +164,8 @@ public interface LfBus extends LfElement {
      * Only make sens for slack bus.
      */
     double getMismatchP();
+
+    void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork);
+
+    LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc);
 }

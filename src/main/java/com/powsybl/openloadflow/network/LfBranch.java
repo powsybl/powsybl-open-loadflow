@@ -137,8 +137,6 @@ public interface LfBranch extends LfElement {
 
     boolean isZeroImpedance(boolean dc);
 
-    void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork);
-
     void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge);
 
     boolean isSpanningTreeEdge(boolean dc);

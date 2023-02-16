@@ -83,6 +83,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double remoteVoltageControlReactivePercent = Double.NaN;
 
+    protected LfZeroImpedanceNetwork dcZeroImpedanceNetwork;
+
+    protected LfZeroImpedanceNetwork acZeroImpedanceNetwork;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
         lfAggregatedLoads = new LfAggregatedLoadsImpl(distributedOnConformLoad);
@@ -572,5 +576,20 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getMismatchP() {
         return p.eval() - getTargetP(); // slack bus can also have real injection connected
+    }
+
+    @Override
+    public void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
+        Objects.requireNonNull(zeroImpedanceNetwork);
+        if (dc) {
+            dcZeroImpedanceNetwork = zeroImpedanceNetwork;
+        } else {
+            acZeroImpedanceNetwork = zeroImpedanceNetwork;
+        }
+    }
+
+    @Override
+    public LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc) {
+        return dc ? dcZeroImpedanceNetwork : acZeroImpedanceNetwork;
     }
 }
