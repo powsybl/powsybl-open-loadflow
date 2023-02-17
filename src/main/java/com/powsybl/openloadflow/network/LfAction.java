@@ -333,9 +333,8 @@ public final class LfAction {
         }
 
         if (generatorUpdate != null) {
-            generatorUpdate.getActivePowerValue().ifPresent(activePowerValue -> {
-                generatorUpdate.getGenerator().setTargetP(activePowerValue);
-            });
+            generatorUpdate.getActivePowerValue().ifPresent(activePowerValue
+                -> generatorUpdate.getGenerator().setTargetP(activePowerValue));
 
         }
     }

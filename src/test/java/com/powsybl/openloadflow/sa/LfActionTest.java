@@ -192,7 +192,6 @@ class LfActionTest extends AbstractConverterTest {
     void testEmptyGeneratorAction() {
         Network network = NodeBreakerNetworkFactory.create();
         String genId = "G";
-        Generator actedOnGenerator = network.getGenerator(genId);
 
         GeneratorAction generatorAction =
                 new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).build();
