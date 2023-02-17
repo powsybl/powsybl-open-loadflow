@@ -134,7 +134,7 @@ public class DcEquationSystemCreator {
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
         if (withListener) {
-            network.addListener(new LfNetworkListenerTracer(new DcEquationSystemUpdater(equationSystem)));
+            network.addListener(LfNetworkListenerTracer.trace(new DcEquationSystemUpdater(equationSystem)));
         }
 
         return equationSystem;

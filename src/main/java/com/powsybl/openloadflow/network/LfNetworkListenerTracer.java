@@ -20,74 +20,103 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
 
     private final LfNetworkListener delegate;
 
-    public LfNetworkListenerTracer(LfNetworkListener delegate) {
+    protected LfNetworkListenerTracer(LfNetworkListener delegate) {
         this.delegate = Objects.requireNonNull(delegate);
+    }
+
+    public static LfNetworkListener trace(LfNetworkListener listener) {
+        Objects.requireNonNull(listener);
+        if (LOGGER.isTraceEnabled()) {
+            return new LfNetworkListenerTracer(listener);
+        }
+        return listener;
     }
 
     @Override
     public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+        LOGGER.trace("onVoltageControlChange(controllerBusId='{}', newVoltageControllerEnabled={})",
+                controllerBus.getId(), newVoltageControllerEnabled);
         delegate.onVoltageControlChange(controllerBus, newVoltageControllerEnabled);
     }
 
     @Override
     public void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage) {
+        LOGGER.trace("onVoltageControlTargetChange(controlledBusId='{}', newTargetVoltage={})",
+                control.getControlledBus(), newTargetVoltage);
         delegate.onVoltageControlTargetChange(control, newTargetVoltage);
     }
 
     @Override
-    public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
-        delegate.onTransformerPhaseControlChange(branch, phaseControlEnabled);
+    public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
+        LOGGER.trace("onTransformerPhaseControlChange(controllerBranchId='{}', newPhaseControlEnabled={})",
+                controllerBranch.getId(), newPhaseControlEnabled);
+        delegate.onTransformerPhaseControlChange(controllerBranch, newPhaseControlEnabled);
     }
 
     @Override
     public void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled) {
+        LOGGER.trace("onTransformerVoltageControlChange(controllerBranchId='{}', newVoltageControllerEnabled={})",
+                controllerBranch.getId(), newVoltageControllerEnabled);
         delegate.onTransformerVoltageControlChange(controllerBranch, newVoltageControllerEnabled);
     }
 
     @Override
     public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
+        LOGGER.trace("onShuntVoltageControlChange(controllerShuntId={}, newVoltageControllerEnabled={})",
+                controllerShunt.getId(), newVoltageControllerEnabled);
         delegate.onShuntVoltageControlChange(controllerShunt, newVoltageControllerEnabled);
     }
 
     @Override
     public void onLoadActivePowerTargetChange(LfBus bus, double oldLoadTargetP, double newLoadTargetP) {
+        LOGGER.trace("onLoadActivePowerTargetChange(busId='{}', oldLoadTargetP={}, newLoadTargetP={})",
+                bus.getId(), oldLoadTargetP, newLoadTargetP);
         delegate.onLoadActivePowerTargetChange(bus, oldLoadTargetP, newLoadTargetP);
     }
 
     @Override
     public void onLoadReactivePowerTargetChange(LfBus bus, double oldLoadTargetQ, double newLoadTargetQ) {
+        LOGGER.trace("onLoadReactivePowerTargetChange(busId='{}', oldLoadTargetQ={}, newLoadTargetQ={})",
+                bus.getId(), oldLoadTargetQ, newLoadTargetQ);
         delegate.onLoadReactivePowerTargetChange(bus, oldLoadTargetQ, newLoadTargetQ);
     }
 
     @Override
     public void onGenerationActivePowerTargetChange(LfGenerator generator, double oldGenerationTargetP, double newGenerationTargetP) {
+        LOGGER.trace("onGenerationActivePowerTargetChange(generatorId='{}', oldGenerationTargetP={}, newGenerationTargetP={})",
+                generator.getId(), oldGenerationTargetP, newGenerationTargetP);
         delegate.onGenerationActivePowerTargetChange(generator, oldGenerationTargetP, newGenerationTargetP);
     }
 
     @Override
     public void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ) {
+        LOGGER.trace("onGenerationReactivePowerTargetChange(busId='{}', oldGenerationTargetQ={}, newGenerationTargetQ={})",
+                bus.getId(), oldGenerationTargetQ, newGenerationTargetQ);
         delegate.onGenerationReactivePowerTargetChange(bus, oldGenerationTargetQ, newGenerationTargetQ);
     }
 
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
-        LOGGER.debug("onDisableChange(elementType={}, elementId={}, disabled={})", element.getType(), element.getId(), disabled);
+        LOGGER.trace("onDisableChange(elementType={}, elementId='{}', disabled={})", element.getType(), element.getId(), disabled);
         delegate.onDisableChange(element, disabled);
     }
 
     @Override
     public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+        LOGGER.trace("onTapPositionChange(branchId='{}', oldPosition={}, newPosition={})",
+                branch.getId(), oldPosition, newPosition);
         delegate.onTapPositionChange(branch, oldPosition, newPosition);
     }
 
     @Override
     public void onShuntSusceptanceChange(LfShunt shunt, double b) {
+        LOGGER.trace("onShuntSusceptanceChange(shuntId='{}', b={})", shunt.getId(), b);
         delegate.onShuntSusceptanceChange(shunt, b);
     }
 
     @Override
     public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
-        LOGGER.debug("onZeroImpedanceNetworkSpanningTreeChange(branchId={}, dc={}, spanningTree={})",
+        LOGGER.trace("onZeroImpedanceNetworkSpanningTreeChange(branchId={}, dc={}, spanningTree={})",
                 branch, dc, spanningTree);
         delegate.onZeroImpedanceNetworkSpanningTreeChange(branch, dc, spanningTree);
     }

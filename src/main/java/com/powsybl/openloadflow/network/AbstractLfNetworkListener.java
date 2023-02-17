@@ -22,7 +22,7 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
+    public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
         // empty
     }
 

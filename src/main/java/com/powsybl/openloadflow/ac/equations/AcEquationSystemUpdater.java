@@ -29,8 +29,8 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
-    public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
-        AcEquationSystemCreator.updateTransformerPhaseControlEquations(branch.getDiscretePhaseControl().orElseThrow(), equationSystem);
+    public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
+        AcEquationSystemCreator.updateTransformerPhaseControlEquations(controllerBranch.getDiscretePhaseControl().orElseThrow(), equationSystem);
     }
 
     @Override
