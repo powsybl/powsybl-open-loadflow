@@ -28,7 +28,7 @@ class AcLoadFlowVscTest {
         Network network = HvdcNetworkFactory.createVsc();
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true)
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -75,7 +75,7 @@ class AcLoadFlowVscTest {
         vscConverterStation.setVoltageRegulatorOn(true); //FIXME
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -96,7 +96,7 @@ class AcLoadFlowVscTest {
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true)
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -117,16 +117,10 @@ class AcLoadFlowVscTest {
                 .add();
         network.newLine()
                 .setId("l23")
-                .setVoltageLevel1("vl2")
                 .setBus1("b2")
-                .setVoltageLevel2("vl3")
                 .setBus2("b3")
                 .setR(1)
                 .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));

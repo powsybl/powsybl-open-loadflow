@@ -45,7 +45,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double r1() {
-        return r1Var != null ? sv.get(r1Var.getRow()) : branch.getPiModel().getR1();
+        return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
     }
 
     private static double gres(double y, double sinksi, double g1, double g2, double b2, double shunt) {
@@ -95,6 +95,8 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
             return di1dv1(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v1(), ph1(), r1());
+        } else if (variable.equals(ph1Var) || variable.equals(r1Var)) {
+            throw new IllegalArgumentException("Derivative with respect to ph1 or r1 not implemented");
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

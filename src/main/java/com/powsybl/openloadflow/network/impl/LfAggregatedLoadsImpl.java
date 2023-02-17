@@ -10,10 +10,10 @@ import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.AbstractPropertyBag;
 import com.powsybl.openloadflow.network.LfAggregatedLoads;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +31,8 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
 
     private boolean initialized;
 
+    private Map<String, Boolean> loadsStatus = new LinkedHashMap<>();
+
     LfAggregatedLoadsImpl(boolean distributedOnConformLoad) {
         this.distributedOnConformLoad = distributedOnConformLoad;
     }
@@ -40,8 +42,9 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
         return loadsRefs.stream().map(r -> r.get().getId()).collect(Collectors.toList());
     }
 
-    void add(Load load) {
-        loadsRefs.add(new Ref<>(load));
+    void add(Load load, LfNetworkParameters parameters) {
+        loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
+        loadsStatus.put(load.getId(), false);
         initialized = false;
     }
 
@@ -110,6 +113,26 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
             newLoadTargetQ += getPowerFactor(load) * updatedP0;
         }
         return newLoadTargetQ;
+    }
+
+    @Override
+    public boolean isDisabled(String originalId) {
+        return loadsStatus.get(originalId);
+    }
+
+    @Override
+    public void setDisabled(String originalId, boolean disabled) {
+        loadsStatus.put(originalId, disabled);
+    }
+
+    @Override
+    public Map<String, Boolean> getLoadsDisablingStatus() {
+        return loadsStatus;
+    }
+
+    @Override
+    public void setLoadsDisablingStatus(Map<String, Boolean> loadsStatus) {
+        this.loadsStatus = loadsStatus;
     }
 
     private static double getPowerFactor(Load load) {

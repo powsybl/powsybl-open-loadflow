@@ -105,7 +105,7 @@ public interface LfBranch extends LfElement {
 
     Optional<DiscretePhaseControl> getDiscretePhaseControl();
 
-    void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc);
+    void updateState(LfNetworkStateUpdateParameters parameters);
 
     void updateFlows(double p1, double q1, double p2, double q2);
 
@@ -121,8 +121,6 @@ public interface LfBranch extends LfElement {
 
     Optional<TransformerVoltageControl> getVoltageControl();
 
-    Optional<Double> getTransformerVoltageControlTargetDeadband();
-
     boolean isVoltageControlEnabled();
 
     void setVoltageControlEnabled(boolean voltageControlEnabled);
@@ -131,19 +129,17 @@ public interface LfBranch extends LfElement {
 
     void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
-    void setTransformerVoltageControlTargetDeadband(Double transformerVoltageControlTargetDeadband);
-
     BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
 
     double computeApparentPower1();
 
     double computeApparentPower2();
 
-    boolean isZeroImpedance();
+    boolean isZeroImpedance(boolean dc);
 
-    void setSpanningTreeEdge(boolean spanningTreeEdge);
+    void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge);
 
-    boolean isSpanningTreeEdge();
+    boolean isSpanningTreeEdge(boolean dc);
 
     Evaluable getA1();
 
@@ -174,5 +170,5 @@ public interface LfBranch extends LfElement {
 
     boolean isConnectedAtBothSides();
 
-    void setMinZ(boolean dc, double lowImpedanceThreshold);
+    void setMinZ(double lowImpedanceThreshold);
 }

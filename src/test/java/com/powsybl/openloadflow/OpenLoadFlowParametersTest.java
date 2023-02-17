@@ -8,6 +8,7 @@ package com.powsybl.openloadflow;
 
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
@@ -97,7 +98,7 @@ class OpenLoadFlowParametersTest {
         assertTrue(parameters.isDistributedSlack());
 
         OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
-        assertEquals(OpenLoadFlowParameters.SLACK_BUS_SELECTION_DEFAULT_VALUE, olfParameters.getSlackBusSelectionMode());
+        assertEquals(OpenLoadFlowParameters.SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE, olfParameters.getSlackBusSelectionMode());
         assertEquals(OpenLoadFlowParameters.VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, olfParameters.hasVoltageRemoteControl());
         assertEquals(OpenLoadFlowParameters.LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE, olfParameters.getLowImpedanceBranchMode());
         assertEquals(OpenLoadFlowParameters.THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE, olfParameters.isThrowsExceptionInCaseOfSlackDistributionFailure());
@@ -113,6 +114,22 @@ class OpenLoadFlowParametersTest {
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> LoadFlowParameters.load(platformConfig));
         assertEquals("No enum constant com.powsybl.openloadflow.network.SlackBusSelectionMode.Invalid", exception.getMessage());
+    }
+
+    @Test
+    void testInvalidOpenLoadflowConfigNewtonRaphson() {
+        MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
+        olfModuleConfig.setStringProperty("newtonRaphsonStoppingCriteriaType", "Invalid");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> LoadFlowParameters.load(platformConfig));
+        assertEquals("No enum constant com.powsybl.openloadflow.ac.nr.NewtonRaphsonStoppingCriteriaType.Invalid", exception.getMessage());
+
+        OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.create(new LoadFlowParameters());
+        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxAngleMismatch(-1));
+        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxVoltageMismatch(-1));
+        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxRatioMismatch(-1));
+        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxActivePowerMismatch(-1));
+        assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setMaxReactivePowerMismatch(-1));
     }
 
     @Test

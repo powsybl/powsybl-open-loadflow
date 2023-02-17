@@ -46,7 +46,7 @@ class AcLoadFlowTwoBusNetworkTest {
         line1 = network.getLine("l12");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
@@ -83,8 +83,8 @@ class AcLoadFlowTwoBusNetworkTest {
         bus2.getVoltageLevel().newBattery()
                 .setId("bt2")
                 .setBus("b2")
-                .setP0(-1)
-                .setQ0(-0.1)
+                .setTargetP(-1)
+                .setTargetQ(-0.1)
                 .setMinP(-1)
                 .setMaxP(0)
                 .add();
@@ -106,8 +106,8 @@ class AcLoadFlowTwoBusNetworkTest {
         bus2.getVoltageLevel().newBattery()
                 .setId("bt2")
                 .setBus("b2")
-                .setP0(-1)
-                .setQ0(-0.1)
+                .setTargetP(-1)
+                .setTargetQ(-0.1)
                 .setMinP(-2)
                 .setMaxP(2)
                 .add();
@@ -133,8 +133,8 @@ class AcLoadFlowTwoBusNetworkTest {
         bus2.getVoltageLevel().newBattery()
                 .setId("bt2")
                 .setBus("b2")
-                .setP0(-1)
-                .setQ0(-0.1)
+                .setTargetP(-1)
+                .setTargetQ(-0.1)
                 .setMinP(-2)
                 .setMaxP(2)
                 .add();

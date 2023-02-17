@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.network.*;
 public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVariableType, DcEquationType> {
 
     public DcEquationSystemUpdater(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        super(equationSystem);
+        super(equationSystem, true);
     }
 
     @Override
@@ -44,6 +44,8 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
                 break;
             case BRANCH:
+            case HVDC:
+            case SHUNT_COMPENSATOR:
                 // nothing to do.
                 break;
             default:

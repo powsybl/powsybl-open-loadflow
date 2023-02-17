@@ -7,8 +7,9 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DanglingLine;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 
 import java.util.List;
 
@@ -21,16 +22,15 @@ public class LfDanglingLineBus extends AbstractLfBus {
 
     private final double nominalV;
 
-    public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, boolean reactiveLimits, LfNetworkLoadingReport report,
-                             double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+    public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine), false);
-        this.danglingLineRef = new Ref<>(danglingLine);
+        this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         loadTargetP += danglingLine.getP0();
         loadTargetQ += danglingLine.getQ0();
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
-            add(new LfDanglingLineGenerator(danglingLine, network, getId(), reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode));
+            add(LfDanglingLineGenerator.create(danglingLine, network, getId(), parameters, report));
         }
     }
 
@@ -68,11 +68,11 @@ public class LfDanglingLineBus extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var danglingLine = getDanglingLine();
         Networks.setPropertyV(danglingLine, v);
         Networks.setPropertyAngle(danglingLine, angle);
 
-        super.updateState(reactiveLimits, writeSlackBus, false, false);
+        super.updateState(parameters);
     }
 }

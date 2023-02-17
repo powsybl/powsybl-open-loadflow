@@ -96,16 +96,10 @@ class AcLoadFlowSvcTest {
                 .add();
         l1 = network.newLine()
                 .setId("l1")
-                .setVoltageLevel1("vl1")
                 .setBus1("b1")
-                .setVoltageLevel2("vl2")
                 .setBus2("b2")
                 .setR(1)
                 .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
                 .add();
         return network;
     }
@@ -114,7 +108,7 @@ class AcLoadFlowSvcTest {
     void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -352,7 +346,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void testStandByAutomaton3() {
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         network.getGenerator("g1").setTargetV(405);
 
@@ -375,7 +369,7 @@ class AcLoadFlowSvcTest {
     void testStandByAutomaton4() {
         // Test a voltage controller and a voltage monitor connected to the same bus.
         // Voltage monitor is discarded.
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(397)

@@ -20,10 +20,10 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -31,10 +31,12 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.*;
 import com.powsybl.security.action.Action;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.results.ConnectivityResult;
 import com.powsybl.security.results.OperatorStrategyResult;
 import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
@@ -88,6 +90,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
+        acParameters.getNetworkParameters()
+                .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {
@@ -113,23 +117,23 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         }
     }
 
-    private SecurityAnalysisResult runSimulations(LfNetwork network, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
+    private SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, AcLoadFlowParameters acParameters,
                                                   SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                   List<Action> actions) {
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-        Map<String, LfAction> lfActionById = createLfActions(network, neededActions); // only convert needed actions
+        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, acParameters.getNetworkParameters().isBreakers()); // only convert needed actions
 
         LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
-        try (AcLoadFlowContext context = new AcLoadFlowContext(network, acParameters)) {
-            Reporter networkReporter = network.getReporter();
+        try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
+            Reporter networkReporter = lfNetwork.getReporter();
             Reporter preContSimReporter = Reports.createPreContingencySimulation(networkReporter);
-            network.setReporter(preContSimReporter);
+            lfNetwork.setReporter(preContSimReporter);
 
             // run pre-contingency simulation
             AcLoadFlowResult preContingencyLoadFlowResult = new AcloadFlowEngine(context)
@@ -138,7 +142,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
             boolean preContingencyComputationOk = preContingencyLoadFlowResult.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED;
             var preContingencyLimitViolationManager = new LimitViolationManager();
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-            var preContingencyNetworkResult = new PreContingencyNetworkResult(network, monitorIndex, createResultExtension);
+            var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
 
             // only run post-contingency simulations if pre-contingency simulation is ok
@@ -147,25 +151,25 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                 preContingencyNetworkResult.update();
 
                 // detect violations
-                preContingencyLimitViolationManager.detectViolations(network);
+                preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
                 // save base state for later restoration after each contingency
-                NetworkState networkState = NetworkState.save(network);
+                NetworkState networkState = NetworkState.save(lfNetwork);
 
                 // start a simulation for each of the contingency
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    propagatedContingency.toLfContingency(network)
+                    propagatedContingency.toLfContingency(lfNetwork)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
                                 Reporter postContSimReporter = Reports.createPostContingencySimulation(networkReporter, lfContingency.getId());
-                                network.setReporter(postContSimReporter);
+                                lfNetwork.setReporter(postContSimReporter);
 
                                 lfContingency.apply(loadFlowParameters.getBalanceType());
 
-                                distributedMismatch(network, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
+                                distributedMismatch(lfNetwork, lfContingency.getActivePowerLoss(), loadFlowParameters, openLoadFlowParameters);
 
-                                var postContingencyResult = runPostContingencySimulation(network, context, propagatedContingency.getContingency(),
+                                var postContingencyResult = runPostContingencySimulation(lfNetwork, context, propagatedContingency.getContingency(),
                                                                                          lfContingency, preContingencyLimitViolationManager,
                                                                                          securityAnalysisParameters.getIncreasedViolationsParameters(),
                                                                                          preContingencyNetworkResult, createResultExtension);
@@ -175,19 +179,19 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                                 if (operatorStrategiesForThisContingency != null) {
                                     // we have at least an operator strategy for this contingency.
                                     if (operatorStrategiesForThisContingency.size() == 1) {
-                                        runActionSimulation(network, context,
+                                        runActionSimulation(lfNetwork, context,
                                                 operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
-                                                createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult())
+                                                createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(), loadFlowParameters.getBalanceType())
                                                 .ifPresent(operatorStrategyResults::add);
                                     } else {
                                         // save post contingency state for later restoration after action
-                                        NetworkState postContingencyNetworkState = NetworkState.save(network);
+                                        NetworkState postContingencyNetworkState = NetworkState.save(lfNetwork);
                                         for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-                                            runActionSimulation(network, context,
+                                            runActionSimulation(lfNetwork, context,
                                                     operatorStrategy, preContingencyLimitViolationManager,
                                                     securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
-                                                    createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult())
+                                                    createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(), loadFlowParameters.getBalanceType())
                                                     .ifPresent(result -> {
                                                         operatorStrategyResults.add(result);
                                                         postContingencyNetworkState.restore();
@@ -246,23 +250,29 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         LOGGER.info("Post contingency '{}' simulation done on network {} in {} ms", lfContingency.getId(),
                 network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
+        var connectivityResult = new ConnectivityResult(lfContingency.getCreatedSynchronousComponentsCount(), 0,
+                                                        lfContingency.getDisconnectedLoadActivePower() * PerUnit.SB,
+                                                        lfContingency.getDisconnectedGenerationActivePower() * PerUnit.SB,
+                                                        lfContingency.getDisconnectedElementIds());
+
         return new PostContingencyResult(contingency, status,
                                          new LimitViolationsResult(postContingencyLimitViolationManager.getLimitViolations()),
                                          postContingencyNetworkResult.getBranchResults(),
                                          postContingencyNetworkResult.getBusResults(),
-                                         postContingencyNetworkResult.getThreeWindingsTransformerResults());
+                                         postContingencyNetworkResult.getThreeWindingsTransformerResults(),
+                                         connectivityResult);
     }
 
     private Optional<OperatorStrategyResult> runActionSimulation(LfNetwork network, AcLoadFlowContext context, OperatorStrategy operatorStrategy,
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                  Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
-                                                                 LimitViolationsResult postContingencyLimitViolations) {
+                                                                 LimitViolationsResult postContingencyLimitViolations, LoadFlowParameters.BalanceType balanceType) {
         OperatorStrategyResult operatorStrategyResult = null;
 
         if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
             operatorStrategyResult = runActionSimulation(network, context, operatorStrategy, preContingencyLimitViolationManager,
-                    violationsParameters, lfActionById, createResultExtension, contingency);
+                    violationsParameters, lfActionById, createResultExtension, contingency, balanceType);
         }
 
         return Optional.ofNullable(operatorStrategyResult);

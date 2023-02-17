@@ -9,9 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.SimplePiModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 
@@ -27,9 +25,9 @@ public class LfSwitch extends AbstractLfBranch {
 
     private final Ref<Switch> switchRef;
 
-    public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch, boolean dc, double lowImpedanceThreshold) {
-        super(network, bus1, bus2, new SimplePiModel(), dc, lowImpedanceThreshold);
-        this.switchRef = new Ref<>(aSwitch);
+    public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch, LfNetworkParameters parameters) {
+        super(network, bus1, bus2, new SimplePiModel(), parameters);
+        this.switchRef = Ref.create(aSwitch, parameters.isCacheEnabled());
     }
 
     private Switch getSwitch() {
@@ -126,7 +124,7 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         // nothing to do
     }
 

@@ -11,24 +11,28 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
-import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
-import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
@@ -73,7 +77,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createVoltageControls(List<LfBus> lfBuses, boolean voltageRemoteControl, boolean voltagePerReactivePowerControl) {
+    private static void createVoltageControls(List<LfBus> lfBuses, LfNetworkParameters parameters) {
         List<VoltageControl> voltageControls = new ArrayList<>();
 
         // set controller -> controlled link
@@ -117,31 +121,32 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     }
                 });
 
-                if (voltageRemoteControl || controlledBus == controllerBus) {
+                if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
                     controlledBus.getVoltageControl().ifPresentOrElse(
                         vc -> updateVoltageControl(vc, controllerBus, controllerTargetV),
-                        () -> createVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, voltagePerReactivePowerControl));
+                        () -> createVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
                 } else {
                     // if voltage remote control deactivated and remote control, set local control instead
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
                             controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
                     controlledBus.getVoltageControl().ifPresentOrElse(
                         vc -> updateVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
-                        () -> createVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, voltagePerReactivePowerControl));
+                        () -> createVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, parameters));
                 }
             }
         }
 
-        if (voltagePerReactivePowerControl) {
+        if (parameters.isVoltagePerReactivePowerControl()) {
             voltageControls.forEach(LfNetworkLoaderImpl::checkGeneratorsWithSlope);
         }
     }
 
-    private static void createVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<VoltageControl> voltageControls, boolean voltagePerReactivePowerControl) {
+    private static void createVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<VoltageControl> voltageControls,
+                                             LfNetworkParameters parameters) {
         VoltageControl voltageControl = new VoltageControl(controlledBus, controllerTargetV);
         voltageControl.addControllerBus(controllerBus);
         controlledBus.setVoltageControl(voltageControl);
-        if (voltagePerReactivePowerControl) {
+        if (parameters.isVoltagePerReactivePowerControl()) {
             voltageControls.add(voltageControl);
         }
         if (controllerBus.getGenerators().stream().anyMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE)) {
@@ -203,7 +208,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (FastMath.abs(previousTargetV - targetV) > TARGET_V_EPSILON) {
             String generatorIds = controllerBus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.joining(", "));
             LOGGER.error("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
-                generatorIds, controllerBus.getId(), targetV * controlledBus.getNominalV(), previousTargetV * controlledBus.getNominalV());
+                generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
         }
     }
 
@@ -242,7 +247,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static LfBusImpl createBus(Bus bus, LfNetworkParameters parameters, LfNetwork lfNetwork, LoadingContext loadingContext,
                                        LfNetworkLoadingReport report, List<LfNetworkLoaderPostProcessor> postProcessors) {
-        LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, parameters.isDistributedOnConformLoad(), participateToSlackDistribution(parameters, bus), parameters.isBreakers());
+        LfBusImpl lfBus = LfBusImpl.create(bus, lfNetwork, parameters, participateToSlackDistribution(parameters, bus));
 
         List<ShuntCompensator> shuntCompensators = new ArrayList<>();
 
@@ -269,14 +274,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             @Override
             public void visitGenerator(Generator generator) {
-                lfBus.addGenerator(generator, parameters.isBreakers(), parameters.getPlausibleActivePowerLimit(), parameters.isReactiveLimits(),
-                        report, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
+                lfBus.addGenerator(generator, parameters, report);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(generator, lfBus));
             }
 
             @Override
             public void visitLoad(Load load) {
-                lfBus.addLoad(load);
+                lfBus.addLoad(load, parameters);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(load, lfBus));
             }
 
@@ -297,15 +301,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
             @Override
             public void visitStaticVarCompensator(StaticVarCompensator staticVarCompensator) {
-                lfBus.addStaticVarCompensator(staticVarCompensator, parameters.isVoltagePerReactivePowerControl(),
-                        parameters.isBreakers(), parameters.isReactiveLimits(), report, parameters.getMinPlausibleTargetVoltage(),
-                        parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode(), parameters.isSvcVoltageMonitoring());
+                lfBus.addStaticVarCompensator(staticVarCompensator, parameters, report);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(staticVarCompensator, lfBus));
             }
 
             @Override
             public void visitBattery(Battery battery) {
-                lfBus.addBattery(battery, parameters.getPlausibleActivePowerLimit(), report);
+                lfBus.addBattery(battery, parameters, report);
                 postProcessors.forEach(pp -> pp.onInjectionAdded(battery, lfBus));
             }
 
@@ -314,12 +316,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 switch (converterStation.getHvdcType()) {
                     case VSC:
                         VscConverterStation vscConverterStation = (VscConverterStation) converterStation;
-                        lfBus.addVscConverterStation(vscConverterStation, parameters.isBreakers(), parameters.isReactiveLimits(),
-                                report, parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
+                        lfBus.addVscConverterStation(vscConverterStation, parameters, report);
                         loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
                         break;
                     case LCC:
-                        lfBus.addLccConverterStation((LccConverterStation) converterStation);
+                        lfBus.addLccConverterStation((LccConverterStation) converterStation, parameters);
                         loadingContext.hvdcLineSet.add(converterStation.getHvdcLine());
                         break;
                     default:
@@ -330,7 +331,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
 
         if (!shuntCompensators.isEmpty()) {
-            lfBus.setShuntCompensators(shuntCompensators, parameters.isShuntVoltageControl());
+            lfBus.setShuntCompensators(shuntCompensators, parameters);
         }
 
         return lfBus;
@@ -342,7 +343,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
             report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
         } else {
-            if (lfBranch.isZeroImpedance()) {
+            if (lfBranch.isZeroImpedance(true) || lfBranch.isZeroImpedance(false)) {
                 LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
                 report.nonImpedantBranches++;
             }
@@ -355,19 +356,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (Branch<?> branch : loadingContext.branchSet) {
             LfBus lfBus1 = getLfBus(branch.getTerminal1(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(branch.getTerminal2(), lfNetwork, parameters.isBreakers());
-            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters.isTwtSplitShuntAdmittance(),
-                    parameters.isDc(), parameters.getLowImpedanceThreshold());
+            LfBranchImpl lfBranch = LfBranchImpl.create(branch, lfNetwork, lfBus1, lfBus2, parameters);
             addBranch(lfNetwork, lfBranch, report);
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters.isReactiveLimits(), report,
-                    parameters.getMinPlausibleTargetVoltage(), parameters.getMaxPlausibleTargetVoltage(), parameters.getReactiveRangeCheckMode());
+            LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
             lfNetwork.addBus(lfBus2);
             lfBuses.add(lfBus2);
             LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
-            LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters.isDc(), parameters.getLowImpedanceThreshold());
+            LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
             addBranch(lfNetwork, lfBranch, report);
             postProcessors.forEach(pp -> {
                 pp.onBusAdded(danglingLine, lfBus2);
@@ -376,14 +375,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
-            LfStarBus lfBus0 = new LfStarBus(lfNetwork, t3wt);
+            LfStarBus lfBus0 = new LfStarBus(lfNetwork, t3wt, parameters);
             lfNetwork.addBus(lfBus0);
             LfBus lfBus1 = getLfBus(t3wt.getLeg1().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus2 = getLfBus(t3wt.getLeg2().getTerminal(), lfNetwork, parameters.isBreakers());
             LfBus lfBus3 = getLfBus(t3wt.getLeg3().getTerminal(), lfNetwork, parameters.isBreakers());
-            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters.isTwtSplitShuntAdmittance(), parameters.isDc(), parameters.getLowImpedanceThreshold());
-            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters.isTwtSplitShuntAdmittance(), parameters.isDc(), parameters.getLowImpedanceThreshold());
-            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters.isTwtSplitShuntAdmittance(), parameters.isDc(), parameters.getLowImpedanceThreshold());
+            LfLegBranch lfBranch1 = LfLegBranch.create(lfNetwork, lfBus1, lfBus0, t3wt, t3wt.getLeg1(), parameters);
+            LfLegBranch lfBranch2 = LfLegBranch.create(lfNetwork, lfBus2, lfBus0, t3wt, t3wt.getLeg2(), parameters);
+            LfLegBranch lfBranch3 = LfLegBranch.create(lfNetwork, lfBus3, lfBus0, t3wt, t3wt.getLeg3(), parameters);
             addBranch(lfNetwork, lfBranch1, report);
             addBranch(lfNetwork, lfBranch2, report);
             addBranch(lfNetwork, lfBranch3, report);
@@ -401,7 +400,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     // Create phase controls which link controller -> controlled
                     TwoWindingsTransformer t2wt = (TwoWindingsTransformer) branch;
                     PhaseTapChanger ptc = t2wt.getPhaseTapChanger();
-                    createPhaseControl(lfNetwork, ptc, t2wt.getId(), "", parameters.isBreakers());
+                    createPhaseControl(lfNetwork, ptc, t2wt.getId(), "", parameters);
                 }
             }
             for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
@@ -409,7 +408,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 List<ThreeWindingsTransformer.Leg> legs = t3wt.getLegs();
                 for (int legNumber = 0; legNumber < legs.size(); legNumber++) {
                     PhaseTapChanger ptc = legs.get(legNumber).getPhaseTapChanger();
-                    createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + (legNumber + 1), parameters.isBreakers());
+                    createPhaseControl(lfNetwork, ptc, t3wt.getId(), "_leg_" + (legNumber + 1), parameters);
                 }
             }
         }
@@ -435,25 +434,25 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createTransformersVoltageControls(LfNetwork lfNetwork, boolean breakers, LoadingContext loadingContext) {
+    private static void createTransformersVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext) {
         // Create discrete voltage controls which link controller -> controlled
         for (Branch<?> branch : loadingContext.branchSet) {
             if (branch instanceof TwoWindingsTransformer) {
                 RatioTapChanger rtc = ((TwoWindingsTransformer) branch).getRatioTapChanger();
-                createTransformerVoltageControl(lfNetwork, rtc, branch.getId(), breakers);
+                createTransformerVoltageControl(lfNetwork, rtc, branch.getId(), parameters);
             }
         }
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {
             List<ThreeWindingsTransformer.Leg> legs = t3wt.getLegs();
             for (int legNumber = 0; legNumber < legs.size(); legNumber++) {
                 RatioTapChanger rtc = legs.get(legNumber).getRatioTapChanger();
-                createTransformerVoltageControl(lfNetwork, rtc, t3wt.getId() + "_leg_" + (legNumber + 1), breakers);
+                createTransformerVoltageControl(lfNetwork, rtc, t3wt.getId() + "_leg_" + (legNumber + 1), parameters);
             }
         }
     }
 
     private static void createSwitches(List<Switch> switches, LfNetwork lfNetwork, List<LfNetworkLoaderPostProcessor> postProcessors,
-                                       LfNetworkLoadingReport report, boolean dc, double lowImpedanceThreshold) {
+                                       LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         if (switches != null) {
             for (Switch sw : switches) {
                 VoltageLevel vl = sw.getVoltageLevel();
@@ -461,23 +460,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 Bus bus2 = vl.getBusBreakerView().getBus2(sw.getId());
                 LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
                 LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
-                LfSwitch lfSwitch = new LfSwitch(lfNetwork, lfBus1, lfBus2, sw, dc, lowImpedanceThreshold);
+                LfSwitch lfSwitch = new LfSwitch(lfNetwork, lfBus1, lfBus2, sw, parameters);
                 addBranch(lfNetwork, lfSwitch, report);
                 postProcessors.forEach(pp -> pp.onBranchAdded(sw, lfSwitch));
             }
         }
     }
 
-    private static void fixAllVoltageControls(LfNetwork lfNetwork, boolean minImpedance, boolean transformerVoltageControl) {
+    private static void fixAllVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters) {
         // If min impedance is set, there is no zero-impedance branch
-        if (!minImpedance) {
+        if (!parameters.isDc() && !parameters.isMinImpedance()) {
             // Merge the discrete voltage control in each zero impedance connected set
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.createZeroImpedanceSubGraph()).connectedSets();
-            connectedSets.forEach(connectedSet -> mergeVoltageControls(connectedSet, transformerVoltageControl));
+            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.getZeroImpedanceNetwork(false).getSubGraph()).connectedSets();
+            connectedSets.forEach(connectedSet -> mergeVoltageControls(connectedSet, parameters));
         }
     }
 
-    private static void mergeVoltageControls(Set<LfBus> zeroImpedanceConnectedSet, boolean transformerVoltageControl) {
+    private static void mergeVoltageControls(Set<LfBus> zeroImpedanceConnectedSet, LfNetworkParameters parameters) {
         // Get the list of voltage controls from controlled buses in the zero impedance connected set
         // Note that the list order is not deterministic as jgrapht connected set computation is using a basic HashSet
         List<VoltageControl> voltageControls = zeroImpedanceConnectedSet.stream().filter(LfBus::isVoltageControlled)
@@ -486,7 +485,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         // Get the list of discrete voltage controls from controlled buses in the zero impedance connected set
         // Note that the list order is not deterministic as jgrapht connected set computation is using a basic HashSet
-        List<TransformerVoltageControl> transformerVoltageControls = !transformerVoltageControl ? Collections.emptyList() :
+        List<TransformerVoltageControl> transformerVoltageControls = !parameters.isTransformerVoltageControl() ? Collections.emptyList() :
             zeroImpedanceConnectedSet.stream().filter(LfBus::isTransformerVoltageControlled)
                 .map(LfBus::getTransformerVoltageControl).filter(Optional::isPresent).map(Optional::get)
                 .collect(Collectors.toList());
@@ -577,7 +576,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId, boolean breakers) {
+    private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId,
+                                           LfNetworkParameters parameters) {
         if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
             String controlledBranchId = ptc.getRegulationTerminal().getConnectable().getId();
             if (controlledBranchId.equals(controllerBranchId)) {
@@ -602,7 +602,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 LOGGER.warn("Regulating terminal of phase controller branch '{}' is out of voltage: phase control discarded", controllerBranch.getId());
                 return;
             }
-            LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, breakers);
+            LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, parameters.isBreakers());
             DiscretePhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
                     DiscretePhaseControl.ControlledSide.ONE : DiscretePhaseControl.ControlledSide.TWO;
             if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
@@ -631,7 +631,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createTransformerVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId, boolean breakers) {
+    private static void createTransformerVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId,
+                                                        LfNetworkParameters parameters) {
         if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities()) {
             return;
         }
@@ -640,7 +641,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Voltage controller branch '{}' is open: voltage control discarded", controllerBranch.getId());
             return;
         }
-        LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, breakers);
+        LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers());
         if (controlledBus == null) {
             LOGGER.warn("Regulating terminal of voltage controller branch '{}' is out of voltage or in a different synchronous component: voltage control discarded", controllerBranch.getId());
             return;
@@ -652,7 +653,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
-        double deadbandValue = rtc.getTargetDeadband() / regulatingTerminalNominalV;
+        Double targetDeadband = rtc.getTargetDeadband() > 0 ? rtc.getTargetDeadband() / regulatingTerminalNominalV : null;
 
         controlledBus.getTransformerVoltageControl().ifPresentOrElse(vc -> {
             LOGGER.trace("Controlled bus '{}' already has a transformer voltage control: a shared control is created", controlledBus.getId());
@@ -662,31 +663,34 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             vc.addController(controllerBranch);
             controllerBranch.setVoltageControl(vc);
-            if (deadbandValue > 0) {
-                controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
+            if (targetDeadband != null) {
+                Double oldTargetDeadband = vc.getTargetDeadband().orElse(null);
+                if (oldTargetDeadband == null) {
+                    vc.setTargetDeadband(targetDeadband);
+                } else {
+                    // merge target deadbands by taking minimum
+                    vc.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+                }
             }
         }, () -> {
-                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue);
+                TransformerVoltageControl voltageControl = new TransformerVoltageControl(controlledBus, targetValue, targetDeadband);
                 voltageControl.addController(controllerBranch);
                 controllerBranch.setVoltageControl(voltageControl);
-                if (deadbandValue > 0) {
-                    controllerBranch.setTransformerVoltageControlTargetDeadband(deadbandValue);
-                }
                 controlledBus.setTransformerVoltageControl(voltageControl);
             });
     }
 
-    private static void createShuntVoltageControl(LfNetwork lfNetwork, ShuntCompensator shuntCompensator, boolean breakers) {
+    private static void createShuntVoltageControl(LfNetwork lfNetwork, ShuntCompensator shuntCompensator, LfNetworkParameters parameters) {
         if (!shuntCompensator.isVoltageRegulatorOn()) {
             return;
         }
-        LfBus controllerBus = getLfBus(shuntCompensator.getTerminal(), lfNetwork, breakers);
+        LfBus controllerBus = getLfBus(shuntCompensator.getTerminal(), lfNetwork, parameters.isBreakers());
         if (controllerBus == null) {
             LOGGER.warn("Voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
             return;
         }
         LfShunt controllerShunt = controllerBus.getControllerShunt().orElseThrow();
-        LfBus controlledBus = getLfBus(shuntCompensator.getRegulatingTerminal(), lfNetwork, breakers);
+        LfBus controlledBus = getLfBus(shuntCompensator.getRegulatingTerminal(), lfNetwork, parameters.isBreakers());
         if (controlledBus == null) {
             LOGGER.warn("Regulating terminal of voltage controller shunt {} is out of voltage: no voltage control created", shuntCompensator.getId());
             controllerShunt.setVoltageControlCapability(false);
@@ -712,6 +716,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
+        Double targetDeadband = shuntCompensator.getTargetDeadband() > 0 ? shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV : null;
 
         controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
             LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
@@ -723,10 +728,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
+                if (targetDeadband != null) {
+                    Double oldTargetDeadband = voltageControl.getTargetDeadband().orElse(null);
+                    if (oldTargetDeadband == null) {
+                        voltageControl.setTargetDeadband(targetDeadband);
+                    } else {
+                        // merge target deadbands by taking minimum
+                        voltageControl.setTargetDeadband(Math.min(oldTargetDeadband, targetDeadband));
+                    }
+                }
             }
         }, () -> {
                 // we create a new shunt voltage control.
-                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue);
+                ShuntVoltageControl voltageControl = new ShuntVoltageControl(controlledBus, targetValue, targetDeadband);
                 voltageControl.addController(controllerShunt);
                 controllerShunt.setVoltageControl(voltageControl);
                 controlledBus.setShuntVoltageControl(voltageControl);
@@ -738,8 +752,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private LfNetwork create(int numCC, int numSC, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
-        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(),
+    private LfNetwork create(int numCC, int numSC, Network network, List<Bus> buses, List<Switch> switches, LfNetworkParameters parameters, Reporter reporter) {
+        LfNetwork lfNetwork = new LfNetwork(numCC, numSC, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
                 parameters.getConnectivityFactory(), reporter);
 
         LoadingContext loadingContext = new LoadingContext();
@@ -754,40 +768,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
 
         if (!parameters.isDc()) {
-            createVoltageControls(lfBuses, parameters.isGeneratorVoltageRemoteControl(), parameters.isVoltagePerReactivePowerControl());
+            createVoltageControls(lfBuses, parameters);
             if (parameters.isReactivePowerRemoteControl()) {
                 createReactivePowerControls(lfBuses);
             }
             if (parameters.isTransformerVoltageControl()) {
                 // Discrete voltage controls need to be created after voltage controls (to test if both generator and transformer voltage control are on)
-                createTransformersVoltageControls(lfNetwork, parameters.isBreakers(), loadingContext);
+                createTransformersVoltageControls(lfNetwork, parameters, loadingContext);
             }
             if (parameters.isShuntVoltageControl()) {
                 for (ShuntCompensator shunt : loadingContext.shuntSet) {
-                    createShuntVoltageControl(lfNetwork, shunt, parameters.isBreakers());
+                    createShuntVoltageControl(lfNetwork, shunt, parameters);
                 }
             }
         }
 
         if (parameters.isBreakers()) {
-            createSwitches(switches, lfNetwork, postProcessors, report, parameters.isDc(), parameters.getLowImpedanceThreshold());
+            createSwitches(switches, lfNetwork, postProcessors, parameters, report);
         }
 
-        if (!parameters.isDc()) {
-            // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
-            fixAllVoltageControls(lfNetwork, parameters.isMinImpedance(), parameters.isTransformerVoltageControl());
-        }
+        // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
+        fixAllVoltageControls(lfNetwork, parameters);
 
-        if (!parameters.isMinImpedance()) {
-            // create zero impedance equations only on minimum spanning forest calculated from zero impedance sub graph
-            Graph<LfBus, LfBranch> zeroImpedanceSubGraph = lfNetwork.createZeroImpedanceSubGraph();
-            if (!zeroImpedanceSubGraph.vertexSet().isEmpty()) {
-                SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree = new KruskalMinimumSpanningTree<>(zeroImpedanceSubGraph).getSpanningTree();
-                for (LfBranch branch : spanningTree.getEdges()) {
-                    branch.setSpanningTreeEdge(true);
-                }
-            }
-        }
+        // secondary voltage controls
+        createSecondaryVoltageControls(network, parameters, lfNetwork);
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
@@ -832,7 +836,64 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsWithInconsistentTargetVoltage);
         }
 
+        if (parameters.getDebugDir() != null) {
+            Path debugDir = DebugUtil.getDebugDir(parameters.getDebugDir());
+            String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
+            lfNetwork.writeJson(debugDir.resolve("lfnetwork-" + dateStr + ".json"));
+            lfNetwork.writeGraphViz(debugDir.resolve("lfnetwork-" + dateStr + ".dot"), parameters.isDc());
+        }
+
         return lfNetwork;
+    }
+
+    private static void createSecondaryVoltageControls(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork) {
+        if (!parameters.isSecondaryVoltageControl()) {
+            return;
+        }
+        SecondaryVoltageControl svc = network.getExtension(SecondaryVoltageControl.class);
+        if (svc == null) {
+            return;
+        }
+        for (ControlZone controlZone : svc.getControlZones()) {
+            PilotPoint pilotPoint = controlZone.getPilotPoint();
+            // only keep control zone if its pilot bus is in this LF network
+            findPilotBus(network, parameters.isBreakers(), pilotPoint.getBusbarSectionsOrBusesIds()).ifPresentOrElse(pilotBus -> {
+                LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
+                if (lfPilotBus != null) { // could be in another LF network (another component)
+                    double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
+                    // filter missing control units and find corresponding primary voltage control, controlled bus
+                    Set<LfBus> controlledBuses = controlZone.getControlUnits().stream()
+                            .flatMap(controlUnit -> Networks.getEquipmentRegulatingTerminal(network, controlUnit.getId()).stream())
+                            .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
+                            .collect(Collectors.toCollection((Supplier<Set<LfBus>>) LinkedHashSet::new));
+                    if (controlledBuses.size() != controlZone.getControlUnits().size()) {
+                        LOGGER.debug("{}/{} control units have been mapped to a LF bus", controlledBuses.size(), controlZone.getControlUnits().size());
+                    }
+                    if (!controlledBuses.isEmpty()) {
+                        var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, controlledBuses);
+                        lfNetwork.addSecondaryVoltageControl(lfSvc);
+                    }
+                }
+            }, () -> LOGGER.warn("None of the pilot buses of control zone '{}' is valid", controlZone.getName()));
+        }
+        LOGGER.info("Network {}: {} secondary control zones have been created", lfNetwork, lfNetwork.getSecondaryVoltageControls().size());
+    }
+
+    private static Optional<Bus> findPilotBus(Network network, boolean breaker, List<String> busbarSectionsOrBusesId) {
+        for (String busbarSectionOrBusId : busbarSectionsOrBusesId) {
+            // node/breaker case
+            BusbarSection bbs = network.getBusbarSection(busbarSectionOrBusId);
+            if (bbs != null) {
+                return Optional.ofNullable(Networks.getBus(bbs.getTerminal(), breaker));
+            }
+            // bus/breaker case
+            Bus configuredBus = network.getBusBreakerView().getBus(busbarSectionOrBusId);
+            if (configuredBus != null) {
+                return breaker ? Optional.of(configuredBus)
+                        : Optional.ofNullable(configuredBus.getVoltageLevel().getBusView().getMergedBus(configuredBus.getId()));
+            }
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -882,7 +943,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     int numCc = networkKey.getLeft();
                     int numSc = networkKey.getRight();
                     List<Bus> lfBuses = e.getValue();
-                    return create(numCc, numSc, lfBuses, switchesByCc.get(networkKey), parameters,
+                    return create(numCc, numSc, network, lfBuses, switchesByCc.get(networkKey), parameters,
                             Reports.createLfNetworkReporter(reporter, numCc, numSc));
                 })
                 .collect(Collectors.toList());

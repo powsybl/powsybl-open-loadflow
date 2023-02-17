@@ -23,12 +23,12 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private final Ref<Branch<?>> branchRef;
 
-    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch, boolean dc, double lowImpedanceThreshold) {
-        super(network, bus1, bus2, piModel, dc, lowImpedanceThreshold);
-        this.branchRef = new Ref<>(branch);
+    protected LfBranchImpl(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, Branch<?> branch, LfNetworkParameters parameters) {
+        super(network, bus1, bus2, piModel, parameters);
+        this.branchRef = Ref.create(branch, parameters.isCacheEnabled());
     }
 
-    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, boolean dc, double lowImpedanceThreshold) {
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, LfNetworkParameters parameters) {
         PiModel piModel = new SimplePiModel()
                 .setR1(1 / Transformers.getRatioPerUnitBase(line))
                 .setR(line.getR() / zb)
@@ -38,11 +38,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, line, dc, lowImpedanceThreshold);
+        return new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
-                                                  boolean twtSplitShuntAdmittance, boolean dc, double lowImpedanceThreshold) {
+                                                  LfNetworkParameters parameters) {
         PiModel piModel = null;
 
         double baseRatio = Transformers.getRatioPerUnitBase(twt);
@@ -57,7 +57,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             List<PiModel> models = new ArrayList<>();
             for (int ptcPosition = ptc.getLowTapPosition(); ptcPosition <= ptc.getHighTapPosition(); ptcPosition++) {
                 Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
-                models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
+                models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance()));
             }
             piModel = new PiModelArray(models, ptc.getLowTapPosition(), ptc.getTapPosition());
         }
@@ -71,7 +71,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 List<PiModel> models = new ArrayList<>();
                 for (int rtcPosition = rtc.getLowTapPosition(); rtcPosition <= rtc.getHighTapPosition(); rtcPosition++) {
                     Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt, rtcPosition, ptcPosition);
-                    models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance));
+                    models.add(Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance()));
                 }
                 piModel = new PiModelArray(models, rtc.getLowTapPosition(), rtc.getTapPosition());
             } else {
@@ -83,22 +83,23 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             // we don't have any phase or voltage control, we create a simple pi model (single tap) based on phase current
             // tap and voltage current tap
             Transformers.TapCharacteristics tapCharacteristics = Transformers.getTapCharacteristics(twt);
-            piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, twtSplitShuntAdmittance);
+            piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance());
         }
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, twt, dc, lowImpedanceThreshold);
+        return new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);
     }
 
-    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, boolean twtSplitShuntAdmittance,
-                                      boolean dc, double lowImpedanceThreshold) {
+    public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
         Objects.requireNonNull(branch);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         double nominalV2 = branch.getTerminal2().getVoltageLevel().getNominalV();
         double zb = PerUnit.zb(nominalV2);
         if (branch instanceof Line) {
-            return createLine((Line) branch, network, bus1, bus2, zb, dc, lowImpedanceThreshold);
+            return createLine((Line) branch, network, bus1, bus2, zb, parameters);
         } else if (branch instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
-            return createTransformer(twt, network, bus1, bus2, zb, twtSplitShuntAdmittance, dc, lowImpedanceThreshold);
+            return createTransformer(twt, network, bus1, bus2, zb, parameters);
         } else {
             throw new PowsyblException("Unsupported type of branch for flow equations of branch: " + branch.getId());
         }
@@ -175,19 +176,19 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         var branch = getBranch();
 
         updateFlows(p1.eval(), q1.eval(), p2.eval(), q2.eval());
 
-        if (phaseShifterRegulationOn && isPhaseController()) {
+        if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
             // check if the target value deadband is respected
             checkTargetDeadband(discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
         }
 
-        if (isTransformerVoltageControlOn && isVoltageController()) { // it means there is a regulating ratio tap changer
+        if (parameters.isTransformerVoltageControlOn() && isVoltageController()) { // it means there is a regulating ratio tap changer
             TwoWindingsTransformer twt = (TwoWindingsTransformer) branch;
             RatioTapChanger rtc = twt.getRatioTapChanger();
             double baseRatio = Transformers.getRatioPerUnitBase(twt);

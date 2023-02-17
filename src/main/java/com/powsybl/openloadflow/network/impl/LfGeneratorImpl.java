@@ -11,8 +11,8 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -30,28 +30,32 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double droop;
 
-    private LfGeneratorImpl(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                            LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+    private double participationFactor;
+
+    private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP());
-        this.generatorRef = new Ref<>(generator);
+        this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
-        // get participation factor from extension
+        // get participation factor and droop from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
-            if (activePowerControl.getDroop() != 0) {
+            participating = activePowerControl.isParticipate();
+            if (!Double.isNaN(activePowerControl.getDroop())) {
                 droop = activePowerControl.getDroop();
+            }
+            if (activePowerControl.getParticipationFactor() > 0) {
+                participationFactor = activePowerControl.getParticipationFactor();
             }
         }
 
-        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), plausibleActivePowerLimit, report)) {
+        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), parameters, report)) {
             participating = false;
         }
 
         if (generator.isVoltageRegulatorOn()) {
-            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), breakers,
-                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), parameters,
+                    report);
         }
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
@@ -60,13 +64,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    public static LfGeneratorImpl create(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit,
-                                         boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                                         double maxPlausibleTargetVoltage, OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+    public static LfGeneratorImpl create(Generator generator, LfNetwork network, LfNetworkParameters parameters,
+                                         LfNetworkLoadingReport report) {
         Objects.requireNonNull(generator);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report,
-                minPlausibleTargetVoltage, maxPlausibleTargetVoltage, reactiveRangeCheckMode);
+        return new LfGeneratorImpl(generator, network, parameters, report);
     }
 
     private Generator getGenerator() {
@@ -125,6 +129,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     public double getDroop() {
         return droop;
+    }
+
+    @Override
+    public double getParticipationFactor() {
+        return participationFactor;
     }
 
     @Override

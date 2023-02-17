@@ -6,6 +6,10 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.equations.EquationSystem;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -31,5 +35,5 @@ public interface NewtonRaphsonStoppingCriteria {
         }
     }
 
-    TestResult test(double[] fx);
+    TestResult test(double[] fx, EquationSystem<AcVariableType, AcEquationType> equationSystem);
 }

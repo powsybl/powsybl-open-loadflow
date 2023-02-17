@@ -583,7 +583,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                       SensitivityFactorHolder<DcVariableType, DcEquationType> factorHolder, List<ParticipatingElement> participatingElements,
                                                       Set<LfBus> disabledBuses, Set<LfBranch> disabledBranches, Reporter reporter) {
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> factors = factorHolder.getFactorsForContingency(contingency.getContingency().getId());
-        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToShift().isEmpty()) {
+        if (contingency.getGeneratorIdsToLose().isEmpty() && contingency.getBusIdsToShift().isEmpty()) {
             calculateSensitivityValues(factors, factorStates, contingenciesStates, flowStates, contingencyElements,
                     contingency, resultWriter, disabledBuses, disabledBranches);
             // write contingency status
@@ -600,7 +600,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             if (lfContingency != null) {
                 lfContingency.apply(lfParameters.getBalanceType());
                 participatingElementsChanged = (isDistributedSlackOnGenerators(lfParameters) && !contingency.getGeneratorIdsToLose().isEmpty())
-                        || (isDistributedSlackOnLoads(lfParameters) && !contingency.getLoadIdsToShift().isEmpty());
+                        || (isDistributedSlackOnLoads(lfParameters) && !contingency.getBusIdsToShift().isEmpty());
                 if (factorGroups.hasMultiVariables()) {
                     Set<LfBus> impactedBuses = lfContingency.getLoadAndGeneratorBuses();
                     rhsChanged = rescaleGlsk(factorGroups, impactedBuses);
@@ -803,7 +803,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setReactiveLimits(false)
                 .setHvdcAcEmulation(false)
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
-                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage());
+                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
+                .setCacheEnabled(false); // force not caching as not supported in sensi analysis
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, Collections.emptySet(), reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
@@ -831,7 +832,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             var dcLoadFlowParameters = createDcLoadFlowParameters(lfNetworkParameters, matrixFactory, lfParameters);
 
             // create DC equation system for sensitivity analysis
-            EquationSystem<DcVariableType, DcEquationType> equationSystem = DcEquationSystem.create(lfNetwork, dcLoadFlowParameters.getEquationSystemCreationParameters(), false);
+            EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(lfNetwork, dcLoadFlowParameters.getEquationSystemCreationParameters()).create(false);
 
             // next we only work with valid factors
             var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter);
