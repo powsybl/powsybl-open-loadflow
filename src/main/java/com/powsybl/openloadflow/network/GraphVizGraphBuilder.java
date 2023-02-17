@@ -80,6 +80,7 @@ public class GraphVizGraphBuilder {
                 GraphVizEdge edge = graph.edge(scope, bus1.getNum(), bus2.getNum(), branch.getNum());
                 edge.label().append(getEdgeLabel(branch));
                 edge.attr(GraphVizAttribute.color, getEdgeColor(branch, dc))
+                        .attr(GraphVizAttribute.style, branch.isDisabled() ? "dashed" : "")
                         .attr(GraphVizAttribute.dir, "none");
             }
         }

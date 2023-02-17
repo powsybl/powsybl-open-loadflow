@@ -50,9 +50,7 @@ public class LfZeroImpedanceNetwork {
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         for (Set<LfBus> connectedSet : connectedSets) {
             var subGraph = new AsSubgraph<>(graph, connectedSet);
-            if (subGraph.vertexSet().size() > 1) {
-                zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
-            }
+            zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
         }
         return zeroImpedanceNetworks;
     }

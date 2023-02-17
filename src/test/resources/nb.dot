@@ -5,7 +5,7 @@ digraph G {
 	n0 [label="VL1_0\lgen=603.8 MW 0.0 MVar",shape="box",style="filled,rounded",fontsize="10",color="red",fillcolor="grey"];
 	n1 [label="VL2_0\lload=600.0 MW 200.0 MVar",shape="box",style="filled,rounded",fontsize="10",color="",fillcolor="grey"];
 	n2 [label="VL2_1",shape="box",style="filled,rounded",fontsize="10",color="",fillcolor="grey"];
-	n0 -> n1 [label="L2",color="black",dir="none"];
-	n0 -> n2 [label="L1",color="black",dir="none"];
-	n1 -> n2 [label="B3",color="red",dir="none"];
+	n0 -> n1 [label="L2",color="black",style="",dir="none"];
+	n0 -> n2 [label="L1",color="black",style="",dir="none"];
+	n1 -> n2 [label="B3",color="red",style="",dir="none"];
 }
