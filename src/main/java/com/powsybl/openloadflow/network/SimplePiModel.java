@@ -165,7 +165,7 @@ public class SimplePiModel implements PiModel {
             }
         } else {
             double z = getZ();
-            if (z < minZ) {
+            if (z <= minZ) {
                 rescaleZ(minZ);
                 return true;
             }

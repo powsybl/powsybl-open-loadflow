@@ -518,6 +518,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             for (LfBranch branch : branches) {
                 branch.setMinZ(lowImpedanceThreshold);
             }
+        } else {
+            branches.stream()
+                    .filter(LfBranch::isPhaseController)
+                    .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
 
