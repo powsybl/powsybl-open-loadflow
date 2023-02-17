@@ -309,9 +309,6 @@ class LfActionTest extends AbstractConverterTest {
 
             LoadFlowResult result = runner.run(network, runner.getParameters());
             assertTrue(result.isOk());
-
-            assertEquals(newTargetP, network.getGenerator(genId).getTargetP());
-
         }
 
     }

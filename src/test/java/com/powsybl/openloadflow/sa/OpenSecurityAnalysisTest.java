@@ -2440,23 +2440,59 @@ class OpenSecurityAnalysisTest {
         // This means we should have no impact on the contribution factor to the slack.
         parameters.setDistributedSlack(true).setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        OpenLoadFlowParameters.create(parameters).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        OpenLoadFlowParameters.create(parameters).setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED).setNewtonRaphsonConvEpsPerEq(1e-7);
         securityAnalysisParameters.setLoadFlowParameters(parameters);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
-
-        // final double expectedPAtG1 = Stream.of("l12","l13", "l14").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP1()).reduce(0d, (a,b) -> a+b);
+        // Check first that pre contingency results are indeed those expected, i.e. no change in the TargetP has heppened.
         final double expectedPAtG1 = Stream.of("l12", "l13", "l14").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP1()).reduce(0d, Double::sum);
-        assertEquals(1.9998447468193346, expectedPAtG1); // 1.9998447468193346 is close to 2.0 pu!
+        assertEquals(network.getGenerator("g1").getTargetP(), expectedPAtG1, LoadFlowAssert.DELTA_POWER);
+
+        final double expectedPAtG2 = Stream.of("l14", "l34").mapToDouble(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP2()).sum();
+        assertEquals(network.getGenerator("g2").getTargetP(), expectedPAtG2 + network.getLoad("d2").getP0(), LoadFlowAssert.DELTA_POWER);
 
         final double expectedPAtG4 = Stream.of("l14", "l34").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
-        assertEquals(0.9998555462687488, expectedPAtG4); // This is pretty much 1 pu
+        assertEquals(network.getGenerator("g4").getTargetP(), expectedPAtG4, LoadFlowAssert.DELTA_POWER);
 
         // Let's now check the results of the security analysis with operator strategy.
         // Let's start with checking that the contingency indeed happened
         assertDoesNotThrow(() -> result.getPreContingencyResult().getNetworkResult().getBranchResult("l13").getP1());
         assertThrows(NullPointerException.class, () -> getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l13").getP1());
+
+        // We now check the expected results by pen and paper calculations
+        // Regarding Action1:
+        // -> We should have an extra 2 pu in generation overall.
+        // -> This is directed towards all generators (1,2,4) proportionally to their Pmax.
+        // -> PmaxTot = sum of getMaxP
+        final double totalPMax = Stream.of("g1", "g2", "g4").mapToDouble(id -> network.getGenerator(id).getMaxP()).sum();
+        double totalP = Stream.of("g1", "g2", "g4").mapToDouble(id -> network.getGenerator(id).getTargetP()).sum() + deltaG1;
+        final double targetPAtG1 = network.getGenerator("g1").getTargetP() + deltaG1;
+        final double totalLoads = Stream.of("d2", "d3").mapToDouble(id -> network.getLoad(id).getP0()).sum();
+        final double expectedPAtG1Strategy1 = targetPAtG1 + (totalLoads - totalP) * network.getNetwork().getGenerator("g1").getMaxP() / totalPMax;
+        final double expectedPAtG2Strategy1 = network.getGenerator("g2").getTargetP() + (totalLoads - totalP) * network.getNetwork().getGenerator("g2").getMaxP() / totalPMax;
+        final double expectedPAtG4Strategy1 = network.getGenerator("g4").getTargetP() + (totalLoads - totalP) * network.getNetwork().getGenerator("g4").getMaxP() / totalPMax;
+        final double obtainedPAtG1Strategy1 = Stream.of("l12", "l14").map(id -> Math.abs(getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult(id).getP1())).reduce(0d, Double::sum);
+        assertEquals(expectedPAtG1Strategy1, obtainedPAtG1Strategy1, LoadFlowAssert.DELTA_POWER);
+        final double computedPAtG2Strategy1 = getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP2() +
+                getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l23").getP1();
+        assertEquals(expectedPAtG2Strategy1 - network.getLoad("d2").getP0(), computedPAtG2Strategy1, LoadFlowAssert.DELTA_POWER);
+        final double computedPAtG4Strategy1 = Stream.of("l14", "l34").map(id -> getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
+        assertEquals(expectedPAtG4Strategy1, computedPAtG4Strategy1, LoadFlowAssert.DELTA_POWER);
+
+        // Let's now look at Strategy 2:
+        totalP = Stream.of("g1", "g2", "g4").mapToDouble(id -> network.getGenerator(id).getTargetP()).sum() + deltaG2;
+        final double targetPAtG2 = network.getGenerator("g2").getTargetP() + deltaG2;
+        final double expectedPAtG1Strategy2 = network.getGenerator("g1").getTargetP() + (totalLoads - totalP) * network.getNetwork().getGenerator("g1").getMaxP() / totalPMax;
+        final double expectedPAtG2Strategy2 = targetPAtG2 + (totalLoads - totalP) * network.getNetwork().getGenerator("g2").getMaxP() / totalPMax;
+        final double expectedPAtG4Strategy2 = network.getGenerator("g4").getTargetP() + (totalLoads - totalP) * network.getNetwork().getGenerator("g4").getMaxP() / totalPMax;
+        final double obtainedPAtG1Strategy2 = Stream.of("l12", "l14").map(id -> getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult(id).getP1()).reduce(0d, Double::sum);
+        assertEquals(expectedPAtG1Strategy2, obtainedPAtG1Strategy2, LoadFlowAssert.DELTA_POWER);
+        final double computedPAtG2Strategy2 = getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("l12").getP2() +
+                getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("l23").getP1();
+        assertEquals(expectedPAtG2Strategy2 - network.getLoad("d2").getP0(), computedPAtG2Strategy2, LoadFlowAssert.DELTA_POWER);
+        final double computedPAtG4Strategy2 = Stream.of("l14", "l34").map(id -> getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
+        assertEquals(expectedPAtG4Strategy2, computedPAtG4Strategy2, LoadFlowAssert.DELTA_POWER);
 
         // Ground truth loadflow.
         // Apply contingency by hand
@@ -2467,8 +2503,8 @@ class OpenSecurityAnalysisTest {
         network.getGenerator("g1").setTargetP(originalTargetP + deltaG1);
         LoadFlow.run(network, parameters);
         // Compare results
-        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER * 10);
-        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER * 10);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // reverse action and apply second remedial action
         network.getGenerator("g1").setTargetP(originalTargetP);
@@ -2476,41 +2512,5 @@ class OpenSecurityAnalysisTest {
         network.getGenerator("g2").setTargetP(originalTargetP + deltaG2);
         LoadFlow.run(network, parameters);
 
-        // Bon, au générateur 1, à 10-2 près, on a les même résultats (en ayant augmenté les pmax de tous les générateurs de 3 pu)
-
-        // Verify that the newly added clack has been correctly distributed
-        // -> First strategy // OperatorStrategy
-        final double expectedPAtG1OpStrategyG1 = Stream.of("l12", "l14").map(id -> Math.abs(getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult(id).getP1())).reduce(0d, Double::sum);
-        assertEquals(3.2856944642728267, expectedPAtG1OpStrategyG1); // This is close to 3.2 = 2 + 2 - 0.8
-        final double expectedPAtG2OpStrategyG1 = getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP1() +
-                getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l23").getP1();
-        assertEquals(3.643364817532415, expectedPAtG2OpStrategyG1); // This is close to 1.2 = 2 - 0.8
-        final double expectedPAtG4OpStrategyG1 = Stream.of("l14", "l34").map(id -> getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
-        assertEquals(0.42858232187911693, expectedPAtG4OpStrategyG1); // This is close to 0.6 = 1 - 0.4
-
-        final double sometests = Stream.of("l12", "l14").map(id -> {
-            var branchResult = getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult(id);
-            return Math.abs(branchResult.getP1()) + Math.abs(branchResult.getP2());
-        }).reduce(0d, Double::sum);
-        assertEquals(0.0d, sometests);
-        final double expectedPAtG1OpStrategyG2 = Stream.of("l12", "l14").map(id -> Math.abs(getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult(id).getP1())).reduce(0d, Double::sum);
-        assertEquals(3.199989729949623, expectedPAtG1OpStrategyG2);
-
-        assertEquals(578.3, result.getPreContingencyResult().getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(0.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(292.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(0.0, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(318.3, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(583.5, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(302.0, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(0.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(431.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(302.2, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(583.5, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(583.5, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(302.2, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        // getBranchResult("P1") -> Sum of branch results starting from nodes/buses should add up to targetP
     }
 }
