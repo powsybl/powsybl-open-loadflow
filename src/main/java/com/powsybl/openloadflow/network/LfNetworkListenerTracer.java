@@ -116,7 +116,7 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
 
     @Override
     public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
-        LOGGER.trace("onZeroImpedanceNetworkSpanningTreeChange(branchId={}, dc={}, spanningTree={})",
+        LOGGER.trace("onZeroImpedanceNetworkSpanningTreeChange(branchId='{}', dc={}, spanningTree={})",
                 branch, dc, spanningTree);
         delegate.onZeroImpedanceNetworkSpanningTreeChange(branch, dc, spanningTree);
     }

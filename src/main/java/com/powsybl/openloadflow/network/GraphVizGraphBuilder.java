@@ -24,7 +24,9 @@ public class GraphVizGraphBuilder {
     }
 
     private static String getNodeLabel(LfBus bus) {
-        StringBuilder builder = new StringBuilder(bus.getId());
+        StringBuilder builder = new StringBuilder(Integer.toString(bus.getNum()))
+                .append("\n")
+                .append(bus.getId());
         if (bus.getGenerationTargetP() != 0 || bus.getGenerationTargetQ() != 0) {
             builder.append("\ngen=")
                     .append(String.format(Locale.US, "%.1f", bus.getGenerationTargetP() * PerUnit.SB)).append(" MW ")
@@ -51,7 +53,7 @@ public class GraphVizGraphBuilder {
     }
 
     private static String getNodeColor(LfBus bus) {
-        return bus.isVoltageControlled() ? "red" : "";
+        return bus.isVoltageControlled() ? "yellow" : "";
     }
 
     private static String getEdgeColor(LfBranch branch, boolean dc) {
@@ -72,6 +74,17 @@ public class GraphVizGraphBuilder {
                     .attr(GraphVizAttribute.fontsize, "10")
                     .attr(GraphVizAttribute.color, getNodeColor(bus))
                     .attr(GraphVizAttribute.fillcolor, "grey");
+        }
+        // draw voltage controller -> controlled links
+        for (LfBus bus : network.getBuses()) {
+            if (bus.isVoltageControlled()) {
+                VoltageControl vc = bus.getVoltageControl().orElseThrow();
+                for (LfBus controllerBus : vc.getControllerBuses()) {
+                    GraphVizEdge edge = graph.edge(scope, controllerBus.getNum(), bus.getNum(), controllerBus);
+                    edge.attr(GraphVizAttribute.color, "lightgray")
+                            .attr(GraphVizAttribute.style, "dotted");
+                }
+            }
         }
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();

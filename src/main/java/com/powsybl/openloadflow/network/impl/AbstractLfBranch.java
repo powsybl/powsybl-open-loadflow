@@ -351,11 +351,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     public void setDisabled(boolean disabled) {
         if (disabled != this.disabled) {
             this.disabled = disabled;
+            notifyDisable();
             if (bus1 != null && bus2 != null) {
                 updateZeroImpedanceNetworks(disabled, false);
                 updateZeroImpedanceNetworks(disabled, true);
             }
-            notifyDisable();
         }
     }
 }
