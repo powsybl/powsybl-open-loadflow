@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.sa;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.contingency.Contingency;
@@ -120,11 +119,6 @@ class LfActionTest extends AbstractConverterTest {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
             assertEquals("LfAction.GeneratorUpdates: setTargetP with an absolute power value is not supported yet.", e.getMessage());
-//            This followin piece of code can be uncommented (and adapted!) once the necessary code has been implemented.
-//            LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
-//            lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-//            assertEquals(newTargetP / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
-//            assertEquals(genId, generatorAction.getGeneratorId());
         }
 
     }
@@ -139,7 +133,7 @@ class LfActionTest extends AbstractConverterTest {
         final double oldTargetP = actedOnGenerator.getTargetP();
         final double newTargetP = oldTargetP + deltaTargetP;
         GeneratorAction generatorAction =
-                new GeneratorActionBuilder().withId("genAction_" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(deltaTargetP).build();
+                new GeneratorActionBuilder().withId("genAction_" + genId).withGeneratorId(genId).withActivePowerRelativeValue(true).withActivePowerValue(deltaTargetP).build();
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
@@ -201,7 +195,7 @@ class LfActionTest extends AbstractConverterTest {
         Generator actedOnGenerator = network.getGenerator(genId);
 
         GeneratorAction generatorAction =
-                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).build();
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).build();
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
@@ -223,22 +217,15 @@ class LfActionTest extends AbstractConverterTest {
         double deltaTargetQ = 2d;
         double newTargetQ = actedOnGenerator.getTargetQ() + deltaTargetQ;
         GeneratorAction generatorAction =
-                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withTargetQ(newTargetQ).build();
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withTargetQ(newTargetQ).build();
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
 
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
-            try {
-                lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-            } catch (Exception e) {
-                assertTrue(e instanceof PowsyblException);
-                assertEquals("GeneratorUpdates: setTargetQ not implemented yet.", e.getMessage());
-            }
-
-            assertEquals(genId, generatorAction.getGeneratorId());
+            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
+            assertEquals("LfAction:GeneratorUpdate: Unsupported generator update: update target Q", e.getMessage());
         }
     }
 
@@ -250,22 +237,34 @@ class LfActionTest extends AbstractConverterTest {
         double deltaTargetV = 2d;
         double newTargetV = actedOnGenerator.getTargetV() + deltaTargetV;
         GeneratorAction generatorAction =
-                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withTargetV(newTargetV).build();
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withTargetV(newTargetV).build();
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
 
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
-            try {
-                lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-            } catch (Exception e) {
-                assertTrue(e instanceof PowsyblException);
-                assertEquals("GeneratorUpdates: setTargetV not implemented yet.", e.getMessage());
-            }
+            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
+            assertEquals("LfAction:GeneratorUpdate: Unsupported generator update: update target V", e.getMessage());
 
-            assertEquals(genId, generatorAction.getGeneratorId());
+        }
+    }
+
+    @Test
+    void testGeneratorUpdateSetVoltageControl() {
+        Network network = NodeBreakerNetworkFactory.create();
+        String genId = "G";
+        GeneratorAction generatorAction =
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(true).build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
+            assertEquals("LfAction:GeneratorUpdate: Unsupported generator update: update voltage regulation", e.getMessage());
+
         }
     }
 
@@ -286,7 +285,7 @@ class LfActionTest extends AbstractConverterTest {
     }
 
     @Test
-    void testGeneratorUpdatesTargetPProportionalToP() {
+    void testGeneratorUpdatesTargetPProportionalToPMax() {
         LfActionAcRunner runner = new LfActionAcRunner();
         Network network = NodeBreakerNetworkFactory.create();
         String genId = "G";
@@ -294,7 +293,7 @@ class LfActionTest extends AbstractConverterTest {
         double deltaTargetP = 2d;
         double newTargetP = actedOnGenerator.getTargetP() + deltaTargetP;
         GeneratorAction generatorAction =
-                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(deltaTargetP).build();
+                new GeneratorActionBuilder().withId("genAction" + genId).withGeneratorId(genId).withActivePowerRelativeValue(true).withActivePowerValue(deltaTargetP).build();
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);

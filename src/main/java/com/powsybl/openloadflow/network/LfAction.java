@@ -11,7 +11,6 @@ import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -76,19 +75,9 @@ public final class LfAction {
 
         private final Optional<Double> activePowerValue;
 
-        private final Optional<Boolean> voltageRegulation;
-
-        private final Optional<Double> targetV;
-
-        private final Optional<Double> targetQ;
-
-        private GeneratorUpdate(LfGenerator generator, Optional<Double> activePowerValue,
-                                Optional<Boolean> voltageRegulation, Optional<Double> targetV, Optional<Double> targetQ) {
+        private GeneratorUpdate(LfGenerator generator, Optional<Double> activePowerValue) {
             this.generator = generator;
             this.activePowerValue = activePowerValue;
-            this.voltageRegulation = voltageRegulation;
-            this.targetV = targetV;
-            this.targetQ = targetQ;
         }
 
         public LfGenerator getGenerator() {
@@ -97,18 +86,6 @@ public final class LfAction {
 
         public Optional<Double> getActivePowerValue() {
             return activePowerValue;
-        }
-
-        public Optional<Boolean> isVoltageRegulation() {
-            return voltageRegulation;
-        }
-
-        public Optional<Double> getTargetV() {
-            return targetV;
-        }
-
-        public Optional<Double> getTargetQ() {
-            return targetQ;
         }
 
     }
@@ -240,14 +217,17 @@ public final class LfAction {
 
             Optional<Double> newTargetQ = action.getTargetQ();
             if (newTargetQ.isPresent()) {
-                newTargetQ = Optional.of(newTargetQ.get() / PerUnit.SB);
+                throw new UnsupportedOperationException("LfAction:GeneratorUpdate: Unsupported generator update: update target Q");
             }
 
             Optional<Double> newTargetV = action.getTargetV();
             if (newTargetV.isPresent()) {
-                newTargetV = Optional.of(newTargetV.get() / generator.getControlledBus().getNominalV());
+                throw new UnsupportedOperationException("LfAction:GeneratorUpdate: Unsupported generator update: update target V");
             }
-            var generatorUpdates = new GeneratorUpdate(generator, newTargetP, action.isVoltageRegulatorOn(), newTargetV, newTargetQ);
+            if (action.isVoltageRegulatorOn().isPresent()) {
+                throw new UnsupportedOperationException("LfAction:GeneratorUpdate: Unsupported generator update: update voltage regulation");
+            }
+            var generatorUpdates = new GeneratorUpdate(generator, newTargetP);
             return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorUpdates));
         }
         return Optional.empty();
@@ -357,24 +337,6 @@ public final class LfAction {
                 generatorUpdate.getGenerator().setTargetP(activePowerValue);
             });
 
-            generatorUpdate.isVoltageRegulation().ifPresent(voltageRegulationOn ->
-                            generatorUpdate.getGenerator().getControlledBus().setVoltageControlEnabled(voltageRegulationOn));
-
-            generatorUpdate.getTargetV().ifPresent(value -> {
-                throw new PowsyblException("GeneratorUpdates: setTargetV not implemented yet.");
-            });
-                    /* value ->
-                generatorUpdates.getGenerator().getControlledBus().getVoltageControl().ifPresentOrElse(
-                    voltageControl -> voltageControl.setTargetValue(value),
-                    () -> {
-                        throw new PowsyblException("GeneratorAction: No controlled bus for generator " + generatorUpdates.getGenerator().getId());
-                    })
-            ); */
-            generatorUpdate.getTargetQ().ifPresent(value -> {
-                throw new PowsyblException("GeneratorUpdates: setTargetQ not implemented yet.");
-            });
-
-                    /* value -> generatorUpdates.getGenerator().getBus().setGenerationTargetQ(value)); */
         }
     }
 }

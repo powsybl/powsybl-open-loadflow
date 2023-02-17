@@ -2427,12 +2427,12 @@ class OpenSecurityAnalysisTest {
         final String g2 = "g2";
         final double deltaG2 = 3.0d;
         List<Action> actions = List.of(// Add generator actions
-                new GeneratorActionBuilder().withId("genAction_" + g1).withGeneratorId(g1).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(deltaG1).build(),
-                new GeneratorActionBuilder().withId("genAction_" + g2).withGeneratorId(g2).withVoltageRegulatorOn(false).withActivePowerRelativeValue(true).withActivePowerValue(deltaG2).build());
+                new GeneratorActionBuilder().withId("genAction_" + g1).withGeneratorId(g1).withActivePowerRelativeValue(true).withActivePowerValue(deltaG1).build(),
+                new GeneratorActionBuilder().withId("genAction_" + g2).withGeneratorId(g2).withActivePowerRelativeValue(true).withActivePowerValue(deltaG2).build());
 
         List<OperatorStrategy> operatorStrategies = List.of(
-                new OperatorStrategy("strategyL1", ContingencyContext.specificContingency(droppedLine), new TrueCondition(), List.of("genAction_" + g1)),
-                new OperatorStrategy("strategyL3", ContingencyContext.specificContingency(droppedLine), new TrueCondition(), List.of("genAction_" + g2)));
+                new OperatorStrategy("strategyG1", ContingencyContext.specificContingency(droppedLine), new TrueCondition(), List.of("genAction_" + g1)),
+                new OperatorStrategy("strategyG3", ContingencyContext.specificContingency(droppedLine), new TrueCondition(), List.of("genAction_" + g2)));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -2458,7 +2458,7 @@ class OpenSecurityAnalysisTest {
         // Let's now check the results of the security analysis with operator strategy.
         // Let's start with checking that the contingency indeed happened
         assertDoesNotThrow(() -> result.getPreContingencyResult().getNetworkResult().getBranchResult("l13").getP1());
-        assertThrows(NullPointerException.class, () -> getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l13").getP1());
+        assertThrows(NullPointerException.class, () -> getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l13").getP1());
 
         // We now check the expected results by pen and paper calculations
         // Regarding Action1:
@@ -2472,12 +2472,12 @@ class OpenSecurityAnalysisTest {
         final double expectedPAtG1Strategy1 = targetPAtG1 + (totalLoads - totalP) * network.getNetwork().getGenerator("g1").getMaxP() / totalPMax;
         final double expectedPAtG2Strategy1 = network.getGenerator("g2").getTargetP() + (totalLoads - totalP) * network.getNetwork().getGenerator("g2").getMaxP() / totalPMax;
         final double expectedPAtG4Strategy1 = network.getGenerator("g4").getTargetP() + (totalLoads - totalP) * network.getNetwork().getGenerator("g4").getMaxP() / totalPMax;
-        final double obtainedPAtG1Strategy1 = Stream.of("l12", "l14").map(id -> Math.abs(getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult(id).getP1())).reduce(0d, Double::sum);
+        final double obtainedPAtG1Strategy1 = Stream.of("l12", "l14").map(id -> Math.abs(getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult(id).getP1())).reduce(0d, Double::sum);
         assertEquals(expectedPAtG1Strategy1, obtainedPAtG1Strategy1, LoadFlowAssert.DELTA_POWER);
-        final double computedPAtG2Strategy1 = getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP2() +
-                getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l23").getP1();
+        final double computedPAtG2Strategy1 = getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l12").getP2() +
+                getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l23").getP1();
         assertEquals(expectedPAtG2Strategy1 - network.getLoad("d2").getP0(), computedPAtG2Strategy1, LoadFlowAssert.DELTA_POWER);
-        final double computedPAtG4Strategy1 = Stream.of("l14", "l34").map(id -> getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
+        final double computedPAtG4Strategy1 = Stream.of("l14", "l34").map(id -> getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
         assertEquals(expectedPAtG4Strategy1, computedPAtG4Strategy1, LoadFlowAssert.DELTA_POWER);
 
         // Let's now look at Strategy 2:
@@ -2486,12 +2486,12 @@ class OpenSecurityAnalysisTest {
         final double expectedPAtG1Strategy2 = network.getGenerator("g1").getTargetP() + (totalLoads - totalP) * network.getNetwork().getGenerator("g1").getMaxP() / totalPMax;
         final double expectedPAtG2Strategy2 = targetPAtG2 + (totalLoads - totalP) * network.getNetwork().getGenerator("g2").getMaxP() / totalPMax;
         final double expectedPAtG4Strategy2 = network.getGenerator("g4").getTargetP() + (totalLoads - totalP) * network.getNetwork().getGenerator("g4").getMaxP() / totalPMax;
-        final double obtainedPAtG1Strategy2 = Stream.of("l12", "l14").map(id -> getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult(id).getP1()).reduce(0d, Double::sum);
+        final double obtainedPAtG1Strategy2 = Stream.of("l12", "l14").map(id -> getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult(id).getP1()).reduce(0d, Double::sum);
         assertEquals(expectedPAtG1Strategy2, obtainedPAtG1Strategy2, LoadFlowAssert.DELTA_POWER);
-        final double computedPAtG2Strategy2 = getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("l12").getP2() +
-                getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("l23").getP1();
+        final double computedPAtG2Strategy2 = getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l12").getP2() +
+                getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l23").getP1();
         assertEquals(expectedPAtG2Strategy2 - network.getLoad("d2").getP0(), computedPAtG2Strategy2, LoadFlowAssert.DELTA_POWER);
-        final double computedPAtG4Strategy2 = Stream.of("l14", "l34").map(id -> getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
+        final double computedPAtG4Strategy2 = Stream.of("l14", "l34").map(id -> getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult(id).getP2()).reduce(0d, Double::sum);
         assertEquals(expectedPAtG4Strategy2, computedPAtG4Strategy2, LoadFlowAssert.DELTA_POWER);
 
         // Ground truth loadflow.
@@ -2503,8 +2503,8 @@ class OpenSecurityAnalysisTest {
         network.getGenerator("g1").setTargetP(originalTargetP + deltaG1);
         LoadFlow.run(network, parameters);
         // Compare results
-        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
 
         // reverse action and apply second remedial action
         network.getGenerator("g1").setTargetP(originalTargetP);
