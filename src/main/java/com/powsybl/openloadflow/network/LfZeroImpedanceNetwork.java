@@ -58,9 +58,24 @@ public class LfZeroImpedanceNetwork {
     }
 
     private static Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(LfNetwork network, boolean dc) {
-        return network.createSubGraph(branch -> branch.isZeroImpedance(dc)
-                && !branch.isDisabled()
-                && branch.getBus1() != null && branch.getBus2() != null);
+        Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
+        for (LfBranch branch : network.getBranches()) {
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 != null && bus2 != null && branch.isZeroImpedance(dc)) {
+                // add to zero impedance graph all buses that could be connected to a zero impedance branch
+                if (!subGraph.containsVertex(bus1)) {
+                    subGraph.addVertex(bus1);
+                }
+                if (!subGraph.containsVertex(bus2)) {
+                    subGraph.addVertex(bus2);
+                }
+                if (!branch.isDisabled()) {
+                    subGraph.addEdge(bus1, bus2, branch);
+                }
+            }
+        }
+        return subGraph;
     }
 
     public LfNetwork getNetwork() {

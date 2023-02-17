@@ -15,8 +15,6 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.anarres.graphviz.builder.GraphVizGraph;
-import org.jgrapht.Graph;
-import org.jgrapht.graph.Pseudograph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -551,23 +548,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public List<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(boolean dc) {
         updateZeroImpedanceCache(dc);
         return dc ? dcLfZeroImpedanceNetworks : acLfZeroImpedanceNetworks;
-    }
-
-    Graph<LfBus, LfBranch> createSubGraph(Predicate<LfBranch> branchFilter) {
-        Objects.requireNonNull(branchFilter);
-
-        List<LfBranch> filteredBranches = getBranches().stream()
-                .filter(branchFilter)
-                .collect(Collectors.toList());
-
-        Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
-        for (LfBranch branch : filteredBranches) {
-            subGraph.addVertex(branch.getBus1());
-            subGraph.addVertex(branch.getBus2());
-            subGraph.addEdge(branch.getBus1(), branch.getBus2(), branch);
-        }
-
-        return subGraph;
     }
 
     public GraphConnectivity<LfBus, LfBranch> getConnectivity() {

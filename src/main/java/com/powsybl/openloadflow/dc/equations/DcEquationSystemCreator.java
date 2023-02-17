@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.dc.equations;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.network.DebugLfNetworkListener;
+import com.powsybl.openloadflow.network.LfNetworkListenerTracer;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -134,7 +134,7 @@ public class DcEquationSystemCreator {
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
         if (withListener) {
-            network.addListener(new DebugLfNetworkListener(new DcEquationSystemUpdater(equationSystem)));
+            network.addListener(new LfNetworkListenerTracer(new DcEquationSystemUpdater(equationSystem)));
         }
 
         return equationSystem;

@@ -14,13 +14,13 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DebugLfNetworkListener implements LfNetworkListener {
+public class LfNetworkListenerTracer implements LfNetworkListener {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DebugLfNetworkListener.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkListenerTracer.class);
 
     private final LfNetworkListener delegate;
 
-    public DebugLfNetworkListener(LfNetworkListener delegate) {
+    public LfNetworkListenerTracer(LfNetworkListener delegate) {
         this.delegate = Objects.requireNonNull(delegate);
     }
 
@@ -71,7 +71,7 @@ public class DebugLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
-        LOGGER.debug("onDisableChange(element={}, disabled={})", element, disabled);
+        LOGGER.debug("onDisableChange(elementType={}, elementId={}, disabled={})", element.getType(), element.getId(), disabled);
         delegate.onDisableChange(element, disabled);
     }
 
@@ -87,7 +87,7 @@ public class DebugLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
-        LOGGER.debug("onZeroImpedanceNetworkSpanningTreeChange(branch={}, dc={}, spanningTree={})",
+        LOGGER.debug("onZeroImpedanceNetworkSpanningTreeChange(branchId={}, dc={}, spanningTree={})",
                 branch, dc, spanningTree);
         delegate.onZeroImpedanceNetworkSpanningTreeChange(branch, dc, spanningTree);
     }
