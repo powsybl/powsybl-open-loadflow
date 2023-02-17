@@ -2445,7 +2445,7 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
-        // Check first that pre contingency results are indeed those expected, i.e. no change in the TargetP has heppened.
+        // Check first that pre contingency results are indeed those expected, i.e. no change in the TargetP has happened.
         final double expectedPAtG1 = Stream.of("l12", "l13", "l14").map(id -> result.getPreContingencyResult().getNetworkResult().getBranchResult(id).getP1()).reduce(0d, Double::sum);
         assertEquals(network.getGenerator("g1").getTargetP(), expectedPAtG1, LoadFlowAssert.DELTA_POWER);
 

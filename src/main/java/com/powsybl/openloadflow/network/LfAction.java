@@ -69,7 +69,7 @@ public final class LfAction {
         }
     }
 
-    public static final class GeneratorUpdates {
+    public static final class GeneratorUpdate {
 
         // Reference to the generator
         private final LfGenerator generator;
@@ -82,8 +82,8 @@ public final class LfAction {
 
         private final Optional<Double> targetQ;
 
-        private GeneratorUpdates(LfGenerator generator, Optional<Double> activePowerValue,
-                                 Optional<Boolean> voltageRegulation, Optional<Double> targetV, Optional<Double> targetQ) {
+        private GeneratorUpdate(LfGenerator generator, Optional<Double> activePowerValue,
+                                Optional<Boolean> voltageRegulation, Optional<Double> targetV, Optional<Double> targetQ) {
             this.generator = generator;
             this.activePowerValue = activePowerValue;
             this.voltageRegulation = voltageRegulation;
@@ -123,16 +123,16 @@ public final class LfAction {
 
     private final LoadShift loadShift;
 
-    private final GeneratorUpdates generatorUpdates;
+    private final GeneratorUpdate generatorUpdate;
 
     private LfAction(String id, LfBranch disabledBranch, LfBranch enabledBranch, TapPositionChange tapPositionChange,
-                     LoadShift loadShift, GeneratorUpdates generatorUpdates) {
+                     LoadShift loadShift, GeneratorUpdate generatorUpdate) {
         this.id = Objects.requireNonNull(id);
         this.disabledBranch = disabledBranch;
         this.enabledBranch = enabledBranch;
         this.tapPositionChange = tapPositionChange;
         this.loadShift = loadShift;
-        this.generatorUpdates = generatorUpdates;
+        this.generatorUpdate = generatorUpdate;
     }
 
     public static Optional<LfAction> create(Action action, LfNetwork lfNetwork, Network network, boolean breakers) {
@@ -247,7 +247,7 @@ public final class LfAction {
             if (newTargetV.isPresent()) {
                 newTargetV = Optional.of(newTargetV.get() / generator.getControlledBus().getNominalV());
             }
-            var generatorUpdates = new GeneratorUpdates(generator, newTargetP, action.isVoltageRegulatorOn(), newTargetV, newTargetQ);
+            var generatorUpdates = new GeneratorUpdate(generator, newTargetP, action.isVoltageRegulatorOn(), newTargetV, newTargetQ);
             return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorUpdates));
         }
         return Optional.empty();
@@ -352,15 +352,15 @@ public final class LfAction {
             }
         }
 
-        if (generatorUpdates != null) {
-            generatorUpdates.getActivePowerValue().ifPresent(activePowerValue -> {
-                generatorUpdates.getGenerator().setTargetP(activePowerValue);
+        if (generatorUpdate != null) {
+            generatorUpdate.getActivePowerValue().ifPresent(activePowerValue -> {
+                generatorUpdate.getGenerator().setTargetP(activePowerValue);
             });
 
-            generatorUpdates.isVoltageRegulation().ifPresent(voltageRegulationOn ->
-                            generatorUpdates.getGenerator().getControlledBus().setVoltageControlEnabled(voltageRegulationOn));
+            generatorUpdate.isVoltageRegulation().ifPresent(voltageRegulationOn ->
+                            generatorUpdate.getGenerator().getControlledBus().setVoltageControlEnabled(voltageRegulationOn));
 
-            generatorUpdates.getTargetV().ifPresent(value -> {
+            generatorUpdate.getTargetV().ifPresent(value -> {
                 throw new PowsyblException("GeneratorUpdates: setTargetV not implemented yet.");
             });
                     /* value ->
@@ -370,7 +370,7 @@ public final class LfAction {
                         throw new PowsyblException("GeneratorAction: No controlled bus for generator " + generatorUpdates.getGenerator().getId());
                     })
             ); */
-            generatorUpdates.getTargetQ().ifPresent(value -> {
+            generatorUpdate.getTargetQ().ifPresent(value -> {
                 throw new PowsyblException("GeneratorUpdates: setTargetQ not implemented yet.");
             });
 
