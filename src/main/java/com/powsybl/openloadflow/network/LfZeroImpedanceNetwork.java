@@ -14,10 +14,7 @@ import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.jgrapht.graph.AsSubgraph;
 import org.jgrapht.graph.Pseudograph;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -43,9 +40,9 @@ public class LfZeroImpedanceNetwork {
         updateSpanningTree();
     }
 
-    public static List<LfZeroImpedanceNetwork> create(LfNetwork network, boolean dc) {
+    public static Set<LfZeroImpedanceNetwork> create(LfNetwork network, boolean dc) {
         Objects.requireNonNull(network);
-        List<LfZeroImpedanceNetwork> zeroImpedanceNetworks = new ArrayList<>();
+        Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = new LinkedHashSet<>();
         var graph = createZeroImpedanceSubGraph(network, dc);
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         for (Set<LfBus> connectedSet : connectedSets) {
@@ -113,7 +110,7 @@ public class LfZeroImpedanceNetwork {
                 for (LfBranch branch : disabledBranches) {
                     branch.setSpanningTreeEdge(dc, false);
                 }
-                List<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
+                Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
                 zeroImpedanceNetworks.remove(this);
                 for (Set<LfBus> connectedSet : connectedSets) {
                     var subGraph = new AsSubgraph<>(graph, connectedSet);
@@ -136,7 +133,7 @@ public class LfZeroImpedanceNetwork {
         Objects.requireNonNull(enabledBranch);
         LfNetwork network = zn1.getNetwork();
         boolean dc = zn1.isDc();
-        List<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
+        Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
         Graph<LfBus, LfBranch> mergedGraph = new Pseudograph<>(LfBranch.class);
         Graphs.addGraph(mergedGraph, zn1.getGraph());
         Graphs.addGraph(mergedGraph, zn2.getGraph());

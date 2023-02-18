@@ -75,9 +75,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
 
-    private List<LfZeroImpedanceNetwork> dcLfZeroImpedanceNetworks;
+    private Set<LfZeroImpedanceNetwork> dcLfZeroImpedanceNetworks;
 
-    private List<LfZeroImpedanceNetwork> acLfZeroImpedanceNetworks;
+    private Set<LfZeroImpedanceNetwork> acLfZeroImpedanceNetworks;
 
     private Reporter reporter;
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
@@ -545,7 +545,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    public List<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(boolean dc) {
+    public Set<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(boolean dc) {
         updateZeroImpedanceCache(dc);
         return dc ? dcLfZeroImpedanceNetworks : acLfZeroImpedanceNetworks;
     }
