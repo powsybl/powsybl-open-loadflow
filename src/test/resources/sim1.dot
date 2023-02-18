@@ -2,10 +2,10 @@ digraph G {
 	node [shape=box];
 	compound=true;
 	label="\{CC0 SC0\}";
-	n0 [label="0\lVLGEN_0\lgen=607.0 MW 0.0 MVar",shape="box",style="filled,rounded",fontsize="10",color="yellow",fillcolor="grey"];
-	n1 [label="1\lVLHV1_0",shape="box",style="filled,rounded",fontsize="10",color="",fillcolor="grey"];
-	n2 [label="2\lVLHV2_0",shape="box",style="filled,rounded",fontsize="10",color="",fillcolor="grey"];
-	n3 [label="3\lVLLOAD_0\lload=600.0 MW 200.0 MVar",shape="box",style="filled,rounded",fontsize="10",color="",fillcolor="grey"];
+	n0 [label="0\lVLGEN_0\lgen=607.0 MW 0.0 MVar",shape="box",style="filled,rounded",fontsize="10",fillcolor="grey"];
+	n1 [label="1\lVLHV1_0",shape="box",style="filled,rounded",fontsize="10",fillcolor="grey"];
+	n2 [label="2\lVLHV2_0",shape="box",style="filled,rounded",fontsize="10",fillcolor="grey"];
+	n3 [label="3\lVLLOAD_0\lload=600.0 MW 200.0 MVar",shape="box",style="filled,rounded",fontsize="10",fillcolor="grey"];
 	n0 -> n0 [color="lightgray",style="dotted"];
 	n0 -> n1 [label="NGEN_NHV1\lr1=1.053",color="black",style="",dir="none"];
 	n1 -> n2 [label="NHV1_NHV2_1",color="black",style="",dir="none"];

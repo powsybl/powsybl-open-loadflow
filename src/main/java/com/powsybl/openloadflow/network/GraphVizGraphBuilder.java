@@ -52,10 +52,6 @@ public class GraphVizGraphBuilder {
         return builder.toString();
     }
 
-    private static String getNodeColor(LfBus bus) {
-        return bus.isVoltageControlled() ? "yellow" : "";
-    }
-
     private static String getEdgeColor(LfBranch branch, boolean dc) {
         if (branch.isZeroImpedance(dc)) {
             return branch.isSpanningTreeEdge(dc) ? "red" : "orange";
@@ -72,7 +68,6 @@ public class GraphVizGraphBuilder {
                     .attr(GraphVizAttribute.shape, "box")
                     .attr(GraphVizAttribute.style, "filled,rounded")
                     .attr(GraphVizAttribute.fontsize, "10")
-                    .attr(GraphVizAttribute.color, getNodeColor(bus))
                     .attr(GraphVizAttribute.fillcolor, "grey");
         }
         // draw voltage controller -> controlled links
