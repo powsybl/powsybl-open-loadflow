@@ -97,7 +97,7 @@ public class LfZeroImpedanceNetwork {
         }
     }
 
-    public void split() {
+    public void tryToSplit() {
         List<LfBranch> disabledBranches = graph.edgeSet().stream()
                 .filter(LfElement::isDisabled)
                 .collect(Collectors.toList());

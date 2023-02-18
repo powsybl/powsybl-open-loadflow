@@ -327,7 +327,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 if (disabled) {
                     if (zn1 == zn2) {
                         // zero impedance network split (maybe)
-                        zn1.split();
+                        zn1.tryToSplit();
                     } else {
                         // branch disabling does not change anything as both side were not part of same zero
                         // impedance network
