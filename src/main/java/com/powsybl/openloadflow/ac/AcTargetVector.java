@@ -33,7 +33,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
         return bus.getGeneratorVoltageControl().filter(vc -> bus.isGeneratorVoltageControlled()).map(vc -> {
-            if (vc.getControllerBuses().stream().noneMatch(LfBus::isGeneratorVoltageControlEnabled)) {
+            if (vc.getControllerElements().stream().noneMatch(LfBus::isGeneratorVoltageControlEnabled)) {
                 throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
             }
             return vc.getTargetValue();
@@ -43,7 +43,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
     private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
         double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
-        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getControllerBuses()) {
+        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getControllerElements()) {
             if (otherControllerBus != controllerBus) {
                 target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
             }

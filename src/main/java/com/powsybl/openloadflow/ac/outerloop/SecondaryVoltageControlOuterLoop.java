@@ -48,7 +48,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     private static List<LfBus> getControllerBuses(LfBus controlledBus) {
         return controlledBus.getGeneratorVoltageControl()
                 .orElseThrow()
-                .getControllerBuses()
+                .getControllerElements()
                 .stream().filter(SecondaryVoltageControlOuterLoop::isValid)
                 .collect(Collectors.toList());
     }

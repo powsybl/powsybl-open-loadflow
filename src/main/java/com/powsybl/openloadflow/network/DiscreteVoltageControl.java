@@ -12,7 +12,7 @@ import java.util.Optional;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class DiscreteVoltageControl extends VoltageControl {
+public class DiscreteVoltageControl<T extends LfElement> extends VoltageControl<T> {
 
     private Double targetDeadband;
 

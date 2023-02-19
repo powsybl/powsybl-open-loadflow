@@ -16,11 +16,9 @@ import java.util.*;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class GeneratorVoltageControl extends VoltageControl {
+public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorVoltageControl.class);
-
-    private final Set<LfBus> controllerBuses = new LinkedHashSet<>();
 
     public GeneratorVoltageControl(LfBus controlled, double targetValue) {
         super(targetValue, controlled);
@@ -34,13 +32,9 @@ public class GeneratorVoltageControl extends VoltageControl {
         }
     }
 
-    public Set<LfBus> getControllerBuses() {
-        return controllerBuses;
-    }
-
-    public void addControllerBus(LfBus controllerBus) {
-        Objects.requireNonNull(controllerBus);
-        controllerBuses.add(controllerBus);
+    @Override
+    public void addControllerElement(LfBus controllerBus) {
+        super.addControllerElement(controllerBus);
         controllerBus.setGeneratorVoltageControl(this);
     }
 
@@ -49,7 +43,7 @@ public class GeneratorVoltageControl extends VoltageControl {
      * @return true if the voltage control is ONLY local, false otherwise
      */
     public boolean isLocalControl() {
-        return controllerBuses.size() == 1 && controllerBuses.contains(controlledBus);
+        return controllerElements.size() == 1 && controllerElements.contains(controlledBus);
     }
 
     /**
@@ -57,18 +51,16 @@ public class GeneratorVoltageControl extends VoltageControl {
      * @return true if the voltage control is shared, false otherwise
      */
     public boolean isSharedControl() {
-        return controllerBuses.stream().flatMap(lfBus -> lfBus.getGenerators().stream())
+        return controllerElements.stream().flatMap(lfBus -> lfBus.getGenerators().stream())
                 .filter(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE).count() > 1;
     }
 
     public void updateReactiveKeys() {
-        List<LfBus> controllerBusList = new ArrayList<>(this.controllerBuses);
-
-        double[] reactiveKeys = createReactiveKeys(controllerBusList);
+        double[] reactiveKeys = createReactiveKeys(controllerElements);
 
         // no reactive dispatch on PQ buses, so we set the key to 0
-        for (int i = 0; i < controllerBusList.size(); i++) {
-            LfBus controllerBus = controllerBusList.get(i);
+        for (int i = 0; i < controllerElements.size(); i++) {
+            LfBus controllerBus = controllerElements.get(i);
             if (controllerBus.isDisabled() || !controllerBus.isGeneratorVoltageControlEnabled()) {
                 reactiveKeys[i] = 0d;
             }
@@ -76,8 +68,8 @@ public class GeneratorVoltageControl extends VoltageControl {
 
         // update bus reactive keys
         double reactiveKeysSum = Arrays.stream(reactiveKeys).sum();
-        for (int i = 0; i < controllerBusList.size(); i++) {
-            LfBus controllerBus = controllerBusList.get(i);
+        for (int i = 0; i < controllerElements.size(); i++) {
+            LfBus controllerBus = controllerElements.get(i);
             controllerBus.setRemoteVoltageControlReactivePercent(reactiveKeysSum == 0 ? 0 : reactiveKeys[i] / reactiveKeysSum);
         }
     }

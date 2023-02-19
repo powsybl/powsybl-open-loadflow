@@ -6,14 +6,18 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class VoltageControl extends Control {
+public class VoltageControl<T extends LfElement> extends Control {
 
     protected final LfBus controlledBus;
+
+    protected final List<T> controllerElements = new ArrayList<>();
 
     protected VoltageControl(double targetValue, LfBus controlledBus) {
         super(targetValue);
@@ -22,5 +26,13 @@ public class VoltageControl extends Control {
 
     public LfBus getControlledBus() {
         return controlledBus;
+    }
+
+    public List<T> getControllerElements() {
+        return controllerElements;
+    }
+
+    public void addControllerElement(T controllerElement) {
+        controllerElements.add(Objects.requireNonNull(controllerElement));
     }
 }

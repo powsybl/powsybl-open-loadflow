@@ -6,27 +6,13 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class ShuntVoltageControl extends DiscreteVoltageControl {
+public class ShuntVoltageControl extends DiscreteVoltageControl<LfShunt> {
 
-    private final List<LfShunt> controllerShunts = new ArrayList<>();
-
-    public ShuntVoltageControl(LfBus controlled, double targetValue, Double targetDeadband) {
-        super(controlled, targetValue, targetDeadband);
-    }
-
-    public List<LfShunt> getControllerShunts() {
-        return controllerShunts;
-    }
-
-    public void addControllerShunt(LfShunt controllerShunt) {
-        controllerShunts.add(Objects.requireNonNull(controllerShunt));
+    public ShuntVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
+        super(controlledBus, targetValue, targetDeadband);
     }
 }

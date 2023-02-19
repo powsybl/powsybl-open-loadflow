@@ -74,7 +74,7 @@ public class GraphVizGraphBuilder {
         for (LfBus bus : network.getBuses()) {
             if (bus.isGeneratorVoltageControlled()) {
                 GeneratorVoltageControl vc = bus.getGeneratorVoltageControl().orElseThrow();
-                for (LfBus controllerBus : vc.getControllerBuses()) {
+                for (LfBus controllerBus : vc.getControllerElements()) {
                     GraphVizEdge edge = graph.edge(scope, controllerBus.getNum(), bus.getNum(), controllerBus);
                     edge.attr(GraphVizAttribute.color, "lightgray")
                             .attr(GraphVizAttribute.style, "dotted");
