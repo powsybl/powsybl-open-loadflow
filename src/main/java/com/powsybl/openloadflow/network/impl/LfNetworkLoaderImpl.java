@@ -506,7 +506,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 // Sort voltage controls to have a merged voltage control with a deterministic controlled bus,
                 // a deterministic target value and controller buses in a deterministic order
                 voltageControls.sort(Comparator.comparing(GeneratorVoltageControl::getTargetValue).thenComparing(vc -> vc.getControlledBus().getId()));
-                checkVoltageControlUniqueTargetV(voltageControls);
+                checkVoltageControlUniqueTargetV("generator", voltageControls);
 
                 // Merge the controllers into the kept voltage control
                 GeneratorVoltageControl keptVoltageControl = voltageControls.remove(voltageControls.size() - 1);
@@ -536,7 +536,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             // Sort discrete voltage controls to have a merged discrete voltage control with a deterministic controlled bus,
             // a deterministic target value and controller branches in a deterministic order
             transformerVoltageControls.sort(Comparator.comparing(TransformerVoltageControl::getTargetValue).thenComparing(vc -> vc.getControlledBus().getId()));
-            checkTransformerVoltageControlUniqueTargetV(transformerVoltageControls);
+            checkVoltageControlUniqueTargetV("transformer", transformerVoltageControls);
 
             // Merge the controllers into the kept voltage control
             TransformerVoltageControl keptTransformerVoltageControl = transformerVoltageControls.remove(transformerVoltageControls.size() - 1);
@@ -550,29 +550,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void checkVoltageControlUniqueTargetV(List<GeneratorVoltageControl> voltageControls) {
+    private static <V extends VoltageControl<?>> void checkVoltageControlUniqueTargetV(String voltageControlType, List<V> voltageControls) {
         // To check uniqueness we take the target value which will be kept as reference.
         // The kept target value is the highest, it corresponds to the last voltage control in the ordered list.
-        GeneratorVoltageControl vcRef = voltageControls.get(voltageControls.size() - 1);
+        V vcRef = voltageControls.get(voltageControls.size() - 1);
         boolean uniqueTargetV = voltageControls.stream().noneMatch(vc -> FastMath.abs(vc.getTargetValue() - vcRef.getTargetValue()) > TARGET_V_EPSILON);
         if (!uniqueTargetV) {
-            LOGGER.error("Inconsistent voltage controls: buses {} are in the same non-impedant connected set and are controlled with different target voltages ({}). Only target voltage {} is kept",
-                voltageControls.stream().map(GeneratorVoltageControl::getControlledBus).collect(Collectors.toList()),
-                voltageControls.stream().map(GeneratorVoltageControl::getTargetValue).collect(Collectors.toList()),
-                vcRef.getTargetValue());
-        }
-    }
-
-    private static void checkTransformerVoltageControlUniqueTargetV(List<TransformerVoltageControl> transformerVoltageControls) {
-        // To check uniqueness we take the target value which will be kept as reference.
-        // The kept target value is the highest, it corresponds to the last discrete voltage control in the ordered list.
-        TransformerVoltageControl tvcRef = transformerVoltageControls.get(transformerVoltageControls.size() - 1);
-        boolean uniqueTargetV = transformerVoltageControls.stream().noneMatch(dvc -> FastMath.abs(dvc.getTargetValue() - tvcRef.getTargetValue()) > TARGET_V_EPSILON);
-        if (!uniqueTargetV) {
-            LOGGER.error("Inconsistent transformer voltage controls: buses {} are in the same non-impedant connected set and are controlled with different target voltages ({}). Only target voltage {} is kept",
-                    transformerVoltageControls.stream().map(TransformerVoltageControl::getControlledBus).collect(Collectors.toList()),
-                    transformerVoltageControls.stream().map(TransformerVoltageControl::getTargetValue).collect(Collectors.toList()),
-                    tvcRef.getTargetValue());
+            LOGGER.error("Inconsistent {} voltage controls: buses {} are in the same non-impedant connected set and are controlled with different target voltages ({}). Only target voltage {} is kept",
+                    voltageControlType,
+                    voltageControls.stream().map(VoltageControl::getControlledBus).collect(Collectors.toList()),
+                    voltageControls.stream().map(VoltageControl::getTargetValue).collect(Collectors.toList()),
+                    vcRef.getTargetValue());
         }
     }
 
