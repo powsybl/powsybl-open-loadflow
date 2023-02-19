@@ -20,8 +20,8 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorVoltageControl.class);
 
-    public GeneratorVoltageControl(LfBus controlled, double targetValue) {
-        super(targetValue, controlled);
+    public GeneratorVoltageControl(LfBus controlledBus, double targetValue) {
+        super(targetValue, controlledBus);
     }
 
     @Override

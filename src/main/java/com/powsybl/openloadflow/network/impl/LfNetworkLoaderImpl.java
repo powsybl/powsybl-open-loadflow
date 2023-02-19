@@ -123,15 +123,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
                 if (parameters.isGeneratorVoltageRemoteControl() || controlledBus == controllerBus) {
                     controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
-                        vc -> updateVoltageControl(vc, controllerBus, controllerTargetV),
-                        () -> createVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
+                        vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV),
+                        () -> createGeneratorVoltageControl(controlledBus, controllerBus, controllerTargetV, voltageControls, parameters));
                 } else {
                     // if voltage remote control deactivated and remote control, set local control instead
                     LOGGER.warn("Remote voltage control is not activated. The voltage target of {} with remote control is rescaled from {} to {}",
                             controllerBus.getId(), controllerTargetV, controllerTargetV * controllerBus.getNominalV() / controlledBus.getNominalV());
                     controlledBus.getGeneratorVoltageControl().ifPresentOrElse(
-                        vc -> updateVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
-                        () -> createVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, parameters));
+                        vc -> updateGeneratorVoltageControl(vc, controllerBus, controllerTargetV), // updating only to check targetV uniqueness
+                        () -> createGeneratorVoltageControl(controllerBus, controllerBus, controllerTargetV, voltageControls, parameters));
                 }
             }
         }
@@ -141,8 +141,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<GeneratorVoltageControl> voltageControls,
-                                             LfNetworkParameters parameters) {
+    private static void createGeneratorVoltageControl(LfBus controlledBus, LfBus controllerBus, double controllerTargetV, List<GeneratorVoltageControl> voltageControls,
+                                                      LfNetworkParameters parameters) {
         GeneratorVoltageControl voltageControl = new GeneratorVoltageControl(controlledBus, controllerTargetV);
         voltageControl.addControllerElement(controllerBus);
         controlledBus.setGeneratorVoltageControl(voltageControl);
@@ -154,7 +154,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void updateVoltageControl(GeneratorVoltageControl voltageControl, LfBus controllerBus, double controllerTargetV) {
+    private static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, LfBus controllerBus, double controllerTargetV) {
         voltageControl.addControllerElement(controllerBus);
         checkUniqueTargetVControlledBus(controllerTargetV, controllerBus, voltageControl);
     }
