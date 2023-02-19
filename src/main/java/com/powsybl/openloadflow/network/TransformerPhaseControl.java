@@ -11,7 +11,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DiscretePhaseControl extends Control {
+public class TransformerPhaseControl extends Control {
 
     public enum Mode {
         CONTROLLER,
@@ -30,8 +30,8 @@ public class DiscretePhaseControl extends Control {
     private final Mode mode;
     private final Unit unit;
 
-    public DiscretePhaseControl(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide, DiscretePhaseControl.Mode mode,
-                                double targetValue, double targetDeadband, Unit unit) {
+    public TransformerPhaseControl(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide, TransformerPhaseControl.Mode mode,
+                                   double targetValue, double targetDeadband, Unit unit) {
         super(targetValue);
         this.controllerBranch = Objects.requireNonNull(controllerBranch);
         this.controlledBranch = Objects.requireNonNull(controlledBranch);

@@ -391,7 +391,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
-        branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseController()).ifPresent(dpc -> {
+        branch.getPhaseControl().filter(dpc -> branch.isPhaseController()).ifPresent(dpc -> {
             try {
                 jsonGenerator.writeFieldName("discretePhaseControl");
                 jsonGenerator.writeStartObject();

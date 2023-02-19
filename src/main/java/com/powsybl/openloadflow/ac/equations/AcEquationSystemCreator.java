@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.DiscretePhaseControl.Mode;
+import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -400,9 +400,9 @@ public class AcEquationSystemCreator {
         }
 
         if (branch.isPhaseControlled()) {
-            DiscretePhaseControl phaseControl = branch.getDiscretePhaseControl().orElseThrow();
+            TransformerPhaseControl phaseControl = branch.getPhaseControl().orElseThrow();
             if (phaseControl.getMode() == Mode.CONTROLLER) {
-                if (phaseControl.getUnit() == DiscretePhaseControl.Unit.A) {
+                if (phaseControl.getUnit() == TransformerPhaseControl.Unit.A) {
                     throw new PowsyblException("Phase control in A is not yet supported");
                 }
 
@@ -416,7 +416,7 @@ public class AcEquationSystemCreator {
         }
     }
 
-    public static void updateTransformerPhaseControlEquations(DiscretePhaseControl phaseControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public static void updateTransformerPhaseControlEquations(TransformerPhaseControl phaseControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBranch controllerBranch = phaseControl.getControllerBranch();
         LfBranch controlledBranch = phaseControl.getControlledBranch();
 

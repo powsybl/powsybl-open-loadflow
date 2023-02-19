@@ -610,24 +610,24 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
             double targetValue;
             double targetDeadband;
-            DiscretePhaseControl phaseControl = null;
+            TransformerPhaseControl phaseControl = null;
             if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.CURRENT_LIMITER) {
                 if (controlledBranch == controllerBranch && controlledBus != null) {
                     targetValue = ptc.getRegulationValue() / PerUnit.ib(controlledBus.getNominalV());
                     targetDeadband = ptc.getTargetDeadband() / PerUnit.ib(controlledBus.getNominalV());
-                    phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
-                            DiscretePhaseControl.Mode.LIMITER, targetValue, targetDeadband, DiscretePhaseControl.Unit.A);
+                    phaseControl = new TransformerPhaseControl(controllerBranch, controlledBranch, controlledSide,
+                            TransformerPhaseControl.Mode.LIMITER, targetValue, targetDeadband, TransformerPhaseControl.Unit.A);
                 } else {
                     LOGGER.warn("Branch {} limits current limiter on remote branch {}: not supported yet", controllerBranch.getId(), controlledBranch.getId());
                 }
             } else if (ptc.getRegulationMode() == PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL) {
                 targetValue = ptc.getRegulationValue() / PerUnit.SB;
                 targetDeadband = ptc.getTargetDeadband() / PerUnit.SB;
-                phaseControl = new DiscretePhaseControl(controllerBranch, controlledBranch, controlledSide,
-                        DiscretePhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, DiscretePhaseControl.Unit.MW);
+                phaseControl = new TransformerPhaseControl(controllerBranch, controlledBranch, controlledSide,
+                        TransformerPhaseControl.Mode.CONTROLLER, targetValue, targetDeadband, TransformerPhaseControl.Unit.MW);
             }
-            controllerBranch.setDiscretePhaseControl(phaseControl);
-            controlledBranch.setDiscretePhaseControl(phaseControl);
+            controllerBranch.setPhaseControl(phaseControl);
+            controlledBranch.setPhaseControl(phaseControl);
         }
     }
 
