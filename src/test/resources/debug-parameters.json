@@ -53,7 +53,8 @@
         "debugDir" : null,
         "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
         "secondaryVoltageControl" : false,
-        "reactiveLimitsMaxPqPvSwitch" : 3
+        "reactiveLimitsMaxPqPvSwitch" : 3,
+        "simulateAutomatons" : false
       }
     }
   },
