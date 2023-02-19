@@ -42,6 +42,8 @@ public class LfNetworkParameters {
 
     public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
 
+    public static final boolean SIMULATE_AUTOMATONS_DEFAULT_VALUE = false;
+
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
@@ -97,6 +99,8 @@ public class LfNetworkParameters {
     private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
+
+    private boolean simulateAutomatons = SIMULATE_AUTOMATONS_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -360,6 +364,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isSimulateAutomatons() {
+        return simulateAutomatons;
+    }
+
+    public LfNetworkParameters setSimulateAutomatons(boolean simulateAutomatons) {
+        this.simulateAutomatons = simulateAutomatons;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -390,6 +403,7 @@ public class LfNetworkParameters {
                 ", debugDir=" + debugDir +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
+                ", simulateAutomatons=" + simulateAutomatons +
                 ')';
     }
 }

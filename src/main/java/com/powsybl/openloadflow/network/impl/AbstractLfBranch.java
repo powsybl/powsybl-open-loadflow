@@ -53,6 +53,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean acZeroImpedance = false;
 
+    protected final List<LfCurrentLimitAutomaton> currentLimitAutomata = new ArrayList<>();
+
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network);
         this.bus1 = bus1;
@@ -304,5 +306,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         } else {
             return piModel.getZ() < lowImpedanceThreshold;
         }
+    }
+
+    @Override
+    public List<LfCurrentLimitAutomaton> getCurrentLimitAutomata() {
+        return currentLimitAutomata;
     }
 }

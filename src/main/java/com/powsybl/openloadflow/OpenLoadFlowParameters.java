@@ -90,8 +90,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final ShuntVoltageControlMode SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
 
-    public static final boolean SIMULATE_AUTOMATONS_DEFAULT_VALUE = false;
-
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -210,7 +208,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_ANGLE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum angle for per equation stopping criteria", MAX_ANGLE_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
-        new Parameter(SIMULATE_AUTOMATONS_PARAM_NAME, ParameterType.BOOLEAN, "Automatons simulation", SIMULATE_AUTOMATONS_DEFAULT_VALUE)
+        new Parameter(SIMULATE_AUTOMATONS_PARAM_NAME, ParameterType.BOOLEAN, "Automatons simulation", LfNetworkParameters.SIMULATE_AUTOMATONS_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -315,7 +313,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private int reactiveLimitsMaxPqPvSwitch = ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV;
 
-    private boolean simulateAutomatons = SIMULATE_AUTOMATONS_DEFAULT_VALUE;
+    private boolean simulateAutomatons = LfNetworkParameters.SIMULATE_AUTOMATONS_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -747,7 +745,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT))
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
-                .setSimulateAutomatons(config.getBooleanProperty(SIMULATE_AUTOMATONS_PARAM_NAME, SIMULATE_AUTOMATONS_DEFAULT_VALUE)));
+                .setSimulateAutomatons(config.getBooleanProperty(SIMULATE_AUTOMATONS_PARAM_NAME, LfNetworkParameters.SIMULATE_AUTOMATONS_DEFAULT_VALUE)));
         return parameters;
     }
 

@@ -15,6 +15,7 @@ import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.extensions.CurrentLimitAutomaton;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -793,6 +794,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // secondary voltage controls
         createSecondaryVoltageControls(network, parameters, lfNetwork);
 
+        if (parameters.isSimulateAutomatons()) {
+            createAutomata(network, lfNetwork);
+        }
+
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
             Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reporter, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because not started",
@@ -894,6 +899,21 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
         return Optional.empty();
+    }
+
+    private void createAutomata(Network network, LfNetwork lfNetwork) {
+        for (Line line : network.getLines()) {
+            LfBranch lfLine = lfNetwork.getBranchById(line.getId());
+            if (lfLine != null) {
+                CurrentLimitAutomaton cla = line.getExtension(CurrentLimitAutomaton.class);
+                if (cla != null) {
+                    LfSwitch lfSwitch = (LfSwitch) lfNetwork.getBranchById(cla.getSwitchId());
+                    if (lfSwitch != null) {
+                        lfLine.getCurrentLimitAutomata().add(new LfCurrentLimitAutomaton(lfSwitch, cla.isSwitchOpen()));
+                    }
+                }
+            }
+        }
     }
 
     @Override

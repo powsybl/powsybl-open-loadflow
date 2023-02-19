@@ -171,4 +171,6 @@ public interface LfBranch extends LfElement {
     boolean isConnectedAtBothSides();
 
     void setMinZ(double lowImpedanceThreshold);
+
+    List<LfCurrentLimitAutomaton> getCurrentLimitAutomata();
 }
