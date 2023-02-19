@@ -20,11 +20,10 @@ public class GeneratorVoltageControl extends VoltageControl {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorVoltageControl.class);
 
-    private final Set<LfBus> controllerBuses;
+    private final Set<LfBus> controllerBuses = new LinkedHashSet<>();
 
     public GeneratorVoltageControl(LfBus controlled, double targetValue) {
         super(targetValue, controlled);
-        this.controllerBuses = new LinkedHashSet<>();
     }
 
     @Override

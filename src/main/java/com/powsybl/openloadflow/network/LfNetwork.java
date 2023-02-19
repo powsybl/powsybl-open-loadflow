@@ -395,8 +395,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             try {
                 jsonGenerator.writeFieldName("discretePhaseControl");
                 jsonGenerator.writeStartObject();
-                jsonGenerator.writeStringField("controller", dpc.getController().getId());
-                jsonGenerator.writeStringField("controlled", dpc.getControlled().getId());
+                jsonGenerator.writeStringField("controller", dpc.getControllerBranch().getId());
+                jsonGenerator.writeStringField("controlled", dpc.getControlledBranch().getId());
                 jsonGenerator.writeStringField("mode", dpc.getMode().name());
                 jsonGenerator.writeStringField("unit", dpc.getUnit().name());
                 jsonGenerator.writeStringField("controlledSide", dpc.getControlledSide().name());

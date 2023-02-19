@@ -212,7 +212,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, ReactivePowerControl.ControlledSide side, LfBus controllerBus,
+    private static void createRemoteReactivePowerControl(LfBranch controlledBranch, ControlledSide side, LfBus controllerBus,
                                                          double targetQ) {
         ReactivePowerControl control = new ReactivePowerControl(controlledBranch, side, controllerBus, targetQ);
         controllerBus.setReactivePowerControl(control);
@@ -603,8 +603,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 return;
             }
             LfBus controlledBus = getLfBus(ptc.getRegulationTerminal(), lfNetwork, parameters.isBreakers());
-            DiscretePhaseControl.ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
-                    DiscretePhaseControl.ControlledSide.ONE : DiscretePhaseControl.ControlledSide.TWO;
+            ControlledSide controlledSide = controlledBus == controlledBranch.getBus1() ?
+                    ControlledSide.ONE : ControlledSide.TWO;
             if (controlledBranch instanceof LfLegBranch && controlledBus == controlledBranch.getBus2()) {
                 throw new IllegalStateException("Leg " + controlledBranch.getId() + " has a non supported control at star bus side");
             }

@@ -185,7 +185,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
             // check if the target value deadband is respected
-            checkTargetDeadband(discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
+            checkTargetDeadband(discretePhaseControl.getControlledSide() == ControlledSide.ONE ? p1.eval() : p2.eval());
         }
 
         if (parameters.isTransformerVoltageControlOn() && isVoltageController()) { // it means there is a regulating ratio tap changer

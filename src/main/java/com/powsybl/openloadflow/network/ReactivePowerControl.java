@@ -13,11 +13,6 @@ import java.util.Objects;
  */
 public class ReactivePowerControl extends Control {
 
-    public enum ControlledSide {
-        ONE,
-        TWO
-    }
-
     private final LfBranch controlledBranch;
     private final ControlledSide controlledSide;
     private final LfBus controllerBus;

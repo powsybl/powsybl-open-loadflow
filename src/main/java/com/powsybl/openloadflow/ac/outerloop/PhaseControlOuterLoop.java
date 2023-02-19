@@ -51,7 +51,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                     .collect(Collectors.toList());
             for (LfBranch controllerBranch : controllerBranches) {
                 var phaseControl = controllerBranch.getDiscretePhaseControl().orElseThrow();
-                var controlledBranch = phaseControl.getControlled();
+                var controlledBranch = phaseControl.getControlledBranch();
                 var connectivity = context.getNetwork().getConnectivity();
                 connectivity.startTemporaryChanges();
 
@@ -120,7 +120,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
 
     private void switchOffPhaseControl(DiscretePhaseControl phaseControl) {
         // switch off phase control
-        LfBranch controllerBranch = phaseControl.getController();
+        LfBranch controllerBranch = phaseControl.getControllerBranch();
         controllerBranch.setPhaseControlEnabled(false);
 
         // round the phase shift to the closest tap
@@ -134,20 +134,20 @@ public class PhaseControlOuterLoop implements OuterLoop {
     private boolean changeTapPositions(DiscretePhaseControl phaseControl) {
         // only local control supported: controlled branch is controller branch.
         double currentLimit = phaseControl.getTargetValue();
-        LfBranch controllerBranch = phaseControl.getController();
+        LfBranch controllerBranch = phaseControl.getControllerBranch();
         PiModel piModel = controllerBranch.getPiModel();
-        if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
+        if (phaseControl.getControlledSide() == ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, ControlledSide.ONE);
             return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
-        } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
+        } else if (phaseControl.getControlledSide() == ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, ControlledSide.TWO);
             return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
         }
         return false;
     }
 
-    private boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, DiscretePhaseControl.ControlledSide controlledSide) {
-        if (controlledSide == DiscretePhaseControl.ControlledSide.ONE) {
+    private boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, ControlledSide controlledSide) {
+        if (controlledSide == ControlledSide.ONE) {
             ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = (ClosedBranchSide1CurrentMagnitudeEquationTerm) controllerBranch.getI1();
             return i1.der(i1.getA1Var()) > 0;
         } else {

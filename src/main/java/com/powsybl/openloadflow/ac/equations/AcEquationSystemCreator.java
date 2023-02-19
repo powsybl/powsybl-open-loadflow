@@ -119,7 +119,7 @@ public class AcEquationSystemCreator {
                                                                  boolean deriveA1, boolean deriveR1) {
         if (bus1 != null && bus2 != null) {
             branch.getReactivePowerControl().ifPresent(rpc -> {
-                EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == ReactivePowerControl.ControlledSide.ONE
+                EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == ControlledSide.ONE
                         ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                         : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
@@ -406,7 +406,7 @@ public class AcEquationSystemCreator {
                     throw new PowsyblException("Phase control in A is not yet supported");
                 }
 
-                EquationTerm<AcVariableType, AcEquationType> p = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
+                EquationTerm<AcVariableType, AcEquationType> p = phaseControl.getControlledSide() == ControlledSide.ONE
                         ? new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                         : new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_P)
@@ -417,8 +417,8 @@ public class AcEquationSystemCreator {
     }
 
     public static void updateTransformerPhaseControlEquations(DiscretePhaseControl phaseControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        LfBranch controllerBranch = phaseControl.getController();
-        LfBranch controlledBranch = phaseControl.getControlled();
+        LfBranch controllerBranch = phaseControl.getControllerBranch();
+        LfBranch controlledBranch = phaseControl.getControlledBranch();
 
         if (phaseControl.getMode() == Mode.CONTROLLER) {
             boolean enabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled();
