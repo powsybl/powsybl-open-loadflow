@@ -479,39 +479,41 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void mergeVoltageControls(Set<LfBus> zeroImpedanceConnectedSet, LfNetworkParameters parameters) {
         // Get the list of voltage controls from controlled buses in the zero impedance connected set
         // Note that the list order is not deterministic as jgrapht connected set computation is using a basic HashSet
-        List<GeneratorVoltageControl> voltageControls = zeroImpedanceConnectedSet.stream().filter(LfBus::isGeneratorVoltageControlled)
-                .map(LfBus::getGeneratorVoltageControl).filter(Optional::isPresent).map(Optional::get)
+        List<GeneratorVoltageControl> generatorVoltageControls = zeroImpedanceConnectedSet.stream()
+                .filter(LfBus::isGeneratorVoltageControlled)
+                .flatMap(bus -> bus.getGeneratorVoltageControl().stream())
                 .collect(Collectors.toList());
 
         // Get the list of discrete voltage controls from controlled buses in the zero impedance connected set
         // Note that the list order is not deterministic as jgrapht connected set computation is using a basic HashSet
         List<TransformerVoltageControl> transformerVoltageControls = !parameters.isTransformerVoltageControl() ? Collections.emptyList() :
-            zeroImpedanceConnectedSet.stream().filter(LfBus::isTransformerVoltageControlled)
-                .map(LfBus::getTransformerVoltageControl).filter(Optional::isPresent).map(Optional::get)
+            zeroImpedanceConnectedSet.stream()
+                .filter(LfBus::isTransformerVoltageControlled)
+                .flatMap(bus -> bus.getTransformerVoltageControl().stream())
                 .collect(Collectors.toList());
 
-        if (voltageControls.isEmpty() && transformerVoltageControls.size() <= 1) {
+        if (generatorVoltageControls.isEmpty() && transformerVoltageControls.size() <= 1) {
             return;
         }
 
-        if (!voltageControls.isEmpty()) {
+        if (!generatorVoltageControls.isEmpty()) {
 
             // First, resolve problem of voltage controls (generator, static var compensator, etc.)
             // We have several controls whose controlled bus are in the same non-impedant connected set
             // To solve that we keep only one voltage control (and its target value), the other ones are removed
             // and the corresponding controllers are added to the control kept
-            if (voltageControls.size() > 1) {
+            if (generatorVoltageControls.size() > 1) {
                 LOGGER.info("Zero impedance connected set with several voltage controls: controls are merged");
 
                 // Sort voltage controls to have a merged voltage control with a deterministic controlled bus,
                 // a deterministic target value and controller buses in a deterministic order
-                voltageControls.sort(Comparator.comparing(GeneratorVoltageControl::getTargetValue).thenComparing(vc -> vc.getControlledBus().getId()));
-                checkVoltageControlUniqueTargetV("generator", voltageControls);
+                generatorVoltageControls.sort(Comparator.comparing(GeneratorVoltageControl::getTargetValue).thenComparing(vc -> vc.getControlledBus().getId()));
+                checkVoltageControlUniqueTargetV("generator", generatorVoltageControls);
 
                 // Merge the controllers into the kept voltage control
-                GeneratorVoltageControl keptVoltageControl = voltageControls.remove(voltageControls.size() - 1);
-                voltageControls.forEach(vc -> vc.getControlledBus().removeGeneratorVoltageControl());
-                voltageControls.stream()
+                GeneratorVoltageControl keptVoltageControl = generatorVoltageControls.remove(generatorVoltageControls.size() - 1);
+                generatorVoltageControls.forEach(vc -> vc.getControlledBus().removeGeneratorVoltageControl());
+                generatorVoltageControls.stream()
                     .flatMap(vc -> vc.getControllerElements().stream())
                     .forEach(controller -> {
                         keptVoltageControl.addControllerElement(controller);
