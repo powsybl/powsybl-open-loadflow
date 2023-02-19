@@ -339,8 +339,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
-        bus.getVoltageControl().ifPresent(vc -> {
-            if (bus.isVoltageControlEnabled()) {
+        bus.getGeneratorVoltageControl().ifPresent(vc -> {
+            if (bus.isGeneratorVoltageControlEnabled()) {
                 try {
                     if (vc.getControlledBus() != bus) {
                         jsonGenerator.writeNumberField("remoteControlTargetBus", vc.getControlledBus().getNum());
@@ -525,7 +525,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         if (!dc) {
             boolean hasAtLeastOneBusVoltageControlled = false;
             for (LfBus bus : busesByIndex) {
-                if (bus.isVoltageControlled()) {
+                if (bus.isGeneratorVoltageControlled()) {
                     hasAtLeastOneBusVoltageControlled = true;
                     break;
                 }
@@ -660,15 +660,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         for (LfBranch branch : controllerBranches) {
             var voltageControl = branch.getVoltageControl().orElseThrow();
             LfBus notControlledSide;
-            if (voltageControl.getControlled() == branch.getBus1()) {
+            if (voltageControl.getControlledBus() == branch.getBus1()) {
                 notControlledSide = branch.getBus2();
-            } else if (voltageControl.getControlled() == branch.getBus2()) {
+            } else if (voltageControl.getControlledBus() == branch.getBus2()) {
                 notControlledSide = branch.getBus1();
             } else {
                 continue;
             }
             boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
-                k -> getConnectivity().getConnectedComponent(notControlledSide).stream().noneMatch(LfBus::isVoltageControlled));
+                k -> getConnectivity().getConnectedComponent(notControlledSide).stream().noneMatch(LfBus::isGeneratorVoltageControlled));
             if (noPvBusesInComponent) {
                 branch.setVoltageControlEnabled(false);
                 LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",

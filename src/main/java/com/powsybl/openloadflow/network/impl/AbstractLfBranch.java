@@ -177,11 +177,11 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     protected void checkTargetDeadband(RatioTapChanger rtc) {
         if (rtc.getTargetDeadband() != 0) {
             double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = voltageControl.getControlled().getV();
+            double v = voltageControl.getControlledBus().getV();
             double distance = Math.abs(v - voltageControl.getTargetValue()); // in per unit system
             if (distance > rtc.getTargetDeadband() / 2) {
                 LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        voltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
+                        voltageControl.getControlledBus().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
             }
         }
     }

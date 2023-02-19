@@ -28,11 +28,11 @@ public interface LfBus extends LfElement {
 
     void setReference(boolean reference);
 
-    boolean hasVoltageControllerCapability();
+    boolean hasGeneratorVoltageControllerCapability();
 
-    boolean isVoltageControlEnabled();
+    boolean isGeneratorVoltageControlEnabled();
 
-    boolean isVoltageControlled();
+    boolean isGeneratorVoltageControlled();
 
     List<LfGenerator> getGeneratorsControllingVoltageWithSlope();
 
@@ -40,13 +40,13 @@ public interface LfBus extends LfElement {
 
     void removeGeneratorSlopes();
 
-    void setVoltageControlEnabled(boolean voltageControlEnabled);
+    void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled);
 
-    Optional<VoltageControl> getVoltageControl();
+    Optional<GeneratorVoltageControl> getGeneratorVoltageControl();
 
-    void removeVoltageControl();
+    void removeGeneratorVoltageControl();
 
-    void setVoltageControl(VoltageControl voltageControl);
+    void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl);
 
     Optional<ReactivePowerControl> getReactivePowerControl();
 

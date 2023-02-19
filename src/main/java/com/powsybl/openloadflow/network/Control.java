@@ -6,21 +6,22 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.Objects;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class VoltageControl extends Control {
+public class Control {
 
-    protected final LfBus controlledBus;
+    protected double targetValue;
 
-    protected VoltageControl(double targetValue, LfBus controlledBus) {
-        super(targetValue);
-        this.controlledBus = Objects.requireNonNull(controlledBus);
+    protected Control(double targetValue) {
+        this.targetValue = targetValue;
     }
 
-    public LfBus getControlledBus() {
-        return controlledBus;
+    public double getTargetValue() {
+        return targetValue;
+    }
+
+    public void setTargetValue(double targetValue) {
+        this.targetValue = targetValue;
     }
 }

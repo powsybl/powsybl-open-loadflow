@@ -6,10 +6,12 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.Objects;
+
 /**
  * @author Bertrand Rix <bertrand.rix at artelys.com>
  */
-public class ReactivePowerControl {
+public class ReactivePowerControl extends Control {
 
     public enum ControlledSide {
         ONE,
@@ -18,18 +20,13 @@ public class ReactivePowerControl {
 
     private final LfBranch controlledBranch;
     private final ControlledSide controlledSide;
-    private final LfBus controller;
-    private final double targetValue;
+    private final LfBus controllerBus;
 
-    public ReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, LfBus controller, double targetValue) {
-        this.controlledBranch = controlledBranch;
-        this.controlledSide = controlledSide;
-        this.controller = controller;
-        this.targetValue = targetValue;
-    }
-
-    public double getTargetValue() {
-        return targetValue;
+    public ReactivePowerControl(LfBranch controlledBranch, ControlledSide controlledSide, LfBus controllerBus, double targetValue) {
+        super(targetValue);
+        this.controlledBranch = Objects.requireNonNull(controlledBranch);
+        this.controlledSide = Objects.requireNonNull(controlledSide);
+        this.controllerBus = Objects.requireNonNull(controllerBus);
     }
 
     public LfBranch getControlledBranch() {
@@ -41,6 +38,6 @@ public class ReactivePowerControl {
     }
 
     public LfBus getControllerBus() {
-        return controller;
+        return controllerBus;
     }
 }

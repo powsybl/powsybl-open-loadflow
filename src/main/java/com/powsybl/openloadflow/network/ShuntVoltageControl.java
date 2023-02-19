@@ -14,20 +14,19 @@ import java.util.Objects;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class ShuntVoltageControl extends AbstractDiscreteVoltageControl {
+public class ShuntVoltageControl extends DiscreteVoltageControl {
 
-    private final List<LfShunt> controllers = new ArrayList<>();
+    private final List<LfShunt> controllerShunts = new ArrayList<>();
 
     public ShuntVoltageControl(LfBus controlled, double targetValue, Double targetDeadband) {
         super(controlled, targetValue, targetDeadband);
     }
 
-    public List<LfShunt> getControllers() {
-        return controllers;
+    public List<LfShunt> getControllerShunts() {
+        return controllerShunts;
     }
 
-    public void addController(LfShunt controller) {
-        Objects.requireNonNull(controller);
-        controllers.add(controller);
+    public void addControllerShunt(LfShunt controllerShunt) {
+        controllerShunts.add(Objects.requireNonNull(controllerShunt));
     }
 }

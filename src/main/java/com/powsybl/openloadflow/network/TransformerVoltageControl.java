@@ -14,20 +14,19 @@ import java.util.Objects;
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class TransformerVoltageControl extends AbstractDiscreteVoltageControl {
+public class TransformerVoltageControl extends DiscreteVoltageControl {
 
-    private final List<LfBranch> controllers = new ArrayList<>();
+    private final List<LfBranch> controllerBranches = new ArrayList<>();
 
     public TransformerVoltageControl(LfBus controlled, double targetValue, Double targetDeadband) {
         super(controlled, targetValue, targetDeadband);
     }
 
-    public List<LfBranch> getControllers() {
-        return controllers;
+    public List<LfBranch> getControllerBranches() {
+        return controllerBranches;
     }
 
-    public void addController(LfBranch controllerBranch) {
-        Objects.requireNonNull(controllerBranch);
-        controllers.add(controllerBranch);
+    public void addControllerBranch(LfBranch controllerBranch) {
+        controllerBranches.add(Objects.requireNonNull(controllerBranch));
     }
 }
