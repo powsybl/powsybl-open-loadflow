@@ -9,14 +9,13 @@ package com.powsybl.openloadflow.ac;
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
-import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
+import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
@@ -166,9 +165,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         return result;
     }
 
-    public static <T> List<AcLoadFlowResult> run(T network, LfNetworkLoader<T> networkLoader, AcLoadFlowParameters parameters, Reporter reporter) {
-        return LfNetwork.load(network, networkLoader, parameters.getNetworkParameters(), reporter)
-                .stream()
+    public static List<AcLoadFlowResult> run(List<LfNetwork> lfNetworks, AcLoadFlowParameters parameters) {
+        return lfNetworks.stream()
                 .map(n -> {
                     if (n.isValid()) {
                         try (AcLoadFlowContext context = new AcLoadFlowContext(n, parameters)) {

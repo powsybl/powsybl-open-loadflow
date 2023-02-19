@@ -6,10 +6,10 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.extensions.CurrentLimitAutomaton;
 
 import java.util.*;
 
@@ -125,7 +125,9 @@ public final class Networks {
         connectivity.startTemporaryChanges();
         allSwitchesToClose.stream().map(Identifiable::getId).forEach(id -> {
             LfBranch branch = network.getBranchById(id);
-            connectivity.removeEdge(branch);
+            if (branch != null) {
+                connectivity.removeEdge(branch);
+            }
         });
         Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
         removedBuses.forEach(bus -> bus.setDisabled(true));
@@ -137,14 +139,32 @@ public final class Networks {
         removedBranches.forEach(branch -> branch.setDisabled(true));
     }
 
+    private static void addSwitchesOperatedByAutomata(Network network, LfNetworkParameters networkParameters,
+                                                      Set<Switch> allSwitchesToOpen, Set<Switch> allSwitchesToClose) {
+        if (networkParameters.isSimulateAutomatons()) {
+            for (Line line : network.getLines()) {
+                CurrentLimitAutomaton cla = line.getExtension(CurrentLimitAutomaton.class);
+                if (cla != null) {
+                    Switch aSwitch = network.getSwitch(cla.getSwitchId());
+                    if (aSwitch != null) {
+                        if (cla.isSwitchOpen()) {
+                            allSwitchesToOpen.add(aSwitch);
+                        } else {
+                            allSwitchesToClose.add(aSwitch);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
                                      Set<Switch> switchesToOpen, Set<Switch> switchesToClose, Reporter reporter) {
-        if (switchesToOpen.isEmpty() && switchesToClose.isEmpty()) {
-            return new LfNetworkList(load(network, networkParameters, reporter));
-        } else {
-            if (!networkParameters.isBreakers()) {
-                throw new PowsyblException("LF networks have to be built from bus/breaker view");
-            }
+        Set<Switch> allSwitchesToOpen = new HashSet<>(switchesToOpen);
+        Set<Switch> allSwitchesToClose = new HashSet<>(switchesToClose);
+        addSwitchesOperatedByAutomata(network, networkParameters, allSwitchesToOpen, allSwitchesToClose);
+        networkParameters.setBreakers(!allSwitchesToOpen.isEmpty() || !allSwitchesToClose.isEmpty());
+        if (networkParameters.isBreakers()) {
             // create a temporary working variant to build LF networks
             String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
             String workingVariantId = network.getVariantManager().getWorkingVariantId();
@@ -153,18 +173,20 @@ public final class Networks {
 
             // retain in topology all switches that could be open or close
             // and close switches that could be closed during the simulation
-            retainAndCloseNecessarySwitches(network, switchesToOpen, switchesToClose);
+            retainAndCloseNecessarySwitches(network, allSwitchesToOpen, allSwitchesToClose);
 
             List<LfNetwork> lfNetworks = load(network, networkParameters, reporter);
 
-            if (!switchesToClose.isEmpty()) {
+            if (!allSwitchesToClose.isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {
                     // disable all buses and branches not connected to main component (because of switch to close)
-                    restoreInitialTopology(lfNetwork, switchesToClose);
+                    restoreInitialTopology(lfNetwork, allSwitchesToClose);
                 }
             }
 
             return new LfNetworkList(lfNetworks, new LfNetworkList.VariantCleaner(network, workingVariantId, tmpVariantId));
+        } else {
+            return new LfNetworkList(load(network, networkParameters, reporter));
         }
     }
 

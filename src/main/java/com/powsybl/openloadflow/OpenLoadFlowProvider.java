@@ -22,11 +22,11 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -35,6 +35,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
@@ -106,7 +107,10 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             results = new AcLoadFlowFromCache(network, parameters, acParameters, reporter)
                     .run();
         } else {
-            results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
+            try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(),
+                                                             Collections.emptySet(), reporter)) {
+                results = AcloadFlowEngine.run(lfNetworkList.getList(), acParameters);
+            }
         }
 
         Networks.resetState(network);

@@ -1016,7 +1016,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
                 .setDebugDir(parametersExt.getDebugDir())
                 .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl())
-                .setCacheEnabled(parametersExt.isNetworkCacheEnabled());
+                .setCacheEnabled(parametersExt.isNetworkCacheEnabled())
+                .setSimulateAutomatons(parametersExt.isSimulateAutomatons());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
