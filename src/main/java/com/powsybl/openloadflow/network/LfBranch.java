@@ -101,23 +101,27 @@ public interface LfBranch extends LfElement {
         return Collections.emptyList();
     }
 
-    boolean hasPhaseControlCapability();
-
-    Optional<DiscretePhaseControl> getDiscretePhaseControl();
-
     void updateState(LfNetworkStateUpdateParameters parameters);
 
     void updateFlows(double p1, double q1, double p2, double q2);
+
+    // phase control
+
+    boolean hasPhaseControllerCapability();
+
+    Optional<TransformerPhaseControl> getPhaseControl();
+
+    void setPhaseControl(TransformerPhaseControl phaseControl);
 
     boolean isPhaseController();
 
     boolean isPhaseControlled();
 
-    void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
-
     boolean isPhaseControlEnabled();
 
     void setPhaseControlEnabled(boolean phaseControlEnabled);
+
+    // voltage control
 
     Optional<TransformerVoltageControl> getVoltageControl();
 
@@ -151,10 +155,10 @@ public interface LfBranch extends LfElement {
         return PiModel.A2 - piModel.getA1();
     }
 
-    static double getDiscretePhaseControlTarget(LfBranch branch, DiscretePhaseControl.Unit unit) {
+    static double getDiscretePhaseControlTarget(LfBranch branch, TransformerPhaseControl.Unit unit) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(unit);
-        Optional<DiscretePhaseControl> phaseControl = branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled());
+        Optional<TransformerPhaseControl> phaseControl = branch.getPhaseControl().filter(dpc -> branch.isPhaseControlled());
         if (phaseControl.isEmpty()) {
             throw new PowsyblException("Branch '" + branch.getId() + "' is not phase-controlled");
         }

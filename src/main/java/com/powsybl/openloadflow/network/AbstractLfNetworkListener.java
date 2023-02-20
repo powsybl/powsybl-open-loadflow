@@ -12,12 +12,12 @@ package com.powsybl.openloadflow.network;
 public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
-    public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+    public void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
         // empty
     }
 
     @Override
-    public void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage) {
+    public void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage) {
         // empty
     }
 
