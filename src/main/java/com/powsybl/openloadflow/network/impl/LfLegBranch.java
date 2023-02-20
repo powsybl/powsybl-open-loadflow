@@ -132,7 +132,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public boolean hasPhaseControlCapability() {
+    public boolean hasPhaseControllerCapability() {
         return getLeg().getPhaseTapChanger() != null;
     }
 

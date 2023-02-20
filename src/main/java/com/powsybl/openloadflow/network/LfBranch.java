@@ -107,7 +107,7 @@ public interface LfBranch extends LfElement {
 
     // phase control
 
-    boolean hasPhaseControlCapability();
+    boolean hasPhaseControllerCapability();
 
     Optional<TransformerPhaseControl> getPhaseControl();
 

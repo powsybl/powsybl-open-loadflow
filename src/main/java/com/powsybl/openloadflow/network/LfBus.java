@@ -44,13 +44,13 @@ public interface LfBus extends LfElement {
 
     void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled);
 
+    // generator reactive power control
+
     List<LfGenerator> getGeneratorsControllingVoltageWithSlope();
 
     boolean hasGeneratorsWithSlope();
 
     void removeGeneratorSlopes();
-
-    // generator reactive power control
 
     Optional<ReactivePowerControl> getReactivePowerControl();
 
