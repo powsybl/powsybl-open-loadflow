@@ -32,7 +32,7 @@ public class BusState extends BusDcState {
         this.voltage = bus.getV();
         this.loadTargetQ = bus.getLoadTargetQ();
         this.generationTargetQ = bus.getGenerationTargetQ();
-        this.voltageControlEnabled = bus.isVoltageControlEnabled();
+        this.voltageControlEnabled = bus.isGeneratorVoltageControlEnabled();
         LfShunt controllerShunt = bus.getControllerShunt().orElse(null);
         shuntVoltageControlEnabled = controllerShunt != null ? controllerShunt.isVoltageControlEnabled() : null;
         controllerShuntB = controllerShunt != null ? controllerShunt.getB() : Double.NaN;
@@ -50,7 +50,7 @@ public class BusState extends BusDcState {
         element.setV(voltage);
         element.setLoadTargetQ(loadTargetQ);
         element.setGenerationTargetQ(generationTargetQ);
-        element.setVoltageControlEnabled(voltageControlEnabled);
+        element.setGeneratorVoltageControlEnabled(voltageControlEnabled);
         if (shuntVoltageControlEnabled != null) {
             element.getControllerShunt().orElseThrow().setVoltageControlEnabled(shuntVoltageControlEnabled);
         }

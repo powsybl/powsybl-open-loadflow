@@ -56,7 +56,7 @@ class LfSwitchTest {
     @Test
     void getterTest() {
         assertEquals("B3", lfSwitch.getId());
-        assertFalse(lfSwitch.hasPhaseControlCapability());
+        assertFalse(lfSwitch.hasPhaseControllerCapability());
         assertEquals(Double.NaN, lfSwitch.getP1().eval());
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
         assertEquals(Double.NaN, lfSwitch.getI1().eval());

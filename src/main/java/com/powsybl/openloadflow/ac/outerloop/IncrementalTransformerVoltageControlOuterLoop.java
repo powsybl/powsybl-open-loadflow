@@ -190,7 +190,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static double getDiffV(TransformerVoltageControl voltageControl) {
         double targetV = voltageControl.getTargetValue();
-        double v = voltageControl.getControlled().getV();
+        double v = voltageControl.getControlledBus().getV();
         return targetV - v;
     }
 
@@ -221,7 +221,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
             if (Math.abs(diffV) > halfTargetDeadband) {
                 controlledBusesOutsideOfDeadband.add(controlledBus.getId());
-                List<LfBranch> controllers = voltageControl.getControllers();
+                List<LfBranch> controllers = voltageControl.getControllerElements();
                 LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
                         controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
                 boolean adjusted;

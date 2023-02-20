@@ -55,13 +55,13 @@ public class MonitoringVoltageOuterLoop implements OuterLoop {
         for (PqToPvBus pqToPvBus : pqToPvBuses) {
             LfBus controllerBus = pqToPvBus.controllerBus;
 
-            controllerBus.setVoltageControlEnabled(true);
+            controllerBus.setGeneratorVoltageControlEnabled(true);
             controllerBus.setGenerationTargetQ(0);
             double newTargetV;
             if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MAX
                     || pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MIN) {
                 newTargetV = getSvcTargetV(controllerBus, pqToPvBus.voltageLimitDirection);
-                controllerBus.getVoltageControl().ifPresent(vc -> vc.setTargetValue(newTargetV));
+                controllerBus.getGeneratorVoltageControl().ifPresent(vc -> vc.setTargetValue(newTargetV));
                 Reports.reportStandByAutomatonActivation(reporter, controllerBus.getId(), newTargetV);
                 if (LOGGER.isTraceEnabled()) {
                     if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MAX) {
@@ -75,7 +75,7 @@ public class MonitoringVoltageOuterLoop implements OuterLoop {
     }
 
     private static double getBusV(LfBus bus) {
-        return bus.getVoltageControl().map(vc -> vc.getControlledBus().getV()).orElse(Double.NaN);
+        return bus.getGeneratorVoltageControl().map(vc -> vc.getControlledBus().getV()).orElse(Double.NaN);
     }
 
     /**
@@ -126,7 +126,7 @@ public class MonitoringVoltageOuterLoop implements OuterLoop {
 
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
+            if (bus.hasGeneratorVoltageControllerCapability() && !bus.isDisabled()) {
                 getControlledBusVoltageLimits(bus).ifPresent(voltageLimits -> checkPqBusForVoltageLimits(bus, pqToPvBuses, voltageLimits));
             }
         }

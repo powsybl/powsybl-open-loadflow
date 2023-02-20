@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2020, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,15 +9,23 @@ package com.powsybl.openloadflow.network;
 import java.util.Optional;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public interface DiscreteVoltageControl {
+public class DiscreteVoltageControl<T extends LfElement> extends VoltageControl<T> {
 
-    double getTargetValue();
+    private Double targetDeadband;
 
-    LfBus getControlled();
+    protected DiscreteVoltageControl(LfBus controlled, double targetValue, Double targetDeadband) {
+        super(targetValue, controlled);
+        this.targetDeadband = targetDeadband;
+    }
 
-    Optional<Double> getTargetDeadband();
+    public Optional<Double> getTargetDeadband() {
+        return Optional.ofNullable(targetDeadband);
+    }
 
-    void setTargetDeadband(Double targetDeadband);
+    public void setTargetDeadband(Double targetDeadband) {
+        this.targetDeadband = targetDeadband;
+    }
 }
