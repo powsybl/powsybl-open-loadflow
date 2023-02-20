@@ -63,6 +63,15 @@ public interface LfBranch extends LfElement {
         }
     }
 
+    static int[] createIndex(LfNetwork network, List<LfBranch> branches) {
+        int[] branchIndex = new int[network.getBranches().size()];
+        for (int i = 0; i < branches.size(); i++) {
+            LfBranch branch = branches.get(i);
+            branchIndex[branch.getNum()] = i;
+        }
+        return branchIndex;
+    }
+
     BranchType getBranchType();
 
     LfBus getBus1();

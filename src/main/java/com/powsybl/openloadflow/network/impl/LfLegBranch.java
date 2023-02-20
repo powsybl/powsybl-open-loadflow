@@ -169,18 +169,12 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (parameters.isPhaseShifterRegulationOn() && isPhaseControlled() && phaseControl.getControlledSide() == ControlledSide.ONE) {
-            // check if the target value deadband is respected
-            checkTargetDeadband(p1.eval());
-        }
-
         if (parameters.isTransformerVoltageControlOn() && isVoltageController()) { // it means there is a regulating ratio tap changer
             RatioTapChanger rtc = leg.getRatioTapChanger();
             double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
             double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;
             double ptcRho = leg.getPhaseTapChanger() != null ? leg.getPhaseTapChanger().getCurrentStep().getRho() : 1;
             updateTapPosition(rtc, ptcRho, rho);
-            checkTargetDeadband(rtc);
         }
     }
 
