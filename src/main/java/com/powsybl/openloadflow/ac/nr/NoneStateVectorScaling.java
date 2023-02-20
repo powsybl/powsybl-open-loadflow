@@ -11,7 +11,6 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.TargetVector;
 
 /**
@@ -30,7 +29,7 @@ public class NoneStateVectorScaling implements StateVectorScaling {
     }
 
     @Override
-    public NewtonRaphsonStoppingCriteria.TestResult applyAfter(StateVector stateVector,
+    public NewtonRaphsonStoppingCriteria.TestResult applyAfter(EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                EquationVector<AcVariableType, AcEquationType> equationVector,
                                                                TargetVector<AcVariableType, AcEquationType> targetVector,
                                                                NewtonRaphsonStoppingCriteria stoppingCriteria,
