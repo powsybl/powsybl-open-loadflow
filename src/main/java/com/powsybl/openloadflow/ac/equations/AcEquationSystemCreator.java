@@ -74,19 +74,35 @@ public class AcEquationSystemCreator {
         }
     }
 
+    private static boolean isGeneratorVoltageControlled(LfBus bus) {
+        if (bus.isGeneratorVoltageControlled()) {
+            LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(false);
+            if (zn != null) {
+                List<LfBus> otherVoltageControlledBuses = zn.getGraph().vertexSet().stream()
+                        .filter(LfBus::isGeneratorVoltageControlled)
+                        .sorted(Comparator.comparing(LfElement::getId))
+                        .collect(Collectors.toList());
+                if (otherVoltageControlledBuses.size() > 1) {
+                    return otherVoltageControlledBuses.get(0) == bus;
+                }
+                return true; // only one
+            }
+            return true;
+        }
+        return false;
+    }
+
     private void createGeneratorControlEquations(LfBus bus,
                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        bus.getGeneratorVoltageControl()
-                .ifPresent(voltageControl -> {
-                    if (bus.isGeneratorVoltageControlled()) {
-                        if (voltageControl.isLocalControl()) {
-                            createLocalVoltageControlEquation(bus, equationSystem);
-                        } else {
-                            createRemoteVoltageControlEquations(voltageControl, equationSystem);
-                        }
-                        updateGeneratorVoltageControl(voltageControl, equationSystem);
-                    }
-                });
+        if (isGeneratorVoltageControlled(bus)) {
+            GeneratorVoltageControl voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
+            if (voltageControl.isLocalControl()) {
+                createLocalVoltageControlEquation(bus, equationSystem);
+            } else {
+                createRemoteVoltageControlEquations(voltageControl, equationSystem);
+            }
+            updateGeneratorVoltageControl(voltageControl, equationSystem);
+        }
     }
 
     private void createLocalVoltageControlEquation(LfBus bus,
@@ -298,10 +314,10 @@ public class AcEquationSystemCreator {
             // we don't support controller bus that wants to control back voltage with slope.
             equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
                     .orElseThrow()
-                    .setActive(firstControllerBus.isGeneratorVoltageControlEnabled());
+                    .setActive(!firstControllerBus.isDisabled() && firstControllerBus.isGeneratorVoltageControlEnabled());
             equationSystem.getEquation(firstControllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
                     .orElseThrow()
-                    .setActive(!firstControllerBus.isGeneratorVoltageControlEnabled());
+                    .setActive(!firstControllerBus.isDisabled() && !firstControllerBus.isGeneratorVoltageControlEnabled());
         } else {
             if (voltageControl.isLocalControl()) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
