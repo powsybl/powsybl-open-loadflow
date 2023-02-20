@@ -278,45 +278,47 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                                                               Map<String, Action> actionsById, Set<Action> neededActions) {
 
         // Run initial load flow and save state
-        DcLoadFlowContext lfContext = new DcLoadFlowContext(lfNetwork, parameters);
-        new DcLoadFlowEngine(lfContext).run();
-        NetworkState networkState = NetworkState.save(lfNetwork);
+        try (DcLoadFlowContext lfContext = new DcLoadFlowContext(lfNetwork, parameters)) {
 
-        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(context.getParameters());
-        boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
+            new DcLoadFlowEngine(lfContext).run();
+            NetworkState networkState = NetworkState.save(lfNetwork);
 
-        var preContingencyLimitViolationManager = new LimitViolationManager();
-        preContingencyLimitViolationManager.detectViolations(lfNetwork);
+            OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(context.getParameters());
+            boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
-        Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-        Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, false);
-        Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
+            var preContingencyLimitViolationManager = new LimitViolationManager();
+            preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
-        List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
-        while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
-            PropagatedContingency propagatedContingency = contingencyIt.next();
-            List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId());
+            Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
+            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, false);
+            Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
 
-            if (operatorStrategiesForThisContingency == null) {
-                break;
-            }
-            for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
-                if (checkCondition(operatorStrategy, context.getLimitViolationsPerContingencyId().get(propagatedContingency.getContingency().getId()))) {
-                    propagatedContingency.toLfContingency(lfNetwork)
-                            .ifPresent(lfContingency -> {
-                                lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
-                                OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
-                                                                                    lfActionById, createResultExtension, lfContingency, parameters.getBalanceType());
-                                operatorStrategyResults.add(result);
-                                networkState.restore();
-                            });
+            List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
+            while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
+                PropagatedContingency propagatedContingency = contingencyIt.next();
+                List<OperatorStrategy> operatorStrategiesForThisContingency = operatorStrategiesByContingencyId.get(propagatedContingency.getContingency().getId());
+
+                if (operatorStrategiesForThisContingency == null) {
+                    break;
+                }
+                for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
+                    if (checkCondition(operatorStrategy, context.getLimitViolationsPerContingencyId().get(propagatedContingency.getContingency().getId()))) {
+                        propagatedContingency.toLfContingency(lfNetwork)
+                                .ifPresent(lfContingency -> {
+                                    lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
+                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
+                                            lfActionById, createResultExtension, lfContingency, parameters.getBalanceType());
+                                    operatorStrategyResults.add(result);
+                                    networkState.restore();
+                                });
+                    }
                 }
             }
+
+            completeConnectivityResults(context, lfNetwork, propagatedContingencies, networkState);
+
+            return operatorStrategyResults;
         }
-
-        completeConnectivityResults(context, lfNetwork, propagatedContingencies, networkState);
-
-        return operatorStrategyResults;
     }
 
     private void completeConnectivityResults(DcSecurityAnalysisContext context, LfNetwork lfNetwork,
