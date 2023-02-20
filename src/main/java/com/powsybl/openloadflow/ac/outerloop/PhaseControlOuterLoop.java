@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.OuterLoopContext;
 import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
@@ -22,19 +21,13 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class PhaseControlOuterLoop implements OuterLoop {
+public class PhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PhaseControlOuterLoop.class);
 
     @Override
     public String getType() {
         return "Phase control";
-    }
-
-    private static List<LfBranch> getControllerBranches(LfNetwork network) {
-        return network.getBranches().stream()
-                .filter(branch -> !branch.isDisabled() && branch.isPhaseController())
-                .collect(Collectors.toList());
     }
 
     @Override
@@ -45,37 +38,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
                 .collect(Collectors.toList())) {
             controllerBranch.setPhaseControlEnabled(true);
         }
-        if (!controllerBranches.isEmpty()) {
-            List<LfBranch> disabledBranches = context.getNetwork().getBranches().stream()
-                    .filter(LfElement::isDisabled)
-                    .collect(Collectors.toList());
-            for (LfBranch controllerBranch : controllerBranches) {
-                var phaseControl = controllerBranch.getPhaseControl().orElseThrow();
-                var controlledBranch = phaseControl.getControlledBranch();
-                var connectivity = context.getNetwork().getConnectivity();
-                connectivity.startTemporaryChanges();
-
-                // apply contingency (in case we are inside a security analysis)
-                disabledBranches.stream()
-                        .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                        .forEach(connectivity::removeEdge);
-                int componentsCountBeforePhaseShifterLoss = connectivity.getNbConnectedComponents();
-
-                // then the phase shifter controlled branch
-                if (controlledBranch.getBus1() != null && controlledBranch.getBus2() != null) {
-                    connectivity.removeEdge(controlledBranch);
-                }
-
-                if (connectivity.getNbConnectedComponents() != componentsCountBeforePhaseShifterLoss) {
-                    // phase shifter controlled branch necessary for connectivity, we switch off control
-                    LOGGER.warn("Phase shifter '{}' control branch '{}' phase but is necessary for connectivity: switch off phase control",
-                            controllerBranch.getId(), controlledBranch.getId());
-                    controllerBranch.setPhaseControlEnabled(false);
-                }
-
-                connectivity.undoTemporaryChanges();
-            }
-        }
+        fixPhaseShifterNecessaryForConnectivity(context.getNetwork(), controllerBranches);
     }
 
     @Override
