@@ -12,6 +12,7 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactory;
@@ -162,7 +163,7 @@ class OpenSecurityAnalysisGraphTest {
 
         // try to find all switches impacted by at least one contingency
         Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, Collections.emptySet(), true, false, false, false);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, true);
 
         LfNetworkParameters networkParameters = new LfNetworkParameters()
                 .setConnectivityFactory(connectivityFactory)
@@ -175,7 +176,7 @@ class OpenSecurityAnalysisGraphTest {
         List<List<LfContingency>> listLfContingencies = new ArrayList<>();
         for (LfNetwork lfNetwork : lfNetworks.getList()) {
             listLfContingencies.add(propagatedContingencies.stream()
-                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork).stream())
+                    .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(lfNetwork, new LoadFlowParameters(), true).stream())
                     .collect(Collectors.toList()));
         }
 
