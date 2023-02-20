@@ -291,7 +291,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             LOGGER.trace("Branch {} has a low impedance in DC, set to min {}", getId(), lowImpedanceThreshold);
             dcZeroImpedance = false;
         }
-        if (piModel.setMinZ(lowImpedanceThreshold, false)) {
+        if (piModel.setMinZ(lowImpedanceThreshold, false) || (acZeroImpedance && !piModel.setMinZ(lowImpedanceThreshold, false))) {
             LOGGER.trace("Branch {} has a low impedance in AC, set to min {}", getId(), lowImpedanceThreshold);
             acZeroImpedance = false;
         }
