@@ -161,8 +161,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 .filter(LfBus::isShuntVoltageControlled)
                 .forEach(controlledBus -> {
                     ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
-                    double diffV = voltageControl.getTargetValue() - voltageControl.getControlled().getV();
-                    List<LfShunt> sortedControllers = voltageControl.getControllers().stream()
+                    double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();
+                    List<LfShunt> sortedControllers = voltageControl.getControllerElements().stream()
                             .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
                             .collect(Collectors.toList());
                     adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);
@@ -171,6 +171,6 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
     }
 
     protected static double getHalfTargetDeadband(ShuntVoltageControl voltageControl) {
-        return voltageControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_KV / voltageControl.getControlled().getNominalV()) / 2;
+        return voltageControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_KV / voltageControl.getControlledBus().getNominalV()) / 2;
     }
 }

@@ -132,7 +132,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public boolean hasPhaseControlCapability() {
+    public boolean hasPhaseControllerCapability() {
         return getLeg().getPhaseTapChanger() != null;
     }
 
@@ -169,7 +169,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (parameters.isPhaseShifterRegulationOn() && isPhaseControlled() && discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
+        if (parameters.isPhaseShifterRegulationOn() && isPhaseControlled() && phaseControl.getControlledSide() == ControlledSide.ONE) {
             // check if the target value deadband is respected
             checkTargetDeadband(p1.eval());
         }

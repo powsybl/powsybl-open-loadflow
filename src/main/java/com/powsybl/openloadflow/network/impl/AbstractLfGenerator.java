@@ -44,7 +44,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected String controlledBranchId;
 
-    protected ReactivePowerControl.ControlledSide controlledBranchSide;
+    protected ControlledSide controlledBranchSide;
 
     protected double remoteTargetQ = Double.NaN;
 
@@ -265,12 +265,12 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         if (connectable instanceof Line) {
             Line l = (Line) connectable;
             this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
-                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+                    ControlledSide.ONE : ControlledSide.TWO;
             this.controlledBranchId = l.getId();
         } else if (connectable instanceof TwoWindingsTransformer) {
             TwoWindingsTransformer l = (TwoWindingsTransformer) connectable;
             this.controlledBranchSide = l.getTerminal(Branch.Side.ONE) == regulatingTerminal ?
-                    ReactivePowerControl.ControlledSide.ONE : ReactivePowerControl.ControlledSide.TWO;
+                    ControlledSide.ONE : ControlledSide.TWO;
             this.controlledBranchId = l.getId();
         } else {
             LOGGER.error("Generator '{}' is controlled by an instance of {}: not supported",
@@ -287,7 +287,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     }
 
     @Override
-    public ReactivePowerControl.ControlledSide getControlledBranchSide() {
+    public ControlledSide getControlledBranchSide() {
         return controlledBranchSide;
     }
 
