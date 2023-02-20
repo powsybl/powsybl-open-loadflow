@@ -41,7 +41,7 @@ public class PhaseControlOuterLoop implements OuterLoop {
     public void initialize(OuterLoopContext context) {
         List<LfBranch> controllerBranches = getControllerBranches(context.getNetwork());
         for (LfBranch controllerBranch : controllerBranches.stream()
-                .filter(controllerBranch -> controllerBranch.getDiscretePhaseControl().orElseThrow().getMode() == DiscretePhaseControl.Mode.CONTROLLER)
+                .filter(controllerBranch -> controllerBranch.getPhaseControl().orElseThrow().getMode() == TransformerPhaseControl.Mode.CONTROLLER)
                 .collect(Collectors.toList())) {
             controllerBranch.setPhaseControlEnabled(true);
         }
@@ -50,8 +50,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
                     .filter(LfElement::isDisabled)
                     .collect(Collectors.toList());
             for (LfBranch controllerBranch : controllerBranches) {
-                var phaseControl = controllerBranch.getDiscretePhaseControl().orElseThrow();
-                var controlledBranch = phaseControl.getControlled();
+                var phaseControl = controllerBranch.getPhaseControl().orElseThrow();
+                var controlledBranch = phaseControl.getControlledBranch();
                 var connectivity = context.getNetwork().getConnectivity();
                 connectivity.startTemporaryChanges();
 
@@ -97,8 +97,8 @@ public class PhaseControlOuterLoop implements OuterLoop {
         // all branches with active power control are switched off
         List<LfBranch> controllerBranches = getControllerBranches(context.getNetwork());
         controllerBranches.stream()
-                .flatMap(controllerBranch -> controllerBranch.getDiscretePhaseControl().stream())
-                .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.CONTROLLER)
+                .flatMap(controllerBranch -> controllerBranch.getPhaseControl().stream())
+                .filter(phaseControl -> phaseControl.getMode() == TransformerPhaseControl.Mode.CONTROLLER)
                 .forEach(this::switchOffPhaseControl);
 
         // if at least one phase shifter has been switched off we need to continue
@@ -109,18 +109,18 @@ public class PhaseControlOuterLoop implements OuterLoop {
         // at second outer loop iteration we switch on phase control for branches that are in limiter mode
         // and a current greater than the limit
         // phase control consists in increasing or decreasing tap position to limit the current
-        List<DiscretePhaseControl> unstablePhaseControls = getControllerBranches(context.getNetwork()).stream()
-                .flatMap(branch -> branch.getDiscretePhaseControl().stream())
-                .filter(phaseControl -> phaseControl.getMode() == DiscretePhaseControl.Mode.LIMITER)
+        List<TransformerPhaseControl> unstablePhaseControls = getControllerBranches(context.getNetwork()).stream()
+                .flatMap(branch -> branch.getPhaseControl().stream())
+                .filter(phaseControl -> phaseControl.getMode() == TransformerPhaseControl.Mode.LIMITER)
                 .filter(this::changeTapPositions)
                 .collect(Collectors.toList());
 
         return unstablePhaseControls.isEmpty() ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
     }
 
-    private void switchOffPhaseControl(DiscretePhaseControl phaseControl) {
+    private void switchOffPhaseControl(TransformerPhaseControl phaseControl) {
         // switch off phase control
-        LfBranch controllerBranch = phaseControl.getController();
+        LfBranch controllerBranch = phaseControl.getControllerBranch();
         controllerBranch.setPhaseControlEnabled(false);
 
         // round the phase shift to the closest tap
@@ -131,23 +131,23 @@ public class PhaseControlOuterLoop implements OuterLoop {
         LOGGER.info("Round phase shift of '{}': {} -> {}", controllerBranch.getId(), a1Value, roundedA1Value);
     }
 
-    private boolean changeTapPositions(DiscretePhaseControl phaseControl) {
+    private boolean changeTapPositions(TransformerPhaseControl phaseControl) {
         // only local control supported: controlled branch is controller branch.
         double currentLimit = phaseControl.getTargetValue();
-        LfBranch controllerBranch = phaseControl.getController();
+        LfBranch controllerBranch = phaseControl.getControllerBranch();
         PiModel piModel = controllerBranch.getPiModel();
-        if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.ONE);
+        if (phaseControl.getControlledSide() == ControlledSide.ONE && currentLimit < controllerBranch.getI1().eval()) {
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, ControlledSide.ONE);
             return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
-        } else if (phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
-            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, DiscretePhaseControl.ControlledSide.TWO);
+        } else if (phaseControl.getControlledSide() == ControlledSide.TWO && currentLimit < controllerBranch.getI2().eval()) {
+            boolean isSensibilityPositive = isSensitivityCurrentPerA1Positive(controllerBranch, ControlledSide.TWO);
             return isSensibilityPositive ? piModel.shiftOneTapPositionToChangeA1(Direction.DECREASE) : piModel.shiftOneTapPositionToChangeA1(Direction.INCREASE);
         }
         return false;
     }
 
-    private boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, DiscretePhaseControl.ControlledSide controlledSide) {
-        if (controlledSide == DiscretePhaseControl.ControlledSide.ONE) {
+    private boolean isSensitivityCurrentPerA1Positive(LfBranch controllerBranch, ControlledSide controlledSide) {
+        if (controlledSide == ControlledSide.ONE) {
             ClosedBranchSide1CurrentMagnitudeEquationTerm i1 = (ClosedBranchSide1CurrentMagnitudeEquationTerm) controllerBranch.getI1();
             return i1.der(i1.getA1Var()) > 0;
         } else {

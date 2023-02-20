@@ -169,8 +169,8 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         switch (equation.getType()) {
             case BUS_TARGET_V:
                 LfBus bus = network.getBus(equation.getElementNum());
-                targets[equation.getColumn()] = bus.getVoltageControl()
-                        .map(VoltageControl::getTargetValue)
+                targets[equation.getColumn()] = bus.getGeneratorVoltageControl()
+                        .map(GeneratorVoltageControl::getTargetValue)
                         .orElseGet(() -> bus.getTransformerVoltageControl()
                                 .map(DiscreteVoltageControl::getTargetValue)
                                 .orElseThrow());
@@ -200,7 +200,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         for (LfBus bus : network.getBuses()) {
             EquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
                     .createTerm();
-            if (bus.isVoltageControlled() || (transformerVoltageControlOn && bus.isTransformerVoltageControlled())) {
+            if (bus.isGeneratorVoltageControlled() || (transformerVoltageControlOn && bus.isTransformerVoltageControlled())) {
                 equationSystem.createEquation(bus.getNum(), InitVmEquationType.BUS_TARGET_V)
                         .addTerm(v);
             } else {

@@ -91,7 +91,7 @@ class GeneratorTargetVoltageInconsistencyTest {
         LfBus controlledBus = lfNetwork.getBusById("vl1_0");
         assertNotNull(controlledBus);
 
-        Optional<VoltageControl> vc = controlledBus.getVoltageControl();
+        Optional<GeneratorVoltageControl> vc = controlledBus.getGeneratorVoltageControl();
         assertTrue(vc.isPresent());
         assertEquals(23, vc.get().getTargetValue() * controlledBus.getNominalV());
     }
@@ -285,7 +285,7 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         List<LfNetwork> networkList = Networks.load(network, parameters);
         LfNetwork mainNetwork = networkList.get(0);
-        Optional<VoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getVoltageControl();
+        Optional<GeneratorVoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getGeneratorVoltageControl();
         assertTrue(sharedVoltageControl.isPresent());
 
         assertEquals(413 / g2.getTerminal().getVoltageLevel().getNominalV(), sharedVoltageControl.get().getTargetValue());

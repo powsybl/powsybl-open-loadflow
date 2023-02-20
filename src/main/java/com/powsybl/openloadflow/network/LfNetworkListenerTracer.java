@@ -33,17 +33,17 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
-        LOGGER.trace("onVoltageControlChange(controllerBusId='{}', newVoltageControllerEnabled={})",
+    public void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+        LOGGER.trace("onGeneratorVoltageControlChange(controllerBusId='{}', newVoltageControllerEnabled={})",
                 controllerBus.getId(), newVoltageControllerEnabled);
-        delegate.onVoltageControlChange(controllerBus, newVoltageControllerEnabled);
+        delegate.onGeneratorVoltageControlChange(controllerBus, newVoltageControllerEnabled);
     }
 
     @Override
-    public void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage) {
-        LOGGER.trace("onVoltageControlTargetChange(controlledBusId='{}', newTargetVoltage={})",
+    public void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage) {
+        LOGGER.trace("onGeneratorVoltageControlTargetChange(controlledBusId='{}', newTargetVoltage={})",
                 control.getControlledBus(), newTargetVoltage);
-        delegate.onVoltageControlTargetChange(control, newTargetVoltage);
+        delegate.onGeneratorVoltageControlTargetChange(control, newTargetVoltage);
     }
 
     @Override
