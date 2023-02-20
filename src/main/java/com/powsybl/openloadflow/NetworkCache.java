@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.network.GeneratorVoltageControl;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
@@ -134,7 +134,7 @@ public enum NetworkCache {
             return onInjectionUpdate(generator, attribute, (context, lfBus) -> {
                 if (attribute.equals("targetV")) {
                     double valueShift = (double) newValue - (double) oldValue;
-                    VoltageControl voltageControl = lfBus.getVoltageControl().orElseThrow();
+                    GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
                     double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
                     voltageControl.setTargetValue(newTargetV);
                     return true;

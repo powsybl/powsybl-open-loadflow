@@ -121,38 +121,36 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
             return s.calculateSensi(getSensitivities(), controllerBranchIndex[controllerBranch.getNum()]);
         }
 
-        public double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch,
-                                           DiscretePhaseControl.ControlledSide controlledSide) {
-            var i = controlledSide == DiscretePhaseControl.ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
+        public double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
+            var i = controlledSide == ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
             return calculateSensitivityFromA2S(controllerBranch, i);
         }
 
-        double calculateSensitivityFromA2P(LfBranch controllerBranch, LfBranch controlledBranch,
-                                           DiscretePhaseControl.ControlledSide controlledSide) {
-            var p = controlledSide == DiscretePhaseControl.ControlledSide.ONE ? getP1(controlledBranch) : getP2(controlledBranch);
+        double calculateSensitivityFromA2P(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
+            var p = controlledSide == ControlledSide.ONE ? getP1(controlledBranch) : getP2(controlledBranch);
             return calculateSensitivityFromA2S(controllerBranch, p);
         }
     }
 
-    private static double computeIb(DiscretePhaseControl phaseControl) {
-        LfBus bus = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
-                ? phaseControl.getControlled().getBus1() : phaseControl.getControlled().getBus2();
+    private static double computeIb(TransformerPhaseControl phaseControl) {
+        LfBus bus = phaseControl.getControlledSide() == ControlledSide.ONE
+                ? phaseControl.getControlledBranch().getBus1() : phaseControl.getControlledBranch().getBus2();
         return PerUnit.ib(bus.getNominalV());
     }
 
-    private static double computeI(DiscretePhaseControl phaseControl) {
-        var i = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
-                ? phaseControl.getControlled().getI1() : phaseControl.getControlled().getI2();
+    private static double computeI(TransformerPhaseControl phaseControl) {
+        var i = phaseControl.getControlledSide() == ControlledSide.ONE
+                ? phaseControl.getControlledBranch().getI1() : phaseControl.getControlledBranch().getI2();
         return i.eval();
     }
 
     private static boolean checkCurrentLimiterPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                            List<DiscretePhaseControl> currentLimiterPhaseControls) {
+                                                            List<TransformerPhaseControl> currentLimiterPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
 
-        for (DiscretePhaseControl phaseControl : currentLimiterPhaseControls) {
-            LfBranch controllerBranch = phaseControl.getController();
-            LfBranch controlledBranch = phaseControl.getControlled();
+        for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
+            LfBranch controllerBranch = phaseControl.getControllerBranch();
+            LfBranch controlledBranch = phaseControl.getControlledBranch();
             double i = computeI(phaseControl);
             if (i > phaseControl.getTargetValue()) {
                 var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
@@ -187,12 +185,12 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         return updated.booleanValue();
     }
 
-    private static void checkImpactOnOtherPhaseShifters(SensitivityContext sensitivityContext, DiscretePhaseControl phaseControl,
-                                                        List<DiscretePhaseControl> currentLimiterPhaseControls, double da) {
-        LfBranch controllerBranch = phaseControl.getController();
-        for (DiscretePhaseControl otherPhaseControl : currentLimiterPhaseControls) {
+    private static void checkImpactOnOtherPhaseShifters(SensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
+                                                        List<TransformerPhaseControl> currentLimiterPhaseControls, double da) {
+        LfBranch controllerBranch = phaseControl.getControllerBranch();
+        for (TransformerPhaseControl otherPhaseControl : currentLimiterPhaseControls) {
             if (otherPhaseControl != phaseControl) {
-                LfBranch otherControlledBranch = otherPhaseControl.getControlled();
+                LfBranch otherControlledBranch = otherPhaseControl.getControlledBranch();
                 double i = computeI(otherPhaseControl);
                 if (i > otherPhaseControl.getTargetValue()) {
                     // get cross sensitivity of the phase shifter controller branch on the other phase shifter controlled branch
@@ -202,25 +200,25 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
                     double di = Math.toDegrees(da) * crossA2i;
                     if (di > PHASE_SHIFT_CROSS_IMPACT_MARGIN * (i - otherPhaseControl.getTargetValue())) {
                         LOGGER.warn("Controller branch '{}' tap change significantly impact (≈ {} A) another phase shifter current also above its limit '{}', simulation might not be reliable",
-                                controllerBranch.getId(), di * ib, otherPhaseControl.getControlled().getId());
+                                controllerBranch.getId(), di * ib, otherPhaseControl.getControlledBranch().getId());
                     }
                 }
             }
         }
     }
 
-    private static double getHalfTargetDeadband(DiscretePhaseControl phaseControl) {
+    private static double getHalfTargetDeadband(TransformerPhaseControl phaseControl) {
         return Math.max(phaseControl.getTargetDeadband(), MIN_TARGET_DEADBAND) / 2;
     }
 
     private static boolean checkActivePowerControlPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                                List<DiscretePhaseControl> activePowerControlPhaseControls) {
+                                                                List<TransformerPhaseControl> activePowerControlPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
 
-        for (DiscretePhaseControl phaseControl : activePowerControlPhaseControls) {
-            LfBranch controllerBranch = phaseControl.getController();
-            LfBranch controlledBranch = phaseControl.getControlled();
-            var p = phaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE
+        for (TransformerPhaseControl phaseControl : activePowerControlPhaseControls) {
+            LfBranch controllerBranch = phaseControl.getControllerBranch();
+            LfBranch controlledBranch = phaseControl.getControlledBranch();
+            var p = phaseControl.getControlledSide() == ControlledSide.ONE
                     ? controlledBranch.getP1() : controlledBranch.getP2();
             double pValue = p.eval();
             double halfTargetDeadband = getHalfTargetDeadband(phaseControl);
@@ -263,10 +261,10 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         List<LfBranch> controllerBranches = getControllerBranches(network);
 
         // find list of phase controls that are in current limiter and active power control
-        List<DiscretePhaseControl> activePowerControlPhaseControls = new ArrayList<>();
-        List<DiscretePhaseControl> currentLimiterPhaseControls = new ArrayList<>();
+        List<TransformerPhaseControl> activePowerControlPhaseControls = new ArrayList<>();
+        List<TransformerPhaseControl> currentLimiterPhaseControls = new ArrayList<>();
         for (LfBranch controllerBranch : controllerBranches) {
-            controllerBranch.getDiscretePhaseControl().ifPresent(phaseControl -> {
+            controllerBranch.getPhaseControl().ifPresent(phaseControl -> {
                 switch (phaseControl.getMode()) {
                     case CONTROLLER:
                         activePowerControlPhaseControls.add(phaseControl);

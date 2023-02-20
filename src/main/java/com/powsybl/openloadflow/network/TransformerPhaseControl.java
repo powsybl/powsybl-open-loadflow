@@ -11,12 +11,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DiscretePhaseControl {
-
-    public enum ControlledSide {
-        ONE,
-        TWO
-    }
+public class TransformerPhaseControl extends Control {
 
     public enum Mode {
         CONTROLLER,
@@ -28,19 +23,18 @@ public class DiscretePhaseControl {
         A
     }
 
-    private final LfBranch controller;
-    private final LfBranch controlled;
-    private final double targetValue;
+    private final LfBranch controllerBranch;
+    private final LfBranch controlledBranch;
     private final double targetDeadband;
     private final ControlledSide controlledSide;
     private final Mode mode;
     private final Unit unit;
 
-    public DiscretePhaseControl(LfBranch controller, LfBranch controlled, ControlledSide controlledSide, DiscretePhaseControl.Mode mode,
-                                double targetValue, double targetDeadband, Unit unit) {
-        this.controller = Objects.requireNonNull(controller);
-        this.controlled = Objects.requireNonNull(controlled);
-        this.targetValue = targetValue;
+    public TransformerPhaseControl(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide, TransformerPhaseControl.Mode mode,
+                                   double targetValue, double targetDeadband, Unit unit) {
+        super(targetValue);
+        this.controllerBranch = Objects.requireNonNull(controllerBranch);
+        this.controlledBranch = Objects.requireNonNull(controlledBranch);
         this.targetDeadband = targetDeadband;
         this.controlledSide = Objects.requireNonNull(controlledSide);
         this.mode = Objects.requireNonNull(mode);
@@ -51,20 +45,16 @@ public class DiscretePhaseControl {
         return controlledSide;
     }
 
-    public double getTargetValue() {
-        return targetValue;
-    }
-
     public double getTargetDeadband() {
         return targetDeadband;
     }
 
-    public LfBranch getController() {
-        return controller;
+    public LfBranch getControllerBranch() {
+        return controllerBranch;
     }
 
-    public LfBranch getControlled() {
-        return controlled;
+    public LfBranch getControlledBranch() {
+        return controlledBranch;
     }
 
     public Mode getMode() {

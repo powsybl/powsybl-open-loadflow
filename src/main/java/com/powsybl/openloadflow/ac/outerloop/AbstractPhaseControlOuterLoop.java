@@ -1,4 +1,3 @@
-
 /**
  * Copyright (c) 2023, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -39,8 +38,8 @@ public abstract class AbstractPhaseControlOuterLoop implements OuterLoop {
                     .filter(LfElement::isDisabled)
                     .collect(Collectors.toList());
             for (LfBranch controllerBranch : controllerBranches) {
-                var phaseControl = controllerBranch.getDiscretePhaseControl().orElseThrow();
-                var controlledBranch = phaseControl.getControlled();
+                var phaseControl = controllerBranch.getPhaseControl().orElseThrow();
+                var controlledBranch = phaseControl.getControlledBranch();
                 var connectivity = network.getConnectivity();
                 connectivity.startTemporaryChanges();
 
