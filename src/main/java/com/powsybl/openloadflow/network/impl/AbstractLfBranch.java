@@ -165,27 +165,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         rtc.setTapPosition(tapPosition);
     }
 
-    protected void checkTargetDeadband(double p) {
-        double distance = Math.abs(p - phaseControl.getTargetValue()); // in per unit system
-        if (distance > phaseControl.getTargetDeadband() / 2) {
-            LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                    phaseControl.getControlledSide(), getId(), Math.abs(p) * PerUnit.SB,
-                    phaseControl.getTargetValue() * PerUnit.SB, phaseControl.getTargetDeadband() / 2 * PerUnit.SB);
-        }
-    }
-
-    protected void checkTargetDeadband(RatioTapChanger rtc) {
-        if (rtc.getTargetDeadband() != 0) {
-            double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = voltageControl.getControlledBus().getV();
-            double distance = Math.abs(v - voltageControl.getTargetValue()); // in per unit system
-            if (distance > rtc.getTargetDeadband() / 2) {
-                LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        voltageControl.getControlledBus().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
-            }
-        }
-    }
-
     protected static double getScaleForLimitType(LimitType type, LfBus bus) {
         switch (type) {
             case ACTIVE_POWER:
