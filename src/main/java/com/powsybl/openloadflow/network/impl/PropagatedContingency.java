@@ -103,32 +103,22 @@ public class PropagatedContingency {
 
     public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen, Set<Switch> allSwitchesToClose,
                                                          boolean contingencyPropagation, boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
-        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.prepare(network, contingency, index, contingencyPropagation);
+                    PropagatedContingency.create(network, contingency, index, contingencyPropagation);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
-            if (breakers) {
-                // we are already in bus/breaker view from the actions analysis
-                // we are able to complete the propagated contingencies
-                propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
-            }
         }
-        if (!breakers) {
-            // the action analysis does not force to the bus/breaker view.
-            breakers = !allSwitchesToOpen.isEmpty();
-            // propagated contingencies have to be completed using the bus/view ids or the bus/breaker view ids.
-            for (PropagatedContingency propagatedContingency : propagatedContingencies) {
-                propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
-            }
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
+        for (PropagatedContingency propagatedContingency : propagatedContingencies) {
+            propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
         }
         return propagatedContingencies;
     }
 
-    private static PropagatedContingency prepare(Network network, Contingency contingency, int index, boolean contingencyPropagation) {
+    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         // process elements of the contingency
