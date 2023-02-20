@@ -297,7 +297,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
                 contingencies.forEach(contingency -> {
                     LOGGER.info("Simulate contingency '{}'", contingency.getContingency().getId());
-                    contingency.toLfContingency(lfNetwork, lfParameters, lfNetworkParameters.isBreakers())
+                    contingency.toLfContingency(lfNetwork)
                             .ifPresentOrElse(lfContingency -> {
                                 List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfContingency.getId());
                                 contingencyFactors.forEach(lfFactor -> {

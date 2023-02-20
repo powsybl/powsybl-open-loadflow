@@ -12,6 +12,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -235,7 +236,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         Set<Switch> allSwitchesToClose = new HashSet<>();
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, false);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, allSwitchesToClose, false,
+                false, context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false);
 
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
@@ -302,7 +304,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 }
                 for (OperatorStrategy operatorStrategy : operatorStrategiesForThisContingency) {
                     if (checkCondition(operatorStrategy, context.getLimitViolationsPerContingencyId().get(propagatedContingency.getContingency().getId()))) {
-                        propagatedContingency.toLfContingency(lfNetwork, context.getParameters().getLoadFlowParameters(), parameters.getNetworkParameters().isBreakers())
+                        propagatedContingency.toLfContingency(lfNetwork)
                                 .ifPresent(lfContingency -> {
                                     lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
                                     OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
@@ -314,7 +316,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 }
             }
 
-            completeConnectivityResults(context, lfNetwork, propagatedContingencies, networkState, lfContext.getParameters().getNetworkParameters().isBreakers());
+            completeConnectivityResults(context, lfNetwork, propagatedContingencies, networkState);
 
             return operatorStrategyResults;
         }
@@ -322,7 +324,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
     private void completeConnectivityResults(DcSecurityAnalysisContext context, LfNetwork lfNetwork,
                                              List<PropagatedContingency> propagatedContingencies,
-                                             NetworkState networkState, boolean breakers) {
+                                             NetworkState networkState) {
 
         // some connectivity results have not been built yet and we have to.
         // after some contingencies, no operator strategies have been applied.
@@ -331,7 +333,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
             PropagatedContingency propagatedContingency = contingencyIt.next();
             context.getConnectivityResultPerContingencyId().computeIfAbsent(propagatedContingency.getContingency().getId(), id ->
-                    propagatedContingency.toLfContingency(lfNetwork, context.getParameters().getLoadFlowParameters(), breakers)
+                    propagatedContingency.toLfContingency(lfNetwork)
                             .map(lfContingency -> {
                                 lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
                                 // we build the connectivity result linked to this contingency by opportunity.

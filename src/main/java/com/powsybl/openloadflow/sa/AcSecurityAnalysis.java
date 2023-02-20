@@ -85,7 +85,9 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen,
-                securityAnalysisParametersExt.isContingencyPropagation());
+                allSwitchesToClose, securityAnalysisParametersExt.isContingencyPropagation(), lfParameters.isShuntCompensatorVoltageControlOn(),
+                lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                lfParameters.isHvdcAcEmulation());
 
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
@@ -159,7 +161,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                 Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
                 while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
                     PropagatedContingency propagatedContingency = contingencyIt.next();
-                    propagatedContingency.toLfContingency(lfNetwork, loadFlowParameters, acParameters.getNetworkParameters().isBreakers())
+                    propagatedContingency.toLfContingency(lfNetwork)
                             .ifPresent(lfContingency -> { // only process contingencies that impact the network
                                 Reporter postContSimReporter = Reports.createPostContingencySimulation(networkReporter, lfContingency.getId());
                                 lfNetwork.setReporter(postContSimReporter);

@@ -12,7 +12,6 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.LoadDetail;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -34,12 +33,52 @@ public class PropagatedContingency {
 
     private final Set<Terminal> terminalsToDisconnect;
 
+    private final Set<String> branchIdsToOpen = new LinkedHashSet<>();
+
+    private final Set<String> hvdcIdsToOpen = new HashSet<>(); // for HVDC in AC emulation
+
+    private final Set<String> generatorIdsToLose = new HashSet<>();
+
+    private final Map<String, PowerShift> busIdsToShift = new HashMap<>();
+
+    private final Map<String, AdmittanceShift> shuntIdsToShift = new HashMap<>();
+
+    private final Set<String> originalPowerShiftIds = new LinkedHashSet<>();
+
     public Contingency getContingency() {
         return contingency;
     }
 
     public int getIndex() {
         return index;
+    }
+
+    public Set<String> getBranchIdsToOpen() {
+        return branchIdsToOpen;
+    }
+
+    public Set<Switch> getSwitchesToOpen() {
+        return switchesToOpen;
+    }
+
+    public Set<String> getHvdcIdsToOpen() {
+        return hvdcIdsToOpen;
+    }
+
+    public Set<String> getGeneratorIdsToLose() {
+        return generatorIdsToLose;
+    }
+
+    public Map<String, PowerShift> getBusIdsToShift() {
+        return busIdsToShift;
+    }
+
+    public Map<String, AdmittanceShift> getShuntIdsToShift() {
+        return shuntIdsToShift;
+    }
+
+    public Set<String> getOriginalPowerShiftIds() {
+        return originalPowerShiftIds;
     }
 
     public PropagatedContingency(Contingency contingency, int index, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect) {
@@ -62,7 +101,9 @@ public class PropagatedContingency {
                               load.getQ0() / PerUnit.SB); // ensurePowerFactorConstant is not supported.
     }
 
-    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen, boolean contingencyPropagation) {
+    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen, Set<Switch> allSwitchesToClose,
+                                                         boolean contingencyPropagation, boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
@@ -70,6 +111,19 @@ public class PropagatedContingency {
                     PropagatedContingency.prepare(network, contingency, index, contingencyPropagation);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
+            if (breakers) {
+                // we are already in bus/breaker view from the actions analysis
+                // we are able to complete the propagated contingencies
+                propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
+            }
+        }
+        if (!breakers) {
+            // the action analysis does not force to the bus/breaker view.
+            breakers = !allSwitchesToOpen.isEmpty();
+            // propagated contingencies have to be completed using the bus/view ids or the bus/breaker view ids.
+            for (PropagatedContingency propagatedContingency : propagatedContingencies) {
+                propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
+            }
         }
         return propagatedContingencies;
     }
@@ -91,9 +145,8 @@ public class PropagatedContingency {
         return new PropagatedContingency(contingency, index, switchesToOpen, terminalsToDisconnect);
     }
 
-    private void complete(Set<String> branchIdsToOpen, Set<String> hvdcIdsToOpen, Set<String> generatorIdsToLose,
-                          Map<String, PowerShift> busIdsToShift, Map<String, AdmittanceShift> shuntIdsToShift, Set<String> originalPowerShiftIds,
-                          boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation, boolean breakers) {
+    private void complete(boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad,
+                                 boolean hvdcAcEmulation, boolean breakers) {
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
         }
@@ -230,23 +283,7 @@ public class PropagatedContingency {
         return identifiable;
     }
 
-    public Optional<LfContingency> toLfContingency(LfNetwork network, LoadFlowParameters loadFlowParameters, boolean breakers) {
-
-        boolean shuntCompensatorVoltageControlOn = loadFlowParameters.isShuntCompensatorVoltageControlOn(); //TODO: Turn off for DC secu / sensi
-        boolean slackDistributionOnConformLoad = loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD;
-        boolean hvdcAcEmulation = loadFlowParameters.isHvdcAcEmulation() && !loadFlowParameters.isDc();
-
-        Set<String> branchIdsToOpen = new LinkedHashSet<>();
-        Set<String> hvdcIdsToOpen = new HashSet<>(); // for HVDC in AC emulation
-        Set<String> generatorIdsToLose = new HashSet<>();
-        Map<String, PowerShift> busIdsToShift = new HashMap<>();
-        Map<String, AdmittanceShift> shuntIdsToShift = new HashMap<>();
-        Set<String> originalPowerShiftIds = new LinkedHashSet<>();
-
-        // propagated contingencies have to be completed using the bus/view ids or the bus/breaker view ids.
-        complete(branchIdsToOpen, hvdcIdsToOpen, generatorIdsToLose, busIdsToShift, shuntIdsToShift, originalPowerShiftIds,
-                shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
-
+    public Optional<LfContingency> toLfContingency(LfNetwork network) {
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
