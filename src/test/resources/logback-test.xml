@@ -19,4 +19,7 @@
     <logger name="com.powsybl.openloadflow" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
+    <logger name="com.powsybl.openloadflow.network.LfNetworkListenerTracer" level="TRACE" additivity="false">
+        <appender-ref ref="STDOUT" />
+    </logger>
 </configuration>
