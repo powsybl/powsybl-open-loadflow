@@ -590,6 +590,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc) {
+        getNetwork().updateZeroImpedanceCache(dc);
         return dc ? dcZeroImpedanceNetwork : acZeroImpedanceNetwork;
     }
 }

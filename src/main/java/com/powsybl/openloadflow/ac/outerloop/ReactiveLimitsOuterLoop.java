@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.ac.OuterLoopContext;
 import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.GeneratorVoltageControl;
+import com.powsybl.openloadflow.network.VoltageControl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -242,14 +243,16 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
         for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.isGeneratorVoltageControlEnabled() && !bus.isDisabled()) {
-                checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
-            } else if (bus.hasGeneratorVoltageControllerCapability() && !bus.isDisabled()) {
-                if (!bus.hasGeneratorsWithSlope()) {
-                    checkPqBus(bus, pqToPvBuses);
-                } else {
-                    // we don't support switching PQ to PV for bus with one controller with slope.
-                    LOGGER.warn("Controller bus '{}' wants to control back voltage with slope: not supported", bus.getId());
+            if (!bus.isDisabled()) {
+                if (bus.isGeneratorVoltageControlEnabled()) {
+                    checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
+                } else if (bus.hasGeneratorVoltageControllerCapability()) {
+                    if (!bus.hasGeneratorsWithSlope()) {
+                        checkPqBus(bus, pqToPvBuses);
+                    } else {
+                        // we don't support switching PQ to PV for bus with one controller with slope.
+                        LOGGER.warn("Controller bus '{}' wants to control back voltage with slope: not supported", bus.getId());
+                    }
                 }
             }
         }

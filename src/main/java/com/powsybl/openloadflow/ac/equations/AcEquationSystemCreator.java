@@ -74,27 +74,9 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static boolean isGeneratorVoltageControlled(LfBus bus) {
-        if (bus.isGeneratorVoltageControlled()) {
-            LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(false);
-            if (zn != null) {
-                List<LfBus> otherVoltageControlledBuses = zn.getGraph().vertexSet().stream()
-                        .filter(LfBus::isGeneratorVoltageControlled)
-                        .sorted(Comparator.comparing(LfElement::getId))
-                        .collect(Collectors.toList());
-                if (otherVoltageControlledBuses.size() > 1) {
-                    return otherVoltageControlledBuses.get(0) == bus;
-                }
-                return true; // only one
-            }
-            return true;
-        }
-        return false;
-    }
-
     private void createGeneratorControlEquations(LfBus bus,
                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        if (isGeneratorVoltageControlled(bus)) {
+        if (bus.isGeneratorVoltageControlled()) {
             GeneratorVoltageControl voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
             if (voltageControl.isLocalControl()) {
                 createLocalVoltageControlEquation(bus, equationSystem);
@@ -216,10 +198,12 @@ public class AcEquationSystemCreator {
                 .filter(b -> !b.isDisabled()) // discard disabled controller buses
                 .collect(Collectors.toList());
 
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
+        LfBus controlledBus = voltageControl.getControlledBus();
+
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        if (voltageControl.getControlledBus().isDisabled()) {
+        if (controlledBus.isDisabled() || !VoltageControl.isGeneratorVoltageControlled(controlledBus)) {
             // if controlled bus is disabled, we disable all voltage control equations
             vEq.setActive(false);
             for (LfBus controllerBus : controllerBuses) {
@@ -320,12 +304,14 @@ public class AcEquationSystemCreator {
                     .setActive(!firstControllerBus.isDisabled() && !firstControllerBus.isGeneratorVoltageControlEnabled());
         } else {
             if (voltageControl.isLocalControl()) {
+                boolean voltageControlEnabled = VoltageControl.isGeneratorVoltageControlled(controlledBus)
+                        && controlledBus.isGeneratorVoltageControlEnabled();
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
-                        .setActive(!controlledBus.isDisabled() && controlledBus.isGeneratorVoltageControlEnabled());
+                        .setActive(!controlledBus.isDisabled() && voltageControlEnabled);
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
-                        .setActive(!controlledBus.isDisabled() && !controlledBus.isGeneratorVoltageControlEnabled());
+                        .setActive(!controlledBus.isDisabled() && !voltageControlEnabled);
             } else {
                 updateRemoteVoltageControlEquations(voltageControl, equationSystem);
             }

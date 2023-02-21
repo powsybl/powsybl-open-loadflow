@@ -171,8 +171,8 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
 
         loadFlowRunner.run(network, parameters);
 
-        assertEquals(1.01, b1.getV(), DELTA_V);
-        assertEquals(1.01, b2.getV(), DELTA_V);
+        assertEquals(1, b1.getV(), DELTA_V);
+        assertEquals(1, b2.getV(), DELTA_V);
     }
 
     @Test
@@ -249,6 +249,14 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertReactivePowerEquals(0, l12.getTerminal2());
     }
 
+    /**
+     *
+     * g1 (2MW)    g3 (2 MW)
+     * |           |
+     * b1 -- b2 -- b3
+     *       |
+     *       l2 (4 MW, 2 MVar)
+     */
     @Test
     void nonImpedentNetworkWithTwoPVBusesTest() {
         Network network = Network.create("TwoPVBusesInNonImpNet", "code");
@@ -274,10 +282,10 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertActivePowerEquals(-2, l12.getTerminal2());
         assertActivePowerEquals(-2, l23.getTerminal1());
         assertActivePowerEquals(2, l23.getTerminal2());
-        assertReactivePowerEquals(1, l12.getTerminal1());
-        assertReactivePowerEquals(-1, l12.getTerminal2());
-        assertReactivePowerEquals(-1, l23.getTerminal1());
-        assertReactivePowerEquals(1, l23.getTerminal2());
+        assertReactivePowerEquals(2, l12.getTerminal1());
+        assertReactivePowerEquals(-2, l12.getTerminal2());
+        assertReactivePowerEquals(0, l23.getTerminal1());
+        assertReactivePowerEquals(0, l23.getTerminal2());
     }
 
     @Test
