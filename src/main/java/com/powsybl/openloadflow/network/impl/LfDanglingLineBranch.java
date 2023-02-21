@@ -62,7 +62,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public boolean hasPhaseControlCapability() {
+    public boolean hasPhaseControllerCapability() {
         return false;
     }
 

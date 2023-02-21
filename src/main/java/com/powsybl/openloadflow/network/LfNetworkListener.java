@@ -11,9 +11,9 @@ package com.powsybl.openloadflow.network;
  */
 public interface LfNetworkListener {
 
-    void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
+    void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
-    void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage);
+    void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage);
 
     void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled);
 

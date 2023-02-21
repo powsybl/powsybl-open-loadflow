@@ -28,25 +28,29 @@ public interface LfBus extends LfElement {
 
     void setReference(boolean reference);
 
-    boolean hasVoltageControllerCapability();
+    // generator voltage control
 
-    boolean isVoltageControlEnabled();
+    boolean hasGeneratorVoltageControllerCapability();
 
-    boolean isVoltageControlled();
+    Optional<GeneratorVoltageControl> getGeneratorVoltageControl();
+
+    void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl);
+
+    void removeGeneratorVoltageControl();
+
+    boolean isGeneratorVoltageControlled();
+
+    boolean isGeneratorVoltageControlEnabled();
+
+    void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled);
+
+    // generator reactive power control
 
     List<LfGenerator> getGeneratorsControllingVoltageWithSlope();
 
     boolean hasGeneratorsWithSlope();
 
     void removeGeneratorSlopes();
-
-    void setVoltageControlEnabled(boolean voltageControlEnabled);
-
-    Optional<VoltageControl> getVoltageControl();
-
-    void removeVoltageControl();
-
-    void setVoltageControl(VoltageControl voltageControl);
 
     Optional<ReactivePowerControl> getReactivePowerControl();
 
@@ -122,17 +126,21 @@ public interface LfBus extends LfElement {
 
     void updateState(LfNetworkStateUpdateParameters parameters);
 
-    Optional<TransformerVoltageControl> getTransformerVoltageControl();
+    // transformer voltage control
 
-    boolean isTransformerVoltageControlled();
+    Optional<TransformerVoltageControl> getTransformerVoltageControl();
 
     void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
+    boolean isTransformerVoltageControlled();
+
+    // shunt voltage control
+
     Optional<ShuntVoltageControl> getShuntVoltageControl();
 
-    boolean isShuntVoltageControlled();
-
     void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl);
+
+    boolean isShuntVoltageControlled();
 
     void setP(Evaluable p);
 

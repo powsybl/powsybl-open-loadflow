@@ -73,21 +73,22 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
 
-        // load contingencies
-        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
-
-        // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
-        Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen,
-                lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation());
-
         // check actions validity
         checkActions(network, actions);
 
         // try for find all switches to be operated as actions.
+        Set<Switch> allSwitchesToOpen = new HashSet<>();
         Set<Switch> allSwitchesToClose = new HashSet<>();
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
+
+        // load contingencies
+        List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
+        // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen,
+                allSwitchesToClose, securityAnalysisParametersExt.isContingencyPropagation(), lfParameters.isShuntCompensatorVoltageControlOn(),
+                lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                lfParameters.isHvdcAcEmulation());
+
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
         acParameters.getNetworkParameters()
