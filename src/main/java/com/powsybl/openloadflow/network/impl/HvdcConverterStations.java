@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.VscConverterStation;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -57,7 +58,12 @@ public final class HvdcConverterStations {
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
-        return getSign(station) * getAbsoluteValuePAc(station);
+        boolean disconnectedAtOtherSide = false;
+        Optional<? extends HvdcConverterStation<?>> otherConverterStation = station.getOtherConverterStation();
+        if (otherConverterStation.isPresent()) {
+            disconnectedAtOtherSide = !otherConverterStation.get().getTerminal().isConnected();
+        }
+        return disconnectedAtOtherSide ? 0.0 : getSign(station) * getAbsoluteValuePAc(station);
     }
 
     /**
