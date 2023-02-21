@@ -95,7 +95,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         var station = getStation();
         station.getTerminal()
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);
-        if (hvdc == null) {
+        if (hvdc == null) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
             station.getTerminal().setP(-targetP);
         }
     }
