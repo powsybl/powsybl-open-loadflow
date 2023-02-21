@@ -259,9 +259,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        for (LfHvdc hvdc : hvdcs) {
-            hvdc.updateState();
-        }
         for (LfBus bus : busesById.values()) {
             bus.updateState(parameters);
             for (LfGenerator generator : bus.getGenerators()) {
@@ -272,6 +269,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
         for (LfBranch branch : branches) {
             branch.updateState(parameters);
+        }
+        for (LfHvdc hvdc : hvdcs) {
+            hvdc.updateState();
         }
 
         stopwatch.stop();

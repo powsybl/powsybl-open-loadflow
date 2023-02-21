@@ -227,23 +227,24 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     private List<OperatorStrategyResult> createOperatorStrategyResults(DcSecurityAnalysisContext context, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
 
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(context.getParameters().getLoadFlowParameters());
-        Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, false,
-                context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                false, false);
 
         // check actions validity
         checkActions(network, actions);
 
+        // try for find all switches to be operated as actions.
+        Set<Switch> allSwitchesToOpen = new HashSet<>();
+        Set<Switch> allSwitchesToClose = new HashSet<>();
+        findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
+
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, allSwitchesToClose, false,
+                false, context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false);
+
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
 
-        Set<Switch> allSwitchesToClose = new HashSet<>();
-        findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
-        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
-
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, context.getParameters().getLoadFlowParameters(),
                 parametersExt, matrixFactory, connectivityFactory, false);
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         dcParameters.getNetworkParameters()
                 .setBreakers(breakers)
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
