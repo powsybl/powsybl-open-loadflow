@@ -25,6 +25,8 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private final double lossFactor;
 
+    private boolean hvdcAcEmulation;
+
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, HvdcConverterStations.getConverterStationTargetP(station));
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
@@ -43,8 +45,14 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         return new LfVscConverterStationImpl(station, network, parameters, report);
     }
 
-    private VscConverterStation getStation() {
+    public VscConverterStation getStation() {
         return stationRef.get();
+    }
+
+    @Override
+    public void setHvdcAcEmulation(boolean hvdcAcEmulation) {
+        this.hvdcAcEmulation = hvdcAcEmulation;
+        targetP = 0.0;
     }
 
     @Override
@@ -81,7 +89,9 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     public void updateState() {
         var station = getStation();
         station.getTerminal()
-                .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);
+        if (!hvdcAcEmulation) {
+            station.getTerminal().setP(-targetP);
+        }
     }
 }
