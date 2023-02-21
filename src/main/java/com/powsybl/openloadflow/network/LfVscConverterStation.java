@@ -6,8 +6,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.VscConverterStation;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -15,7 +13,5 @@ public interface LfVscConverterStation extends LfGenerator {
 
     double getLossFactor();
 
-    VscConverterStation getStation();
-
-    void setHvdcAcEmulation(boolean hvdcAcEmulation);
+    void setHvdc(LfHvdc hvdc);
 }

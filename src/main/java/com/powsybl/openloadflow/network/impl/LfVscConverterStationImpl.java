@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
+import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfVscConverterStation;
@@ -25,7 +26,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     private final double lossFactor;
 
-    private boolean hvdcAcEmulation;
+    private LfHvdc hvdc; // set only when AC emulation is activated
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, HvdcConverterStations.getConverterStationTargetP(station));
@@ -45,14 +46,18 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         return new LfVscConverterStationImpl(station, network, parameters, report);
     }
 
-    public VscConverterStation getStation() {
+    VscConverterStation getStation() {
         return stationRef.get();
     }
 
+    public void setHvdc(LfHvdc hvdc) {
+        this.hvdc = hvdc;
+    }
+
     @Override
-    public void setHvdcAcEmulation(boolean hvdcAcEmulation) {
-        this.hvdcAcEmulation = hvdcAcEmulation;
-        targetP = 0.0;
+    public double getTargetP() {
+        // because in case of HVDC AC emulation, active power is injection by HvdcAcEmulationSideXActiveFlowEquationTerm equations
+        return hvdc == null ? super.getTargetP() : 0;
     }
 
     @Override
@@ -90,7 +95,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         var station = getStation();
         station.getTerminal()
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);
-        if (!hvdcAcEmulation) {
+        if (hvdc == null) {
             station.getTerminal().setP(-targetP);
         }
     }
