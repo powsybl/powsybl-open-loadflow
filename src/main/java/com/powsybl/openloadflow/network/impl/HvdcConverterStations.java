@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -55,12 +54,10 @@ public final class HvdcConverterStations {
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
-        boolean disconnectedAtOtherSide = false;
-        Optional<? extends HvdcConverterStation<?>> otherConverterStation = station.getOtherConverterStation();
-        if (otherConverterStation.isPresent()) {
-            Bus bus = Networks.getBus(otherConverterStation.get().getTerminal(), breakers);
-            disconnectedAtOtherSide = bus == null;
-        }
+        boolean disconnectedAtOtherSide = station.getOtherConverterStation().map(otherConverterStation -> {
+            Bus bus = Networks.getBus(otherConverterStation.getTerminal(), breakers);
+            return bus == null;
+        }).orElse(false);
         return disconnectedAtOtherSide ? 0.0 : getSign(station) * getAbsoluteValuePAc(station);
     }
 
