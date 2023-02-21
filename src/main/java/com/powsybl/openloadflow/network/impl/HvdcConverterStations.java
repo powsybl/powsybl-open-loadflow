@@ -7,10 +7,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.HvdcConverterStation;
-import com.powsybl.iidm.network.HvdcLine;
-import com.powsybl.iidm.network.LccConverterStation;
-import com.powsybl.iidm.network.VscConverterStation;
+import com.powsybl.iidm.network.*;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -47,7 +44,7 @@ public final class HvdcConverterStations {
     /**
      * Gets targetP of an VSC converter station or load target P for a LCC converter station.
      */
-    public static double getConverterStationTargetP(HvdcConverterStation<?> station) {
+    public static double getConverterStationTargetP(HvdcConverterStation<?> station, boolean breakers) {
         // For a VSC converter station, we are in generator convention.
         // If the converter station is at side 1 and is rectifier, targetP should be negative.
         // If the converter station is at side 1 and is inverter, targetP should be positive.
@@ -61,7 +58,8 @@ public final class HvdcConverterStations {
         boolean disconnectedAtOtherSide = false;
         Optional<? extends HvdcConverterStation<?>> otherConverterStation = station.getOtherConverterStation();
         if (otherConverterStation.isPresent()) {
-            disconnectedAtOtherSide = !otherConverterStation.get().getTerminal().isConnected();
+            Bus bus = Networks.getBus(otherConverterStation.get().getTerminal(), breakers);
+            disconnectedAtOtherSide = bus == null;
         }
         return disconnectedAtOtherSide ? 0.0 : getSign(station) * getAbsoluteValuePAc(station);
     }
@@ -69,13 +67,13 @@ public final class HvdcConverterStations {
     /**
      * Gets reactive power for an LCC converter station.
      */
-    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs) {
+    public static double getLccConverterStationLoadTargetQ(LccConverterStation lccCs, boolean breakers) {
         // Load convention.
         // If the converter station is at side 1 and is rectifier, p should be positive.
         // If the converter station is at side 1 and is inverter, p should be negative.
         // If the converter station is at side 2 and is rectifier, p should be positive.
         // If the converter station is at side 2 and is inverter, p should be negative.
-        double pCs = getConverterStationTargetP(lccCs);
+        double pCs = getConverterStationTargetP(lccCs, breakers);
         return Math.abs(pCs * Math.tan(Math.acos(lccCs.getPowerFactor()))); // A LCC station always consumes reactive power.
     }
 

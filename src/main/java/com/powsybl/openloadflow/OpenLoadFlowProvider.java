@@ -126,7 +126,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
                                                                           parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
-                                                                          parameters.isDc());
+                                                                          parameters.isDc(), acParameters.getNetworkParameters().isBreakers());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
@@ -180,12 +180,12 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         Networks.resetState(network);
 
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters)).collect(Collectors.toList());
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, dcParameters.getNetworkParameters().isBreakers())).collect(Collectors.toList());
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSucceeded);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
 
-    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters) {
+    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters, boolean breakers) {
         if (result.isSucceeded() && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
         }
@@ -196,7 +196,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       parameters.isPhaseShifterRegulationOn(),
                                                                       parameters.isTransformerVoltageControlOn(),
                                                                       false,
-                                                                      true);
+                                                                      true,
+                                                                      breakers);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
