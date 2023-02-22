@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.List;
 import java.util.Map;
 
@@ -31,4 +33,12 @@ public interface LfAggregatedLoads extends PropertyBag {
     Map<String, Boolean> getLoadsDisablingStatus();
 
     void setLoadsDisablingStatus(Map<String, Boolean> loadsDisablingStatus);
+
+    Evaluable getP();
+
+    void setP(Evaluable p);
+
+    Evaluable getQ();
+
+    void setQ(Evaluable q);
 }

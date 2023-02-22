@@ -13,7 +13,6 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -26,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LoadModelTest {
 
     @Test
-    @Disabled
     void test() {
         var network = EurostagTutorialExample1Factory.create();
         var loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -37,7 +35,7 @@ class LoadModelTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
 
         var genBus = network.getBusBreakerView().getBus("NGEN");
         var bus1 = network.getBusBreakerView().getBus("NHV1");
@@ -45,9 +43,9 @@ class LoadModelTest {
         var loadBus = network.getBusBreakerView().getBus("NLOAD");
         var load = network.getLoad("LOAD");
         assertVoltageEquals(24.5, genBus);
-        assertVoltageEquals(402.018, bus1);
-        assertVoltageEquals(389.64, bus2);
-        assertVoltageEquals(147.384, loadBus);
+        assertVoltageEquals(414.183, bus1);
+        assertVoltageEquals(424.346, bus2);
+        assertVoltageEquals(172.266, loadBus);
         assertActivePowerEquals(600, load.getTerminal()); // FIXME
         assertReactivePowerEquals(200, load.getTerminal()); // FIXME
     }

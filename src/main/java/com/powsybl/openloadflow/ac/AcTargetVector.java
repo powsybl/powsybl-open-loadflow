@@ -63,14 +63,24 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no target in for reactive remote control"));
     }
 
+    private static double getBusTargetP(Equation<AcVariableType, AcEquationType> equation, LfNetwork network) {
+        LfBus bus = network.getBus(equation.getElementNum());
+        return bus.getLoadModel() != null ? bus.getGenerationTargetP() : bus.getTargetP();
+    }
+
+    private static double getBusTargetQ(Equation<AcVariableType, AcEquationType> equation, LfNetwork network) {
+        LfBus bus = network.getBus(equation.getElementNum());
+        return bus.getLoadModel() != null ? bus.getGenerationTargetQ() : bus.getTargetQ();
+    }
+
     public static void init(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_P:
-                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetP();
+                targets[equation.getColumn()] = getBusTargetP(equation, network);
                 break;
 
             case BUS_TARGET_Q:
-                targets[equation.getColumn()] = network.getBus(equation.getElementNum()).getTargetQ();
+                targets[equation.getColumn()] = getBusTargetQ(equation, network);
                 break;
 
             case BUS_TARGET_V:

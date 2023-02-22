@@ -74,14 +74,18 @@ public class AcEquationSystemCreator {
         ExponentialLoadModel loadModel = bus.getLoadModel();
         if (loadModel != null) {
             if (loadModel.getAlpha() != 0) {
-                Equation<AcVariableType, AcEquationType> p = equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow();
-                p.addTerm(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getAlpha())
-                        .multiply(-bus.getLoadTargetP()));
+                EquationTerm<AcVariableType, AcEquationType> loadP = new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getAlpha())
+                        .multiply(() -> -bus.getLoadTargetP());
+                bus.getAggregatedLoads().setP(loadP);
+                equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
+                        .addTerm(loadP);
             }
             if (loadModel.getBeta() != 0) {
-                Equation<AcVariableType, AcEquationType> q = equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow();
-                q.addTerm(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getBeta())
-                        .multiply(-bus.getLoadTargetQ()));
+                EquationTerm<AcVariableType, AcEquationType> loadQ = new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getBeta())
+                        .multiply(() -> -bus.getLoadTargetQ());
+                bus.getAggregatedLoads().setQ(loadQ);
+                equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow()
+                        .addTerm(loadQ);
             }
         }
     }

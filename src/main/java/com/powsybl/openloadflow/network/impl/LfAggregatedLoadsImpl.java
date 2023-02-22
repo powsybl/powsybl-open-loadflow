@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.AbstractPropertyBag;
 import com.powsybl.openloadflow.network.LfAggregatedLoads;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
@@ -32,6 +33,10 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
     private boolean initialized;
 
     private Map<String, Boolean> loadsStatus = new LinkedHashMap<>();
+
+    private Evaluable p;
+
+    private Evaluable q;
 
     LfAggregatedLoadsImpl(boolean distributedOnConformLoad) {
         this.distributedOnConformLoad = distributedOnConformLoad;
@@ -139,4 +144,23 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
     }
 
+    @Override
+    public Evaluable getP() {
+        return p;
+    }
+
+    @Override
+    public void setP(Evaluable p) {
+        this.p = p;
+    }
+
+    @Override
+    public Evaluable getQ() {
+        return q;
+    }
+
+    @Override
+    public void setQ(Evaluable q) {
+        this.q = q;
+    }
 }
