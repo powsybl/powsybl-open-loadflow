@@ -168,9 +168,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME = "phaseShifterControlMode";
 
-    public static final String LOAD_ALPHA_NAME = "loadAlpha";
+    public static final String DEFAULT_LOAD_ALPHA_NAME = "defaultLoadAlpha";
 
-    public static final String LOAD_BETA_NAME = "loadBeta";
+    public static final String DEFAULT_LOAD_BETA_NAME = "defaultLoadBeta";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -214,7 +214,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_ANGLE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum angle for per equation stopping criteria", MAX_ANGLE_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
-        new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class))
+        new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
+        new Parameter(DEFAULT_LOAD_ALPHA_NAME, ParameterType.DOUBLE, "Default load alpha", LfNetworkParameters.DEFAULT_LOAD_ALPHA_DEFAULT_VALUE),
+        new Parameter(DEFAULT_LOAD_BETA_NAME, ParameterType.DOUBLE, "Default load beta", LfNetworkParameters.DEFAULT_LOAD_BETA_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -326,9 +328,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private PhaseShifterControlMode phaseShifterControlMode = PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE;
 
-    private double loadAlpha = LfNetworkParameters.LOAD_ALPHA_DEFAULT_VALUE;
+    private double defaultLoadAlpha = LfNetworkParameters.DEFAULT_LOAD_ALPHA_DEFAULT_VALUE;
 
-    private double loadBeta = LfNetworkParameters.LOAD_BETA_DEFAULT_VALUE;
+    private double defaultLoadBeta = LfNetworkParameters.DEFAULT_LOAD_BETA_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -712,21 +714,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public double getLoadAlpha() {
-        return loadAlpha;
+    public double getDefaultLoadAlpha() {
+        return defaultLoadAlpha;
     }
 
-    public OpenLoadFlowParameters setLoadAlpha(double loadAlpha) {
-        this.loadAlpha = loadAlpha;
+    public OpenLoadFlowParameters setDefaultLoadAlpha(double defaultLoadAlpha) {
+        this.defaultLoadAlpha = defaultLoadAlpha;
         return this;
     }
 
-    public double getLoadBeta() {
-        return loadBeta;
+    public double getDefaultLoadBeta() {
+        return defaultLoadBeta;
     }
 
-    public OpenLoadFlowParameters setLoadBeta(double loadBeta) {
-        this.loadBeta = loadBeta;
+    public OpenLoadFlowParameters setDefaultLoadBeta(double defaultLoadBeta) {
+        this.defaultLoadBeta = defaultLoadBeta;
         return this;
     }
 
@@ -779,8 +781,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
                 .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
-                .setLoadAlpha(config.getDoubleProperty(LOAD_ALPHA_NAME, LfNetworkParameters.LOAD_ALPHA_DEFAULT_VALUE))
-                .setLoadBeta(config.getDoubleProperty(LOAD_BETA_NAME, LfNetworkParameters.LOAD_BETA_DEFAULT_VALUE)));
+                .setDefaultLoadAlpha(config.getDoubleProperty(DEFAULT_LOAD_ALPHA_NAME, LfNetworkParameters.DEFAULT_LOAD_ALPHA_DEFAULT_VALUE))
+                .setDefaultLoadBeta(config.getDoubleProperty(DEFAULT_LOAD_BETA_NAME, LfNetworkParameters.DEFAULT_LOAD_BETA_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -865,10 +867,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setReactiveLimitsMaxPqPvSwitch(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setPhaseShifterControlMode(PhaseShifterControlMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(LOAD_ALPHA_NAME))
-                .ifPresent(prop -> this.setLoadAlpha(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(LOAD_BETA_NAME))
-                .ifPresent(prop -> this.setLoadBeta(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(DEFAULT_LOAD_ALPHA_NAME))
+                .ifPresent(prop -> this.setDefaultLoadAlpha(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(DEFAULT_LOAD_BETA_NAME))
+                .ifPresent(prop -> this.setDefaultLoadBeta(Double.parseDouble(prop)));
         return this;
     }
 
@@ -913,8 +915,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", reactiveLimitsMaxPqPvSwitch=" + reactiveLimitsMaxPqPvSwitch +
                 ", phaseShifterControlMode=" + phaseShifterControlMode +
-                ", loadAlpha=" + loadAlpha +
-                ", loadBeta=" + loadBeta +
+                ", defaultLoadAlpha=" + defaultLoadAlpha +
+                ", defaultLoadBeta=" + defaultLoadBeta +
                 ')';
     }
 
@@ -990,7 +992,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
         LOGGER.info("Reactive limits maximum Pq Pv switch: {}", parametersExt.getReactiveLimitsMaxPqPvSwitch());
         LOGGER.info("Phase shifter control mode: {}", parametersExt.getPhaseShifterControlMode());
-        LOGGER.info("Load alpha beta: {}, {}", parametersExt.getLoadAlpha(), parametersExt.getLoadBeta());
+        LOGGER.info("Default load alpha beta: {}, {}", parametersExt.getDefaultLoadAlpha(), parametersExt.getDefaultLoadBeta());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -1059,8 +1061,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDebugDir(parametersExt.getDebugDir())
                 .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl())
                 .setCacheEnabled(parametersExt.isNetworkCacheEnabled())
-                .setLoadAlpha(parametersExt.getLoadAlpha())
-                .setLoadBeta(parametersExt.getLoadBeta());
+                .setDefaultLoadAlpha(parametersExt.getDefaultLoadAlpha())
+                .setDefaultLoadBeta(parametersExt.getDefaultLoadBeta());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1238,7 +1240,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() &&
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
-                extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode();
+                extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
+                extension1.getDefaultLoadAlpha() == extension2.getDefaultLoadAlpha() &&
+                extension1.getDefaultLoadBeta() == extension2.getDefaultLoadBeta();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1292,7 +1296,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift())
                     .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
-                    .setPhaseShifterControlMode(extension.getPhaseShifterControlMode());
+                    .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
+                    .setDefaultLoadAlpha(extension.getDefaultLoadAlpha())
+                    .setDefaultLoadBeta(extension.getDefaultLoadBeta());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

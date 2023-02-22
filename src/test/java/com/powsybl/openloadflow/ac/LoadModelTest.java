@@ -32,8 +32,8 @@ class LoadModelTest {
         var loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         var parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
-                .setLoadAlpha(0.5)
-                .setLoadBeta(0.5);
+                .setDefaultLoadAlpha(0.5)
+                .setDefaultLoadBeta(0.5);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());

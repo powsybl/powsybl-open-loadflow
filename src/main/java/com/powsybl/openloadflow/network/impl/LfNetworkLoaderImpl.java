@@ -336,8 +336,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             lfBus.setShuntCompensators(shuntCompensators, parameters);
         }
 
-        if (loadCount[0] > 0 && (parameters.getLoadAlpha() != 0 || parameters.getLoadBeta() != 0)) {
-            lfBus.setLoadModel(new ExponentialLoadModel(parameters.getLoadAlpha(), parameters.getLoadBeta()));
+        if (loadCount[0] > 0 && (parameters.getDefaultLoadAlpha() != 0 || parameters.getDefaultLoadBeta() != 0)) {
+            lfBus.setLoadModel(new ExponentialLoadModel(parameters.getDefaultLoadAlpha(), parameters.getDefaultLoadBeta()));
         }
 
         return lfBus;

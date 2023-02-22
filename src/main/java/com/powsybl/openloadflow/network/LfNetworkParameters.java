@@ -42,9 +42,9 @@ public class LfNetworkParameters {
 
     public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
 
-    public static final double LOAD_ALPHA_DEFAULT_VALUE = 0;
+    public static final double DEFAULT_LOAD_ALPHA_DEFAULT_VALUE = 0;
 
-    public static final double LOAD_BETA_DEFAULT_VALUE = 0;
+    public static final double DEFAULT_LOAD_BETA_DEFAULT_VALUE = 0;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
 
@@ -102,9 +102,9 @@ public class LfNetworkParameters {
 
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
 
-    private double loadAlpha = LOAD_ALPHA_DEFAULT_VALUE;
+    private double defaultLoadAlpha = DEFAULT_LOAD_ALPHA_DEFAULT_VALUE;
 
-    private double loadBeta = LOAD_BETA_DEFAULT_VALUE;
+    private double defaultLoadBeta = DEFAULT_LOAD_BETA_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -368,21 +368,21 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public double getLoadAlpha() {
-        return loadAlpha;
+    public double getDefaultLoadAlpha() {
+        return defaultLoadAlpha;
     }
 
-    public LfNetworkParameters setLoadAlpha(double loadAlpha) {
-        this.loadAlpha = loadAlpha;
+    public LfNetworkParameters setDefaultLoadAlpha(double defaultLoadAlpha) {
+        this.defaultLoadAlpha = defaultLoadAlpha;
         return this;
     }
 
-    public double getLoadBeta() {
-        return loadBeta;
+    public double getDefaultLoadBeta() {
+        return defaultLoadBeta;
     }
 
-    public LfNetworkParameters setLoadBeta(double loadBeta) {
-        this.loadBeta = loadBeta;
+    public LfNetworkParameters setDefaultLoadBeta(double defaultLoadBeta) {
+        this.defaultLoadBeta = defaultLoadBeta;
         return this;
     }
 
@@ -416,8 +416,8 @@ public class LfNetworkParameters {
                 ", debugDir=" + debugDir +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
-                ", loadAlpha=" + loadAlpha +
-                ", loadBeta=" + loadBeta +
+                ", defaultLoadAlpha=" + defaultLoadAlpha +
+                ", defaultLoadBeta=" + defaultLoadBeta +
                 ')';
     }
 }
