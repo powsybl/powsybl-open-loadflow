@@ -60,8 +60,9 @@ public class ExponentialLoadModelEquationTerm extends AbstractElementEquationTer
         Objects.requireNonNull(variable);
         if (variable.equals(vVar)) {
             return dcdv(v(), exponent);
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
         }
-        return 0;
     }
 
     @Override
