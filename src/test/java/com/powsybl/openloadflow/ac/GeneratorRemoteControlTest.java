@@ -16,10 +16,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +61,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         tr3 = network.getTwoWindingsTransformer("tr3");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                   .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
@@ -104,18 +101,12 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .add();
         network.newLine()
                 .setId("ln1")
-                .setVoltageLevel1("vl3")
                 .setConnectableBus1("b3")
                 .setBus1("b3")
-                .setVoltageLevel2("vl5")
                 .setConnectableBus2("b5")
                 .setBus2("b5")
                 .setR(0)
                 .setX(0)
-                .setB1(0)
-                .setG1(0)
-                .setB2(0)
-                .setG2(0)
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -239,7 +230,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testWith3GeneratorsAndFirstGeneratorToLimit() {
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits()
                 .setMinQ(-50)
                 .setMaxQ(50)
@@ -567,5 +558,58 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(targetQ, twt.getTerminal(Branch.Side.TWO));
+    }
+
+    @Test
+    void testReactiveRangeCheckMode() {
+        parameters.setUseReactiveLimits(true);
+        Network network = EurostagTutorialExample1Factory.create();
+        VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
+        Bus nload = vlload.getBusBreakerView().getBus("NLOAD");
+        vlload.newGenerator()
+                .setId("GEN2")
+                .setBus(nload.getId())
+                .setConnectableBus(nload.getId())
+                .setMinP(-9999.99D)
+                .setMaxP(9999.99D)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(150D)
+                .setTargetP(0.0D)
+                .setTargetQ(301.0D)
+                .add();
+        Generator generator2 = network.getGenerator("GEN2");
+        generator2.newReactiveCapabilityCurve()
+                .beginPoint()
+                .setP(3.0D)
+                .setMaxQ(100)
+                .setMinQ(-100)
+                .endPoint()
+                .beginPoint()
+                .setP(0.0D)
+                .setMaxQ(100)
+                .setMinQ(-100)
+                .endPoint()
+                .beginPoint()
+                .setP(1.0D)
+                .setMaxQ(5.0D)
+                .setMinQ(5.0D)
+                .endPoint()
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertVoltageEquals(150.0, nload);
+
+        generator2.setTargetP(1.0);
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.TARGET_P);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isOk());
+        assertVoltageEquals(164.88, nload);
+
+        generator2.setTargetP(0.0);
+        parameters.getExtension(OpenLoadFlowParameters.class).setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.MIN_MAX);
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isOk());
+        assertVoltageEquals(164.88, nload);
     }
 }

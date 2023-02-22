@@ -34,10 +34,13 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         double theta = theta1(ksi, ph1(), a1(), ph2());
         double cosTheta = FastMath.cos(theta);
         double sinTheta = FastMath.sin(theta);
+        double sinKsi = FastMath.sin(ksi);
         return dp1dph1(y, v1, r1, v2, cosTheta) * dph1
                 + dp1dph2(y, v1, r1, v2, cosTheta) * dph2
-                + dp1dv1(y, FastMath.sin(ksi), g1, v1, r1, v2, sinTheta) * dv1
-                + dp1dv2(y, v1, r1, sinTheta) * dv2;
+                + dp1dv1(y, sinKsi, g1, v1, r1, v2, sinTheta) * dv1
+                + dp1dv2(y, v1, r1, sinTheta) * dv2
+                + dp1da1(y, v1, r1, v2, cosTheta) * da1
+                + dp1dr1(y, sinKsi, g1, v1, r1, v2, sinTheta) * dr1;
     }
 
     public static double p1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {

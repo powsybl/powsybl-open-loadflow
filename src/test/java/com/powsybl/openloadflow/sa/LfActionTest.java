@@ -6,23 +6,25 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.AbstractConverterTest;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfAction;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.security.action.LineConnectionAction;
+import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
 import com.powsybl.security.action.SwitchAction;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,22 +61,26 @@ class LfActionTest extends AbstractConverterTest {
         SwitchAction switchAction = new SwitchAction("switchAction", "C", true);
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), Reporter.NO_OP, true, false);
-        List<LfNetwork> lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP);
-        LfNetwork lfNetwork = lfNetworks.get(0);
-        LfAction lfAction = new LfAction(switchAction, lfNetwork);
-        String loadId = "LOAD";
-        Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
-        PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
-                Collections.singletonList(contingency), new HashSet<>(), false, false, false, true).get(0);
-        propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
-            LfAction.apply(List.of(lfAction), lfNetwork, lfContingency);
-            assertTrue(lfNetwork.getBranchById("C").isDisabled());
-            assertEquals("C", lfAction.getDisabledBranch().getId());
-            assertNull(lfAction.getEnabledBranch());
-        });
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Set.of(network.getSwitch("C")), Collections.emptySet(), Reporter.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfAction lfAction = LfAction.create(switchAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
+            String loadId = "LOAD";
+            Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
+            PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
+                    Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), true, false, false, false).get(0);
+            propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
+                LfAction.apply(List.of(lfAction), lfNetwork, lfContingency, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+                assertTrue(lfNetwork.getBranchById("C").isDisabled());
+                assertEquals("C", lfAction.getDisabledBranch().getId());
+                assertNull(lfAction.getEnabledBranch());
+            });
 
-        SwitchAction switchAction2 = new SwitchAction("switchAction", "S", true);
-        assertThrows(PowsyblException.class, () -> new LfAction(switchAction2, lfNetwork), "Branch S not found in the network");
+            assertTrue(LfAction.create(new SwitchAction("switchAction", "S", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
+            assertTrue(LfAction.create(new LineConnectionAction("A line action", "x", true), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
+            assertTrue(LfAction.create(new PhaseTapChangerTapPositionAction("A phase tap change action", "y", false, 3), lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
+            var lineAction = new LineConnectionAction("A line action", "L1", true, false);
+            assertEquals("Line connection action: only open line at both sides is supported yet.", assertThrows(UnsupportedOperationException.class, () -> LfAction.create(lineAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers())).getMessage());
+        }
     }
 }

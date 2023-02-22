@@ -8,6 +8,8 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 
 import java.util.List;
 
@@ -16,14 +18,18 @@ import java.util.List;
  */
 public class LfStarBus extends AbstractLfBus {
 
-    private final ThreeWindingsTransformer t3wt;
+    private final Ref<ThreeWindingsTransformer> t3wtRef;
 
     private final double nominalV;
 
-    public LfStarBus(LfNetwork network, ThreeWindingsTransformer t3wt) {
+    public LfStarBus(LfNetwork network, ThreeWindingsTransformer t3wt, LfNetworkParameters parameters) {
         super(network, Networks.getPropertyV(t3wt), Networks.getPropertyAngle(t3wt), false);
-        this.t3wt = t3wt;
+        this.t3wtRef = Ref.create(t3wt, parameters.isCacheEnabled());
         nominalV = t3wt.getRatedU0();
+    }
+
+    private ThreeWindingsTransformer getT3wt() {
+        return t3wtRef.get();
     }
 
     public static String getId(String id) {
@@ -32,17 +38,17 @@ public class LfStarBus extends AbstractLfBus {
 
     @Override
     public String getId() {
-        return getId(t3wt.getId());
+        return getId(getT3wt().getId());
     }
 
     @Override
     public List<String> getOriginalIds() {
-        return List.of(t3wt.getId());
+        return List.of(getT3wt().getId());
     }
 
     @Override
     public String getVoltageLevelId() {
-        return t3wt.getLeg1().getTerminal().getVoltageLevel().getId();
+        return getT3wt().getLeg1().getTerminal().getVoltageLevel().getId();
     }
 
     @Override
@@ -56,10 +62,11 @@ public class LfStarBus extends AbstractLfBus {
     }
 
     @Override
-    public void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
+        var t3wt = getT3wt();
         Networks.setPropertyV(t3wt, v);
         Networks.setPropertyAngle(t3wt, angle);
 
-        super.updateState(reactiveLimits, writeSlackBus, false, false);
+        super.updateState(parameters);
     }
 }

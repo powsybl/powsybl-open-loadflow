@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -23,34 +24,38 @@ import java.util.OptionalDouble;
  */
 public final class LfGeneratorImpl extends AbstractLfGenerator {
 
-    private final Generator generator;
+    private final Ref<Generator> generatorRef;
 
     private boolean participating;
 
     private double droop;
 
-    private LfGeneratorImpl(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit, boolean reactiveLimits,
-                            LfNetworkLoadingReport report, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+    private double participationFactor;
+
+    private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP());
-        this.generator = generator;
+        this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
-        // get participation factor from extension
+        // get participation factor and droop from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
-            if (activePowerControl.getDroop() != 0) {
+            participating = activePowerControl.isParticipate();
+            if (!Double.isNaN(activePowerControl.getDroop())) {
                 droop = activePowerControl.getDroop();
+            }
+            if (activePowerControl.getParticipationFactor() > 0) {
+                participationFactor = activePowerControl.getParticipationFactor();
             }
         }
 
-        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), plausibleActivePowerLimit, report)) {
+        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), parameters, report)) {
             participating = false;
         }
 
         if (generator.isVoltageRegulatorOn()) {
-            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), breakers,
-                    reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), parameters,
+                    report);
         }
 
         RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
@@ -59,27 +64,32 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    public static LfGeneratorImpl create(Generator generator, LfNetwork network, boolean breakers, double plausibleActivePowerLimit,
-                                         boolean reactiveLimits, LfNetworkLoadingReport report, double minPlausibleTargetVoltage,
-                                         double maxPlausibleTargetVoltage) {
+    public static LfGeneratorImpl create(Generator generator, LfNetwork network, LfNetworkParameters parameters,
+                                         LfNetworkLoadingReport report) {
         Objects.requireNonNull(generator);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, network, breakers, plausibleActivePowerLimit, reactiveLimits, report, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
+        return new LfGeneratorImpl(generator, network, parameters, report);
+    }
+
+    private Generator getGenerator() {
+        return generatorRef.get();
     }
 
     @Override
     public String getId() {
-        return generator.getId();
+        return getGenerator().getId();
     }
 
     @Override
     public boolean isFictitious() {
-        return generator.isFictitious();
+        return getGenerator().isFictitious();
     }
 
     @Override
     public OptionalDouble getRemoteControlReactiveKey() {
-        CoordinatedReactiveControl coordinatedReactiveControl = generator.getExtension(CoordinatedReactiveControl.class);
+        CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
         if (coordinatedReactiveControl == null) {
             return OptionalDouble.empty();
         }
@@ -88,22 +98,22 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return generator.getTargetQ() / PerUnit.SB;
+        return getGenerator().getTargetQ() / PerUnit.SB;
     }
 
     @Override
     public double getMinP() {
-        return generator.getMinP() / PerUnit.SB;
+        return getGenerator().getMinP() / PerUnit.SB;
     }
 
     @Override
     public double getMaxP() {
-        return generator.getMaxP() / PerUnit.SB;
+        return getGenerator().getMaxP() / PerUnit.SB;
     }
 
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
-        return Optional.of(generator.getReactiveLimits());
+        return Optional.of(getGenerator().getReactiveLimits());
     }
 
     @Override
@@ -122,7 +132,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public double getParticipationFactor() {
+        return participationFactor;
+    }
+
+    @Override
     public void updateState() {
+        var generator = getGenerator();
         generator.getTerminal()
                 .setP(-targetP)
                 .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);

@@ -29,13 +29,16 @@ public class ZeroImpedanceFlows {
 
     private final Graph<LfBus, LfBranch> graph;
     private final SpanningTreeAlgorithm.SpanningTree<LfBranch> tree;
+    private final boolean dc;
 
-    public ZeroImpedanceFlows(Graph<LfBus, LfBranch> zeroImpedanceSubGraph, SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree) {
+    public ZeroImpedanceFlows(Graph<LfBus, LfBranch> zeroImpedanceSubGraph, SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree,
+                              boolean dc) {
         this.graph = zeroImpedanceSubGraph;
         this.tree = spanningTree;
+        this.dc = dc;
     }
 
-    public void compute(boolean dc) {
+    public void compute() {
         Set<LfBus> processed = new HashSet<>();
 
         graph.vertexSet().forEach(lfBus -> {
@@ -118,7 +121,7 @@ public class ZeroImpedanceFlows {
 
                     LfBranch branch = parent.get(bus);
                     updateBranchFlows(branch, bus, branchFlow.negate(), branchFlow);
-                    descendantZeroImpedanceFlow.merge(getOtherSideBus(branch, bus), branchFlow, (pq1, pq2) -> pq1.add(pq2));
+                    descendantZeroImpedanceFlow.merge(getOtherSideBus(branch, bus), branchFlow, PQ::add);
                 });
                 level--;
             }
@@ -132,7 +135,7 @@ public class ZeroImpedanceFlows {
 
             // only lines with impedance
             List<LfBranch> adjacentBranchesWithImpedance = bus.getBranches().stream()
-                .filter(branch -> !branch.isZeroImpedanceBranch(dc)).collect(Collectors.toList());
+                .filter(branch -> !branch.isZeroImpedance(dc)).collect(Collectors.toList());
 
             adjacentBranchesWithImpedance.forEach(branch -> {
                 PQ branchFlow = getBranchFlow(branch, bus);

@@ -11,9 +11,11 @@ package com.powsybl.openloadflow.network;
  */
 public interface LfNetworkListener {
 
-    void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
+    void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
-    void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled);
+    void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage);
+
+    void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled);
 
     void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled);
 
@@ -27,9 +29,9 @@ public interface LfNetworkListener {
 
     void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ);
 
-    void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition);
-
-    void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition);
-
     void onDisableChange(LfElement element, boolean disabled);
+
+    void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition);
+
+    void onShuntSusceptanceChange(LfShunt shunt, double b);
 }

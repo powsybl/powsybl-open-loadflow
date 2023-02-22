@@ -12,12 +12,17 @@ package com.powsybl.openloadflow.network;
 public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
-    public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+    public void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
         // empty
     }
 
     @Override
-    public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
+    public void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage) {
+        // empty
+    }
+
+    @Override
+    public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
         // empty
     }
 
@@ -52,17 +57,17 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onTransformerPhaseControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-        // empty
-    }
-
-    @Override
-    public void onTransformerVoltageControlTapPositionChange(LfBranch controllerBranch, int oldPosition, int newPosition) {
-        // empty
-    }
-
-    @Override
     public void onDisableChange(LfElement element, boolean disabled) {
+        // empty
+    }
+
+    @Override
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+        // empty
+    }
+
+    @Override
+    public void onShuntSusceptanceChange(LfShunt shunt, double b) {
         // empty
     }
 }

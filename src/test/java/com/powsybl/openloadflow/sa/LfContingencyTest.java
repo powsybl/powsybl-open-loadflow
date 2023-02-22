@@ -6,10 +6,10 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.commons.AbstractConverterTest;
-import com.powsybl.commons.ComparisonUtils;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.test.AbstractConverterTest;
+import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.GeneratorContingency;
@@ -74,7 +74,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
         List<PropagatedContingency> propagatedContingencies =
-            PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), false, false, false, true);
+            PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), true, false, false, false);
 
         List<LfContingency> lfContingencies = propagatedContingencies.stream()
                 .flatMap(propagatedContingency -> propagatedContingency.toLfContingency(mainNetwork).stream())
@@ -103,7 +103,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String generatorId = "GEN";
         Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), false, false, false, true),
+                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), true, false, false, false),
                 "Generator 'GEN' not found in the network");
     }
 
@@ -119,7 +119,7 @@ class LfContingencyTest extends AbstractConverterTest {
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));
         assertThrows(PowsyblException.class, () ->
-                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), false, false, false, true),
+                        PropagatedContingency.createList(network, Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), true, false, false, false),
                 "Load 'LOAD' not found in the network");
     }
 }

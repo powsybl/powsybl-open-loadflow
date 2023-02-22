@@ -21,8 +21,6 @@ import java.util.Optional;
  */
 public interface LfBranch extends LfElement {
 
-    double LOW_IMPEDANCE_THRESHOLD = Math.pow(10, -8); // in per unit
-
     enum BranchType {
         LINE,
         TRANSFO_2,
@@ -35,21 +33,28 @@ public interface LfBranch extends LfElement {
 
     class LfLimit {
 
+        private final String name;
+
         private int acceptableDuration;
 
         private final double value;
 
-        public LfLimit(int acceptableDuration, double value) {
+        public LfLimit(String name, int acceptableDuration, double value) {
+            this.name = name;
             this.acceptableDuration = acceptableDuration;
             this.value = value;
         }
 
-        public static LfLimit createTemporaryLimit(int acceptableDuration, double valuePerUnit) {
-            return new LfLimit(acceptableDuration, valuePerUnit);
+        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double valuePerUnit) {
+            return new LfLimit(name, acceptableDuration, valuePerUnit);
         }
 
         public static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(Integer.MAX_VALUE, valuePerUnit);
+            return new LfLimit(null, Integer.MAX_VALUE, valuePerUnit);
+        }
+
+        public String getName() {
+            return name;
         }
 
         public int getAcceptableDuration() {
@@ -63,6 +68,15 @@ public interface LfBranch extends LfElement {
         public void setAcceptableDuration(int acceptableDuration) {
             this.acceptableDuration = acceptableDuration;
         }
+    }
+
+    static int[] createIndex(LfNetwork network, List<LfBranch> branches) {
+        int[] branchIndex = new int[network.getBranches().size()];
+        for (int i = 0; i < branches.size(); i++) {
+            LfBranch branch = branches.get(i);
+            branchIndex[branch.getNum()] = i;
+        }
+        return branchIndex;
     }
 
     BranchType getBranchType();
@@ -103,27 +117,29 @@ public interface LfBranch extends LfElement {
         return Collections.emptyList();
     }
 
-    boolean hasPhaseControlCapability();
-
-    Optional<DiscretePhaseControl> getDiscretePhaseControl();
-
-    void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc);
+    void updateState(LfNetworkStateUpdateParameters parameters);
 
     void updateFlows(double p1, double q1, double p2, double q2);
+
+    // phase control
+
+    boolean hasPhaseControllerCapability();
+
+    Optional<TransformerPhaseControl> getPhaseControl();
+
+    void setPhaseControl(TransformerPhaseControl phaseControl);
 
     boolean isPhaseController();
 
     boolean isPhaseControlled();
 
-    void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl);
-
     boolean isPhaseControlEnabled();
 
     void setPhaseControlEnabled(boolean phaseControlEnabled);
 
-    Optional<TransformerVoltageControl> getVoltageControl();
+    // voltage control
 
-    Optional<Double> getTransformerVoltageControlTargetDeadband();
+    Optional<TransformerVoltageControl> getVoltageControl();
 
     boolean isVoltageControlEnabled();
 
@@ -133,19 +149,17 @@ public interface LfBranch extends LfElement {
 
     void setVoltageControl(TransformerVoltageControl transformerVoltageControl);
 
-    void setTransformerVoltageControlTargetDeadband(Double transformerVoltageControlTargetDeadband);
-
     BranchResult createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1, boolean createExtension);
 
     double computeApparentPower1();
 
     double computeApparentPower2();
 
-    boolean isZeroImpedanceBranch(boolean dc);
+    boolean isZeroImpedance(boolean dc);
 
-    void setSpanningTreeEdge(boolean spanningTreeEdge);
+    void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge);
 
-    boolean isSpanningTreeEdge();
+    boolean isSpanningTreeEdge(boolean dc);
 
     Evaluable getA1();
 
@@ -157,10 +171,10 @@ public interface LfBranch extends LfElement {
         return PiModel.A2 - piModel.getA1();
     }
 
-    static double getDiscretePhaseControlTarget(LfBranch branch, DiscretePhaseControl.Unit unit) {
+    static double getDiscretePhaseControlTarget(LfBranch branch, TransformerPhaseControl.Unit unit) {
         Objects.requireNonNull(branch);
         Objects.requireNonNull(unit);
-        Optional<DiscretePhaseControl> phaseControl = branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseControlled());
+        Optional<TransformerPhaseControl> phaseControl = branch.getPhaseControl().filter(dpc -> branch.isPhaseControlled());
         if (phaseControl.isEmpty()) {
             throw new PowsyblException("Branch '" + branch.getId() + "' is not phase-controlled");
         }
@@ -176,5 +190,5 @@ public interface LfBranch extends LfElement {
 
     boolean isConnectedAtBothSides();
 
-    void setMinZ(boolean dc);
+    void setMinZ(double lowImpedanceThreshold);
 }

@@ -21,17 +21,20 @@ import java.util.Objects;
  */
 public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
-    private final DanglingLine danglingLine;
+    private final Ref<DanglingLine> danglingLineRef;
 
-    protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine) {
-        super(network, bus1, bus2, piModel);
-        this.danglingLine = danglingLine;
+    protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine,
+                                   LfNetworkParameters parameters) {
+        super(network, bus1, bus2, piModel, parameters);
+        this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
     }
 
-    public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2) {
+    public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2,
+                                              LfNetworkParameters parameters) {
         Objects.requireNonNull(danglingLine);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
+        Objects.requireNonNull(parameters);
         double nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         double zb = nominalV * nominalV / PerUnit.SB;
         PiModel piModel = new SimplePiModel()
@@ -41,12 +44,16 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
                 .setG2(danglingLine.getG() / 2 * zb)
                 .setB1(danglingLine.getB() / 2 * zb)
                 .setB2(danglingLine.getB() / 2 * zb);
-        return new LfDanglingLineBranch(network, bus1, bus2, piModel, danglingLine);
+        return new LfDanglingLineBranch(network, bus1, bus2, piModel, danglingLine, parameters);
+    }
+
+    private DanglingLine getDanglingLine() {
+        return danglingLineRef.get();
     }
 
     @Override
     public String getId() {
-        return danglingLine.getId();
+        return getDanglingLine().getId();
     }
 
     @Override
@@ -55,7 +62,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public boolean hasPhaseControlCapability() {
+    public boolean hasPhaseControllerCapability() {
         return false;
     }
 
@@ -66,6 +73,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<LfLimit> getLimits1(final LimitType type) {
+        var danglingLine = getDanglingLine();
         switch (type) {
             case ACTIVE_POWER:
                 return getLimits1(type, danglingLine.getActivePowerLimits().orElse(null));
@@ -80,14 +88,14 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public void updateState(boolean phaseShifterRegulationOn, boolean isTransformerVoltageControlOn, boolean dc) {
+    public void updateState(LfNetworkStateUpdateParameters parameters) {
         updateFlows(p1.eval(), q1.eval(), Double.NaN, Double.NaN);
     }
 
     @Override
     public void updateFlows(double p1, double q1, double p2, double q2) {
         // Network side is always on side 1.
-        danglingLine.getTerminal().setP(p1 * PerUnit.SB)
+        getDanglingLine().getTerminal().setP(p1 * PerUnit.SB)
                 .setQ(q1 * PerUnit.SB);
     }
 }

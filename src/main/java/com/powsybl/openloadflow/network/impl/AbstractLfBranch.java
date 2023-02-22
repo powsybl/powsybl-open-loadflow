@@ -33,28 +33,36 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected final PiModel piModel;
 
-    protected DiscretePhaseControl discretePhaseControl;
+    protected TransformerPhaseControl phaseControl;
 
     protected boolean phaseControlEnabled = false;
 
     protected TransformerVoltageControl voltageControl;
 
-    protected Double transformerVoltageControlTargetDeadband;
-
     protected boolean voltageControlEnabled = false;
 
-    protected boolean spanningTreeEdge = false;
+    protected boolean dcSpanningTreeEdge = false;
+
+    protected boolean acSpanningTreeEdge = false;
 
     protected Evaluable a1;
 
     private ReactivePowerControl reactivePowerControl;
 
-    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel) {
+    protected boolean dcZeroImpedance = false;
+
+    protected boolean acZeroImpedance = false;
+
+    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network);
         this.bus1 = bus1;
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
         this.piModel.setBranch(this);
+        if (!parameters.isMinImpedance()) {
+            dcZeroImpedance = isZeroImpedanceBranch(piModel, true, parameters.getLowImpedanceThreshold());
+            acZeroImpedance = isZeroImpedanceBranch(piModel, false, parameters.getLowImpedanceThreshold());
+        }
     }
 
     protected static List<LfLimit> createSortedLimitsList(LoadingLimits loadingLimits, LfBus bus) {
@@ -68,7 +76,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                     // for this limit is infinity.
                     // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
                     double valuePerUnit = temporaryLimit.getValue() * toPerUnit;
-                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
+                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(), valuePerUnit));
                 }
             }
             sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit));
@@ -113,23 +121,23 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public Optional<DiscretePhaseControl> getDiscretePhaseControl() {
-        return Optional.ofNullable(discretePhaseControl);
+    public Optional<TransformerPhaseControl> getPhaseControl() {
+        return Optional.ofNullable(phaseControl);
     }
 
     @Override
-    public void setDiscretePhaseControl(DiscretePhaseControl discretePhaseControl) {
-        this.discretePhaseControl = discretePhaseControl;
+    public void setPhaseControl(TransformerPhaseControl phaseControl) {
+        this.phaseControl = phaseControl;
     }
 
     @Override
     public boolean isPhaseController() {
-        return discretePhaseControl != null && discretePhaseControl.getController() == this;
+        return phaseControl != null && phaseControl.getControllerBranch() == this;
     }
 
     @Override
     public boolean isPhaseControlled() {
-        return discretePhaseControl != null && discretePhaseControl.getControlled() == this;
+        return phaseControl != null && phaseControl.getControlledBranch() == this;
     }
 
     @Override
@@ -157,27 +165,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         rtc.setTapPosition(tapPosition);
     }
 
-    protected void checkTargetDeadband(double p) {
-        double distance = Math.abs(p - discretePhaseControl.getTargetValue()); // in per unit system
-        if (distance > discretePhaseControl.getTargetDeadband() / 2) {
-            LOGGER.warn("The active power on side {} of branch {} ({} MW) is out of the target value ({} MW) +/- deadband/2 ({} MW)",
-                    discretePhaseControl.getControlledSide(), getId(), Math.abs(p) * PerUnit.SB,
-                    discretePhaseControl.getTargetValue() * PerUnit.SB, discretePhaseControl.getTargetDeadband() / 2 * PerUnit.SB);
-        }
-    }
-
-    protected void checkTargetDeadband(RatioTapChanger rtc) {
-        if (rtc.getTargetDeadband() != 0) {
-            double nominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-            double v = voltageControl.getControlled().getV();
-            double distance = Math.abs(v - voltageControl.getTargetValue()); // in per unit system
-            if (distance > rtc.getTargetDeadband() / 2) {
-                LOGGER.warn("The voltage on bus {} ({} kV) is out of the target value ({} kV) +/- deadband/2 ({} kV)",
-                        voltageControl.getControlled().getId(), v * nominalV, rtc.getTargetV(), rtc.getTargetDeadband() / 2);
-            }
-        }
-    }
-
     protected static double getScaleForLimitType(LimitType type, LfBus bus) {
         switch (type) {
             case ACTIVE_POWER:
@@ -197,11 +184,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public Optional<Double> getTransformerVoltageControlTargetDeadband() {
-        return Optional.ofNullable(transformerVoltageControlTargetDeadband);
-    }
-
-    @Override
     public boolean isVoltageController() {
         return voltageControl != null;
     }
@@ -209,11 +191,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setVoltageControl(TransformerVoltageControl transformerVoltageControl) {
         this.voltageControl = transformerVoltageControl;
-    }
-
-    @Override
-    public void setTransformerVoltageControlTargetDeadband(Double transformerVoltageControlTargetDeadband) {
-        this.transformerVoltageControlTargetDeadband = transformerVoltageControlTargetDeadband;
     }
 
     @Override
@@ -244,22 +221,23 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public boolean isZeroImpedanceBranch(boolean dc) {
+    public boolean isZeroImpedance(boolean dc) {
+        return dc ? dcZeroImpedance : acZeroImpedance;
+    }
+
+    @Override
+    public void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge) {
         if (dc) {
-            return FastMath.abs(piModel.getX()) < LOW_IMPEDANCE_THRESHOLD;
+            dcSpanningTreeEdge = spanningTreeEdge;
         } else {
-            return piModel.getZ() < LOW_IMPEDANCE_THRESHOLD;
+            acSpanningTreeEdge = spanningTreeEdge;
         }
     }
 
     @Override
-    public void setSpanningTreeEdge(boolean spanningTreeEdge) {
-        this.spanningTreeEdge = spanningTreeEdge;
-    }
-
-    @Override
-    public boolean isSpanningTreeEdge() {
-        return this.spanningTreeEdge;
+    public boolean isSpanningTreeEdge(boolean dc) {
+        network.updateZeroImpedanceCache(dc);
+        return dc ? dcSpanningTreeEdge : acSpanningTreeEdge;
     }
 
     @Override
@@ -287,9 +265,23 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public void setMinZ(boolean dc) {
-        if (piModel.setMinZ(LOW_IMPEDANCE_THRESHOLD, dc)) {
-            LOGGER.trace("Branch {} has a low impedance, set to min {}", getId(), LOW_IMPEDANCE_THRESHOLD);
+    public void setMinZ(double lowImpedanceThreshold) {
+        if (piModel.setMinZ(lowImpedanceThreshold, true)) {
+            LOGGER.trace("Branch {} has a low impedance in DC, set to min {}", getId(), lowImpedanceThreshold);
+            dcZeroImpedance = false;
+
+        }
+        if (piModel.setMinZ(lowImpedanceThreshold, false)) {
+            LOGGER.trace("Branch {} has a low impedance in AC, set to min {}", getId(), lowImpedanceThreshold);
+            acZeroImpedance = false;
+        }
+    }
+
+    private static boolean isZeroImpedanceBranch(PiModel piModel, boolean dc, double lowImpedanceThreshold) {
+        if (dc) {
+            return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
+        } else {
+            return piModel.getZ() < lowImpedanceThreshold;
         }
     }
 }

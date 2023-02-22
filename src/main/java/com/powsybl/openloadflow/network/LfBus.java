@@ -24,34 +24,33 @@ public interface LfBus extends LfElement {
 
     void setSlack(boolean slack);
 
-    boolean hasVoltageControllerCapability();
+    boolean isReference();
 
-    boolean isVoltageControlEnabled();
+    void setReference(boolean reference);
 
-    boolean isVoltageControlled();
+    // generator voltage control
+
+    boolean hasGeneratorVoltageControllerCapability();
+
+    Optional<GeneratorVoltageControl> getGeneratorVoltageControl();
+
+    void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl);
+
+    void removeGeneratorVoltageControl();
+
+    boolean isGeneratorVoltageControlled();
+
+    boolean isGeneratorVoltageControlEnabled();
+
+    void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled);
+
+    // generator reactive power control
 
     List<LfGenerator> getGeneratorsControllingVoltageWithSlope();
 
     boolean hasGeneratorsWithSlope();
 
     void removeGeneratorSlopes();
-
-    /**
-     * Get the number of time, voltage control status has be set from true to false.
-     *
-     * @return the number of time, voltage control status has be set from true to false
-     */
-    int getVoltageControlSwitchOffCount();
-
-    void setVoltageControlSwitchOffCount(int voltageControlSwitchOffCount);
-
-    void setVoltageControlEnabled(boolean voltageControlEnabled);
-
-    Optional<VoltageControl> getVoltageControl();
-
-    void removeVoltageControl();
-
-    void setVoltageControl(VoltageControl voltageControl);
 
     Optional<ReactivePowerControl> getReactivePowerControl();
 
@@ -115,6 +114,8 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getControllerShunt();
 
+    Optional<LfShunt> getSvcShunt();
+
     LfAggregatedLoads getAggregatedLoads();
 
     List<LfBranch> getBranches();
@@ -123,19 +124,23 @@ public interface LfBus extends LfElement {
 
     void addHvdc(LfHvdc hvdc);
 
-    void updateState(boolean reactiveLimits, boolean writeSlackBus, boolean distributedOnConformLoad, boolean loadPowerFactorConstant);
+    void updateState(LfNetworkStateUpdateParameters parameters);
+
+    // transformer voltage control
 
     Optional<TransformerVoltageControl> getTransformerVoltageControl();
 
+    void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl);
+
     boolean isTransformerVoltageControlled();
 
-    void setTransformerVoltageControl(TransformerVoltageControl transformerVoltageControl);
+    // shunt voltage control
 
     Optional<ShuntVoltageControl> getShuntVoltageControl();
 
-    boolean isShuntVoltageControlled();
-
     void setShuntVoltageControl(ShuntVoltageControl shuntVoltageControl);
+
+    boolean isShuntVoltageControlled();
 
     void setP(Evaluable p);
 

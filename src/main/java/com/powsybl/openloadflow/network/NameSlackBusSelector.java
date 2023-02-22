@@ -6,11 +6,12 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.PowsyblException;
-
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -35,26 +36,31 @@ public class NameSlackBusSelector implements SlackBusSelector {
     }
 
     @Override
-    public SelectedSlackBus select(List<LfBus> buses) {
+    public SelectedSlackBus select(List<LfBus> buses, int limit) {
         Map<String, LfBus> busesById = buses.stream().collect(Collectors.toMap(LfBus::getId, Function.identity()));
         Map<String, List<LfBus>> busesByVoltageLevelId = buses.stream().collect(Collectors.groupingBy(LfBus::getVoltageLevelId));
-        for (String busOrVoltageLevelId : busesOrVoltageLevelsIds) {
+
+        List<LfBus> slackBuses = busesOrVoltageLevelsIds.stream().flatMap(id -> {
             // first try to search as a bus ID
-            LfBus slackBus = busesById.get(busOrVoltageLevelId);
+            LfBus slackBus = busesById.get(id);
             if (slackBus != null) {
-                return new SelectedSlackBus(slackBus, SELECTION_METHOD);
+                return Stream.of(slackBus);
             }
-            // then as a voltage level ID
-            var slackBusCandidates = busesByVoltageLevelId.get(busOrVoltageLevelId);
+            var slackBusCandidates = busesByVoltageLevelId.get(id);
             if (slackBusCandidates != null) {
-                if (slackBusCandidates.size() == 1) {
-                    return new SelectedSlackBus(slackBusCandidates.get(0), SELECTION_METHOD);
-                } else {
-                    var selectedSlackBus = secondLevelSelector.select(slackBusCandidates);
-                    return new SelectedSlackBus(selectedSlackBus.getBus(), SELECTION_METHOD + " + " + selectedSlackBus.getSelectionMethod());
-                }
+                return slackBusCandidates.stream();
             }
+            return Stream.empty();
+        }).collect(Collectors.toList());
+
+        if (slackBuses.isEmpty()) {
+            // fallback to automatic selection among all buses
+            return secondLevelSelector.select(buses, limit);
+        } else if (slackBuses.size() <= limit) {
+            return new SelectedSlackBus(slackBuses, SELECTION_METHOD);
+        } else {
+            var selectedSlackBus = secondLevelSelector.select(slackBuses, limit);
+            return new SelectedSlackBus(selectedSlackBus.getBuses(), SELECTION_METHOD + " + " + selectedSlackBus.getSelectionMethod());
         }
-        throw new PowsyblException("None of the buses or voltage levels " + busesOrVoltageLevelsIds + " have been found");
     }
 }

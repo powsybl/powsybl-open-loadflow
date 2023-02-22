@@ -4,7 +4,6 @@
 [![Coverage Status](https://sonarcloud.io/api/project_badges/measure?project=com.powsybl%3Apowsybl-open-loadflow&metric=coverage)](https://sonarcloud.io/component_measures?id=com.powsybl%3Apowsybl-open-loadflow&metric=coverage)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=com.powsybl%3Apowsybl-open-loadflow&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.powsybl%3Apowsybl-open-loadflow)
 [![MPL-2.0 License](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
-[![Join the community on Spectrum](https://withspectrum.github.io/badge/badge.svg)](https://spectrum.chat/powsybl)
 [![Slack](https://img.shields.io/badge/slack-powsybl-blueviolet.svg?logo=slack)](https://join.slack.com/t/powsybl/shared_invite/zt-rzvbuzjk-nxi0boim1RKPS5PjieI0rA)
 
 PowSyBl (**Pow**er **Sy**stem **Bl**ocks) is an open source library written in Java, that makes it easy to write complex
@@ -77,24 +76,18 @@ It supports contingencies of type:
 ## Getting started
 
 Running a load flow with PowSyBl Open Load Flow is easy. First let's start loading a IEEE 14 bus network. We first add a few Maven 
-dependencies to respectively have access to network model, IEEE test networks, PowSyBl platform configuration and simple logging 
-capabilities:
+dependencies to respectively have access to network model, IEEE test networks and simple logging capabilities:
 
 ```xml
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>4.10.0</version>
+    <version>5.1.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>4.10.0</version>
-</dependency>
-<dependency>
-    <groupId>com.powsybl</groupId>
-    <artifactId>powsybl-config-classic</artifactId>
-    <version>4.10.0</version>
+    <version>5.1.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -113,7 +106,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>0.23.1</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 

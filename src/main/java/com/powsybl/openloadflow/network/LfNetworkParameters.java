@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
@@ -28,6 +30,18 @@ public class LfNetworkParameters {
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
 
+    public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
+
+    public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX;
+
+    public static final int DEFAULT_MAX_SLACK_BUS_COUNT = 1;
+
+    public static final String DEBUG_DIR_DEFAULT_VALUE = null;
+
+    public static final boolean SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE = false;
+
+    public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
+
     public static final double LOAD_ALPHA_DEFAULT_VALUE = 0;
 
     public static final double LOAD_BETA_DEFAULT_VALUE = 0;
@@ -45,8 +59,6 @@ public class LfNetworkParameters {
     private boolean breakers = false;
 
     private double plausibleActivePowerLimit = PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE;
-
-    private boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds = false;
 
     private boolean computeMainConnectedComponentOnly = true;
 
@@ -75,6 +87,20 @@ public class LfNetworkParameters {
     private double maxPlausibleTargetVoltage = MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
+
+    private OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
+
+    private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
+
+    private boolean svcVoltageMonitoring = true;
+
+    private int maxSlackBusCount = DEFAULT_MAX_SLACK_BUS_COUNT;
+
+    private String debugDir = DEBUG_DIR_DEFAULT_VALUE;
+
+    private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
+
+    private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
 
     private double loadAlpha = LOAD_ALPHA_DEFAULT_VALUE;
 
@@ -140,15 +166,6 @@ public class LfNetworkParameters {
 
     public LfNetworkParameters setPlausibleActivePowerLimit(double plausibleActivePowerLimit) {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
-        return this;
-    }
-
-    public boolean isAddRatioToLinesWithDifferentNominalVoltageAtBothEnds() {
-        return addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
-    }
-
-    public LfNetworkParameters setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(boolean addRatioToLinesWithDifferentNominalVoltageAtBothEnds) {
-        this.addRatioToLinesWithDifferentNominalVoltageAtBothEnds = addRatioToLinesWithDifferentNominalVoltageAtBothEnds;
         return this;
     }
 
@@ -269,12 +286,85 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public double getLowImpedanceThreshold() {
+        return lowImpedanceThreshold;
+    }
+
+    public LfNetworkParameters setLowImpedanceThreshold(double lowImpedanceThreshold) {
+        if (lowImpedanceThreshold <= 0) {
+            throw new PowsyblException("lowImpedanceThreshold must be greater than 0");
+        }
+        this.lowImpedanceThreshold = lowImpedanceThreshold;
+        return this;
+    }
+
+    public OpenLoadFlowParameters.ReactiveRangeCheckMode getReactiveRangeCheckMode() {
+        return reactiveRangeCheckMode;
+    }
+
+    public LfNetworkParameters setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+        this.reactiveRangeCheckMode = reactiveRangeCheckMode;
+        return this;
+    }
+
+    public boolean isSvcVoltageMonitoring() {
+        return svcVoltageMonitoring;
+    }
+
+    public LfNetworkParameters setSvcVoltageMonitoring(boolean svcVoltageMonitoring) {
+        this.svcVoltageMonitoring = svcVoltageMonitoring;
+        return this;
+    }
+
     public Set<String> getLoaderPostProcessorSelection() {
         return loaderPostProcessorSelection;
     }
 
     public LfNetworkParameters setLoaderPostProcessorSelection(Set<String> loaderPostProcessorSelection) {
         this.loaderPostProcessorSelection = Objects.requireNonNull(loaderPostProcessorSelection);
+        return this;
+    }
+
+    public int getMaxSlackBusCount() {
+        return maxSlackBusCount;
+    }
+
+    public static int checkMaxSlackBusCount(int maxSlackBusCount) {
+        if (maxSlackBusCount < 1) {
+            throw new IllegalArgumentException("Max slack bus count should be >= 1");
+        }
+        return maxSlackBusCount;
+    }
+
+    public LfNetworkParameters setMaxSlackBusCount(int maxSlackBusCount) {
+        this.maxSlackBusCount = checkMaxSlackBusCount(maxSlackBusCount);
+        return this;
+    }
+
+    public String getDebugDir() {
+        return debugDir;
+    }
+
+    public LfNetworkParameters setDebugDir(String debugDir) {
+        this.debugDir = debugDir;
+        return this;
+    }
+
+    public boolean isSecondaryVoltageControl() {
+        return secondaryVoltageControl;
+    }
+
+    public LfNetworkParameters setSecondaryVoltageControl(boolean secondaryVoltageControl) {
+        this.secondaryVoltageControl = secondaryVoltageControl;
+        return this;
+    }
+
+    public boolean isCacheEnabled() {
+        return cacheEnabled;
+    }
+
+    public LfNetworkParameters setCacheEnabled(boolean cacheEnabled) {
+        this.cacheEnabled = cacheEnabled;
         return this;
     }
 
@@ -306,7 +396,6 @@ public class LfNetworkParameters {
                 ", twtSplitShuntAdmittance=" + twtSplitShuntAdmittance +
                 ", breakers=" + breakers +
                 ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
-                ", addRatioToLinesWithDifferentNominalVoltageAtBothEnds=" + addRatioToLinesWithDifferentNominalVoltageAtBothEnds +
                 ", computeMainConnectedComponentOnly=" + computeMainConnectedComponentOnly +
                 ", countriesToBalance=" + countriesToBalance +
                 ", distributedOnConformLoad=" + distributedOnConformLoad +
@@ -320,6 +409,13 @@ public class LfNetworkParameters {
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
                 ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
                 ", loaderPostProcessorSelection=" + loaderPostProcessorSelection +
+                ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
+                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
+                ", svcVoltageMonitoring=" + svcVoltageMonitoring +
+                ", maxSlackBusCount=" + maxSlackBusCount +
+                ", debugDir=" + debugDir +
+                ", secondaryVoltageControl=" + secondaryVoltageControl +
+                ", cacheEnabled=" + cacheEnabled +
                 ", loadAlpha=" + loadAlpha +
                 ", loadBeta=" + loadBeta +
                 ')';

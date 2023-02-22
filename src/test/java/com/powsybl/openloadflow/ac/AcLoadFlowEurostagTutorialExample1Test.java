@@ -63,7 +63,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         vlhv2 = network.getVoltageLevel("VLHV2");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
@@ -257,7 +257,6 @@ class AcLoadFlowEurostagTutorialExample1Test {
 
     @Test
     void lineWithDifferentNominalVoltageTest() {
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
         network.getVoltageLevel("VLHV2").setNominalV(420);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -300,14 +299,14 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMaxQ(0)
                 .add();
 
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isOk());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
 
         // but if we do not take into account reactive limits in parameters, calculation should be ok
-        parameters.setNoGeneratorReactiveLimits(true);
+        parameters.setUseReactiveLimits(false);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(1, result.getComponentResults().size());
@@ -422,7 +421,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setVoltageRegulatorOn(true).setTargetV(24.5D)
                 .setTargetP(607.0D).setTargetQ(301.0D).add();
         network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(0).setMaxQ(160).add();
-        LoadFlowParameters parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
+        LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         loadFlowRunner.run(network, parameters);
@@ -453,24 +452,5 @@ class AcLoadFlowEurostagTutorialExample1Test {
         loadFlowRunner.run(network);
         assertVoltageEquals(24.5, network.getBusBreakerView().getBus("NGEN"));
         assertVoltageEquals(147.57, network.getBusBreakerView().getBus("NLOAD"));
-    }
-
-    @Test
-    void testWithStartingGenerator() {
-        loadFlowRunner.run(network, parameters);
-        gen.getTerminal().disconnect();
-        loadBus.getVoltageLevel().newGenerator()
-                .setId("g1")
-                .setBus(loadBus.getId())
-                .setConnectableBus(loadBus.getId())
-                .setEnergySource(EnergySource.THERMAL)
-                .setMinP(10)
-                .setMaxP(200)
-                .setTargetP(1)
-                .setTargetV(150)
-                .setVoltageRegulatorOn(true)
-                .add();
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isOk()); // no voltage controlled bus
     }
 }

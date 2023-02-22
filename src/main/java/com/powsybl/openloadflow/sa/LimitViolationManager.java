@@ -139,7 +139,7 @@ public class LimitViolationManager {
     private static LimitViolation createLimitViolation(LfBranch branch, LfBranch.LfLimit temporaryLimit,
                                                        LimitViolationType type, double scale, double value,
                                                        Branch.Side side) {
-        return new LimitViolation(branch.getId(), type, null,
+        return new LimitViolation(branch.getId(), type, temporaryLimit.getName(),
                 temporaryLimit.getAcceptableDuration(), temporaryLimit.getValue() * scale,
                 1f, value * scale, side);
     }

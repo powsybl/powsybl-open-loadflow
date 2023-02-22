@@ -122,6 +122,16 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return value;
     }
 
+    public double rhs() {
+        double rhs = 0;
+        for (var term : terms) {
+            if (term.isActive() && term.hasRhs()) {
+                rhs += term.rhs();
+            }
+        }
+        return rhs;
+    }
+
     @Override
     public int hashCode() {
         return elementNum + type.hashCode();

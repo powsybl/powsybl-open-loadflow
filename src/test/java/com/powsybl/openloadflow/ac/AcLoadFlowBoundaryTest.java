@@ -48,7 +48,7 @@ class AcLoadFlowBoundaryTest {
         g1 = network.getGenerator("g1");
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true)
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -90,7 +90,7 @@ class AcLoadFlowBoundaryTest {
         assertReactivePowerEquals(-0.202, dl1.getTerminal());
 
         parameters.setDistributedSlack(true)
-                  .setNoGeneratorReactiveLimits(false);
+                  .setUseReactiveLimits(true);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isOk());
 
@@ -105,7 +105,7 @@ class AcLoadFlowBoundaryTest {
     @Test
     void testWithXnode() {
         Network network = BoundaryFactory.createWithXnode();
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         parameters.setDistributedSlack(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -114,35 +114,18 @@ class AcLoadFlowBoundaryTest {
         assertVoltageEquals(399.999, network.getBusBreakerView().getBus("xnode"));
         assertVoltageEquals(399.999, network.getBusBreakerView().getBus("b3"));
         assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
-
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(false);
-        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isOk());
-
-        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
-        assertVoltageEquals(398.139, network.getBusBreakerView().getBus("xnode"));
-        assertVoltageEquals(417.679, network.getBusBreakerView().getBus("b3"));
-        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
     }
 
     @Test
     void testWithTieLine() {
         Network network = BoundaryFactory.createWithTieLine();
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         parameters.setDistributedSlack(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
         assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
         assertVoltageEquals(399.999, network.getBusBreakerView().getBus("b3"));
-        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
-
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(false);
-        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isOk());
-
-        assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
-        assertVoltageEquals(417.841, network.getBusBreakerView().getBus("b3"));
         assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
     }
 
@@ -151,28 +134,14 @@ class AcLoadFlowBoundaryTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         network.newLine()
                 .setId("LINE_23")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
                 .setBus1("BUS_2")
                 .setBus2("BUS_3")
                 .setR(0.0)
                 .setX(100)
-                .setG1(0.)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(false);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(135.0, network.getBusBreakerView().getBus("BUS_1"));
-        assertVoltageEquals(134.227, network.getBusBreakerView().getBus("BUS_2"));
-        assertVoltageEquals(28.069, network.getBusBreakerView().getBus("BUS_3"));
-
-        parametersExt.setAddRatioToLinesWithDifferentNominalVoltageAtBothEnds(true);
-        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isOk());
         assertVoltageEquals(135.0, network.getBusBreakerView().getBus("BUS_1"));
         assertVoltageEquals(127.198, network.getBusBreakerView().getBus("BUS_2"));
         assertVoltageEquals(40.19, network.getBusBreakerView().getBus("BUS_3"));

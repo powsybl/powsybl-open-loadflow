@@ -13,8 +13,6 @@ public class DcEquationSystemCreationParameters {
 
     private final boolean updateFlows;
 
-    private final boolean indexTerms;
-
     /**
      * The purpose of this option is to add a constant a1 var to the equation system, to calculate sensitivity regarding
      * phase.
@@ -23,20 +21,15 @@ public class DcEquationSystemCreationParameters {
 
     private final boolean useTransformerRatio;
 
-    public DcEquationSystemCreationParameters(boolean updateFlows, boolean indexTerms, boolean forcePhaseControlOffAndAddAngle1Var,
+    public DcEquationSystemCreationParameters(boolean updateFlows, boolean forcePhaseControlOffAndAddAngle1Var,
                                               boolean useTransformerRatio) {
         this.updateFlows = updateFlows;
-        this.indexTerms = indexTerms;
         this.forcePhaseControlOffAndAddAngle1Var = forcePhaseControlOffAndAddAngle1Var;
         this.useTransformerRatio = useTransformerRatio;
     }
 
     public boolean isUpdateFlows() {
         return updateFlows;
-    }
-
-    public boolean isIndexTerms() {
-        return indexTerms;
     }
 
     public boolean isForcePhaseControlOffAndAddAngle1Var() {
@@ -51,7 +44,6 @@ public class DcEquationSystemCreationParameters {
     public String toString() {
         return "DcEquationSystemCreationParameters(" +
                 "updateFlows=" + updateFlows +
-                ", indexTerms=" + indexTerms +
                 ", forcePhaseControlOffAndAddAngle1Var=" + forcePhaseControlOffAndAddAngle1Var +
                 ", useTransformerRatio=" + useTransformerRatio +
                 ')';
