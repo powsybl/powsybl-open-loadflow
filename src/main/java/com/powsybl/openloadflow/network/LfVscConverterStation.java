@@ -12,4 +12,6 @@ package com.powsybl.openloadflow.network;
 public interface LfVscConverterStation extends LfGenerator {
 
     double getLossFactor();
+
+    void setHvdc(LfHvdc hvdc);
 }
