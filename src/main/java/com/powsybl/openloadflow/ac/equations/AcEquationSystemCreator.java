@@ -49,6 +49,8 @@ public class AcEquationSystemCreator {
             p.setActive(false);
         }
 
+        createLoadModel(bus, equationSystem);
+
         createGeneratorControlEquations(bus, equationSystem);
 
         createShuntEquations(bus, equationSystem);
@@ -73,24 +75,18 @@ public class AcEquationSystemCreator {
         if (loadModel != null) {
             if (loadModel.getAlpha() != 0) {
                 Equation<AcVariableType, AcEquationType> p = equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow();
-                var terms = new ArrayList<>(p.getTerms());
-                p.removeAllTerms();
-                p.addTerm(EquationTerm.sum(terms)
-                        .multiply(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getAlpha())));
+                p.addTerm(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getAlpha())
+                        .multiply(-bus.getLoadTargetP()));
             }
             if (loadModel.getBeta() != 0) {
                 Equation<AcVariableType, AcEquationType> q = equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow();
-                var terms = new ArrayList<>(q.getTerms());
-                q.removeAllTerms();
-                q.addTerm(EquationTerm.sum(terms)
-                        .multiply(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getBeta())));
+                q.addTerm(new ExponentialLoadModelEquationTerm(bus, equationSystem.getVariableSet(), loadModel.getBeta())
+                        .multiply(-bus.getLoadTargetQ()));
             }
         }
     }
 
-    private static void createBusesEquations(LfNetwork network,
-                                             EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                             AcEquationSystemCreationParameters creationParameters) {
+    private void createBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfBus bus : network.getBuses()) {
             createBusEquation(bus, equationSystem);
         }
@@ -838,11 +834,6 @@ public class AcEquationSystemCreator {
 
         for (LfHvdc hvdc : network.getHvdcs()) {
             createHvdcAcEmulationEquations(hvdc, equationSystem);
-        }
-
-        for (LfBus bus : network.getBuses()) {
-            // create load model
-            createLoadModel(bus, equationSystem);
         }
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));

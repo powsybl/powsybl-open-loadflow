@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.openloadflow.equations.AbstractBusEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
@@ -18,7 +18,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class ExponentialLoadModelEquationTerm extends AbstractBusEquationTerm<AcVariableType, AcEquationType> {
+public class ExponentialLoadModelEquationTerm extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
 
     protected final Variable<AcVariableType> vVar;
 

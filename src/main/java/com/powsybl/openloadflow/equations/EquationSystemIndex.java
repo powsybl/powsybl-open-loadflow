@@ -167,12 +167,6 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                     }
                     break;
 
-                case EQUATION_TERM_REMOVED:
-                    if (term.isActive()) {
-                        removeTerm(term);
-                    }
-                    break;
-
                 case EQUATION_TERM_ACTIVATED:
                     addTerm(term);
                     break;

@@ -91,8 +91,9 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
             return dq2da1(y, v1(), r1(), v2(), FastMath.sin(theta));
         } else if (variable.equals(r1Var)) {
             return dq2dr1(y, v1(), v2(), FastMath.cos(theta));
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
         }
-        return 0;
     }
 
     @Override
