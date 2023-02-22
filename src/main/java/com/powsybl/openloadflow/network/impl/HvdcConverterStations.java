@@ -57,7 +57,7 @@ public final class HvdcConverterStations {
         boolean disconnectedAtOtherSide = station.getOtherConverterStation().map(otherConverterStation -> {
             Bus bus = Networks.getBus(otherConverterStation.getTerminal(), breakers);
             return bus == null;
-        }).orElse(false);
+        }).orElse(true); // it means there is no HVDC line connected to station
         return disconnectedAtOtherSide ? 0.0 : getSign(station) * getAbsoluteValuePAc(station);
     }
 
