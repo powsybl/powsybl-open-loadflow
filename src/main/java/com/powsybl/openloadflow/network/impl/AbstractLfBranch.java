@@ -266,14 +266,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public void setMinZ(double lowImpedanceThreshold) {
-        if (piModel.setMinZ(lowImpedanceThreshold, true)) {
-            LOGGER.trace("Branch {} has a low impedance in DC, set to min {}", getId(), lowImpedanceThreshold);
-            dcZeroImpedance = false;
-
-        }
         if (piModel.setMinZ(lowImpedanceThreshold, false)) {
             LOGGER.trace("Branch {} has a low impedance in AC, set to min {}", getId(), lowImpedanceThreshold);
             acZeroImpedance = false;
+        }
+        if (piModel.setMinZ(lowImpedanceThreshold, true)) {
+            LOGGER.trace("Branch {} has a low impedance in DC, set to min {}", getId(), lowImpedanceThreshold);
+            dcZeroImpedance = false;
         }
     }
 
