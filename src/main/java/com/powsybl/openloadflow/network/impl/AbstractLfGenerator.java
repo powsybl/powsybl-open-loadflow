@@ -301,7 +301,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         // nothing to do
     }
 
-    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, LfNetworkParameters parameters,
+    public boolean checkActivePowerControl(double targetP, double minP, double maxP, LfNetworkParameters parameters,
                                               LfNetworkLoadingReport report) {
         boolean participating = true;
         if (Math.abs(targetP) < POWER_EPSILON_SI) {

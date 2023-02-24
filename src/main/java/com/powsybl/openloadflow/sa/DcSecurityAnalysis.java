@@ -291,7 +291,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
             Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, false);
+            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, new LfNetworkParameters());
             Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
 
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();

@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
@@ -75,9 +76,12 @@ public final class LfAction {
 
         private final Optional<Double> activePowerValue;
 
-        private GeneratorUpdate(LfGenerator generator, Optional<Double> activePowerValue) {
+        private final LfNetworkParameters lfParameters;
+
+        private GeneratorUpdate(LfGenerator generator, Optional<Double> activePowerValue, LfNetworkParameters lfParameters) {
             this.generator = generator;
             this.activePowerValue = activePowerValue;
+            this.lfParameters = lfParameters;
         }
 
         public LfGenerator getGenerator() {
@@ -86,6 +90,10 @@ public final class LfAction {
 
         public Optional<Double> getActivePowerValue() {
             return activePowerValue;
+        }
+
+        public LfNetworkParameters getLfParameters() {
+            return lfParameters;
         }
 
     }
@@ -112,7 +120,7 @@ public final class LfAction {
         this.generatorUpdate = generatorUpdate;
     }
 
-    public static Optional<LfAction> create(Action action, LfNetwork lfNetwork, Network network, boolean breakers) {
+    public static Optional<LfAction> create(Action action, LfNetwork lfNetwork, Network network, LfNetworkParameters parameters) { // boolean breakers) {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         switch (action.getType()) {
@@ -126,10 +134,10 @@ public final class LfAction {
                 return create((PhaseTapChangerTapPositionAction) action, lfNetwork);
 
             case LoadAction.NAME:
-                return create((LoadAction) action, lfNetwork, network, breakers);
+                return create((LoadAction) action, lfNetwork, network, parameters.isBreakers());
 
             case GeneratorAction.NAME:
-                return create((GeneratorAction) action, lfNetwork);
+                return create((GeneratorAction) action, lfNetwork, parameters);
 
             default:
                 throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
@@ -201,7 +209,7 @@ public final class LfAction {
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(GeneratorAction action, LfNetwork lfNetwork) {
+    private static Optional<LfAction> create(GeneratorAction action, LfNetwork lfNetwork, LfNetworkParameters parameters) {
         LfGenerator generator = lfNetwork.getGeneratorById(action.getGeneratorId());
         if (generator != null) {
             Optional<Double> newTargetP = Optional.empty();
@@ -227,7 +235,7 @@ public final class LfAction {
             if (action.isVoltageRegulatorOn().isPresent()) {
                 throw new UnsupportedOperationException("LfAction:GeneratorUpdate: Unsupported generator update: update voltage regulation");
             }
-            var generatorUpdates = new GeneratorUpdate(generator, newTargetP);
+            var generatorUpdates = new GeneratorUpdate(generator, newTargetP, parameters);
             return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorUpdates));
         }
         return Optional.empty();
@@ -333,8 +341,14 @@ public final class LfAction {
         }
 
         if (generatorUpdate != null) {
-            generatorUpdate.getActivePowerValue().ifPresent(activePowerValue
-                -> generatorUpdate.getGenerator().setTargetP(activePowerValue));
+            generatorUpdate.getActivePowerValue().ifPresent(
+                activePowerValue
+                    -> {
+                    generatorUpdate.getGenerator().setTargetP(activePowerValue);
+                    ((AbstractLfGenerator) generatorUpdate.getGenerator()).checkActivePowerControl(activePowerValue,
+                                generatorUpdate.getGenerator().getMinP(), generatorUpdate.getGenerator().getMaxP(),
+                                generatorUpdate.getLfParameters(), null);
+                });
 
         }
     }
