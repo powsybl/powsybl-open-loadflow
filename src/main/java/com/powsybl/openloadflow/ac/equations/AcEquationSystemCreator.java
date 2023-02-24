@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  */
 public class AcEquationSystemCreator {
 
-    private final LfNetwork network;
+    protected final LfNetwork network;
 
     private final AcEquationSystemCreationParameters creationParameters;
 

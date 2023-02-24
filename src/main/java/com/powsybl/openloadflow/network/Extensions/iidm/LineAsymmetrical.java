@@ -11,7 +11,7 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
     public class LinePhase {
         private final double rPhase;
         private final double xPhase;
-        private final boolean isPhaseOpen;
+        private boolean isPhaseOpen;
 
         LinePhase(double rPhase, double xPhase, boolean isPhaseOpen) {
             this.rPhase = rPhase;
@@ -30,11 +30,15 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         public double getxPhase() {
             return xPhase;
         }
+
+        public void setOpen(boolean isOpen) {
+            isPhaseOpen = isOpen;
+        }
     }
 
     public static final String NAME = "lineAsymmetrical";
 
-    private final LinePhase phaseA;
+    private LinePhase phaseA;
     private final LinePhase phaseB;
     private final LinePhase phaseC;
 
@@ -63,5 +67,9 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
 
     public LinePhase getPhaseC() {
         return phaseC;
+    }
+
+    public void setPhaseA(boolean isOpen) {
+        phaseA.setOpen(isOpen);
     }
 }

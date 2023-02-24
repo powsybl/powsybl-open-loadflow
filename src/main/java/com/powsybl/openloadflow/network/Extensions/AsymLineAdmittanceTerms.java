@@ -332,4 +332,8 @@ public class AsymLineAdmittanceTerms {
     public DenseMatrix getmYodi() {
         return mYodi;
     }
+
+    public DenseMatrix getmYabc() {
+        return mYabc;
+    }
 }

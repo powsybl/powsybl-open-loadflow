@@ -7,10 +7,13 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalAdder;
+import com.powsybl.openloadflow.network.Extensions.iidm.LoadUnbalancedAdder;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.joda.time.DateTime;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -96,7 +99,6 @@ public class DisymTest {
         assertReactivePowerEquals(-1, line1.getTerminal2());
     }*/
 
-    //@Disabled
     @Test
     void fourNodesBalancedTest() {
 
@@ -141,6 +143,10 @@ public class DisymTest {
         bus4 = network.getBusBreakerView().getBus("B4");
         line1 = network.getLine("B1_B2");
 
+        Line line23 = network.getLine("B2_B3");
+        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        line23.setX(coeff * 1 / 0.2);
+
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
@@ -153,11 +159,107 @@ public class DisymTest {
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(99.79701683489999, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
         //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
-        assertVoltageEquals(99.46058712269704, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.48102055956122, bus3); // balanced = 99.54462759204546
         //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
-        assertVoltageEquals(99.20827277875274, bus4); // balanced = 99.29252809145005
+        assertVoltageEquals(99.22875843696357, bus4); // balanced = 99.29252809145005
+        //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
+    }
+
+    @Disabled
+    @Test
+    void fourNodesDissymUnbalancedLoadLineTest() {
+
+        network = fourNodescreate();
+        bus1 = network.getBusBreakerView().getBus("B1");
+        bus2 = network.getBusBreakerView().getBus("B2");
+        bus3 = network.getBusBreakerView().getBus("B3");
+        bus4 = network.getBusBreakerView().getBus("B4");
+        line1 = network.getLine("B1_B2");
+
+        Line line23 = network.getLine("B2_B3");
+        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        line23.setX(coeff * 1 / 0.2);
+
+        Load load4 = network.getLoad("LOAD_4");
+
+        load4.newExtension(LoadUnbalancedAdder.class)
+                .withPa(0.)
+                .withQa(10.)
+                .withPb(0.)
+                .withQb(0.)
+                .withPc(0.)
+                .withQc(0.)
+                .add();
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setDisym(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(100., bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(99.08357436616448, bus2); // balanced = 99.79736062173895
+        //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
+        assertVoltageEquals(97.76409290089546, bus3); // balanced = 99.54462759204546
+        //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
+        assertVoltageEquals(96.61947230759934, bus4); // balanced = 99.29252809145005
+        //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
+    }
+
+    @Disabled
+    @Test
+    void fourNodesDissymUnbalancedLoadTest() {
+
+        network = fourNodescreate();
+        bus1 = network.getBusBreakerView().getBus("B1");
+        bus2 = network.getBusBreakerView().getBus("B2");
+        bus3 = network.getBusBreakerView().getBus("B3");
+        bus4 = network.getBusBreakerView().getBus("B4");
+        line1 = network.getLine("B1_B2");
+
+        Line line23 = network.getLine("B2_B3");
+        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        line23.setX(coeff * 1 / 0.2);
+
+        Line line23fault = network.getLine("B2_B3_fault");
+        var extension = line23fault.getExtension(LineAsymmetrical.class);
+        extension.getPhaseA().setOpen(false);
+
+        Load load4 = network.getLoad("LOAD_4");
+
+        load4.newExtension(LoadUnbalancedAdder.class)
+                .withPa(20.)
+                .withQa(0.)
+                .withPb(40.)
+                .withQb(0.)
+                .withPc(21)
+                .withQc(0.)
+                .add();
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setDisym(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(100., bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
+        //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
+        assertVoltageEquals(99.48102055956122, bus3); // balanced = 99.54462759204546
+        //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
+        assertVoltageEquals(99.22875843696357, bus4); // balanced = 99.29252809145005
         //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
     }
 
@@ -259,6 +361,7 @@ public class DisymTest {
                 .setId("B4")
                 .add();
         bus4.setV(100.0).setAngle(0.);
+        // TODO : unchange
         vl4.newLoad()
                 .setId("LOAD_4")
                 .setBus(bus4.getId())

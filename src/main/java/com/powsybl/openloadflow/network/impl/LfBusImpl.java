@@ -52,7 +52,7 @@ public class LfBusImpl extends AbstractLfBus {
         return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), parameters, participating);
     }
 
-    private Bus getBus() {
+    public Bus getBus() {
         return busRef.get();
     }
 
@@ -118,10 +118,10 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public double getTargetP() {
         AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-        if (asymBus != null) {
-            System.out.println(">>>>>>>> GetTargetP() of bus = " + this.getId() + " is asymmetric and mofified");
-            //return getGenerationTargetP(); // TODO : uncomment when we will use a ABC constant load
-            return getGenerationTargetP() - getLoadTargetP(); // test with constant fortescue load
+        boolean isAbcConstantLoad = true;
+        if (asymBus != null && isAbcConstantLoad) {
+            //System.out.println(">>>>>>>> GetTargetP() of bus = " + this.getId() + " is asymmetric and mofified");
+            return getGenerationTargetP(); // TODO : uncomment when we will use a ABC constant load
             // we use the detection of the asymmetry extension at bus to check if we are in dissym calculation
             // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on vd, vi, vo (equivalent fortescue representation
         }
@@ -131,10 +131,10 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public double getTargetQ() {
         AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-        if (asymBus != null) {
-            System.out.println(">>>>>>>> GetTargetQ() of bus = " + this.getId() + " is asymmetric and mofified");
-            //return getGenerationTargetQ(); // TODO : uncomment when we will use a ABC constant load
-            return getGenerationTargetQ() - getLoadTargetQ(); // test with constant fortescue load
+        boolean isAbcConstantLoad = true;
+        if (asymBus != null && isAbcConstantLoad) {
+
+            return getGenerationTargetQ(); // TODO : uncomment when we will use a ABC constant load
             // we use the detection of the asymmetry extension at bus to check if we are in dissym calculation
             // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on vd, vi, vo (equivalent fortescue representation
         }

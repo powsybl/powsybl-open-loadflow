@@ -1,5 +1,10 @@
 package com.powsybl.openloadflow.network.Extensions;
 
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Load;
+import com.powsybl.openloadflow.network.Extensions.iidm.LoadUnbalanced;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.impl.LfBusImpl;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
@@ -10,22 +15,67 @@ public class AsymBus {
 
     public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";
 
-    public AsymBus(double vHomopolar, double angleHompolar, double vInverse, double angleInverse) {
+    public static final double SB = 100.;
+
+    public AsymBus(LfBus lfBus, double vHomopolar, double angleHompolar, double vInverse, double angleInverse) {
         this.vHomopolar = vHomopolar;
         this.angleHompolar = angleHompolar;
         this.vInverse = vInverse;
         this.angleInverse = angleInverse;
+        this.lfBus = lfBus;
+
+        // TODO : add here info about unbalanced lfLoad
+        LfBusImpl lfBusImpl = null;
+        if (lfBus instanceof LfBusImpl) {
+            lfBusImpl = (LfBusImpl) lfBus;
+        }
+        Bus bus = null;
+        if (lfBusImpl != null) {
+            bus = lfBusImpl.getBus();
+        }
+
+        if (bus != null) {
+            for (Load load : bus.getLoads()) {
+                var extension = load.getExtension(LoadUnbalanced.class);
+                if (extension != null) {
+                    double deltaPa = extension.getDeltaPa();
+                    double deltaQa = extension.getDeltaQa();
+                    double deltaPb = extension.getDeltaPb();
+                    double deltaQb = extension.getDeltaQb();
+                    double deltaPc = extension.getDeltaPc();
+                    double deltaQc = extension.getDeltaQc();
+                    totalDeltaPa = totalDeltaPa + deltaPa / SB;
+                    totalDeltaQa = totalDeltaQa + deltaQa / SB;
+                    totalDeltaPb = totalDeltaPb + deltaPb / SB;
+                    totalDeltaQb = totalDeltaQb + deltaQb / SB;
+                    totalDeltaPc = totalDeltaPc + deltaPc / SB;
+                    totalDeltaQc = totalDeltaQc + deltaQc / SB;
+                    System.out.println("********************* >>>>>>>> completion of unbalanced load of bus = " + bus.getId() + "*************************************");
+                    //System.out.println(">>>>>>>> total Pa = " + totalDeltaPa);
+                    //System.out.println(">>>>>>>> total Qa = " + totalDeltaQa);
+                }
+            }
+        }
     }
 
-    public AsymBus() {
-        this(0., 0., 0., 0.);
+    public AsymBus(LfBus bus) {
+        this(bus, 0., 0., 0., 0.);
     }
+
+    private final LfBus lfBus;
 
     private double vHomopolar;
     private double angleHompolar;
 
     private double vInverse;
     private double angleInverse;
+
+    private double totalDeltaPa = 0.;
+    private double totalDeltaQa = 0.;
+    private double totalDeltaPb = 0.;
+    private double totalDeltaQb = 0.;
+    private double totalDeltaPc = 0.;
+    private double totalDeltaQc = 0.;
 
     private Evaluable pHomopolar = EvaluableConstants.NAN;
     private Evaluable qHomopolar = EvaluableConstants.NAN;
@@ -95,5 +145,39 @@ public class AsymBus {
 
     public void setQInverse(Evaluable qInverse) {
         this.qInverse = qInverse;
+    }
+
+    // TODO : check if there is a x3 coefficient somewhere
+    public double getPa() {
+        return lfBus.getLoadTargetP() + totalDeltaPa;
+    }
+
+    // TODO : check if there is a x3 coefficient somewhere
+    public double getPb() {
+        return lfBus.getLoadTargetP() + totalDeltaPb;
+    }
+
+    // TODO : check if there is a x3 coefficient somewhere
+    public double getPc() {
+        return lfBus.getLoadTargetP() + totalDeltaPc;
+    }
+
+    public double getQa() {
+        return lfBus.getLoadTargetQ() + totalDeltaQa;
+    }
+
+    public double getQb() {
+        return lfBus.getLoadTargetQ() + totalDeltaQb;
+    }
+
+    public double getQc() {
+        return lfBus.getLoadTargetQ() + totalDeltaQc;
+    }
+
+    public boolean isBalancedLoad() {
+        if (Math.abs(totalDeltaPa) + Math.abs(totalDeltaQa) + Math.abs(totalDeltaPb) + Math.abs(totalDeltaQb) + Math.abs(totalDeltaPc) + Math.abs(totalDeltaQc) > 0.000001) {
+            return false;
+        }
+        return true;
     }
 }

@@ -36,7 +36,7 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         // addition of asymmetric equations, supposing that existing v, theta, p and q are linked to the direct sequence
         // TODO : In a first version, extensions of busses to carry additional info related to inverse and homopolar sequences are created here
         //  this will reduce the number of modified files between AC and a first Disym implementation
-        AsymBus asymBus = new AsymBus();
+        AsymBus asymBus = new AsymBus(bus); // bus is used to reach potential bus extensions in iidm that will be used to setup asymbus
         bus.setProperty(AsymBus.PROPERTY_ASYMMETRICAL, asymBus);
 
         var ph = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR);
@@ -45,9 +45,9 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         asymBus.setQHomopolar(qh);
 
         var pi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE);
-        asymBus.setPHomopolar(pi);
+        asymBus.setPInverse(pi);
         var qi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE);
-        asymBus.setQHomopolar(qi);
+        asymBus.setQInverse(qi);
 
         pi.setActive(true);
         qi.setActive(true);
@@ -76,35 +76,71 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
             }
         }
         double epsilon = 0.00001;
-        if (Math.abs(bus.getLoadTargetP()) > epsilon) {
-            // load modelled as a constant power load in abc phase representation leading to a model depending on vd, vi, vo
-            // TODO : uncomment and check equivalent ABC constant load
-            /*FortescueLoadEquationTerm pLoadHomo = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 0);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR).addTerm(pLoadHomo);
-            FortescueLoadEquationTerm pLoadDirect = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 1);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadDirect);
-            FortescueLoadEquationTerm pLoadInv = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 2);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pLoadInv);*/
 
-            // load modelled as a constant shunt in fortescue representation
-            /*LoadShuntActiveEquationTerm pLoadShuntHomo = new LoadShuntActiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR).addTerm(pLoadShuntHomo);
-            LoadShuntActiveEquationTerm pLoadShuntInv = new LoadShuntActiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pLoadShuntInv);*/
-        }
-        if (Math.abs(bus.getLoadTargetQ()) > epsilon) {
-            // TODO : uncomment and check equivalent ABC constant load
-            /*FortescueLoadEquationTerm qLoadHomo = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 0);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_HOMOPOLAR).addTerm(qLoadHomo);
-            FortescueLoadEquationTerm qLoadDirect = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 1);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadDirect);
-            FortescueLoadEquationTerm qLoadInv = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 2);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE).addTerm(qLoadInv);*/
-            // load modelled as a constant shunt in fortescue representation
-            /*LoadShuntReactiveEquationTerm qLoadShuntHomo = new LoadShuntReactiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_HOMOPOLAR).addTerm(qLoadShuntHomo);
-            LoadShuntReactiveEquationTerm qLoadShuntInv = new LoadShuntReactiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE).addTerm(qLoadShuntInv);*/
+        boolean isAbcConstantLoad = true; // set false here and in LfBusImpl to have a load such that Sd = P+jQ  So = 0 and Si = 0
+        boolean isShuntLoad = false;
+        int typeLoad = 3;
+
+        if (Math.abs(bus.getLoadTargetP()) > epsilon || Math.abs(bus.getLoadTargetQ()) > epsilon) {
+            // load modelled as a constant power load in abc phase representation leading to a model depending on vd, vi, vo in fortescue representation
+            if (isAbcConstantLoad) {
+                if (typeLoad == 2) {
+                    //System.out.println("!!!!!!!!!!!!! old impl of load");
+                    FortescueLoadEquationTerm pLoadHomo = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 0);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR).addTerm(pLoadHomo);
+                    FortescueLoadEquationTerm pLoadDirect = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 1);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadDirect);
+                    FortescueLoadEquationTerm pLoadInv = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 2);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pLoadInv);
+                    FortescueLoadEquationTerm qLoadHomo = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 0);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_HOMOPOLAR).addTerm(qLoadHomo);
+                    FortescueLoadEquationTerm qLoadDirect = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 1);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadDirect);
+                    FortescueLoadEquationTerm qLoadInv = new FortescueLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 2);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE).addTerm(qLoadInv);
+                } else if (typeLoad == 2) {
+                    //System.out.println("!!!!!!!!!!!!! new impl of load");
+                    AlternativeLoadEquationTerm pLoadHomo = new AlternativeLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 0);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR).addTerm(pLoadHomo);
+                    AlternativeLoadEquationTerm pLoadDirect = new AlternativeLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 1);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadDirect);
+                    AlternativeLoadEquationTerm pLoadInv = new AlternativeLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 2);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pLoadInv);
+                    AlternativeLoadEquationTerm qLoadHomo = new AlternativeLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 0);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_HOMOPOLAR).addTerm(qLoadHomo);
+                    AlternativeLoadEquationTerm qLoadDirect = new AlternativeLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 1);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadDirect);
+                    AlternativeLoadEquationTerm qLoadInv = new AlternativeLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 2);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE).addTerm(qLoadInv);
+                } else if (typeLoad == 3) {
+                    //System.out.println("!!!!!!!!!!!!! approx impl of load");
+                    ApproximateLoadEquationTerm pLoadHomo = new ApproximateLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 0);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR).addTerm(pLoadHomo);
+                    ApproximateLoadEquationTerm pLoadDirect = new ApproximateLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 1);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadDirect);
+                    ApproximateLoadEquationTerm pLoadInv = new ApproximateLoadEquationTerm(bus, equationSystem.getVariableSet(), true, 2);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pLoadInv);
+                    ApproximateLoadEquationTerm qLoadHomo = new ApproximateLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 0);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_HOMOPOLAR).addTerm(qLoadHomo);
+                    ApproximateLoadEquationTerm qLoadDirect = new ApproximateLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 1);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadDirect);
+                    ApproximateLoadEquationTerm qLoadInv = new ApproximateLoadEquationTerm(bus, equationSystem.getVariableSet(), false, 2);
+                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE).addTerm(qLoadInv);
+                } else {
+                    throw new IllegalStateException("Unknown load type ");
+                }
+
+            } else if (isShuntLoad) {
+                // load modelled as a constant shunt in fortescue representation
+                LoadShuntActiveEquationTerm pLoadShuntHomo = new LoadShuntActiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR).addTerm(pLoadShuntHomo);
+                LoadShuntActiveEquationTerm pLoadShuntInv = new LoadShuntActiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pLoadShuntInv);
+                LoadShuntReactiveEquationTerm qLoadShuntHomo = new LoadShuntReactiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_HOMOPOLAR).addTerm(qLoadShuntHomo);
+                LoadShuntReactiveEquationTerm qLoadShuntInv = new LoadShuntReactiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE).addTerm(qLoadShuntInv);
+            }
         }
     }
 

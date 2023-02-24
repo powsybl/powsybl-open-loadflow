@@ -22,7 +22,7 @@ public abstract class AbstractEquivalentShuntReactiveEquationTerm extends Abstra
     }
 
     protected double b() {
-        return 1.;
+        return 1;
     } // TODO : check acceptable large value for target V close to zero
 
     private static double p(double v, double b) {

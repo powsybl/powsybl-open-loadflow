@@ -182,7 +182,29 @@ public class ClosedBranchDisymCoupledEquationTerm extends AbstractClosedBranchDi
     @Override
     public double eval() {
         //return p1(y, FastMath.sin(ksi), g1, v1(), r1(), v2(), FastMath.sin(theta1(ksi, ph1(), a1(), ph2())));
-        return pqij(isActive, isSide1, sequenceNum, this);
+        // TODO : test with negative sign ????
+        double pQij = pqij(isActive, isSide1, sequenceNum, this);
+
+        /*String seq = "_o";
+        if (sequenceNum == 1) {
+            seq = "_d";
+        } else if (sequenceNum == 2) {
+            seq = "_i";
+        }
+
+        int side = 2;
+        if (isSide1) {
+            side = 1;
+        }
+
+        String pq = "Q";
+        if (isActive) {
+            pq = "P";
+        }
+
+        System.out.println("========>  Branch : " + this.getName() + " has " + pq + side + seq + " = " + pQij);*/
+        return pQij;
+        //return pqij(isActive, isSide1, sequenceNum, this);
     }
 
     @Override
