@@ -168,9 +168,9 @@ public final class GenericGeneratorTerm {
         Pair<Double, Double> t0Gdddfgh = t0g(1, 1, 1, f, g, h, equationTerm);
 
         double tx1g = p * (t0Gooofgh.getFirst() - 3 * t0Godifgh.getFirst() + t0Giiifgh.getFirst() + t0Gdddfgh.getFirst())
-                + q * (t0Gooofgh.getSecond() - 3 * t0Godifgh.getSecond() + t0Giiifgh.getSecond() + t0Gdddfgh.getSecond());
+                - q * (t0Gooofgh.getSecond() - 3 * t0Godifgh.getSecond() + t0Giiifgh.getSecond() + t0Gdddfgh.getSecond());
 
-        double ty1g = p * (-t0Gooofgh.getSecond() + 3 * t0Godifgh.getSecond() - t0Giiifgh.getSecond() - t0Gdddfgh.getSecond())
+        double ty1g = -p * (-t0Gooofgh.getSecond() + 3 * t0Godifgh.getSecond() - t0Giiifgh.getSecond() - t0Gdddfgh.getSecond())
                 + q * (t0Gooofgh.getFirst() - 3 * t0Godifgh.getFirst() + t0Giiifgh.getFirst() + t0Gdddfgh.getFirst());
 
         return new Pair<>(tx1g, ty1g);
@@ -185,9 +185,9 @@ public final class GenericGeneratorTerm {
         Pair<Double, Double> dt0Gdddfgh = dt0g(1, 1, 1, f, g, h, equationTerm, derVariable);
 
         double dtx1g = p * (dt0Gooofgh.getFirst() - 3 * dt0Godifgh.getFirst() + dt0Giiifgh.getFirst() + dt0Gdddfgh.getFirst())
-                + q * (dt0Gooofgh.getSecond() - 3 * dt0Godifgh.getSecond() + dt0Giiifgh.getSecond() + dt0Gdddfgh.getSecond());
+                - q * (dt0Gooofgh.getSecond() - 3 * dt0Godifgh.getSecond() + dt0Giiifgh.getSecond() + dt0Gdddfgh.getSecond());
 
-        double dty1g = p * (-dt0Gooofgh.getSecond() + 3 * dt0Godifgh.getSecond() - dt0Giiifgh.getSecond() - dt0Gdddfgh.getSecond())
+        double dty1g = -p * (-dt0Gooofgh.getSecond() + 3 * dt0Godifgh.getSecond() - dt0Giiifgh.getSecond() - dt0Gdddfgh.getSecond())
                 + q * (dt0Gooofgh.getFirst() - 3 * dt0Godifgh.getFirst() + dt0Giiifgh.getFirst() + dt0Gdddfgh.getFirst());
 
         return new Pair<>(dtx1g, dty1g);

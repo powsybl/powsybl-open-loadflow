@@ -141,6 +141,10 @@ public class DisymTest {
         bus4 = network.getBusBreakerView().getBus("B4");
         line1 = network.getLine("B1_B2");
 
+        Line line23 = network.getLine("B2_B3");
+        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        line23.setX(coeff * 1 / 0.2);
+
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
@@ -153,11 +157,11 @@ public class DisymTest {
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(99.79701683489999, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
         //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
-        assertVoltageEquals(99.46058712269704, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.48102055956122, bus3); // balanced = 99.54462759204546
         //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
-        assertVoltageEquals(99.20827277875274, bus4); // balanced = 99.29252809145005
+        assertVoltageEquals(99.22875843696357, bus4); // balanced = 99.29252809145005
         //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
     }
 

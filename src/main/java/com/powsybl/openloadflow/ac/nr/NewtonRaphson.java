@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
-import com.powsybl.math.matrix.MatrixException;
+import com.powsybl.math.matrix.*;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -150,7 +150,7 @@ public class NewtonRaphson {
                 case BUS_V_HOMOPOLAR: // when balanced, homopolar and inverse sequence should be zero
                 case BUS_V_INVERSE:
                     // TODO : check if this has an influence on init [J]
-                    x[v.getRow()] = 0.8;
+                    x[v.getRow()] = 0.1;
                     break;
 
                 default:
@@ -183,8 +183,8 @@ public class NewtonRaphson {
 
                 case BUS_PHI_HOMOPOLAR:
                     AsymBus asymBusPhiH = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusPhiH.setAngleHompolar(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
-                    System.out.println(">>>>>>>> UPDATE PH_H(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
+                    asymBusPhiH.setAngleHompolar(Math.toDegrees(stateVector.get(v.getRow()))); // TODO : check asymbus : should not be null by construction
+                    System.out.println(">>>>>>>> UPDATE PH_H(" + network.getBus(v.getElementNum()).getId() + ")= " + Math.toDegrees(stateVector.get(v.getRow())));
                     break;
 
                 case BUS_V_INVERSE:
@@ -195,8 +195,8 @@ public class NewtonRaphson {
 
                 case BUS_PHI_INVERSE:
                     AsymBus asymBusPhiI = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusPhiI.setAngleInverse(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
-                    System.out.println(">>>>>>>> UPDATE PH_I(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
+                    asymBusPhiI.setAngleInverse(Math.toDegrees(stateVector.get(v.getRow()))); // TODO : check asymbus : should not be null by construction
+                    System.out.println(">>>>>>>> UPDATE PH_I(" + network.getBus(v.getElementNum()).getId() + ")= " + Math.toDegrees(stateVector.get(v.getRow())));
                     break;
 
                 case SHUNT_B:
@@ -277,9 +277,121 @@ public class NewtonRaphson {
             }
 
             updateNetwork();
+            printAbcResult();
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
         return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);
     }
+
+    void printAbcResult() {
+        for (LfBus bus : network.getBuses()) {
+            double v = bus.getV();
+            double ph = Math.toRadians(bus.getAngle());
+            double vHomo = 0;
+            double phHomo = 0;
+            double vInv = 0;
+            double phInv = 0;
+            AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+            if (asymBus != null) {
+                phHomo = Math.toRadians(asymBus.getAngleHompolar());
+                vHomo = asymBus.getvHomopolar();
+                phInv = Math.toRadians(asymBus.getAngleInverse());
+                vInv = asymBus.getvInverse();
+            }
+
+            printThreePhaseValue(bus, v, ph, vHomo, phHomo, vInv, phInv);
+
+        }
+    }
+
+    void printThreePhaseValue(LfBus bus, double directMagnitude, double directAngle, double zeroMagnitude, double zeroAngle, double inverseMagnitude, double inverseAngle) {
+
+        // [G1]   [ 1  1  1 ]   [Gh]
+        // [G2] = [ 1  a²  a] * [Gd]
+        // [G3]   [ 1  a  a²]   [Gi]
+        MatrixFactory matrixFactory = new DenseMatrixFactory();
+
+        org.apache.commons.math3.util.Pair<Double, Double> directComponent = getCartesianFromPolar(directMagnitude, directAngle);
+        org.apache.commons.math3.util.Pair<Double, Double> homopolarComponent = getCartesianFromPolar(zeroMagnitude, zeroAngle);
+        org.apache.commons.math3.util.Pair<Double, Double> inversComponent = getCartesianFromPolar(inverseMagnitude, inverseAngle);
+
+        Matrix mGfortescue = matrixFactory.create(6, 1, 6);
+        mGfortescue.add(0, 0, homopolarComponent.getKey());
+        mGfortescue.add(1, 0, homopolarComponent.getValue());
+        mGfortescue.add(2, 0, directComponent.getKey());
+        mGfortescue.add(3, 0, directComponent.getValue());
+        mGfortescue.add(4, 0, inversComponent.getKey());
+        mGfortescue.add(5, 0, inversComponent.getValue());
+
+        DenseMatrix mGphase = getFortescueMatrix(matrixFactory).times(mGfortescue).toDense();
+
+        org.apache.commons.math3.util.Pair<Double, Double> phase1 = getPolarFromCartesian(mGphase.get(0, 0), mGphase.get(1, 0));
+        org.apache.commons.math3.util.Pair<Double, Double> phase2 = getPolarFromCartesian(mGphase.get(2, 0), mGphase.get(3, 0));
+        org.apache.commons.math3.util.Pair<Double, Double> phase3 = getPolarFromCartesian(mGphase.get(4, 0), mGphase.get(5, 0));
+        System.out.println("!!!>>>>>>>> " + bus.getId() + " PHASE A = " + phase1.getKey() + " (" + phase1.getValue());
+        System.out.println("!!!>>>>>>>> " + bus.getId() + " PHASE B = " + phase2.getKey() + " (" + phase2.getValue());
+        System.out.println("!!!>>>>>>>> " + bus.getId() + " PHASE C = " + phase3.getKey() + " (" + phase3.getValue());
+        //return new ThreePhaseValue(phase1.getKey() / Math.sqrt(3), phase2.getKey() / Math.sqrt(3), phase3.getKey() / Math.sqrt(3), phase1.getValue(), phase2.getValue(), phase3.getValue());
+    }
+
+    public org.apache.commons.math3.util.Pair<Double, Double> getCartesianFromPolar(double magnitude, double angle) {
+        double xValue = magnitude * Math.cos(angle);
+        double yValue = magnitude * Math.sin(angle); // TODO : check radians and degrees
+        return new org.apache.commons.math3.util.Pair<>(xValue, yValue);
+    }
+
+    public org.apache.commons.math3.util.Pair<Double, Double> getPolarFromCartesian(double xValue, double yValue) {
+        double magnitude = Math.sqrt(xValue * xValue + yValue * yValue);
+        double phase = Math.atan2(yValue, xValue); // TODO : check radians and degrees
+        return new org.apache.commons.math3.util.Pair<>(magnitude, phase);
+    }
+
+    static Matrix getFortescueMatrix(MatrixFactory matrixFactory) {
+
+        // [G1]   [ 1  1  1 ]   [Gh]
+        // [G2] = [ 1  a²  a] * [Gd]
+        // [G3]   [ 1  a  a²]   [Gi]
+        Matrix mFortescue = matrixFactory.create(6, 6, 6);
+        //column 1
+        mFortescue.add(0, 0, 1.);
+        mFortescue.add(1, 1, 1.);
+
+        mFortescue.add(2, 0, 1.);
+        mFortescue.add(3, 1, 1.);
+
+        mFortescue.add(4, 0, 1.);
+        mFortescue.add(5, 1, 1.);
+
+        //column 2
+        mFortescue.add(0, 2, 1.);
+        mFortescue.add(1, 3, 1.);
+
+        mFortescue.add(2, 2, -1. / 2.);
+        mFortescue.add(2, 3, Math.sqrt(3.) / 2.);
+        mFortescue.add(3, 2, -Math.sqrt(3.) / 2.);
+        mFortescue.add(3, 3, -1. / 2.);
+
+        mFortescue.add(4, 2, -1. / 2.);
+        mFortescue.add(4, 3, -Math.sqrt(3.) / 2.);
+        mFortescue.add(5, 2, Math.sqrt(3.) / 2.);
+        mFortescue.add(5, 3, -1. / 2.);
+
+        //column 3
+        mFortescue.add(0, 4, 1.);
+        mFortescue.add(1, 5, 1.);
+
+        mFortescue.add(2, 4, -1. / 2.);
+        mFortescue.add(2, 5, -Math.sqrt(3.) / 2.);
+        mFortescue.add(3, 4, Math.sqrt(3.) / 2.);
+        mFortescue.add(3, 5, -1. / 2.);
+
+        mFortescue.add(4, 4, -1. / 2.);
+        mFortescue.add(4, 5, Math.sqrt(3.) / 2.);
+        mFortescue.add(5, 4, -Math.sqrt(3.) / 2.);
+        mFortescue.add(5, 5, -1. / 2.);
+
+        return mFortescue;
+    }
+
 }
