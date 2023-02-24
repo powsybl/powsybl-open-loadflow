@@ -10,6 +10,7 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
 
 import java.util.Map;
 
@@ -194,5 +195,75 @@ public final class Reports {
     public static Reporter createPostContingencySimulation(Reporter reporter, String contingencyId) {
         return reporter.createSubReporter("postContingencySimulation", "Post-contingency simulation '${contingencyId}'",
                 "contingencyId", contingencyId);
+    }
+
+    public static Reporter createNewtonRaphsonReporter(Reporter reporter, int networkNumCc, int networkNumSc) {
+        return reporter.createSubReporter("newtonRaphson", "Network CC${networkNumCc} SC${networkNumSc}",
+                Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+    }
+
+    public static Reporter createNewtonRaphsonMismatchReporter(Reporter reporter, int iteration) {
+        String var1 = iteration == -1 ? "mismatchInitial" : String.format("mismatchIteration%s", iteration);
+        String var2 = iteration == -1 ? "Initial mismatch" : String.format("Iteration %s mismatch", iteration);
+        return reporter.createSubReporter(var1, var2);
+    }
+
+    public static void reportNewtonRaphsonMismatch(Reporter reporter, AcEquationType acEquationType, double mismatch, String busId, double busV, double busPhi, int iteration) {
+        String prefixIteration = iteration == -1 ? "Initial" : String.format("Iteration%s", iteration);
+        String messageIteration = iteration == -1 ? "Initial mismatch" : String.format("Iteration %s mismatch", iteration);
+
+        String suffixAcEquationType;
+        switch (acEquationType) {
+            case BUS_TARGET_P:
+                suffixAcEquationType = "TargetP";
+                break;
+            case BUS_TARGET_Q:
+                suffixAcEquationType = "TargetQ";
+                break;
+            case BUS_TARGET_V:
+                suffixAcEquationType = "TargetV";
+                break;
+            default:
+                // not implemented for other types
+                return;
+        }
+
+        Reporter subReporter = reporter.createSubReporter(String.format("%s%s", suffixAcEquationType, prefixIteration), String.format("%s on %s", messageIteration, suffixAcEquationType));
+        subReporter.report(Report.builder()
+                .withKey(String.format("%sMismatch%s", suffixAcEquationType, prefixIteration))
+                .withDefaultMessage(String.format("Mismatch on %s : '${mismatch}'", suffixAcEquationType))
+                .withValue("mismatch", mismatch)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
+        subReporter.report(Report.builder()
+                .withKey(String.format("%sBusId%s", suffixAcEquationType, prefixIteration))
+                .withDefaultMessage(String.format("Bus Id : '${busId}'", suffixAcEquationType))
+                .withValue("busId", busId)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
+        subReporter.report(Report.builder()
+                .withKey(String.format("%sBusV%s", suffixAcEquationType, prefixIteration))
+                .withDefaultMessage(String.format("Bus V : '${busV}'", suffixAcEquationType))
+                .withValue("busV", busV)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
+        subReporter.report(Report.builder()
+                .withKey(String.format("%sBusPhi%s", suffixAcEquationType, prefixIteration))
+                .withDefaultMessage(String.format("Bus Phi : '${busPhi}'", suffixAcEquationType))
+                .withValue("busPhi", busPhi)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
+    }
+
+    public static void reportNewtonRaphsonNorm(Reporter reporter, double norm, int iteration) {
+        String keyIteration = iteration == -1 ? "initialNorm" : String.format("iteration%sNorm", iteration);
+        String xVariable = iteration == -1 ? "x0" : "x";
+        reporter.report(Report.builder()
+                .withKey(keyIteration)
+                .withDefaultMessage(String.format("Norm |f(%s)|='${norm}'", xVariable))
+                .withValue("norm", norm)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
     }
 }

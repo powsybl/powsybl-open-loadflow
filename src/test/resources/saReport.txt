@@ -6,26 +6,288 @@
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Pre-contingency simulation
          AC load flow complete with NR status 'CONVERGED'
+        + Network CC0 SC0
+          + Initial mismatch
+             Norm |f(x0)|='11.37683042330867'
+            + Initial mismatch on TargetP
+               Mismatch on TargetP : '5.999135514403292'
+               Bus Id : 'VLLOAD_0'
+               Bus V : '1.0'
+               Bus Phi : '0.0'
+            + Initial mismatch on TargetQ
+               Mismatch on TargetQ : '-7.397518453004565'
+               Bus Id : 'VLHV1_0'
+               Bus V : '1.0'
+               Bus Phi : '0.0'
+            + Initial mismatch on TargetV
+               Mismatch on TargetV : '-0.02083333333333326'
+               Bus Id : 'VLGEN_0'
+               Bus V : '1.0'
+               Bus Phi : '0.0'
+          + Iteration 0 mismatch
+             Norm |f(x)|='1.370521997338349'
+            + Iteration 0 mismatch on TargetP
+               Mismatch on TargetP : '0.5654241868659025'
+               Bus Id : 'VLGEN_0'
+               Bus V : '1.0208333333333333'
+               Bus Phi : '0.044267798791154236'
+            + Iteration 0 mismatch on TargetQ
+               Mismatch on TargetQ : '0.9076781074655959'
+               Bus Id : 'VLHV1_0'
+               Bus V : '1.0713810414454683'
+               Bus Phi : '-3.393522766578452E-17'
+          + Iteration 1 mismatch
+             Norm |f(x)|='0.02735383065047368'
+            + Iteration 1 mismatch on TargetP
+               Mismatch on TargetP : '-0.011906013412646743'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0267735150466015'
+               Bus Phi : '-0.06136319436584185'
+            + Iteration 1 mismatch on TargetQ
+               Mismatch on TargetQ : '0.015807200344973626'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0267735150466015'
+               Bus Phi : '-0.06136319436584185'
+          + Iteration 2 mismatch
+             Norm |f(x)|='2.0034253596371782E-5'
+            + Iteration 2 mismatch on TargetP
+               Mismatch on TargetP : '-1.2624760780788336E-5'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0261840057810543'
+               Bus Phi : '-0.0611984592137325'
+            + Iteration 2 mismatch on TargetQ
+               Mismatch on TargetQ : '1.0873067915362356E-5'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0261840057810543'
+               Bus Phi : '-0.0611984592137325'
         + Outer loop Distributed slack on generation
            Iteration 0: failed to distribute slack bus active power mismatch, -1.4404045651219555 MW remains
         + Outer loop Voltage monitoring
         + Outer loop Reactive limits
       + Post-contingency simulation 'NHV1_NHV2_1'
          AC load flow complete with NR status 'CONVERGED'
+        + Network CC0 SC0
+          + Initial mismatch
+             Norm |f(x0)|='3.4471824537833866'
+            + Initial mismatch on TargetP
+               Mismatch on TargetP : '3.004332624163114'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0261840057810543'
+               Bus Phi : '-0.0611984592137325'
+            + Initial mismatch on TargetQ
+               Mismatch on TargetQ : '1.371890625558982'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0261840057810543'
+               Bus Phi : '-0.0611984592137325'
+          + Iteration 0 mismatch
+             Norm |f(x)|='0.2349553649241112'
+            + Iteration 0 mismatch on TargetP
+               Mismatch on TargetP : '0.14567323502168694'
+               Bus Id : 'VLHV2_0'
+               Bus V : '0.9740879866871982'
+               Bus Phi : '-0.12524596024226875'
+            + Iteration 0 mismatch on TargetQ
+               Mismatch on TargetQ : '0.1532727412126924'
+               Bus Id : 'VLHV2_0'
+               Bus V : '0.9740879866871982'
+               Bus Phi : '-0.12524596024226875'
+          + Iteration 1 mismatch
+             Norm |f(x)|='0.00365241216315625'
+            + Iteration 1 mismatch on TargetP
+               Mismatch on TargetP : '0.0028721765929802245'
+               Bus Id : 'VLLOAD_0'
+               Bus V : '0.9185024745950227'
+               Bus Phi : '-0.2522441055713801'
+            + Iteration 1 mismatch on TargetQ
+               Mismatch on TargetQ : '0.002040253165898065'
+               Bus Id : 'VLHV2_0'
+               Bus V : '0.9648885961416056'
+               Bus Phi : '-0.13078631708296995'
+          + Iteration 2 mismatch
+             Norm |f(x)|='2.1063366312206115E-6'
+            + Iteration 2 mismatch on TargetP
+               Mismatch on TargetP : '1.7811337782447367E-6'
+               Bus Id : 'VLLOAD_0'
+               Bus V : '0.9183096498487244'
+               Bus Phi : '-0.2524424495949727'
+            + Iteration 2 mismatch on TargetQ
+               Mismatch on TargetQ : '6.46464350939624E-7'
+               Bus Id : 'VLHV2_0'
+               Bus V : '0.9647236368053008'
+               Bus Phi : '-0.13087957414595608'
         + Outer loop Distributed slack on generation
            Iteration 0: failed to distribute slack bus active power mismatch, 4.366500677028373 MW remains
         + Outer loop Voltage monitoring
         + Outer loop Reactive limits
       + Post-contingency simulation 'NHV1_NHV2_2'
          AC load flow complete with NR status 'CONVERGED'
+        + Network CC0 SC0
+          + Initial mismatch
+             Norm |f(x0)|='3.4471824537833866'
+            + Initial mismatch on TargetP
+               Mismatch on TargetP : '3.004332624163114'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0261840057810543'
+               Bus Phi : '-0.0611984592137325'
+            + Initial mismatch on TargetQ
+               Mismatch on TargetQ : '1.371890625558982'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0261840057810543'
+               Bus Phi : '-0.0611984592137325'
+          + Iteration 0 mismatch
+             Norm |f(x)|='0.2349553649241112'
+            + Iteration 0 mismatch on TargetP
+               Mismatch on TargetP : '0.14567323502168694'
+               Bus Id : 'VLHV2_0'
+               Bus V : '0.9740879866871982'
+               Bus Phi : '-0.12524596024226875'
+            + Iteration 0 mismatch on TargetQ
+               Mismatch on TargetQ : '0.1532727412126924'
+               Bus Id : 'VLHV2_0'
+               Bus V : '0.9740879866871982'
+               Bus Phi : '-0.12524596024226875'
+          + Iteration 1 mismatch
+             Norm |f(x)|='0.00365241216315625'
+            + Iteration 1 mismatch on TargetP
+               Mismatch on TargetP : '0.0028721765929802245'
+               Bus Id : 'VLLOAD_0'
+               Bus V : '0.9185024745950227'
+               Bus Phi : '-0.2522441055713801'
+            + Iteration 1 mismatch on TargetQ
+               Mismatch on TargetQ : '0.002040253165898065'
+               Bus Id : 'VLHV2_0'
+               Bus V : '0.9648885961416056'
+               Bus Phi : '-0.13078631708296995'
+          + Iteration 2 mismatch
+             Norm |f(x)|='2.1063366312206115E-6'
+            + Iteration 2 mismatch on TargetP
+               Mismatch on TargetP : '1.7811337782447367E-6'
+               Bus Id : 'VLLOAD_0'
+               Bus V : '0.9183096498487244'
+               Bus Phi : '-0.2524424495949727'
+            + Iteration 2 mismatch on TargetQ
+               Mismatch on TargetQ : '6.46464350939624E-7'
+               Bus Id : 'VLHV2_0'
+               Bus V : '0.9647236368053008'
+               Bus Phi : '-0.13087957414595608'
         + Outer loop Distributed slack on generation
            Iteration 0: failed to distribute slack bus active power mismatch, 4.366500677028373 MW remains
         + Outer loop Voltage monitoring
         + Outer loop Reactive limits
       + Post-contingency simulation 'NGEN_NHV1'
          AC load flow complete with NR status 'UNREALISTIC_STATE'
+        + Network CC0 SC0
+          + Initial mismatch
+             Norm |f(x0)|='1.9748192827616478'
+            + Initial mismatch on TargetP
+               Mismatch on TargetP : '-1.2624760780788336E-5'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0261840057810543'
+               Bus Phi : '-0.0611984592137325'
+            + Initial mismatch on TargetQ
+               Mismatch on TargetQ : '1.9748192826663022'
+               Bus Id : 'VLHV1_0'
+               Bus V : '1.0582636574158686'
+               Bus Phi : '1.0223095960134798E-20'
+          + Iteration 0 mismatch
+             Norm |f(x)|='4.254286362071228'
+            + Iteration 0 mismatch on TargetP
+               Mismatch on TargetP : '4.056561084901934'
+               Bus Id : 'VLLOAD_0'
+               Bus V : '1.4162939944413282'
+               Bus Phi : '-0.03282175328888387'
+            + Iteration 0 mismatch on TargetQ
+               Mismatch on TargetQ : '-0.713476966513376'
+               Bus Id : 'VLHV1_0'
+               Bus V : '1.4393751672806905'
+               Bus Phi : '-1.1805109947670712E-17'
+          + Iteration 1 mismatch
+             Norm |f(x)|='0.14105491260156272'
+            + Iteration 1 mismatch on TargetP
+               Mismatch on TargetP : '-0.053439384479793794'
+               Bus Id : 'VLLOAD_0'
+               Bus V : '1.4224053555645522'
+               Bus Phi : '-0.08498630554075912'
+            + Iteration 1 mismatch on TargetQ
+               Mismatch on TargetQ : '0.10245358230772705'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.4477795059564862'
+               Bus Phi : '-0.03232106654419256'
+          + Iteration 2 mismatch
+             Norm |f(x)|='0.026699298653075958'
+            + Iteration 2 mismatch on TargetP
+               Mismatch on TargetP : '0.02627409549324078'
+               Bus Id : 'VLLOAD_0'
+               Bus V : '1.4724517281578204'
+               Bus Phi : '-0.07822392957756155'
+            + Iteration 2 mismatch on TargetQ
+               Mismatch on TargetQ : '-0.004710972048165285'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.4975208340369344'
+               Bus Phi : '-0.02969888394289707'
+          + Iteration 3 mismatch
+             Norm |f(x)|='6.1037852757453085E-6'
+            + Iteration 3 mismatch on TargetP
+               Mismatch on TargetP : '2.302040497781377E-6'
+               Bus Id : 'VLLOAD_0'
+               Bus V : '1.4723831446877502'
+               Bus Phi : '-0.07857926761684876'
+            + Iteration 3 mismatch on TargetQ
+               Mismatch on TargetQ : '4.46684533184083E-6'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.4974710178331587'
+               Bus Phi : '-0.029835896671129295'
       + Post-contingency simulation 'NHV2_NLOAD'
          AC load flow complete with NR status 'CONVERGED'
+        + Network CC0 SC0
+          + Initial mismatch
+             Norm |f(x0)|='6.605496023776785'
+            + Initial mismatch on TargetP
+               Mismatch on TargetP : '-6.008690497847789'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0261840057810543'
+               Bus Phi : '-0.0611984592137325'
+            + Initial mismatch on TargetQ
+               Mismatch on TargetQ : '-2.7437595049821333'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0261840057810543'
+               Bus Phi : '-0.0611984592137325'
+          + Iteration 0 mismatch
+             Norm |f(x)|='0.8142698692559183'
+            + Iteration 0 mismatch on TargetP
+               Mismatch on TargetP : '0.6611142811870008'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.098434943482207'
+               Bus Phi : '0.005388807543878174'
+            + Iteration 0 mismatch on TargetQ
+               Mismatch on TargetQ : '0.4081220232523647'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.098434943482207'
+               Bus Phi : '0.005388807543878174'
+          + Iteration 1 mismatch
+             Norm |f(x)|='0.010269172802435809'
+            + Iteration 1 mismatch on TargetP
+               Mismatch on TargetP : '0.008322444621743105'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0890144272042979'
+               Bus Phi : '-5.064737222387605E-4'
+            + Iteration 1 mismatch on TargetQ
+               Mismatch on TargetQ : '0.005030383458504326'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0890144272042979'
+               Bus Phi : '-5.064737222387605E-4'
+          + Iteration 2 mismatch
+             Norm |f(x)|='1.704041057211951E-6'
+            + Iteration 2 mismatch on TargetP
+               Mismatch on TargetP : '1.3863858093735005E-6'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0888930100898357'
+               Bus Phi : '-5.826985028081093E-4'
+            + Iteration 2 mismatch on TargetQ
+               Mismatch on TargetQ : '8.184078683550827E-7'
+               Bus Id : 'VLHV2_0'
+               Bus V : '1.0888930100898357'
+               Bus Phi : '-5.826985028081093E-4'
         + Outer loop Distributed slack on generation
            Iteration 0: failed to distribute slack bus active power mismatch, -606.3549396476619 MW remains
         + Outer loop Voltage monitoring

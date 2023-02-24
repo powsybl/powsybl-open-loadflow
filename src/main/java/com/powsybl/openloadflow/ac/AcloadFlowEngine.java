@@ -74,7 +74,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 LOGGER.debug("Start outer loop iteration {} (name='{}')", outerLoopIteration, outerLoop.getType());
 
                 // if not yet stable, restart Newton-Raphson
-                runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer());
+                runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer(), context.getNetwork().getReporter());
                 if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED) {
                     return;
                 }
@@ -115,7 +115,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
 
         // run initial Newton-Raphson
-        runningContext.lastNrResult = newtonRaphson.run(voltageInitializer);
+        runningContext.lastNrResult = newtonRaphson.run(voltageInitializer, context.getNetwork().getReporter());
         double initialSlackBusActivePowerMismatch = runningContext.lastNrResult.getSlackBusActivePowerMismatch();
 
         // continue with outer loops only if initial Newton-Raphson succeed
