@@ -2667,5 +2667,4 @@ class OpenSecurityAnalysisTest {
 
     }
 
-
 }
