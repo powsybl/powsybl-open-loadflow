@@ -76,7 +76,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                     // for this limit is infinity.
                     // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
                     double valuePerUnit = temporaryLimit.getValue() * toPerUnit;
-                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getAcceptableDuration(), valuePerUnit));
+                    sortedLimits.addFirst(LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(), valuePerUnit));
                 }
             }
             sortedLimits.addLast(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit));
@@ -266,14 +266,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public void setMinZ(double lowImpedanceThreshold) {
-        if (piModel.setMinZ(lowImpedanceThreshold, true)) {
-            LOGGER.trace("Branch {} has a low impedance in DC, set to min {}", getId(), lowImpedanceThreshold);
-            dcZeroImpedance = false;
-
-        }
         if (piModel.setMinZ(lowImpedanceThreshold, false)) {
             LOGGER.trace("Branch {} has a low impedance in AC, set to min {}", getId(), lowImpedanceThreshold);
             acZeroImpedance = false;
+        }
+        if (piModel.setMinZ(lowImpedanceThreshold, true)) {
+            LOGGER.trace("Branch {} has a low impedance in DC, set to min {}", getId(), lowImpedanceThreshold);
+            dcZeroImpedance = false;
         }
     }
 
