@@ -183,7 +183,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                                         runActionSimulation(lfNetwork, context,
                                                 operatorStrategiesForThisContingency.get(0), preContingencyLimitViolationManager,
                                                 securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
-                                                createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(), loadFlowParameters.getBalanceType())
+                                                createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
+                                                loadFlowParameters.getBalanceType(), openLoadFlowParameters.getPlausibleActivePowerLimit())
                                                 .ifPresent(operatorStrategyResults::add);
                                     } else {
                                         // save post contingency state for later restoration after action
@@ -192,7 +193,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                                             runActionSimulation(lfNetwork, context,
                                                     operatorStrategy, preContingencyLimitViolationManager,
                                                     securityAnalysisParameters.getIncreasedViolationsParameters(), lfActionById,
-                                                    createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(), loadFlowParameters.getBalanceType())
+                                                    createResultExtension, lfContingency, postContingencyResult.getLimitViolationsResult(),
+                                                    loadFlowParameters.getBalanceType(), openLoadFlowParameters.getPlausibleActivePowerLimit())
                                                     .ifPresent(result -> {
                                                         operatorStrategyResults.add(result);
                                                         postContingencyNetworkState.restore();
@@ -268,12 +270,13 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
                                                                  LimitViolationManager preContingencyLimitViolationManager,
                                                                  SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                                  Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
-                                                                 LimitViolationsResult postContingencyLimitViolations, LoadFlowParameters.BalanceType balanceType) {
+                                                                 LimitViolationsResult postContingencyLimitViolations, LoadFlowParameters.BalanceType balanceType,
+                                                                 double plausibleActivePowerLimit) {
         OperatorStrategyResult operatorStrategyResult = null;
 
         if (checkCondition(operatorStrategy, postContingencyLimitViolations)) {
             operatorStrategyResult = runActionSimulation(network, context, operatorStrategy, preContingencyLimitViolationManager,
-                    violationsParameters, lfActionById, createResultExtension, contingency, balanceType);
+                    violationsParameters, lfActionById, createResultExtension, contingency, balanceType, plausibleActivePowerLimit);
         }
 
         return Optional.ofNullable(operatorStrategyResult);

@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoadingReport;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
@@ -70,33 +71,25 @@ public final class LfAction {
         }
     }
 
-    public static final class GeneratorUpdate {
+    public static final class GeneratorChange {
 
         // Reference to the generator
         private final LfGenerator generator;
 
-        private final Optional<Double> activePowerValue;
+        private final double deltaTargetP;
 
-        private final LfNetworkParameters lfParameters;
-
-        private GeneratorUpdate(LfGenerator generator, Optional<Double> activePowerValue, LfNetworkParameters lfParameters) {
+        private GeneratorChange(LfGenerator generator, double deltaTargetP) {
             this.generator = generator;
-            this.activePowerValue = activePowerValue;
-            this.lfParameters = lfParameters;
+            this.deltaTargetP = deltaTargetP;
         }
 
         public LfGenerator getGenerator() {
             return generator;
         }
 
-        public Optional<Double> getActivePowerValue() {
-            return activePowerValue;
+        public double getDeltaTargetP() {
+            return deltaTargetP;
         }
-
-        public LfNetworkParameters getLfParameters() {
-            return lfParameters;
-        }
-
     }
 
     private final String id;
@@ -109,16 +102,16 @@ public final class LfAction {
 
     private final LoadShift loadShift;
 
-    private final GeneratorUpdate generatorUpdate;
+    private final GeneratorChange generatorChange;
 
     private LfAction(String id, LfBranch disabledBranch, LfBranch enabledBranch, TapPositionChange tapPositionChange,
-                     LoadShift loadShift, GeneratorUpdate generatorUpdate) {
+                     LoadShift loadShift, GeneratorChange generatorChange) {
         this.id = Objects.requireNonNull(id);
         this.disabledBranch = disabledBranch;
         this.enabledBranch = enabledBranch;
         this.tapPositionChange = tapPositionChange;
         this.loadShift = loadShift;
-        this.generatorUpdate = generatorUpdate;
+        this.generatorChange = generatorChange;
     }
 
     public static Optional<LfAction> create(Action action, LfNetwork lfNetwork, Network network, LfNetworkParameters parameters) { // boolean breakers) {
@@ -138,7 +131,7 @@ public final class LfAction {
                 return create((LoadAction) action, lfNetwork, network, parameters.isBreakers());
 
             case GeneratorAction.NAME:
-                return create((GeneratorAction) action, lfNetwork, parameters);
+                return create((GeneratorAction) action, lfNetwork);
 
             default:
                 throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
@@ -210,34 +203,20 @@ public final class LfAction {
         return Optional.empty(); // could be in another component
     }
 
-    private static Optional<LfAction> create(GeneratorAction action, LfNetwork lfNetwork, LfNetworkParameters parameters) {
+    private static Optional<LfAction> create(GeneratorAction action, LfNetwork lfNetwork) {
         LfGenerator generator = lfNetwork.getGeneratorById(action.getGeneratorId());
         if (generator != null) {
-            Optional<Double> newTargetP = Optional.empty();
             Optional<Double> activePowerValue = action.getActivePowerValue();
-            if (activePowerValue.isPresent()) {
-                // A GeneratorAction CANNOT be created if only one of the activePowerValue or isActivePowerRelative is empty
-                Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
-                if (!(relativeValue.isPresent() && relativeValue.get())) {
-                    throw new UnsupportedOperationException("LfAction.GeneratorUpdates: setTargetP with an absolute power value is not supported yet.");
+            Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
+            if (relativeValue.isPresent() && activePowerValue.isPresent()) {
+                if (relativeValue.get()) {
+                    double deltaTargetP = activePowerValue.get() / PerUnit.SB;
+                    var generatorChange = new GeneratorChange(generator, deltaTargetP);
+                    return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorChange));
+                } else {
+                    throw new UnsupportedOperationException("Generator action: configuration not supported yet.");
                 }
-                newTargetP = Optional.of(activePowerValue.get() / PerUnit.SB + generator.getTargetP());
             }
-
-            Optional<Double> newTargetQ = action.getTargetQ();
-            if (newTargetQ.isPresent()) {
-                throw new UnsupportedOperationException("LfAction:GeneratorUpdate: Unsupported generator update: update target Q");
-            }
-
-            Optional<Double> newTargetV = action.getTargetV();
-            if (newTargetV.isPresent()) {
-                throw new UnsupportedOperationException("LfAction:GeneratorUpdate: Unsupported generator update: update target V");
-            }
-            if (action.isVoltageRegulatorOn().isPresent()) {
-                throw new UnsupportedOperationException("LfAction:GeneratorUpdate: Unsupported generator update: update voltage regulation");
-            }
-            var generatorUpdates = new GeneratorUpdate(generator, newTargetP, parameters);
-            return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorUpdates));
         }
         return Optional.empty();
     }
@@ -254,7 +233,8 @@ public final class LfAction {
         return enabledBranch;
     }
 
-    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LoadFlowParameters.BalanceType balanceType) {
+    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LoadFlowParameters.BalanceType balanceType,
+                             double plausibleActivePowerLimit) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
@@ -263,7 +243,7 @@ public final class LfAction {
 
         // then process remaining changes of actions
         for (LfAction action : actions) {
-            action.apply(balanceType);
+            action.apply(balanceType, plausibleActivePowerLimit);
         }
     }
 
@@ -316,7 +296,7 @@ public final class LfAction {
         }
     }
 
-    public void apply(LoadFlowParameters.BalanceType balanceType) {
+    public void apply(LoadFlowParameters.BalanceType balanceType, double plausibleActivePowerLimit) {
         if (tapPositionChange != null) {
             LfBranch branch = tapPositionChange.getBranch();
             int tapPosition = branch.getPiModel().getTapPosition();
@@ -341,16 +321,13 @@ public final class LfAction {
             }
         }
 
-        if (generatorUpdate != null) {
-            generatorUpdate.getActivePowerValue().ifPresent(
-                activePowerValue
-                    -> {
-                    generatorUpdate.getGenerator().setTargetP(activePowerValue);
-                    ((AbstractLfGenerator) generatorUpdate.getGenerator()).checkActivePowerControl(activePowerValue,
-                                generatorUpdate.getGenerator().getMinP(), generatorUpdate.getGenerator().getMaxP(),
-                                generatorUpdate.getLfParameters(), null);
-                });
-
+        if (generatorChange != null) {
+            LfGenerator generator = generatorChange.getGenerator();
+            generator.setTargetP(generator.getTargetP() + generatorChange.getDeltaTargetP());
+            if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
+                    plausibleActivePowerLimit, new LfNetworkLoadingReport())) { // FIXME reporter
+                generator.setParticipating(false);
+            }
         }
     }
 }

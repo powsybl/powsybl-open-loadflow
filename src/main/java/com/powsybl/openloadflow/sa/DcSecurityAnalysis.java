@@ -308,7 +308,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                                 .ifPresent(lfContingency -> {
                                     lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
                                     OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
-                                            lfActionById, createResultExtension, lfContingency, parameters.getBalanceType());
+                                            lfActionById, createResultExtension, lfContingency, parameters.getBalanceType(), parameters.getNetworkParameters().getPlausibleActivePowerLimit());
                                     operatorStrategyResults.add(result);
                                     networkState.restore();
                                 });
