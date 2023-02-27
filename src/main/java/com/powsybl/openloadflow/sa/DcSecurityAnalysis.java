@@ -42,6 +42,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.sa.AcSecurityAnalysis.distributedMismatch;
+
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext> {
 
     private static class DcSecurityAnalysisContext {
@@ -307,6 +309,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                         propagatedContingency.toLfContingency(lfNetwork)
                                 .ifPresent(lfContingency -> {
                                     lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
+                                    distributedMismatch(lfNetwork, DcLoadFlowEngine.getActivePowerMismatch(lfNetwork.getBuses().stream().filter(bus -> !bus.isDisabled()).collect(Collectors.toSet())),
+                                            context.getParameters().getLoadFlowParameters(), OpenLoadFlowParameters.get(context.getParameters().getLoadFlowParameters()));
                                     OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
                                             lfActionById, createResultExtension, lfContingency, parameters.getBalanceType());
                                     operatorStrategyResults.add(result);
