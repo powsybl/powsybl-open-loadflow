@@ -175,7 +175,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, LfNetworkParameters parameters) {
         return actions.stream()
-                .map(action -> LfAction.create(action, lfNetwork, network, parameters))
+                .map(action -> LfAction.create(action, lfNetwork, network, parameters.isBreakers()))
                 .flatMap(Optional::stream)
                 .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }

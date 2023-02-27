@@ -73,7 +73,6 @@ public final class LfAction {
 
     public static final class GeneratorChange {
 
-        // Reference to the generator
         private final LfGenerator generator;
 
         private final double deltaTargetP;
@@ -114,7 +113,7 @@ public final class LfAction {
         this.generatorChange = generatorChange;
     }
 
-    public static Optional<LfAction> create(Action action, LfNetwork lfNetwork, Network network, LfNetworkParameters parameters) { // boolean breakers) {
+    public static Optional<LfAction> create(Action action, LfNetwork lfNetwork, Network network, boolean breakers) {
         Objects.requireNonNull(action);
         Objects.requireNonNull(network);
         switch (action.getType()) {
@@ -128,7 +127,7 @@ public final class LfAction {
                 return create((PhaseTapChangerTapPositionAction) action, lfNetwork);
 
             case LoadAction.NAME:
-                return create((LoadAction) action, lfNetwork, network, parameters.isBreakers());
+                return create((LoadAction) action, lfNetwork, network, breakers);
 
             case GeneratorAction.NAME:
                 return create((GeneratorAction) action, lfNetwork);
@@ -209,7 +208,7 @@ public final class LfAction {
             Optional<Double> activePowerValue = action.getActivePowerValue();
             Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
             if (relativeValue.isPresent() && activePowerValue.isPresent()) {
-                if (relativeValue.get()) {
+                if (relativeValue.get().equals(Boolean.TRUE)) {
                     double deltaTargetP = activePowerValue.get() / PerUnit.SB;
                     var generatorChange = new GeneratorChange(generator, deltaTargetP);
                     return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorChange));
