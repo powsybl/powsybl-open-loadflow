@@ -33,21 +33,28 @@ public interface LfBranch extends LfElement {
 
     class LfLimit {
 
+        private final String name;
+
         private int acceptableDuration;
 
         private final double value;
 
-        public LfLimit(int acceptableDuration, double value) {
+        public LfLimit(String name, int acceptableDuration, double value) {
+            this.name = name;
             this.acceptableDuration = acceptableDuration;
             this.value = value;
         }
 
-        public static LfLimit createTemporaryLimit(int acceptableDuration, double valuePerUnit) {
-            return new LfLimit(acceptableDuration, valuePerUnit);
+        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double valuePerUnit) {
+            return new LfLimit(name, acceptableDuration, valuePerUnit);
         }
 
         public static LfLimit createPermanentLimit(double valuePerUnit) {
-            return new LfLimit(Integer.MAX_VALUE, valuePerUnit);
+            return new LfLimit(null, Integer.MAX_VALUE, valuePerUnit);
+        }
+
+        public String getName() {
+            return name;
         }
 
         public int getAcceptableDuration() {
