@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -60,7 +61,7 @@ public final class Networks {
         resetInjectionsState(network.getLoads());
         resetInjectionsState(network.getLccConverterStations());
         resetInjectionsState(network.getBatteries());
-        resetInjectionsState(network.getDanglingLines());
+        resetInjectionsState(network.getDanglingLineStream().filter(dl -> !dl.isMerged()).collect(Collectors.toSet()));
     }
 
     private static double getDoubleProperty(Identifiable<?> identifiable, String name) {
