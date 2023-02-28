@@ -204,17 +204,20 @@ public final class LfAction {
 
     private static Optional<LfAction> create(GeneratorAction action, LfNetwork lfNetwork) {
         LfGenerator generator = lfNetwork.getGeneratorById(action.getGeneratorId());
-        if (generator != null) {
+        if (generator != null) { // FIXME could be in contingency
             Optional<Double> activePowerValue = action.getActivePowerValue();
             Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
             if (relativeValue.isPresent() && activePowerValue.isPresent()) {
+                double deltaTargetP;
                 if (relativeValue.get().equals(Boolean.TRUE)) {
-                    double deltaTargetP = activePowerValue.get() / PerUnit.SB;
-                    var generatorChange = new GeneratorChange(generator, deltaTargetP);
-                    return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorChange));
+                    deltaTargetP = activePowerValue.get() / PerUnit.SB;
                 } else {
-                    throw new UnsupportedOperationException("Generator action: configuration not supported yet.");
+                    deltaTargetP = activePowerValue.get() / PerUnit.SB - generator.getInitialTargetP();
                 }
+                var generatorChange = new GeneratorChange(generator, deltaTargetP);
+                return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorChange));
+            } else {
+                throw new UnsupportedOperationException("Generator action: configuration not supported yet.");
             }
         }
         return Optional.empty();

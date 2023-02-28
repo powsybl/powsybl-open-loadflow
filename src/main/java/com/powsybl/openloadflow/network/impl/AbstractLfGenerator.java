@@ -30,6 +30,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected final LfNetwork network;
 
+    protected double initialTargetP;
+
     protected double targetP;
 
     protected LfBus bus;
@@ -51,6 +53,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
         this.network = Objects.requireNonNull(network);
         this.targetP = targetP;
+        this.initialTargetP = targetP;
     }
 
     @Override
@@ -69,6 +72,11 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public boolean isFictitious() {
         return false;
+    }
+
+    @Override
+    public double getInitialTargetP() {
+        return initialTargetP / PerUnit.SB;
     }
 
     @Override

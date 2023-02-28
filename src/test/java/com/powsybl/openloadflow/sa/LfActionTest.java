@@ -83,14 +83,10 @@ class LfActionTest extends AbstractConverterTest {
     void testUnsupportedGeneratorAction() {
         Network network = NodeBreakerNetworkFactory.create();
         String genId = "G";
-        Generator generator = network.getGenerator(genId);
-        double deltaTargetP = 2d;
-        double newTargetP = generator.getTargetP() + deltaTargetP;
         GeneratorAction generatorAction = new GeneratorActionBuilder()
                 .withId("genAction" + genId)
                 .withGeneratorId(genId)
-                .withActivePowerRelativeValue(false)
-                .withActivePowerValue(newTargetP) // to be done soon
+                .withTargetQ(100) // to be done soon
                 .build();
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
