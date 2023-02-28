@@ -50,8 +50,8 @@ class NonImpedantBranchWithBreakerIssueTest {
             assertEquals(400, bus.getV(), 0);
             assertEquals(0, bus.getAngle(), 0);
         }
-        assertEquals(-100, network.getGenerator("G1").getTerminal().getQ(), 0);
-        assertEquals(-100, network.getGenerator("G2").getTerminal().getQ(), 0);
+        assertEquals(-200, network.getGenerator("G1").getTerminal().getQ(), 0);
+        assertEquals(0, network.getGenerator("G2").getTerminal().getQ(), 0);
     }
 
     @Test

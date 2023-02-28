@@ -429,10 +429,12 @@ class AcLoadFlowTransformerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(134.279, bus2);
-        assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        // where is the zero impedance line?
+        // test still relevant? to update?
+        assertVoltageEquals(134.229, bus2);
+        assertVoltageEquals(32.228, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -455,10 +457,12 @@ class AcLoadFlowTransformerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(134.279, bus2);
-        assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        // FIXME there is no more inconsistency since check is not done anymore at network loading time
+        // we should change or remove this test?
+        assertVoltageEquals(134.229, bus2);
+        assertVoltageEquals(32.228, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
     }
 
     @Test

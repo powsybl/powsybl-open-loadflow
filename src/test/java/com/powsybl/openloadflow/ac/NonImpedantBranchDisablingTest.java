@@ -116,9 +116,9 @@ class NonImpedantBranchDisablingTest {
                 new AcloadFlowEngine(context).run();
             }
             // should be the same as with previous LF
-            assertEquals(401.740, largestNetwork.getBranchById("L1").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
-            assertEquals(100.870, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
-            assertEquals(100.870, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+            assertEquals(401.757, largestNetwork.getBranchById("L1").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.878, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.878, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
         }
     }
 }

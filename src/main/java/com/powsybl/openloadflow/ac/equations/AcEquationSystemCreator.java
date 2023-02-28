@@ -203,7 +203,7 @@ public class AcEquationSystemCreator {
         Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        if (controlledBus.isDisabled() || !VoltageControl.isGeneratorVoltageControlled(controlledBus)) {
+        if (controlledBus.isDisabled()) {
             // if controlled bus is disabled, we disable all voltage control equations
             vEq.setActive(false);
             for (LfBus controllerBus : controllerBuses) {
@@ -215,10 +215,18 @@ public class AcEquationSystemCreator {
                         .setActive(true);
             }
         } else {
-            List<LfBus> enabledControllerBuses = controllerBuses.stream()
-                    .filter(LfBus::isGeneratorVoltageControlEnabled).collect(Collectors.toList());
-            List<LfBus> disabledControllerBuses = controllerBuses.stream()
-                    .filter(Predicate.not(LfBus::isGeneratorVoltageControlEnabled)).collect(Collectors.toList());
+            List<LfBus> enabledControllerBuses;
+            List<LfBus> disabledControllerBuses;
+            if (VoltageControl.isTheHighestPriorityGeneratorVoltageControlled(controlledBus)) {
+                enabledControllerBuses = controllerBuses.stream()
+                        .filter(LfBus::isGeneratorVoltageControlEnabled).collect(Collectors.toList());
+                disabledControllerBuses = controllerBuses.stream()
+                        .filter(Predicate.not(LfBus::isGeneratorVoltageControlEnabled)).collect(Collectors.toList());
+            } else {
+                // all controller buses should be disabled
+                enabledControllerBuses = Collections.emptyList();
+                disabledControllerBuses = controllerBuses;
+            }
 
             // activate voltage control at controlled bus only if at least one controller bus is enabled
             vEq.setActive(!enabledControllerBuses.isEmpty());
@@ -290,22 +298,21 @@ public class AcEquationSystemCreator {
 
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBus controlledBus = voltageControl.getControlledBus();
+        boolean voltageControlEnabled = controlledBus.isGeneratorVoltageControlEnabled()
+                && VoltageControl.isTheHighestPriorityGeneratorVoltageControlled(controlledBus);
         List<LfBus> controllerBuses = voltageControl.getControllerElements();
-
         LfBus firstControllerBus = controllerBuses.get(0);
         if (firstControllerBus.hasGeneratorsWithSlope()) {
             // we only support one controlling static var compensator without any other controlling generators
             // we don't support controller bus that wants to control back voltage with slope.
             equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
                     .orElseThrow()
-                    .setActive(!firstControllerBus.isDisabled() && firstControllerBus.isGeneratorVoltageControlEnabled());
+                    .setActive(!firstControllerBus.isDisabled() && voltageControlEnabled);
             equationSystem.getEquation(firstControllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
                     .orElseThrow()
-                    .setActive(!firstControllerBus.isDisabled() && !firstControllerBus.isGeneratorVoltageControlEnabled());
+                    .setActive(!firstControllerBus.isDisabled() && !voltageControlEnabled);
         } else {
             if (voltageControl.isLocalControl()) {
-                boolean voltageControlEnabled = VoltageControl.isGeneratorVoltageControlled(controlledBus)
-                        && controlledBus.isGeneratorVoltageControlEnabled();
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
                         .setActive(!controlledBus.isDisabled() && voltageControlEnabled);
@@ -490,16 +497,17 @@ public class AcEquationSystemCreator {
     }
 
     static void updateTransformerVoltageControlEquations(TransformerVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBus controlledBus = voltageControl.getControlledBus();
         List<LfBranch> controllerBranches = voltageControl.getControllerElements()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller branches
                 .collect(Collectors.toList());
 
         // activate voltage target equation if control is on
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        if (voltageControl.getControlledBus().isDisabled()) {
+        if (controlledBus.isDisabled()) {
             // if controlled bus is disabled, we deactivate voltage target and rho distribution equations
             // and activate rho target equations
             vEq.setActive(false);
@@ -512,12 +520,21 @@ public class AcEquationSystemCreator {
                         .setActive(true);
             }
         } else {
-            List<LfBranch> enabledControllerBranches = controllerBranches.stream()
-                    .filter(LfBranch::isVoltageControlEnabled)
-                    .collect(Collectors.toList());
-            List<LfBranch> disabledControllerBranches = controllerBranches.stream()
-                    .filter(Predicate.not(LfBranch::isVoltageControlEnabled))
-                    .collect(Collectors.toList());
+            List<LfBranch> enabledControllerBranches;
+            List<LfBranch> disabledControllerBranches;
+            if (VoltageControl.isTheHighestPriorityTransformerVoltageControlled(controlledBus)) {
+                enabledControllerBranches = controllerBranches.stream()
+                        .filter(LfBranch::isVoltageControlEnabled)
+                        .collect(Collectors.toList());
+                disabledControllerBranches = controllerBranches.stream()
+                        .filter(Predicate.not(LfBranch::isVoltageControlEnabled))
+                        .collect(Collectors.toList());
+            } else {
+                enabledControllerBranches = Collections.emptyList();
+                disabledControllerBranches = controllerBranches;
+            }
+
+            vEq.setActive(!enabledControllerBranches.isEmpty());
 
             for (LfBranch controllerBranch : disabledControllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
@@ -527,8 +544,6 @@ public class AcEquationSystemCreator {
                         .orElseThrow()
                         .setActive(true);
             }
-
-            vEq.setActive(!enabledControllerBranches.isEmpty());
 
             for (int i = 0; i < enabledControllerBranches.size(); i++) {
                 LfBranch controllerBranch = enabledControllerBranches.get(i);
@@ -591,15 +606,16 @@ public class AcEquationSystemCreator {
     }
 
     static void updateShuntVoltageControlEquations(ShuntVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBus controlledBus = voltageControl.getControlledBus();
         List<LfShunt> controllerShunts = voltageControl.getControllerElements()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller shunts
                 .collect(Collectors.toList());
 
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        if (voltageControl.getControlledBus().isDisabled()) {
+        if (controlledBus.isDisabled()) {
             // if controlled bus is disabled, we deactivate voltage target equation and all susceptance distribution
             // equations and activate susceptance target equations
             vEq.setActive(false);
@@ -612,12 +628,21 @@ public class AcEquationSystemCreator {
                         .setActive(true);
             }
         } else {
-            List<LfShunt> enabledControllerShunts = controllerShunts.stream()
-                    .filter(LfShunt::isVoltageControlEnabled)
-                    .collect(Collectors.toList());
-            List<LfShunt> disabledControllerShunts = controllerShunts.stream()
-                    .filter(Predicate.not(LfShunt::isVoltageControlEnabled))
-                    .collect(Collectors.toList());
+            List<LfShunt> enabledControllerShunts;
+            List<LfShunt> disabledControllerShunts;
+            if (VoltageControl.isTheHighestPriorityShuntVoltageControlled(controlledBus)) {
+                enabledControllerShunts = controllerShunts.stream()
+                        .filter(LfShunt::isVoltageControlEnabled)
+                        .collect(Collectors.toList());
+                disabledControllerShunts = controllerShunts.stream()
+                        .filter(Predicate.not(LfShunt::isVoltageControlEnabled))
+                        .collect(Collectors.toList());
+            } else {
+                enabledControllerShunts = Collections.emptyList();
+                disabledControllerShunts = controllerShunts;
+            }
+
+            vEq.setActive(!enabledControllerShunts.isEmpty());
 
             for (LfShunt controllerShunt : disabledControllerShunts) {
                 equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B)
@@ -627,8 +652,6 @@ public class AcEquationSystemCreator {
                         .orElseThrow()
                         .setActive(true);
             }
-
-            vEq.setActive(!enabledControllerShunts.isEmpty());
 
             for (int i = 0; i < enabledControllerShunts.size(); i++) {
                 LfShunt controllerShunt = enabledControllerShunts.get(i);

@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -81,21 +83,21 @@ public class VoltageControl<T extends LfElement> extends Control {
     private static boolean isVoltageControlled(LfBus bus, Class<? extends VoltageControl<?>> vcClass) {
         List<VoltageControl<?>> voltageControls = getVoltageControls(bus);
         if (voltageControls.isEmpty()) {
-            return false;
+            throw new PowsyblException("Bus '" + bus.getId() + "' is not voltage controlled");
         }
         VoltageControl<?> firstVc = voltageControls.get(0);
         return firstVc.getControlledBus() == bus && vcClass.isInstance(firstVc);
     }
 
-    public static boolean isGeneratorVoltageControlled(LfBus bus) {
+    public static boolean isTheHighestPriorityGeneratorVoltageControlled(LfBus bus) {
         return isVoltageControlled(bus, GeneratorVoltageControl.class);
     }
 
-    public static boolean isTransformerVoltageControlled(LfBus bus) {
+    public static boolean isTheHighestPriorityTransformerVoltageControlled(LfBus bus) {
         return isVoltageControlled(bus, TransformerVoltageControl.class);
     }
 
-    public static boolean isShuntVoltageControlled(LfBus bus) {
+    public static boolean isTheHighestPriorityShuntVoltageControlled(LfBus bus) {
         return isVoltageControlled(bus, ShuntVoltageControl.class);
     }
 }
