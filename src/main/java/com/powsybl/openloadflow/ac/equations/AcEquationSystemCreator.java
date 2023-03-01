@@ -106,8 +106,10 @@ public class AcEquationSystemCreator {
                             .map(term -> term.multiply(slope))
                             .collect(Collectors.toList()));
         } else {
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V)
-                    .addTerm(vTerm);
+            if (!equationSystem.hasEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)) {
+                equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V)
+                        .addTerm(vTerm);
+            }
         }
 
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
@@ -455,10 +457,12 @@ public class AcEquationSystemCreator {
         bus.getTransformerVoltageControl()
                 .ifPresent(voltageControl -> {
                     // create voltage target equation at controlled bus
-                    EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
-                            .createTerm();
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V).addTerm(vTerm);
-                    bus.setCalculatedV(vTerm);
+                    if (!equationSystem.hasEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)) {
+                        EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
+                                .createTerm();
+                        equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V).addTerm(vTerm);
+                        bus.setCalculatedV(vTerm);
+                    }
 
                     // add transformer ratio distribution equations
                     createR1DistributionEquations(voltageControl.getControllerElements(), equationSystem);
@@ -564,10 +568,12 @@ public class AcEquationSystemCreator {
     private static void createShuntVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getShuntVoltageControl()
                 .ifPresent(voltageControl -> {
-                    EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
-                            .createTerm();
-                    equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V).addTerm(vTerm);
-                    bus.setCalculatedV(vTerm);
+                    if (!equationSystem.hasEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)) {
+                        EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
+                                .createTerm();
+                        equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V).addTerm(vTerm);
+                        bus.setCalculatedV(vTerm);
+                    }
 
                     // add shunt distribution equations
                     createShuntSusceptanceDistributionEquations(voltageControl.getControllerElements(), equationSystem);
