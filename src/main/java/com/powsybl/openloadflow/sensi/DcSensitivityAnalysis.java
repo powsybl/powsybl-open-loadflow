@@ -143,7 +143,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         .filter(element -> !elementIdsToSkip.contains(element))
                         .map(contingencyElementByBranch::get)
                         .map(ComputedContingencyElement::getLfBranch)
-                        .filter(LfBranch::hasPhaseControlCapability)
+                        .filter(LfBranch::hasPhaseControllerCapability)
                         .collect(Collectors.toSet());
                 if (lostTransformers.isEmpty()) {
                     contingenciesWithoutTransformers.add(contingency);
@@ -768,7 +768,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
                         LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
-                        SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen) {
+                        SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen, Set<String> allBusIdsToLose) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);
@@ -779,8 +779,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        boolean withBusContingency = contingencies.stream().anyMatch(propagatedContingency -> !propagatedContingency.getBusIdsToLose().isEmpty());
-        boolean breakers = !allSwitchesToOpen.isEmpty() || withBusContingency;
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allBusIdsToLose.isEmpty());
 
         // create the network (we only manage main connected component)
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(), lfParametersExt.getPlausibleActivePowerLimit());

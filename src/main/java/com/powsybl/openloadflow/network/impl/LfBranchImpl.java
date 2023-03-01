@@ -120,7 +120,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public boolean hasPhaseControlCapability() {
+    public boolean hasPhaseControllerCapability() {
         var branch = getBranch();
         return branch.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER
                 && ((TwoWindingsTransformer) branch).getPhaseTapChanger() != null;
@@ -184,8 +184,6 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         if (parameters.isPhaseShifterRegulationOn() && isPhaseController()) {
             // it means there is a regulating phase tap changer located on that branch
             updateTapPosition(((TwoWindingsTransformer) branch).getPhaseTapChanger());
-            // check if the target value deadband is respected
-            checkTargetDeadband(discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE ? p1.eval() : p2.eval());
         }
 
         if (parameters.isTransformerVoltageControlOn() && isVoltageController()) { // it means there is a regulating ratio tap changer
@@ -195,7 +193,6 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             double rho = getPiModel().getR1() * twt.getRatedU1() / twt.getRatedU2() * baseRatio;
             double ptcRho = twt.getPhaseTapChanger() != null ? twt.getPhaseTapChanger().getCurrentStep().getRho() : 1;
             updateTapPosition(rtc, ptcRho, rho);
-            checkTargetDeadband(rtc);
         }
     }
 

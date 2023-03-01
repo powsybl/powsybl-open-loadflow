@@ -158,10 +158,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
             Set<Switch> allSwitchesToOpen = new HashSet<>();
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false,
+            Set<String> allBusIdsToLose = new HashSet<>();
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, Collections.emptySet(), allBusIdsToLose, false, false,
                     sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                    sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc(),
-                    false);
+                    sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc());
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 
@@ -195,9 +195,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             }
 
             if (lfParameters.isDc()) {
-                dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+                dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen, allBusIdsToLose);
             } else {
-                acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+                acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen, allBusIdsToLose);
             }
         }, computationManager.getExecutor());
     }
