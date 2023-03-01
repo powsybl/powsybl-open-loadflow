@@ -23,14 +23,18 @@ public class LfNetworkStateUpdateParameters {
 
     private final boolean dc;
 
+    private final boolean breakers;
+
     public LfNetworkStateUpdateParameters(boolean reactiveLimits, boolean writeSlackBus, boolean phaseShifterRegulationOn,
-                                          boolean transformerVoltageControlOn, boolean loadPowerFactorConstant, boolean dc) {
+                                          boolean transformerVoltageControlOn, boolean loadPowerFactorConstant, boolean dc,
+                                          boolean breakers) {
         this.reactiveLimits = reactiveLimits;
         this.writeSlackBus = writeSlackBus;
         this.phaseShifterRegulationOn = phaseShifterRegulationOn;
         this.transformerVoltageControlOn = transformerVoltageControlOn;
         this.loadPowerFactorConstant = loadPowerFactorConstant;
         this.dc = dc;
+        this.breakers = breakers;
     }
 
     public boolean isReactiveLimits() {
@@ -55,5 +59,9 @@ public class LfNetworkStateUpdateParameters {
 
     public boolean isDc() {
         return dc;
+    }
+
+    public boolean isBreakers() {
+        return breakers;
     }
 }

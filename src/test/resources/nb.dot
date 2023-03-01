@@ -2,12 +2,13 @@ digraph G {
 	node [shape=box];
 	compound=true;
 	label="\{CC0 SC0\}";
-	n0 [label="VL1_0",shape="box",style="filled,rounded",fontsize="10",color="",fillcolor="grey"];
-	n1 [label="VL1_1\lgen=603.8 MW 0.0 MVar",shape="box",style="filled,rounded",fontsize="10",color="red",fillcolor="grey"];
-	n2 [label="VL2_0\lload=600.0 MW 200.0 MVar",shape="box",style="filled,rounded",fontsize="10",color="",fillcolor="grey"];
-	n3 [label="VL2_1",shape="box",style="filled,rounded",fontsize="10",color="",fillcolor="grey"];
-	n0 -> n3 [label="L1",color="black",dir="none"];
-	n1 -> n2 [label="L2",color="black",dir="none"];
-	n0 -> n1 [label="C",color="red",dir="none"];
-	n2 -> n3 [label="B3",color="red",dir="none"];
+	n0 [label="0\lVL1_0",shape="box",style="filled,rounded",fontsize="10",fillcolor="grey"];
+	n1 [label="1\lVL1_1\lgen=603.8 MW 0.0 MVar",shape="box",style="filled,rounded",fontsize="10",fillcolor="grey"];
+	n2 [label="2\lVL2_0\lload=600.0 MW 200.0 MVar",shape="box",style="filled,rounded",fontsize="10",fillcolor="grey"];
+	n3 [label="3\lVL2_1",shape="box",style="filled,rounded",fontsize="10",fillcolor="grey"];
+	n1 -> n1 [color="lightgray",style="dotted"];
+	n0 -> n3 [label="L1",color="black",style="",dir="none"];
+	n1 -> n2 [label="L2",color="black",style="",dir="none"];
+	n0 -> n1 [label="C",color="red",style="",dir="none"];
+	n2 -> n3 [label="B3",color="red",style="",dir="none"];
 }

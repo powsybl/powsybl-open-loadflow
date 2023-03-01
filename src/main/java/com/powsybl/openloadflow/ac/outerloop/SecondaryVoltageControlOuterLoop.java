@@ -42,13 +42,13 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     }
 
     private static boolean isValid(LfBus bus) {
-        return !bus.isDisabled() && bus.isVoltageControlEnabled();
+        return !bus.isDisabled() && bus.isGeneratorVoltageControlEnabled();
     }
 
     private static List<LfBus> getControllerBuses(LfBus controlledBus) {
-        return controlledBus.getVoltageControl()
+        return controlledBus.getGeneratorVoltageControl()
                 .orElseThrow()
-                .getControllerBuses()
+                .getControllerElements()
                 .stream().filter(SecondaryVoltageControlOuterLoop::isValid)
                 .collect(Collectors.toList());
     }
@@ -139,7 +139,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
          * Calculate controlled bus voltage to controller bus reactive power injection sensitivity.
          */
         double calculateSensiVq(LfBus controllerBus) {
-            LfBus controlledBus = controllerBus.getVoltageControl().orElseThrow().getControlledBus();
+            LfBus controlledBus = controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus();
             int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
 
             MutableDouble sq = new MutableDouble();
@@ -267,7 +267,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             for (LfBus controllerBus : getControllerBuses(controlledBus)) {
                 pvcDv += dq / sensiVq.getSqi(controllerBus);
             }
-            var pvc = controlledBus.getVoltageControl().orElseThrow();
+            var pvc = controlledBus.getGeneratorVoltageControl().orElseThrow();
             double newPvcTargetV = pvc.getTargetValue() + pvcDv;
             LOGGER.trace("Adjust primary voltage control target of bus '{}': {} -> {}",
                     controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
