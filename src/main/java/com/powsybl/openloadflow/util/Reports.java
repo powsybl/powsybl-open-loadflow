@@ -197,10 +197,18 @@ public final class Reports {
                 "contingencyId", contingencyId);
     }
 
-    public static Reporter createNewtonRaphsonReporter(Reporter reporter, int networkNumCc, int networkNumSc) {
-        return reporter.createSubReporter("newtonRaphson", "Network CC${networkNumCc} SC${networkNumSc}",
-                Map.of(NETWORK_NUM_CC, new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                        NETWORK_NUM_SC, new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+    public static Reporter createNewtonRaphsonReporter(Reporter reporter, int networkNumCc, int networkNumSc, int outerLoopIteration, String outerLoopType) {
+        if (outerLoopIteration == 0) {
+            return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || No outer loops calculations",
+                    Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                            "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+        } else {
+            return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || Outer loop iteration ${newtonRaphsonOuterLoopIteration} and type `${newtonRaphsonOuterLoopType}`",
+                    Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                            "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED),
+                            "newtonRaphsonOuterLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED),
+                            "newtonRaphsonOuterLoopType", new TypedValue(outerLoopType, TypedValue.UNTYPED)));
+        }
     }
 
     public static Reporter createNewtonRaphsonMismatchReporter(Reporter reporter, int iteration) {
@@ -210,47 +218,47 @@ public final class Reports {
     }
 
     public static void reportNewtonRaphsonMismatch(Reporter reporter, AcEquationType acEquationType, double mismatch, String busId, double busV, double busPhi, int iteration) {
-        String prefixIteration = iteration == -1 ? "Initial" : String.format("Iteration%s", iteration);
+        String suffixIteration = iteration == -1 ? "Initial" : String.format("Iteration%s", iteration);
         String messageIteration = iteration == -1 ? "Initial mismatch" : String.format("Iteration %s mismatch", iteration);
 
-        String suffixAcEquationType;
+        String prefixAcEquationType;
         switch (acEquationType) {
             case BUS_TARGET_P:
-                suffixAcEquationType = "TargetP";
+                prefixAcEquationType = "TargetP";
                 break;
             case BUS_TARGET_Q:
-                suffixAcEquationType = "TargetQ";
+                prefixAcEquationType = "TargetQ";
                 break;
             case BUS_TARGET_V:
-                suffixAcEquationType = "TargetV";
+                prefixAcEquationType = "TargetV";
                 break;
             default:
-                // not implemented for other types
+                // not implemented for other ac equation types
                 return;
         }
 
-        Reporter subReporter = reporter.createSubReporter(String.format("%s%s", suffixAcEquationType, prefixIteration), String.format("%s on %s", messageIteration, suffixAcEquationType));
+        Reporter subReporter = reporter.createSubReporter(String.format("%s%s", prefixAcEquationType, suffixIteration), String.format("%s on %s", messageIteration, prefixAcEquationType));
         subReporter.report(Report.builder()
-                .withKey(String.format("%sMismatch%s", suffixAcEquationType, prefixIteration))
-                .withDefaultMessage(String.format("Mismatch on %s : '${mismatch}'", suffixAcEquationType))
+                .withKey(String.format("%sMismatch%s", prefixAcEquationType, suffixIteration))
+                .withDefaultMessage(String.format("Mismatch on %s : '${mismatch}'", prefixAcEquationType))
                 .withValue("mismatch", mismatch)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
         subReporter.report(Report.builder()
-                .withKey(String.format("%sBusId%s", suffixAcEquationType, prefixIteration))
-                .withDefaultMessage(String.format("Bus Id : '${busId}'", suffixAcEquationType))
+                .withKey(String.format("%sBusId%s", prefixAcEquationType, suffixIteration))
+                .withDefaultMessage(String.format("Bus Id : '${busId}'", prefixAcEquationType))
                 .withValue("busId", busId)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
         subReporter.report(Report.builder()
-                .withKey(String.format("%sBusV%s", suffixAcEquationType, prefixIteration))
-                .withDefaultMessage(String.format("Bus V : '${busV}'", suffixAcEquationType))
+                .withKey(String.format("%sBusV%s", prefixAcEquationType, suffixIteration))
+                .withDefaultMessage(String.format("Bus V : '${busV}'", prefixAcEquationType))
                 .withValue("busV", busV)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
         subReporter.report(Report.builder()
-                .withKey(String.format("%sBusPhi%s", suffixAcEquationType, prefixIteration))
-                .withDefaultMessage(String.format("Bus Phi : '${busPhi}'", suffixAcEquationType))
+                .withKey(String.format("%sBusPhi%s", prefixAcEquationType, suffixIteration))
+                .withDefaultMessage(String.format("Bus Phi : '${busPhi}'", prefixAcEquationType))
                 .withValue("busPhi", busPhi)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());

@@ -5,7 +5,7 @@
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
-      + Network CC0 SC0
+      + Newton Raphson on Network CC0 SC0 || No outer loops calculations
         + Initial mismatch
            Norm |f(x0)|='11.37683042330867'
           + Initial mismatch on TargetP
@@ -62,7 +62,7 @@
       + Outer loop Distributed slack on generation
          Iteration 0: slack bus active power (-1.4404045651219555 MW) distributed in 1 iterations
          Iteration 1: already balanced
-      + Network CC0 SC0
+      + Newton Raphson on Network CC0 SC0 || Outer loop iteration 1 and type `Distributed slack on generation`
         + Initial mismatch
            Norm |f(x0)|='0.014405623086541253'
           + Initial mismatch on TargetP
@@ -99,7 +99,7 @@
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
-      + Network CC0 SC0
+      + Newton Raphson on Network CC0 SC0 || No outer loops calculations
         + Initial mismatch
            Norm |f(x0)|='0.16842152142439076'
           + Initial mismatch on TargetP

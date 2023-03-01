@@ -6,7 +6,7 @@
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Pre-contingency simulation
          AC load flow complete with NR status 'CONVERGED'
-        + Network CC0 SC0
+        + Newton Raphson on Network CC0 SC0 || No outer loops calculations
           + Initial mismatch
              Norm |f(x0)|='11.37683042330867'
             + Initial mismatch on TargetP
@@ -66,7 +66,7 @@
         + Outer loop Reactive limits
       + Post-contingency simulation 'NHV1_NHV2_1'
          AC load flow complete with NR status 'CONVERGED'
-        + Network CC0 SC0
+        + Newton Raphson on Network CC0 SC0 || No outer loops calculations
           + Initial mismatch
              Norm |f(x0)|='3.4471824537833866'
             + Initial mismatch on TargetP
@@ -121,7 +121,7 @@
         + Outer loop Reactive limits
       + Post-contingency simulation 'NHV1_NHV2_2'
          AC load flow complete with NR status 'CONVERGED'
-        + Network CC0 SC0
+        + Newton Raphson on Network CC0 SC0 || No outer loops calculations
           + Initial mismatch
              Norm |f(x0)|='3.4471824537833866'
             + Initial mismatch on TargetP
@@ -176,7 +176,7 @@
         + Outer loop Reactive limits
       + Post-contingency simulation 'NGEN_NHV1'
          AC load flow complete with NR status 'UNREALISTIC_STATE'
-        + Network CC0 SC0
+        + Newton Raphson on Network CC0 SC0 || No outer loops calculations
           + Initial mismatch
              Norm |f(x0)|='1.9748192827616478'
             + Initial mismatch on TargetP
@@ -239,7 +239,7 @@
                Bus Phi : '-0.029835896671129295'
       + Post-contingency simulation 'NHV2_NLOAD'
          AC load flow complete with NR status 'CONVERGED'
-        + Network CC0 SC0
+        + Newton Raphson on Network CC0 SC0 || No outer loops calculations
           + Initial mismatch
              Norm |f(x0)|='6.605496023776785'
             + Initial mismatch on TargetP

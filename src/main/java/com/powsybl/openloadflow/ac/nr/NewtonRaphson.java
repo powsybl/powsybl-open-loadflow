@@ -243,9 +243,9 @@ public class NewtonRaphson {
         return !busesOutOfNormalVoltageRange.isEmpty();
     }
 
-    public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
+    public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter, int outerLoopIteration, String outerLoopType) {
 
-        Reporter nrReporter = Reports.createNewtonRaphsonReporter(reporter, network.getNumCC(), network.getNumSC());
+        Reporter nrReporter = Reports.createNewtonRaphsonReporter(reporter, network.getNumCC(), network.getNumSC(), outerLoopIteration, outerLoopType);
 
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);
