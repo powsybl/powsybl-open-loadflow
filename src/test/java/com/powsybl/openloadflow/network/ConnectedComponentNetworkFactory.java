@@ -138,11 +138,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         TwoWindingsTransformer twt = createTransformer(network, "test_s", b5, b6, "l56", 0.1f, 1d);
         twt.newPhaseTapChanger().setTapPosition(0)
            .beginStep()
-           .setR(0)
            .setX(0.1f)
-           .setG(0)
-           .setB(0)
-           .setRho(1)
            .setAlpha(1)
            .endStep()
            .add();
@@ -187,11 +183,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         TwoWindingsTransformer twt = createTransformer(network, "test_s", b3, b4, "l34", 0.1f, 1d);
         twt.newPhaseTapChanger().setTapPosition(0)
             .beginStep()
-            .setR(0)
             .setX(0.1f)
-            .setG(0)
-            .setB(0)
-            .setRho(1)
             .setAlpha(1)
             .endStep()
             .add();
@@ -350,11 +342,7 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
         TwoWindingsTransformer twt = createTransformer(network, "test_s", b6, b7, "l67", 0.1f, 1d);
         twt.newPhaseTapChanger().setTapPosition(0)
             .beginStep()
-            .setR(0)
             .setX(0.1f)
-            .setG(0)
-            .setB(0)
-            .setRho(1)
             .setAlpha(1)
             .endStep()
             .add();
