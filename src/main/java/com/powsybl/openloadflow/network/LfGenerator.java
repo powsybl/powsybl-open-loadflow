@@ -94,4 +94,10 @@ public interface LfGenerator extends PropertyBag {
     ControlledSide getControlledBranchSide();
 
     double getRemoteTargetQ();
+
+    default boolean isDisabled() {
+        return false;
+    }
+
+    void setDisabled(boolean disabled);
 }

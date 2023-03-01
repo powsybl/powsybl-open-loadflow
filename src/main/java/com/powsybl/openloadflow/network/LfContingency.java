@@ -170,6 +170,7 @@ public class LfContingency {
             LfBus bus = generator.getBus();
             generatorBuses.add(bus);
             generator.setParticipating(false);
+            generator.setDisabled(true);
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
             } else {

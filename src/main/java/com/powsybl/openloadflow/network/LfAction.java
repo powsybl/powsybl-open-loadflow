@@ -204,7 +204,7 @@ public final class LfAction {
 
     private static Optional<LfAction> create(GeneratorAction action, LfNetwork lfNetwork) {
         LfGenerator generator = lfNetwork.getGeneratorById(action.getGeneratorId());
-        if (generator != null) { // FIXME could be in contingency
+        if (generator != null) {
             Optional<Double> activePowerValue = action.getActivePowerValue();
             Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
             if (relativeValue.isPresent() && activePowerValue.isPresent()) {
@@ -325,10 +325,12 @@ public final class LfAction {
 
         if (generatorChange != null) {
             LfGenerator generator = generatorChange.getGenerator();
-            generator.setTargetP(generator.getTargetP() + generatorChange.getDeltaTargetP());
-            if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                    plausibleActivePowerLimit, new LfNetworkLoadingReport())) { // FIXME reporter
-                generator.setParticipating(false);
+            if (!generator.isDisabled()) {
+                generator.setTargetP(generator.getTargetP() + generatorChange.getDeltaTargetP());
+                if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
+                        plausibleActivePowerLimit, new LfNetworkLoadingReport())) { // FIXME reporter
+                    generator.setParticipating(false);
+                }
             }
         }
     }

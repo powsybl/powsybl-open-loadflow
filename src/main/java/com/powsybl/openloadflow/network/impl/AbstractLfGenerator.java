@@ -50,6 +50,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected double remoteTargetQ = Double.NaN;
 
+    private boolean disabled;
+
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
         this.network = Objects.requireNonNull(network);
         this.targetP = targetP;
@@ -348,5 +350,15 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public String toString() {
         return getId();
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 }
