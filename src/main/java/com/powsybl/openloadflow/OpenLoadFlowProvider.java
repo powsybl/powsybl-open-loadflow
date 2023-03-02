@@ -176,6 +176,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         dcParameters.getNetworkParameters()
                 .setCacheEnabled(false); // force not caching as not supported in DC LF
 
+        // WARNING! in DC approx, nominal voltages are not used only for per-uniting but also as a
+        // default bus voltage, so we MUST NOT aggregate/change nominal voltages
         NominalVoltageMapping nominalVoltageMapping = SimpleNominalVoltageMapping.NONE;
 
         List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, nominalVoltageMapping, new LfNetworkLoaderImpl(), dcParameters, reporter);

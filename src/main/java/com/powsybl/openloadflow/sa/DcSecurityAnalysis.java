@@ -143,6 +143,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
 
+        // WARNING! in DC approx, nominal voltages are not used only for per-uniting but also as a
+        // default bus voltage, so we MUST NOT aggregate/change nominal voltages
         NominalVoltageMapping nominalVoltageMapping = SimpleNominalVoltageMapping.NONE;
 
         DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, parametersExt.getDcPowerFactor(), nominalVoltageMapping);
