@@ -108,18 +108,18 @@ public class PropagatedContingency {
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index, contingencyPropagation, nominalVoltageMapping);
+                    PropagatedContingency.create(network, contingency, index, contingencyPropagation);
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         for (PropagatedContingency propagatedContingency : propagatedContingencies) {
-            propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
+            propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers, nominalVoltageMapping);
         }
         return propagatedContingencies;
     }
 
-    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean contingencyPropagation, NominalVoltageMapping nominalVoltageMapping) {
+    private static PropagatedContingency create(Network network, Contingency contingency, int index, boolean contingencyPropagation) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         // process elements of the contingency
@@ -137,7 +137,7 @@ public class PropagatedContingency {
     }
 
     private void complete(boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad,
-                                 boolean hvdcAcEmulation, boolean breakers) {
+                                 boolean hvdcAcEmulation, boolean breakers, NominalVoltageMapping nominalVoltageMapping) {
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
         }

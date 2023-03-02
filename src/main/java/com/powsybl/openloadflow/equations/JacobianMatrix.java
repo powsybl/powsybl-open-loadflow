@@ -131,6 +131,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
         int columnCount = equationSystem.getIndex().getSortedVariablesToFind().size();
         if (rowCount != columnCount) {
+            System.out.println(equationSystem.writeToString(true));
             throw new PowsyblException("Expected to have same number of equations (" + rowCount
                     + ") and variables (" + columnCount + ")");
         }
