@@ -96,9 +96,9 @@ public class NewtonRaphson {
             }
 
             // test stopping criteria and log norm(fx)
-            NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray());
+            NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
 
-            testResult = svScaling.applyAfter(equationSystem.getStateVector(), equationVector, targetVector,
+            testResult = svScaling.applyAfter(equationSystem, equationVector, targetVector,
                                               parameters.getStoppingCriteria(), testResult);
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
@@ -122,7 +122,7 @@ public class NewtonRaphson {
                     break;
 
                 case BUS_PHI:
-                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getElementNum())));
+                    x[v.getRow()] = initializer.getAngle(network.getBus(v.getElementNum()));
                     break;
 
                 case SHUNT_B:
@@ -159,7 +159,7 @@ public class NewtonRaphson {
                     break;
 
                 case BUS_PHI:
-                    network.getBus(v.getElementNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
+                    network.getBus(v.getElementNum()).setAngle(stateVector.get(v.getRow()));
                     break;
 
                 case SHUNT_B:
@@ -214,7 +214,7 @@ public class NewtonRaphson {
 
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 
-        NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray());
+        NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
         StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters.getStateVectorScalingMode(), initialTestResult);

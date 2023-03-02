@@ -829,7 +829,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("c1", new BranchContingency("L1")));
 
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies,
-                Collections.emptySet(), false, false, false, false, SimpleNominalVoltageMapping.NONE);
+                Collections.emptySet(), Collections.emptySet(), false, false, false, false, SimpleNominalVoltageMapping.NONE);
         assertEquals(1, propagatedContingencies.size());
     }
 

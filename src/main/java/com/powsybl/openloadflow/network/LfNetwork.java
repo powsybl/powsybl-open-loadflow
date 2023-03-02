@@ -300,9 +300,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        for (LfHvdc hvdc : hvdcs) {
-            hvdc.updateState();
-        }
         for (LfBus bus : busesById.values()) {
             bus.updateState(parameters);
             for (LfGenerator generator : bus.getGenerators()) {
@@ -313,6 +310,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
         for (LfBranch branch : branches) {
             branch.updateState(parameters);
+        }
+        for (LfHvdc hvdc : hvdcs) {
+            hvdc.updateState();
         }
 
         stopwatch.stop();
@@ -339,8 +339,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
-        bus.getVoltageControl().ifPresent(vc -> {
-            if (bus.isVoltageControlEnabled()) {
+        bus.getGeneratorVoltageControl().ifPresent(vc -> {
+            if (bus.isGeneratorVoltageControlEnabled()) {
                 try {
                     if (vc.getControlledBus() != bus) {
                         jsonGenerator.writeNumberField("remoteControlTargetBus", vc.getControlledBus().getNum());
@@ -391,12 +391,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
-        branch.getDiscretePhaseControl().filter(dpc -> branch.isPhaseController()).ifPresent(dpc -> {
+        branch.getPhaseControl().filter(dpc -> branch.isPhaseController()).ifPresent(dpc -> {
             try {
                 jsonGenerator.writeFieldName("discretePhaseControl");
                 jsonGenerator.writeStartObject();
-                jsonGenerator.writeStringField("controller", dpc.getController().getId());
-                jsonGenerator.writeStringField("controlled", dpc.getControlled().getId());
+                jsonGenerator.writeStringField("controller", dpc.getControllerBranch().getId());
+                jsonGenerator.writeStringField("controlled", dpc.getControlledBranch().getId());
                 jsonGenerator.writeStringField("mode", dpc.getMode().name());
                 jsonGenerator.writeStringField("unit", dpc.getUnit().name());
                 jsonGenerator.writeStringField("controlledSide", dpc.getControlledSide().name());
@@ -518,6 +518,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             for (LfBranch branch : branches) {
                 branch.setMinZ(lowImpedanceThreshold);
             }
+        } else {
+            // zero impedance controller phase shifter is not supported
+            branches.stream()
+                    .filter(LfBranch::isPhaseController)
+                    .forEach(branch -> branch.setMinZ(lowImpedanceThreshold));
         }
     }
 
@@ -525,7 +530,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         if (!dc) {
             boolean hasAtLeastOneBusVoltageControlled = false;
             for (LfBus bus : busesByIndex) {
-                if (bus.isVoltageControlled()) {
+                if (bus.isGeneratorVoltageControlled()) {
                     hasAtLeastOneBusVoltageControlled = true;
                     break;
                 }
@@ -660,15 +665,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         for (LfBranch branch : controllerBranches) {
             var voltageControl = branch.getVoltageControl().orElseThrow();
             LfBus notControlledSide;
-            if (voltageControl.getControlled() == branch.getBus1()) {
+            if (voltageControl.getControlledBus() == branch.getBus1()) {
                 notControlledSide = branch.getBus2();
-            } else if (voltageControl.getControlled() == branch.getBus2()) {
+            } else if (voltageControl.getControlledBus() == branch.getBus2()) {
                 notControlledSide = branch.getBus1();
             } else {
                 continue;
             }
             boolean noPvBusesInComponent = componentNoPVBusesMap.computeIfAbsent(getConnectivity().getComponentNumber(notControlledSide),
-                k -> getConnectivity().getConnectedComponent(notControlledSide).stream().noneMatch(LfBus::isVoltageControlled));
+                k -> getConnectivity().getConnectedComponent(notControlledSide).stream().noneMatch(LfBus::isGeneratorVoltageControlled));
             if (noPvBusesInComponent) {
                 branch.setVoltageControlEnabled(false);
                 LOGGER.trace("Transformer {} voltage control has been disabled because no PV buses on not controlled side connected component",

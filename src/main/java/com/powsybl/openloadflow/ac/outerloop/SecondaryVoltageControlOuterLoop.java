@@ -4,16 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.OuterLoopContext;
+import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
@@ -42,13 +42,13 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     }
 
     private static boolean isValid(LfBus bus) {
-        return !bus.isDisabled() && bus.isVoltageControlEnabled();
+        return !bus.isDisabled() && bus.isGeneratorVoltageControlEnabled();
     }
 
     private static List<LfBus> getControllerBuses(LfBus controlledBus) {
-        return controlledBus.getVoltageControl()
+        return controlledBus.getGeneratorVoltageControl()
                 .orElseThrow()
-                .getControllerBuses()
+                .getControllerElements()
                 .stream().filter(SecondaryVoltageControlOuterLoop::isValid)
                 .collect(Collectors.toList());
     }
@@ -139,7 +139,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
          * Calculate controlled bus voltage to controller bus reactive power injection sensitivity.
          */
         double calculateSensiVq(LfBus controllerBus) {
-            LfBus controlledBus = controllerBus.getVoltageControl().orElseThrow().getControlledBus();
+            LfBus controlledBus = controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus();
             int controlledBusSensiColumn = busNumToSensiColumn.get(controlledBus.getNum());
 
             MutableDouble sq = new MutableDouble();
@@ -267,7 +267,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             for (LfBus controllerBus : getControllerBuses(controlledBus)) {
                 pvcDv += dq / sensiVq.getSqi(controllerBus);
             }
-            var pvc = controlledBus.getVoltageControl().orElseThrow();
+            var pvc = controlledBus.getGeneratorVoltageControl().orElseThrow();
             double newPvcTargetV = pvc.getTargetValue() + pvcDv;
             LOGGER.trace("Adjust primary voltage control target of bus '{}': {} -> {}",
                     controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),

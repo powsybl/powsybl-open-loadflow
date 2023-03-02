@@ -27,7 +27,7 @@ public final class LfDanglingLineGenerator extends AbstractLfGenerator {
     private LfDanglingLineGenerator(DanglingLine danglingLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,
                                     LfNetworkLoadingReport report, NominalVoltageMapping nominalVoltageMapping) {
         super(network, danglingLine.getGeneration().getTargetP());
-        this.danglingLineRef = new Ref<>(danglingLine);
+        this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
 
         // local control only
         if (danglingLine.getGeneration().isVoltageRegulationOn() && checkVoltageControlConsistency(parameters, report)) {

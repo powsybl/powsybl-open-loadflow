@@ -59,12 +59,14 @@ public class LfShuntImpl extends AbstractLfShunt {
     private double g;
 
     public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean voltageControlCapability,
-                       NominalVoltageMapping nominalVoltageMapping) {
+                       LfNetworkParameters parameters, NominalVoltageMapping nominalVoltageMapping) {
         // if withVoltageControl equals to true, all shunt compensators that are listed must control voltage.
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
         super(network);
-        shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream().map(Ref::new).collect(Collectors.toList());
+        shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream()
+                .map(sc -> Ref.create(sc, parameters.isCacheEnabled()))
+                .collect(Collectors.toList());
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }

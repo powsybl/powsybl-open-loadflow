@@ -20,10 +20,10 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -73,26 +73,29 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         lfParametersExt.setThrowsExceptionInCaseOfSlackDistributionFailure(false);
         OpenSecurityAnalysisParameters securityAnalysisParametersExt = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
 
+        // check actions validity
+        checkActions(network, actions);
+
+        // try for find all switches to be operated as actions.
+        Set<Switch> allSwitchesToOpen = new HashSet<>();
+        Set<Switch> allSwitchesToClose = new HashSet<>();
+        findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
+
         // load contingencies
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
 
         NominalVoltageMapping nominalVoltageMapping = SimpleNominalVoltageMapping.create(network, lfParametersExt.getNominalVoltagePerUnitResolution());
 
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
-        Set<Switch> allSwitchesToOpen = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen,
-                lfParameters.isShuntCompensatorVoltageControlOn(), lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isHvdcAcEmulation(), securityAnalysisParametersExt.isContingencyPropagation(),
-                nominalVoltageMapping);
+                allSwitchesToClose, securityAnalysisParametersExt.isContingencyPropagation(), lfParameters.isShuntCompensatorVoltageControlOn(),
+                lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
+                lfParameters.isHvdcAcEmulation(), nominalVoltageMapping);
 
-        // check actions validity
-        checkActions(network, actions);
-
-        // try for find all switches to be operated as actions.
-        Set<Switch> allSwitchesToClose = new HashSet<>();
-        findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
+        acParameters.getNetworkParameters()
+                .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, nominalVoltageMapping, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {

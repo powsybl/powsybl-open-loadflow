@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.ac.nr;
 
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.Vectors;
 import net.jafama.FastMath;
 
@@ -30,7 +33,7 @@ public class DefaultNewtonRaphsonStoppingCriteria implements NewtonRaphsonStoppi
     }
 
     @Override
-    public TestResult test(double[] fx) {
+    public TestResult test(double[] fx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // calculate norm L2 of equations mismatch vector
         double norm = Vectors.norm2(fx);
         boolean stop = norm < FastMath.sqrt(convEpsPerEq * convEpsPerEq * fx.length);

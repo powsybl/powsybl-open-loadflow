@@ -28,7 +28,7 @@ public class LfSwitch extends AbstractLfBranch {
     public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch,
                     LfNetworkParameters parameters, NominalVoltageMapping nominalVoltageMapping) {
         super(network, bus1, bus2, new SimplePiModel(), parameters, nominalVoltageMapping);
-        this.switchRef = new Ref<>(aSwitch);
+        this.switchRef = Ref.create(aSwitch, parameters.isCacheEnabled());
     }
 
     private Switch getSwitch() {
@@ -46,7 +46,7 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public boolean hasPhaseControlCapability() {
+    public boolean hasPhaseControllerCapability() {
         return false;
     }
 

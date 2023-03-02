@@ -47,7 +47,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, LfNetworkParameters parameters,
                                        LfNetworkLoadingReport report, NominalVoltageMapping nominalVoltageMapping) {
         super(network, 0);
-        this.svcRef = new Ref<>(svc);
+        this.svcRef = Ref.create(svc, parameters.isCacheEnabled());
         this.nominalV = nominalVoltageMapping.get(svc.getTerminal());
         this.reactiveLimits = new MinMaxReactiveLimits() {
 

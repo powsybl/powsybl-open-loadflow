@@ -26,7 +26,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     protected LfDanglingLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, DanglingLine danglingLine,
                                    LfNetworkParameters parameters, NominalVoltageMapping nominalVoltageMapping) {
         super(network, bus1, bus2, piModel, parameters, nominalVoltageMapping);
-        this.danglingLineRef = new Ref<>(danglingLine);
+        this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
     }
 
     public static LfDanglingLineBranch create(DanglingLine danglingLine, LfNetwork network, LfBus bus1, LfBus bus2,
@@ -62,7 +62,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public boolean hasPhaseControlCapability() {
+    public boolean hasPhaseControllerCapability() {
         return false;
     }
 
