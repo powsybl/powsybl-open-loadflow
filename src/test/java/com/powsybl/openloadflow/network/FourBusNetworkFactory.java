@@ -70,11 +70,7 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         TwoWindingsTransformer twt = createTransformer(network, "test_s", b2, b3, "l23", 0.1f, 1d);
         twt.newPhaseTapChanger().setTapPosition(0)
            .beginStep()
-           .setR(0)
            .setX(0.1f)
-           .setG(0)
-           .setB(0)
-           .setRho(1)
            .setAlpha(1)
            .endStep()
            .add();

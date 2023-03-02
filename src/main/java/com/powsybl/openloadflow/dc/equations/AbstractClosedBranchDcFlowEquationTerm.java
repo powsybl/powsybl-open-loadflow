@@ -65,7 +65,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
         Objects.requireNonNull(dx);
         double dph1 = dx.get(ph1Var.getRow(), column);
         double dph2 = dx.get(ph2Var.getRow(), column);
-        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : element.getPiModel().getA1();
+        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : 0;
         return calculateSensi(dph1, dph2, da1);
     }
 

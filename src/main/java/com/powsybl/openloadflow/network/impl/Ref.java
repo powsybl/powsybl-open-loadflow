@@ -6,21 +6,14 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import java.lang.ref.WeakReference;
-import java.util.Objects;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class Ref<T> {
+public interface Ref<T> {
 
-    private final WeakReference<T> value;
+    T get();
 
-    public Ref(T identifiable) {
-        this.value = new WeakReference<>(Objects.requireNonNull(identifiable));
-    }
-
-    public T get() {
-        return Objects.requireNonNull(value.get(), "Reference has been garbage collected");
+    static <T> Ref<T> create(T identifiable, boolean cacheEnabled) {
+        return cacheEnabled ? new WeakRef<>(identifiable) : new StrongRef<>(identifiable);
     }
 }
