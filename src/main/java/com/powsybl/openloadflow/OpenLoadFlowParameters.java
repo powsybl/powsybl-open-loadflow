@@ -96,8 +96,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final double DEFAULT_NOMINAL_VOLTAGE_PER_UNIT_RESOLUTION = 0.1;
 
-    public static final String SLACK_BUS_SELECTION_PARAM_NAME = "slackBusSelectionMode";
-
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
 
     public static final String THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME = "throwsExceptionInCaseOfSlackDistributionFailure";
