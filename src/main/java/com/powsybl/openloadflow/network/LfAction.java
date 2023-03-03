@@ -103,9 +103,34 @@ public final class LfAction {
             case LoadAction.NAME:
                 return create((LoadAction) action, lfNetwork, network, breakers);
 
+            case HvdcAction.NAME:
+                return create((HvdcAction) action, lfNetwork);
+
             default:
                 throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         }
+    }
+
+    private static Optional<LfAction> create(HvdcAction action, LfNetwork lfNetwork) {
+        // as a first approach, we only support an action that switches an hvdc operated in AC emulation into an active power
+        // set point operation mode.
+        LfHvdc lfHvdc = lfNetwork.getHvdcById(action.getHvdcId());
+        if (lfHvdc != null) {
+            if (action.isAcEmulationEnabled()) { // the operation mode remains AC emulation.
+                if (action.getP0().isPresent()) {
+                    // TODO, add setter and listener
+                } else if (action.getDroop().isPresent()) {
+                    // TODO, add setter and listener
+                } else {
+                    throw new UnsupportedOperationException("Hvdc action: line in AC emulation, only P0 or droop can be updated.");
+                }
+            } else { // the operation mode changes from AC emulation to fixed active power set point.
+                lfHvdc.setDisabled(true);
+                lfHvdc.getConverterStation1().setTargetP(-lfHvdc.getP1().eval());
+                lfHvdc.getConverterStation2().setTargetP(-lfHvdc.getP2().eval());
+            }
+        }
+        return Optional.empty(); // could be in another component or not operated in AC emulation
     }
 
     private static Optional<LfAction> create(LoadAction action, LfNetwork lfNetwork, Network network, boolean breakers) {

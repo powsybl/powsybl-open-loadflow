@@ -2433,4 +2433,33 @@ class OpenSecurityAnalysisTest {
         assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
         assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
     }
+
+    @Test
+    void testHvdcAction() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(Contingency.line("l12"));
+        contingencies.add(Contingency.line("l46"));
+        contingencies.add(Contingency.generator("g1"));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Action> actions = List.of(HvdcAction.activateActivePowerSetpointMode("action", "hvdc34"));
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("l12"), new TrueCondition(), List.of("action")),
+                                                            new OperatorStrategy("strategy2", ContingencyContext.specificContingency("l46"), new TrueCondition(), List.of("action")),
+                                                            new OperatorStrategy("strategy3", ContingencyContext.specificContingency("g1"), new TrueCondition(), List.of("action")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
+    }
 }
