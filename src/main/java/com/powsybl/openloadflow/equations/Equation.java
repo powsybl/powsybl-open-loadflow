@@ -36,6 +36,8 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private final List<EquationTerm<V, E>> terms = new ArrayList<>();
 
+    private final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+
     Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
         this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
@@ -81,6 +83,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
                     + term.getEquation());
         }
         terms.add(term);
+        for (Variable<V> v : term.getVariables()) {
+            termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
+                    .add(term);
+        }
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
         equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
@@ -97,6 +103,10 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     public List<EquationTerm<V, E>> getTerms() {
         return terms;
+    }
+
+    public Map<Variable<V>, List<EquationTerm<V, E>>> getTermsByVariable() {
+        return termsByVariable;
     }
 
     @Override
