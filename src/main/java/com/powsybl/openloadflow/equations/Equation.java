@@ -38,6 +38,12 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
 
     private final Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
+    /**
+     * Element index of a two dimensions matrix (equations * variables) indexed by variable index (order of the variable
+     * in {@link @termsByVariable}.
+     */
+    private int[] matrixElementIndexes;
+
     Equation(int elementNum, E type, EquationSystem<V, E> equationSystem) {
         this.elementNum = elementNum;
         this.type = Objects.requireNonNull(type);
@@ -87,6 +93,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
             termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
                     .add(term);
         }
+        matrixElementIndexes = null;
         term.setEquation(this);
         equationSystem.addEquationTerm(term);
         equationSystem.notifyEquationTermChange(term, EquationTermEventType.EQUATION_TERM_ADDED);
@@ -121,6 +128,37 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
             }
         }
         return value;
+    }
+
+    interface DerHandler<V extends Enum<V> & Quantity> {
+
+        int onDer(Variable<V> variable, double value, int matrixElementIndex);
+    }
+
+    public void der(DerHandler<V> handler) {
+        Objects.requireNonNull(handler);
+        int variableIndex = 0;
+        for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
+            Variable<V> variable = e.getKey();
+            int row = variable.getRow();
+            if (row != -1) {
+                double value = 0;
+                for (EquationTerm<V, E> term : e.getValue()) {
+                    // create a derivative for all terms including de-activated ones because could be reactivated
+                    // at jacobian update stage without any equation or variable index change
+                    if (term.isActive()) {
+                        value += term.der(variable);
+                    }
+                }
+                int oldMatrixElementIndex = matrixElementIndexes == null ? -1 : matrixElementIndexes[variableIndex];
+                int matrixElementIndex = handler.onDer(variable, value, oldMatrixElementIndex);
+                if (matrixElementIndexes == null) {
+                    matrixElementIndexes = new int[termsByVariable.size()];
+                }
+                matrixElementIndexes[variableIndex] = matrixElementIndex;
+                variableIndex++;
+            }
+        }
     }
 
     public double rhs() {
