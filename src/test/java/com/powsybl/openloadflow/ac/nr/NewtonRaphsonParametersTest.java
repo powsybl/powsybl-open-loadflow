@@ -19,7 +19,7 @@ class NewtonRaphsonParametersTest {
     @Test
     void test() {
         NewtonRaphsonParameters parameters = new NewtonRaphsonParameters();
-        assertEquals(20, parameters.getMaxIterations());
+        assertEquals(15, parameters.getMaxIterations());
         parameters.setMaxIterations(40);
         assertEquals(40, parameters.getMaxIterations());
         try {

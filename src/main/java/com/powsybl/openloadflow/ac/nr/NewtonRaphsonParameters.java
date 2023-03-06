@@ -13,7 +13,7 @@ import java.util.Objects;
  */
 public class NewtonRaphsonParameters {
 
-    public static final int DEFAULT_MAX_ITERATIONS = 20;
+    public static final int DEFAULT_MAX_ITERATIONS = 15;
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
     public static final StateVectorScalingMode DEFAULT_STATE_VECTOR_SCALING_MODE = StateVectorScalingMode.NONE;
