@@ -130,14 +130,13 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private void updateLu(boolean allowIncrementalUpdate) {
         if (lu != null) {
-            lu.close();
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
+            lu.update(allowIncrementalUpdate);
+
+            LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         }
         lu = null;
-    }
-
-    private void initMatrix() {
-        initDer();
-        clearLu();
     }
 
     private void updateValues(boolean allowIncrementalUpdate) {
