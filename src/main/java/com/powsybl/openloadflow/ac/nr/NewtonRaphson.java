@@ -35,8 +35,6 @@ public class NewtonRaphson {
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-    private int cumulatedIterations = 0;
-
     private final JacobianMatrix<AcVariableType, AcEquationType> j;
 
     private final TargetVector<AcVariableType, AcEquationType> targetVector;
@@ -111,7 +109,6 @@ public class NewtonRaphson {
             return null;
         } finally {
             iterations.increment();
-            cumulatedIterations++;
         }
     }
 
@@ -246,6 +243,6 @@ public class NewtonRaphson {
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new NewtonRaphsonResult(status, iterations.getValue(), cumulatedIterations, slackBusActivePowerMismatch);
+        return new NewtonRaphsonResult(status, iterations.getValue(), slackBusActivePowerMismatch);
     }
 }

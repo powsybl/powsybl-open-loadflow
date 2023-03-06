@@ -17,12 +17,10 @@ import com.powsybl.openloadflow.util.PerUnit;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new AcLoadFlowResult(network, 0, false, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, Double.NaN);
+        return new AcLoadFlowResult(network, 0, 0, NewtonRaphsonStatus.NO_CALCULATION, Double.NaN, Double.NaN);
     }
 
     private final int outerLoopIterations;
-
-    private final boolean maxOuterLoopIterationsReached;
 
     private final int newtonRaphsonIterations;
 
@@ -30,12 +28,11 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     private final double distributedActivePower;
 
-    public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean maxOuterLoopIterationsReached,
-                            int newtonRaphsonIterations, NewtonRaphsonStatus newtonRaphsonStatus,
-                            double slackBusActivePowerMismatch, double distributedActivePower) {
+    public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int newtonRaphsonIterations,
+                            NewtonRaphsonStatus newtonRaphsonStatus, double slackBusActivePowerMismatch,
+                            double distributedActivePower) {
         super(network, slackBusActivePowerMismatch);
         this.outerLoopIterations = outerLoopIterations;
-        this.maxOuterLoopIterationsReached = maxOuterLoopIterationsReached;
         this.newtonRaphsonIterations = newtonRaphsonIterations;
         this.newtonRaphsonStatus = newtonRaphsonStatus;
         this.distributedActivePower = distributedActivePower;
@@ -43,10 +40,6 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public int getOuterLoopIterations() {
         return outerLoopIterations;
-    }
-
-    public boolean isMaxOuterLoopIterationsReached() {
-        return maxOuterLoopIterationsReached;
     }
 
     public int getNewtonRaphsonIterations() {
@@ -64,7 +57,6 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
     @Override
     public String toString() {
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
-                + ", maxOuterLoopIterationsReached=" + maxOuterLoopIterationsReached
                 + ", newtonRaphsonIterations=" + newtonRaphsonIterations
                 + ", newtonRaphsonStatus=" + newtonRaphsonStatus
                 + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB

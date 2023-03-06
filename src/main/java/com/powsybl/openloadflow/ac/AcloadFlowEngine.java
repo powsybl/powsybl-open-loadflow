@@ -20,11 +20,14 @@ import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -50,10 +53,12 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         private NewtonRaphsonResult lastNrResult;
 
+        private final Map<String, MutableInt> outerLoopIterationByType = new HashMap<>();
+
         // outer loop iteration count
         private int outerLoopIterations = 0;
 
-        private boolean maxOuterLoopIterationsReached = false;
+        private MutableInt cumulatedNrIterations;
     }
 
     private void runOuterLoop(OuterLoop outerLoop, OuterLoopContextImpl outerLoopContext, NewtonRaphson newtonRaphson, RunningContext runningContext) {
@@ -61,10 +66,11 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         // for each outer loop re-run Newton-Raphson until stabilization
         OuterLoopStatus outerLoopStatus;
-        int thisOuterLoopIteration = 0; // local iteration
         do {
+            MutableInt localOuterLoopIteration = runningContext.outerLoopIterationByType.computeIfAbsent(outerLoop.getType(), k -> new MutableInt());
+
             // check outer loop status
-            outerLoopContext.setIteration(thisOuterLoopIteration);
+            outerLoopContext.setIteration(localOuterLoopIteration.getValue());
             outerLoopContext.setLastNewtonRaphsonResult(runningContext.lastNrResult);
             outerLoopContext.setAcLoadFlowContext(context);
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
@@ -76,15 +82,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 // if not yet stable, restart Newton-Raphson
                 runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer());
 
+                runningContext.cumulatedNrIterations.add(runningContext.lastNrResult.getIterations());
                 runningContext.outerLoopIterations++;
-                if (runningContext.outerLoopIterations >= context.getParameters().getMaxOuterLoopIterations()) {
-                    runningContext.maxOuterLoopIterationsReached = true;
-                }
-                thisOuterLoopIteration++;
+
+                localOuterLoopIteration.increment();
             }
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
                 && runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED
-                && !runningContext.maxOuterLoopIterationsReached);
+                && runningContext.outerLoopIterations < context.getParameters().getMaxOuterLoopIterations());
     }
 
     @Override
@@ -121,13 +126,15 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         runningContext.lastNrResult = newtonRaphson.run(voltageInitializer);
         double initialSlackBusActivePowerMismatch = runningContext.lastNrResult.getSlackBusActivePowerMismatch();
 
+        runningContext.cumulatedNrIterations = new MutableInt(runningContext.lastNrResult.getIterations());
+
         // continue with outer loops only if initial Newton-Raphson succeed
         if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
 
             // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
-            int oldCumulatedIterations;
+            int oldCumulatedNrIterations;
             do {
-                oldCumulatedIterations = runningContext.lastNrResult.getCumulatedIterations();
+                oldCumulatedNrIterations = runningContext.cumulatedNrIterations.getValue();
 
                 // outer loops are nested: inner most loop first in the list, outer most loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
@@ -136,13 +143,13 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                     // continue with next outer loop only if last Newton-Raphson succeed
                     // and we have not reach max number of outer loop iteration
                     if (runningContext.lastNrResult.getStatus() != NewtonRaphsonStatus.CONVERGED
-                            || runningContext.maxOuterLoopIterationsReached) {
+                            || runningContext.outerLoopIterations >= context.getParameters().getMaxOuterLoopIterations()) {
                         break;
                     }
                 }
-            } while (runningContext.lastNrResult.getCumulatedIterations() > oldCumulatedIterations
+            } while (runningContext.cumulatedNrIterations.getValue() > oldCumulatedNrIterations
                     && runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED
-                    && !runningContext.maxOuterLoopIterationsReached);
+                    && runningContext.outerLoopIterations < context.getParameters().getMaxOuterLoopIterations());
         }
 
         // outer loops finalization (in reverse order to allow correct cleanup)
@@ -154,8 +161,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
                                                        runningContext.outerLoopIterations,
-                                                       runningContext.maxOuterLoopIterationsReached,
-                                                       runningContext.lastNrResult.getCumulatedIterations(),
+                                                       runningContext.cumulatedNrIterations.getValue(),
                                                        runningContext.lastNrResult.getStatus(),
                                                        runningContext.lastNrResult.getSlackBusActivePowerMismatch(),
                                                        initialSlackBusActivePowerMismatch - runningContext.lastNrResult.getSlackBusActivePowerMismatch());

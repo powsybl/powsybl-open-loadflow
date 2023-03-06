@@ -15,16 +15,13 @@ public class NewtonRaphsonResult {
 
     private final int iterations;
 
-    private final int cumulatedIterations;
-
     private final NewtonRaphsonStatus status;
 
     private final double slackBusActivePowerMismatch;
 
-    public NewtonRaphsonResult(NewtonRaphsonStatus status, int iterations, int cumulatedIterations, double slackBusActivePowerMismatch) {
+    public NewtonRaphsonResult(NewtonRaphsonStatus status, int iterations, double slackBusActivePowerMismatch) {
         this.status = Objects.requireNonNull(status);
         this.iterations = iterations;
-        this.cumulatedIterations = cumulatedIterations;
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
     }
 
@@ -34,10 +31,6 @@ public class NewtonRaphsonResult {
 
     public int getIterations() {
         return iterations;
-    }
-
-    public int getCumulatedIterations() {
-        return cumulatedIterations;
     }
 
     public double getSlackBusActivePowerMismatch() {

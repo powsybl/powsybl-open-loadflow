@@ -11,7 +11,7 @@
       + Outer loop Voltage monitoring
       + Outer loop Reactive limits
       + Outer loop Distributed slack on generation
-         Iteration 0: already balanced
+         Iteration 1: already balanced
       + Outer loop Voltage monitoring
       + Outer loop Reactive limits
   + Sensitivity analysis on network 'sim1'
