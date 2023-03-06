@@ -136,7 +136,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
             LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
         }
-        lu = null;
     }
 
     private void updateValues(boolean allowIncrementalUpdate) {
