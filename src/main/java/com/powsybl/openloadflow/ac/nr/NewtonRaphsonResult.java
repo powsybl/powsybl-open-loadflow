@@ -20,6 +20,9 @@ public class NewtonRaphsonResult {
     private final double slackBusActivePowerMismatch;
 
     public NewtonRaphsonResult(NewtonRaphsonStatus status, int iterations, double slackBusActivePowerMismatch) {
+        if (iterations < 0) {
+            throw new IllegalArgumentException("Invalid iteration value: " + iterations);
+        }
         this.status = Objects.requireNonNull(status);
         this.iterations = iterations;
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
