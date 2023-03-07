@@ -134,7 +134,7 @@ class LfBusImplTest {
 
         LfNetworkParameters parameters = new LfNetworkParameters()
                 .setBreakers(true);
-        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, parameters, true, null);
+        LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, parameters, true);
         LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
         lfBus.addStaticVarCompensator(svc1, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc2, parameters, lfNetworkLoadingReport);

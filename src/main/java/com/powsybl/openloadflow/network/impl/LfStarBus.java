@@ -6,13 +6,11 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -22,13 +20,11 @@ public class LfStarBus extends AbstractLfBus {
     private final Ref<ThreeWindingsTransformer> t3wtRef;
 
     private final double nominalV;
-    private final Country country;
 
-    public LfStarBus(LfNetwork network, ThreeWindingsTransformer t3wt, Country country) {
+    public LfStarBus(LfNetwork network, ThreeWindingsTransformer t3wt) {
         super(network, Networks.getPropertyV(t3wt), Networks.getPropertyAngle(t3wt), false);
         this.t3wtRef = new Ref<>(t3wt);
         nominalV = t3wt.getRatedU0();
-        this.country = country;
     }
 
     private ThreeWindingsTransformer getT3wt() {
@@ -71,10 +67,5 @@ public class LfStarBus extends AbstractLfBus {
         Networks.setPropertyAngle(t3wt, angle);
 
         super.updateState(parameters);
-    }
-
-    @Override
-    public Optional<Country> getCountry() {
-        return Optional.ofNullable(country);
     }
 }

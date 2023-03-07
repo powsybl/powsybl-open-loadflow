@@ -166,5 +166,7 @@ public interface LfBus extends LfElement {
      */
     double getMismatchP();
 
-    Optional<Country> getCountry();
+    default Optional<Country> getCountry() {
+        return Optional.empty();
+    }
 }

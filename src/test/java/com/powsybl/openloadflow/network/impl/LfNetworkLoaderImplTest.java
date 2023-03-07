@@ -118,17 +118,13 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         network = ThreeWindingsTransformerNetworkFactory.create();
         ThreeWindingsTransformer transformer = network.getThreeWindingsTransformer("3WT");
         assertNotNull(transformer);
-        VoltageLevel voltageLevelLeg1 = transformer.getLeg1().getTerminal().getVoltageLevel();
-
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         assertEquals(1, lfNetworks.size());
 
         LfNetwork mainNetwork = lfNetworks.get(0);
         LfBus lfStarBus = mainNetwork.getBusById("3WT_BUS0");
         assertTrue(lfStarBus instanceof LfStarBus);
-        assertTrue(lfStarBus.getCountry().isPresent());
-        assertEquals(Country.FR, lfStarBus.getCountry().get());
-        assertEquals(voltageLevelLeg1.getId(), lfStarBus.getVoltageLevelId());
+        assertTrue(lfStarBus.getCountry().isEmpty());
     }
 
     @Test

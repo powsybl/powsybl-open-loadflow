@@ -6,14 +6,12 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -23,10 +21,9 @@ public class LfDanglingLineBus extends AbstractLfBus {
     private final Ref<DanglingLine> danglingLineRef;
 
     private final double nominalV;
-    private final Country country;
 
     public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, LfNetworkParameters parameters,
-                             LfNetworkLoadingReport report, Country country) {
+                             LfNetworkLoadingReport report) {
         super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine), false);
         this.danglingLineRef = new Ref<>(danglingLine);
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
@@ -36,7 +33,6 @@ public class LfDanglingLineBus extends AbstractLfBus {
         if (generation != null) {
             add(LfDanglingLineGenerator.create(danglingLine, network, getId(), parameters, report));
         }
-        this.country = country;
     }
 
     private DanglingLine getDanglingLine() {
@@ -79,10 +75,5 @@ public class LfDanglingLineBus extends AbstractLfBus {
         Networks.setPropertyAngle(danglingLine, angle);
 
         super.updateState(parameters);
-    }
-
-    @Override
-    public Optional<Country> getCountry() {
-        return Optional.ofNullable(country);
     }
 }
