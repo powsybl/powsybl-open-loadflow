@@ -158,10 +158,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoop.cleanup(outerLoopContext);
         }
 
+        OuterLoopStatus outerLoopFinalStatus = runningContext.cumulatedOuterLoopIterations < context.getParameters().getMaxOuterLoopIterations()
+                ? OuterLoopStatus.STABLE : OuterLoopStatus.UNSTABLE;
+
         AcLoadFlowResult result = new AcLoadFlowResult(context.getNetwork(),
                                                        runningContext.cumulatedOuterLoopIterations,
                                                        runningContext.cumulatedNrIterations.getValue(),
                                                        runningContext.lastNrResult.getStatus(),
+                                                       outerLoopFinalStatus,
                                                        runningContext.lastNrResult.getSlackBusActivePowerMismatch(),
                                                        initialSlackBusActivePowerMismatch - runningContext.lastNrResult.getSlackBusActivePowerMismatch());
 
