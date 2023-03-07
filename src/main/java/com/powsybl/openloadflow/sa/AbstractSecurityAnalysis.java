@@ -265,7 +265,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          LimitViolationManager preContingencyLimitViolationManager,
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                          Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
-                                                         double plausibleActivePowerLimit) {
+                                                         LoadFlowParameters.BalanceType balanceType, LfNetworkParameters networkParameters) {
         LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                 operatorStrategy.getContingencyContext().getContingencyId(), network);
 
@@ -277,7 +277,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        LfAction.apply(operatorStrategyLfActions, network, contingency, plausibleActivePowerLimit);
+        LfAction.apply(operatorStrategyLfActions, network, contingency, balanceType, networkParameters.getPlausibleActivePowerLimit());
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 

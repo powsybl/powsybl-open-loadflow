@@ -297,7 +297,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
             Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, new LfNetworkParameters());
+            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, parameters.getNetworkParameters());
             Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
 
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
@@ -312,11 +312,9 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                     if (checkCondition(operatorStrategy, context.getLimitViolationsPerContingencyId().get(propagatedContingency.getContingency().getId()))) {
                         propagatedContingency.toLfContingency(lfNetwork)
                                 .ifPresent(lfContingency -> {
-                                    lfContingency.apply(loadFlowParameters.getBalanceType());
-                                    distributedMismatch(lfNetwork, DcLoadFlowEngine.getActivePowerMismatch(lfNetwork.getBuses().stream().filter(bus -> !bus.isDisabled()).collect(Collectors.toSet())),
-                                            loadFlowParameters, openLoadFlowParameters);
-                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(),
-                                            lfActionById, createResultExtension, lfContingency, parameters.getNetworkParameters().getPlausibleActivePowerLimit());
+                                    lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
+                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
+                                            lfActionById, createResultExtension, lfContingency, parameters.getBalanceType(), parameters.getNetworkParameters());
                                     operatorStrategyResults.add(result);
                                     networkState.restore();
                                 });

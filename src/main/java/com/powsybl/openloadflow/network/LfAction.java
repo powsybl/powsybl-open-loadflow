@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
-import com.powsybl.openloadflow.network.impl.LfNetworkLoadingReport;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
@@ -318,7 +317,7 @@ public final class LfAction {
             if (!generator.isDisabled()) {
                 generator.setTargetP(generator.getTargetP() + generatorChange.getDeltaTargetP());
                 if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                        plausibleActivePowerLimit, new LfNetworkLoadingReport())) { // FIXME reporter
+                        plausibleActivePowerLimit, null)) {
                     generator.setParticipating(false);
                 }
             }

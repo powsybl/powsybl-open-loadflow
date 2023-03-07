@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfNetworkLoadingReport {
+class LfNetworkLoadingReport {
 
     int generatorsDiscardedFromVoltageControlBecauseNotStarted = 0;
 
