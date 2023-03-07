@@ -69,6 +69,8 @@ class OpenSecurityAnalysisTest {
 
     private ComputationManager computationManager;
 
+    private MatrixFactory matrixFactory;
+
     private OpenSecurityAnalysisProvider securityAnalysisProvider;
 
     private OpenLoadFlowProvider loadFlowProvider;
@@ -77,7 +79,7 @@ class OpenSecurityAnalysisTest {
     void setUp() {
         computationManager = Mockito.mock(ComputationManager.class);
         Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
         loadFlowProvider = new OpenLoadFlowProvider(matrixFactory, connectivityFactory);
@@ -1806,7 +1808,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testSecurityAnalysisWithOperatorStrategy() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -1862,7 +1863,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testSecurityAnalysisWithOperatorStrategy2() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -1918,7 +1918,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testSecurityAnalysisWithOperatorStrategy3() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -1958,7 +1957,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testWithSeveralConnectedComponents() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -1991,7 +1989,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testMetrixTutorial() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -2044,7 +2041,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testBranchOpenAtOneSideRecovery() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -2127,7 +2123,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testDcSecurityAnalysisWithOperatorStrategy() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -2273,8 +2268,8 @@ class OpenSecurityAnalysisTest {
         assertEquals(network.getBranch("S_SO_2").getTerminal2().getP(), brRel.getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
-    private void testLoadAction(boolean dc) {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
+    @Test
+    void testLoadAction() {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -2439,7 +2434,6 @@ class OpenSecurityAnalysisTest {
 
     private void testGeneratorAction(boolean dc, LoadFlowParameters.BalanceType balanceType, double deltaG1, double deltaG2,
                                      double targetPG4, double slackBusPMaxMismatch) {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -2543,7 +2537,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testActionOnGeneratorInContingency() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
