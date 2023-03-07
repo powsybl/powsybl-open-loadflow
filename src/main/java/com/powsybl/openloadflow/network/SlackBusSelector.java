@@ -27,18 +27,18 @@ public interface SlackBusSelector {
 
     static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds,
                                      double plausibleActivePowerLimit,
-                                     Set<Country> countriesToSelectSlackBus) {
+                                     Set<Country> countriesForSlackBusSelection) {
         Objects.requireNonNull(mode);
         Objects.requireNonNull(slackBusesIds);
         switch (mode) {
             case FIRST:
-                return new FirstSlackBusSelector(countriesToSelectSlackBus);
+                return new FirstSlackBusSelector(countriesForSlackBusSelection);
             case MOST_MESHED:
-                return new MostMeshedSlackBusSelector(countriesToSelectSlackBus);
+                return new MostMeshedSlackBusSelector(countriesForSlackBusSelection);
             case NAME:
                 return new NameSlackBusSelector(slackBusesIds);
             case LARGEST_GENERATOR:
-                return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit, countriesToSelectSlackBus);
+                return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit, countriesForSlackBusSelection);
             default:
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
         }
