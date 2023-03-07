@@ -41,7 +41,7 @@ public class LfBusImpl extends AbstractLfBus {
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
         super(network, v, angle, parameters.isDistributedOnConformLoad());
-        this.busRef = new Ref<>(bus);
+        this.busRef = Ref.create(bus, parameters.isCacheEnabled());
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
@@ -55,7 +55,7 @@ public class LfBusImpl extends AbstractLfBus {
     public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {
         Objects.requireNonNull(bus);
         Objects.requireNonNull(parameters);
-        return new LfBusImpl(bus, network, bus.getV(), bus.getAngle(), parameters, participating);
+        return new LfBusImpl(bus, network, bus.getV(), Math.toRadians(bus.getAngle()), parameters, participating);
     }
 
     private Bus getBus() {
@@ -95,7 +95,7 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         var bus = getBus();
-        bus.setV(v).setAngle(angle);
+        bus.setV(v).setAngle(Math.toDegrees(angle));
 
         // update slack bus
         if (slack && parameters.isWriteSlackBus()) {
@@ -114,10 +114,10 @@ public class LfBusImpl extends AbstractLfBus {
     public List<BusResult> createBusResults() {
         var bus = getBus();
         if (breakers) {
-            return List.of(new BusResult(getVoltageLevelId(), bus.getId(), v, getAngle()));
+            return List.of(new BusResult(getVoltageLevelId(), bus.getId(), v, Math.toDegrees(angle)));
         } else {
             return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
-                    .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, getAngle())).collect(Collectors.toList());
+                    .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, Math.toDegrees(angle))).collect(Collectors.toList());
         }
     }
 

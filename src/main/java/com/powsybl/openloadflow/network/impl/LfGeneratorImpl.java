@@ -34,9 +34,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP());
-        this.generatorRef = new Ref<>(generator);
+        this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
+
         // get participation factor and droop from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
@@ -49,7 +50,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             }
         }
 
-        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), parameters, report)) {
+        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
+                parameters.getPlausibleActivePowerLimit(), report)) {
             participating = false;
         }
 

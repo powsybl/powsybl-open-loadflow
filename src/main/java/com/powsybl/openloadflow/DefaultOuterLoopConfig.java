@@ -7,8 +7,8 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.*;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
+import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 
 import java.util.ArrayList;
@@ -43,6 +43,17 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
     }
 
+    private static OuterLoop createPhaseShifterControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+        switch (parametersExt.getPhaseShifterControlMode()) {
+            case CONTINUOUS_WITH_DISCRETISATION:
+                return new PhaseControlOuterLoop();
+            case INCREMENTAL:
+                return new IncrementalPhaseControlOuterLoop();
+            default:
+                throw new IllegalStateException("Unknown phase shifter control mode: " + parametersExt.getPhaseShifterControlMode());
+        }
+    }
+
     private static OuterLoop createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
         return new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch());
@@ -60,11 +71,11 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
             outerLoops.add(new MonitoringVoltageOuterLoop());
         }
         if (parameters.isUseReactiveLimits()) {
-            outerLoops.add(new ReactiveLimitsOuterLoop());
+            outerLoops.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch()));
         }
         // phase shifter control
         if (parameters.isPhaseShifterRegulationOn()) {
-            outerLoops.add(new PhaseControlOuterLoop());
+            outerLoops.add(createPhaseShifterControlOuterLoop(parametersExt));
         }
         // transformer voltage control
         if (parameters.isTransformerVoltageControlOn()) {

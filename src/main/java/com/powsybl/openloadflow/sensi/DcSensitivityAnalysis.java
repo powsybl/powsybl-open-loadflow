@@ -143,7 +143,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         .filter(element -> !elementIdsToSkip.contains(element))
                         .map(contingencyElementByBranch::get)
                         .map(ComputedContingencyElement::getLfBranch)
-                        .filter(LfBranch::hasPhaseControlCapability)
+                        .filter(LfBranch::hasPhaseControllerCapability)
                         .collect(Collectors.toSet());
                 if (lostTransformers.isEmpty()) {
                     contingenciesWithoutTransformers.add(contingency);
@@ -805,7 +805,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setReactiveLimits(false)
                 .setHvdcAcEmulation(false)
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
-                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage());
+                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
+                .setCacheEnabled(false); // force not caching as not supported in sensi analysis
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, Collections.emptySet(), reporter)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));

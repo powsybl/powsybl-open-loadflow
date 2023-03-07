@@ -5,16 +5,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.OuterLoopContext;
+import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
@@ -54,19 +54,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
         for (LfShunt shunt : getControllerShunts(context.getNetwork())) {
             shunt.getVoltageControl().ifPresent(voltageControl -> shunt.setVoltageControlEnabled(false));
             for (LfShunt.Controller lfShuntController : shunt.getControllers()) {
-                contextData.getControllersContexts().put(lfShuntController.getId(), new IncrementalContextData.ControllerContext());
+                contextData.getControllersContexts().put(lfShuntController.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
             }
-        }
-    }
-
-    private static void updateAllowedDirection(IncrementalContextData.ControllerContext controllerContext, Direction direction) {
-        if (controllerContext.getDirectionChangeCount().getValue() <= MAX_DIRECTION_CHANGE) {
-            if (!controllerContext.getAllowedDirection().equals(direction.getAllowedDirection())) {
-                // both vs increase or decrease
-                // increase vs decrease or decrease vs increase
-                controllerContext.getDirectionChangeCount().increment();
-            }
-            controllerContext.setAllowedDirection(direction.getAllowedDirection());
         }
     }
 
@@ -141,7 +130,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                             double deltaB = remainingDiffV / sensitivity;
                             Direction direction = controller.updateSectionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
                             if (direction != null) {
-                                updateAllowedDirection(controllerContext, direction);
+                                controllerContext.updateAllowedDirection(direction);
                                 remainingDiffV -= (controller.getB() - previousB) * sensitivity;
                                 hasChanged = true;
                                 status.setValue(OuterLoopStatus.UNSTABLE);
@@ -172,8 +161,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 .filter(LfBus::isShuntVoltageControlled)
                 .forEach(controlledBus -> {
                     ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
-                    double diffV = voltageControl.getTargetValue() - voltageControl.getControlled().getV();
-                    List<LfShunt> sortedControllers = voltageControl.getControllers().stream()
+                    double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();
+                    List<LfShunt> sortedControllers = voltageControl.getControllerElements().stream()
                             .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
                             .collect(Collectors.toList());
                     adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);
@@ -182,6 +171,6 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
     }
 
     protected static double getHalfTargetDeadband(ShuntVoltageControl voltageControl) {
-        return voltageControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_KV / voltageControl.getControlled().getNominalV()) / 2;
+        return voltageControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_KV / voltageControl.getControlledBus().getNominalV()) / 2;
     }
 }

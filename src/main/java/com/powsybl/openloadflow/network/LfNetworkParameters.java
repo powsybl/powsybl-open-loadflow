@@ -12,10 +12,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -41,9 +38,11 @@ public class LfNetworkParameters {
 
     public static final boolean SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE = false;
 
-    public static final List<Country> COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE = Collections.emptyList();
+    public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
 
-    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(Collections.emptySet());
+    public static final Set<Country> COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE = Collections.unmodifiableSet(EnumSet.noneOf(Country.class));
+
+    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
@@ -97,16 +96,9 @@ public class LfNetworkParameters {
 
     private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
-    private Set<Country> countriesToFilterSlackBus = Collections.emptySet();
+    private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
 
-    public Set<Country> getCountriesToFilterSlackBus() {
-        return countriesToFilterSlackBus;
-    }
-
-    public LfNetworkParameters setCountriesToFilterSlackBus(Set<Country> countries) {
-        this.countriesToFilterSlackBus = countries;
-        return this;
-    }
+    private Set<Country> countriesToFilterSlackBus = COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -361,6 +353,24 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isCacheEnabled() {
+        return cacheEnabled;
+    }
+
+    public LfNetworkParameters setCacheEnabled(boolean cacheEnabled) {
+        this.cacheEnabled = cacheEnabled;
+        return this;
+    }
+
+    public Set<Country> getCountriesToFilterSlackBus() {
+        return countriesToFilterSlackBus;
+    }
+
+    public LfNetworkParameters setCountriesToFilterSlackBus(Set<Country> countries) {
+        this.countriesToFilterSlackBus = countries;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -390,6 +400,8 @@ public class LfNetworkParameters {
                 ", maxSlackBusCount=" + maxSlackBusCount +
                 ", debugDir=" + debugDir +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
+                ", cacheEnabled=" + cacheEnabled +
+                ", countriesToFilterSlackBus=" + countriesToFilterSlackBus +
                 ')';
     }
 }

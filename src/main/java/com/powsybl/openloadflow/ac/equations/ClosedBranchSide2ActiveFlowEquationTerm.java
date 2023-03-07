@@ -37,7 +37,9 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return dp2dph1(y, v1, r1, v2, cosTheta) * dph1
                 + dp2dph2(y, v1, r1, v2, cosTheta) * dph2
                 + dp2dv1(y, r1, v2, sinTheta) * dv1
-                + dp2dv2(y, FastMath.sin(ksi), g2, v1, r1, v2, sinTheta) * dv2;
+                + dp2dv2(y, FastMath.sin(ksi), g2, v1, r1, v2, sinTheta) * dv2
+                + dp2da1(y, v1, r1, v2, cosTheta) * da1
+                + dp2dr1(y, v1, v2, sinTheta) * dr1;
     }
 
     public static double p2(double y, double sinKsi, double g2, double v1, double r1, double v2, double sinTheta) {
