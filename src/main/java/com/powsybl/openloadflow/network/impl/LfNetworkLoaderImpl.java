@@ -362,7 +362,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            Substation substation = danglingLine.getTerminal().getVoltageLevel().getNullableSubstation();
             LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
             lfNetwork.addBus(lfBus2);
             lfBuses.add(lfBus2);

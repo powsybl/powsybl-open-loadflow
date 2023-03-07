@@ -43,4 +43,9 @@ public interface SlackBusSelector {
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
         }
     }
+
+    static boolean participateToSlackBusSelection(Set<Country> countriesForSlackBusSelection, LfBus bus) {
+        return countriesForSlackBusSelection.isEmpty()
+                || bus.getCountry().map(country -> countriesForSlackBusSelection.contains(country)).orElse(false);
+    }
 }

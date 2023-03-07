@@ -19,21 +19,21 @@ import java.util.stream.Collectors;
  */
 public class FirstSlackBusSelector implements SlackBusSelector {
 
-    private final Set<Country> countriesToSelectSlackBus;
+    private final Set<Country> countriesForSlackBusSelection;
 
     public FirstSlackBusSelector() {
         this(Collections.emptySet());
     }
 
-    public FirstSlackBusSelector(Set<Country> countriesToSelectSlackBus) {
-        this.countriesToSelectSlackBus = Objects.requireNonNull(countriesToSelectSlackBus);
+    public FirstSlackBusSelector(Set<Country> countriesForSlackBusSelection) {
+        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
     }
 
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
         return new SelectedSlackBus(buses.stream()
-                .filter(bus -> this.countriesToSelectSlackBus.isEmpty() || bus.getCountry().isEmpty() ||
-                        this.countriesToSelectSlackBus.contains(bus.getCountry().get()))
+                .filter(bus -> !bus.isFictitious())
+                .filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus))
                 .limit(limit).collect(Collectors.toList()), "First bus");
     }
 }

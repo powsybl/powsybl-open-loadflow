@@ -18,15 +18,15 @@ import java.util.stream.Collectors;
 public class LargestGeneratorSlackBusSelector implements SlackBusSelector {
 
     private final double plausibleActivePowerLimit;
-    private final Set<Country> countriesToSelectSlackBus;
+    private final Set<Country> countriesForSlackBusSelection;
 
     public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit) {
         this(plausibleActivePowerLimit, Collections.emptySet());
     }
 
-    public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit, Set<Country> countriesToSelectSlackBus) {
+    public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit, Set<Country> countriesForSlackBusSelection) {
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
-        this.countriesToSelectSlackBus = Objects.requireNonNull(countriesToSelectSlackBus);
+        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
     }
 
     private static double getMaxP(LfBus bus) {
@@ -40,8 +40,8 @@ public class LargestGeneratorSlackBusSelector implements SlackBusSelector {
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
         List<LfBus> slackBuses = buses.stream()
-                .filter(bus -> this.countriesToSelectSlackBus.isEmpty() || (bus.getCountry().isPresent() &&
-                        this.countriesToSelectSlackBus.contains(bus.getCountry().get())))
+                .filter(bus -> !bus.isFictitious())
+                .filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus))
                 .filter(bus -> !bus.getGenerators().isEmpty() && bus.getGenerators().stream().noneMatch(this::isGeneratorInvalid))
                 .sorted(Comparator.comparingDouble(LargestGeneratorSlackBusSelector::getMaxP).reversed())
                 .limit(limit)

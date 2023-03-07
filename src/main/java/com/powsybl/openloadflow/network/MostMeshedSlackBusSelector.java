@@ -17,20 +17,21 @@ import org.apache.commons.math3.stat.descriptive.rank.Percentile;
  */
 public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
-    private final Set<Country> countriesToSelectSlackBus;
+    private final Set<Country> countriesForSlackBusSelection;
 
     public MostMeshedSlackBusSelector() {
         this(Collections.emptySet());
     }
 
-    public MostMeshedSlackBusSelector(Set<Country> countriesToSelectSlackBus) {
-        this.countriesToSelectSlackBus = Objects.requireNonNull(countriesToSelectSlackBus);
+    public MostMeshedSlackBusSelector(Set<Country> countriesForSlackBusSelection) {
+        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
     }
 
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
         double[] nominalVoltages = buses.stream()
                 .filter(bus -> !bus.isFictitious())
+                .filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus))
                 .map(LfBus::getNominalV).mapToDouble(Double::valueOf).toArray();
         double maxNominalV = new Percentile()
                 .withEstimationType(Percentile.EstimationType.R_3)
@@ -39,8 +40,7 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
         // select non-fictitious and most meshed bus among buses with the highest nominal voltage
         List<LfBus> slackBuses = buses.stream()
                 .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
-                .filter(bus -> this.countriesToSelectSlackBus.isEmpty() || bus.getCountry().isEmpty() ||
-                        this.countriesToSelectSlackBus.contains(bus.getCountry().get()))
+                .filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus))
                 .sorted(Comparator.comparingInt((LfBus bus) -> bus.getBranches().size())
                         .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
                 .limit(limit)
