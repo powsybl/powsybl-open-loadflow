@@ -10,7 +10,6 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoadingReport;
@@ -59,14 +58,11 @@ public final class LfAction {
 
         private final String loadId;
 
-        private final double p0;
-
         private final PowerShift powerShift;
 
-        private LoadShift(LfBus bus, String loadId, double p0, PowerShift powerShift) {
+        private LoadShift(LfBus bus, String loadId, PowerShift powerShift) {
             this.bus = bus;
             this.loadId = loadId;
-            this.p0 = p0;
             this.powerShift = powerShift;
         }
     }
@@ -156,8 +152,7 @@ public final class LfAction {
             // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
             // of P0 that could be described in a LoadDetail extension.
             PowerShift powerShift = new PowerShift(activePowerShift / PerUnit.SB, activePowerShift / PerUnit.SB, reactivePowerShift / PerUnit.SB);
-            return Optional.of(new LfAction(action.getId(), null, null, null,
-                    new LoadShift(lfBus, load.getId(), load.getP0(), powerShift), null));
+            return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(lfBus, load.getId(), powerShift), null));
         }
         return Optional.empty(); // could be in another component or in contingency.
     }
@@ -235,8 +230,7 @@ public final class LfAction {
         return enabledBranch;
     }
 
-    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LoadFlowParameters.BalanceType balanceType,
-                             double plausibleActivePowerLimit) {
+    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, double plausibleActivePowerLimit) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
@@ -245,7 +239,7 @@ public final class LfAction {
 
         // then process remaining changes of actions
         for (LfAction action : actions) {
-            action.apply(balanceType, plausibleActivePowerLimit);
+            action.apply(plausibleActivePowerLimit);
         }
     }
 
@@ -298,7 +292,7 @@ public final class LfAction {
         }
     }
 
-    public void apply(LoadFlowParameters.BalanceType balanceType, double plausibleActivePowerLimit) {
+    public void apply(double plausibleActivePowerLimit) {
         if (tapPositionChange != null) {
             LfBranch branch = tapPositionChange.getBranch();
             int tapPosition = branch.getPiModel().getTapPosition();
@@ -311,12 +305,8 @@ public final class LfAction {
             LfBus bus = loadShift.bus;
             String loadId = loadShift.loadId;
             if (!bus.getAggregatedLoads().isDisabled(loadId)) {
-                Double loadP0 = loadShift.p0;
                 PowerShift shift = loadShift.powerShift;
-                double newP0 = loadP0 / PerUnit.SB + shift.getActive();
-                double oldUpdatedP0 = LfContingency.getUpdatedLoadP0(bus, balanceType, loadP0 / PerUnit.SB, loadP0 / PerUnit.SB);
-                double newUpdatedP0 = LfContingency.getUpdatedLoadP0(bus, balanceType, newP0, newP0);
-                bus.setLoadTargetP(bus.getLoadTargetP() + newUpdatedP0 - oldUpdatedP0);
+                bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
                 bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
                 bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP()
                         + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()) * PerUnit.SB);

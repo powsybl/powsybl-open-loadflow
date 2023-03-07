@@ -52,7 +52,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         activePowerDistribution.run(buses, mismatch);
     }
 
-    private static double getActivePowerMismatch(Collection<LfBus> buses) {
+    public static double getActivePowerMismatch(Collection<LfBus> buses) {
         double mismatch = 0;
         for (LfBus b : buses) {
             mismatch += b.getGenerationTargetP() - b.getLoadTargetP();

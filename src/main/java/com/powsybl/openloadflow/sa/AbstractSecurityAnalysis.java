@@ -14,7 +14,6 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -266,7 +265,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          LimitViolationManager preContingencyLimitViolationManager,
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                          Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
-                                                         LoadFlowParameters.BalanceType balanceType, double plausibleActivePowerLimit) {
+                                                         double plausibleActivePowerLimit) {
         LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                 operatorStrategy.getContingencyContext().getContingencyId(), network);
 
@@ -278,7 +277,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        LfAction.apply(operatorStrategyLfActions, network, contingency, balanceType, plausibleActivePowerLimit);
+        LfAction.apply(operatorStrategyLfActions, network, contingency, plausibleActivePowerLimit);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
