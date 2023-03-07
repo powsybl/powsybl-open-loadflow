@@ -2045,7 +2045,7 @@ class OpenSecurityAnalysisTest {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithCurrentViolation();
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.create(MetrixTutorialSixBusesSecurityAnalysisFactory.MetrixViolations.CURRENT);
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2092,7 +2092,7 @@ class OpenSecurityAnalysisTest {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithVoltageViolation();
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.create(MetrixTutorialSixBusesSecurityAnalysisFactory.MetrixViolations.VOLTAGE);
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2136,7 +2136,7 @@ class OpenSecurityAnalysisTest {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithActivePowerViolation();
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.create(MetrixTutorialSixBusesSecurityAnalysisFactory.MetrixViolations.ACTIVE_POWER);
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2183,7 +2183,7 @@ class OpenSecurityAnalysisTest {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithApparentPowerViolation();
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.create(MetrixTutorialSixBusesSecurityAnalysisFactory.MetrixViolations.APPARENT_POWER);
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
