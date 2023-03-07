@@ -286,7 +286,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             new DcLoadFlowEngine(lfContext).run();
             NetworkState networkState = NetworkState.save(lfNetwork);
 
-            OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(context.getParameters());
+            SecurityAnalysisParameters securityAnalysisParameters = context.getParameters();
+            OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
+            LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
+            OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
+
             boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
             var preContingencyLimitViolationManager = new LimitViolationManager();
@@ -308,10 +312,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                     if (checkCondition(operatorStrategy, context.getLimitViolationsPerContingencyId().get(propagatedContingency.getContingency().getId()))) {
                         propagatedContingency.toLfContingency(lfNetwork)
                                 .ifPresent(lfContingency -> {
-                                    lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
+                                    lfContingency.apply(loadFlowParameters.getBalanceType());
                                     distributedMismatch(lfNetwork, DcLoadFlowEngine.getActivePowerMismatch(lfNetwork.getBuses().stream().filter(bus -> !bus.isDisabled()).collect(Collectors.toSet())),
-                                            context.getParameters().getLoadFlowParameters(), OpenLoadFlowParameters.get(context.getParameters().getLoadFlowParameters()));
-                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
+                                            loadFlowParameters, openLoadFlowParameters);
+                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(),
                                             lfActionById, createResultExtension, lfContingency, parameters.getBalanceType());
                                     operatorStrategyResults.add(result);
                                     networkState.restore();
