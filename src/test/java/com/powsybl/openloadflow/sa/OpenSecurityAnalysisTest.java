@@ -2045,23 +2045,7 @@ class OpenSecurityAnalysisTest {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesFactory.create();
-        network.getGenerator("SO_G2").setTargetP(680.0);
-        String[] idLines = {"NO_N_1", "NO_N_2", "S_SE_1", "S_SE_2", "S_SO_1", "S_SO_2", "SO_NO_1", "SO_NO_2", "NE_N_1", "NE_N_2", "SE_NE_1", "SE_NE_2"};
-
-        for (String idLine : idLines) {
-            network.getLine(idLine).setR(0.2);
-            network.getLine(idLine).newCurrentLimits1().setPermanentLimit(400.0).add();
-            network.getLine(idLine).newCurrentLimits2().setPermanentLimit(400.0).add();
-        }
-        String[] idSpecialLines = {"S_SO_1", "S_SO_2"};
-        for (String idLine : idSpecialLines) {
-            network.getLine(idLine).setR(0.1);
-            network.getLine(idLine).newCurrentLimits1().setPermanentLimit(350.0).add();
-            network.getLine(idLine).newCurrentLimits2().setPermanentLimit(350.0).add();
-        }
-        TwoWindingsTransformer transfo = network.getTwoWindingsTransformer("NE_NO_1");
-        transfo.setR(0.1);
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithCurrentViolation();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2076,9 +2060,9 @@ class OpenSecurityAnalysisTest {
         List<Action> actions = List.of(new SwitchAction("openSwitch", "SS1_SS1_DJ_OMN", true),
                 new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
                 new PhaseTapChangerTapPositionAction("pstChangeTap", "NE_NO_1", false, 8));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "branch_S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")),
-                new OperatorStrategy("strategy2", "branch_S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
-                new OperatorStrategy("strategy3", "branch_S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("pstChangeTap")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")),
+                new OperatorStrategy("strategy2", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
+                new OperatorStrategy("strategy3", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("pstChangeTap")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
@@ -2108,26 +2092,7 @@ class OpenSecurityAnalysisTest {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesFactory.create();
-        network.getGenerator("SO_G2").setTargetP(120.0);
-        network.getGenerator("N_G").setVoltageRegulatorOn(false).setTargetP(600.0);
-        network.getGenerator("SE_G").setVoltageRegulatorOn(false).setTargetP(50.0);
-        network.getLoad("SE_L1").setP0(1500);
-        String[] idLines = {"NO_N_1", "NO_N_2", "S_SE_1", "S_SE_2", "S_SO_1", "S_SO_2", "SO_NO_1", "SO_NO_2", "NE_N_1", "NE_N_2", "SE_NE_1", "SE_NE_2"};
-
-        for (String idLine : idLines) {
-            network.getLine(idLine).setR(0.2);
-            network.getLine(idLine).newCurrentLimits1().setPermanentLimit(1000.0).add();
-            network.getLine(idLine).newCurrentLimits2().setPermanentLimit(1000.0).add();
-        }
-        String[] idSpecialLines = {"S_SE_1", "S_SE_2", "SE_NE_1", "SE_NE_2"};
-        for (String idLine : idSpecialLines) {
-            network.getLine(idLine).setR(90);
-            network.getLine(idLine).newCurrentLimits1().setPermanentLimit(2000.0).add();
-            network.getLine(idLine).newCurrentLimits2().setPermanentLimit(2000.0).add();
-        }
-        TwoWindingsTransformer transfo = network.getTwoWindingsTransformer("NE_NO_1");
-        transfo.setR(0.1);
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithVoltageViolation();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2141,8 +2106,8 @@ class OpenSecurityAnalysisTest {
 
         List<Action> actions = List.of(new SwitchAction("openSwitch", "SEI1_SEI1_DJ_OMN", true),
                 new LineConnectionAction("openLine", "S_SE_2", true, true));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "branch_S_SE_1", new AllViolationCondition(List.of("SE_poste")), List.of("openSwitch")),
-                new OperatorStrategy("strategy2", "branch_S_SE_1", new AllViolationCondition(List.of("SE_poste")), List.of("openLine")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("branch_S_SE_1"), new AllViolationCondition(List.of("SE_poste")), List.of("openSwitch")),
+                new OperatorStrategy("strategy2", ContingencyContext.specificContingency("branch_S_SE_1"), new AllViolationCondition(List.of("SE_poste")), List.of("openLine")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
@@ -2171,23 +2136,7 @@ class OpenSecurityAnalysisTest {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesFactory.create();
-        network.getGenerator("SO_G2").setTargetP(680.0);
-        String[] idLines = {"NO_N_1", "NO_N_2", "S_SE_1", "S_SE_2", "S_SO_1", "S_SO_2", "SO_NO_1", "SO_NO_2", "NE_N_1", "NE_N_2", "SE_NE_1", "SE_NE_2"};
-
-        for (String idLine : idLines) {
-            network.getLine(idLine).setR(0.2);
-            network.getLine(idLine).newActivePowerLimits1().setPermanentLimit(300.0).add();
-            network.getLine(idLine).newActivePowerLimits2().setPermanentLimit(300.0).add();
-        }
-        String[] idSpecialLines = {"S_SO_1", "S_SO_2"};
-        for (String idLine : idSpecialLines) {
-            network.getLine(idLine).setR(0.1);
-            network.getLine(idLine).newActivePowerLimits1().setPermanentLimit(250.0).add();
-            network.getLine(idLine).newActivePowerLimits2().setPermanentLimit(250.0).add();
-        }
-        TwoWindingsTransformer transfo = network.getTwoWindingsTransformer("NE_NO_1");
-        transfo.setR(0.1);
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithActivePowerViolation();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2202,9 +2151,9 @@ class OpenSecurityAnalysisTest {
         List<Action> actions = List.of(new SwitchAction("openSwitch", "SS1_SS1_DJ_OMN", true),
                 new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
                 new PhaseTapChangerTapPositionAction("pstChangeTap", "NE_NO_1", false, 8));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "branch_S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")),
-                new OperatorStrategy("strategy2", "branch_S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
-                new OperatorStrategy("strategy3", "branch_S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("pstChangeTap")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")),
+                new OperatorStrategy("strategy2", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
+                new OperatorStrategy("strategy3", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("pstChangeTap")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
@@ -2234,23 +2183,7 @@ class OpenSecurityAnalysisTest {
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesFactory.create();
-        network.getGenerator("SO_G2").setTargetP(680.0);
-        String[] idLines = {"NO_N_1", "NO_N_2", "S_SE_1", "S_SE_2", "S_SO_1", "S_SO_2", "SO_NO_1", "SO_NO_2", "NE_N_1", "NE_N_2", "SE_NE_1", "SE_NE_2"};
-
-        for (String idLine : idLines) {
-            network.getLine(idLine).setR(0.2);
-            network.getLine(idLine).newApparentPowerLimits1().setPermanentLimit(300.0).add();
-            network.getLine(idLine).newApparentPowerLimits2().setPermanentLimit(300.0).add();
-        }
-        String[] idSpecialLines = {"S_SO_1", "S_SO_2"};
-        for (String idLine : idSpecialLines) {
-            network.getLine(idLine).setR(0.1);
-            network.getLine(idLine).newApparentPowerLimits1().setPermanentLimit(250.0).add();
-            network.getLine(idLine).newApparentPowerLimits2().setPermanentLimit(250.0).add();
-        }
-        TwoWindingsTransformer transfo = network.getTwoWindingsTransformer("NE_NO_1");
-        transfo.setR(0.1);
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithApparentPowerViolation();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2265,9 +2198,9 @@ class OpenSecurityAnalysisTest {
         List<Action> actions = List.of(new SwitchAction("openSwitch", "SS1_SS1_DJ_OMN", true),
                 new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
                 new PhaseTapChangerTapPositionAction("pstChangeTap", "NE_NO_1", false, 8));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "branch_S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")),
-                new OperatorStrategy("strategy2", "branch_S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
-                new OperatorStrategy("strategy3", "branch_S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("pstChangeTap")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")),
+                new OperatorStrategy("strategy2", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
+                new OperatorStrategy("strategy3", ContingencyContext.specificContingency("branch_S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("pstChangeTap")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
