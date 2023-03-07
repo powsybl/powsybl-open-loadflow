@@ -229,7 +229,8 @@ public final class LfAction {
         return enabledBranch;
     }
 
-    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, double plausibleActivePowerLimit) {
+    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LoadFlowParameters.BalanceType balanceType,
+                             LfNetworkParameters networkParameters) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
@@ -238,7 +239,7 @@ public final class LfAction {
 
         // then process remaining changes of actions
         for (LfAction action : actions) {
-            action.apply(plausibleActivePowerLimit);
+            action.apply(balanceType, networkParameters);
         }
     }
 
@@ -291,7 +292,7 @@ public final class LfAction {
         }
     }
 
-    public void apply(double plausibleActivePowerLimit) {
+    public void apply(LoadFlowParameters.BalanceType balanceType, LfNetworkParameters networkParameters) {
         if (tapPositionChange != null) {
             LfBranch branch = tapPositionChange.getBranch();
             int tapPosition = branch.getPiModel().getTapPosition();
@@ -304,6 +305,7 @@ public final class LfAction {
             LfBus bus = loadShift.bus;
             String loadId = loadShift.loadId;
             if (!bus.getAggregatedLoads().isDisabled(loadId)) {
+                double loadP0 = loadShift.p0;
                 PowerShift shift = loadShift.powerShift;
                 bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
                 bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
@@ -317,7 +319,7 @@ public final class LfAction {
             if (!generator.isDisabled()) {
                 generator.setTargetP(generator.getTargetP() + generatorChange.getDeltaTargetP());
                 if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
-                        plausibleActivePowerLimit, null)) {
+                        networkParameters.getPlausibleActivePowerLimit(), null)) {
                     generator.setParticipating(false);
                 }
             }

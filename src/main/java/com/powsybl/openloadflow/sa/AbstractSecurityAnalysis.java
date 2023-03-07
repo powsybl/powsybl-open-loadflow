@@ -277,7 +277,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        LfAction.apply(operatorStrategyLfActions, network, contingency, balanceType, networkParameters.getPlausibleActivePowerLimit());
+        LfAction.apply(operatorStrategyLfActions, network, contingency, balanceType, networkParameters);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
