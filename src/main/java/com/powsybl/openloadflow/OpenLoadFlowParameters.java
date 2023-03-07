@@ -15,13 +15,13 @@ import com.powsybl.commons.parameters.ParameterType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.*;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -33,6 +33,8 @@ import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -840,48 +842,52 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new LinkedHashMap<>(38);
+        map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
+        map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
+        map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
+        map.put(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, voltageRemoteControl);
+        map.put(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, lowImpedanceBranchMode);
+        map.put(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, loadPowerFactorConstant);
+        map.put(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, plausibleActivePowerLimit);
+        map.put(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, newtonRaphsonStoppingCriteriaType);
+        map.put(SLACK_BUS_P_MAX_MISMATCH_NAME, slackBusPMaxMismatch);
+        map.put(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, maxActivePowerMismatch);
+        map.put(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME, maxReactivePowerMismatch);
+        map.put(MAX_VOLTAGE_MISMATCH_PARAM_NAME, maxVoltageMismatch);
+        map.put(MAX_ANGLE_MISMATCH_PARAM_NAME, maxAngleMismatch);
+        map.put(MAX_RATIO_MISMATCH_PARAM_NAME, maxRatioMismatch);
+        map.put(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, maxSusceptanceMismatch);
+        map.put(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, voltagePerReactivePowerControl);
+        map.put(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, reactivePowerRemoteControl);
+        map.put(MAX_ITERATION_NAME, maxIteration);
+        map.put(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, newtonRaphsonConvEpsPerEq);
+        map.put(VOLTAGE_INIT_MODE_OVERRIDE_NAME, voltageInitModeOverride);
+        map.put(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, transformerVoltageControlMode);
+        map.put(SHUNT_VOLTAGE_CONTROL_MODE_NAME, shuntVoltageControlMode);
+        map.put(DC_POWER_FACTOR_NAME, dcPowerFactor);
+        map.put(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, minPlausibleTargetVoltage);
+        map.put(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, maxPlausibleTargetVoltage);
+        map.put(MIN_REALISTIC_VOLTAGE_NAME, minRealisticVoltage);
+        map.put(MAX_REALISTIC_VOLTAGE_NAME, maxRealisticVoltage);
+        map.put(REACTIVE_RANGE_CHECK_MODE_NAME, reactiveRangeCheckMode);
+        map.put(LOW_IMPEDANCE_THRESHOLD_NAME, lowImpedanceThreshold);
+        map.put(NETWORK_CACHE_ENABLED_NAME, networkCacheEnabled);
+        map.put(SVC_VOLTAGE_MONITORING_NAME, svcVoltageMonitoring);
+        map.put(STATE_VECTOR_SCALING_MODE_NAME, stateVectorScalingMode);
+        map.put(MAX_SLACK_BUS_COUNT_NAME, maxSlackBusCount);
+        map.put(DEBUG_DIR_PARAM_NAME, debugDir);
+        map.put(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, incrementalTransformerVoltageControlOuterLoopMaxTapShift);
+        map.put(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, secondaryVoltageControl);
+        map.put(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, reactiveLimitsMaxPqPvSwitch);
+        map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
+        return map;
+    }
+
     @Override
     public String toString() {
-        return "OpenLoadFlowParameters(" +
-                "slackBusSelectionMode=" + slackBusSelectionMode +
-                ", slackBusesIds=" + slackBusesIds +
-                ", throwsExceptionInCaseOfSlackDistributionFailure=" + throwsExceptionInCaseOfSlackDistributionFailure +
-                ", voltageRemoteControl=" + voltageRemoteControl +
-                ", lowImpedanceBranchMode=" + lowImpedanceBranchMode +
-                ", loadPowerFactorConstant=" + loadPowerFactorConstant +
-                ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
-                ", newtonRaphsonStoppingCriteriaType=" + newtonRaphsonStoppingCriteriaType +
-                ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
-                ", maxActivePowerMismatch=" + maxActivePowerMismatch +
-                ", maxReactivePowerMismatch=" + maxReactivePowerMismatch +
-                ", maxVoltageMismatch=" + maxVoltageMismatch +
-                ", maxAngleMismatch=" + maxAngleMismatch +
-                ", maxRatioMismatch=" + maxRatioMismatch +
-                ", maxSusceptanceMismatch=" + maxSusceptanceMismatch +
-                ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
-                ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
-                ", maxIteration=" + maxIteration +
-                ", newtonRaphsonConvEpsPerEq=" + newtonRaphsonConvEpsPerEq +
-                ", voltageInitModeOverride=" + voltageInitModeOverride +
-                ", transformerVoltageControlMode=" + transformerVoltageControlMode +
-                ", shuntVoltageControlMode=" + shuntVoltageControlMode +
-                ", dcPowerFactor=" + dcPowerFactor +
-                ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
-                ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
-                ", minRealisticVoltage=" + minRealisticVoltage +
-                ", maxRealisticVoltage=" + maxRealisticVoltage +
-                ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
-                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
-                ", networkCacheEnabled=" + networkCacheEnabled +
-                ", svcVoltageMonitoring=" + svcVoltageMonitoring +
-                ", stateVectorScalingMode=" + stateVectorScalingMode +
-                ", maxSlackBusCount=" + maxSlackBusCount +
-                ", debugDir=" + debugDir +
-                ", incrementalTransformerVoltageControlOuterLoopMaxTapShift=" + incrementalTransformerVoltageControlOuterLoopMaxTapShift +
-                ", secondaryVoltageControl=" + secondaryVoltageControl +
-                ", reactiveLimitsMaxPqPvSwitch=" + reactiveLimitsMaxPqPvSwitch +
-                ", phaseShifterControlMode=" + phaseShifterControlMode +
-                ')';
+        return "OpenLoadFlowParameters(" + toMap().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining(", ")) + ")";
     }
 
     public static OpenLoadFlowParameters get(LoadFlowParameters parameters) {
@@ -907,55 +913,26 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return create(parameters, OpenLoadFlowParameters::load);
     }
 
-    public static void logDc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        LOGGER.info("Direct current: {}", parameters.isDc());
-        LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
-        LOGGER.info("Use transformer ratio: {}", parameters.isDcUseTransformerRatio());
-        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
-        LOGGER.info("Balance type: {}", parameters.getBalanceType());
-        LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
-        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
-        LOGGER.info("DC power factor: {}", parametersExt.getDcPowerFactor());
-        LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
+    private static Map<String, Object> toMapHack(LoadFlowParameters parameters) {
+        try {
+            Method toMap = LoadFlowParameters.class.getDeclaredMethod("toMap");
+            toMap.setAccessible(true);
+            return (Map<String, Object>) toMap.invoke(parameters);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+            return Collections.emptyMap();
+        }
     }
 
     /**
      * Log parameters interesting for AC calculation
      */
     public static void logAc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        LOGGER.info("Direct current: {}", parameters.isDc());
-        LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
-        LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
-        LOGGER.info("Voltage initialization mode override: {}", parametersExt.getVoltageInitModeOverride());
-        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
-        LOGGER.info("Balance type: {}", parameters.getBalanceType());
-        LOGGER.info("Reactive limits: {}", parameters.isUseReactiveLimits());
-        LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
-        LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
-        LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
-        LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
-        LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
-        LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
-        LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
-        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
-        LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
-        LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
-        LOGGER.info("Shunt voltage control: {}", parameters.isShuntCompensatorVoltageControlOn());
-        LOGGER.info("Hvdc Ac emulation: {}", parameters.isHvdcAcEmulation());
-        LOGGER.info("Min plausible target voltage: {}", parametersExt.getMinPlausibleTargetVoltage());
-        LOGGER.info("Max plausible target voltage: {}", parametersExt.getMaxPlausibleTargetVoltage());
-        LOGGER.info("Min realistic voltage: {}", parametersExt.getMinRealisticVoltage());
-        LOGGER.info("Max realistic voltage: {}", parametersExt.getMaxRealisticVoltage());
-        LOGGER.info("Reactive range check mode: {}", parametersExt.getReactiveRangeCheckMode());
-        LOGGER.info("Network cache enabled: {}", parametersExt.isNetworkCacheEnabled());
-        LOGGER.info("Static var compensator voltage monitoring: {}", parametersExt.isSvcVoltageMonitoring());
-        LOGGER.info("State vector scaling mode: {}", parametersExt.getStateVectorScalingMode());
-        LOGGER.info("Max slack bus count: {}", parametersExt.getMaxSlackBusCount());
-        LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
-        LOGGER.info("Incremental transformer voltage control outer loop max tap shift: {}", parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
-        LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
-        LOGGER.info("Reactive limits maximum Pq Pv switch: {}", parametersExt.getReactiveLimitsMaxPqPvSwitch());
-        LOGGER.info("Phase shifter control mode: {}", parametersExt.getPhaseShifterControlMode());
+        for (var e : toMapHack(parameters).entrySet()) {
+            LOGGER.info("{}: {}", e.getKey(), e.getValue());
+        }
+        for (var e : parametersExt.toMap().entrySet()) {
+            LOGGER.info("{}: {}", e.getKey(), e.getValue());
+        }
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
