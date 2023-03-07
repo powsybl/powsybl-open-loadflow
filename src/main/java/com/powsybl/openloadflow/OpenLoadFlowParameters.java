@@ -915,6 +915,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return create(parameters, OpenLoadFlowParameters::load);
     }
 
+    /**
+     * FIXME: To remove when migrating to next core release, when toMap method will be public.
+     */
     private static Map<String, Object> toMapHack(LoadFlowParameters parameters) {
         try {
             Method toMap = LoadFlowParameters.class.getDeclaredMethod("toMap");
