@@ -31,6 +31,7 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import de.vandermeer.asciitable.AsciiTable;
+import de.vandermeer.asciitable.CWC_LongestWord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -924,22 +925,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
-    /**
-     * Log parameters interesting for AC calculation
-     */
     public static void log(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        AsciiTable at = new AsciiTable();
-        at.addRule();
-        at.addRow("Name", "Value");
-        at.addRule();
-        for (var e : toMapHack(parameters).entrySet()) {
-            at.addRow(e.getKey(), e.getValue());
-        }
-        for (var e : parametersExt.toMap().entrySet()) {
-            at.addRow(e.getKey(), Objects.toString(e.getValue(), ""));
-        }
-        at.addRule();
         if (LOGGER.isInfoEnabled()) {
+            AsciiTable at = new AsciiTable();
+            at.addRule();
+            at.addRow("Name", "Value");
+            at.addRule();
+            for (var e : toMapHack(parameters).entrySet()) {
+                at.addRow(e.getKey(), e.getValue());
+            }
+            for (var e : parametersExt.toMap().entrySet()) {
+                at.addRow(e.getKey(), Objects.toString(e.getValue(), ""));
+            }
+            at.addRule();
+            at.getRenderer().setCWC(new CWC_LongestWord());
+            at.setPaddingLeftRight(1, 1);
             LOGGER.info("Parameters:\n{}", at.render());
         }
     }
