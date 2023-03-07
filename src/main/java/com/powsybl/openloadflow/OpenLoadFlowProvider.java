@@ -234,7 +234,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             Stopwatch stopwatch = Stopwatch.createStarted();
 
             OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
-            OpenLoadFlowParameters.logAc(parameters, parametersExt);
+            OpenLoadFlowParameters.log(parameters, parametersExt);
 
             LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, parametersExt, lfReporter)
                                                       : runAc(network, parameters, parametersExt, lfReporter);

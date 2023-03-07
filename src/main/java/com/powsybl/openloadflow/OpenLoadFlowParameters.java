@@ -30,6 +30,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import de.vandermeer.asciitable.AsciiTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -926,13 +927,19 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     /**
      * Log parameters interesting for AC calculation
      */
-    public static void logAc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    public static void log(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        AsciiTable at = new AsciiTable();
+        at.addRule();
+        at.addRow("Name", "Value");
+        at.addRule();
         for (var e : toMapHack(parameters).entrySet()) {
-            LOGGER.info("{}: {}", e.getKey(), e.getValue());
+            at.addRow(e.getKey(), e.getValue());
         }
         for (var e : parametersExt.toMap().entrySet()) {
-            LOGGER.info("{}: {}", e.getKey(), e.getValue());
+            at.addRow(e.getKey(), Objects.toString(e.getValue(), ""));
         }
+        at.addRule();
+        LOGGER.info("Parameters:\n{}", at.render());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
