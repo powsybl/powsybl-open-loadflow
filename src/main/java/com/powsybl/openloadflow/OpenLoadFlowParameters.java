@@ -939,7 +939,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             at.addRow(e.getKey(), Objects.toString(e.getValue(), ""));
         }
         at.addRule();
-        LOGGER.info("Parameters:\n{}", at.render());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Parameters:\n{}", at.render());
+        }
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
