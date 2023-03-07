@@ -214,7 +214,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
         new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
-        new Parameter(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME, ParameterType.STRING_LIST, "filter countries on which the slack bus is selected", Collections.emptyList())
+        new Parameter(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME, ParameterType.STRING_LIST, "Filter countries on which the slack bus is selected", Collections.emptyList())
     );
 
     public enum VoltageInitModeOverride {
