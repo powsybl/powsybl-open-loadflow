@@ -14,10 +14,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -175,6 +172,13 @@ public class LfContingency {
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
+            bus.getSvcShunt().ifPresent(svcShunt -> {
+                if (svcShunt.getOriginalIds().get(0).equals(generator.getId())) {
+                    // it means that the generator in contingency is a static var compensator with an active stand by automaton shunt.
+                    shuntsShift.put(svcShunt, new AdmittanceShift(0, svcShunt.getB()));
+                    svcShunt.setB(0);
+                }
+            });
         }
         for (LfBus bus : generatorBuses) {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {

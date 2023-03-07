@@ -230,6 +230,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
             shuntsByIndex.add(shunt);
             shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
         });
+        bus.getSvcShunt().ifPresent(shunt -> {
+            shunt.setNum(shuntCount++);
+            shuntsByIndex.add(shunt);
+            shunt.getOriginalIds().forEach(id -> shuntsById.put(id, shunt));
+        });
         bus.getGenerators().forEach(gen -> generatorsById.put(gen.getId(), gen));
     }
 
