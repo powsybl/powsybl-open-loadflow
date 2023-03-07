@@ -92,6 +92,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         if (newTargetP != this.targetP) {
             double oldTargetP = this.targetP;
             this.targetP = newTargetP;
+            bus.invalidateGenerationTargetP();
             for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
                 listener.onGenerationActivePowerTargetChange(this, oldTargetP, newTargetP);
             }
