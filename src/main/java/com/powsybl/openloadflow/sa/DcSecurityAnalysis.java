@@ -42,8 +42,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.sa.AcSecurityAnalysis.distributedMismatch;
-
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext> {
 
     private static class DcSecurityAnalysisContext {

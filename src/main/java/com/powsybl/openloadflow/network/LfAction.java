@@ -229,8 +229,7 @@ public final class LfAction {
         return enabledBranch;
     }
 
-    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LoadFlowParameters.BalanceType balanceType,
-                             LfNetworkParameters networkParameters) {
+    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
@@ -239,7 +238,7 @@ public final class LfAction {
 
         // then process remaining changes of actions
         for (LfAction action : actions) {
-            action.apply(balanceType, networkParameters);
+            action.apply(networkParameters);
         }
     }
 
@@ -292,7 +291,7 @@ public final class LfAction {
         }
     }
 
-    public void apply(LoadFlowParameters.BalanceType balanceType, LfNetworkParameters networkParameters) {
+    public void apply(LfNetworkParameters networkParameters) {
         if (tapPositionChange != null) {
             LfBranch branch = tapPositionChange.getBranch();
             int tapPosition = branch.getPiModel().getTapPosition();
@@ -305,7 +304,6 @@ public final class LfAction {
             LfBus bus = loadShift.bus;
             String loadId = loadShift.loadId;
             if (!bus.getAggregatedLoads().isDisabled(loadId)) {
-                double loadP0 = loadShift.p0;
                 PowerShift shift = loadShift.powerShift;
                 bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
                 bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());

@@ -65,7 +65,7 @@ class LfActionTest extends AbstractConverterTest {
             PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
                     Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), true, false, false, false).get(0);
             propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
-                LfAction.apply(List.of(lfAction), lfNetwork, lfContingency, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, acParameters.getNetworkParameters());
+                LfAction.apply(List.of(lfAction), lfNetwork, lfContingency, acParameters.getNetworkParameters());
                 assertTrue(lfNetwork.getBranchById("C").isDisabled());
                 assertEquals("C", lfAction.getDisabledBranch().getId());
                 assertNull(lfAction.getEnabledBranch());
@@ -118,7 +118,7 @@ class LfActionTest extends AbstractConverterTest {
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfAction.create(generatorAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).orElseThrow();
-            lfAction.apply(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, acParameters.getNetworkParameters());
+            lfAction.apply(acParameters.getNetworkParameters());
             assertEquals(newTargetP / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
             assertEquals(genId, generatorAction.getGeneratorId());
             assertEquals(oldTargetP, network.getGenerator(genId).getTargetP());
