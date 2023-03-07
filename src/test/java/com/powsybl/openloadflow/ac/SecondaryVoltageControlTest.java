@@ -172,4 +172,26 @@ class SecondaryVoltageControlTest {
         assertVoltageEquals(142, b4);
         assertVoltageEquals(14.537, b10);
     }
+
+    @Test
+    void testOpenBranchIssue() {
+        // open branch L6-13-1 on side 2 so that a neighbor branch of B6-G is disconnected to the other side
+        network.getLine("L6-13-1").getTerminal2().disconnect();
+
+        parameters.setUseReactiveLimits(false);
+        parametersExt.setSecondaryVoltageControl(true);
+
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 14.4);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
+                                                                          new ControlUnit("B8-G"))))
+                .add();
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(14.4, b10);
+        assertVoltageEquals(13, b6);
+        assertVoltageEquals(21.97, b8);
+    }
 }
