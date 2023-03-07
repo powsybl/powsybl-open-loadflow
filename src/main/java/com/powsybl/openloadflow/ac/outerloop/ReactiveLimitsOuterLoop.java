@@ -11,7 +11,7 @@ import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.OuterLoopContext;
 import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.network.GeneratorVoltageControl;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -28,7 +28,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveLimitsOuterLoop.class);
 
     private static final Comparator<PvToPqBus> BY_NOMINAL_V_COMPARATOR = Comparator.comparingDouble(
-        pvToPqBus -> pvToPqBus.controllerBus.getVoltageControl()
+        pvToPqBus -> pvToPqBus.controllerBus.getGeneratorVoltageControl()
             .map(vc -> -vc.getControlledBus().getNominalV())
             .orElse(-pvToPqBus.controllerBus.getNominalV()));
 
@@ -116,7 +116,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
                 // switch PV -> PQ
                 controllerBus.setGenerationTargetQ(pvToPqBus.qLimit);
-                controllerBus.setVoltageControlEnabled(false);
+                controllerBus.setGeneratorVoltageControlEnabled(false);
                 // increment PV -> PQ switch counter
                 contextData.incrementPvPqSwitchCount(controllerBus.getId());
 
@@ -134,7 +134,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
         Reports.reportPvToPqBuses(reporter, pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
-        LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV}", pvToPqBuses.size(), modifiedRemainingPvBusCount);
+        LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV)", pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
         return done;
     }
@@ -167,7 +167,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
                 LOGGER.trace("Bus '{}' blocked PQ as it has reach its max number of PQ -> PV switch ({})",
                         controllerBus.getId(), pvPqSwitchCount);
             } else {
-                controllerBus.setVoltageControlEnabled(true);
+                controllerBus.setGeneratorVoltageControlEnabled(true);
                 controllerBus.setGenerationTargetQ(0);
                 pqPvSwitchCount++;
 
@@ -227,11 +227,11 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
     }
 
     private static double getBusTargetV(LfBus bus) {
-        return bus.getVoltageControl().map(VoltageControl::getTargetValue).orElse(Double.NaN);
+        return bus.getGeneratorVoltageControl().map(GeneratorVoltageControl::getTargetValue).orElse(Double.NaN);
     }
 
     private static double getBusV(LfBus bus) {
-        return bus.getVoltageControl().map(vc -> vc.getControlledBus().getV()).orElse(Double.NaN);
+        return bus.getGeneratorVoltageControl().map(vc -> vc.getControlledBus().getV()).orElse(Double.NaN);
     }
 
     @Override
@@ -242,9 +242,9 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
         List<PqToPvBus> pqToPvBuses = new ArrayList<>();
         MutableInt remainingPvBusCount = new MutableInt();
         for (LfBus bus : context.getNetwork().getBuses()) {
-            if (bus.isVoltageControlEnabled() && !bus.isDisabled()) {
+            if (bus.isGeneratorVoltageControlEnabled() && !bus.isDisabled()) {
                 checkPvBus(bus, pvToPqBuses, remainingPvBusCount);
-            } else if (bus.hasVoltageControllerCapability() && !bus.isDisabled()) {
+            } else if (bus.hasGeneratorVoltageControllerCapability() && !bus.isDisabled()) {
                 if (!bus.hasGeneratorsWithSlope()) {
                     checkPqBus(bus, pqToPvBuses);
                 } else {

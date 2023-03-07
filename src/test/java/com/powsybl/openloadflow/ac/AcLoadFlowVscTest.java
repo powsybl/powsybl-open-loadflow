@@ -227,6 +227,49 @@ class AcLoadFlowVscTest {
 
         VscConverterStation cs4 = network.getVscConverterStation("cs4");
         assertActivePowerEquals(2.0, cs4.getTerminal());
+    }
 
+    @Test
+    void testHvdcDisconnectedAtOneSide() {
+        Network network = HvdcNetworkFactory.createVsc();
+        network.getVscConverterStation("cs3").getTerminal().disconnect();
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setUseReactiveLimits(false)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        Bus bus1 = network.getBusView().getBus("vl1_0");
+        assertVoltageEquals(390, bus1);
+        assertAngleEquals(0, bus1);
+
+        Bus bus2 = network.getBusView().getBus("vl2_0");
+        assertVoltageEquals(385, bus2);
+        assertAngleEquals(0.18116, bus2);
+
+        Bus bus3 = network.getBusView().getBus("vl3_0");
+        assertVoltageEquals(Double.NaN, bus3);
+        assertAngleEquals(Double.NaN, bus3);
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-102.56, g1.getTerminal());
+        assertReactivePowerEquals(-632.700, g1.getTerminal());
+
+        VscConverterStation cs2 = network.getVscConverterStation("cs2");
+        assertActivePowerEquals(0.00, cs2.getTerminal());
+        assertReactivePowerEquals(614.750, cs2.getTerminal());
+
+        VscConverterStation cs3 = network.getVscConverterStation("cs3");
+        assertActivePowerEquals(Double.NaN, cs3.getTerminal());
+        assertReactivePowerEquals(Double.NaN, cs3.getTerminal());
+
+        Line l12 = network.getLine("l12");
+        assertActivePowerEquals(52.65, l12.getTerminal1());
+        assertReactivePowerEquals(632.700, l12.getTerminal1());
+        assertActivePowerEquals(-50.00, l12.getTerminal2());
+        assertReactivePowerEquals(-624.750, l12.getTerminal2());
     }
 }

@@ -75,17 +75,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                   JacobianMatrix<AcVariableType, AcEquationType> j) {
-            controllerBranchIndex = createControllerBranchIndex(network, controllerBranches);
+            controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
             sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, j);
-        }
-
-        private static int[] createControllerBranchIndex(LfNetwork network, List<LfBranch> controllerBranches) {
-            int[] controllerBranchIndex = new int[network.getBranches().size()];
-            for (int i = 0; i < controllerBranches.size(); i++) {
-                LfBranch controllerBranch = controllerBranches.get(i);
-                controllerBranchIndex[controllerBranch.getNum()] = i;
-            }
-            return controllerBranchIndex;
         }
 
         private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
@@ -190,7 +181,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private static double getDiffV(TransformerVoltageControl voltageControl) {
         double targetV = voltageControl.getTargetValue();
-        double v = voltageControl.getControlled().getV();
+        double v = voltageControl.getControlledBus().getV();
         return targetV - v;
     }
 
@@ -221,7 +212,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
             if (Math.abs(diffV) > halfTargetDeadband) {
                 controlledBusesOutsideOfDeadband.add(controlledBus.getId());
-                List<LfBranch> controllers = voltageControl.getControllers();
+                List<LfBranch> controllers = voltageControl.getControllerElements();
                 LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
                         controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
                 boolean adjusted;

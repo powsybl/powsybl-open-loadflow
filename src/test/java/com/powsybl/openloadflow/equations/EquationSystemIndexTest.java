@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -116,8 +115,8 @@ class EquationSystemIndexTest {
                              Pair.of(TestVariableType.C, ChangeType.ADDED)),
                       quantityAdded);
         quantityAdded.clear();
-        assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
-        assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate y
         // x = a + b
@@ -126,8 +125,8 @@ class EquationSystemIndexTest {
                              Pair.of(TestEquationType.Y, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(Set.of(x), equationSystem.getIndex().getSortedEquationsToSolve());
-        assertEquals(Set.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
+        assertEquals(List.of(x), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate y
         // x = a + b
@@ -137,8 +136,8 @@ class EquationSystemIndexTest {
                              Pair.of(TestEquationType.Y, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
-        assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate c term
         // x = a + b
@@ -147,8 +146,8 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
-        assertEquals(Set.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(a, b), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate c term
         // x = a + b
@@ -157,8 +156,8 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.C, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
-        assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // deactivate all a term
         // x = b
@@ -169,8 +168,8 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.REMOVED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
-        assertEquals(Set.of(b, c), equationSystem.getIndex().getSortedVariablesToFind());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactivate one 'a' term
         // x = a + b
@@ -179,15 +178,15 @@ class EquationSystemIndexTest {
         assertEquals(List.of(Pair.of(TestVariableType.A, ChangeType.ADDED)),
                      quantityAdded);
         quantityAdded.clear();
-        assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
-        assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
 
         // reactovate other 'a' term
         // x = a + b
         // y = a + c
         aTerm2.setActive(true);
         assertTrue(quantityAdded.isEmpty());
-        assertEquals(Set.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
-        assertEquals(Set.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
+        assertEquals(List.of(x, y), equationSystem.getIndex().getSortedEquationsToSolve());
+        assertEquals(List.of(a, b, c), equationSystem.getIndex().getSortedVariablesToFind());
     }
 }

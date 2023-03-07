@@ -150,6 +150,16 @@ public class SimplePiModel implements PiModel {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 
+    @Override
+    public Optional<Direction> updateTapPositionToExceedNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
+    @Override
+    public Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection) {
+        throw new IllegalStateException(NO_TAP_POSITION_ERROR);
+    }
+
     private void rescaleZ(double z) {
         double ksi = getKsi();
         r = z * FastMath.sin(ksi);

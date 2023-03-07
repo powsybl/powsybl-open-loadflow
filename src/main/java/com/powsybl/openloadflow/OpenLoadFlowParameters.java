@@ -90,6 +90,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final ShuntVoltageControlMode SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
 
+    public static final PhaseShifterControlMode PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE = PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -164,6 +166,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME = "ReactiveLimitsMaxPqPvSwitch";
 
+    public static final String PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME = "phaseShifterControlMode";
+
     public static final String SIMULATE_AUTOMATONS_PARAM_NAME = "simulateAutomaton";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
@@ -208,6 +212,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_ANGLE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum angle for per equation stopping criteria", MAX_ANGLE_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
+        new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
         new Parameter(SIMULATE_AUTOMATONS_PARAM_NAME, ParameterType.BOOLEAN, "Automatons simulation", LfNetworkParameters.SIMULATE_AUTOMATONS_DEFAULT_VALUE)
     );
 
@@ -226,6 +231,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum ShuntVoltageControlMode {
         WITH_GENERATOR_VOLTAGE_CONTROL,
         INCREMENTAL_VOLTAGE_CONTROL
+    }
+
+    public enum PhaseShifterControlMode {
+        CONTINUOUS_WITH_DISCRETISATION,
+        INCREMENTAL
     }
 
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE;
@@ -312,6 +322,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     private int reactiveLimitsMaxPqPvSwitch = ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV;
+
+    private PhaseShifterControlMode phaseShifterControlMode = PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE;
 
     private boolean simulateAutomatons = LfNetworkParameters.SIMULATE_AUTOMATONS_DEFAULT_VALUE;
 
@@ -688,6 +700,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public PhaseShifterControlMode getPhaseShifterControlMode() {
+        return phaseShifterControlMode;
+    }
+
+    public OpenLoadFlowParameters setPhaseShifterControlMode(PhaseShifterControlMode phaseShifterControlMode) {
+        this.phaseShifterControlMode = Objects.requireNonNull(phaseShifterControlMode);
+        return this;
+    }
+
     public boolean isSimulateAutomatons() {
         return simulateAutomatons;
     }
@@ -745,6 +766,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT))
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
+                .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
                 .setSimulateAutomatons(config.getBooleanProperty(SIMULATE_AUTOMATONS_PARAM_NAME, LfNetworkParameters.SIMULATE_AUTOMATONS_DEFAULT_VALUE)));
         return parameters;
     }
@@ -828,6 +850,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setSecondaryVoltageControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME))
                 .ifPresent(prop -> this.setReactiveLimitsMaxPqPvSwitch(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setPhaseShifterControlMode(PhaseShifterControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(SIMULATE_AUTOMATONS_PARAM_NAME))
                 .ifPresent(prop -> this.setSimulateAutomatons(Boolean.parseBoolean(prop)));
         return this;
@@ -873,6 +897,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 ", incrementalTransformerVoltageControlOuterLoopMaxTapShift=" + incrementalTransformerVoltageControlOuterLoopMaxTapShift +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", reactiveLimitsMaxPqPvSwitch=" + reactiveLimitsMaxPqPvSwitch +
+                ", phaseShifterControlMode=" + phaseShifterControlMode +
                 ", simulateAutomaton=" + simulateAutomatons +
                 ')';
     }
@@ -948,6 +973,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Incremental transformer voltage control outer loop max tap shift: {}", parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
         LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
         LOGGER.info("Reactive limits maximum Pq Pv switch: {}", parametersExt.getReactiveLimitsMaxPqPvSwitch());
+        LOGGER.info("Phase shifter control mode: {}", parametersExt.getPhaseShifterControlMode());
         LOGGER.info("Simulate automaton: {}", parametersExt.isSimulateAutomatons());
     }
 
@@ -1195,6 +1221,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() &&
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
+                extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
                 extension1.isSimulateAutomatons() == extension2.isSimulateAutomatons();
     }
 
@@ -1249,6 +1276,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift())
                     .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
+                    .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
                     .setSimulateAutomatons(extension.isSimulateAutomatons());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

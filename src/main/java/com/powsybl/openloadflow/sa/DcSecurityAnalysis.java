@@ -42,6 +42,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.sa.AcSecurityAnalysis.distributedMismatch;
+
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext> {
 
     private static class DcSecurityAnalysisContext {
@@ -227,23 +229,24 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     private List<OperatorStrategyResult> createOperatorStrategyResults(DcSecurityAnalysisContext context, List<OperatorStrategy> operatorStrategies, List<Action> actions) {
 
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(context.getParameters().getLoadFlowParameters());
-        Set<Switch> allSwitchesToOpen = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, false,
-                context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                false, false);
 
         // check actions validity
         checkActions(network, actions);
 
+        // try for find all switches to be operated as actions.
+        Set<Switch> allSwitchesToOpen = new HashSet<>();
+        Set<Switch> allSwitchesToClose = new HashSet<>();
+        findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
+
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, allSwitchesToClose, false,
+                false, context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false);
+
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
 
-        Set<Switch> allSwitchesToClose = new HashSet<>();
-        findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
-        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
-
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, context.getParameters().getLoadFlowParameters(),
                 parametersExt, matrixFactory, connectivityFactory, false);
+        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         dcParameters.getNetworkParameters()
                 .setBreakers(breakers)
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
@@ -283,14 +286,18 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             new DcLoadFlowEngine(lfContext).run();
             NetworkState networkState = NetworkState.save(lfNetwork);
 
-            OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(context.getParameters());
+            SecurityAnalysisParameters securityAnalysisParameters = context.getParameters();
+            OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
+            LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
+            OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
+
             boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
             var preContingencyLimitViolationManager = new LimitViolationManager();
             preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
             Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, false);
+            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, parameters.getNetworkParameters());
             Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
 
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
@@ -305,9 +312,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                     if (checkCondition(operatorStrategy, context.getLimitViolationsPerContingencyId().get(propagatedContingency.getContingency().getId()))) {
                         propagatedContingency.toLfContingency(lfNetwork)
                                 .ifPresent(lfContingency -> {
-                                    lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
-                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
-                                            lfActionById, createResultExtension, lfContingency, parameters.getBalanceType());
+                                    lfContingency.apply(loadFlowParameters.getBalanceType());
+                                    distributedMismatch(lfNetwork, DcLoadFlowEngine.getActivePowerMismatch(lfNetwork.getBuses().stream().filter(bus -> !bus.isDisabled()).collect(Collectors.toSet())),
+                                            loadFlowParameters, openLoadFlowParameters);
+                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(),
+                                            lfActionById, createResultExtension, lfContingency, parameters.getNetworkParameters());
                                     operatorStrategyResults.add(result);
                                     networkState.restore();
                                 });

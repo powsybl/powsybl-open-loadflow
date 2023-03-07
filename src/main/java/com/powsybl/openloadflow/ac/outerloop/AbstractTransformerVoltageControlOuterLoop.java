@@ -52,6 +52,6 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
     }
 
     protected static double getHalfTargetDeadband(TransformerVoltageControl voltageControl) {
-        return voltageControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_KV / voltageControl.getControlled().getNominalV()) / 2;
+        return voltageControl.getTargetDeadband().orElse(MIN_TARGET_DEADBAND_KV / voltageControl.getControlledBus().getNominalV()) / 2;
     }
 }
