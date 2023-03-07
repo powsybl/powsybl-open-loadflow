@@ -123,41 +123,41 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME = "maxSusceptanceMismatch";
 
-    public static final String SLACK_BUS_P_MAX_MISMATCH_NAME = "slackBusPMaxMismatch";
+    public static final String SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME = "slackBusPMaxMismatch";
 
-    public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME = "voltagePerReactivePowerControl";
+    public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME = "voltagePerReactivePowerControl";
 
-    public static final String MAX_ITERATION_NAME = "maxIteration";
+    public static final String MAX_ITERATION_PARAM_NAME = "maxIteration";
 
-    public static final String NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME = "newtonRaphsonConvEpsPerEq";
+    public static final String NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME = "newtonRaphsonConvEpsPerEq";
 
-    public static final String VOLTAGE_INIT_MODE_OVERRIDE_NAME = "voltageInitModeOverride";
+    public static final String VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME = "voltageInitModeOverride";
 
-    public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME = "transformerVoltageControlMode";
+    public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME = "transformerVoltageControlMode";
 
-    public static final String SHUNT_VOLTAGE_CONTROL_MODE_NAME = "shuntVoltageControlMode";
+    public static final String SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME = "shuntVoltageControlMode";
 
-    public static final String DC_POWER_FACTOR_NAME = "dcPowerFactor";
+    public static final String DC_POWER_FACTOR_PARAM_NAME = "dcPowerFactor";
 
-    public static final String MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME = "minPlausibleTargetVoltage";
+    public static final String MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME = "minPlausibleTargetVoltage";
 
-    public static final String MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME = "maxPlausibleTargetVoltage";
+    public static final String MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME = "maxPlausibleTargetVoltage";
 
-    public static final String MIN_REALISTIC_VOLTAGE_NAME = "minRealisticVoltage";
+    public static final String MIN_REALISTIC_VOLTAGE_PARAM_NAME = "minRealisticVoltage";
 
-    public static final String MAX_REALISTIC_VOLTAGE_NAME = "maxRealisticVoltage";
+    public static final String MAX_REALISTIC_VOLTAGE_PARAM_NAME = "maxRealisticVoltage";
 
-    public static final String REACTIVE_RANGE_CHECK_MODE_NAME = "reactiveRangeCheckMode";
+    public static final String REACTIVE_RANGE_CHECK_MODE_PARAM_NAME = "reactiveRangeCheckMode";
 
-    public static final String LOW_IMPEDANCE_THRESHOLD_NAME = "lowImpedanceThreshold";
+    public static final String LOW_IMPEDANCE_THRESHOLD_PARAM_NAME = "lowImpedanceThreshold";
 
-    public static final String NETWORK_CACHE_ENABLED_NAME = "networkCacheEnabled";
+    public static final String NETWORK_CACHE_ENABLED_PARAM_NAME = "networkCacheEnabled";
 
-    public static final String SVC_VOLTAGE_MONITORING_NAME = "svcVoltageMonitoring";
+    public static final String SVC_VOLTAGE_MONITORING_PARAM_NAME = "svcVoltageMonitoring";
 
-    public static final String STATE_VECTOR_SCALING_MODE_NAME = "stateVectorScalingMode";
+    public static final String STATE_VECTOR_SCALING_MODE_PARAM_NAME = "stateVectorScalingMode";
 
-    public static final String MAX_SLACK_BUS_COUNT_NAME = "maxSlackBusCount";
+    public static final String MAX_SLACK_BUS_COUNT_PARAM_NAME = "maxSlackBusCount";
 
     public static final String DEBUG_DIR_PARAM_NAME = "debugDir";
 
@@ -183,25 +183,25 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, ParameterType.BOOLEAN, "Throws an exception in case of slack distribution failure", THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE),
         new Parameter(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, ParameterType.BOOLEAN, "Load power factor is constant", LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE),
         new Parameter(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, ParameterType.DOUBLE, "Plausible active power limit", LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE),
-        new Parameter(SLACK_BUS_P_MAX_MISMATCH_NAME, ParameterType.DOUBLE, "Slack bus max active power mismatch", SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE),
-        new Parameter(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, ParameterType.BOOLEAN, "Voltage per reactive power slope", VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE),
+        new Parameter(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Slack bus max active power mismatch", SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE),
+        new Parameter(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Voltage per reactive power slope", VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE),
         new Parameter(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "SVC remote reactive power control", REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE),
-        new Parameter(MAX_ITERATION_NAME, ParameterType.INTEGER, "Max iterations", NewtonRaphsonParameters.DEFAULT_MAX_ITERATION),
-        new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
-        new Parameter(VOLTAGE_INIT_MODE_OVERRIDE_NAME, ParameterType.STRING, "Voltage init mode override", VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE.name(), getEnumPossibleValues(VoltageInitModeOverride.class)),
-        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, ParameterType.STRING, "Transformer voltage control mode", TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(TransformerVoltageControlMode.class)),
-        new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class)),
-        new Parameter(DC_POWER_FACTOR_NAME, ParameterType.DOUBLE, "DC approximation power factor", DC_POWER_FACTOR_DEFAULT_VALUE),
-        new Parameter(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, ParameterType.DOUBLE, "Min plausible target voltage", LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
-        new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
-        new Parameter(MIN_REALISTIC_VOLTAGE_NAME, ParameterType.DOUBLE, "Min realistic voltage", NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE),
-        new Parameter(MAX_REALISTIC_VOLTAGE_NAME, ParameterType.DOUBLE, "Max realistic voltage", NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE),
-        new Parameter(REACTIVE_RANGE_CHECK_MODE_NAME, ParameterType.STRING, "Reactive range check mode", LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class)),
-        new Parameter(LOW_IMPEDANCE_THRESHOLD_NAME, ParameterType.DOUBLE, "Low impedance threshold in per unit", LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE),
-        new Parameter(NETWORK_CACHE_ENABLED_NAME, ParameterType.BOOLEAN, "Network cache enabled", LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE),
-        new Parameter(SVC_VOLTAGE_MONITORING_NAME, ParameterType.BOOLEAN, "SVC voltage monitoring", SVC_VOLTAGE_MONITORING_DEFAULT_VALUE),
-        new Parameter(STATE_VECTOR_SCALING_MODE_NAME, ParameterType.STRING, "State vector scaling mode", NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE.name(), getEnumPossibleValues(StateVectorScalingMode.class)),
-        new Parameter(MAX_SLACK_BUS_COUNT_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT),
+        new Parameter(MAX_ITERATION_PARAM_NAME, ParameterType.INTEGER, "Max iterations", NewtonRaphsonParameters.DEFAULT_MAX_ITERATION),
+        new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
+        new Parameter(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, ParameterType.STRING, "Voltage init mode override", VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE.name(), getEnumPossibleValues(VoltageInitModeOverride.class)),
+        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Transformer voltage control mode", TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(TransformerVoltageControlMode.class)),
+        new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class)),
+        new Parameter(DC_POWER_FACTOR_PARAM_NAME, ParameterType.DOUBLE, "DC approximation power factor", DC_POWER_FACTOR_DEFAULT_VALUE),
+        new Parameter(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min plausible target voltage", LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
+        new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
+        new Parameter(MIN_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min realistic voltage", NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE),
+        new Parameter(MAX_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max realistic voltage", NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE),
+        new Parameter(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ParameterType.STRING, "Reactive range check mode", LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class)),
+        new Parameter(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "Low impedance threshold in per unit", LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE),
+        new Parameter(NETWORK_CACHE_ENABLED_PARAM_NAME, ParameterType.BOOLEAN, "Network cache enabled", LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE),
+        new Parameter(SVC_VOLTAGE_MONITORING_PARAM_NAME, ParameterType.BOOLEAN, "SVC voltage monitoring", SVC_VOLTAGE_MONITORING_DEFAULT_VALUE),
+        new Parameter(STATE_VECTOR_SCALING_MODE_PARAM_NAME, ParameterType.STRING, "State vector scaling mode", NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE.name(), getEnumPossibleValues(StateVectorScalingMode.class)),
+        new Parameter(MAX_SLACK_BUS_COUNT_PARAM_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT),
         new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, Collections.emptyList(), ParameterScope.TECHNICAL),
         new Parameter(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT),
         new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE),
@@ -743,26 +743,26 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxAngleMismatch(config.getDoubleProperty(MAX_ANGLE_MISMATCH_PARAM_NAME, MAX_ANGLE_MISMATCH_DEFAULT_VALUE))
                 .setMaxRatioMismatch(config.getDoubleProperty(MAX_RATIO_MISMATCH_PARAM_NAME, MAX_RATIO_MISMATCH_DEFAULT_VALUE))
                 .setMaxSusceptanceMismatch(config.getDoubleProperty(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE))
-                .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
-                .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
+                .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
+                .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
                 .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
-                .setMaxIteration(config.getIntProperty(MAX_ITERATION_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
-                .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
-                .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
-                .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
-                .setShuntVoltageControlMode(config.getEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_NAME, ShuntVoltageControlMode.class, SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
-                .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
-                .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
-                .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
-                .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
-                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
-                .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
-                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
-                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE))
-                .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE))
-                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_NAME, LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE))
-                .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE))
-                .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT))
+                .setMaxIteration(config.getIntProperty(MAX_ITERATION_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
+                .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
+                .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
+                .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
+                .setShuntVoltageControlMode(config.getEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ShuntVoltageControlMode.class, SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
+                .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_PARAM_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
+                .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
+                .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
+                .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
+                .setMaxRealisticVoltage(config.getDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_REALISTIC_VOLTAGE))
+                .setReactiveRangeCheckMode(config.getEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ReactiveRangeCheckMode.class, LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE))
+                .setLowImpedanceThreshold(config.getDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE))
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_PARAM_NAME, LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE))
+                .setSvcVoltageMonitoring(config.getBooleanProperty(SVC_VOLTAGE_MONITORING_PARAM_NAME, SVC_VOLTAGE_MONITORING_DEFAULT_VALUE))
+                .setNetworkCacheEnabled(config.getBooleanProperty(NETWORK_CACHE_ENABLED_PARAM_NAME, LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE))
+                .setStateVectorScalingMode(config.getEnumProperty(STATE_VECTOR_SCALING_MODE_PARAM_NAME, StateVectorScalingMode.class, NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE))
+                .setMaxSlackBusCount(config.getIntProperty(MAX_SLACK_BUS_COUNT_PARAM_NAME, LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT))
                 .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE))
                 .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT))
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
@@ -805,43 +805,43 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMaxRatioMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxSusceptanceMismatch(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(SLACK_BUS_P_MAX_MISMATCH_NAME))
+        Optional.ofNullable(properties.get(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME))
                 .ifPresent(prop -> this.setSlackBusPMaxMismatch(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_NAME))
+        Optional.ofNullable(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltagePerReactivePowerControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setReactivePowerRemoteControl(Boolean.parseBoolean(prop)));
-        Optional.ofNullable(properties.get(MAX_ITERATION_NAME))
+        Optional.ofNullable(properties.get(MAX_ITERATION_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxIteration(Integer.parseInt(prop)));
-        Optional.ofNullable(properties.get(NEWTON_RAPHSON_CONV_EPS_PER_EQ_NAME))
+        Optional.ofNullable(properties.get(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME))
                 .ifPresent(prop -> this.setNewtonRaphsonConvEpsPerEq(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(VOLTAGE_INIT_MODE_OVERRIDE_NAME))
+        Optional.ofNullable(properties.get(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltageInitModeOverride(VoltageInitModeOverride.valueOf(prop)));
-        Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_NAME))
+        Optional.ofNullable(properties.get(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(SHUNT_VOLTAGE_CONTROL_MODE_NAME))
+        Optional.ofNullable(properties.get(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setShuntVoltageControlMode(ShuntVoltageControlMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(DC_POWER_FACTOR_NAME))
+        Optional.ofNullable(properties.get(DC_POWER_FACTOR_PARAM_NAME))
                 .ifPresent(prop -> this.setDcPowerFactor(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(MIN_PLAUSIBLE_TARGET_VOLTAGE_NAME))
+        Optional.ofNullable(properties.get(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setMinPlausibleTargetVoltage(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(MAX_PLAUSIBLE_TARGET_VOLTAGE_NAME))
+        Optional.ofNullable(properties.get(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxPlausibleTargetVoltage(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(MIN_REALISTIC_VOLTAGE_NAME))
+        Optional.ofNullable(properties.get(MIN_REALISTIC_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setMinRealisticVoltage(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_NAME))
+        Optional.ofNullable(properties.get(MAX_REALISTIC_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxRealisticVoltage(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_NAME))
+        Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_NAME))
+        Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME))
                 .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
-        Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_NAME))
+        Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_PARAM_NAME))
                 .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
-        Optional.ofNullable(properties.get(SVC_VOLTAGE_MONITORING_NAME))
+        Optional.ofNullable(properties.get(SVC_VOLTAGE_MONITORING_PARAM_NAME))
                 .ifPresent(prop -> this.setSvcVoltageMonitoring(Boolean.parseBoolean(prop)));
-        Optional.ofNullable(properties.get(STATE_VECTOR_SCALING_MODE_NAME))
+        Optional.ofNullable(properties.get(STATE_VECTOR_SCALING_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setStateVectorScalingMode(StateVectorScalingMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(MAX_SLACK_BUS_COUNT_NAME))
+        Optional.ofNullable(properties.get(MAX_SLACK_BUS_COUNT_PARAM_NAME))
                 .ifPresent(prop -> this.setMaxSlackBusCount(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(DEBUG_DIR_PARAM_NAME))
                 .ifPresent(this::setDebugDir);
@@ -858,49 +858,53 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new LinkedHashMap<>(38);
+        map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
+        map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
+        map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
+        map.put(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, voltageRemoteControl);
+        map.put(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, lowImpedanceBranchMode);
+        map.put(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, loadPowerFactorConstant);
+        map.put(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, plausibleActivePowerLimit);
+        map.put(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, newtonRaphsonStoppingCriteriaType);
+        map.put(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, slackBusPMaxMismatch);
+        map.put(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, maxActivePowerMismatch);
+        map.put(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME, maxReactivePowerMismatch);
+        map.put(MAX_VOLTAGE_MISMATCH_PARAM_NAME, maxVoltageMismatch);
+        map.put(MAX_ANGLE_MISMATCH_PARAM_NAME, maxAngleMismatch);
+        map.put(MAX_RATIO_MISMATCH_PARAM_NAME, maxRatioMismatch);
+        map.put(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, maxSusceptanceMismatch);
+        map.put(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, voltagePerReactivePowerControl);
+        map.put(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, reactivePowerRemoteControl);
+        map.put(MAX_ITERATION_PARAM_NAME, maxIteration);
+        map.put(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, newtonRaphsonConvEpsPerEq);
+        map.put(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, voltageInitModeOverride);
+        map.put(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, transformerVoltageControlMode);
+        map.put(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, shuntVoltageControlMode);
+        map.put(DC_POWER_FACTOR_PARAM_NAME, dcPowerFactor);
+        map.put(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, minPlausibleTargetVoltage);
+        map.put(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, maxPlausibleTargetVoltage);
+        map.put(MIN_REALISTIC_VOLTAGE_PARAM_NAME, minRealisticVoltage);
+        map.put(MAX_REALISTIC_VOLTAGE_PARAM_NAME, maxRealisticVoltage);
+        map.put(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, reactiveRangeCheckMode);
+        map.put(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, lowImpedanceThreshold);
+        map.put(NETWORK_CACHE_ENABLED_PARAM_NAME, networkCacheEnabled);
+        map.put(SVC_VOLTAGE_MONITORING_PARAM_NAME, svcVoltageMonitoring);
+        map.put(STATE_VECTOR_SCALING_MODE_PARAM_NAME, stateVectorScalingMode);
+        map.put(MAX_SLACK_BUS_COUNT_PARAM_NAME, maxSlackBusCount);
+        map.put(DEBUG_DIR_PARAM_NAME, debugDir);
+        map.put(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, incrementalTransformerVoltageControlOuterLoopMaxTapShift);
+        map.put(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, secondaryVoltageControl);
+        map.put(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, reactiveLimitsMaxPqPvSwitch);
+        map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
+        map.put(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME, countriesToFilterSlackBus);
+        return map;
+    }
+
     @Override
     public String toString() {
-        return "OpenLoadFlowParameters(" +
-                "slackBusSelectionMode=" + slackBusSelectionMode +
-                ", slackBusesIds=" + slackBusesIds +
-                ", throwsExceptionInCaseOfSlackDistributionFailure=" + throwsExceptionInCaseOfSlackDistributionFailure +
-                ", voltageRemoteControl=" + voltageRemoteControl +
-                ", lowImpedanceBranchMode=" + lowImpedanceBranchMode +
-                ", loadPowerFactorConstant=" + loadPowerFactorConstant +
-                ", plausibleActivePowerLimit=" + plausibleActivePowerLimit +
-                ", newtonRaphsonStoppingCriteriaType=" + newtonRaphsonStoppingCriteriaType +
-                ", slackBusPMaxMismatch=" + slackBusPMaxMismatch +
-                ", maxActivePowerMismatch=" + maxActivePowerMismatch +
-                ", maxReactivePowerMismatch=" + maxReactivePowerMismatch +
-                ", maxVoltageMismatch=" + maxVoltageMismatch +
-                ", maxAngleMismatch=" + maxAngleMismatch +
-                ", maxRatioMismatch=" + maxRatioMismatch +
-                ", maxSusceptanceMismatch=" + maxSusceptanceMismatch +
-                ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
-                ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
-                ", maxIteration=" + maxIteration +
-                ", newtonRaphsonConvEpsPerEq=" + newtonRaphsonConvEpsPerEq +
-                ", voltageInitModeOverride=" + voltageInitModeOverride +
-                ", transformerVoltageControlMode=" + transformerVoltageControlMode +
-                ", shuntVoltageControlMode=" + shuntVoltageControlMode +
-                ", dcPowerFactor=" + dcPowerFactor +
-                ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
-                ", maxPlausibleTargetVoltage=" + maxPlausibleTargetVoltage +
-                ", minRealisticVoltage=" + minRealisticVoltage +
-                ", maxRealisticVoltage=" + maxRealisticVoltage +
-                ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
-                ", lowImpedanceThreshold=" + lowImpedanceThreshold +
-                ", networkCacheEnabled=" + networkCacheEnabled +
-                ", svcVoltageMonitoring=" + svcVoltageMonitoring +
-                ", stateVectorScalingMode=" + stateVectorScalingMode +
-                ", maxSlackBusCount=" + maxSlackBusCount +
-                ", debugDir=" + debugDir +
-                ", incrementalTransformerVoltageControlOuterLoopMaxTapShift=" + incrementalTransformerVoltageControlOuterLoopMaxTapShift +
-                ", secondaryVoltageControl=" + secondaryVoltageControl +
-                ", reactiveLimitsMaxPqPvSwitch=" + reactiveLimitsMaxPqPvSwitch +
-                ", phaseShifterControlMode=" + phaseShifterControlMode +
-                ", countriesToFilterSlackBus=" + countriesToFilterSlackBus +
-                ')';
+        return "OpenLoadFlowParameters(" + toMap().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).collect(Collectors.joining(", ")) + ")";
     }
 
     public static OpenLoadFlowParameters get(LoadFlowParameters parameters) {
