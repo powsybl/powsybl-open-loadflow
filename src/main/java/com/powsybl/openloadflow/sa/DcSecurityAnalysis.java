@@ -297,7 +297,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
             Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, false);
+            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, parameters.getNetworkParameters());
             Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
 
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
@@ -316,7 +316,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                                     distributedMismatch(lfNetwork, DcLoadFlowEngine.getActivePowerMismatch(lfNetwork.getBuses().stream().filter(bus -> !bus.isDisabled()).collect(Collectors.toSet())),
                                             loadFlowParameters, openLoadFlowParameters);
                                     OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(),
-                                            lfActionById, createResultExtension, lfContingency, parameters.getBalanceType());
+                                            lfActionById, createResultExtension, lfContingency, parameters.getNetworkParameters());
                                     operatorStrategyResults.add(result);
                                     networkState.restore();
                                 });
