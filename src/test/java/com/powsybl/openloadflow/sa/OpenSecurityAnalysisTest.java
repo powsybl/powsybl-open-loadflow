@@ -2041,11 +2041,10 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testMetrixCurrent() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.create(MetrixTutorialSixBusesSecurityAnalysisFactory.MetrixViolations.CURRENT);
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithCurrentLimits();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2068,10 +2067,10 @@ class OpenSecurityAnalysisTest {
                 operatorStrategies, actions, Reporter.NO_OP);
 
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(0, preContingencyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, preContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "branch_S_SO_1");
-        assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         for (LimitViolation limitViolation : postContingencyResult.getLimitViolationsResult().getLimitViolations()) {
             assertEquals("S_SO_2", limitViolation.getSubjectId());
@@ -2081,18 +2080,17 @@ class OpenSecurityAnalysisTest {
         String[] operatorStrategiesString = {"strategy1", "strategy2", "strategy3"};
         for (String operatorStrategyString : operatorStrategiesString) {
             OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, operatorStrategyString);
-            assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
         }
 
     }
 
     @Test
     void testMetrixVoltage() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.create(MetrixTutorialSixBusesSecurityAnalysisFactory.MetrixViolations.VOLTAGE);
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithCurrentLimits2();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2113,30 +2111,28 @@ class OpenSecurityAnalysisTest {
                 operatorStrategies, actions, Reporter.NO_OP);
 
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(0, preContingencyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, preContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "branch_S_SE_1");
-        assertEquals(1, postContingencyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         for (LimitViolation limitViolation : postContingencyResult.getLimitViolationsResult().getLimitViolations()) {
             assertEquals("SE_poste", limitViolation.getSubjectId());
             assertEquals(LimitViolationType.LOW_VOLTAGE, limitViolation.getLimitType());
         }
 
-        String[] operatorStrategiesString = {"strategy1", "strategy2"};
-        for (String operatorStrategyString : operatorStrategiesString) {
+        for (String operatorStrategyString : List.of("strategy1", "strategy2")) {
             OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, operatorStrategyString);
-            assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
         }
     }
 
     @Test
     void testMetrixActivePower() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.create(MetrixTutorialSixBusesSecurityAnalysisFactory.MetrixViolations.ACTIVE_POWER);
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithActivePowerLimits();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2159,31 +2155,29 @@ class OpenSecurityAnalysisTest {
                 operatorStrategies, actions, Reporter.NO_OP);
 
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(0, preContingencyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, preContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "branch_S_SO_1");
-        assertEquals(1, postContingencyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         for (LimitViolation limitViolation : postContingencyResult.getLimitViolationsResult().getLimitViolations()) {
             assertEquals("S_SO_2", limitViolation.getSubjectId());
             assertEquals(LimitViolationType.ACTIVE_POWER, limitViolation.getLimitType());
         }
 
-        String[] operatorStrategiesString = {"strategy1", "strategy2", "strategy3"};
-        for (String operatorStrategyString : operatorStrategiesString) {
+        for (String operatorStrategyString : List.of("strategy1", "strategy2", "strategy3")) {
             OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, operatorStrategyString);
-            assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
         }
 
     }
 
     @Test
     void testMetrixApparentPower() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
-        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.create(MetrixTutorialSixBusesSecurityAnalysisFactory.MetrixViolations.APPARENT_POWER);
+        Network network = MetrixTutorialSixBusesSecurityAnalysisFactory.createWithApparentPowerLimits();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2206,20 +2200,19 @@ class OpenSecurityAnalysisTest {
                 operatorStrategies, actions, Reporter.NO_OP);
 
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(0, preContingencyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, preContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "branch_S_SO_1");
-        assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(2, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
 
         for (LimitViolation limitViolation : postContingencyResult.getLimitViolationsResult().getLimitViolations()) {
             assertEquals("S_SO_2", limitViolation.getSubjectId());
             assertEquals(LimitViolationType.APPARENT_POWER, limitViolation.getLimitType());
         }
 
-        String[] operatorStrategiesString = {"strategy1", "strategy2", "strategy3"};
-        for (String operatorStrategyString : operatorStrategiesString) {
+        for (String operatorStrategyString : List.of("strategy1", "strategy2", "strategy3")) {
             OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, operatorStrategyString);
-            assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
         }
 
     }
