@@ -74,6 +74,8 @@ public interface LfBus extends LfElement {
 
     boolean ensurePowerFactorConstantByLoad();
 
+    void invalidateGenerationTargetP();
+
     double getGenerationTargetP();
 
     double getGenerationTargetQ();

@@ -14,7 +14,6 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
@@ -159,15 +158,23 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
+                case GeneratorAction.NAME: {
+                    GeneratorAction generatorAction = (GeneratorAction) action;
+                    if (network.getGenerator(generatorAction.getGeneratorId()) == null) {
+                        throw new PowsyblException("Generator '" + generatorAction.getGeneratorId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
         }
     }
 
-    protected static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, boolean breakers) {
+    protected static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, LfNetworkParameters parameters) {
         return actions.stream()
-                .map(action -> LfAction.create(action, lfNetwork, network, breakers))
+                .map(action -> LfAction.create(action, lfNetwork, network, parameters.isBreakers()))
                 .flatMap(Optional::stream)
                 .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
@@ -258,7 +265,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                                          LimitViolationManager preContingencyLimitViolationManager,
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
                                                          Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
-                                                         LoadFlowParameters.BalanceType balanceType) {
+                                                         LfNetworkParameters networkParameters) {
         LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
                 operatorStrategy.getContingencyContext().getContingencyId(), network);
 
@@ -270,7 +277,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        LfAction.apply(operatorStrategyLfActions, network, contingency, balanceType);
+        LfAction.apply(operatorStrategyLfActions, network, contingency, networkParameters);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 

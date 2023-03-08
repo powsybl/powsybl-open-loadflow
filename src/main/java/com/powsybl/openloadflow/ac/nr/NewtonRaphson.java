@@ -122,7 +122,7 @@ public class NewtonRaphson {
                     break;
 
                 case BUS_PHI:
-                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getElementNum())));
+                    x[v.getRow()] = initializer.getAngle(network.getBus(v.getElementNum()));
                     break;
 
                 case SHUNT_B:
@@ -159,7 +159,7 @@ public class NewtonRaphson {
                     break;
 
                 case BUS_PHI:
-                    network.getBus(v.getElementNum()).setAngle(Math.toDegrees(stateVector.get(v.getRow())));
+                    network.getBus(v.getElementNum()).setAngle(stateVector.get(v.getRow()));
                     break;
 
                 case SHUNT_B:
