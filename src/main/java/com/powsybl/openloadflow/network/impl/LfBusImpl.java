@@ -47,9 +47,7 @@ public class LfBusImpl extends AbstractLfBus {
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
         this.breakers = parameters.isBreakers();
-        bus.getVoltageLevel().getSubstation().ifPresent(substation -> {
-            substation.getCountry().ifPresent(c -> this.country = c);
-        });
+        bus.getVoltageLevel().getSubstation().ifPresent(substation -> substation.getCountry().ifPresent(c -> this.country = c));
     }
 
     public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {

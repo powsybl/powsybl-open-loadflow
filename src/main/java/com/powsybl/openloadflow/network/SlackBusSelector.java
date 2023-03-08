@@ -46,6 +46,6 @@ public interface SlackBusSelector {
 
     static boolean participateToSlackBusSelection(Set<Country> countriesForSlackBusSelection, LfBus bus) {
         return countriesForSlackBusSelection.isEmpty()
-                || bus.getCountry().map(country -> countriesForSlackBusSelection.contains(country)).orElse(false);
+                || bus.getCountry().map(countriesForSlackBusSelection::contains).orElse(false);
     }
 }

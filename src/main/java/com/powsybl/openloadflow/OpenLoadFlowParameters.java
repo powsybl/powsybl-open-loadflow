@@ -854,7 +854,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setPhaseShifterControlMode(PhaseShifterControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME))
-                .ifPresent(prop -> this.setCountriesToFilterSlackBus(Arrays.asList(prop.split("[:,]")).stream().map(val -> Country.valueOf(val)).collect(Collectors.toSet())));
+                .ifPresent(prop -> this.setCountriesToFilterSlackBus(Arrays.asList(prop.split("[:,]")).stream().map(Country::valueOf).collect(Collectors.toSet())));
         return this;
     }
 
