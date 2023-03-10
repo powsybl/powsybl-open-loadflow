@@ -217,7 +217,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_VOLTAGE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum voltage for per equation stopping criteria", MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_ANGLE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum angle for per equation stopping criteria", MAX_ANGLE_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
-        new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE), new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)), new Parameter(DETAILED_NR_LOGS_LF_PARAM_NAME, ParameterType.BOOLEAN, "Detailed Newton-Raphson logs on load flow calculation", DETAILED_NR_LOGS_LF_DEFAULT_VALUE),
+        new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
+        new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
+        new Parameter(DETAILED_NR_LOGS_LF_PARAM_NAME, ParameterType.BOOLEAN, "Detailed Newton-Raphson logs on load flow calculation", DETAILED_NR_LOGS_LF_DEFAULT_VALUE),
         new Parameter(DETAILED_NR_LOGS_SA_PARAM_NAME, ParameterType.BOOLEAN, "Detailed Newton-Raphson logs on security analysis calculation", DETAILED_NR_LOGS_SA_DEFAULT_VALUE));
 
     public enum VoltageInitModeOverride {
