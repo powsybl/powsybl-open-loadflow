@@ -32,6 +32,8 @@ public class NewtonRaphsonParameters {
 
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
+    private boolean detailedNrLogs = false;
+
     public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
             throw new IllegalArgumentException("Invalid max iteration value: " + maxIteration);
@@ -77,6 +79,15 @@ public class NewtonRaphsonParameters {
 
     public NewtonRaphsonParameters setStateVectorScalingMode(StateVectorScalingMode stateVectorScalingMode) {
         this.stateVectorScalingMode = Objects.requireNonNull(stateVectorScalingMode);
+        return this;
+    }
+
+    public boolean getDetailedNrLogs() {
+        return detailedNrLogs;
+    }
+
+    public NewtonRaphsonParameters setDetailedNrLogs(boolean detailedNrLogs) {
+        this.detailedNrLogs = detailedNrLogs;
         return this;
     }
 

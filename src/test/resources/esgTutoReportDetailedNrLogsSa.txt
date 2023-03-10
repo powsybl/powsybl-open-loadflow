@@ -20,5 +20,30 @@
       + Post loading processing
          Network has 4 buses and 4 branches
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
+      + Newton Raphson on Network CC0 SC0 || No outer loops calculations
+        + Initial mismatch
+           Norm |f(x0)|='0.014404151970573112'
+          + Initial mismatch on TargetP
+             Mismatch on TargetP : '-0.014404151953455901'
+             Bus Id : 'VLGEN_0'
+             Bus V : '1.0208333333333333'
+             Bus Phi : '0.040596030807101224'
+          + Initial mismatch on TargetQ
+             Mismatch on TargetQ : '7.02222821225007E-7'
+             Bus Id : 'VLHV1_0'
+             Bus V : '1.058270597695305'
+             Bus Phi : '7.399385937372922E-22'
+        + Iteration 0 mismatch
+           Norm |f(x)|='7.105375846338748E-7'
+          + Iteration 0 mismatch on TargetP
+             Mismatch on TargetP : '-1.0899671565312019E-7'
+             Bus Id : 'VLGEN_0'
+             Bus V : '1.0208333333333333'
+             Bus Phi : '0.04069359150608377'
+          + Iteration 0 mismatch on TargetQ
+             Mismatch on TargetQ : '7.021268124685065E-7'
+             Bus Id : 'VLHV1_0'
+             Bus V : '1.0582634572825331'
+             Bus Phi : '-2.508257488317156E-22'
       + Outer loop Voltage monitoring
       + Outer loop Reactive limits

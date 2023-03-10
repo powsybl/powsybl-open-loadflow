@@ -92,6 +92,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final PhaseShifterControlMode PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE = PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION;
 
+    public static final boolean DETAILED_NR_LOGS_LF_DEFAULT_VALUE = false;
+
+    public static final boolean DETAILED_NR_LOGS_SA_DEFAULT_VALUE = false;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -168,6 +172,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME = "phaseShifterControlMode";
 
+    public static final String DETAILED_NR_LOGS_LF_PARAM_NAME = "detailedNrLogsLf";
+
+    public static final String DETAILED_NR_LOGS_SA_PARAM_NAME = "detailedNrLogsSa";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -210,8 +218,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_ANGLE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum angle for per equation stopping criteria", MAX_ANGLE_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
-        new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class))
-    );
+        new Parameter(DETAILED_NR_LOGS_LF_PARAM_NAME, ParameterType.BOOLEAN, "Detailed Newton-Raphson logs on load flow calculation", DETAILED_NR_LOGS_LF_DEFAULT_VALUE),
+        new Parameter(DETAILED_NR_LOGS_SA_PARAM_NAME, ParameterType.BOOLEAN, "Detailed Newton-Raphson logs on security analysis calculation", DETAILED_NR_LOGS_SA_DEFAULT_VALUE));
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -321,6 +329,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int reactiveLimitsMaxPqPvSwitch = ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV;
 
     private PhaseShifterControlMode phaseShifterControlMode = PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE;
+
+    private boolean detailedNrLogsLf = DETAILED_NR_LOGS_LF_DEFAULT_VALUE;
+
+    private boolean detailedNrLogsSa = DETAILED_NR_LOGS_SA_DEFAULT_VALUE;
+
+    private boolean detailedNrLogs = false;
 
     @Override
     public String getName() {
@@ -704,6 +718,33 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean getDetailedNrLogsLf() {
+        return detailedNrLogsLf;
+    }
+
+    public OpenLoadFlowParameters setDetailedNrLogsLf(boolean detailedNrLogsLf) {
+        this.detailedNrLogsLf = detailedNrLogsLf;
+        return this;
+    }
+
+    public boolean getDetailedNrLogsSa() {
+        return detailedNrLogsSa;
+    }
+
+    public OpenLoadFlowParameters setDetailedNrLogsSa(boolean detailedNrLogsSa) {
+        this.detailedNrLogsSa = detailedNrLogsSa;
+        return this;
+    }
+
+    public boolean getDetailedNrLogs() {
+        return detailedNrLogs;
+    }
+
+    public OpenLoadFlowParameters setDetailedNrLogs(boolean detailedNrLogs) {
+        this.detailedNrLogs = detailedNrLogs;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -752,7 +793,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT))
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
-                .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE)));
+                .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
+                .setDetailedNrLogsLf(config.getBooleanProperty(DETAILED_NR_LOGS_LF_PARAM_NAME, DETAILED_NR_LOGS_LF_DEFAULT_VALUE))
+                .setDetailedNrLogsSa(config.getBooleanProperty(DETAILED_NR_LOGS_SA_PARAM_NAME, DETAILED_NR_LOGS_SA_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -837,6 +880,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setReactiveLimitsMaxPqPvSwitch(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setPhaseShifterControlMode(PhaseShifterControlMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(DETAILED_NR_LOGS_LF_PARAM_NAME))
+                .ifPresent(prop -> this.setDetailedNrLogsLf(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(DETAILED_NR_LOGS_SA_PARAM_NAME))
+                .ifPresent(prop -> this.setDetailedNrLogsSa(Boolean.parseBoolean(prop)));
         return this;
     }
 
@@ -880,6 +927,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, secondaryVoltageControl);
         map.put(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, reactiveLimitsMaxPqPvSwitch);
         map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
+        map.put(DETAILED_NR_LOGS_LF_PARAM_NAME, detailedNrLogsLf);
+        map.put(DETAILED_NR_LOGS_SA_PARAM_NAME, detailedNrLogsSa);
         return map;
     }
 
@@ -960,6 +1009,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
         LOGGER.info("Reactive limits maximum Pq Pv switch: {}", parametersExt.getReactiveLimitsMaxPqPvSwitch());
         LOGGER.info("Phase shifter control mode: {}", parametersExt.getPhaseShifterControlMode());
+        LOGGER.info("Detailed Newton-Raphson logs for load flow: {}", parametersExt.getDetailedNrLogsLf());
+        LOGGER.info("Detailed Newton-Raphson logs for security analysis: {}", parametersExt.getDetailedNrLogsSa());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -1075,7 +1126,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxIteration(parametersExt.getMaxIteration())
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
-                .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode());
+                .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
+                .setDetailedNrLogs(parametersExt.getDetailedNrLogs());
 
         OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
@@ -1205,7 +1257,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() &&
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
-                extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode();
+                extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
+                extension1.getDetailedNrLogsLf() == extension2.getDetailedNrLogsLf() &&
+                extension1.getDetailedNrLogsSa() == extension2.getDetailedNrLogsSa();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1259,7 +1313,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift())
                     .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
-                    .setPhaseShifterControlMode(extension.getPhaseShifterControlMode());
+                    .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
+                    .setDetailedNrLogsLf(extension.getDetailedNrLogsLf())
+                    .setDetailedNrLogsSa(extension.getDetailedNrLogsSa());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

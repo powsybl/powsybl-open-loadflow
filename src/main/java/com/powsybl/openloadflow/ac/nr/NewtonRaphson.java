@@ -126,10 +126,6 @@ public class NewtonRaphson {
                         });
             }
 
-            // report largest mismatches in (P, Q, V) equations
-            Reporter iterationMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(reporter, iteration);
-            reportLargestMismatch(iterationMismatchReporter, equationSystem, equationVector.getArray(), network, iteration);
-
             // test stopping criteria and log norm(fx)
             NewtonRaphsonStoppingCriteria.TestResult testResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
 
@@ -137,7 +133,13 @@ public class NewtonRaphson {
                                               parameters.getStoppingCriteria(), testResult);
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
-            Reports.reportNewtonRaphsonNorm(iterationMismatchReporter, testResult.getNorm(), iteration);
+
+            if (parameters.getDetailedNrLogs()) {
+                // report largest mismatches in (P, Q, V) equations
+                Reporter iterationMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(reporter, iteration);
+                reportLargestMismatch(iterationMismatchReporter, equationSystem, equationVector.getArray(), network, iteration);
+                Reports.reportNewtonRaphsonNorm(iterationMismatchReporter, testResult.getNorm(), iteration);
+            }
 
             if (testResult.isStop()) {
                 return NewtonRaphsonStatus.CONVERGED;
@@ -245,7 +247,7 @@ public class NewtonRaphson {
 
     public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter, int outerLoopIteration, String outerLoopType) {
 
-        Reporter nrReporter = Reports.createNewtonRaphsonReporter(reporter, network.getNumCC(), network.getNumSC(), outerLoopIteration, outerLoopType);
+        Reporter nrReporter = Reports.createNewtonRaphsonReporter(reporter, parameters.getDetailedNrLogs(), network.getNumCC(), network.getNumSC(), outerLoopIteration, outerLoopType);
 
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);
@@ -255,12 +257,14 @@ public class NewtonRaphson {
         NewtonRaphsonStoppingCriteria.TestResult initialTestResult = parameters.getStoppingCriteria().test(equationVector.getArray(), equationSystem);
         StateVectorScaling svScaling = StateVectorScaling.fromMode(parameters.getStateVectorScalingMode(), initialTestResult);
 
-        // report largest mismatches in (P, Q, V) equations of starting point
-        Reporter initialMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(nrReporter, -1);
-        reportLargestMismatch(initialMismatchReporter, equationSystem, equationVector.getArray(), network, -1);
-
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
-        Reports.reportNewtonRaphsonNorm(initialMismatchReporter, initialTestResult.getNorm(), -1);
+
+        if (parameters.getDetailedNrLogs()) {
+            // report largest mismatches in (P, Q, V) equations of starting point
+            Reporter initialMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(nrReporter, -1);
+            reportLargestMismatch(initialMismatchReporter, equationSystem, equationVector.getArray(), network, -1);
+            Reports.reportNewtonRaphsonNorm(initialMismatchReporter, initialTestResult.getNorm(), -1);
+        }
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;

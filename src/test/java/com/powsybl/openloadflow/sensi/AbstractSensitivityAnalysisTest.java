@@ -217,6 +217,15 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         }
     }
 
+    protected void runAcLf(Network network, Reporter reporter, LoadFlowParameters lfParameters) {
+        LoadFlowResult result = new OpenLoadFlowProvider(matrixFactory)
+                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, lfParameters, reporter)
+                .join();
+        if (!result.isOk()) {
+            throw new PowsyblException("AC LF diverged");
+        }
+    }
+
     protected void runDcLf(Network network) {
         runDcLf(network, Reporter.NO_OP);
     }

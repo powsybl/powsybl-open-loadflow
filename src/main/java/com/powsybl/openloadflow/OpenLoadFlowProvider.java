@@ -94,6 +94,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, Reporter reporter) {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
         OpenLoadFlowParameters.logAc(parameters, parametersExt);
+        parametersExt.setDetailedNrLogs(parametersExt.getDetailedNrLogsLf());
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory);
 
