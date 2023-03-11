@@ -15,4 +15,24 @@ public class ShuntVoltageControl extends DiscreteVoltageControl<LfShunt> {
     public ShuntVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
         super(controlledBus, targetValue, targetDeadband);
     }
+
+    @Override
+    protected boolean isControllerEnabled(LfShunt controllerElement) {
+        return controllerElement.isVoltageControlEnabled();
+    }
+
+    @Override
+    protected boolean isControlledBySameControlType(LfBus bus) {
+        return bus.isShuntVoltageControlled();
+    }
+
+    @Override
+    protected ShuntVoltageControl getControl(LfBus bus) {
+        return bus.getShuntVoltageControl().orElseThrow();
+    }
+
+    @Override
+    protected int getPriority() {
+        return 2;
+    }
 }

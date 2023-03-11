@@ -6,9 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.PowsyblException;
-
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -17,9 +16,20 @@ import java.util.Objects;
  */
 public class VoltageControl<T extends LfElement> extends Control {
 
+    public enum Status {
+        DISABLED,
+        ENABLED,
+        MERGED,
+        SHADOWED
+    }
+
     protected final LfBus controlledBus;
 
     protected final List<T> controllerElements = new ArrayList<>();
+
+    protected List<VoltageControl<T>> mergedVoltageControls;
+
+    protected Status status = null;
 
     protected VoltageControl(double targetValue, LfBus controlledBus) {
         super(targetValue);
@@ -38,66 +48,132 @@ public class VoltageControl<T extends LfElement> extends Control {
         controllerElements.add(Objects.requireNonNull(controllerElement));
     }
 
-    private static void addVoltageControls(LfBus bus, List<VoltageControl<?>> voltageControls) {
-        if (bus.isGeneratorVoltageControlled()) {
-            voltageControls.add(bus.getGeneratorVoltageControl().orElseThrow());
+    public List<VoltageControl<T>> getMergedVoltageControls() {
+        return mergedVoltageControls;
+    }
+
+    protected boolean isControllerEnabled(T controllerElement) {
+        throw new IllegalStateException();
+    }
+
+    protected boolean isControlledBySameControlType(LfBus bus) {
+        throw new IllegalStateException();
+    }
+
+    protected VoltageControl<T> getControl(LfBus bus) {
+        throw new IllegalStateException();
+    }
+
+    protected int getPriority() {
+        throw new IllegalStateException();
+    }
+
+    private boolean isDisabled() {
+        if (controlledBus.isDisabled()) {
+            return true;
         }
-        if (bus.isTransformerVoltageControlled()) {
-            voltageControls.add(bus.getTransformerVoltageControl().orElseThrow());
-        }
-        if (bus.isShuntVoltageControlled()) {
-            voltageControls.add(bus.getShuntVoltageControl().orElseThrow());
+        return controllerElements.stream()
+                .filter(e -> !e.isDisabled())
+                .noneMatch(this::isControllerEnabled);
+    }
+
+    public Status getStatus() {
+        updateStatus();
+        return status;
+    }
+
+    public void invalidateStatus() {
+        status = null;
+        for (var mvc : mergedVoltageControls) {
+            mvc.status = null;
         }
     }
 
-    private static List<VoltageControl<?>> getVoltageControls(LfBus bus) {
-        List<VoltageControl<?>> voltageControls = new ArrayList<>(1);
-        LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(false);
+    public void updateStatus() {
+        if (status != null) {
+            return;
+        }
+
+        // init all statuses
+        LfZeroImpedanceNetwork zn = controlledBus.getZeroImpedanceNetwork(false);
         if (zn != null) { // bus is part of a zero impedance graph
             for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
-                // add controls for all buses of the zero impedance graph
-                addVoltageControls(zb, voltageControls);
+                initStatus(zb);
             }
         } else {
-            addVoltageControls(bus, voltageControls);
+            initStatus(controlledBus);
         }
-        if (voltageControls.size() > 1) {
-            voltageControls.sort((vc1, vc2) -> {
-                if (vc1.getClass() == vc2.getClass()) {
-                    // sort by ID
-                    return vc1.getControlledBus().getId().compareTo(vc2.getControlledBus().toString());
-                } else {
-                    // generator first, then transformer, then shunt
-                    if (vc1 instanceof GeneratorVoltageControl) {
-                        return -1;
-                    } else if (vc1 instanceof TransformerVoltageControl) {
-                        return vc2 instanceof GeneratorVoltageControl ? 1 : -1;
+
+        merge();
+        shadow();
+    }
+
+    private static void initStatus(LfBus bus) {
+        bus.getGeneratorVoltageControl().ifPresent(VoltageControl::initStatus);
+        bus.getShuntVoltageControl().ifPresent(VoltageControl::initStatus);
+        bus.getTransformerVoltageControl().ifPresent(VoltageControl::initStatus);
+    }
+
+    public void initStatus() {
+        // update status from local checks
+        status = isDisabled() ? Status.DISABLED : Status.ENABLED;
+    }
+
+    public void merge() {
+        LfZeroImpedanceNetwork zn = controlledBus.getZeroImpedanceNetwork(false);
+        if (zn != null) { // bus is part of a zero impedance graph
+            List<VoltageControl<T>> voltageControls = new ArrayList<>(1);
+            for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
+                if (isControlledBySameControlType(zb)) {
+                    VoltageControl<T> zvc = getControl(zb);
+                    if (zvc.status == Status.ENABLED) {
+                        voltageControls.add(zvc);
                     }
-                    return 1;
                 }
-            });
+            }
+            if (voltageControls.size() > 1) {
+                voltageControls.sort(Comparator.comparing(o -> o.getControlledBus().getId()));
+                VoltageControl<T> vc0 = voltageControls.get(0);
+                vc0.getMergedVoltageControls().clear();
+                // first one is enabled, the other have merged status
+                for (int i = 1; i < voltageControls.size(); i++) {
+                    VoltageControl<T> vc = voltageControls.get(i);
+                    vc.status = Status.MERGED;
+                    vc0.getMergedVoltageControls().add(vc);
+                }
+            }
         }
-        return voltageControls;
     }
 
-    private static boolean isVoltageControlled(LfBus bus, Class<? extends VoltageControl<?>> vcClass) {
-        List<VoltageControl<?>> voltageControls = getVoltageControls(bus);
-        if (voltageControls.isEmpty()) {
-            throw new PowsyblException("Bus '" + bus.getId() + "' is not voltage controlled");
+    public void shadow() {
+        LfZeroImpedanceNetwork zn = controlledBus.getZeroImpedanceNetwork(false);
+        if (zn != null) { // bus is part of a zero impedance graph
+            List<VoltageControl<?>> voltageControls = new ArrayList<>();
+            for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
+                // only keep ENABLED and discard DISABLED and MERGED
+                if (zb.isGeneratorVoltageControlled()) {
+                    GeneratorVoltageControl gvc = zb.getGeneratorVoltageControl().orElseThrow();
+                    if (gvc.status == Status.ENABLED) {
+                        voltageControls.add(gvc);
+                    }
+                    ShuntVoltageControl svc = zb.getShuntVoltageControl().orElseThrow();
+                    if (svc.status == Status.ENABLED) {
+                        voltageControls.add(svc);
+                    }
+                    TransformerVoltageControl tvc = zb.getTransformerVoltageControl().orElseThrow();
+                    if (tvc.status == Status.ENABLED) {
+                        voltageControls.add(tvc);
+                    }
+                }
+            }
+            voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
+            // we should normally have max 3 voltage controls (one of each type) because already merged
+            if (voltageControls.size() > 1) {
+                // just keep most prioritary one and flag the other one as SHADOWED
+                for (int i = 1; i < voltageControls.size(); i++) {
+                    voltageControls.get(i).status = Status.SHADOWED;
+                }
+            }
         }
-        VoltageControl<?> firstVc = voltageControls.get(0);
-        return firstVc.getControlledBus() == bus && vcClass.isInstance(firstVc);
-    }
-
-    public static boolean isTheHighestPriorityGeneratorVoltageControlled(LfBus bus) {
-        return isVoltageControlled(bus, GeneratorVoltageControl.class);
-    }
-
-    public static boolean isTheHighestPriorityTransformerVoltageControlled(LfBus bus) {
-        return isVoltageControlled(bus, TransformerVoltageControl.class);
-    }
-
-    public static boolean isTheHighestPriorityShuntVoltageControlled(LfBus bus) {
-        return isVoltageControlled(bus, ShuntVoltageControl.class);
     }
 }

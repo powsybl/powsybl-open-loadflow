@@ -10,7 +10,8 @@ import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -22,6 +23,26 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
     public GeneratorVoltageControl(LfBus controlledBus, double targetValue) {
         super(targetValue, controlledBus);
+    }
+
+    @Override
+    protected boolean isControllerEnabled(LfBus controllerElement) {
+        return controllerElement.isGeneratorVoltageControlEnabled();
+    }
+
+    @Override
+    protected boolean isControlledBySameControlType(LfBus bus) {
+        return bus.isGeneratorVoltageControlled();
+    }
+
+    @Override
+    protected GeneratorVoltageControl getControl(LfBus bus) {
+        return bus.getGeneratorVoltageControl().orElseThrow();
+    }
+
+    @Override
+    protected int getPriority() {
+        return 0;
     }
 
     @Override

@@ -608,4 +608,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         getNetwork().updateZeroImpedanceCache(dc);
         return dc ? dcZeroImpedanceNetwork : acZeroImpedanceNetwork;
     }
+
+    public void invalidateVoltageControlsStatus() {
+        getGeneratorVoltageControl().ifPresent(VoltageControl::invalidateStatus);
+        getShuntVoltageControl().ifPresent(VoltageControl::invalidateStatus);
+        getTransformerVoltageControl().ifPresent(VoltageControl::invalidateStatus);
+    }
 }

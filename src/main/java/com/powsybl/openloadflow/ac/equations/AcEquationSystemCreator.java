@@ -205,7 +205,8 @@ public class AcEquationSystemCreator {
         Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        if (controlledBus.isDisabled()) {
+        if (voltageControl.getStatus() == VoltageControl.Status.DISABLED
+                || voltageControl.getStatus() == VoltageControl.Status.SHADOWED) {
             // if controlled bus is disabled, we disable all voltage control equations
             vEq.setActive(false);
             for (LfBus controllerBus : controllerBuses) {
@@ -216,18 +217,20 @@ public class AcEquationSystemCreator {
                         .orElseThrow()
                         .setActive(true);
             }
-        } else {
-            List<LfBus> enabledControllerBuses;
-            List<LfBus> disabledControllerBuses;
-            if (VoltageControl.isTheHighestPriorityGeneratorVoltageControlled(controlledBus)) {
-                enabledControllerBuses = controllerBuses.stream()
-                        .filter(LfBus::isGeneratorVoltageControlEnabled).collect(Collectors.toList());
-                disabledControllerBuses = controllerBuses.stream()
-                        .filter(Predicate.not(LfBus::isGeneratorVoltageControlEnabled)).collect(Collectors.toList());
-            } else {
-                // all controller buses should be disabled
-                enabledControllerBuses = Collections.emptyList();
-                disabledControllerBuses = controllerBuses;
+        } else if (voltageControl.getStatus() == VoltageControl.Status.ENABLED) {
+            List<LfBus> enabledControllerBuses = controllerBuses.stream()
+                    .filter(LfBus::isGeneratorVoltageControlEnabled).collect(Collectors.toList());
+            List<LfBus> disabledControllerBuses = controllerBuses.stream()
+                    .filter(Predicate.not(LfBus::isGeneratorVoltageControlEnabled)).collect(Collectors.toList());
+            // add controller buses of merged voltage control
+            for (VoltageControl<LfBus> mergedVoltageControl : voltageControl.getMergedVoltageControls()) {
+                for (LfBus controllerBus : mergedVoltageControl.getControllerElements()) {
+                    if (controllerBus.isGeneratorVoltageControlled()) {
+                        enabledControllerBuses.add(controllerBus);
+                    } else {
+                        disabledControllerBuses.add(controllerBus);
+                    }
+                }
             }
 
             // activate voltage control at controlled bus only if at least one controller bus is enabled
@@ -300,8 +303,7 @@ public class AcEquationSystemCreator {
 
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBus controlledBus = voltageControl.getControlledBus();
-        boolean voltageControlEnabled = controlledBus.isGeneratorVoltageControlEnabled()
-                && VoltageControl.isTheHighestPriorityGeneratorVoltageControlled(controlledBus);
+        boolean voltageControlEnabled = controlledBus.isGeneratorVoltageControlEnabled();
         List<LfBus> controllerBuses = voltageControl.getControllerElements();
         LfBus firstControllerBus = controllerBuses.get(0);
         if (firstControllerBus.hasGeneratorsWithSlope()) {
@@ -524,21 +526,12 @@ public class AcEquationSystemCreator {
                         .setActive(true);
             }
         } else {
-            List<LfBranch> enabledControllerBranches;
-            List<LfBranch> disabledControllerBranches;
-            if (VoltageControl.isTheHighestPriorityTransformerVoltageControlled(controlledBus)) {
-                enabledControllerBranches = controllerBranches.stream()
-                        .filter(LfBranch::isVoltageControlEnabled)
-                        .collect(Collectors.toList());
-                disabledControllerBranches = controllerBranches.stream()
-                        .filter(Predicate.not(LfBranch::isVoltageControlEnabled))
-                        .collect(Collectors.toList());
-            } else {
-                enabledControllerBranches = Collections.emptyList();
-                disabledControllerBranches = controllerBranches;
-            }
-
-            vEq.setActive(!enabledControllerBranches.isEmpty());
+            List<LfBranch> enabledControllerBranches = controllerBranches.stream()
+                    .filter(LfBranch::isVoltageControlEnabled)
+                    .collect(Collectors.toList());
+            List<LfBranch> disabledControllerBranches = controllerBranches.stream()
+                    .filter(Predicate.not(LfBranch::isVoltageControlEnabled))
+                    .collect(Collectors.toList());
 
             for (LfBranch controllerBranch : disabledControllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO)
@@ -548,6 +541,8 @@ public class AcEquationSystemCreator {
                         .orElseThrow()
                         .setActive(true);
             }
+
+            vEq.setActive(!enabledControllerBranches.isEmpty());
 
             for (int i = 0; i < enabledControllerBranches.size(); i++) {
                 LfBranch controllerBranch = enabledControllerBranches.get(i);
@@ -634,21 +629,12 @@ public class AcEquationSystemCreator {
                         .setActive(true);
             }
         } else {
-            List<LfShunt> enabledControllerShunts;
-            List<LfShunt> disabledControllerShunts;
-            if (VoltageControl.isTheHighestPriorityShuntVoltageControlled(controlledBus)) {
-                enabledControllerShunts = controllerShunts.stream()
-                        .filter(LfShunt::isVoltageControlEnabled)
-                        .collect(Collectors.toList());
-                disabledControllerShunts = controllerShunts.stream()
-                        .filter(Predicate.not(LfShunt::isVoltageControlEnabled))
-                        .collect(Collectors.toList());
-            } else {
-                enabledControllerShunts = Collections.emptyList();
-                disabledControllerShunts = controllerShunts;
-            }
-
-            vEq.setActive(!enabledControllerShunts.isEmpty());
+            List<LfShunt> enabledControllerShunts = controllerShunts.stream()
+                    .filter(LfShunt::isVoltageControlEnabled)
+                    .collect(Collectors.toList());
+            List<LfShunt> disabledControllerShunts = controllerShunts.stream()
+                    .filter(Predicate.not(LfShunt::isVoltageControlEnabled))
+                    .collect(Collectors.toList());
 
             for (LfShunt controllerShunt : disabledControllerShunts) {
                 equationSystem.getEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B)
@@ -658,6 +644,8 @@ public class AcEquationSystemCreator {
                         .orElseThrow()
                         .setActive(true);
             }
+
+            vEq.setActive(!enabledControllerShunts.isEmpty());
 
             for (int i = 0; i < enabledControllerShunts.size(); i++) {
                 LfShunt controllerShunt = enabledControllerShunts.get(i);
