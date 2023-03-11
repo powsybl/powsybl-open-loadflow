@@ -57,9 +57,10 @@ public class AcEquationSystemCreator {
                 .setActive(false);
         bus.setCalculatedV(vTerm);
 
-        createGeneratorControlEquations(bus, equationSystem);
-
         createShuntEquations(bus, equationSystem);
+
+        // voltage control equations
+        createGeneratorControlEquations(bus, equationSystem);
 
         createTransformerVoltageControlEquations(bus, equationSystem);
 
