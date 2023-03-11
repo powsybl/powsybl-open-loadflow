@@ -17,7 +17,7 @@ public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> 
     }
 
     @Override
-    protected boolean isControllerEnabled(LfBranch controllerElement) {
+    public boolean isControllerEnabled(LfBranch controllerElement) {
         return controllerElement.isVoltageControlEnabled();
     }
 

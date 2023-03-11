@@ -26,7 +26,7 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
     }
 
     @Override
-    protected boolean isControllerEnabled(LfBus controllerElement) {
+    public boolean isControllerEnabled(LfBus controllerElement) {
         return controllerElement.isGeneratorVoltageControlEnabled();
     }
 

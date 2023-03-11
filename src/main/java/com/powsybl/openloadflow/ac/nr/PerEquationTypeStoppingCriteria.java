@@ -68,7 +68,6 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
                     }
                     break;
                 case BUS_TARGET_V:
-                case BUS_TARGET_V_WITH_SLOPE:
                 case ZERO_V:
                     if (Math.abs(fx[idx]) >= maxVoltageMismatch) {
                         return false;

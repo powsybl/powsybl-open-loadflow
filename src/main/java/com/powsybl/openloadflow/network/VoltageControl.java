@@ -48,12 +48,12 @@ public class VoltageControl<T extends LfElement> extends Control {
         controllerElements.add(Objects.requireNonNull(controllerElement));
     }
 
-    public List<VoltageControl<T>> getMergedVoltageControls() {
-        return mergedVoltageControls;
+    public boolean isControllerEnabled(T controllerElement) {
+        throw new IllegalStateException();
     }
 
-    protected boolean isControllerEnabled(T controllerElement) {
-        throw new IllegalStateException();
+    public List<VoltageControl<T>> getMergedVoltageControls() {
+        return mergedVoltageControls;
     }
 
     protected boolean isControlledBySameControlType(LfBus bus) {
