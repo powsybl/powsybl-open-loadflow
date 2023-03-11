@@ -94,6 +94,8 @@ public class AcEquationSystemCreator {
         EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V)
                 .createTerm();
         bus.setCalculatedV(vTerm);
+        var vEq = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V)
+                .addTerm(vTerm);
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
@@ -101,15 +103,10 @@ public class AcEquationSystemCreator {
             // we only support one generator controlling voltage with a non zero slope at a bus.
             // equation is: V + slope * qSVC = targetV
             // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V_WITH_SLOPE)
-                    .addTerm(vTerm)
-                    .addTerms(createReactiveTerms(bus, equationSystem.getVariableSet())
-                            .stream()
-                            .map(term -> term.multiply(slope))
-                            .collect(Collectors.toList()));
-        } else {
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V)
-                    .addTerm(vTerm);
+            vEq.addTerms(createReactiveTerms(bus, equationSystem.getVariableSet())
+                    .stream()
+                    .map(term -> term.multiply(slope))
+                    .collect(Collectors.toList()));
         }
 
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
@@ -195,15 +192,17 @@ public class AcEquationSystemCreator {
         // ensure reactive keys are up-to-date
         voltageControl.updateReactiveKeys();
 
+        LfBus controlledBus = voltageControl.getControlledBus();
+
         List<LfBus> controllerBuses = voltageControl.getControllerElements()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller buses
                 .collect(Collectors.toList());
 
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        if (voltageControl.getControlledBus().isDisabled()) {
+        if (controlledBus.isDisabled()) {
             // if controlled bus is disabled, we disable all voltage control equations
             vEq.setActive(false);
             for (LfBus controllerBus : controllerBuses) {
@@ -290,29 +289,15 @@ public class AcEquationSystemCreator {
 
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBus controlledBus = voltageControl.getControlledBus();
-        List<LfBus> controllerBuses = voltageControl.getControllerElements();
-
-        LfBus firstControllerBus = controllerBuses.get(0);
-        if (firstControllerBus.hasGeneratorsWithSlope()) {
-            // we only support one controlling static var compensator without any other controlling generators
-            // we don't support controller bus that wants to control back voltage with slope.
-            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V_WITH_SLOPE)
+        if (voltageControl.isLocalControl()) {
+            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                     .orElseThrow()
-                    .setActive(firstControllerBus.isGeneratorVoltageControlEnabled());
-            equationSystem.getEquation(firstControllerBus.getNum(), AcEquationType.BUS_TARGET_Q)
+                    .setActive(!controlledBus.isDisabled() && controlledBus.isGeneratorVoltageControlEnabled());
+            equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
                     .orElseThrow()
-                    .setActive(!firstControllerBus.isGeneratorVoltageControlEnabled());
+                    .setActive(!controlledBus.isDisabled() && !controlledBus.isGeneratorVoltageControlEnabled());
         } else {
-            if (voltageControl.isLocalControl()) {
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
-                        .orElseThrow()
-                        .setActive(!controlledBus.isDisabled() && controlledBus.isGeneratorVoltageControlEnabled());
-                equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
-                        .orElseThrow()
-                        .setActive(!controlledBus.isDisabled() && !controlledBus.isGeneratorVoltageControlEnabled());
-            } else {
-                updateRemoteVoltageControlEquations(voltageControl, equationSystem);
-            }
+            updateRemoteVoltageControlEquations(voltageControl, equationSystem);
         }
     }
 
@@ -485,16 +470,18 @@ public class AcEquationSystemCreator {
     }
 
     static void updateTransformerVoltageControlEquations(TransformerVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBus controlledBus = voltageControl.getControlledBus();
+
         List<LfBranch> controllerBranches = voltageControl.getControllerElements()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller branches
                 .collect(Collectors.toList());
 
         // activate voltage target equation if control is on
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        if (voltageControl.getControlledBus().isDisabled()) {
+        if (controlledBus.isDisabled()) {
             // if controlled bus is disabled, we deactivate voltage target and rho distribution equations
             // and activate rho target equations
             vEq.setActive(false);
@@ -586,15 +573,17 @@ public class AcEquationSystemCreator {
     }
 
     static void updateShuntVoltageControlEquations(ShuntVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBus controlledBus = voltageControl.getControlledBus();
+
         List<LfShunt> controllerShunts = voltageControl.getControllerElements()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller shunts
                 .collect(Collectors.toList());
 
-        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(voltageControl.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
+        Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        if (voltageControl.getControlledBus().isDisabled()) {
+        if (controlledBus.isDisabled()) {
             // if controlled bus is disabled, we deactivate voltage target equation and all susceptance distribution
             // equations and activate susceptance target equations
             vEq.setActive(false);
