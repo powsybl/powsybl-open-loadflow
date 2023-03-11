@@ -134,11 +134,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean isVoltageControlled() {
-        return isGeneratorVoltageControlled() || isTransformerVoltageControlled() || isShuntVoltageControlled();
-    }
-
-    @Override
     public boolean hasGeneratorVoltageControllerCapability() {
         return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
     }

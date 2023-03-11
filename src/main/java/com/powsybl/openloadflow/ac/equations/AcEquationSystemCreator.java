@@ -75,15 +75,17 @@ public class AcEquationSystemCreator {
 
     private void createGeneratorControlEquations(LfBus bus,
                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        if (bus.isGeneratorVoltageControlled()) {
-            GeneratorVoltageControl voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
-            if (voltageControl.isLocalControl()) {
-                createLocalVoltageControlEquation(bus, equationSystem);
-            } else {
-                createRemoteVoltageControlEquations(voltageControl, equationSystem);
-            }
-            updateGeneratorVoltageControl(voltageControl, equationSystem);
-        }
+        bus.getGeneratorVoltageControl()
+                .ifPresent(voltageControl -> {
+                    if (bus.isGeneratorVoltageControlled()) {
+                        if (voltageControl.isLocalControl()) {
+                            createLocalVoltageControlEquation(bus, equationSystem);
+                        } else {
+                            createRemoteVoltageControlEquations(voltageControl, equationSystem);
+                        }
+                        updateGeneratorVoltageControl(voltageControl, equationSystem);
+                    }
+                });
     }
 
     private void createLocalVoltageControlEquation(LfBus bus,

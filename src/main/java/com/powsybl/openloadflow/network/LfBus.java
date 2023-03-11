@@ -28,8 +28,6 @@ public interface LfBus extends LfElement {
 
     void setReference(boolean reference);
 
-    boolean isVoltageControlled();
-
     // generator voltage control
 
     boolean hasGeneratorVoltageControllerCapability();
