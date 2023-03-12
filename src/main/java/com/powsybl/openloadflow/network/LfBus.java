@@ -178,4 +178,6 @@ public interface LfBus extends LfElement {
     void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork);
 
     LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc);
+
+    void invalidateVoltageControlsStatus();
 }

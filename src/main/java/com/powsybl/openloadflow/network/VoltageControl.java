@@ -27,7 +27,7 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     protected final List<T> controllerElements = new ArrayList<>();
 
-    protected List<VoltageControl<T>> mergedVoltageControls;
+    protected final List<VoltageControl<T>> mergedVoltageControls = new ArrayList<>();
 
     protected Status status = null;
 

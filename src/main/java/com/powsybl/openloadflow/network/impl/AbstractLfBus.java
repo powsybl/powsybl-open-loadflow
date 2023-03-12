@@ -531,6 +531,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setDisabled(boolean disabled) {
+        invalidateVoltageControlsStatus();
         super.setDisabled(disabled);
         if (shunt != null) {
             shunt.setDisabled(disabled);
@@ -604,6 +605,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return dc ? dcZeroImpedanceNetwork : acZeroImpedanceNetwork;
     }
 
+    @Override
     public void invalidateVoltageControlsStatus() {
         getGeneratorVoltageControl().ifPresent(VoltageControl::invalidateStatus);
         getShuntVoltageControl().ifPresent(VoltageControl::invalidateStatus);
