@@ -1194,7 +1194,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
-    void testRestoreAfterContingencyOnHvdc() {
+    void testRestoContingencyOnHvdc() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
@@ -1210,12 +1210,39 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 Stream.of("l12", "l25", "l56").map(network::getBranch).collect(Collectors.toList()));
 
         List<Contingency> contingencies = List.of(new Contingency("hvdc34", new HvdcLineContingency("hvdc34")),
-                                                  new Contingency("l45", new BranchContingency("l45")));
+                new Contingency("l45", new BranchContingency("l45")));
 
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
 
         assertEquals(0.269, result.getBranchFlow1SensitivityValue("l45", "g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.356, result.getBranchFlow1SensitivityValue("l45", "g1", "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.144, result.getBranchFlow1SensitivityValue("l45", "g1", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testStaticVarCompensatorContingency() {
+        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        network.getStaticVarCompensator("svc1").setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        List<Contingency> contingencies = List.of(new Contingency("svc1", new StaticVarCompensatorContingency("svc1")));
+        SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
+        // parameters.getLoadFlowParameters().setDc(true);
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "g1"),
+                                                  createBranchFlowPerInjectionIncrease("l1", "ld1"));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), parameters);
+    }
+
+    @Test
+    void testSaWithShuntContingency() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            shuntCompensator.setSectionCount(10).setVoltageRegulatorOn(false);
+        });
+        List<Contingency> contingencies = List.of(new Contingency("SHUNT2", new ShuntCompensatorContingency("SHUNT2")),
+                                                  new Contingency("tr3", new BranchContingency("tr3")));
+        SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
+        // parameters.getLoadFlowParameters().setDc(true);
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("tr2", "g1"),
+                                                  createBranchFlowPerInjectionIncrease("tr3", "g1"));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), parameters);
     }
 }
