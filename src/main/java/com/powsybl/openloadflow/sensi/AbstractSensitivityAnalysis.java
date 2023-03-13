@@ -872,7 +872,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (twt == null) {
             throw new PowsyblException("Three windings transformer '" + transformerId + "' not found");
         }
-        ThreeWindingsTransformer.Leg l = twt.getLegs().get(getLegNumber(type));
+        ThreeWindingsTransformer.Leg l = twt.getLegs().get(getLegNumber(type) - 1);
         if (l.getPhaseTapChanger() == null) {
             throw new PowsyblException("Three windings transformer '" + transformerId + "' leg on side '" + type + "' has no phase tap changer");
         }
