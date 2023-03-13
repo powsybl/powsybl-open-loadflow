@@ -113,7 +113,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
 
     private void adjustB(ShuntVoltageControl voltageControl, List<LfShunt> sortedControllerShunts, LfBus controlledBus, IncrementalContextData contextData,
                          SensitivityContext sensitivityContext, double diffV, MutableObject<OuterLoopStatus> status) {
-        // several shunts control the same bus
+        // several shunts could control the same bus
         double remainingDiffV = diffV;
         boolean hasChanged = true;
         while (hasChanged) {
@@ -163,6 +163,7 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                     ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
                     double diffV = voltageControl.getTargetValue() - voltageControl.getControlledBus().getV();
                     List<LfShunt> sortedControllers = voltageControl.getControllerElements().stream()
+                            .filter(element -> !element.isDisabled() && element.hasVoltageControlCapability())
                             .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
                             .collect(Collectors.toList());
                     adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, status);

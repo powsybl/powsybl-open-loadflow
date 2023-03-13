@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -40,7 +41,7 @@ public class LfShuntImpl extends AbstractLfShunt {
         }
     }
 
-    private final List<Ref<ShuntCompensator>> shuntCompensatorsRefs;
+    private List<Ref<ShuntCompensator>> shuntCompensatorsRefs;
 
     private final LfBus bus;
 
@@ -103,9 +104,11 @@ public class LfShuntImpl extends AbstractLfShunt {
                 controllers.add(new ControllerImpl(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount()));
             });
             // Controllers are always enabled, a contingency with shunt compensator with voltage control on is not supported yet.
-            controllers = controllers.stream()
-                    .sorted(Comparator.comparingDouble(Controller::getBMagnitude).reversed())
+            List<Integer> sortedIndices = IntStream.range(0, controllers.size())
+                    .boxed().sorted(Comparator.comparingDouble((Integer i) -> controllers.get(i).getBMagnitude()).reversed())
                     .collect(Collectors.toList());
+            controllers = sortedIndices.stream().map(controllers::get).collect(Collectors.toList());
+            shuntCompensatorsRefs = sortedIndices.stream().map(shuntCompensatorsRefs::get).collect(Collectors.toList());
         }
     }
 
