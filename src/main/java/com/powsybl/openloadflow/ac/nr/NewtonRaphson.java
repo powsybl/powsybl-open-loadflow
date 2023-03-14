@@ -134,7 +134,7 @@ public class NewtonRaphson {
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
-            if (parameters.getDetailedNrLogs()) {
+            if (parameters.getDetailedNrReport()) {
                 // report largest mismatches in (P, Q, V) equations
                 Reporter iterationMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(reporter, iteration);
                 reportLargestMismatch(iterationMismatchReporter, equationSystem, equationVector.getArray(), network, iteration);
@@ -247,7 +247,7 @@ public class NewtonRaphson {
 
     public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter, int outerLoopIteration, String outerLoopType) {
 
-        Reporter nrReporter = Reports.createNewtonRaphsonReporter(reporter, parameters.getDetailedNrLogs(), network.getNumCC(), network.getNumSC(), outerLoopIteration, outerLoopType);
+        Reporter nrReporter = Reports.createNewtonRaphsonReporter(reporter, parameters.getDetailedNrReport(), network.getNumCC(), network.getNumSC(), outerLoopIteration, outerLoopType);
 
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);
@@ -259,7 +259,7 @@ public class NewtonRaphson {
 
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-        if (parameters.getDetailedNrLogs()) {
+        if (parameters.getDetailedNrReport()) {
             // report largest mismatches in (P, Q, V) equations of starting point
             Reporter initialMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(nrReporter, -1);
             reportLargestMismatch(initialMismatchReporter, equationSystem, equationVector.getArray(), network, -1);

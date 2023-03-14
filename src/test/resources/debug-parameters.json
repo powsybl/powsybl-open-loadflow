@@ -55,9 +55,8 @@
         "secondaryVoltageControl" : false,
         "reactiveLimitsMaxPqPvSwitch" : 3,
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
-        "detailedNrLogsLf" : false,
-        "detailedNrLogsSa" : false,
-        "detailedNrLogs" : false
+        "reportedFeatures" : [ ],
+        "detailedNrReport" : false
       }
     }
   },

@@ -26,6 +26,7 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,7 +67,8 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
         var lfParameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(lfParameters).setDetailedNrLogsLf(true);
+        OpenLoadFlowParameters.create(lfParameters);
+        OpenLoadFlowParameters.create(lfParameters).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
         runAcLf(network, reporter, lfParameters);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
@@ -79,7 +81,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         StringWriter sw = new StringWriter();
         reporter.export(sw);
 
-        InputStream refStream = getClass().getResourceAsStream("/esgTutoReportDetailedNrLogsLf.txt");
+        InputStream refStream = getClass().getResourceAsStream("/esgTutoReportDetailedNrReportLf.txt");
         String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(refStream), StandardCharsets.UTF_8));
         String logExport = normalizeLineSeparator(sw.toString());
         assertEquals(refLogExport, logExport);
@@ -94,7 +96,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
         sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
-        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters()).setDetailedNrLogsSa(true);
+        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters()).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SA));
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getLineStream().collect(Collectors.toList()));
         sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
@@ -103,7 +105,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         StringWriter sw = new StringWriter();
         reporter.export(sw);
 
-        InputStream refStream = getClass().getResourceAsStream("/esgTutoReportDetailedNrLogsSa.txt");
+        InputStream refStream = getClass().getResourceAsStream("/esgTutoReportDetailedNrReportSa.txt");
         String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(refStream), StandardCharsets.UTF_8));
         String logExport = normalizeLineSeparator(sw.toString());
         assertEquals(refLogExport, logExport);
@@ -114,12 +116,12 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
         var lfParameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(lfParameters).setDetailedNrLogsLf(true);
+        OpenLoadFlowParameters.create(lfParameters).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
         runAcLf(network, reporter, lfParameters);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
         sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
-        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters()).setDetailedNrLogsSa(true);
+        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters()).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SA));
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getLineStream().collect(Collectors.toList()));
         sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
@@ -128,7 +130,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         StringWriter sw = new StringWriter();
         reporter.export(sw);
 
-        InputStream refStream = getClass().getResourceAsStream("/esgTutoReportDetailedNrLogsLfSa.txt");
+        InputStream refStream = getClass().getResourceAsStream("/esgTutoReportDetailedNrReportLfSa.txt");
         String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(refStream), StandardCharsets.UTF_8));
         String logExport = normalizeLineSeparator(sw.toString());
         assertEquals(refLogExport, logExport);

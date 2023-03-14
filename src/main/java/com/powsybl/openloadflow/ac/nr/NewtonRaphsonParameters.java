@@ -32,7 +32,7 @@ public class NewtonRaphsonParameters {
 
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
 
-    private boolean detailedNrLogs = false;
+    private boolean detailedNrReport = false;
 
     public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
@@ -82,12 +82,12 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
-    public boolean getDetailedNrLogs() {
-        return detailedNrLogs;
+    public boolean getDetailedNrReport() {
+        return detailedNrReport;
     }
 
-    public NewtonRaphsonParameters setDetailedNrLogs(boolean detailedNrLogs) {
-        this.detailedNrLogs = detailedNrLogs;
+    public NewtonRaphsonParameters setDetailedNrReport(boolean detailedNrReport) {
+        this.detailedNrReport = detailedNrReport;
         return this;
     }
 

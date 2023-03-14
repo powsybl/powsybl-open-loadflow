@@ -92,9 +92,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final PhaseShifterControlMode PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE = PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION;
 
-    public static final boolean DETAILED_NR_LOGS_LF_DEFAULT_VALUE = false;
-
-    public static final boolean DETAILED_NR_LOGS_SA_DEFAULT_VALUE = false;
+    public static final Set<ReportedFeatures> REPORTED_FEATURES_DEFAULT_VALUE = Collections.emptySet();
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -172,9 +170,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME = "phaseShifterControlMode";
 
-    public static final String DETAILED_NR_LOGS_LF_PARAM_NAME = "detailedNrLogsLf";
-
-    public static final String DETAILED_NR_LOGS_SA_PARAM_NAME = "detailedNrLogsSa";
+    public static final String REPORTED_FEATURES_PARAM_NAME = "reportedFeatures";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -219,8 +215,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
         new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
-        new Parameter(DETAILED_NR_LOGS_LF_PARAM_NAME, ParameterType.BOOLEAN, "Detailed Newton-Raphson logs on load flow calculation", DETAILED_NR_LOGS_LF_DEFAULT_VALUE),
-        new Parameter(DETAILED_NR_LOGS_SA_PARAM_NAME, ParameterType.BOOLEAN, "Detailed Newton-Raphson logs on security analysis calculation", DETAILED_NR_LOGS_SA_DEFAULT_VALUE));
+        new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)));
 
     public enum VoltageInitModeOverride {
         NONE,
@@ -242,6 +237,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum PhaseShifterControlMode {
         CONTINUOUS_WITH_DISCRETISATION,
         INCREMENTAL
+    }
+
+    public enum ReportedFeatures {
+        NEWTON_RAPHSON_LOAD_FLOW,
+        NEWTON_RAPHSON_SA,
     }
 
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE;
@@ -331,11 +331,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private PhaseShifterControlMode phaseShifterControlMode = PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE;
 
-    private boolean detailedNrLogsLf = DETAILED_NR_LOGS_LF_DEFAULT_VALUE;
+    private Set<ReportedFeatures> reportedFeatures = REPORTED_FEATURES_DEFAULT_VALUE;
 
-    private boolean detailedNrLogsSa = DETAILED_NR_LOGS_SA_DEFAULT_VALUE;
-
-    private boolean detailedNrLogs = false;
+    private boolean detailedNrReport = false;
 
     @Override
     public String getName() {
@@ -719,30 +717,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean getDetailedNrLogsLf() {
-        return detailedNrLogsLf;
+    public Set<ReportedFeatures> getReportedFeatures() {
+        return reportedFeatures;
     }
 
-    public OpenLoadFlowParameters setDetailedNrLogsLf(boolean detailedNrLogsLf) {
-        this.detailedNrLogsLf = detailedNrLogsLf;
+    public OpenLoadFlowParameters setReportedFeatures(Set<ReportedFeatures> reportedFeatures) {
+        this.reportedFeatures = reportedFeatures;
         return this;
     }
 
-    public boolean getDetailedNrLogsSa() {
-        return detailedNrLogsSa;
+    public boolean getDetailedNrReport() {
+        return detailedNrReport;
     }
 
-    public OpenLoadFlowParameters setDetailedNrLogsSa(boolean detailedNrLogsSa) {
-        this.detailedNrLogsSa = detailedNrLogsSa;
-        return this;
-    }
-
-    public boolean getDetailedNrLogs() {
-        return detailedNrLogs;
-    }
-
-    public OpenLoadFlowParameters setDetailedNrLogs(boolean detailedNrLogs) {
-        this.detailedNrLogs = detailedNrLogs;
+    public OpenLoadFlowParameters setDetailedNrReport(boolean detailedNrReport) {
+        this.detailedNrReport = detailedNrReport;
         return this;
     }
 
@@ -795,8 +784,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
                 .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
-                .setDetailedNrLogsLf(config.getBooleanProperty(DETAILED_NR_LOGS_LF_PARAM_NAME, DETAILED_NR_LOGS_LF_DEFAULT_VALUE))
-                .setDetailedNrLogsSa(config.getBooleanProperty(DETAILED_NR_LOGS_SA_PARAM_NAME, DETAILED_NR_LOGS_SA_DEFAULT_VALUE)));
+                .setReportedFeatures(config.getEnumSetProperty(REPORTED_FEATURES_PARAM_NAME, ReportedFeatures.class, REPORTED_FEATURES_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -881,10 +869,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setReactiveLimitsMaxPqPvSwitch(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setPhaseShifterControlMode(PhaseShifterControlMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(DETAILED_NR_LOGS_LF_PARAM_NAME))
-                .ifPresent(prop -> this.setDetailedNrLogsLf(Boolean.parseBoolean(prop)));
-        Optional.ofNullable(properties.get(DETAILED_NR_LOGS_SA_PARAM_NAME))
-                .ifPresent(prop -> this.setDetailedNrLogsSa(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(REPORTED_FEATURES_PARAM_NAME))
+                .ifPresent(prop -> this.setReportedFeatures(
+                        Arrays.stream(prop.split(",\\s+"))
+                        .map(ReportedFeatures::valueOf)
+                        .collect(Collectors.toSet())));
         return this;
     }
 
@@ -928,8 +917,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, secondaryVoltageControl);
         map.put(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, reactiveLimitsMaxPqPvSwitch);
         map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
-        map.put(DETAILED_NR_LOGS_LF_PARAM_NAME, detailedNrLogsLf);
-        map.put(DETAILED_NR_LOGS_SA_PARAM_NAME, detailedNrLogsSa);
+        map.put(REPORTED_FEATURES_PARAM_NAME, reportedFeatures);
         return map;
     }
 
@@ -1010,8 +998,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
         LOGGER.info("Reactive limits maximum Pq Pv switch: {}", parametersExt.getReactiveLimitsMaxPqPvSwitch());
         LOGGER.info("Phase shifter control mode: {}", parametersExt.getPhaseShifterControlMode());
-        LOGGER.info("Detailed Newton-Raphson logs for load flow: {}", parametersExt.getDetailedNrLogsLf());
-        LOGGER.info("Detailed Newton-Raphson logs for security analysis: {}", parametersExt.getDetailedNrLogsSa());
+        LOGGER.info("Extra reported features: {}", parametersExt.getReportedFeatures());
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -1128,7 +1115,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
-                .setDetailedNrLogs(parametersExt.getDetailedNrLogs());
+                .setDetailedNrReport(parametersExt.getDetailedNrReport());
 
         OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
@@ -1259,8 +1246,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
                 extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
-                extension1.getDetailedNrLogsLf() == extension2.getDetailedNrLogsLf() &&
-                extension1.getDetailedNrLogsSa() == extension2.getDetailedNrLogsSa();
+                extension1.getReportedFeatures() == extension2.getReportedFeatures();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1315,8 +1301,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
                     .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
-                    .setDetailedNrLogsLf(extension.getDetailedNrLogsLf())
-                    .setDetailedNrLogsSa(extension.getDetailedNrLogsSa());
+                    .setReportedFeatures(extension.getReportedFeatures());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }
