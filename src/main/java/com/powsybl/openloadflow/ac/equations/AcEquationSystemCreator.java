@@ -60,7 +60,7 @@ public class AcEquationSystemCreator {
         createShuntEquations(bus, equationSystem);
 
         // voltage control equations
-        createGeneratorControlEquations(bus, equationSystem);
+        createGeneratorVoltageControlEquations(bus, equationSystem);
 
         createTransformerVoltageControlEquations(bus, equationSystem);
 
@@ -73,15 +73,15 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private void createGeneratorControlEquations(LfBus bus,
-                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createGeneratorVoltageControlEquations(LfBus bus,
+                                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getGeneratorVoltageControl()
                 .ifPresent(voltageControl -> {
                     if (bus.isGeneratorVoltageControlled()) {
                         if (voltageControl.isLocalControl()) {
                             createLocalVoltageControlEquation(bus, equationSystem);
                         } else {
-                            createRemoteVoltageControlEquations(voltageControl, equationSystem);
+                            createGeneratorRemoteVoltageControlEquations(voltageControl, equationSystem);
                         }
                         updateGeneratorVoltageControl(voltageControl, equationSystem);
                     }
@@ -149,8 +149,8 @@ public class AcEquationSystemCreator {
         bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
     }
 
-    private void createRemoteVoltageControlEquations(GeneratorVoltageControl voltageControl,
-                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createGeneratorRemoteVoltageControlEquations(GeneratorVoltageControl voltageControl,
+                                                              EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (LfBus controllerBus : voltageControl.getControllerElements()) {
             equationSystem.createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
 
