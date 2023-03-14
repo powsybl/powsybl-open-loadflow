@@ -15,4 +15,9 @@ public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> 
     public TransformerVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
         super(controlledBus, targetValue, targetDeadband);
     }
+
+    @Override
+    public boolean isControllerEnabled(LfBranch controllerElement) {
+        return controllerElement.isVoltageControlEnabled();
+    }
 }
