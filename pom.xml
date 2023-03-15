@@ -48,7 +48,7 @@
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <graphviz-builder.version>1.0.12</graphviz-builder.version>
 
-        <powsybl-core.version>5.2.0-alpha-1</powsybl-core.version>
+        <powsybl-core.version>5.2.0-RC1</powsybl-core.version>
     </properties>
 
     <build>

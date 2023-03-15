@@ -1697,9 +1697,8 @@ class OpenSecurityAnalysisTest {
         Network network = FourBusNetworkFactory.create();
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters()
-                .setDc(true);
-        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters().setDcPowerFactor(Math.tan(0.4));
-        lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
+                .setDc(true)
+                .setDcPowerFactor(Math.tan(0.4));
         setSlackBusId(lfParameters, "b1_vl");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
