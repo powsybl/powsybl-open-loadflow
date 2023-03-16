@@ -277,10 +277,14 @@ public class PropagatedContingency {
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
-        branchIdsToOpen.stream()
+
+        List<LfBranch> branchesToOpen = branchIdsToOpen.stream()
                 .map(network::getBranchById)
                 .filter(Objects::nonNull) // could be in another component
-                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .collect(Collectors.toList());
+
+        branchesToOpen.stream()
+                .filter(LfBranch::isConnectedAtBothSides)
                 .forEach(connectivity::removeEdge);
 
         // add to contingency description buses and branches that won't be part of the main connected
@@ -290,8 +294,7 @@ public class PropagatedContingency {
         Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
 
         // we should manage branches open at one side
-        branchIdsToOpen.stream().map(network::getBranchById)
-                .filter(Objects::nonNull)
+        branchesToOpen.stream()
                 .filter(b -> !b.isConnectedAtBothSides())
                 .forEach(branches::add);
         for (LfBus bus : buses) {
