@@ -46,6 +46,7 @@
 
         <jafama.version>2.3.2</jafama.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
+        <asciitable.version>0.3.2</asciitable.version>
 
         <powsybl-core.version>5.2.0-RC1</powsybl-core.version>
     </properties>
@@ -90,6 +91,11 @@
 
     <dependencies>
         <!-- Compile dependencies -->
+        <dependency>
+            <groupId>de.vandermeer</groupId>
+            <artifactId>asciitable</artifactId>
+            <version>${asciitable.version}</version>
+        </dependency>
         <dependency>
             <groupId>net.jafama</groupId>
             <artifactId>jafama</artifactId>
