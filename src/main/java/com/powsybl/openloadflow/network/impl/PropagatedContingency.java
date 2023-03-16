@@ -293,8 +293,10 @@ public class PropagatedContingency {
         for (LfBus bus : buses) {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
         }
-
-        branchIdsToOpen.stream().map(network::getBranchById).filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
+        branchIdsToOpen.stream().map(network::getBranchById)
+                .filter(Objects::nonNull)
+                .filter(b -> !b.isConnectedAtBothSides())
+                .forEach(branches::add);
 
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
