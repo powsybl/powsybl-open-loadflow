@@ -289,14 +289,14 @@ public class PropagatedContingency {
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
         Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
 
-        // we should manage branches open at one side.
-        for (LfBus bus : buses) {
-            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
-        }
+        // we should manage branches open at one side
         branchIdsToOpen.stream().map(network::getBranchById)
                 .filter(Objects::nonNull)
                 .filter(b -> !b.isConnectedAtBothSides())
                 .forEach(branches::add);
+        for (LfBus bus : buses) {
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
+        }
 
         // reset connectivity to discard triggered branches
         connectivity.undoTemporaryChanges();
