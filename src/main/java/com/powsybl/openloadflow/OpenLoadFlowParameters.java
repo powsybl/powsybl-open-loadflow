@@ -15,13 +15,13 @@ import com.powsybl.commons.parameters.ParameterType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.*;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -30,6 +30,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import de.vandermeer.asciitable.AsciiTable;
+import de.vandermeer.asciitable.CWC_LongestWord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -891,55 +893,23 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return create(parameters, OpenLoadFlowParameters::load);
     }
 
-    public static void logDc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        LOGGER.info("Direct current: {}", parameters.isDc());
-        LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
-        LOGGER.info("Use transformer ratio: {}", parameters.isDcUseTransformerRatio());
-        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
-        LOGGER.info("Balance type: {}", parameters.getBalanceType());
-        LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
-        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
-        LOGGER.info("DC power factor: {}", parameters.getDcPowerFactor());
-        LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
-    }
-
-    /**
-     * Log parameters interesting for AC calculation
-     */
-    public static void logAc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        LOGGER.info("Direct current: {}", parameters.isDc());
-        LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
-        LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
-        LOGGER.info("Voltage initialization mode override: {}", parametersExt.getVoltageInitModeOverride());
-        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
-        LOGGER.info("Balance type: {}", parameters.getBalanceType());
-        LOGGER.info("Reactive limits: {}", parameters.isUseReactiveLimits());
-        LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
-        LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
-        LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
-        LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
-        LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
-        LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
-        LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
-        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
-        LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
-        LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
-        LOGGER.info("Shunt voltage control: {}", parameters.isShuntCompensatorVoltageControlOn());
-        LOGGER.info("Hvdc Ac emulation: {}", parameters.isHvdcAcEmulation());
-        LOGGER.info("Min plausible target voltage: {}", parametersExt.getMinPlausibleTargetVoltage());
-        LOGGER.info("Max plausible target voltage: {}", parametersExt.getMaxPlausibleTargetVoltage());
-        LOGGER.info("Min realistic voltage: {}", parametersExt.getMinRealisticVoltage());
-        LOGGER.info("Max realistic voltage: {}", parametersExt.getMaxRealisticVoltage());
-        LOGGER.info("Reactive range check mode: {}", parametersExt.getReactiveRangeCheckMode());
-        LOGGER.info("Network cache enabled: {}", parametersExt.isNetworkCacheEnabled());
-        LOGGER.info("Static var compensator voltage monitoring: {}", parametersExt.isSvcVoltageMonitoring());
-        LOGGER.info("State vector scaling mode: {}", parametersExt.getStateVectorScalingMode());
-        LOGGER.info("Max slack bus count: {}", parametersExt.getMaxSlackBusCount());
-        LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
-        LOGGER.info("Incremental transformer voltage control outer loop max tap shift: {}", parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
-        LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
-        LOGGER.info("Reactive limits maximum Pq Pv switch: {}", parametersExt.getReactiveLimitsMaxPqPvSwitch());
-        LOGGER.info("Phase shifter control mode: {}", parametersExt.getPhaseShifterControlMode());
+    public static void log(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        if (LOGGER.isInfoEnabled()) {
+            AsciiTable at = new AsciiTable();
+            at.addRule();
+            at.addRow("Name", "Value");
+            at.addRule();
+            for (var e : parameters.toMap().entrySet()) {
+                at.addRow(e.getKey(), e.getValue());
+            }
+            for (var e : parametersExt.toMap().entrySet()) {
+                at.addRow(e.getKey(), Objects.toString(e.getValue(), ""));
+            }
+            at.addRule();
+            at.getRenderer().setCWC(new CWC_LongestWord());
+            at.setPaddingLeftRight(1, 1);
+            LOGGER.info("Parameters:\n{}", at.render());
+        }
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
