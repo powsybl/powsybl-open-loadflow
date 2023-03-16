@@ -35,8 +35,6 @@ import de.vandermeer.asciitable.CWC_LongestWord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -895,26 +893,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return create(parameters, OpenLoadFlowParameters::load);
     }
 
-    /**
-     * FIXME: To remove when migrating to next core release, when toMap method will be public.
-     */
-    private static Map<String, Object> toMapHack(LoadFlowParameters parameters) {
-        try {
-            Method toMap = LoadFlowParameters.class.getDeclaredMethod("toMap");
-            toMap.setAccessible(true);
-            return (Map<String, Object>) toMap.invoke(parameters);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
-            return Collections.emptyMap();
-        }
-    }
-
     public static void log(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         if (LOGGER.isInfoEnabled()) {
             AsciiTable at = new AsciiTable();
             at.addRule();
             at.addRow("Name", "Value");
             at.addRule();
-            for (var e : toMapHack(parameters).entrySet()) {
+            for (var e : parameters.toMap().entrySet()) {
                 at.addRow(e.getKey(), e.getValue());
             }
             for (var e : parametersExt.toMap().entrySet()) {
