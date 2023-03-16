@@ -311,7 +311,6 @@ public class AcEquationSystemCreator {
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBus controlledBus = voltageControl.getControlledBus();
         if (voltageControl.isLocalControl()) {
-            voltageControl.getStatus();
             equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                     .orElseThrow()
                     .setActive(!controlledBus.isDisabled() && controlledBus.isGeneratorVoltageControlEnabled());
@@ -330,6 +329,7 @@ public class AcEquationSystemCreator {
         Optional<Equation<AcVariableType, AcEquationType>> v2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_V);
         boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive if the equation has been created for sensitivity
         boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive if the equation has been created for sensitivity
+        boolean enabled = !branch.isDisabled() && spanningTreeEdge;
         if (!(hasV1 && hasV2)) {
             // create voltage magnitude coupling equation
             // 0 = v1 - v2 * rho
@@ -341,7 +341,9 @@ public class AcEquationSystemCreator {
                     .createTerm();
             equationSystem.createEquation(branch, AcEquationType.ZERO_V)
                     .addTerm(vTerm)
-                    .addTerm(bus2vTerm.multiply(-rho));
+                    .addTerm(bus2vTerm.multiply(-rho))
+                    .setActive(enabled);
+
             // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
             var dummyQ = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q);
@@ -358,7 +360,7 @@ public class AcEquationSystemCreator {
             // on case of switch opening
             equationSystem.createEquation(branch, AcEquationType.DUMMY_TARGET_Q)
                     .addTerm(dummyQ.createTerm())
-                    .setActive(branch.isDisabled() || !spanningTreeEdge); // inverted logic
+                    .setActive(!enabled); // inverted logic
         } else {
             // nothing to do in case of v1 and v2 are found, we just have to ensure
             // target v are equals.
@@ -373,7 +375,7 @@ public class AcEquationSystemCreator {
                     .addTerm(equationSystem.getVariable(bus1.getNum(), AcVariableType.BUS_PHI).createTerm())
                     .addTerm(equationSystem.getVariable(bus2.getNum(), AcVariableType.BUS_PHI).<AcEquationType>createTerm()
                                          .minus())
-                    .setActive(!branch.isDisabled() && spanningTreeEdge);
+                    .setActive(enabled);
 
             // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
             // to ensure we have the same number of equation and variables
@@ -391,7 +393,7 @@ public class AcEquationSystemCreator {
             // on case of switch opening
             equationSystem.createEquation(branch, AcEquationType.DUMMY_TARGET_P)
                     .addTerm(dummyP.createTerm())
-                    .setActive(branch.isDisabled() || !spanningTreeEdge); // inverted logic
+                    .setActive(!enabled); // inverted logic
         } else {
             throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
         }

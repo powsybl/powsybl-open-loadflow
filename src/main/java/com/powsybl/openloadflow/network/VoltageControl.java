@@ -156,10 +156,14 @@ public class VoltageControl<T extends LfElement> extends Control {
                     if (gvc.status == Status.ENABLED) {
                         voltageControls.add(gvc);
                     }
+                }
+                if (zb.isShuntVoltageControlled()) {
                     ShuntVoltageControl svc = zb.getShuntVoltageControl().orElseThrow();
                     if (svc.status == Status.ENABLED) {
                         voltageControls.add(svc);
                     }
+                }
+                if (zb.isTransformerVoltageControlled()) {
                     TransformerVoltageControl tvc = zb.getTransformerVoltageControl().orElseThrow();
                     if (tvc.status == Status.ENABLED) {
                         voltageControls.add(tvc);
