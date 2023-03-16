@@ -20,6 +20,7 @@
     "dcPowerFactor" : 1.0,
     "extensions" : {
       "open-load-flow-parameters" : {
+        "alwaysUpdateNetwork" : false,
         "slackBusSelectionMode" : "NAME",
         "slackBusesIds" : [ "b1_vl_0" ],
         "throwsExceptionInCaseOfSlackDistributionFailure" : false,

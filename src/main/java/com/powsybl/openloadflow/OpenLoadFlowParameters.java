@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters> {
+    private static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenLoadFlowParameters.class);
 
@@ -89,6 +90,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final ShuntVoltageControlMode SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
 
     public static final PhaseShifterControlMode PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE = PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION;
+
+    private static final String ALWAYS_UPDATE_NETWORK_PARAM_NAME = "alwaysUpdateNetwork";
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -169,6 +172,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public static final List<Parameter> SPECIFIC_PARAMETERS = List.of(
+        new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update iidm network even if Newton-Raphson algorithm has diverged", ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
         new Parameter(SLACK_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Slack bus selection mode", SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackBusSelectionMode.class)),
         new Parameter(SLACK_BUSES_IDS_PARAM_NAME, ParameterType.STRING, "Slack bus IDs", null),
         new Parameter(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, ParameterType.STRING, "Low impedance branch mode", LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(LowImpedanceBranchMode.class)),
@@ -229,6 +233,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         CONTINUOUS_WITH_DISCRETISATION,
         INCREMENTAL
     }
+
+    private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE;
 
@@ -610,6 +616,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isAlwaysUpdateNetwork() {
+        return alwaysUpdateNetwork;
+    }
+
+    public OpenLoadFlowParameters setAlwaysUpdateNetwork(boolean alwaysUpdateNetwork) {
+        this.alwaysUpdateNetwork = alwaysUpdateNetwork;
+        return this;
+    }
+
     public boolean isSvcVoltageMonitoring() {
         return svcVoltageMonitoring;
     }
@@ -696,6 +711,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         OpenLoadFlowParameters parameters = new OpenLoadFlowParameters();
         platformConfig.getOptionalModuleConfig("open-loadflow-default-parameters")
             .ifPresent(config -> parameters
+                .setAlwaysUpdateNetwork(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
                 .setSlackBusSelectionMode(config.getEnumProperty(SLACK_BUS_SELECTION_MODE_PARAM_NAME, SlackBusSelectionMode.class, SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE))
                 .setSlackBusesIds(config.getStringListProperty(SLACK_BUSES_IDS_PARAM_NAME, Collections.emptyList()))
                 .setLowImpedanceBranchMode(config.getEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class, LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE))
@@ -744,6 +760,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters update(Map<String, String> properties) {
+        Optional.ofNullable(properties.get(ALWAYS_UPDATE_NETWORK_PARAM_NAME))
+                .ifPresent(prop -> this.setAlwaysUpdateNetwork(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(SLACK_BUS_SELECTION_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setSlackBusSelectionMode(SlackBusSelectionMode.valueOf(prop)));
         Optional.ofNullable(properties.get(SLACK_BUSES_IDS_PARAM_NAME))
@@ -822,7 +840,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(38);
+        Map<String, Object> map = new LinkedHashMap<>(39);
+        map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME, alwaysUpdateNetwork);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
@@ -1156,7 +1175,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             return false;
         }
 
-        return extension1.getSlackBusSelectionMode() == extension2.getSlackBusSelectionMode() &&
+        return extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
+                extension1.getSlackBusSelectionMode() == extension2.getSlackBusSelectionMode() &&
                 extension1.getSlackBusesIds().equals(extension2.getSlackBusesIds()) &&
                 extension1.isThrowsExceptionInCaseOfSlackDistributionFailure() == extension2.isThrowsExceptionInCaseOfSlackDistributionFailure() &&
                 extension1.hasVoltageRemoteControl() == extension2.hasVoltageRemoteControl() &&
@@ -1211,6 +1231,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         OpenLoadFlowParameters extension = parameters.getExtension(OpenLoadFlowParameters.class);
         if (extension != null) {
             OpenLoadFlowParameters extension2 = new OpenLoadFlowParameters()
+                    .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
                     .setSlackBusSelectionMode(extension.getSlackBusSelectionMode())
                     .setSlackBusesIds(new ArrayList<>(extension.getSlackBusesIds()))
                     .setThrowsExceptionInCaseOfSlackDistributionFailure(extension.isThrowsExceptionInCaseOfSlackDistributionFailure())
