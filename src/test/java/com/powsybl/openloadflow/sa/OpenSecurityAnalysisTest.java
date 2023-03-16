@@ -2576,4 +2576,14 @@ class OpenSecurityAnalysisTest {
         assertEquals(-35.294, operatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-58.824, operatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
     }
+
+    @Test
+    void testLineDisconnectedOnOneSideContingency() {
+        Network network = DistributedSlackNetworkFactory.create();
+        network.getBranch("l24").getTerminal1().disconnect();
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(new Contingency("l24", new BranchContingency("l24"))), Collections.emptyList());
+
+        assertEquals(1, result.getPostContingencyResults().size());
+    }
 }
