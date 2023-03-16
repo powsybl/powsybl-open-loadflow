@@ -10,8 +10,8 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
@@ -20,6 +20,7 @@ import java.util.*;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
+ * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
  */
 public final class LfAction {
 
@@ -56,15 +57,32 @@ public final class LfAction {
 
         private final String loadId;
 
-        private final double p0;
-
         private final PowerShift powerShift;
 
-        private LoadShift(LfBus bus, String loadId, double p0, PowerShift powerShift) {
+        private LoadShift(LfBus bus, String loadId, PowerShift powerShift) {
             this.bus = bus;
             this.loadId = loadId;
-            this.p0 = p0;
             this.powerShift = powerShift;
+        }
+    }
+
+    public static final class GeneratorChange {
+
+        private final LfGenerator generator;
+
+        private final double deltaTargetP;
+
+        private GeneratorChange(LfGenerator generator, double deltaTargetP) {
+            this.generator = generator;
+            this.deltaTargetP = deltaTargetP;
+        }
+
+        public LfGenerator getGenerator() {
+            return generator;
+        }
+
+        public double getDeltaTargetP() {
+            return deltaTargetP;
         }
     }
 
@@ -78,13 +96,16 @@ public final class LfAction {
 
     private final LoadShift loadShift;
 
+    private final GeneratorChange generatorChange;
+
     private LfAction(String id, LfBranch disabledBranch, LfBranch enabledBranch, TapPositionChange tapPositionChange,
-                     LoadShift loadShift) {
+                     LoadShift loadShift, GeneratorChange generatorChange) {
         this.id = Objects.requireNonNull(id);
         this.disabledBranch = disabledBranch;
         this.enabledBranch = enabledBranch;
         this.tapPositionChange = tapPositionChange;
         this.loadShift = loadShift;
+        this.generatorChange = generatorChange;
     }
 
     public static Optional<LfAction> create(Action action, LfNetwork lfNetwork, Network network, boolean breakers) {
@@ -103,6 +124,9 @@ public final class LfAction {
             case LoadAction.NAME:
                 return create((LoadAction) action, lfNetwork, network, breakers);
 
+            case GeneratorAction.NAME:
+                return create((GeneratorAction) action, lfNetwork);
+
             case HvdcAction.NAME:
                 return create((HvdcAction) action, lfNetwork);
 
@@ -116,19 +140,15 @@ public final class LfAction {
         // set point operation mode.
         LfHvdc lfHvdc = lfNetwork.getHvdcById(action.getHvdcId());
         if (lfHvdc != null) {
-            if (action.isAcEmulationEnabled()) { // the operation mode remains AC emulation.
-                if (action.getP0().isPresent()) {
-                    // TODO, add setter and listener
-                } else if (action.getDroop().isPresent()) {
-                    // TODO, add setter and listener
-                } else {
-                    throw new UnsupportedOperationException("Hvdc action: line in AC emulation, only P0 or droop can be updated.");
+            action.isAcEmulationEnabled().ifPresent(isEnabled -> {
+                if (isEnabled) { // the operation mode remains AC emulation.
+                    throw new UnsupportedOperationException("Hvdc action: line is already in AC emulation, not supported yet.");
+                } else { // the operation mode changes from AC emulation to fixed active power set point.
+                    lfHvdc.setDisabled(true);
+                    lfHvdc.getConverterStation1().setTargetP(-lfHvdc.getP1().eval());
+                    lfHvdc.getConverterStation2().setTargetP(-lfHvdc.getP2().eval());
                 }
-            } else { // the operation mode changes from AC emulation to fixed active power set point.
-                lfHvdc.setDisabled(true);
-                lfHvdc.getConverterStation1().setTargetP(-lfHvdc.getP1().eval());
-                lfHvdc.getConverterStation2().setTargetP(-lfHvdc.getP2().eval());
-            }
+            });
         }
         return Optional.empty(); // could be in another component or not operated in AC emulation
     }
@@ -141,19 +161,18 @@ public final class LfAction {
             LfBus lfBus = lfNetwork.getBusById(bus.getId());
             double activePowerShift = 0;
             double reactivePowerShift = 0;
-            Optional<Double> activePowerValue = action.getActivePowerValue();
-            Optional<Double> reactivePowerValue = action.getReactivePowerValue();
+            OptionalDouble activePowerValue = action.getActivePowerValue();
+            OptionalDouble reactivePowerValue = action.getReactivePowerValue();
             if (activePowerValue.isPresent()) {
-                activePowerShift = action.isRelativeValue() ? activePowerValue.get() : activePowerValue.get() - load.getP0();
+                activePowerShift = action.isRelativeValue() ? activePowerValue.getAsDouble() : activePowerValue.getAsDouble() - load.getP0();
             }
             if (reactivePowerValue.isPresent()) {
-                reactivePowerShift = action.isRelativeValue() ? reactivePowerValue.get() : reactivePowerValue.get() - load.getQ0();
+                reactivePowerShift = action.isRelativeValue() ? reactivePowerValue.getAsDouble() : reactivePowerValue.getAsDouble() - load.getQ0();
             }
             // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
             // of P0 that could be described in a LoadDetail extension.
             PowerShift powerShift = new PowerShift(activePowerShift / PerUnit.SB, activePowerShift / PerUnit.SB, reactivePowerShift / PerUnit.SB);
-            return Optional.of(new LfAction(action.getId(), null, null, null,
-                    new LoadShift(lfBus, load.getId(), load.getP0(), powerShift)));
+            return Optional.of(new LfAction(action.getId(), null, null, null, new LoadShift(lfBus, load.getId(), powerShift), null));
         }
         return Optional.empty(); // could be in another component or in contingency.
     }
@@ -165,7 +184,7 @@ public final class LfAction {
                 throw new UnsupportedOperationException("Phase tap changer tap connection action: only one tap in the branch {" + action.getTransformerId() + "}");
             } else {
                 var tapPositionChange = new TapPositionChange(branch, action.getTapPosition(), action.isRelativeValue());
-                return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange, null));
+                return Optional.of(new LfAction(action.getId(), null, null, tapPositionChange, null, null));
             }
         }
         return Optional.empty(); // could be in another component
@@ -175,7 +194,7 @@ public final class LfAction {
         LfBranch branch = lfNetwork.getBranchById(action.getLineId());
         if (branch != null) {
             if (action.isOpenSide1() && action.isOpenSide2()) {
-                return Optional.of(new LfAction(action.getId(), branch, null, null, null));
+                return Optional.of(new LfAction(action.getId(), branch, null, null, null, null));
             } else {
                 throw new UnsupportedOperationException("Line connection action: only open line at both sides is supported yet.");
             }
@@ -193,9 +212,30 @@ public final class LfAction {
             } else {
                 enabledBranch = branch;
             }
-            return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null, null));
+            return Optional.of(new LfAction(action.getId(), disabledBranch, enabledBranch, null, null, null));
         }
         return Optional.empty(); // could be in another component
+    }
+
+    private static Optional<LfAction> create(GeneratorAction action, LfNetwork lfNetwork) {
+        LfGenerator generator = lfNetwork.getGeneratorById(action.getGeneratorId());
+        if (generator != null) {
+            OptionalDouble activePowerValue = action.getActivePowerValue();
+            Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
+            if (relativeValue.isPresent() && activePowerValue.isPresent()) {
+                double deltaTargetP;
+                if (relativeValue.get().equals(Boolean.TRUE)) {
+                    deltaTargetP = activePowerValue.getAsDouble() / PerUnit.SB;
+                } else {
+                    deltaTargetP = activePowerValue.getAsDouble() / PerUnit.SB - generator.getInitialTargetP();
+                }
+                var generatorChange = new GeneratorChange(generator, deltaTargetP);
+                return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorChange));
+            } else {
+                throw new UnsupportedOperationException("Generator action: configuration not supported yet.");
+            }
+        }
+        return Optional.empty();
     }
 
     public String getId() {
@@ -210,7 +250,7 @@ public final class LfAction {
         return enabledBranch;
     }
 
-    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LoadFlowParameters.BalanceType balanceType) {
+    public static void apply(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
@@ -219,7 +259,7 @@ public final class LfAction {
 
         // then process remaining changes of actions
         for (LfAction action : actions) {
-            action.apply(balanceType);
+            action.apply(networkParameters);
         }
     }
 
@@ -272,7 +312,7 @@ public final class LfAction {
         }
     }
 
-    public void apply(LoadFlowParameters.BalanceType balanceType) {
+    public void apply(LfNetworkParameters networkParameters) {
         if (tapPositionChange != null) {
             LfBranch branch = tapPositionChange.getBranch();
             int tapPosition = branch.getPiModel().getTapPosition();
@@ -280,19 +320,27 @@ public final class LfAction {
             int newTapPosition = tapPositionChange.isRelative() ? tapPosition + value : value;
             branch.getPiModel().setTapPosition(newTapPosition);
         }
+
         if (loadShift != null) {
             LfBus bus = loadShift.bus;
             String loadId = loadShift.loadId;
             if (!bus.getAggregatedLoads().isDisabled(loadId)) {
-                Double loadP0 = loadShift.p0;
                 PowerShift shift = loadShift.powerShift;
-                double newP0 = loadP0 / PerUnit.SB + shift.getActive();
-                double oldUpdatedP0 = LfContingency.getUpdatedLoadP0(bus, balanceType, loadP0 / PerUnit.SB, loadP0 / PerUnit.SB);
-                double newUpdatedP0 = LfContingency.getUpdatedLoadP0(bus, balanceType, newP0, newP0);
-                bus.setLoadTargetP(bus.getLoadTargetP() + newUpdatedP0 - oldUpdatedP0);
+                bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
                 bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
                 bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP()
                         + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()) * PerUnit.SB);
+            }
+        }
+
+        if (generatorChange != null) {
+            LfGenerator generator = generatorChange.getGenerator();
+            if (!generator.isDisabled()) {
+                generator.setTargetP(generator.getTargetP() + generatorChange.getDeltaTargetP());
+                if (!AbstractLfGenerator.checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
+                        networkParameters.getPlausibleActivePowerLimit(), null)) {
+                    generator.setParticipating(false);
+                }
             }
         }
     }

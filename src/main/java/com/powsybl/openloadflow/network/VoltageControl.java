@@ -35,4 +35,8 @@ public class VoltageControl<T extends LfElement> extends Control {
     public void addControllerElement(T controllerElement) {
         controllerElements.add(Objects.requireNonNull(controllerElement));
     }
+
+    public boolean isControllerEnabled(T controllerElement) {
+        throw new IllegalStateException();
+    }
 }

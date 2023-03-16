@@ -25,6 +25,11 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
     }
 
     @Override
+    public boolean isControllerEnabled(LfBus controllerElement) {
+        return controllerElement.isGeneratorVoltageControlEnabled();
+    }
+
+    @Override
     public void setTargetValue(double targetValue) {
         if (targetValue != this.targetValue) {
             this.targetValue = targetValue;
