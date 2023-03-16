@@ -91,10 +91,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, Reporter reporter) {
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
-        OpenLoadFlowParameters.logAc(parameters, parametersExt);
-
+    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory);
 
         if (LOGGER.isInfoEnabled()) {
@@ -169,9 +166,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         new ZeroImpedanceFlows(zeroImpedanceSubGraph, spanningTree, dc).compute();
     }
 
-    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, Reporter reporter) {
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
-        OpenLoadFlowParameters.logDc(parameters, parametersExt);
+    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
         dcParameters.getNetworkParameters()
@@ -238,8 +233,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 
-            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, lfReporter)
-                                                      : runAc(network, parameters, lfReporter);
+            OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
+            OpenLoadFlowParameters.log(parameters, parametersExt);
+
+            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, parametersExt, lfReporter)
+                                                      : runAc(network, parameters, parametersExt, lfReporter);
 
             stopwatch.stop();
             LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
