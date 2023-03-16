@@ -2587,22 +2587,34 @@ class OpenSecurityAnalysisTest {
                 .add();
 
         List<Contingency> contingencies = new ArrayList<>();
-        contingencies.add(Contingency.line("l12"));
-        contingencies.add(Contingency.line("l46"));
-        contingencies.add(Contingency.generator("g1"));
+        contingencies.add(Contingency.generator("g5"));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
-        List<Action> actions = List.of(new HvdcActionBuilder().withId("action").withHvdcId("hvdc34").withAcEmulationEnabled(false).build());
+        List<Action> actions = List.of(new HvdcActionBuilder().withId("action1").withHvdcId("hvdc34").withAcEmulationEnabled(false).build(),
+                                       new LoadActionBuilder().withId("action2").withLoadId("d2").withRelativeValue(true).withActivePowerValue(-2).build());
 
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("l12"), new TrueCondition(), List.of("action")),
-                new OperatorStrategy("strategy2", ContingencyContext.specificContingency("l46"), new TrueCondition(), List.of("action")),
-                new OperatorStrategy("strategy3", ContingencyContext.specificContingency("g1"), new TrueCondition(), List.of("action")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("action1")),
+                                                            new OperatorStrategy("strategy2", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("action2")));
 
         LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(parameters);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
+
+        // compare with a loadflow.
+        network.getGenerator("g5").getTerminal().disconnect();
+        LoadFlow.run(network, parameters);
+        network.getHvdcLine("hvdc34").setActivePowerSetpoint(Math.abs(Math.abs(network.getVscConverterStation("cs3").getTerminal().getP())));
+        network.getHvdcLine("hvdc34").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
+        parameters.setHvdcAcEmulation(false);
+        LoadFlow.run(network, parameters);
+
+        OperatorStrategyResult operatorStrategyResult1 = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(network.getLine("l13").getTerminal1().getP(), operatorStrategyResult1.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), operatorStrategyResult1.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), operatorStrategyResult1.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
     }
 }
