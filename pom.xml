@@ -46,9 +46,8 @@
 
         <jafama.version>2.3.2</jafama.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
-        <graphviz-builder.version>1.0.12</graphviz-builder.version>
 
-        <powsybl-core.version>5.2.0-alpha-1</powsybl-core.version>
+        <powsybl-core.version>5.2.0-RC1</powsybl-core.version>
     </properties>
 
     <build>
@@ -108,7 +107,6 @@
         <dependency>
             <groupId>org.anarres.graphviz</groupId>
             <artifactId>graphviz-builder</artifactId>
-            <version>${graphviz-builder.version}</version>
         </dependency>
 
         <dependency>

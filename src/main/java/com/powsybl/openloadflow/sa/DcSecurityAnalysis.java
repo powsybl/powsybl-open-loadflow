@@ -129,7 +129,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
         SensitivityAnalysisParameters sensitivityAnalysisParameters = new SensitivityAnalysisParameters();
-        sensitivityAnalysisParameters.setLoadFlowParameters(securityAnalysisParameters.getLoadFlowParameters());
+        LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
+        sensitivityAnalysisParameters.setLoadFlowParameters(loadFlowParameters);
 
         ContingencyContext contingencyContext = new ContingencyContext(null, ContingencyContextType.ALL);
         String variableId = network.getLoads().iterator().next().getId();
@@ -137,8 +138,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.allOf(LoadingLimitType.class));
 
         // CosPhi for DC power to current conversion
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, parametersExt.getDcPowerFactor());
+        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, loadFlowParameters.getDcPowerFactor());
         SensitivityFactorReader factorReader = handler -> {
             for (Branch<?> b : network.getBranches()) {
                 SensitivityFactor f = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
