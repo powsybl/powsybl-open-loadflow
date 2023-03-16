@@ -75,4 +75,14 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
         // empty
     }
+
+    @Override
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork splitNetwork) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2) {
+        // empty
+    }
 }

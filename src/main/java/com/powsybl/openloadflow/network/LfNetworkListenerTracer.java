@@ -120,4 +120,16 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
                 branch, dc, spanningTree);
         delegate.onZeroImpedanceNetworkSpanningTreeChange(branch, dc, spanningTree);
     }
+
+    @Override
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork splitNetwork) {
+        LOGGER.trace("onZeroImpedanceNetworkSplit()");
+        delegate.onZeroImpedanceNetworkSplit(splitNetwork);
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2) {
+        LOGGER.trace("onZeroImpedanceNetworkMerge()");
+        delegate.onZeroImpedanceNetworkMerge(network1, network2);
+    }
 }

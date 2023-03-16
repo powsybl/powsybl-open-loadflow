@@ -107,6 +107,9 @@ public class LfZeroImpedanceNetwork {
             }
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
             if (connectedSets.size() > 1) { // real split
+                for (LfNetworkListener listener : network.getListeners()) {
+                    listener.onZeroImpedanceNetworkSplit(this);
+                }
                 for (LfBranch branch : disabledBranches) {
                     branch.setSpanningTreeEdge(dc, false);
                 }
@@ -133,6 +136,9 @@ public class LfZeroImpedanceNetwork {
         Objects.requireNonNull(enabledBranch);
         LfNetwork network = zn1.getNetwork();
         boolean dc = zn1.isDc();
+        for (LfNetworkListener listener : network.getListeners()) {
+            listener.onZeroImpedanceNetworkMerge(zn1, zn2);
+        }
         Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
         Graph<LfBus, LfBranch> mergedGraph = new Pseudograph<>(LfBranch.class);
         Graphs.addGraph(mergedGraph, zn1.getGraph());

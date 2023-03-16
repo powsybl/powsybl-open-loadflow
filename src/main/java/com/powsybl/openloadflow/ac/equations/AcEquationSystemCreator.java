@@ -311,6 +311,7 @@ public class AcEquationSystemCreator {
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         LfBus controlledBus = voltageControl.getControlledBus();
         if (voltageControl.isLocalControl()) {
+            voltageControl.getStatus();
             equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                     .orElseThrow()
                     .setActive(!controlledBus.isDisabled() && controlledBus.isGeneratorVoltageControlEnabled());
