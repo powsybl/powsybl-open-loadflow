@@ -155,6 +155,13 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b3);
     }
 
+    /**
+     *  g1
+     *  |
+     *  b1 === b2 --- b3 --- b4
+     *         |             |
+     *         g2            l1
+     */
     @Test
     void inconsistentTargetVoltagesTest() {
         Network network = Network.create("FourBusesWithNonImpedantLineAndInconsistentTargetVoltages", "code");
