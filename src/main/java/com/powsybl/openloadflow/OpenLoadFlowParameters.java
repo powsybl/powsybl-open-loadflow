@@ -1146,8 +1146,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             return false;
         }
 
-        return extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
-                extension1.getSlackBusSelectionMode() == extension2.getSlackBusSelectionMode() &&
+        return  extension1.getSlackBusSelectionMode() == extension2.getSlackBusSelectionMode() &&
                 extension1.getSlackBusesIds().equals(extension2.getSlackBusesIds()) &&
                 extension1.isThrowsExceptionInCaseOfSlackDistributionFailure() == extension2.isThrowsExceptionInCaseOfSlackDistributionFailure() &&
                 extension1.hasVoltageRemoteControl() == extension2.hasVoltageRemoteControl() &&
@@ -1176,7 +1175,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() &&
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
-                extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode();
+                extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
+                extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1202,7 +1202,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         OpenLoadFlowParameters extension = parameters.getExtension(OpenLoadFlowParameters.class);
         if (extension != null) {
             OpenLoadFlowParameters extension2 = new OpenLoadFlowParameters()
-                    .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
                     .setSlackBusSelectionMode(extension.getSlackBusSelectionMode())
                     .setSlackBusesIds(new ArrayList<>(extension.getSlackBusesIds()))
                     .setThrowsExceptionInCaseOfSlackDistributionFailure(extension.isThrowsExceptionInCaseOfSlackDistributionFailure())
@@ -1232,7 +1231,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift())
                     .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
-                    .setPhaseShifterControlMode(extension.getPhaseShifterControlMode());
+                    .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
+                    .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }
