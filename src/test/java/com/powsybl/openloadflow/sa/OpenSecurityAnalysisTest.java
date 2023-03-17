@@ -2578,16 +2578,17 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
-    void testNotFoundHvdcAction() {
-        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        List<Contingency> contingencies = new ArrayList<>();
-        contingencies.add(Contingency.generator("g5"));
+    void testLineDisconnectedOnOneSideContingency() {
+        Network network = DistributedSlackNetworkFactory.create();
+        network.getBranch("l24").getTerminal1().disconnect();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
-        List<Action> actions = List.of(new HvdcActionBuilder().withId("action").withHvdcId("hvdc").withAcEmulationEnabled(false).build());
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("action")));
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        CompletionException e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP));
-        assertEquals("Hvdc line 'hvdc' not found", e.getCause().getMessage());
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(new Contingency("l24", new BranchContingency("l24"))), monitors);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "l24");
+        assertEquals(200.000, postContingencyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(140.141, postContingencyResult.getNetworkResult().getBranchResult("l14").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(300.000, postContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(260.005, postContingencyResult.getNetworkResult().getBranchResult("l34").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1, result.getPostContingencyResults().size());
     }
 
     @Test
