@@ -144,7 +144,7 @@ public final class LfAction {
         LfHvdc lfHvdc = lfNetwork.getHvdcById(action.getHvdcId());
         Optional<Boolean> acEmulationEnabled = action.isAcEmulationEnabled();
         if (lfHvdc != null && acEmulationEnabled.isPresent()) {
-            if (acEmulationEnabled.get()) { // the operation mode remains AC emulation.
+            if (acEmulationEnabled.get().equals(Boolean.TRUE)) { // the operation mode remains AC emulation.
                 throw new UnsupportedOperationException("Hvdc action: line is already in AC emulation, not supported yet.");
             } else { // the operation mode changes from AC emulation to fixed active power set point.
                 return Optional.of(new LfAction(action.getId(), null, null, null, null, null, lfHvdc));

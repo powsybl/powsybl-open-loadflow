@@ -2578,6 +2578,19 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
+    void testNotFoundHvdcAction() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(Contingency.generator("g5"));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Action> actions = List.of(new HvdcActionBuilder().withId("action").withHvdcId("hvdc").withAcEmulationEnabled(false).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("action")));
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        CompletionException e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP));
+        assertEquals("Hvdc line 'hvdc' not found", e.getCause().getMessage());
+    }
+
+    @Test
     void testHvdcAction() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
