@@ -64,7 +64,7 @@ public class NewtonRaphson {
     }
 
     private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling, MutableInt iterations) {
-        LOGGER.debug("Start iteration {}/{}", iterations, parameters.getMaxIterations());
+        LOGGER.debug("Start iteration {}", iterations);
 
         try {
             // solve f(x) = j * dx

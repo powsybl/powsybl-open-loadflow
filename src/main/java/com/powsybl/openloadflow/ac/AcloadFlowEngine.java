@@ -75,8 +75,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
-                LOGGER.debug("Start outer loop '{}' iteration {}/{}", outerLoop.getType(),
-                        runningContext.cumulatedOuterLoopIterations, context.getParameters().getMaxOuterLoopIterations());
+                LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getType(), runningContext.cumulatedOuterLoopIterations);
 
                 // if not yet stable, restart Newton-Raphson
                 runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer());
