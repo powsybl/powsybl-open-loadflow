@@ -14,7 +14,6 @@ import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -35,8 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Jérémy Labous <jlabous at silicom.fr>
@@ -246,40 +245,24 @@ class OpenLoadFlowParametersTest {
                 .setTransformerVoltageControlOn(true)
                 .setDistributedSlack(false);
 
-        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setMaxNewtonRaphsonIterations(2); // Force final status of following run to be MAX_ITERATION_REACHED
         assertFalse(olfParameters.isAlwaysUpdateNetwork()); // Default value of alwaysUpdateNetwork
 
-        olfParameters.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-        olfParameters.setMaxNewtonRaphsonIterations(2); // Force final status of following run to be MAX_ITERATION_REACHED
-
         // Check the network is not updated if alwaysUpdateNetwork = false and final status = MAX_ITERATION_REACHED
-        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
-        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
-        t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
-                .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+        Network network = EurostagTutorialExample1Factory.create();
+        var nload = network.getBusBreakerView().getBus("NLOAD");
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         loadFlowRunner.run(network, parameters);
-        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertTrue(Double.isNaN(nload.getV()));
 
         // Check the network is updated if alwaysUpdateNetwork = true and final status = MAX_ITERATION_REACHED
         olfParameters.setAlwaysUpdateNetwork(true);
         assertTrue(olfParameters.isAlwaysUpdateNetwork());
 
-        network = VoltageControlNetworkFactory.createNetworkWithT2wt();
-        t2wt = network.getTwoWindingsTransformer("T2wT");
-        t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
-                .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         loadFlowRunner.run(network, parameters);
-        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertVoltageEquals(158, nload);
     }
 
     @Test

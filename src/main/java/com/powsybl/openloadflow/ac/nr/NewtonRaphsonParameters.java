@@ -17,6 +17,7 @@ public class NewtonRaphsonParameters {
     public static final double DEFAULT_MIN_REALISTIC_VOLTAGE = 0.5;
     public static final double DEFAULT_MAX_REALISTIC_VOLTAGE = 1.5;
     public static final StateVectorScalingMode DEFAULT_STATE_VECTOR_SCALING_MODE = StateVectorScalingMode.NONE;
+    public static final boolean ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE = false;
 
     private int maxIterations = DEFAULT_MAX_ITERATIONS;
 
@@ -27,6 +28,8 @@ public class NewtonRaphsonParameters {
     private StateVectorScalingMode stateVectorScalingMode = DEFAULT_STATE_VECTOR_SCALING_MODE;
 
     private NewtonRaphsonStoppingCriteria stoppingCriteria = new DefaultNewtonRaphsonStoppingCriteria();
+
+    private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
     public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
@@ -80,6 +83,15 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
+    public boolean isAlwaysUpdateNetwork() {
+        return alwaysUpdateNetwork;
+    }
+
+    public NewtonRaphsonParameters setAlwaysUpdateNetwork(boolean alwaysUpdateNetwork) {
+        this.alwaysUpdateNetwork = alwaysUpdateNetwork;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "NewtonRaphsonParameters(" +
@@ -88,6 +100,7 @@ public class NewtonRaphsonParameters {
                 ", maxRealisticVoltage=" + maxRealisticVoltage +
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
+                ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
                 ')';
     }
 }

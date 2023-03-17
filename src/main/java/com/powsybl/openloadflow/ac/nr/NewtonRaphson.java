@@ -233,13 +233,13 @@ public class NewtonRaphson {
             status = NewtonRaphsonStatus.MAX_ITERATION_REACHED;
         }
 
-        // update network state variable
-        if (status == NewtonRaphsonStatus.CONVERGED) {
-            if (isStateUnrealistic()) {
-                status = NewtonRaphsonStatus.UNREALISTIC_STATE;
-            }
-
+        if (status == NewtonRaphsonStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             updateNetwork();
+        }
+
+        // update network state variable
+        if (status == NewtonRaphsonStatus.CONVERGED && isStateUnrealistic()) {
+            status = NewtonRaphsonStatus.UNREALISTIC_STATE;
         }
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
