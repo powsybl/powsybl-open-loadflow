@@ -55,7 +55,8 @@
         "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
         "secondaryVoltageControl" : false,
         "reactiveLimitsMaxPqPvSwitch" : 3,
-        "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION"
+        "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
+        "alwaysUpdateNetwork" : false
       }
     }
   },
