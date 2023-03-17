@@ -1146,7 +1146,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             return false;
         }
 
-        return  extension1.getSlackBusSelectionMode() == extension2.getSlackBusSelectionMode() &&
+        return extension1.getSlackBusSelectionMode() == extension2.getSlackBusSelectionMode() &&
                 extension1.getSlackBusesIds().equals(extension2.getSlackBusesIds()) &&
                 extension1.isThrowsExceptionInCaseOfSlackDistributionFailure() == extension2.isThrowsExceptionInCaseOfSlackDistributionFailure() &&
                 extension1.hasVoltageRemoteControl() == extension2.hasVoltageRemoteControl() &&
