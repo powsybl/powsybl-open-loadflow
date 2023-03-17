@@ -130,9 +130,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         if (runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED) {
 
             // re-run all outer loops until Newton-Raphson failed or no more Newton-Raphson iterations are needed
-            int oldCumulatedNrIterations;
+            int oldNrTotalIterations;
             do {
-                oldCumulatedNrIterations = runningContext.nrTotalIterations.getValue();
+                oldNrTotalIterations = runningContext.nrTotalIterations.getValue();
 
                 // outer loops are nested: inner most loop first in the list, outer most loop last
                 for (var outerLoopAndContext : outerLoopsAndContexts) {
@@ -145,7 +145,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                         break;
                     }
                 }
-            } while (runningContext.nrTotalIterations.getValue() > oldCumulatedNrIterations
+            } while (runningContext.nrTotalIterations.getValue() > oldNrTotalIterations
                     && runningContext.lastNrResult.getStatus() == NewtonRaphsonStatus.CONVERGED
                     && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
         }
