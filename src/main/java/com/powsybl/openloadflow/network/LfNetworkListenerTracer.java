@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -122,14 +123,14 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork splitNetwork) {
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks) {
         LOGGER.trace("onZeroImpedanceNetworkSplit()");
-        delegate.onZeroImpedanceNetworkSplit(splitNetwork);
+        delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks);
     }
 
     @Override
-    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2) {
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork) {
         LOGGER.trace("onZeroImpedanceNetworkMerge()");
-        delegate.onZeroImpedanceNetworkMerge(network1, network2);
+        delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork);
     }
 }

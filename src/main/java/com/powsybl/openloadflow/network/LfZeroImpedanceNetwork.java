@@ -107,17 +107,19 @@ public class LfZeroImpedanceNetwork {
             }
             List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
             if (connectedSets.size() > 1) { // real split
-                for (LfNetworkListener listener : network.getListeners()) {
-                    listener.onZeroImpedanceNetworkSplit(this);
-                }
                 for (LfBranch branch : disabledBranches) {
                     branch.setSpanningTreeEdge(dc, false);
                 }
                 Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
                 zeroImpedanceNetworks.remove(this);
+                List<LfZeroImpedanceNetwork> splitZns = new ArrayList<>(2);
                 for (Set<LfBus> connectedSet : connectedSets) {
                     var subGraph = new AsSubgraph<>(graph, connectedSet);
-                    zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
+                    splitZns.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
+                }
+                zeroImpedanceNetworks.addAll(splitZns);
+                for (LfNetworkListener listener : network.getListeners()) {
+                    listener.onZeroImpedanceNetworkSplit(this, splitZns);
                 }
             } else {
                 boolean atLeastOneOfDisablingBranchIsPartOfSpanningTree = disabledBranches.stream()
@@ -136,9 +138,6 @@ public class LfZeroImpedanceNetwork {
         Objects.requireNonNull(enabledBranch);
         LfNetwork network = zn1.getNetwork();
         boolean dc = zn1.isDc();
-        for (LfNetworkListener listener : network.getListeners()) {
-            listener.onZeroImpedanceNetworkMerge(zn1, zn2);
-        }
         Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
         Graph<LfBus, LfBranch> mergedGraph = new Pseudograph<>(LfBranch.class);
         Graphs.addGraph(mergedGraph, zn1.getGraph());
@@ -146,6 +145,10 @@ public class LfZeroImpedanceNetwork {
         mergedGraph.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
         zeroImpedanceNetworks.remove(zn1);
         zeroImpedanceNetworks.remove(zn2);
-        zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, dc, mergedGraph));
+        LfZeroImpedanceNetwork mergedZn = new LfZeroImpedanceNetwork(network, dc, mergedGraph);
+        zeroImpedanceNetworks.add(mergedZn);
+        for (LfNetworkListener listener : network.getListeners()) {
+            listener.onZeroImpedanceNetworkMerge(zn1, zn2, mergedZn);
+        }
     }
 }
