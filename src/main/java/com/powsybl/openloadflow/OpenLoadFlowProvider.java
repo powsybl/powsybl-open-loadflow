@@ -112,7 +112,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
         for (AcLoadFlowResult result : results) {
             // update network state
-            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
+            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED || parametersExt.isAlwaysUpdateNetwork()) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
