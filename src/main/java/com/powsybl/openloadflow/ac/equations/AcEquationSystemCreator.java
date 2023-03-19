@@ -58,13 +58,34 @@ public class AcEquationSystemCreator {
         bus.setCalculatedV(vTerm);
 
         createShuntEquations(bus, equationSystem);
+    }
 
-        // voltage control equations
-        createGeneratorVoltageControlEquations(bus, equationSystem);
+    static void updateVoltageControlsMergeStatus(LfZeroImpedanceNetwork network) {
+        network.getGraph().vertexSet().stream()
+                .filter(LfBus::isGeneratorVoltageControlled)
+                .findFirst()
+                .ifPresent(bus -> bus.getGeneratorVoltageControl().orElseThrow().updateMergeStatus());
+        network.getGraph().vertexSet().stream()
+                .filter(LfBus::isShuntVoltageControlled)
+                .findFirst()
+                .ifPresent(bus -> bus.getShuntVoltageControl().orElseThrow().updateMergeStatus());
+        network.getGraph().vertexSet().stream()
+                .filter(LfBus::isTransformerVoltageControlled)
+                .findFirst()
+                .ifPresent(bus -> bus.getTransformerVoltageControl().orElseThrow().updateMergeStatus());
+    }
 
-        createTransformerVoltageControlEquations(bus, equationSystem);
+    private void createVoltageControlEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        // we need to update merge status to correctly create voltage control equations
+        for (LfZeroImpedanceNetwork zn : network.getZeroImpedanceNetworks(false)) {
+            updateVoltageControlsMergeStatus(zn);
+        }
 
-        createShuntVoltageControlEquations(bus, equationSystem);
+        for (LfBus bus : network.getBuses()) {
+            createGeneratorVoltageControlEquations(bus, equationSystem);
+            createTransformerVoltageControlEquations(bus, equationSystem);
+            createShuntVoltageControlEquations(bus, equationSystem);
+        }
     }
 
     private void createBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
@@ -77,7 +98,8 @@ public class AcEquationSystemCreator {
                                                         EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getGeneratorVoltageControl()
                 .ifPresent(voltageControl -> {
-                    if (bus.isGeneratorVoltageControlled()) {
+                    if (bus.isGeneratorVoltageControlled()
+                            && voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT) {
                         if (voltageControl.isLocalControl()) {
                             createLocalVoltageControlEquation(bus, equationSystem);
                         } else {
@@ -149,13 +171,9 @@ public class AcEquationSystemCreator {
         bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
     }
 
-    private void createGeneratorRemoteVoltageControlEquations(GeneratorVoltageControl voltageControl,
-                                                              EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        for (LfBus controllerBus : voltageControl.getControllerElements()) {
-            equationSystem.createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
-
-            // create reactive power distribution equations at voltage controller buses
-
+    private void createReactivePowerDistributionEquations(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        List<LfBus> controllerBuses = voltageControl.getMergedControllerElements();
+        for (LfBus controllerBus : controllerBuses) {
             // reactive power at controller bus i (supposing this voltage control is enabled)
             // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
             // 0 = qPercent_i * sum_j(q_j) - q_i
@@ -165,7 +183,7 @@ public class AcEquationSystemCreator {
                     .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet()).stream()
                             .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
-            for (LfBus otherControllerBus : voltageControl.getControllerElements()) {
+            for (LfBus otherControllerBus : controllerBuses) {
                 if (otherControllerBus != controllerBus) {
                     zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet()).stream()
                             .map(term -> term.multiply(controllerBus::getRemoteVoltageControlReactivePercent))
@@ -175,12 +193,22 @@ public class AcEquationSystemCreator {
         }
     }
 
+    private void createGeneratorRemoteVoltageControlEquations(GeneratorVoltageControl voltageControl,
+                                                              EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
+            equationSystem.createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
+        }
+
+        // create reactive power distribution equations at voltage controller buses
+        createReactivePowerDistributionEquations(voltageControl, equationSystem);
+    }
+
     static <T extends LfElement> void updateRemoteVoltageControlEquations(VoltageControl<T> voltageControl,
                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                           AcEquationType distrEqType, AcEquationType ctrlEqType) {
         LfBus controlledBus = voltageControl.getControlledBus();
 
-        List<T> controllerElements = voltageControl.getControllerElements()
+        List<T> controllerElements = voltageControl.getMergedControllerElements()
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
                 .collect(Collectors.toList());
@@ -202,25 +230,11 @@ public class AcEquationSystemCreator {
                             .setActive(!controllerElement.isDisabled());
                 }
                 break;
-            case MERGED:
-                // nothing to do because processed with ENABLED one using get merged voltage control list
-                break;
             case ENABLED:
                 List<T> enabledControllerElements = controllerElements.stream()
                         .filter(voltageControl::isControllerEnabled).collect(Collectors.toList());
                 List<T> disabledControllerElements = controllerElements.stream()
                         .filter(Predicate.not(voltageControl::isControllerEnabled)).collect(Collectors.toList());
-                for (VoltageControl<T> mergedVoltageControl : voltageControl.getMergedVoltageControls()) {
-                    for (T mergedControllerElement : mergedVoltageControl.getControllerElements()) {
-                        if (!mergedControllerElement.isDisabled()) {
-                            if (mergedVoltageControl.isControllerEnabled(mergedControllerElement)) {
-                                enabledControllerElements.add(mergedControllerElement);
-                            } else {
-                                disabledControllerElements.add(mergedControllerElement);
-                            }
-                        }
-                    }
-                }
 
                 // activate voltage control at controlled bus only if at least one controller element is enabled
                 vEq.setActive(!enabledControllerElements.isEmpty());
@@ -451,12 +465,13 @@ public class AcEquationSystemCreator {
 
     private static void createTransformerVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getTransformerVoltageControl()
+                .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
                 .ifPresent(voltageControl -> {
                     // add transformer ratio distribution equations
-                    createR1DistributionEquations(voltageControl.getControllerElements(), equationSystem);
+                    createR1DistributionEquations(voltageControl, equationSystem);
 
                     // we also create an equation per controller that will be used later to maintain R1 variable constant
-                    for (LfBranch controllerBranch : voltageControl.getControllerElements()) {
+                    for (LfBranch controllerBranch : voltageControl.getMergedControllerElements()) {
                         equationSystem.createEquation(controllerBranch, AcEquationType.BRANCH_TARGET_RHO1)
                                 .addTerm(equationSystem.getVariable(controllerBranch.getNum(), AcVariableType.BRANCH_RHO1).createTerm());
                     }
@@ -465,8 +480,9 @@ public class AcEquationSystemCreator {
                 });
     }
 
-    public static void createR1DistributionEquations(List<LfBranch> controllerBranches,
+    public static void createR1DistributionEquations(TransformerVoltageControl voltageControl,
                                                      EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        var controllerBranches = voltageControl.getMergedControllerElements();
         for (int i = 0; i < controllerBranches.size(); i++) {
             LfBranch controllerBranch = controllerBranches.get(i);
             // r1 at controller branch i
@@ -494,11 +510,12 @@ public class AcEquationSystemCreator {
 
     private static void createShuntVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getShuntVoltageControl()
+                .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
                 .ifPresent(voltageControl -> {
                     // add shunt distribution equations
-                    createShuntSusceptanceDistributionEquations(voltageControl.getControllerElements(), equationSystem);
+                    createShuntSusceptanceDistributionEquations(voltageControl, equationSystem);
 
-                    for (LfShunt controllerShunt : voltageControl.getControllerElements()) {
+                    for (LfShunt controllerShunt : voltageControl.getMergedControllerElements()) {
                         // we also create an equation that will be used later to maintain B variable constant
                         // this equation is now inactive
                         equationSystem.createEquation(controllerShunt, AcEquationType.SHUNT_TARGET_B)
@@ -509,8 +526,9 @@ public class AcEquationSystemCreator {
                 });
     }
 
-    public static void createShuntSusceptanceDistributionEquations(List<LfShunt> controllerShunts,
+    public static void createShuntSusceptanceDistributionEquations(ShuntVoltageControl voltageControl,
                                                                    EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        var controllerShunts = voltageControl.getMergedControllerElements();
         for (LfShunt controllerShunt : controllerShunts) {
             // shunt b at controller bus i
             // b_i = sum_j(b_j) / controller_count where j are all the controller buses
@@ -711,6 +729,8 @@ public class AcEquationSystemCreator {
         for (LfHvdc hvdc : network.getHvdcs()) {
             createHvdcAcEmulationEquations(hvdc, equationSystem);
         }
+
+        createVoltageControlEquations(equationSystem);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 

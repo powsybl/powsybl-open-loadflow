@@ -19,8 +19,13 @@ public class VoltageControl<T extends LfElement> extends Control {
     public enum Status {
         DISABLED,
         ENABLED,
-        MERGED,
         SHADOWED
+    }
+
+    public enum MergeStatus {
+        NONE,
+        MERGED_MAIN,
+        MERGED_DEPENDENT
     }
 
     protected final LfBus controlledBus;
@@ -30,6 +35,8 @@ public class VoltageControl<T extends LfElement> extends Control {
     protected final List<VoltageControl<T>> mergedVoltageControls = new ArrayList<>();
 
     protected Status status = null;
+
+    protected MergeStatus mergeStatus = MergeStatus.NONE;
 
     protected VoltageControl(double targetValue, LfBus controlledBus) {
         super(targetValue);
@@ -104,7 +111,6 @@ public class VoltageControl<T extends LfElement> extends Control {
             initStatus(controlledBus);
         }
 
-        merge();
         shadow();
     }
 
@@ -119,29 +125,49 @@ public class VoltageControl<T extends LfElement> extends Control {
         status = isDisabled() ? Status.DISABLED : Status.ENABLED;
     }
 
-    public void merge() {
+    public MergeStatus getMergeStatus() {
+        return mergeStatus;
+    }
+
+    public void updateMergeStatus() {
         LfZeroImpedanceNetwork zn = controlledBus.getZeroImpedanceNetwork(false);
         if (zn != null) { // bus is part of a zero impedance graph
             List<VoltageControl<T>> voltageControls = new ArrayList<>(1);
             for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
                 if (isControlledBySameControlType(zb)) {
                     VoltageControl<T> zvc = getControl(zb);
-                    if (zvc.status == Status.ENABLED) {
-                        voltageControls.add(zvc);
-                    }
+                    voltageControls.add(zvc);
                 }
+            }
+            for (VoltageControl<T> vc : voltageControls) {
+                vc.getMergedVoltageControls().clear();
             }
             if (voltageControls.size() > 1) {
                 voltageControls.sort(Comparator.comparing(o -> o.getControlledBus().getId()));
-                VoltageControl<T> vc0 = voltageControls.get(0);
-                vc0.getMergedVoltageControls().clear();
-                // first one is enabled, the other have merged status
+                VoltageControl<T> mainVc = voltageControls.get(0);
+                mainVc.mergeStatus = MergeStatus.MERGED_MAIN;
+                // first one is main, the other have are dependents
                 for (int i = 1; i < voltageControls.size(); i++) {
                     VoltageControl<T> vc = voltageControls.get(i);
-                    vc.status = Status.MERGED;
-                    vc0.getMergedVoltageControls().add(vc);
+                    vc.mergeStatus = MergeStatus.MERGED_DEPENDENT;
+                    mainVc.getMergedVoltageControls().add(vc);
                 }
             }
+        } else {
+            mergedVoltageControls.clear();
+            mergeStatus = MergeStatus.NONE;
+        }
+    }
+
+    public List<T> getMergedControllerElements() {
+        if (mergedVoltageControls.isEmpty()) {
+            return controllerElements;
+        } else {
+            List<T> mergedControllerElements = new ArrayList<>(controllerElements);
+            for (var mvc : mergedVoltageControls) {
+                mergedControllerElements.addAll(mvc.getControllerElements());
+            }
+            return mergedControllerElements;
         }
     }
 

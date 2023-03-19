@@ -10,6 +10,10 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 
+import java.util.List;
+
+import static com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator.updateVoltageControlsMergeStatus;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -95,5 +99,17 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             default:
                 throw new IllegalStateException("Unknown element type: " + element.getType());
         }
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks) {
+        for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
+            updateVoltageControlsMergeStatus(splitNetwork);
+        }
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork) {
+        updateVoltageControlsMergeStatus(mergedNetwork);
     }
 }
