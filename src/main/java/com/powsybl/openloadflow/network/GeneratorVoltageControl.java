@@ -63,12 +63,12 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
      * @return true if the voltage control is ONLY local, false otherwise
      */
     public boolean isLocalControl() {
-        if (mergedVoltageControls.isEmpty()) {
-            return controllerElements.size() == 1 && controllerElements.contains(controlledBus);
-        } else {
-            List<LfBus> mergedControllerElements = getMergedControllerElements();
-            return mergedControllerElements.size() > 1 && mergedControllerElements.contains(controlledBus);
-        }
+        return mergedVoltageControls.isEmpty() ? isLocalControl(controllerElements)
+                                               : isLocalControl(getMergedControllerElements());
+    }
+
+    private boolean isLocalControl(List<LfBus> controllerElements) {
+        return controllerElements.size() == 1 && controllerElements.contains(controlledBus);
     }
 
     /**

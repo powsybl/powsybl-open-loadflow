@@ -16,12 +16,6 @@ import java.util.Objects;
  */
 public class VoltageControl<T extends LfElement> extends Control {
 
-    public enum Status {
-        DISABLED,
-        ENABLED,
-        SHADOWED
-    }
-
     public enum MergeStatus {
         ALONE,
         MERGED_MAIN,
