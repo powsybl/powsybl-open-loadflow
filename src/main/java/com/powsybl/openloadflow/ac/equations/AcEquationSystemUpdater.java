@@ -110,10 +110,14 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
             updateVoltageControlsMergeStatus(splitNetwork);
         }
+
+        // FIXME recreate distribution equations for all voltage controls
     }
 
     @Override
     public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork) {
         updateVoltageControlsMergeStatus(mergedNetwork);
+
+        // FIXME recreate distribution equations for all voltage controls
     }
 }
