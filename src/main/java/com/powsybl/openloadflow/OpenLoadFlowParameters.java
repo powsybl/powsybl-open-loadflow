@@ -16,13 +16,13 @@ import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
-import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.*;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -31,6 +31,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import de.vandermeer.asciitable.AsciiTable;
+import de.vandermeer.asciitable.CWC_LongestWord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,8 +83,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
-    public static final double DC_POWER_FACTOR_DEFAULT_VALUE = 1.0;
-
     public static final boolean SVC_VOLTAGE_MONITORING_DEFAULT_VALUE = true;
 
     public static final VoltageInitModeOverride VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE = VoltageInitModeOverride.NONE;
@@ -127,7 +127,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME = "voltagePerReactivePowerControl";
 
-    public static final String MAX_ITERATION_PARAM_NAME = "maxIteration";
+    public static final String MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME = "maxNewtonRaphsonIterations";
+
+    public static final String MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME = "maxOuterLoopIterations";
 
     public static final String NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME = "newtonRaphsonConvEpsPerEq";
 
@@ -136,8 +138,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME = "transformerVoltageControlMode";
 
     public static final String SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME = "shuntVoltageControlMode";
-
-    public static final String DC_POWER_FACTOR_PARAM_NAME = "dcPowerFactor";
 
     public static final String MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME = "minPlausibleTargetVoltage";
 
@@ -169,6 +169,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME = "phaseShifterControlMode";
 
+    private static final String ALWAYS_UPDATE_NETWORK_PARAM_NAME = "alwaysUpdateNetwork";
+
     public static final String COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME = "countriesToFilterSlackBus";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
@@ -186,12 +188,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Slack bus max active power mismatch", SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE),
         new Parameter(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Voltage per reactive power slope", VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE),
         new Parameter(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "SVC remote reactive power control", REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE),
-        new Parameter(MAX_ITERATION_PARAM_NAME, ParameterType.INTEGER, "Max iterations", NewtonRaphsonParameters.DEFAULT_MAX_ITERATION),
+        new Parameter(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max iterations per Newton-Raphson", NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS),
+        new Parameter(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max outer loop iterations", AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS),
         new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ),
         new Parameter(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, ParameterType.STRING, "Voltage init mode override", VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE.name(), getEnumPossibleValues(VoltageInitModeOverride.class)),
         new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Transformer voltage control mode", TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(TransformerVoltageControlMode.class)),
         new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class)),
-        new Parameter(DC_POWER_FACTOR_PARAM_NAME, ParameterType.DOUBLE, "DC approximation power factor", DC_POWER_FACTOR_DEFAULT_VALUE),
         new Parameter(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min plausible target voltage", LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
         new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE),
         new Parameter(MIN_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min realistic voltage", NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE),
@@ -214,6 +216,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
         new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
+        new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
         new Parameter(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME, ParameterType.STRING_LIST, "Filter countries on which the slack bus is selected", Collections.emptyList())
     );
 
@@ -278,7 +281,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean reactivePowerRemoteControl = REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE;
 
-    private int maxIteration = NewtonRaphsonParameters.DEFAULT_MAX_ITERATION;
+    private int maxNewtonRaphsonIterations = NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS;
+
+    private int maxOuterLoopIterations = AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS;
 
     private double newtonRaphsonConvEpsPerEq = DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ;
 
@@ -287,8 +292,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private TransformerVoltageControlMode transformerVoltageControlMode = TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
 
     private ShuntVoltageControlMode shuntVoltageControlMode = SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE;
-
-    private double dcPowerFactor = DC_POWER_FACTOR_DEFAULT_VALUE;
 
     private double minPlausibleTargetVoltage = LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
@@ -325,6 +328,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int reactiveLimitsMaxPqPvSwitch = ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV;
 
     private PhaseShifterControlMode phaseShifterControlMode = PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE;
+
+    private boolean alwaysUpdateNetwork = NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
     private Set<Country> countriesToFilterSlackBus = new HashSet<>(LfNetworkParameters.COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE);
 
@@ -431,12 +436,21 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public int getMaxIteration() {
-        return maxIteration;
+    public int getMaxNewtonRaphsonIterations() {
+        return maxNewtonRaphsonIterations;
     }
 
-    public OpenLoadFlowParameters setMaxIteration(int maxIteration) {
-        this.maxIteration = NewtonRaphsonParameters.checkMaxIteration(maxIteration);
+    public OpenLoadFlowParameters setMaxNewtonRaphsonIterations(int maxNewtonRaphsonIterations) {
+        this.maxNewtonRaphsonIterations = NewtonRaphsonParameters.checkMaxIteration(maxNewtonRaphsonIterations);
+        return this;
+    }
+
+    public int getMaxOuterLoopIterations() {
+        return maxOuterLoopIterations;
+    }
+
+    public OpenLoadFlowParameters setMaxOuterLoopIterations(int maxOuterLoopIterations) {
+        this.maxOuterLoopIterations = NewtonRaphsonParameters.checkMaxIteration(maxOuterLoopIterations);
         return this;
     }
 
@@ -554,15 +568,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setShuntVoltageControlMode(ShuntVoltageControlMode shuntVoltageControlMode) {
         this.shuntVoltageControlMode = Objects.requireNonNull(shuntVoltageControlMode);
-        return this;
-    }
-
-    public double getDcPowerFactor() {
-        return dcPowerFactor;
-    }
-
-    public OpenLoadFlowParameters setDcPowerFactor(double dcPowerFactor) {
-        this.dcPowerFactor = dcPowerFactor;
         return this;
     }
 
@@ -710,6 +715,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isAlwaysUpdateNetwork() {
+        return alwaysUpdateNetwork;
+    }
+
+    public OpenLoadFlowParameters setAlwaysUpdateNetwork(boolean alwaysUpdateNetwork) {
+        this.alwaysUpdateNetwork = alwaysUpdateNetwork;
+        return this;
+    }
+
     public Set<Country> getCountriesToFilterSlackBus() {
         return countriesToFilterSlackBus;
     }
@@ -746,12 +760,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSlackBusPMaxMismatch(config.getDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE))
                 .setVoltagePerReactivePowerControl(config.getBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE))
                 .setReactivePowerRemoteControl(config.getBooleanProperty(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE))
-                .setMaxIteration(config.getIntProperty(MAX_ITERATION_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATION))
+                .setMaxNewtonRaphsonIterations(config.getIntProperty(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS))
+                .setMaxOuterLoopIterations(config.getIntProperty(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS))
                 .setNewtonRaphsonConvEpsPerEq(config.getDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, DefaultNewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ))
                 .setVoltageInitModeOverride(config.getEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, VoltageInitModeOverride.class, VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE))
                 .setTransformerVoltageControlMode(config.getEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, TransformerVoltageControlMode.class, TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
                 .setShuntVoltageControlMode(config.getEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ShuntVoltageControlMode.class, SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE))
-                .setDcPowerFactor(config.getDoubleProperty(DC_POWER_FACTOR_PARAM_NAME, DC_POWER_FACTOR_DEFAULT_VALUE))
                 .setMinPlausibleTargetVoltage(config.getDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMaxPlausibleTargetVoltage(config.getDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE))
                 .setMinRealisticVoltage(config.getDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME, NewtonRaphsonParameters.DEFAULT_MIN_REALISTIC_VOLTAGE))
@@ -768,6 +782,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
                 .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
+                .setAlwaysUpdateNetwork(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME, NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
                 .setCountriesToFilterSlackBus(config.getEnumSetProperty(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME, Country.class, LfNetworkParameters.COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE)));
         return parameters;
     }
@@ -811,8 +826,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setVoltagePerReactivePowerControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setReactivePowerRemoteControl(Boolean.parseBoolean(prop)));
-        Optional.ofNullable(properties.get(MAX_ITERATION_PARAM_NAME))
-                .ifPresent(prop -> this.setMaxIteration(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxNewtonRaphsonIterations(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME))
+                .ifPresent(prop -> this.setMaxOuterLoopIterations(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME))
                 .ifPresent(prop -> this.setNewtonRaphsonConvEpsPerEq(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME))
@@ -821,8 +838,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setTransformerVoltageControlMode(TransformerVoltageControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setShuntVoltageControlMode(ShuntVoltageControlMode.valueOf(prop)));
-        Optional.ofNullable(properties.get(DC_POWER_FACTOR_PARAM_NAME))
-                .ifPresent(prop -> this.setDcPowerFactor(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setMinPlausibleTargetVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME))
@@ -853,13 +868,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setReactiveLimitsMaxPqPvSwitch(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setPhaseShifterControlMode(PhaseShifterControlMode.valueOf(prop)));
+        Optional.ofNullable(properties.get(ALWAYS_UPDATE_NETWORK_PARAM_NAME))
+                .ifPresent(prop -> this.setAlwaysUpdateNetwork(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME))
                 .ifPresent(prop -> this.setCountriesToFilterSlackBus(Arrays.asList(prop.split("[:,]")).stream().map(Country::valueOf).collect(Collectors.toSet())));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(38);
+        Map<String, Object> map = new LinkedHashMap<>(40);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
@@ -877,12 +894,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, maxSusceptanceMismatch);
         map.put(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, voltagePerReactivePowerControl);
         map.put(REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, reactivePowerRemoteControl);
-        map.put(MAX_ITERATION_PARAM_NAME, maxIteration);
+        map.put(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, maxNewtonRaphsonIterations);
+        map.put(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, maxOuterLoopIterations);
         map.put(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, newtonRaphsonConvEpsPerEq);
         map.put(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, voltageInitModeOverride);
         map.put(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, transformerVoltageControlMode);
         map.put(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, shuntVoltageControlMode);
-        map.put(DC_POWER_FACTOR_PARAM_NAME, dcPowerFactor);
         map.put(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, minPlausibleTargetVoltage);
         map.put(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, maxPlausibleTargetVoltage);
         map.put(MIN_REALISTIC_VOLTAGE_PARAM_NAME, minRealisticVoltage);
@@ -898,6 +915,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, secondaryVoltageControl);
         map.put(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, reactiveLimitsMaxPqPvSwitch);
         map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
+        map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME, alwaysUpdateNetwork);
         map.put(COUNTRIES_TO_FILTER_SLACK_BUS_PARAM_NAME, countriesToFilterSlackBus);
         return map;
     }
@@ -930,56 +948,23 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return create(parameters, OpenLoadFlowParameters::load);
     }
 
-    public static void logDc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        LOGGER.info("Direct current: {}", parameters.isDc());
-        LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
-        LOGGER.info("Use transformer ratio: {}", parameters.isDcUseTransformerRatio());
-        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
-        LOGGER.info("Balance type: {}", parameters.getBalanceType());
-        LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
-        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
-        LOGGER.info("DC power factor: {}", parametersExt.getDcPowerFactor());
-        LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
-    }
-
-    /**
-     * Log parameters interesting for AC calculation
-     */
-    public static void logAc(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        LOGGER.info("Direct current: {}", parameters.isDc());
-        LOGGER.info("Slack bus selection mode: {}", parametersExt.getSlackBusSelectionMode());
-        LOGGER.info("Voltage initialization mode: {}", parameters.getVoltageInitMode());
-        LOGGER.info("Voltage initialization mode override: {}", parametersExt.getVoltageInitModeOverride());
-        LOGGER.info("Distributed slack: {}", parameters.isDistributedSlack());
-        LOGGER.info("Balance type: {}", parameters.getBalanceType());
-        LOGGER.info("Reactive limits: {}", parameters.isUseReactiveLimits());
-        LOGGER.info("Voltage remote control: {}", parametersExt.hasVoltageRemoteControl());
-        LOGGER.info("Phase control: {}", parameters.isPhaseShifterRegulationOn());
-        LOGGER.info("Split shunt admittance: {}", parameters.isTwtSplitShuntAdmittance());
-        LOGGER.info("Transformer voltage control: {}", parameters.isTransformerVoltageControlOn());
-        LOGGER.info("Load power factor constant: {}", parametersExt.isLoadPowerFactorConstant());
-        LOGGER.info("Plausible active power limit: {}", parametersExt.getPlausibleActivePowerLimit());
-        LOGGER.info("Slack bus Pmax mismatch: {}", parametersExt.getSlackBusPMaxMismatch());
-        LOGGER.info("Connected component mode: {}", parameters.getConnectedComponentMode());
-        LOGGER.info("Voltage per reactive power control: {}", parametersExt.isVoltagePerReactivePowerControl());
-        LOGGER.info("Reactive Power Remote control: {}", parametersExt.hasReactivePowerRemoteControl());
-        LOGGER.info("Shunt voltage control: {}", parameters.isShuntCompensatorVoltageControlOn());
-        LOGGER.info("Hvdc Ac emulation: {}", parameters.isHvdcAcEmulation());
-        LOGGER.info("Min plausible target voltage: {}", parametersExt.getMinPlausibleTargetVoltage());
-        LOGGER.info("Max plausible target voltage: {}", parametersExt.getMaxPlausibleTargetVoltage());
-        LOGGER.info("Min realistic voltage: {}", parametersExt.getMinRealisticVoltage());
-        LOGGER.info("Max realistic voltage: {}", parametersExt.getMaxRealisticVoltage());
-        LOGGER.info("Reactive range check mode: {}", parametersExt.getReactiveRangeCheckMode());
-        LOGGER.info("Network cache enabled: {}", parametersExt.isNetworkCacheEnabled());
-        LOGGER.info("Static var compensator voltage monitoring: {}", parametersExt.isSvcVoltageMonitoring());
-        LOGGER.info("State vector scaling mode: {}", parametersExt.getStateVectorScalingMode());
-        LOGGER.info("Max slack bus count: {}", parametersExt.getMaxSlackBusCount());
-        LOGGER.info("Debug directory: {}", parametersExt.getDebugDir());
-        LOGGER.info("Incremental transformer voltage control outer loop max tap shift: {}", parametersExt.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift());
-        LOGGER.info("Secondary voltage control: {}", parametersExt.isSecondaryVoltageControl());
-        LOGGER.info("Reactive limits maximum Pq Pv switch: {}", parametersExt.getReactiveLimitsMaxPqPvSwitch());
-        LOGGER.info("Phase shifter control mode: {}", parametersExt.getPhaseShifterControlMode());
-        LOGGER.info("Slack bus filtering in countries: {}", parametersExt.getCountriesToFilterSlackBus());
+    public static void log(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        if (LOGGER.isInfoEnabled()) {
+            AsciiTable at = new AsciiTable();
+            at.addRule();
+            at.addRow("Name", "Value");
+            at.addRule();
+            for (var e : parameters.toMap().entrySet()) {
+                at.addRow(e.getKey(), e.getValue());
+            }
+            for (var e : parametersExt.toMap().entrySet()) {
+                at.addRow(e.getKey(), Objects.toString(e.getValue(), ""));
+            }
+            at.addRule();
+            at.getRenderer().setCWC(new CWC_LongestWord());
+            at.setPaddingLeftRight(1, 1);
+            LOGGER.info("Parameters:\n{}", at.render());
+        }
     }
 
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
@@ -1094,10 +1079,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         var newtonRaphsonParameters = new NewtonRaphsonParameters()
                 .setStoppingCriteria(createNewtonRaphsonStoppingCriteria(parametersExt))
-                .setMaxIteration(parametersExt.getMaxIteration())
+                .setMaxIterations(parametersExt.getMaxNewtonRaphsonIterations())
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
-                .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode());
+                .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
+                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
         OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
@@ -1106,6 +1092,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                         equationSystemCreationParameters,
                                         newtonRaphsonParameters,
                                         outerLoops,
+                                        parametersExt.getMaxOuterLoopIterations(),
                                         matrixFactory,
                                         voltageInitializer);
     }
@@ -1182,7 +1169,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 parameters1.isDcUseTransformerRatio() == parameters2.isDcUseTransformerRatio() &&
                 parameters1.getCountriesToBalance().equals(parameters2.getCountriesToBalance()) &&
                 parameters1.getConnectedComponentMode() == parameters2.getConnectedComponentMode() &&
-                parameters1.isHvdcAcEmulation() == parameters2.isHvdcAcEmulation();
+                parameters1.isHvdcAcEmulation() == parameters2.isHvdcAcEmulation() &&
+                parameters1.getDcPowerFactor() == parameters2.getDcPowerFactor();
         if (!equals) {
             return false;
         }
@@ -1209,12 +1197,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getSlackBusPMaxMismatch() == extension2.getSlackBusPMaxMismatch() &&
                 extension1.isVoltagePerReactivePowerControl() == extension2.isVoltagePerReactivePowerControl() &&
                 extension1.hasReactivePowerRemoteControl() == extension2.hasReactivePowerRemoteControl() &&
-                extension1.getMaxIteration() == extension2.getMaxIteration() &&
+                extension1.getMaxNewtonRaphsonIterations() == extension2.getMaxNewtonRaphsonIterations() &&
+                extension1.getMaxOuterLoopIterations() == extension2.getMaxOuterLoopIterations() &&
                 extension1.getNewtonRaphsonConvEpsPerEq() == extension2.getNewtonRaphsonConvEpsPerEq() &&
                 extension1.getVoltageInitModeOverride() == extension2.getVoltageInitModeOverride() &&
                 extension1.getTransformerVoltageControlMode() == extension2.getTransformerVoltageControlMode() &&
                 extension1.getShuntVoltageControlMode() == extension2.getShuntVoltageControlMode() &&
-                extension1.getDcPowerFactor() == extension2.getDcPowerFactor() &&
                 extension1.getMinPlausibleTargetVoltage() == extension2.getMinPlausibleTargetVoltage() &&
                 extension1.getMaxPlausibleTargetVoltage() == extension2.getMaxPlausibleTargetVoltage() &&
                 extension1.getMinRealisticVoltage() == extension2.getMinRealisticVoltage() &&
@@ -1230,26 +1218,29 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
                 extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
+                extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
                 extension1.getCountriesToFilterSlackBus().equals(extension2.getCountriesToFilterSlackBus());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
         Objects.requireNonNull(parameters);
-        LoadFlowParameters parameters2 = new LoadFlowParameters(parameters.getVoltageInitMode(),
-                                                                parameters.isTransformerVoltageControlOn(),
-                                                                parameters.isUseReactiveLimits(),
-                                                                parameters.isPhaseShifterRegulationOn(),
-                                                                parameters.isTwtSplitShuntAdmittance(),
-                                                                parameters.isShuntCompensatorVoltageControlOn(),
-                                                                parameters.isReadSlackBus(),
-                                                                parameters.isWriteSlackBus(),
-                                                                parameters.isDc(),
-                                                                parameters.isDistributedSlack(),
-                                                                parameters.getBalanceType(),
-                                                                parameters.isDcUseTransformerRatio(),
-                                                                new HashSet<>(parameters.getCountriesToBalance()),
-                                                                parameters.getConnectedComponentMode(),
-                                                                parameters.isHvdcAcEmulation());
+        LoadFlowParameters parameters2 = new LoadFlowParameters()
+                .setVoltageInitMode(parameters.getVoltageInitMode())
+                .setTransformerVoltageControlOn(parameters.isTransformerVoltageControlOn())
+                .setUseReactiveLimits(parameters.isUseReactiveLimits())
+                .setPhaseShifterRegulationOn(parameters.isPhaseShifterRegulationOn())
+                .setTwtSplitShuntAdmittance(parameters.isTwtSplitShuntAdmittance())
+                .setShuntCompensatorVoltageControlOn(parameters.isShuntCompensatorVoltageControlOn())
+                .setReadSlackBus(parameters.isReadSlackBus())
+                .setWriteSlackBus(parameters.isWriteSlackBus())
+                .setDc(parameters.isDc())
+                .setDistributedSlack(parameters.isDistributedSlack())
+                .setBalanceType(parameters.getBalanceType())
+                .setDcUseTransformerRatio(parameters.isDcUseTransformerRatio())
+                .setCountriesToBalance(new HashSet<>(parameters.getCountriesToBalance()))
+                .setConnectedComponentMode(parameters.getConnectedComponentMode())
+                .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
+                .setDcPowerFactor(parameters.getDcPowerFactor());
 
         OpenLoadFlowParameters extension = parameters.getExtension(OpenLoadFlowParameters.class);
         if (extension != null) {
@@ -1264,12 +1255,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setSlackBusPMaxMismatch(extension.getSlackBusPMaxMismatch())
                     .setVoltagePerReactivePowerControl(extension.isVoltagePerReactivePowerControl())
                     .setReactivePowerRemoteControl(extension.hasReactivePowerRemoteControl())
-                    .setMaxIteration(extension.getMaxIteration())
+                    .setMaxNewtonRaphsonIterations(extension.getMaxNewtonRaphsonIterations())
+                    .setMaxOuterLoopIterations(extension.getMaxOuterLoopIterations())
                     .setNewtonRaphsonConvEpsPerEq(extension.getNewtonRaphsonConvEpsPerEq())
                     .setVoltageInitModeOverride(extension.getVoltageInitModeOverride())
                     .setTransformerVoltageControlMode(extension.getTransformerVoltageControlMode())
                     .setShuntVoltageControlMode(extension.getShuntVoltageControlMode())
-                    .setDcPowerFactor(extension.getDcPowerFactor())
                     .setMinPlausibleTargetVoltage(extension.getMinPlausibleTargetVoltage())
                     .setMaxPlausibleTargetVoltage(extension.getMaxPlausibleTargetVoltage())
                     .setMinRealisticVoltage(extension.getMinRealisticVoltage())
@@ -1285,6 +1276,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
                     .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
+                    .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
                     .setCountriesToFilterSlackBus(extension.getCountriesToFilterSlackBus());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

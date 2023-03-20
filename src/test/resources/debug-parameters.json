@@ -1,7 +1,7 @@
 {
-  "version" : "1.0",
+  "version" : "1.1",
   "load-flow-parameters" : {
-    "version" : "1.8",
+    "version" : "1.9",
     "voltageInitMode" : "UNIFORM_VALUES",
     "transformerVoltageControlOn" : false,
     "phaseShifterRegulationOn" : false,
@@ -17,6 +17,7 @@
     "countriesToBalance" : [ ],
     "connectedComponentMode" : "MAIN",
     "hvdcAcEmulation" : true,
+    "dcPowerFactor" : 1.0,
     "extensions" : {
       "open-load-flow-parameters" : {
         "slackBusSelectionMode" : "NAME",
@@ -34,12 +35,12 @@
         "maxSusceptanceMismatch" : 1.0E-4,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
-        "maxIteration" : 30,
+        "maxNewtonRaphsonIterations" : 15,
+        "maxOuterLoopIterations" : 20,
         "newtonRaphsonConvEpsPerEq" : 1.0E-4,
         "voltageInitModeOverride" : "NONE",
         "transformerVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
         "shuntVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
-        "dcPowerFactor" : 1.0,
         "minPlausibleTargetVoltage" : 0.8,
         "maxPlausibleTargetVoltage" : 1.2,
         "minRealisticVoltage" : 0.5,
@@ -55,10 +56,15 @@
         "secondaryVoltageControl" : false,
         "reactiveLimitsMaxPqPvSwitch" : 3,
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
+        "alwaysUpdateNetwork" : false,
         "countriesToFilterSlackBus" : [ ]
       }
     }
   },
+  "flow-flow-sensitivity-value-threshold" : 0.0,
+  "voltage-voltage-sensitivity-value-threshold" : 0.0,
+  "flow-voltage-sensitivity-value-threshold" : 0.0,
+  "angle-flow-sensitivity-value-threshold" : 0.0,
   "extensions" : {
     "open-sensitivity-parameters" : {
       "debugDir" : "/work"
