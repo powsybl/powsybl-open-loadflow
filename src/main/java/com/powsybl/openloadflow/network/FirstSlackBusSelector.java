@@ -22,7 +22,8 @@ public class FirstSlackBusSelector implements SlackBusSelector {
     private final Set<Country> countriesForSlackBusSelection;
 
     public FirstSlackBusSelector() {
-        this(Collections.emptySet());
+        // for tests only
+        this.countriesForSlackBusSelection = Objects.requireNonNull(Collections.emptySet());
     }
 
     public FirstSlackBusSelector(Set<Country> countriesForSlackBusSelection) {

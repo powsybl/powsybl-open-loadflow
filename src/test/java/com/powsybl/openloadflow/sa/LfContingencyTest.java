@@ -65,7 +65,7 @@ class LfContingencyTest extends AbstractConverterTest {
 
         List<LfNetwork> lfNetworks = Networks.load(network, new LfNetworkParameters()
                 .setConnectivityFactory(connectivityFactory)
-                .setSlackBusSelector(new MostMeshedSlackBusSelector()));
+                .setSlackBusSelector(new MostMeshedSlackBusSelector(Collections.emptySet())));
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
@@ -94,7 +94,7 @@ class LfContingencyTest extends AbstractConverterTest {
     @Test
     void testGeneratorNotFound() {
         Network network = FourSubstationsNodeBreakerFactory.create();
-        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector(Collections.emptySet()));
         assertEquals(2, lfNetworks.size());
 
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
@@ -110,7 +110,7 @@ class LfContingencyTest extends AbstractConverterTest {
     @Test
     void testLoadNotFound() {
         Network network = FourSubstationsNodeBreakerFactory.create();
-        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector(Collections.emptySet()));
         assertEquals(2, lfNetworks.size());
 
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();

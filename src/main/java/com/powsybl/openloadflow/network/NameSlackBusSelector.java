@@ -6,9 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import com.powsybl.iidm.network.Country;
+
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,17 +22,18 @@ public class NameSlackBusSelector implements SlackBusSelector {
 
     private final List<String> busesOrVoltageLevelsIds;
 
-    private final SlackBusSelector secondLevelSelector = new MostMeshedSlackBusSelector();
+    private final SlackBusSelector secondLevelSelector;
 
-    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds) {
+    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds, Set<Country> countriesForSlackBusSelection) {
         if (busesOrVoltageLevelsIds.isEmpty()) {
             throw new IllegalArgumentException("Empty bus or voltage level ID list");
         }
         this.busesOrVoltageLevelsIds = Objects.requireNonNull(busesOrVoltageLevelsIds);
+        this.secondLevelSelector = new MostMeshedSlackBusSelector(countriesForSlackBusSelection);
     }
 
     public NameSlackBusSelector(String... busesOrVoltageLevelsIds) {
-        this(List.of(busesOrVoltageLevelsIds));
+        this(List.of(busesOrVoltageLevelsIds), Collections.emptySet()); // FIXME
     }
 
     @Override

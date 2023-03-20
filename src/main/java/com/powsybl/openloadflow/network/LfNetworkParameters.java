@@ -42,7 +42,7 @@ public class LfNetworkParameters {
 
     public static final Set<Country> COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE = Collections.unmodifiableSet(EnumSet.noneOf(Country.class));
 
-    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE);
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 

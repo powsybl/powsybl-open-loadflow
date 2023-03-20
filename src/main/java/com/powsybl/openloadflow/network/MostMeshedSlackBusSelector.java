@@ -19,10 +19,6 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
     private final Set<Country> countriesForSlackBusSelection;
 
-    public MostMeshedSlackBusSelector() {
-        this(Collections.emptySet());
-    }
-
     public MostMeshedSlackBusSelector(Set<Country> countriesForSlackBusSelection) {
         this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
     }

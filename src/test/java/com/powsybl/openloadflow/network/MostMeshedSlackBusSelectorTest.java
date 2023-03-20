@@ -28,7 +28,7 @@ class MostMeshedSlackBusSelectorTest {
     void testCountryToFiler() {
         Network network = FourSubstationsNodeBreakerFactory.create();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
-                new MostMeshedSlackBusSelector()).get(0);
+                new MostMeshedSlackBusSelector(Collections.emptySet())).get(0);
         LfBus slackBus = lfNetwork.getSlackBus();
         assertEquals("S3VL1_0", slackBus.getId());
         network.getSubstation("S1").setCountry(Country.FR);

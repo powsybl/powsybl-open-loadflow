@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,7 +32,7 @@ class NetworkSlackBusSelectorTest {
     @BeforeEach
     void setUp() {
         network = EurostagTutorialExample1Factory.create();
-        MostMeshedSlackBusSelector selectorFallback = new MostMeshedSlackBusSelector();
+        MostMeshedSlackBusSelector selectorFallback = new MostMeshedSlackBusSelector(Collections.emptySet());
         selectorMock = (buses, limit) -> {
             fallbackBusCount = buses.size();
             return selectorFallback.select(buses, limit);

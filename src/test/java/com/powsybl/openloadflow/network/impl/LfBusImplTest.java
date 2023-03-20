@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
@@ -117,13 +118,13 @@ class LfBusImplTest {
     @BeforeEach
     void setUp() {
         network = createNetwork();
-        List<LfNetwork> networks = Networks.load(network, new MostMeshedSlackBusSelector());
+        List<LfNetwork> networks = Networks.load(network, new MostMeshedSlackBusSelector(Collections.emptySet()));
         lfNetwork = networks.get(0);
     }
 
     @Test
     void updateGeneratorsStateTest() {
-        List<LfNetwork> networks = Networks.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector());
+        List<LfNetwork> networks = Networks.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector(Collections.emptySet()));
         LfNetwork mainNetwork = networks.get(0);
 
         LfNetworkParameters parameters = new LfNetworkParameters()

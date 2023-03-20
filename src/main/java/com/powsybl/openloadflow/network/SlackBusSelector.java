@@ -36,7 +36,7 @@ public interface SlackBusSelector {
             case MOST_MESHED:
                 return new MostMeshedSlackBusSelector(countriesForSlackBusSelection);
             case NAME:
-                return new NameSlackBusSelector(slackBusesIds);
+                return new NameSlackBusSelector(slackBusesIds, countriesForSlackBusSelection);
             case LARGEST_GENERATOR:
                 return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit, countriesForSlackBusSelection);
             default:

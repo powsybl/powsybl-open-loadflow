@@ -72,7 +72,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
-                "networkParameters=" + networkParameters.toString() +
+                "networkParameters=" + networkParameters +
                 ", equationSystemCreationParameters=" + equationSystemCreationParameters +
                 ", newtonRaphsonParameters=" + newtonRaphsonParameters +
                 ", outerLoops=" + outerLoops.stream().map(outerLoop -> outerLoop.getClass().getSimpleName()).collect(Collectors.toList()) +
