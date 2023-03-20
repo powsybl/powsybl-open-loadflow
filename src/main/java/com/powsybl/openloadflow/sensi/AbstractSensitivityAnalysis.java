@@ -1205,11 +1205,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     private boolean filterSensitivityValueAngleVariable(double value, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (function) {
-            case BRANCH_ACTIVE_POWER:
             case BRANCH_ACTIVE_POWER_1:
             case BRANCH_ACTIVE_POWER_2:
             case BRANCH_ACTIVE_POWER_3:
-            case BRANCH_CURRENT:
             case BRANCH_CURRENT_1:
             case BRANCH_CURRENT_2:
             case BRANCH_CURRENT_3:
@@ -1229,12 +1227,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             case BRANCH_ACTIVE_POWER_1:
             case BRANCH_ACTIVE_POWER_2:
             case BRANCH_ACTIVE_POWER_3:
-            case BRANCH_ACTIVE_POWER:
                 return value < parameters.getFlowFlowSensitivityValueThreshold();
             case BRANCH_CURRENT_1:
             case BRANCH_CURRENT_2:
             case BRANCH_CURRENT_3:
-            case BRANCH_CURRENT:
             case BRANCH_REACTIVE_POWER_1:
             case BRANCH_REACTIVE_POWER_2:
             case BRANCH_REACTIVE_POWER_3:
