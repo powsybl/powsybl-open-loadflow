@@ -149,7 +149,7 @@ public class VoltageControl<T extends LfElement> extends Control {
         voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
         // we should normally have max 3 voltage controls (one of each type) because already merged
         if (voltageControls.size() > 1) {
-            return voltageControls.get(0) == this;
+            return voltageControls.get(0) != this;
         }
         return false;
     }

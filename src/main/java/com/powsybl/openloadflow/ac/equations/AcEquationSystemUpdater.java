@@ -25,7 +25,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
 
     @Override
     public void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
-        controllerBus.getGeneratorVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl, equationSystem));
+        updateVoltageControls(controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus());
         controllerBus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
     }
 
@@ -36,12 +36,12 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
 
     @Override
     public void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled) {
-        AcEquationSystemCreator.updateTransformerVoltageControlEquations(controllerBranch.getVoltageControl().orElseThrow(), equationSystem);
+        updateVoltageControls(controllerBranch.getVoltageControl().orElseThrow().getControlledBus());
     }
 
     @Override
     public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
-        AcEquationSystemCreator.updateShuntVoltageControlEquations(controllerShunt.getVoltageControl().orElseThrow(), equationSystem);
+        updateVoltageControls(controllerShunt.getVoltageControl().orElseThrow().getControlledBus());
     }
 
     @Override
@@ -63,6 +63,12 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 .setActive(!enable);
     }
 
+    private void updateVoltageControls(LfBus bus) {
+        bus.getGeneratorVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl, equationSystem));
+        bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
+        bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateShuntVoltageControlEquations(voltageControl, equationSystem));
+    }
+
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
         updateElementEquations(element, !disabled);
@@ -78,9 +84,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
                         .setActive(false);
-                bus.getGeneratorVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl, equationSystem));
-                bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
-                bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateShuntVoltageControlEquations(voltageControl, equationSystem));
+                updateVoltageControls(bus);
                 bus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case BRANCH:
