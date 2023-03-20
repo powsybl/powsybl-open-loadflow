@@ -164,8 +164,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     protected void updateTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
-        int tapPosition = Transformers.findTapPosition(rtc, ptcRho, rho);
-        rtc.setTapPosition(tapPosition);
+        Transformers.findTapPosition(rtc, ptcRho, rho).ifPresent(rtc::setTapPosition);
     }
 
     protected static double getScaleForLimitType(LimitType type, LfBus bus) {
