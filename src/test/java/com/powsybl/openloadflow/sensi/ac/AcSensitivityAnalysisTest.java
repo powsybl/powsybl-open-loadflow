@@ -361,6 +361,36 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testAngleFlowSensitivityFiltering() {
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        sensiParameters.setAngleFlowSensitivityValueThreshold(15.0);
+
+        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.ONE)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.TWO)).collect(Collectors.toList());
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.addAll(factorsSide1);
+        factors.addAll(factorsSide2);
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(6, result.getValues().size());
+
+        //Check values for side 1 using generic and function type specific api
+        assertEquals(37.6799d, result.getSensitivityValue("l23", "l23", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+        assertEquals(37.3710d, result.getBranchCurrent1SensitivityValue("l23", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+        assertEquals(-25.0905d, result.getBranchCurrent1SensitivityValue("l23", "l13", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+
+        //Check values for side 2 using generic and function type specific api
+        assertEquals(37.6816d, result.getSensitivityValue("l23", "l23", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+        assertEquals(37.3727d, result.getBranchCurrent2SensitivityValue("l23", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+        assertEquals(-25.0917d, result.getBranchCurrent2SensitivityValue("l23", "l13", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+    }
+
+    @Test
     void test4busesPhaseShiftIntensityFunctionReference() {
         Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
 
@@ -417,6 +447,24 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(1d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // 1 on itself
         assertEquals(0.3423d, result.getBusVoltageSensitivityValue("g2", "b3", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
         assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b4", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testFilterVoltageVoltageSensitivityValues() {
+        Network network = FourBusNetworkFactory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        sensiParameters.setVoltageVoltageSensitivityValueThreshold(0.5);
+
+        List<SensitivityFactor> factors = network.getBusBreakerView().getBusStream()
+                .map(bus -> createBusVoltagePerTargetV(bus.getId(), "g2"))
+                .collect(Collectors.toList());
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(1, result.getValues().size());
+        assertEquals(1d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // 1 on itself
     }
 
     @Test

@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -51,9 +52,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+    protected SensitivityAnalysisParameters parameters;
+
+    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
+        this.parameters = Objects.requireNonNull(parameters);
     }
 
     interface LfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
@@ -1177,5 +1181,70 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected static int getLegNumber(SensitivityVariableType type) {
         return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert variable type " + type + " to a leg number"));
+    }
+
+    public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
+                        SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen);
+
+    protected boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
+        switch (variable) {
+            case INJECTION_ACTIVE_POWER:
+            case INJECTION_REACTIVE_POWER:
+            case BUS_TARGET_VOLTAGE:
+            case HVDC_LINE_ACTIVE_POWER:
+                return filterSensitivityValueFlowVoltageVariable(Math.abs(value), function, parameters);
+            case TRANSFORMER_PHASE:
+            case TRANSFORMER_PHASE_1:
+            case TRANSFORMER_PHASE_2:
+            case TRANSFORMER_PHASE_3:
+                return filterSensitivityValueAngleVariable(Math.abs(value), function, parameters);
+            default:
+                throw new PowsyblException("Unsupported sensitivity variable type " + variable);
+        }
+    }
+
+    private boolean filterSensitivityValueAngleVariable(double value, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
+        switch (function) {
+            case BRANCH_ACTIVE_POWER:
+            case BRANCH_ACTIVE_POWER_1:
+            case BRANCH_ACTIVE_POWER_2:
+            case BRANCH_ACTIVE_POWER_3:
+            case BRANCH_CURRENT:
+            case BRANCH_CURRENT_1:
+            case BRANCH_CURRENT_2:
+            case BRANCH_CURRENT_3:
+            case BRANCH_REACTIVE_POWER_1:
+            case BRANCH_REACTIVE_POWER_2:
+            case BRANCH_REACTIVE_POWER_3:
+                return value < parameters.getAngleFlowSensitivityValueThreshold();
+            case BUS_VOLTAGE:
+                return false;
+            default:
+                throw new PowsyblException("Unsupported sensitivity function type " + function);
+        }
+    }
+
+    private boolean filterSensitivityValueFlowVoltageVariable(double value, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
+        switch (function) {
+            case BRANCH_ACTIVE_POWER_1:
+            case BRANCH_ACTIVE_POWER_2:
+            case BRANCH_ACTIVE_POWER_3:
+            case BRANCH_ACTIVE_POWER:
+                return value < parameters.getFlowFlowSensitivityValueThreshold();
+            case BRANCH_CURRENT_1:
+            case BRANCH_CURRENT_2:
+            case BRANCH_CURRENT_3:
+            case BRANCH_CURRENT:
+            case BRANCH_REACTIVE_POWER_1:
+            case BRANCH_REACTIVE_POWER_2:
+            case BRANCH_REACTIVE_POWER_3:
+                return value < parameters.getFlowFlowSensitivityValueThreshold()
+                        || value < parameters.getFlowVoltageSensitivityValueThreshold();
+            case BUS_VOLTAGE:
+                return value < parameters.getVoltageVoltageSensitivityValueThreshold()
+                        || value < parameters.getFlowVoltageSensitivityValueThreshold();
+            default:
+                throw new PowsyblException("Unsupported sensitivity function type " + function);
+        }
     }
 }
