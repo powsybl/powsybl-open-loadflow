@@ -2579,6 +2579,20 @@ class OpenSecurityAnalysisTest {
     }
 
     @Test
+    void testLineDisconnectedOnOneSideContingency() {
+        Network network = DistributedSlackNetworkFactory.create();
+        network.getBranch("l24").getTerminal1().disconnect();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(new Contingency("l24", new BranchContingency("l24"))), monitors);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "l24");
+        assertEquals(200.000, postContingencyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(140.141, postContingencyResult.getNetworkResult().getBranchResult("l14").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(300.000, postContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(260.005, postContingencyResult.getNetworkResult().getBranchResult("l34").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1, result.getPostContingencyResults().size());
+    }
+
+    @Test
     void testStaticVarCompensatorContingency() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         network.getStaticVarCompensator("svc1").setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);

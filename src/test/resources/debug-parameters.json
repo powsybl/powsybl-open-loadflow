@@ -35,7 +35,8 @@
         "maxSusceptanceMismatch" : 1.0E-4,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
-        "maxIteration" : 30,
+        "maxNewtonRaphsonIterations" : 15,
+        "maxOuterLoopIterations" : 20,
         "newtonRaphsonConvEpsPerEq" : 1.0E-4,
         "voltageInitModeOverride" : "NONE",
         "transformerVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
@@ -54,7 +55,8 @@
         "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
         "secondaryVoltageControl" : false,
         "reactiveLimitsMaxPqPvSwitch" : 3,
-        "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION"
+        "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
+        "alwaysUpdateNetwork" : false
       }
     }
   },
