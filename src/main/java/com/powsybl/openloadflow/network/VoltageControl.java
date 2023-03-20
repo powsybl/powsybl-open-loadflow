@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.ToDoubleFunction;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -93,7 +94,9 @@ public class VoltageControl<T extends LfElement> extends Control {
                 vc.getMergedVoltageControls().clear();
             }
             if (voltageControls.size() > 1) {
-                voltageControls.sort(Comparator.comparing(o -> o.getControlledBus().getId()));
+                voltageControls.sort(Comparator.<VoltageControl<?>>comparingDouble(VoltageControl::getTargetValue)
+                        .reversed()
+                        .thenComparing(o -> o.getControlledBus().getId()));
                 VoltageControl<T> mainVc = voltageControls.get(0);
                 mainVc.mergeStatus = MergeStatus.MERGED_MAIN;
                 // first one is main, the other have are dependents
