@@ -23,7 +23,7 @@ public class VoltageControl<T extends LfElement> extends Control {
     }
 
     public enum MergeStatus {
-        NONE,
+        ALONE,
         MERGED_MAIN,
         MERGED_DEPENDENT
     }
@@ -34,9 +34,7 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     protected final List<VoltageControl<T>> mergedVoltageControls = new ArrayList<>();
 
-    protected Status status = null;
-
-    protected MergeStatus mergeStatus = MergeStatus.NONE;
+    protected MergeStatus mergeStatus = MergeStatus.ALONE;
 
     protected VoltageControl(double targetValue, LfBus controlledBus) {
         super(targetValue);
@@ -75,58 +73,16 @@ public class VoltageControl<T extends LfElement> extends Control {
         throw new IllegalStateException();
     }
 
-    private boolean isDisabled() {
+    public MergeStatus getMergeStatus() {
+        return mergeStatus;
+    }
+
+    public boolean isDisabled() {
         if (controlledBus.isDisabled()) {
             return true;
         }
         return controllerElements.stream()
-                .filter(e -> !e.isDisabled())
-                .noneMatch(this::isControllerEnabled);
-    }
-
-    public Status getStatus() {
-        updateStatus();
-        return status;
-    }
-
-    public void invalidateStatus() {
-        status = null;
-        for (var mvc : mergedVoltageControls) {
-            mvc.status = null;
-        }
-    }
-
-    public void updateStatus() {
-        if (status != null) {
-            return;
-        }
-
-        // init all statuses
-        LfZeroImpedanceNetwork zn = controlledBus.getZeroImpedanceNetwork(false);
-        if (zn != null) { // bus is part of a zero impedance graph
-            for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
-                initStatus(zb);
-            }
-        } else {
-            initStatus(controlledBus);
-        }
-
-        shadow();
-    }
-
-    private static void initStatus(LfBus bus) {
-        bus.getGeneratorVoltageControl().ifPresent(VoltageControl::initStatus);
-        bus.getShuntVoltageControl().ifPresent(VoltageControl::initStatus);
-        bus.getTransformerVoltageControl().ifPresent(VoltageControl::initStatus);
-    }
-
-    public void initStatus() {
-        // update status from local checks
-        status = isDisabled() ? Status.DISABLED : Status.ENABLED;
-    }
-
-    public MergeStatus getMergeStatus() {
-        return mergeStatus;
+                .allMatch(LfElement::isDisabled);
     }
 
     public void updateMergeStatus() {
@@ -155,7 +111,7 @@ public class VoltageControl<T extends LfElement> extends Control {
             }
         } else {
             mergedVoltageControls.clear();
-            mergeStatus = MergeStatus.NONE;
+            mergeStatus = MergeStatus.ALONE;
         }
     }
 
@@ -171,39 +127,30 @@ public class VoltageControl<T extends LfElement> extends Control {
         }
     }
 
-    public void shadow() {
-        LfZeroImpedanceNetwork zn = controlledBus.getZeroImpedanceNetwork(false);
-        if (zn != null) { // bus is part of a zero impedance graph
-            List<VoltageControl<?>> voltageControls = new ArrayList<>();
-            for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
-                // only keep ENABLED and discard DISABLED and MERGED
-                if (zb.isGeneratorVoltageControlled()) {
-                    GeneratorVoltageControl gvc = zb.getGeneratorVoltageControl().orElseThrow();
-                    if (gvc.status == Status.ENABLED) {
-                        voltageControls.add(gvc);
-                    }
-                }
-                if (zb.isShuntVoltageControlled()) {
-                    ShuntVoltageControl svc = zb.getShuntVoltageControl().orElseThrow();
-                    if (svc.status == Status.ENABLED) {
-                        voltageControls.add(svc);
-                    }
-                }
-                if (zb.isTransformerVoltageControlled()) {
-                    TransformerVoltageControl tvc = zb.getTransformerVoltageControl().orElseThrow();
-                    if (tvc.status == Status.ENABLED) {
-                        voltageControls.add(tvc);
-                    }
-                }
+    public boolean isHidden() {
+        // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
+        // from merged ones
+        List<VoltageControl<?>> voltageControls = new ArrayList<>();
+        for (VoltageControl<?> vc : controlledBus.getVoltageControls()) {
+            if (vc.isDisabled() || vc.getMergeStatus() == MergeStatus.MERGED_DEPENDENT) {
+                continue;
             }
-            voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
-            // we should normally have max 3 voltage controls (one of each type) because already merged
-            if (voltageControls.size() > 1) {
-                // just keep most prioritary one and flag the other one as SHADOWED
-                for (int i = 1; i < voltageControls.size(); i++) {
-                    voltageControls.get(i).status = Status.SHADOWED;
+            voltageControls.add(vc);
+            for (VoltageControl<?> mvc : vc.getMergedVoltageControls()) {
+                if (mvc.isDisabled() || vc.getMergeStatus() == MergeStatus.MERGED_DEPENDENT) {
+                    continue;
                 }
+                voltageControls.add(mvc);
             }
         }
+        if (voltageControls.isEmpty()) {
+            return true; // means all disabled
+        }
+        voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
+        // we should normally have max 3 voltage controls (one of each type) because already merged
+        if (voltageControls.size() > 1) {
+            return voltageControls.get(0) == this;
+        }
+        return false;
     }
 }

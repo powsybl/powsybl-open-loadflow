@@ -28,6 +28,8 @@ public interface LfBus extends LfElement {
 
     void setReference(boolean reference);
 
+    List<VoltageControl<?>> getVoltageControls();
+
     // generator voltage control
 
     boolean hasGeneratorVoltageControllerCapability();
@@ -178,6 +180,4 @@ public interface LfBus extends LfElement {
     void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork);
 
     LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc);
-
-    void invalidateVoltageControlsStatus();
 }

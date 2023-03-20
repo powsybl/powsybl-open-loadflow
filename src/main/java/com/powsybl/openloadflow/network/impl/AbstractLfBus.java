@@ -134,6 +134,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public List<VoltageControl<?>> getVoltageControls() {
+        List<VoltageControl<?>> voltageControls = new ArrayList<>(3);
+        getGeneratorVoltageControl().ifPresent(voltageControls::add);
+        getTransformerVoltageControl().ifPresent(voltageControls::add);
+        getShuntVoltageControl().ifPresent(voltageControls::add);
+        return voltageControls;
+    }
+
+    @Override
     public boolean hasGeneratorVoltageControllerCapability() {
         return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
     }
@@ -531,7 +540,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public void setDisabled(boolean disabled) {
-        invalidateVoltageControlsStatus();
         super.setDisabled(disabled);
         if (shunt != null) {
             shunt.setDisabled(disabled);
@@ -603,12 +611,5 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc) {
         getNetwork().updateZeroImpedanceCache(dc);
         return dc ? dcZeroImpedanceNetwork : acZeroImpedanceNetwork;
-    }
-
-    @Override
-    public void invalidateVoltageControlsStatus() {
-        getGeneratorVoltageControl().ifPresent(VoltageControl::invalidateStatus);
-        getShuntVoltageControl().ifPresent(VoltageControl::invalidateStatus);
-        getTransformerVoltageControl().ifPresent(VoltageControl::invalidateStatus);
     }
 }

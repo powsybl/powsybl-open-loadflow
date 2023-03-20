@@ -332,12 +332,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 updateZeroImpedanceNetworks(disabled, false);
                 updateZeroImpedanceNetworks(disabled, true);
             }
-            if (bus1 != null) {
-                bus1.invalidateVoltageControlsStatus();
-            }
-            if (bus2 != null) {
-                bus2.invalidateVoltageControlsStatus();
-            }
             notifyDisable();
         }
     }
