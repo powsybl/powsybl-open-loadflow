@@ -16,7 +16,7 @@
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
-    <logger name="com.powsybl.openloadflow" level="trace" additivity="false">
+    <logger name="com.powsybl.openloadflow" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
     <logger name="com.powsybl.openloadflow.network.LfNetworkListenerTracer" level="TRACE" additivity="false">
