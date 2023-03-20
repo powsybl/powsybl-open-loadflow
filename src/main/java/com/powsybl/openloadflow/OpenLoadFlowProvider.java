@@ -22,11 +22,8 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.ac.*;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.AcloadFlowEngine;
-import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -91,6 +88,23 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
+    private static LoadFlowResult.ComponentResult.Status convertStatus(AcLoadFlowResult result) {
+        if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
+            return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+        } else {
+            switch (result.getNewtonRaphsonStatus()) {
+                case CONVERGED:
+                    return LoadFlowResult.ComponentResult.Status.CONVERGED;
+                case MAX_ITERATION_REACHED:
+                    return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+                case SOLVER_FAILED:
+                    return LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+                default:
+                    return LoadFlowResult.ComponentResult.Status.FAILED;
+            }
+        }
+    }
+
     private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory);
 
@@ -117,7 +131,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
         for (AcLoadFlowResult result : results) {
             // update network state
-            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
+            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED || parametersExt.isAlwaysUpdateNetwork()) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
@@ -131,21 +145,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 computeZeroImpedanceFlows(result.getNetwork(), false);
             }
 
-            LoadFlowResult.ComponentResult.Status status;
-            switch (result.getNewtonRaphsonStatus()) {
-                case CONVERGED:
-                    status = LoadFlowResult.ComponentResult.Status.CONVERGED;
-                    break;
-                case MAX_ITERATION_REACHED:
-                    status = LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-                    break;
-                case SOLVER_FAILED:
-                    status = LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-                    break;
-                default:
-                    status = LoadFlowResult.ComponentResult.Status.FAILED;
-                    break;
-            }
+            LoadFlowResult.ComponentResult.Status status = convertStatus(result);
             // FIXME a null slack bus ID should be allowed
             String slackBusId = result.getNetwork().isValid() ? result.getNetwork().getSlackBus().getId() : "";
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
