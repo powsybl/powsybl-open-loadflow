@@ -40,9 +40,9 @@ public class LfNetworkParameters {
 
     public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
 
-    public static final Set<Country> COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE = Collections.unmodifiableSet(EnumSet.noneOf(Country.class));
+    public static final Set<Country> COUNTRIES_FOR_SLACK_BUS_SELECTION_DEFAULT_VALUE = Collections.unmodifiableSet(EnumSet.noneOf(Country.class));
 
-    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE);
+    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(COUNTRIES_FOR_SLACK_BUS_SELECTION_DEFAULT_VALUE);
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
@@ -98,7 +98,7 @@ public class LfNetworkParameters {
 
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
 
-    private Set<Country> countriesToFilterSlackBus = COUNTRIES_TO_FILTER_SLACK_BUS_DEFAULT_VALUE;
+    private Set<Country> countriesForSlackBusSelection = COUNTRIES_FOR_SLACK_BUS_SELECTION_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -362,12 +362,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public Set<Country> getCountriesToFilterSlackBus() {
-        return countriesToFilterSlackBus;
+    public Set<Country> getCountriesForSlackBusSelection() {
+        return countriesForSlackBusSelection;
     }
 
-    public LfNetworkParameters setCountriesToFilterSlackBus(Set<Country> countries) {
-        this.countriesToFilterSlackBus = countries;
+    public LfNetworkParameters setCountriesForSlackBusSelection(Set<Country> countries) {
+        this.countriesForSlackBusSelection = countries;
         return this;
     }
 
@@ -401,7 +401,7 @@ public class LfNetworkParameters {
                 ", debugDir=" + debugDir +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
-                ", countriesToFilterSlackBus=" + countriesToFilterSlackBus +
+                ", countriesForSlackBusSelection=" + countriesForSlackBusSelection +
                 ')';
     }
 }

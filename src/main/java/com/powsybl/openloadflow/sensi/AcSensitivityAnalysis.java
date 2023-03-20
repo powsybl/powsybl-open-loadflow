@@ -199,7 +199,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             lfParameters.setTransformerVoltageControlOn(true);
         }
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(),
-                lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.getCountriesToFilterSlackBus());
+                lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.getCountriesForSlackBusSelection());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
