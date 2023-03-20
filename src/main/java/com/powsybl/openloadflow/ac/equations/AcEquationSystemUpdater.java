@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.List;
+import java.util.Objects;
 
 import static com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator.updateVoltageControlsMergeStatus;
 
@@ -19,8 +20,12 @@ import static com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator.upda
  */
 public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
-    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private final AcEquationSystemCreationParameters parameters;
+
+    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                   AcEquationSystemCreationParameters parameters) {
         super(equationSystem, false);
+        this.parameters = Objects.requireNonNull(parameters);
     }
 
     @Override
