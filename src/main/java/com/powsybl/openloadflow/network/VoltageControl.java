@@ -67,16 +67,16 @@ public class VoltageControl<T extends LfElement> extends Control {
         throw new IllegalStateException();
     }
 
-    public MergeStatus getMergeStatus() {
-        return mergeStatus;
-    }
-
     public boolean isDisabled() {
         if (controlledBus.isDisabled()) {
             return true;
         }
         return controllerElements.stream()
                 .allMatch(LfElement::isDisabled);
+    }
+
+    public MergeStatus getMergeStatus() {
+        return mergeStatus;
     }
 
     public void updateMergeStatus() {
