@@ -114,10 +114,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         for (LfBus bus : network.getGraph().vertexSet()) {
             bus.getGeneratorVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
-                    .ifPresent(voltageControl -> {
-                        AcEquationSystemCreator.recreateReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
-                        AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl, equationSystem);
-                    });
+                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateReactivePowerDistributionEquations(voltageControl, equationSystem, parameters));
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
                     .ifPresent(voltageControl -> {

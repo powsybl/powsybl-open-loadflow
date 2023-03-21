@@ -203,6 +203,7 @@ public class AcEquationSystemCreator {
         if (!voltageControl.isLocalControl()) {
             createReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
         }
+        updateGeneratorVoltageControl(voltageControl, equationSystem);
     }
 
     private void createGeneratorRemoteVoltageControlEquations(GeneratorVoltageControl voltageControl,
