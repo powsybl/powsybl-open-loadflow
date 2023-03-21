@@ -60,27 +60,10 @@ public class AcEquationSystemCreator {
         createShuntEquations(bus, equationSystem);
     }
 
-    static void updateVoltageControlsMergeStatus(LfZeroImpedanceNetwork network) {
-        network.getGraph().vertexSet().stream()
-                .filter(LfBus::isGeneratorVoltageControlled)
-                .findFirst()
-                .ifPresent(bus -> bus.getGeneratorVoltageControl().orElseThrow().updateMergeStatus());
-        network.getGraph().vertexSet().stream()
-                .filter(LfBus::isShuntVoltageControlled)
-                .findFirst()
-                .ifPresent(bus -> bus.getShuntVoltageControl().orElseThrow().updateMergeStatus());
-        network.getGraph().vertexSet().stream()
-                .filter(LfBus::isTransformerVoltageControlled)
-                .findFirst()
-                .ifPresent(bus -> bus.getTransformerVoltageControl().orElseThrow().updateMergeStatus());
-    }
-
     private void createVoltageControlEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // we need to update merge status to correctly create voltage control equations
         for (LfZeroImpedanceNetwork zn : network.getZeroImpedanceNetworks(false)) {
-            updateVoltageControlsMergeStatus(zn);
+            VoltageControl.updateMergeStatus(zn);
         }
-
         for (LfBus bus : network.getBuses()) {
             createGeneratorVoltageControlEquations(bus, equationSystem);
             createTransformerVoltageControlEquations(bus, equationSystem);

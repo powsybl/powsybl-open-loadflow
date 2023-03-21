@@ -13,8 +13,6 @@ import com.powsybl.openloadflow.network.*;
 import java.util.List;
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator.updateVoltageControlsMergeStatus;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -128,9 +126,6 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc) {
         if (!dc) {
             for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
-                updateVoltageControlsMergeStatus(splitNetwork);
-            }
-            for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
                 recreateDistributionEquations(splitNetwork);
             }
         }
@@ -139,7 +134,6 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     @Override
     public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc) {
         if (!dc) {
-            updateVoltageControlsMergeStatus(mergedNetwork);
             recreateDistributionEquations(mergedNetwork);
         }
     }

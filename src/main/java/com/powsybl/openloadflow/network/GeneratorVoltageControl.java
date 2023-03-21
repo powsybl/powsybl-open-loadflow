@@ -32,16 +32,6 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
     }
 
     @Override
-    protected boolean isControlledBySameControlType(LfBus bus) {
-        return bus.isGeneratorVoltageControlled();
-    }
-
-    @Override
-    protected GeneratorVoltageControl getControl(LfBus bus) {
-        return bus.getGeneratorVoltageControl().orElseThrow();
-    }
-
-    @Override
     public void setTargetValue(double targetValue) {
         if (targetValue != this.targetValue) {
             this.targetValue = targetValue;

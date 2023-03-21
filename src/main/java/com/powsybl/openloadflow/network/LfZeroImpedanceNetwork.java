@@ -118,6 +118,14 @@ public class LfZeroImpedanceNetwork {
                     splitZns.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
                 }
                 zeroImpedanceNetworks.addAll(splitZns);
+
+                // update voltage control merge status
+                if (!dc) {
+                    for (LfZeroImpedanceNetwork splitZn : splitZns) {
+                        VoltageControl.updateMergeStatus(splitZn);
+                    }
+                }
+
                 for (LfNetworkListener listener : network.getListeners()) {
                     listener.onZeroImpedanceNetworkSplit(this, splitZns, dc);
                 }
@@ -147,6 +155,12 @@ public class LfZeroImpedanceNetwork {
         zeroImpedanceNetworks.remove(zn2);
         LfZeroImpedanceNetwork mergedZn = new LfZeroImpedanceNetwork(network, dc, mergedGraph);
         zeroImpedanceNetworks.add(mergedZn);
+
+        // update voltage control merge status
+        if (!dc) {
+            VoltageControl.updateMergeStatus(mergedZn);
+        }
+
         for (LfNetworkListener listener : network.getListeners()) {
             listener.onZeroImpedanceNetworkMerge(zn1, zn2, mergedZn, dc);
         }
