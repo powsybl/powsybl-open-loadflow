@@ -30,6 +30,8 @@ public interface LfBus extends LfElement {
 
     List<VoltageControl<?>> getVoltageControls();
 
+    boolean isVoltageControlled();
+
     // generator voltage control
 
     boolean hasGeneratorVoltageControllerCapability();

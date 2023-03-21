@@ -123,21 +123,28 @@ public class VoltageControl<T extends LfElement> extends Control {
         }
     }
 
+    private static void addVoltageControls(List<VoltageControl<?>> voltageControls, LfBus bus) {
+        if (bus.isVoltageControlled()) {
+            for (VoltageControl<?> vc : bus.getVoltageControls()) {
+                if (vc.isDisabled() || vc.getMergeStatus() == MergeStatus.MERGED_DEPENDENT) {
+                    continue;
+                }
+                voltageControls.add(vc);
+            }
+        }
+    }
+
     public boolean isHidden() {
         // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
         // from merged ones
         List<VoltageControl<?>> voltageControls = new ArrayList<>();
-        for (VoltageControl<?> vc : controlledBus.getVoltageControls()) {
-            if (vc.isDisabled() || vc.getMergeStatus() == MergeStatus.MERGED_DEPENDENT) {
-                continue;
+        LfZeroImpedanceNetwork zn = controlledBus.getZeroImpedanceNetwork(false);
+        if (zn != null) { // bus is part of a zero impedance graph
+            for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
+                addVoltageControls(voltageControls, zb);
             }
-            voltageControls.add(vc);
-            for (VoltageControl<?> mvc : vc.getMergedVoltageControls()) {
-                if (mvc.isDisabled() || vc.getMergeStatus() == MergeStatus.MERGED_DEPENDENT) {
-                    continue;
-                }
-                voltageControls.add(mvc);
-            }
+        } else {
+            addVoltageControls(voltageControls, controlledBus);
         }
         if (voltageControls.isEmpty()) {
             return true; // means all disabled
