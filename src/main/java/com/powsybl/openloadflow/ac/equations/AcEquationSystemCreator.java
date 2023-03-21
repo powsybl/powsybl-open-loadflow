@@ -546,6 +546,15 @@ public class AcEquationSystemCreator {
         updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_RHO, AcEquationType.BRANCH_TARGET_RHO1);
     }
 
+    public static void recreateR1DistributionEquations(TransformerVoltageControl voltageControl,
+                                                       EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (LfBranch controllerBranch : voltageControl.getMergedControllerElements()) {
+            equationSystem.removeEquation(controllerBranch.getNum(), AcEquationType.DISTR_RHO);
+        }
+        createR1DistributionEquations(voltageControl, equationSystem);
+        updateTransformerVoltageControlEquations(voltageControl, equationSystem);
+    }
+
     private static void createShuntVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getShuntVoltageControl()
                 .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
@@ -589,6 +598,15 @@ public class AcEquationSystemCreator {
 
     static void updateShuntVoltageControlEquations(ShuntVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_SHUNT_B, AcEquationType.SHUNT_TARGET_B);
+    }
+
+    public static void recreateShuntSusceptanceDistributionEquations(ShuntVoltageControl voltageControl,
+                                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (LfShunt controllerShunt : voltageControl.getMergedControllerElements()) {
+            equationSystem.removeEquation(controllerShunt.getNum(), AcEquationType.DISTR_SHUNT_B);
+        }
+        createShuntSusceptanceDistributionEquations(voltageControl, equationSystem);
+        updateShuntVoltageControlEquations(voltageControl, equationSystem);
     }
 
     private static boolean isDeriveA1(LfBranch branch, AcEquationSystemCreationParameters creationParameters) {
