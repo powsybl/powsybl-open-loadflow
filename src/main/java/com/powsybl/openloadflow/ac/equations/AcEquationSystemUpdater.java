@@ -129,18 +129,22 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
-    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks) {
-        for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
-            updateVoltageControlsMergeStatus(splitNetwork);
-        }
-        for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
-            recreateDistributionEquations(splitNetwork);
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc) {
+        if (!dc) {
+            for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
+                updateVoltageControlsMergeStatus(splitNetwork);
+            }
+            for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
+                recreateDistributionEquations(splitNetwork);
+            }
         }
     }
 
     @Override
-    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork) {
-        updateVoltageControlsMergeStatus(mergedNetwork);
-        recreateDistributionEquations(mergedNetwork);
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc) {
+        if (!dc) {
+            updateVoltageControlsMergeStatus(mergedNetwork);
+            recreateDistributionEquations(mergedNetwork);
+        }
     }
 }

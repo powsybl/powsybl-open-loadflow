@@ -119,7 +119,7 @@ public class LfZeroImpedanceNetwork {
                 }
                 zeroImpedanceNetworks.addAll(splitZns);
                 for (LfNetworkListener listener : network.getListeners()) {
-                    listener.onZeroImpedanceNetworkSplit(this, splitZns);
+                    listener.onZeroImpedanceNetworkSplit(this, splitZns, dc);
                 }
             } else {
                 boolean atLeastOneOfDisablingBranchIsPartOfSpanningTree = disabledBranches.stream()
@@ -148,7 +148,7 @@ public class LfZeroImpedanceNetwork {
         LfZeroImpedanceNetwork mergedZn = new LfZeroImpedanceNetwork(network, dc, mergedGraph);
         zeroImpedanceNetworks.add(mergedZn);
         for (LfNetworkListener listener : network.getListeners()) {
-            listener.onZeroImpedanceNetworkMerge(zn1, zn2, mergedZn);
+            listener.onZeroImpedanceNetworkMerge(zn1, zn2, mergedZn, dc);
         }
     }
 

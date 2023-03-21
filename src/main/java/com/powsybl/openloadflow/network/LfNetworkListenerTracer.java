@@ -123,14 +123,14 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks) {
-        LOGGER.trace("onZeroImpedanceNetworkSplit(initialNetwork={}, splitNetworks={})", initialNetwork, splitNetworks);
-        delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks);
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc) {
+        LOGGER.trace("onZeroImpedanceNetworkSplit(initialNetwork={}, splitNetworks={}, dc={})", initialNetwork, splitNetworks, dc);
+        delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks, dc);
     }
 
     @Override
-    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork) {
-        LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={})", network1, network2, mergedNetwork);
-        delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork);
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc) {
+        LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={}, dc={})", network1, network2, mergedNetwork, dc);
+        delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork, dc);
     }
 }
