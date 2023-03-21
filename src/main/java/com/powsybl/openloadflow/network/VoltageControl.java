@@ -113,6 +113,8 @@ public class VoltageControl<T extends LfElement> extends Control {
                 vc.mergeStatus = MergeStatus.MAIN;
             }
             if (voltageControls.size() > 1) {
+                // we take the highest target voltage (why not...) and in case of equality the voltage control
+                // with the first controlled bus ID by alpha sort
                 voltageControls.sort(Comparator.<VoltageControl<?>>comparingDouble(VoltageControl::getTargetValue)
                         .reversed()
                         .thenComparing(o -> o.getControlledBus().getId()));
