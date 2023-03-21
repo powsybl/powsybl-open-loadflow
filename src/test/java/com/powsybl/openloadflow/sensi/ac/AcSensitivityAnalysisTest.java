@@ -1167,6 +1167,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testThreeWindingsTransformerAsVariable() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        sensiParameters.setAngleFlowSensitivityValueThreshold(0.1);
         Network network = PhaseControlFactory.createNetworkWithT3wt();
 
         //Add phase tap changer to leg1 and leg3 of the twt for testing purpose
@@ -1207,10 +1208,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactor factorPhase3 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeWindingsTransformer.Side.THREE);
         List<SensitivityFactor> factors = List.of(factorPhase1, factorPhase2, factorPhase3);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-        assertEquals(3, result.getValues().size());
+        assertEquals(2, result.getValues().size());
         assertEquals(-5.421, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(5.421, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_2), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.0, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_3), LoadFlowAssert.DELTA_POWER);
+        //Sensitivity value at phase 3 is filtered because it is 0
     }
 
     @Test
