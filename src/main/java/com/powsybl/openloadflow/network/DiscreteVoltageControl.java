@@ -16,8 +16,8 @@ public class DiscreteVoltageControl<T extends LfElement> extends VoltageControl<
 
     private Double targetDeadband;
 
-    protected DiscreteVoltageControl(LfBus controlled, double targetValue, Double targetDeadband) {
-        super(targetValue, controlled);
+    protected DiscreteVoltageControl(LfBus controlled, Type type, double targetValue, Double targetDeadband) {
+        super(targetValue, type, controlled);
         this.targetDeadband = targetDeadband;
     }
 

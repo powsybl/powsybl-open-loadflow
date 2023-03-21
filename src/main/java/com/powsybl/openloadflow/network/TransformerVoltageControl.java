@@ -13,7 +13,7 @@ package com.powsybl.openloadflow.network;
 public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> {
 
     public TransformerVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
-        super(controlledBus, targetValue, targetDeadband);
+        super(controlledBus, Type.TRANSFORMER, targetValue, targetDeadband);
     }
 
     @Override

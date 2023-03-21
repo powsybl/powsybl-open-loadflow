@@ -13,7 +13,7 @@ package com.powsybl.openloadflow.network;
 public class ShuntVoltageControl extends DiscreteVoltageControl<LfShunt> {
 
     public ShuntVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
-        super(controlledBus, targetValue, targetDeadband);
+        super(controlledBus, Type.SHUNT, targetValue, targetDeadband);
     }
 
     @Override

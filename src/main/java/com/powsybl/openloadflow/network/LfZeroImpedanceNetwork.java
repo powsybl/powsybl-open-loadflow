@@ -151,4 +151,12 @@ public class LfZeroImpedanceNetwork {
             listener.onZeroImpedanceNetworkMerge(zn1, zn2, mergedZn);
         }
     }
+
+    @Override
+    public String toString() {
+        return "LfZeroImpedanceNetwork(dc=" + dc
+                + ", buses=" + graph.vertexSet()
+                + ", branches=" + graph.edgeSet()
+                + ")";
+    }
 }

@@ -16,22 +16,31 @@ import java.util.Objects;
  */
 public class VoltageControl<T extends LfElement> extends Control {
 
+    public enum Type {
+        GENERATOR,
+        TRANSFORMER,
+        SHUNT
+    }
+
     public enum MergeStatus {
         ALONE,
         MERGED_MAIN,
         MERGED_DEPENDENT
     }
 
+    protected Type type;
+
     protected final LfBus controlledBus;
 
     protected final List<T> controllerElements = new ArrayList<>();
 
-    protected final List<VoltageControl<T>> mergedVoltageControls = new ArrayList<>();
-
     protected MergeStatus mergeStatus = MergeStatus.ALONE;
 
-    protected VoltageControl(double targetValue, LfBus controlledBus) {
+    protected final List<VoltageControl<T>> mergedVoltageControls = new ArrayList<>();
+
+    protected VoltageControl(double targetValue, Type type, LfBus controlledBus) {
         super(targetValue);
+        this.type = Objects.requireNonNull(type);
         this.controlledBus = Objects.requireNonNull(controlledBus);
     }
 
@@ -65,6 +74,10 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     protected int getPriority() {
         throw new IllegalStateException();
+    }
+
+    protected Type getType() {
+        return type;
     }
 
     public boolean isDisabled() {
@@ -160,5 +173,15 @@ public class VoltageControl<T extends LfElement> extends Control {
             return voltageControls.get(0) != this;
         }
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return "VoltageControl(type=" + type
+                + ", controlledBus='" + controlledBus
+                + "', controllerElements=" + controllerElements
+                + ", mergeStatus=" + mergeStatus
+                + ", mergedVoltageControlsCount=" + mergedVoltageControls.size()
+                + ")";
     }
 }

@@ -124,13 +124,13 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
 
     @Override
     public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks) {
-        LOGGER.trace("onZeroImpedanceNetworkSplit()");
+        LOGGER.trace("onZeroImpedanceNetworkSplit(initialNetwork={}, splitNetworks={})", initialNetwork, splitNetworks);
         delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks);
     }
 
     @Override
     public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork) {
-        LOGGER.trace("onZeroImpedanceNetworkMerge()");
+        LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={})", network1, network2, mergedNetwork);
         delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork);
     }
 }
