@@ -86,41 +86,6 @@ public class VoltageControl<T extends LfElement> extends Control {
     }
 
     @SuppressWarnings("unchecked")
-    private static void linkVoltageControls(VoltageControl<?> mainVc, VoltageControl<?> vc) {
-        mainVc.mergedDependentVoltageControls.add((VoltageControl) vc);
-        vc.mainMergedVoltageControl = (VoltageControl) mainVc;
-    }
-
-    public static void updateMergeStatus(LfZeroImpedanceNetwork zn) {
-        Map<Type, List<VoltageControl<?>>> voltageControlsByType = new EnumMap<>(Type.class);
-        for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
-            for (VoltageControl<?> vc : zb.getVoltageControls()) {
-                voltageControlsByType.computeIfAbsent(vc.getType(), k -> new ArrayList<>())
-                        .add(vc);
-                vc.getMergedDependentVoltageControls().clear();
-                vc.mainMergedVoltageControl = null;
-                vc.mergeStatus = MergeStatus.MAIN;
-            }
-        }
-        for (List<VoltageControl<?>> voltageControls : voltageControlsByType.values()) {
-            if (voltageControls.size() > 1) {
-                // we take the highest target voltage (why not...) and in case of equality the voltage control
-                // with the first controlled bus ID by alpha sort
-                voltageControls.sort(Comparator.<VoltageControl<?>>comparingDouble(VoltageControl::getTargetValue)
-                        .reversed()
-                        .thenComparing(o -> o.getControlledBus().getId()));
-                VoltageControl<?> mainVc = voltageControls.get(0);
-                // first one is main, the other have are dependents
-                for (int i = 1; i < voltageControls.size(); i++) {
-                    VoltageControl<?> vc = voltageControls.get(i);
-                    vc.mergeStatus = MergeStatus.DEPENDENT;
-                    linkVoltageControls(mainVc, vc);
-                }
-            }
-        }
-    }
-
-    @SuppressWarnings("unchecked")
     public <E extends VoltageControl<T>> E getMainVoltageControl() {
         switch (mergeStatus) {
             case MAIN:

@@ -61,9 +61,6 @@ public class AcEquationSystemCreator {
     }
 
     private void createVoltageControlEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        for (LfZeroImpedanceNetwork zn : network.getZeroImpedanceNetworks(false)) {
-            VoltageControl.updateMergeStatus(zn);
-        }
         for (LfBus bus : network.getBuses()) {
             createGeneratorVoltageControlEquations(bus, equationSystem);
             createTransformerVoltageControlEquations(bus, equationSystem);

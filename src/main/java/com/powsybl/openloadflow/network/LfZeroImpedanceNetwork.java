@@ -47,7 +47,11 @@ public class LfZeroImpedanceNetwork {
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         for (Set<LfBus> connectedSet : connectedSets) {
             var subGraph = new AsSubgraph<>(graph, connectedSet);
-            zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
+            LfZeroImpedanceNetwork zn = new LfZeroImpedanceNetwork(network, dc, subGraph);
+            if (!dc) {
+                zn.updateVoltageControlMergeStatus();
+            }
+            zeroImpedanceNetworks.add(zn);
         }
         return zeroImpedanceNetworks;
     }
@@ -97,6 +101,41 @@ public class LfZeroImpedanceNetwork {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static void linkVoltageControls(VoltageControl<?> mainVc, VoltageControl<?> vc) {
+        mainVc.mergedDependentVoltageControls.add((VoltageControl) vc);
+        vc.mainMergedVoltageControl = (VoltageControl) mainVc;
+    }
+
+    public void updateVoltageControlMergeStatus() {
+        Map<VoltageControl.Type, List<VoltageControl<?>>> voltageControlsByType = new EnumMap<>(VoltageControl.Type.class);
+        for (LfBus zb : graph.vertexSet()) { // all enabled by design
+            for (VoltageControl<?> vc : zb.getVoltageControls()) {
+                voltageControlsByType.computeIfAbsent(vc.getType(), k -> new ArrayList<>())
+                        .add(vc);
+                vc.getMergedDependentVoltageControls().clear();
+                vc.mainMergedVoltageControl = null;
+                vc.mergeStatus = VoltageControl.MergeStatus.MAIN;
+            }
+        }
+        for (List<VoltageControl<?>> voltageControls : voltageControlsByType.values()) {
+            if (voltageControls.size() > 1) {
+                // we take the highest target voltage (why not...) and in case of equality the voltage control
+                // with the first controlled bus ID by alpha sort
+                voltageControls.sort(Comparator.<VoltageControl<?>>comparingDouble(VoltageControl::getTargetValue)
+                        .reversed()
+                        .thenComparing(o -> o.getControlledBus().getId()));
+                VoltageControl<?> mainVc = voltageControls.get(0);
+                // first one is main, the other have are dependents
+                for (int i = 1; i < voltageControls.size(); i++) {
+                    VoltageControl<?> vc = voltageControls.get(i);
+                    vc.mergeStatus = VoltageControl.MergeStatus.DEPENDENT;
+                    linkVoltageControls(mainVc, vc);
+                }
+            }
+        }
+    }
+
     public void tryToSplit() {
         List<LfBranch> disabledBranches = graph.edgeSet().stream()
                 .filter(LfElement::isDisabled)
@@ -122,7 +161,7 @@ public class LfZeroImpedanceNetwork {
                 // update voltage control merge status
                 if (!dc) {
                     for (LfZeroImpedanceNetwork splitZn : splitZns) {
-                        VoltageControl.updateMergeStatus(splitZn);
+                        splitZn.updateVoltageControlMergeStatus();
                     }
                 }
 
@@ -158,7 +197,7 @@ public class LfZeroImpedanceNetwork {
 
         // update voltage control merge status
         if (!dc) {
-            VoltageControl.updateMergeStatus(mergedZn);
+            mergedZn.updateVoltageControlMergeStatus();
         }
 
         for (LfNetworkListener listener : network.getListeners()) {
