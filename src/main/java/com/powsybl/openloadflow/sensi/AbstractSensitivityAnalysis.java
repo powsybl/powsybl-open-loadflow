@@ -1187,60 +1187,79 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                         SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen);
 
     protected boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
+        switch (function) {
+            case BRANCH_ACTIVE_POWER_1:
+            case BRANCH_ACTIVE_POWER_2:
+            case BRANCH_ACTIVE_POWER_3:
+                return filterActivePowerFunction(Math.abs(value), variable, parameters);
+            case BRANCH_CURRENT_1:
+            case BRANCH_CURRENT_2:
+            case BRANCH_CURRENT_3:
+            case BRANCH_REACTIVE_POWER_1:
+            case BRANCH_REACTIVE_POWER_2:
+            case BRANCH_REACTIVE_POWER_3:
+                return filterCurrentOrReactivePowerFunction(Math.abs(value), variable, parameters);
+            case BUS_VOLTAGE:
+                return filterBusVoltageFunction(Math.abs(value), variable, parameters);
+            default:
+                throw new PowsyblException("Unsupported sensitivity function type " + function);
+        }
+    }
+
+    protected boolean filterActivePowerFunction(double value, SensitivityVariableType variable, SensitivityAnalysisParameters parameters) {
         switch (variable) {
             case INJECTION_ACTIVE_POWER:
             case INJECTION_REACTIVE_POWER:
-            case BUS_TARGET_VOLTAGE:
             case HVDC_LINE_ACTIVE_POWER:
-                return filterSensitivityValueFlowVoltageVariable(Math.abs(value), function, parameters);
+                return value < parameters.getFlowFlowSensitivityValueThreshold();
+            case BUS_TARGET_VOLTAGE:
+                return false;
             case TRANSFORMER_PHASE:
             case TRANSFORMER_PHASE_1:
             case TRANSFORMER_PHASE_2:
             case TRANSFORMER_PHASE_3:
-                return filterSensitivityValueAngleVariable(Math.abs(value), function, parameters);
+                return value < parameters.getAngleFlowSensitivityValueThreshold();
             default:
                 throw new PowsyblException("Unsupported sensitivity variable type " + variable);
         }
     }
 
-    private boolean filterSensitivityValueAngleVariable(double value, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
-        switch (function) {
-            case BRANCH_ACTIVE_POWER_1:
-            case BRANCH_ACTIVE_POWER_2:
-            case BRANCH_ACTIVE_POWER_3:
-            case BRANCH_CURRENT_1:
-            case BRANCH_CURRENT_2:
-            case BRANCH_CURRENT_3:
-            case BRANCH_REACTIVE_POWER_1:
-            case BRANCH_REACTIVE_POWER_2:
-            case BRANCH_REACTIVE_POWER_3:
+    protected boolean filterCurrentOrReactivePowerFunction(double value, SensitivityVariableType variable, SensitivityAnalysisParameters parameters) {
+        switch (variable) {
+            case INJECTION_ACTIVE_POWER:
+            case HVDC_LINE_ACTIVE_POWER:
+                return value < parameters.getFlowFlowSensitivityValueThreshold();
+            case INJECTION_REACTIVE_POWER:
+                return value < parameters.getFlowFlowSensitivityValueThreshold()
+                        || value < parameters.getFlowVoltageSensitivityValueThreshold();
+            case BUS_TARGET_VOLTAGE:
+                return value < parameters.getFlowVoltageSensitivityValueThreshold();
+            case TRANSFORMER_PHASE:
+            case TRANSFORMER_PHASE_1:
+            case TRANSFORMER_PHASE_2:
+            case TRANSFORMER_PHASE_3:
                 return value < parameters.getAngleFlowSensitivityValueThreshold();
-            case BUS_VOLTAGE:
-                return false;
             default:
-                throw new PowsyblException("Unsupported sensitivity function type " + function);
+                throw new PowsyblException("Unsupported sensitivity variable type " + variable);
         }
     }
 
-    private boolean filterSensitivityValueFlowVoltageVariable(double value, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
-        switch (function) {
-            case BRANCH_ACTIVE_POWER_1:
-            case BRANCH_ACTIVE_POWER_2:
-            case BRANCH_ACTIVE_POWER_3:
+    protected boolean filterBusVoltageFunction(double value, SensitivityVariableType variable, SensitivityAnalysisParameters parameters) {
+        switch (variable) {
+            case INJECTION_REACTIVE_POWER:
                 return value < parameters.getFlowFlowSensitivityValueThreshold();
-            case BRANCH_CURRENT_1:
-            case BRANCH_CURRENT_2:
-            case BRANCH_CURRENT_3:
-            case BRANCH_REACTIVE_POWER_1:
-            case BRANCH_REACTIVE_POWER_2:
-            case BRANCH_REACTIVE_POWER_3:
-                return value < parameters.getFlowFlowSensitivityValueThreshold()
-                        || value < parameters.getFlowVoltageSensitivityValueThreshold();
-            case BUS_VOLTAGE:
+            case BUS_TARGET_VOLTAGE:
                 return value < parameters.getVoltageVoltageSensitivityValueThreshold()
                         || value < parameters.getFlowVoltageSensitivityValueThreshold();
+            case INJECTION_ACTIVE_POWER:
+            case HVDC_LINE_ACTIVE_POWER:
+            case TRANSFORMER_PHASE:
+            case TRANSFORMER_PHASE_1:
+            case TRANSFORMER_PHASE_2:
+            case TRANSFORMER_PHASE_3:
+                return false;
             default:
-                throw new PowsyblException("Unsupported sensitivity function type " + function);
+                throw new PowsyblException("Unsupported sensitivity variable type " + variable);
         }
     }
 }
