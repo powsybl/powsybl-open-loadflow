@@ -28,7 +28,7 @@ public class VoltageControl<T extends LfElement> extends Control {
         MERGED_DEPENDENT
     }
 
-    protected Type type;
+    protected final Type type;
 
     protected final LfBus controlledBus;
 
@@ -76,7 +76,7 @@ public class VoltageControl<T extends LfElement> extends Control {
         throw new IllegalStateException();
     }
 
-    protected Type getType() {
+    public Type getType() {
         return type;
     }
 
