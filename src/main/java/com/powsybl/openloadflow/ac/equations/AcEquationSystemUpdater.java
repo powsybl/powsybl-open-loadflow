@@ -110,19 +110,40 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         }
     }
 
+    private void recreateDistributionEquations(LfZeroImpedanceNetwork network) {
+        for (LfBus bus : network.getGraph().vertexSet()) {
+            bus.getGeneratorVoltageControl()
+                    .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
+                    .ifPresent(voltageControl -> {
+                        AcEquationSystemCreator.recreateReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
+                        AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl, equationSystem);
+                    });
+            bus.getTransformerVoltageControl()
+                    .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
+                    .ifPresent(voltageControl -> {
+                        throw new UnsupportedOperationException("TODO");
+                    });
+            bus.getShuntVoltageControl()
+                    .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
+                    .ifPresent(voltageControl -> {
+                        throw new UnsupportedOperationException("TODO");
+                    });
+        }
+    }
+
     @Override
     public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks) {
         for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
             updateVoltageControlsMergeStatus(splitNetwork);
         }
-
-        // FIXME recreate distribution equations for all voltage controls
+        for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
+            recreateDistributionEquations(splitNetwork);
+        }
     }
 
     @Override
     public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork) {
         updateVoltageControlsMergeStatus(mergedNetwork);
-
-        // FIXME recreate distribution equations for all voltage controls
+        recreateDistributionEquations(mergedNetwork);
     }
 }

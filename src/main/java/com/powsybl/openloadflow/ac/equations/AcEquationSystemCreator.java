@@ -200,7 +200,9 @@ public class AcEquationSystemCreator {
         for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
             equationSystem.removeEquation(controllerBus.getNum(), AcEquationType.DISTR_Q);
         }
-        createReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
+        if (!voltageControl.isLocalControl()) {
+            createReactivePowerDistributionEquations(voltageControl, equationSystem, parameters);
+        }
     }
 
     private void createGeneratorRemoteVoltageControlEquations(GeneratorVoltageControl voltageControl,
@@ -261,6 +263,13 @@ public class AcEquationSystemCreator {
 
                     // activate voltage control at controlled bus only if at least one controller element is enabled
                     vEq.setActive(!enabledControllerElements.isEmpty());
+
+                    // deactivate voltage control for merged controlled buses
+                    for (VoltageControl<T> mvc : voltageControl.getMergedVoltageControls()) {
+                        equationSystem.getEquation(mvc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
+                                .orElseThrow()
+                                .setActive(false);
+                    }
 
                     // deactivate distribution equations and reactivate control equations
                     for (T controllerElement : disabledControllerElements) {
