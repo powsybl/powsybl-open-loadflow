@@ -134,22 +134,27 @@ public class VoltageControl<T extends LfElement> extends Control {
         }
     }
 
-    public boolean isHidden() {
-        // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
-        // from merged ones
+    public static List<VoltageControl<?>> findVoltageControlsSortedByPriority(LfBus bus) {
         List<VoltageControl<?>> voltageControls = new ArrayList<>();
-        LfZeroImpedanceNetwork zn = controlledBus.getZeroImpedanceNetwork(false);
+        LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(false);
         if (zn != null) { // bus is part of a zero impedance graph
             for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
                 addVoltageControls(voltageControls, zb);
             }
         } else {
-            addVoltageControls(voltageControls, controlledBus);
+            addVoltageControls(voltageControls, bus);
         }
+        voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
+        return voltageControls;
+    }
+
+    public boolean isHidden() {
+        // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
+        // from merged ones
+        List<VoltageControl<?>> voltageControls = findVoltageControlsSortedByPriority(controlledBus);
         if (voltageControls.isEmpty()) {
             return true; // means all disabled
         }
-        voltageControls.sort(Comparator.comparingInt(VoltageControl::getPriority));
         // we should normally have max 3 voltage controls (one of each type) because already merged
         if (voltageControls.size() > 1) {
             return voltageControls.get(0) != this;

@@ -32,6 +32,8 @@ public interface LfBus extends LfElement {
 
     boolean isVoltageControlled();
 
+    Optional<VoltageControl<?>> getHighestPriorityVoltageControl();
+
     // generator voltage control
 
     boolean hasGeneratorVoltageControllerCapability();
