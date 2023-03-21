@@ -1279,5 +1279,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 SensitivityFunctionType.BUS_VOLTAGE, parameters));
         assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(2.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
                 SensitivityFunctionType.BUS_VOLTAGE, parameters));
+
+        //Reactive power based function and variable are not filtered
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.INJECTION_REACTIVE_POWER,
+                SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, parameters));
     }
 }
