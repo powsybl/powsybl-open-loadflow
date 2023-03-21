@@ -37,7 +37,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
     private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
         double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
-        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getControllerElements()) {
+        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getMergedControllerElements()) {
             if (otherControllerBus != controllerBus) {
                 target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
             }

@@ -20,8 +20,10 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorVoltageControl.class);
 
+    private static final int PRIORITY = 0;
+
     public GeneratorVoltageControl(LfBus controlledBus, double targetValue) {
-        super(targetValue, Type.GENERATOR, controlledBus);
+        super(targetValue, Type.GENERATOR, PRIORITY, controlledBus);
     }
 
     @Override
@@ -37,11 +39,6 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
     @Override
     protected GeneratorVoltageControl getControl(LfBus bus) {
         return bus.getGeneratorVoltageControl().orElseThrow();
-    }
-
-    @Override
-    protected int getPriority() {
-        return 0;
     }
 
     @Override

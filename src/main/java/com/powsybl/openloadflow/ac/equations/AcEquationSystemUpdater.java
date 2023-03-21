@@ -69,9 +69,9 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     private void updateVoltageControls(LfBus bus) {
-        bus.getGeneratorVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl.getThisOrMainVoltageControl(), equationSystem));
-        bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateTransformerVoltageControlEquations(voltageControl.getThisOrMainVoltageControl(), equationSystem));
-        bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateShuntVoltageControlEquations(voltageControl.getThisOrMainVoltageControl(), equationSystem));
+        bus.getGeneratorVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl.getMainVoltageControl(), equationSystem));
+        bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateTransformerVoltageControlEquations(voltageControl.getMainVoltageControl(), equationSystem));
+        bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateShuntVoltageControlEquations(voltageControl.getMainVoltageControl(), equationSystem));
     }
 
     @Override
@@ -113,15 +113,15 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     private void recreateDistributionEquations(LfZeroImpedanceNetwork network) {
         for (LfBus bus : network.getGraph().vertexSet()) {
             bus.getGeneratorVoltageControl()
-                    .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
+                    .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator.recreateReactivePowerDistributionEquations(voltageControl, equationSystem, parameters));
             bus.getTransformerVoltageControl()
-                    .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
+                    .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> {
                         throw new UnsupportedOperationException("TODO");
                     });
             bus.getShuntVoltageControl()
-                    .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
+                    .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> {
                         throw new UnsupportedOperationException("TODO");
                     });

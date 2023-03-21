@@ -97,9 +97,9 @@ public class AcEquationSystemCreator {
     private void createGeneratorVoltageControlEquations(LfBus bus,
                                                         EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getGeneratorVoltageControl()
+                .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .ifPresent(voltageControl -> {
-                    if (bus.isGeneratorVoltageControlled()
-                            && voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT) {
+                    if (bus.isGeneratorVoltageControlled()) {
                         if (voltageControl.isLocalControl()) {
                             createLocalVoltageControlEquation(bus, equationSystem);
                         } else {
@@ -219,7 +219,7 @@ public class AcEquationSystemCreator {
     static <T extends LfElement> void updateRemoteVoltageControlEquations(VoltageControl<T> voltageControl,
                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                           AcEquationType distrEqType, AcEquationType ctrlEqType) {
-        checkNotMergedDependent(voltageControl);
+        checkNotDependentVoltageControl(voltageControl);
 
         LfBus controlledBus = voltageControl.getControlledBus();
 
@@ -345,7 +345,7 @@ public class AcEquationSystemCreator {
     }
 
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        checkNotMergedDependent(voltageControl);
+        checkNotDependentVoltageControl(voltageControl);
         LfBus controlledBus = voltageControl.getControlledBus();
         if (voltageControl.isLocalControl()) {
             if (voltageControl.isHidden()) {
@@ -368,8 +368,8 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static <T extends LfElement> void checkNotMergedDependent(VoltageControl<T> voltageControl) {
-        if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MERGED_DEPENDENT) {
+    private static <T extends LfElement> void checkNotDependentVoltageControl(VoltageControl<T> voltageControl) {
+        if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.DEPENDENT) {
             throw new IllegalArgumentException("Cannot update a merged dependent voltage control");
         }
     }
@@ -503,7 +503,7 @@ public class AcEquationSystemCreator {
 
     private static void createTransformerVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getTransformerVoltageControl()
-                .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
+                .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .ifPresent(voltageControl -> {
                     // add transformer ratio distribution equations
                     createR1DistributionEquations(voltageControl, equationSystem);
@@ -548,7 +548,7 @@ public class AcEquationSystemCreator {
 
     private static void createShuntVoltageControlEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         bus.getShuntVoltageControl()
-                .filter(voltageControl -> voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT)
+                .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .ifPresent(voltageControl -> {
                     // add shunt distribution equations
                     createShuntSusceptanceDistributionEquations(voltageControl, equationSystem);

@@ -12,8 +12,10 @@ package com.powsybl.openloadflow.network;
  */
 public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> {
 
+    private static final int PRIORITY = 1;
+
     public TransformerVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
-        super(controlledBus, Type.TRANSFORMER, targetValue, targetDeadband);
+        super(controlledBus, Type.TRANSFORMER, PRIORITY, targetValue, targetDeadband);
     }
 
     @Override
@@ -29,10 +31,5 @@ public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> 
     @Override
     protected TransformerVoltageControl getControl(LfBus bus) {
         return bus.getTransformerVoltageControl().orElseThrow();
-    }
-
-    @Override
-    protected int getPriority() {
-        return 1;
     }
 }
