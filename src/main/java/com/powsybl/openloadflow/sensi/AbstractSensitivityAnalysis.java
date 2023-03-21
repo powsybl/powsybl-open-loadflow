@@ -1186,7 +1186,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
                         SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen);
 
-    protected boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
+    public static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (variable) {
             case INJECTION_ACTIVE_POWER:
             case HVDC_LINE_ACTIVE_POWER:
@@ -1203,7 +1203,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    protected boolean filterVoltageVariable(double value, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
+    protected static boolean filterVoltageVariable(double value, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
         switch (function) {
             case BRANCH_CURRENT_1:
             case BRANCH_CURRENT_2:
@@ -1216,7 +1216,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
     }
 
-    protected boolean isFlowFunction(SensitivityFunctionType function) {
+    protected static boolean isFlowFunction(SensitivityFunctionType function) {
         switch (function) {
             case BRANCH_ACTIVE_POWER_1:
             case BRANCH_ACTIVE_POWER_2:

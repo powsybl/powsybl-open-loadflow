@@ -17,6 +17,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysis;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
@@ -1240,5 +1241,43 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Three windings transformer 'transfo' not found", e.getCause().getMessage());
+    }
+
+    @Test
+    void testGenericSensitivityThresholdFiltering() {
+
+        SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
+        parameters.setAngleFlowSensitivityValueThreshold(1.0);
+        parameters.setFlowFlowSensitivityValueThreshold(1.0);
+        parameters.setFlowVoltageSensitivityValueThreshold(1.0);
+        parameters.setVoltageVoltageSensitivityValueThreshold(1.0);
+
+        //Angle Flow
+        assertTrue(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.TRANSFORMER_PHASE,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(2.0, SensitivityVariableType.TRANSFORMER_PHASE,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.TRANSFORMER_PHASE,
+                SensitivityFunctionType.BUS_VOLTAGE, parameters));
+
+        //Flow Flow
+        assertTrue(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(2.0, SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                SensitivityFunctionType.BUS_VOLTAGE, parameters));
+
+        //Flow Voltage
+        assertTrue(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BRANCH_CURRENT_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(2.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BRANCH_CURRENT_1, parameters));
+
+        //Voltage Voltage
+        assertTrue(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BUS_VOLTAGE, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(2.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BUS_VOLTAGE, parameters));
     }
 }
