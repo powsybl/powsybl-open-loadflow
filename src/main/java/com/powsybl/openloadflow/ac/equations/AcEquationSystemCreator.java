@@ -219,17 +219,23 @@ public class AcEquationSystemCreator {
     static <T extends LfElement> void updateRemoteVoltageControlEquations(VoltageControl<T> voltageControl,
                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                                           AcEquationType distrEqType, AcEquationType ctrlEqType) {
+        checkNotMergedDependent(voltageControl);
+
         LfBus controlledBus = voltageControl.getControlledBus();
+
+        List<T> controllerElements = voltageControl.getMergedControllerElements()
+                .stream()
+                .filter(b -> !b.isDisabled()) // discard disabled controller elements
+                .collect(Collectors.toList());
 
         Equation<AcVariableType, AcEquationType> vEq = equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                 .orElseThrow();
 
-        if (voltageControl.isDisabled()) {
-            List<T> controllerElements = voltageControl.getControllerElements()
-                    .stream()
-                    .filter(b -> !b.isDisabled()) // discard disabled controller elements
-                    .collect(Collectors.toList());
+        List<Equation<AcVariableType, AcEquationType>> vEqMergedList = voltageControl.getMergedDependentVoltageControls().stream()
+                .map(vc -> equationSystem.getEquation(vc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow())
+                .collect(Collectors.toList());
 
+        if (voltageControl.isDisabled()) {
             // we disable all voltage control equations
             vEq.setActive(false);
             for (T controllerElement : controllerElements) {
@@ -241,61 +247,50 @@ public class AcEquationSystemCreator {
                         .setActive(false);
             }
         } else {
-            if (voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MERGED_DEPENDENT) {
-                List<T> controllerElements = voltageControl.getMergedControllerElements()
-                        .stream()
-                        .filter(b -> !b.isDisabled()) // discard disabled controller elements
-                        .collect(Collectors.toList());
-
-                if (voltageControl.isHidden()) {
-                    for (T controllerElement : controllerElements) {
-                        equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                                .orElseThrow()
-                                .setActive(false);
-                        equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                                .orElseThrow()
-                                .setActive(true);
-                    }
-                } else {
-                    List<T> enabledControllerElements = controllerElements.stream()
-                            .filter(voltageControl::isControllerEnabled).collect(Collectors.toList());
-                    List<T> disabledControllerElements = controllerElements.stream()
-                            .filter(Predicate.not(voltageControl::isControllerEnabled)).collect(Collectors.toList());
-
-                    // activate voltage control at controlled bus only if at least one controller element is enabled
-                    vEq.setActive(!enabledControllerElements.isEmpty());
-
-                    // deactivate voltage control for merged controlled buses
-                    for (VoltageControl<T> mvc : voltageControl.getMergedVoltageControls()) {
-                        equationSystem.getEquation(mvc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V)
-                                .orElseThrow()
-                                .setActive(false);
-                    }
-
-                    // deactivate distribution equations and reactivate control equations
-                    for (T controllerElement : disabledControllerElements) {
-                        equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                                .orElseThrow()
-                                .setActive(false);
-                        equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                                .orElseThrow()
-                                .setActive(true);
-                    }
-
-                    // activate distribution equation and deactivate control equation at all enabled controller buses except one (first)
-                    for (int i = 0; i < enabledControllerElements.size(); i++) {
-                        boolean active = i != 0;
-                        T controllerElement = enabledControllerElements.get(i);
-                        equationSystem.getEquation(controllerElement.getNum(), distrEqType)
-                                .orElseThrow()
-                                .setActive(active);
-                        equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
-                                .orElseThrow()
-                                .setActive(false);
-                    }
+            if (voltageControl.isHidden()) {
+                for (T controllerElement : controllerElements) {
+                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                            .orElseThrow()
+                            .setActive(false);
+                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                            .orElseThrow()
+                            .setActive(true);
                 }
             } else {
-                // nothing to do because already managed from main voltage control
+                List<T> enabledControllerElements = controllerElements.stream()
+                        .filter(voltageControl::isControllerEnabled).collect(Collectors.toList());
+                List<T> disabledControllerElements = controllerElements.stream()
+                        .filter(Predicate.not(voltageControl::isControllerEnabled)).collect(Collectors.toList());
+
+                // activate voltage control at controlled bus only if at least one controller element is enabled
+                vEq.setActive(!enabledControllerElements.isEmpty());
+
+                // deactivate voltage control for merged controlled buses
+                for (var vEqMerged : vEqMergedList) {
+                    vEqMerged.setActive(false);
+                }
+
+                // deactivate distribution equations and reactivate control equations
+                for (T controllerElement : disabledControllerElements) {
+                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                            .orElseThrow()
+                            .setActive(false);
+                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                            .orElseThrow()
+                            .setActive(true);
+                }
+
+                // activate distribution equation and deactivate control equation at all enabled controller buses except one (first)
+                for (int i = 0; i < enabledControllerElements.size(); i++) {
+                    boolean active = i != 0;
+                    T controllerElement = enabledControllerElements.get(i);
+                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                            .orElseThrow()
+                            .setActive(active);
+                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                            .orElseThrow()
+                            .setActive(false);
+                }
             }
         }
     }
@@ -350,6 +345,7 @@ public class AcEquationSystemCreator {
     }
 
     public static void updateGeneratorVoltageControl(GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        checkNotMergedDependent(voltageControl);
         LfBus controlledBus = voltageControl.getControlledBus();
         if (voltageControl.isLocalControl()) {
             if (voltageControl.isHidden()) {
@@ -369,6 +365,12 @@ public class AcEquationSystemCreator {
             }
         } else {
             updateRemoteGeneratorVoltageControlEquations(voltageControl, equationSystem);
+        }
+    }
+
+    private static <T extends LfElement> void checkNotMergedDependent(VoltageControl<T> voltageControl) {
+        if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MERGED_DEPENDENT) {
+            throw new IllegalArgumentException("Cannot update a merged dependent voltage control");
         }
     }
 

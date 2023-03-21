@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -36,7 +33,9 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     protected MergeStatus mergeStatus = MergeStatus.ALONE;
 
-    protected final List<VoltageControl<T>> mergedVoltageControls = new ArrayList<>();
+    protected final List<VoltageControl<T>> mergedDependentVoltageControls = new ArrayList<>();
+
+    protected VoltageControl<T> mainMergedVoltageControl;
 
     protected VoltageControl(double targetValue, Type type, LfBus controlledBus) {
         super(targetValue);
@@ -60,8 +59,16 @@ public class VoltageControl<T extends LfElement> extends Control {
         throw new IllegalStateException();
     }
 
-    public List<VoltageControl<T>> getMergedVoltageControls() {
-        return mergedVoltageControls;
+    public List<VoltageControl<T>> getMergedDependentVoltageControls() {
+        return mergedDependentVoltageControls;
+    }
+
+    public Optional<VoltageControl<T>> getMainMergedVoltageControl() {
+        return Optional.ofNullable(mainMergedVoltageControl);
+    }
+
+    public void setMainMergedVoltageControl(VoltageControl<T> mainMergedVoltageControl) {
+        this.mainMergedVoltageControl = mainMergedVoltageControl;
     }
 
     protected boolean isControlledBySameControlType(LfBus bus) {
@@ -103,7 +110,9 @@ public class VoltageControl<T extends LfElement> extends Control {
                 }
             }
             for (VoltageControl<T> vc : voltageControls) {
-                vc.getMergedVoltageControls().clear();
+                vc.getMergedDependentVoltageControls().clear();
+                vc.setMainMergedVoltageControl(null);
+                vc.mergeStatus = MergeStatus.ALONE;
             }
             if (voltageControls.size() > 1) {
                 voltageControls.sort(Comparator.<VoltageControl<?>>comparingDouble(VoltageControl::getTargetValue)
@@ -115,21 +124,35 @@ public class VoltageControl<T extends LfElement> extends Control {
                 for (int i = 1; i < voltageControls.size(); i++) {
                     VoltageControl<T> vc = voltageControls.get(i);
                     vc.mergeStatus = MergeStatus.MERGED_DEPENDENT;
-                    mainVc.getMergedVoltageControls().add(vc);
+                    mainVc.getMergedDependentVoltageControls().add(vc);
+                    vc.setMainMergedVoltageControl(mainVc);
                 }
             }
         } else {
-            mergedVoltageControls.clear();
+            mergedDependentVoltageControls.clear();
+            mainMergedVoltageControl = null;
             mergeStatus = MergeStatus.ALONE;
         }
     }
 
+    public <E extends VoltageControl<T>> E getThisOrMainVoltageControl() {
+        switch (mergeStatus) {
+            case ALONE:
+            case MERGED_MAIN:
+                return (E) this;
+            case MERGED_DEPENDENT:
+                return (E) mainMergedVoltageControl;
+            default:
+                throw new IllegalStateException("Unknown merge status: " + mergeStatus);
+        }
+    }
+
     public List<T> getMergedControllerElements() {
-        if (mergedVoltageControls.isEmpty()) {
+        if (mergedDependentVoltageControls.isEmpty()) {
             return controllerElements;
         } else {
             List<T> mergedControllerElements = new ArrayList<>(controllerElements);
-            for (var mvc : mergedVoltageControls) {
+            for (var mvc : mergedDependentVoltageControls) {
                 mergedControllerElements.addAll(mvc.getControllerElements());
             }
             return mergedControllerElements;
@@ -181,7 +204,7 @@ public class VoltageControl<T extends LfElement> extends Control {
                 + ", controlledBus='" + controlledBus
                 + "', controllerElements=" + controllerElements
                 + ", mergeStatus=" + mergeStatus
-                + ", mergedVoltageControlsCount=" + mergedVoltageControls.size()
+                + ", mergedDependentVoltageControls=" + mergedDependentVoltageControls.size()
                 + ")";
     }
 }
