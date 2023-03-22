@@ -357,77 +357,79 @@ public class AcEquationSystemCreator {
     private static void createNonImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
                                                 EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                 boolean spanningTreeEdge) {
-        Optional<Equation<AcVariableType, AcEquationType>> v1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_V);
-        Optional<Equation<AcVariableType, AcEquationType>> v2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_V);
-        boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive if the equation has been created for sensitivity
-        boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive if the equation has been created for sensitivity
-        boolean enabled = !branch.isDisabled() && spanningTreeEdge;
-        if (!(hasV1 && hasV2)) {
-            // create voltage magnitude coupling equation
-            // 0 = v1 - v2 * rho
-            PiModel piModel = branch.getPiModel();
-            double rho = PiModel.R2 / piModel.getR1();
-            EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus1.getNum(), AcVariableType.BUS_V)
-                    .createTerm();
-            EquationTerm<AcVariableType, AcEquationType> bus2vTerm = equationSystem.getVariable(bus2.getNum(), AcVariableType.BUS_V)
-                    .createTerm();
-            equationSystem.createEquation(branch, AcEquationType.ZERO_V)
-                    .addTerm(vTerm)
-                    .addTerm(bus2vTerm.multiply(-rho))
-                    .setActive(enabled);
+        if (bus1 != null && bus2 != null) {
+            Optional<Equation<AcVariableType, AcEquationType>> v1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_V);
+            Optional<Equation<AcVariableType, AcEquationType>> v2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_V);
+            boolean hasV1 = v1.isPresent() && v1.get().isActive(); // may be inactive if the equation has been created for sensitivity
+            boolean hasV2 = v2.isPresent() && v2.get().isActive(); // may be inactive if the equation has been created for sensitivity
+            boolean enabled = !branch.isDisabled() && spanningTreeEdge;
+            if (!(hasV1 && hasV2)) {
+                // create voltage magnitude coupling equation
+                // 0 = v1 - v2 * rho
+                PiModel piModel = branch.getPiModel();
+                double rho = PiModel.R2 / piModel.getR1();
+                EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus1.getNum(), AcVariableType.BUS_V)
+                        .createTerm();
+                EquationTerm<AcVariableType, AcEquationType> bus2vTerm = equationSystem.getVariable(bus2.getNum(), AcVariableType.BUS_V)
+                        .createTerm();
+                equationSystem.createEquation(branch, AcEquationType.ZERO_V)
+                        .addTerm(vTerm)
+                        .addTerm(bus2vTerm.multiply(-rho))
+                        .setActive(enabled);
 
-            // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
-            // to ensure we have the same number of equation and variables
-            var dummyQ = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q);
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
-                    .orElseThrow()
-                    .addTerm(dummyQ.createTerm());
+                // add a dummy reactive power variable to both sides of the non impedant branch and with an opposite sign
+                // to ensure we have the same number of equation and variables
+                var dummyQ = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_Q);
+                equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
+                        .orElseThrow()
+                        .addTerm(dummyQ.createTerm());
 
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
-                    .orElseThrow()
-                    .addTerm(dummyQ.<AcEquationType>createTerm()
-                                    .minus());
+                equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
+                        .orElseThrow()
+                        .addTerm(dummyQ.<AcEquationType>createTerm()
+                                .minus());
 
-            // create an inactive dummy reactive power target equation set to zero that could be activated
-            // on case of switch opening
-            equationSystem.createEquation(branch, AcEquationType.DUMMY_TARGET_Q)
-                    .addTerm(dummyQ.createTerm())
-                    .setActive(!enabled); // inverted logic
-        } else {
-            // nothing to do in case of v1 and v2 are found, we just have to ensure
-            // target v are equals.
-        }
+                // create an inactive dummy reactive power target equation set to zero that could be activated
+                // on case of switch opening
+                equationSystem.createEquation(branch, AcEquationType.DUMMY_TARGET_Q)
+                        .addTerm(dummyQ.createTerm())
+                        .setActive(!enabled); // inverted logic
+            } else {
+                // nothing to do in case of v1 and v2 are found, we just have to ensure
+                // target v are equals.
+            }
 
-        boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), AcEquationType.BUS_TARGET_PHI);
-        boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), AcEquationType.BUS_TARGET_PHI);
-        if (!(hasPhi1 && hasPhi2)) {
-            // create voltage angle coupling equation
-            // alpha = phi1 - phi2
-            equationSystem.createEquation(branch, AcEquationType.ZERO_PHI)
-                    .addTerm(equationSystem.getVariable(bus1.getNum(), AcVariableType.BUS_PHI).createTerm())
-                    .addTerm(equationSystem.getVariable(bus2.getNum(), AcVariableType.BUS_PHI).<AcEquationType>createTerm()
-                                         .minus())
-                    .setActive(enabled);
+            boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), AcEquationType.BUS_TARGET_PHI);
+            boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), AcEquationType.BUS_TARGET_PHI);
+            if (!(hasPhi1 && hasPhi2)) {
+                // create voltage angle coupling equation
+                // alpha = phi1 - phi2
+                equationSystem.createEquation(branch, AcEquationType.ZERO_PHI)
+                        .addTerm(equationSystem.getVariable(bus1.getNum(), AcVariableType.BUS_PHI).createTerm())
+                        .addTerm(equationSystem.getVariable(bus2.getNum(), AcVariableType.BUS_PHI).<AcEquationType>createTerm()
+                                .minus())
+                        .setActive(enabled);
 
-            // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
-            // to ensure we have the same number of equation and variables
-            var dummyP = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P);
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
-                    .orElseThrow()
-                    .addTerm(dummyP.createTerm());
+                // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
+                // to ensure we have the same number of equation and variables
+                var dummyP = equationSystem.getVariable(branch.getNum(), AcVariableType.DUMMY_P);
+                equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(dummyP.createTerm());
 
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
-                    .orElseThrow()
-                    .addTerm(dummyP.<AcEquationType>createTerm()
-                                    .minus());
+                equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(dummyP.<AcEquationType>createTerm()
+                                .minus());
 
-            // create an inactive dummy active power target equation set to zero that could be activated
-            // on case of switch opening
-            equationSystem.createEquation(branch, AcEquationType.DUMMY_TARGET_P)
-                    .addTerm(dummyP.createTerm())
-                    .setActive(!enabled); // inverted logic
-        } else {
-            throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
+                // create an inactive dummy active power target equation set to zero that could be activated
+                // on case of switch opening
+                equationSystem.createEquation(branch, AcEquationType.DUMMY_TARGET_P)
+                        .addTerm(dummyP.createTerm())
+                        .setActive(!enabled); // inverted logic
+            } else {
+                throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
+            }
         }
     }
 

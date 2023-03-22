@@ -45,35 +45,37 @@ public class DcEquationSystemCreator {
 
     public static void createNonImpedantBranch(EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                LfBranch branch, LfBus bus1, LfBus bus2, boolean spanningTree) {
-        boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), DcEquationType.BUS_TARGET_PHI);
-        boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), DcEquationType.BUS_TARGET_PHI);
-        if (!(hasPhi1 && hasPhi2)) {
-            // create voltage angle coupling equation
-            // alpha = phi1 - phi2
-            equationSystem.createEquation(branch, DcEquationType.ZERO_PHI)
-                    .addTerm(equationSystem.getVariable(bus1.getNum(), DcVariableType.BUS_PHI).createTerm())
-                    .addTerm(equationSystem.getVariable(bus2.getNum(), DcVariableType.BUS_PHI).<DcEquationType>createTerm()
-                                         .minus())
-                    .setActive(!branch.isDisabled() && spanningTree);
+        if (bus1 != null && bus2 != null) {
+            boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), DcEquationType.BUS_TARGET_PHI);
+            boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), DcEquationType.BUS_TARGET_PHI);
+            if (!(hasPhi1 && hasPhi2)) {
+                // create voltage angle coupling equation
+                // alpha = phi1 - phi2
+                equationSystem.createEquation(branch, DcEquationType.ZERO_PHI)
+                        .addTerm(equationSystem.getVariable(bus1.getNum(), DcVariableType.BUS_PHI).createTerm())
+                        .addTerm(equationSystem.getVariable(bus2.getNum(), DcVariableType.BUS_PHI).<DcEquationType>createTerm()
+                                .minus())
+                        .setActive(!branch.isDisabled() && spanningTree);
 
-            // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
-            // to ensure we have the same number of equation and variables
-            var dummyP = equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P);
-            equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
-                    .orElseThrow()
-                    .addTerm(dummyP.createTerm());
+                // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
+                // to ensure we have the same number of equation and variables
+                var dummyP = equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P);
+                equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(dummyP.createTerm());
 
-            equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P)
-                    .orElseThrow()
-                    .addTerm(dummyP.<DcEquationType>createTerm().minus());
+                equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(dummyP.<DcEquationType>createTerm().minus());
 
-            // create an inactive dummy active power target equation set to zero that could be activated
-            // on case of switch opening
-            equationSystem.createEquation(branch, DcEquationType.DUMMY_TARGET_P)
-                    .addTerm(dummyP.createTerm())
-                    .setActive(branch.isDisabled() || !spanningTree); // inverted logic
-        } else {
-            throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
+                // create an inactive dummy active power target equation set to zero that could be activated
+                // on case of switch opening
+                equationSystem.createEquation(branch, DcEquationType.DUMMY_TARGET_P)
+                        .addTerm(dummyP.createTerm())
+                        .setActive(branch.isDisabled() || !spanningTree); // inverted logic
+            } else {
+                throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
+            }
         }
     }
 
