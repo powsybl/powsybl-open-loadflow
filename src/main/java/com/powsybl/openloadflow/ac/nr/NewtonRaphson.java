@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import org.apache.commons.lang3.mutable.MutableInt;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -35,8 +36,6 @@ public class NewtonRaphson {
     private final NewtonRaphsonParameters parameters;
 
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
-
-    private int iteration = 0;
 
     private final JacobianMatrix<AcVariableType, AcEquationType> j;
 
@@ -95,8 +94,8 @@ public class NewtonRaphson {
         }
     }
 
-    private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling, Reporter reporter) {
-        LOGGER.debug("Start iteration {}", iteration);
+    private NewtonRaphsonStatus runIteration(StateVectorScaling svScaling, MutableInt iterations, Reporter reporter) {
+        LOGGER.debug("Start iteration {}", iterations);
 
         try {
             // solve f(x) = j * dx
@@ -136,9 +135,9 @@ public class NewtonRaphson {
 
             if (parameters.getDetailedNrReport()) {
                 // report largest mismatches in (P, Q, V) equations
-                Reporter iterationMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(reporter, iteration);
-                reportLargestMismatch(iterationMismatchReporter, equationSystem, equationVector.getArray(), network, iteration);
-                Reports.reportNewtonRaphsonNorm(iterationMismatchReporter, testResult.getNorm(), iteration);
+                Reporter iterationMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(reporter, iterations.getValue());
+                reportLargestMismatch(iterationMismatchReporter, equationSystem, equationVector.getArray(), network, iterations.getValue());
+                Reports.reportNewtonRaphsonNorm(iterationMismatchReporter, testResult.getNorm(), iterations.getValue());
             }
 
             if (testResult.isStop()) {
@@ -147,7 +146,7 @@ public class NewtonRaphson {
 
             return null;
         } finally {
-            iteration++;
+            iterations.increment();
         }
     }
 
@@ -268,28 +267,29 @@ public class NewtonRaphson {
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
-        while (iteration <= parameters.getMaxIteration()) {
-            NewtonRaphsonStatus newStatus = runIteration(svScaling, nrReporter);
+        MutableInt iterations = new MutableInt();
+        while (iterations.getValue() <= parameters.getMaxIterations()) {
+            NewtonRaphsonStatus newStatus = runIteration(svScaling, iterations, nrReporter);
             if (newStatus != null) {
                 status = newStatus;
                 break;
             }
         }
 
-        if (iteration >= parameters.getMaxIteration()) {
+        if (iterations.getValue() >= parameters.getMaxIterations()) {
             status = NewtonRaphsonStatus.MAX_ITERATION_REACHED;
         }
 
-        // update network state variable
-        if (status == NewtonRaphsonStatus.CONVERGED) {
-            if (isStateUnrealistic()) {
-                status = NewtonRaphsonStatus.UNREALISTIC_STATE;
-            }
-
+        if (status == NewtonRaphsonStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             updateNetwork();
         }
 
+        // update network state variable
+        if (status == NewtonRaphsonStatus.CONVERGED && isStateUnrealistic()) {
+            status = NewtonRaphsonStatus.UNREALISTIC_STATE;
+        }
+
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
-        return new NewtonRaphsonResult(status, iteration, slackBusActivePowerMismatch);
+        return new NewtonRaphsonResult(status, iterations.getValue(), slackBusActivePowerMismatch);
     }
 }

@@ -75,14 +75,14 @@
              Bus Id : 'VLHV2_0'
              Bus V : '1.0261840057810543'
              Bus Phi : '-0.0611984592137325'
-        + Iteration 3 mismatch
+        + Iteration 0 mismatch
            Norm |f(x)|='7.102239009042218E-7'
-          + Iteration 3 mismatch on TargetP
+          + Iteration 0 mismatch on TargetP
              Mismatch on TargetP : '-1.0630223634677805E-7'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
              Bus Phi : '0.04059603080710122'
-          + Iteration 3 mismatch on TargetQ
+          + Iteration 0 mismatch on TargetQ
              Mismatch on TargetQ : '7.02222821225007E-7'
              Bus Id : 'VLHV1_0'
              Bus V : '1.058270597695305'
