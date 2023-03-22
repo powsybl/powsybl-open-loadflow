@@ -28,6 +28,8 @@ public interface SlackBusSelector {
                 return new NameSlackBusSelector(slackBusesIds);
             case LARGEST_GENERATOR:
                 return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit);
+            case MAX_TRANSMITTED_POWER:
+                return new MaxTransmittedPowerSlackBusSelector();
             default:
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
         }
