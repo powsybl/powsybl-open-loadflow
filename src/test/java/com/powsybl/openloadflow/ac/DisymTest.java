@@ -13,7 +13,6 @@ import com.powsybl.openloadflow.network.Extensions.iidm.LoadUnbalancedAdder;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.joda.time.DateTime;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -99,7 +98,6 @@ public class DisymTest {
         assertReactivePowerEquals(-1, line1.getTerminal2());
     }*/
 
-    //@Disabled
     @Test
     void fourNodesBalancedTest() {
 
@@ -162,13 +160,12 @@ public class DisymTest {
         assertAngleEquals(0, bus1);
         assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
         //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
-        assertVoltageEquals(99.48102055956122, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.45937102112217, bus3); // balanced = 99.54462759204546
         //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
-        assertVoltageEquals(99.22875843696357, bus4); // balanced = 99.29252809145005
+        assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
         //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
     }
 
-    @Disabled
     @Test
     void fourNodesDissymUnbalancedLoadLineTest() {
 
@@ -206,15 +203,14 @@ public class DisymTest {
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(99.08357436616448, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.72834946229246, bus2); // balanced = 99.79736062173895
         //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
-        assertVoltageEquals(97.76409290089546, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.2189311203843, bus3); // balanced = 99.54462759204546
         //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
-        assertVoltageEquals(96.61947230759934, bus4); // balanced = 99.29252809145005
+        assertVoltageEquals(98.88078638550749, bus4); // balanced = 99.29252809145005
         //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
     }
 
-    @Disabled
     @Test
     void fourNodesDissymUnbalancedLoadTest() {
 
@@ -256,11 +252,11 @@ public class DisymTest {
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.78067026758131, bus2); // balanced = 99.79736062173895
         //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
-        assertVoltageEquals(99.48102055956122, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.5142639108648, bus3); // balanced = 99.54462759204546
         //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
-        assertVoltageEquals(99.22875843696357, bus4); // balanced = 99.29252809145005
+        assertVoltageEquals(99.2565397779297, bus4); // balanced = 99.29252809145005
         //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
     }
 

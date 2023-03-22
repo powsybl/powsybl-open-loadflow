@@ -455,8 +455,8 @@ public class AbcResults {
 
         branchS1abc.put(branch, s1);
         branchS2abc.put(branch, s2);
-        //printVector(s1, "S1ABC", true);
-        //printVector(s2, "S2ABC", true);
+        printVector(s1, "S1ABC", true);
+        printVector(s2, "S2ABC", true);
 
     }
 

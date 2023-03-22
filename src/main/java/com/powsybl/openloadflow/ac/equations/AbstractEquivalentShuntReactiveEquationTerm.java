@@ -32,6 +32,7 @@ public abstract class AbstractEquivalentShuntReactiveEquationTerm extends Abstra
     private static double dpdv(double v, double b) {
         return 2 * b * v;
     }
+    // TODO : MAKE A SIGN CORRECTION
 
     @Override
     public double eval() {

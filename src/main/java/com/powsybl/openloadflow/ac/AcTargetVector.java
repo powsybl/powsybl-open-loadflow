@@ -123,6 +123,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
             case BUS_TARGET_Q_INVERSE:
             case BUS_TARGET_P_HOMOPOLAR:
             case BUS_TARGET_Q_HOMOPOLAR:
+            case BUS_TARGET_IX_HOMOPOLAR:
+            case BUS_TARGET_IY_HOMOPOLAR:
+            case BUS_TARGET_IX_INVERSE: // TODO : for now we do not support unbalanced injections at buses, therefore target is for now zero for inverse and homopolar sequences
+            case BUS_TARGET_IY_INVERSE:
                 targets[equation.getColumn()] = 0;
                 break;
 

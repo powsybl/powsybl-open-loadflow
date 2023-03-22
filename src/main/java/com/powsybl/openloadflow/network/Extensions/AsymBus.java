@@ -83,6 +83,12 @@ public class AsymBus {
     private Evaluable pInverse = EvaluableConstants.NAN;
     private Evaluable qInverse = EvaluableConstants.NAN;
 
+    private Evaluable ixHomopolar = EvaluableConstants.NAN;
+    private Evaluable iyHomopolar = EvaluableConstants.NAN;
+
+    private Evaluable ixInverse = EvaluableConstants.NAN;
+    private Evaluable iyInverse = EvaluableConstants.NAN;
+
     public double getAngleHompolar() {
         return angleHompolar;
     }
@@ -145,6 +151,22 @@ public class AsymBus {
 
     public void setQInverse(Evaluable qInverse) {
         this.qInverse = qInverse;
+    }
+
+    public void setIxHomopolar(Evaluable ixHomopolar) {
+        this.ixHomopolar = ixHomopolar;
+    }
+
+    public void setIxInverse(Evaluable ixInverse) {
+        this.ixInverse = ixInverse;
+    }
+
+    public void setIyHomopolar(Evaluable iyHomopolar) {
+        this.iyHomopolar = iyHomopolar;
+    }
+
+    public void setIyInverse(Evaluable iyInverse) {
+        this.iyInverse = iyInverse;
     }
 
     // TODO : check if there is a x3 coefficient somewhere

@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public final class GenericBranchTerm {
+public final class GenericBranchPowerTerm {
 
     // We define T(i,j,g,h) = rho_i * rho_j * exp(j(a_i-a_j)) * y*_ij_gh * V_gi * V*_hj
     //    where i,j are line's ends i,j included in {1,2}
@@ -27,11 +27,11 @@ public final class GenericBranchTerm {
     //          [ y_21_do y_21_dd y_21_di y_22_do y_22_dd y_22_di ]
     //          [ y_21_io y_21_id y_21_ii y_22_io y_22_id y_22_ii ]
 
-    private GenericBranchTerm() {
+    private GenericBranchPowerTerm() {
 
     }
 
-    public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm) {
+    public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm) {
         double ri = equationTerm.r(i);
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
@@ -48,7 +48,7 @@ public final class GenericBranchTerm {
         return ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - conjYyijgh * Math.sin(ai - aj + thgi - thhj)); // TODO : update
     }
 
-    public static double ty(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm) {
+    public static double ty(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm) {
         double ri = equationTerm.r(i);
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
@@ -65,7 +65,7 @@ public final class GenericBranchTerm {
         return ri * rj * vgi * vhj * (yxijgh * Math.sin(ai - aj + thgi - thhj) + conjYyijgh * Math.cos(ai - aj + thgi - thhj));
     }
 
-    public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
+    public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
 
         // di is the side of the derivation variable and belongs to {1,2}
         double ri = equationTerm.r(i);
@@ -306,7 +306,7 @@ public final class GenericBranchTerm {
         return 0;
     }
 
-    public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
+    public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
 
         // di is the side of the derivation variable and belongs to {1,2}
         double ri = equationTerm.r(i);

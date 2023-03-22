@@ -7,14 +7,10 @@ import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.Objects;
 
-/**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
- * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
- */
-public class ClosedBranchDisymCoupledEquationTerm extends AbstractClosedBranchDisymCoupledFlowEquationTerm {
+public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedBranchDisymCoupledFlowEquationTerm {
 
-    public ClosedBranchDisymCoupledEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                boolean deriveA1, boolean deriveR1, boolean isActive, boolean isSide1, int sequenceNum) {
+    public ClosedBranchDisymCoupledCurrentEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                     boolean deriveA1, boolean deriveR1, boolean isActive, boolean isSide1, int sequenceNum) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
         this.isActive = isActive;
         this.isSide1 = isSide1;
@@ -38,23 +34,23 @@ public class ClosedBranchDisymCoupledEquationTerm extends AbstractClosedBranchDi
                 + dp1dv2(y, v1, r1, sinTheta) * dv2;
     }*/ // TODO : check sensi is  useful here
 
-    public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm) {
-        return GenericBranchTerm.tx(i, j, g, h, equationTerm);
+    public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
+        return GenericBranchCurrentTerm.tx(i, j, g, h, equationTerm);
     }
 
-    public static double ty(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm) {
-        return GenericBranchTerm.ty(i, j, g, h, equationTerm);
+    public static double ty(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
+        return GenericBranchCurrentTerm.ty(i, j, g, h, equationTerm);
     }
 
-    public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm, Variable<AcVariableType> var, int di) {
-        return GenericBranchTerm.dtx(i, j, g, h, equationTerm, var, di);
+    public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> var, int di) {
+        return GenericBranchCurrentTerm.dtx(i, j, g, h, equationTerm, var, di);
     }
 
-    public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledEquationTerm equationTerm, Variable<AcVariableType> var, int di) {
-        return GenericBranchTerm.dty(i, j, g, h, equationTerm, var, di);
+    public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> var, int di) {
+        return GenericBranchCurrentTerm.dty(i, j, g, h, equationTerm, var, di);
     }
 
-    public static double pqij(boolean isActive, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledEquationTerm eqTerm) {
+    public static double pqij(boolean isActive, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm) {
 
         if (isActive && isSide1 && sequenceNum == 1) { // P1
             return tx(1, 1, 1, 0, eqTerm) + tx(1, 1, 1, 1, eqTerm) + tx(1, 1, 1, 2, eqTerm)
@@ -122,7 +118,7 @@ public class ClosedBranchDisymCoupledEquationTerm extends AbstractClosedBranchDi
         return v1 * (2 * r1 * v1 * (g1 + y * sinKsi) - y * R2 * v2 * sinTheta);
     }*/
 
-    public static double dpqij(boolean isActive, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledEquationTerm eqTerm, Variable<AcVariableType> var, int di) {
+    public static double dpqij(boolean isActive, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm, Variable<AcVariableType> var, int di) {
 
         // di is the side of "variable" that is used for derivation
         if (isActive && isSide1 && sequenceNum == 1) {
@@ -248,4 +244,5 @@ public class ClosedBranchDisymCoupledEquationTerm extends AbstractClosedBranchDi
     protected String getName() {
         return "ac_p_d_closed_1";
     }
+
 }
