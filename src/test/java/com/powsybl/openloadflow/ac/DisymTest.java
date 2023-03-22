@@ -99,6 +99,7 @@ public class DisymTest {
         assertReactivePowerEquals(-1, line1.getTerminal2());
     }*/
 
+    //@Disabled
     @Test
     void fourNodesBalancedTest() {
 
@@ -361,7 +362,6 @@ public class DisymTest {
                 .setId("B4")
                 .add();
         bus4.setV(100.0).setAngle(0.);
-        // TODO : unchange
         vl4.newLoad()
                 .setId("LOAD_4")
                 .setBus(bus4.getId())
