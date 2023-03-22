@@ -22,11 +22,8 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.ac.*;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -91,10 +88,24 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new PowsyblCoreVersion().getMavenProjectVersion();
     }
 
-    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, Reporter reporter) {
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
-        OpenLoadFlowParameters.logAc(parameters, parametersExt);
+    private static LoadFlowResult.ComponentResult.Status convertStatus(AcLoadFlowResult result) {
+        if (result.getOuterLoopStatus() == OuterLoopStatus.UNSTABLE) {
+            return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+        } else {
+            switch (result.getNewtonRaphsonStatus()) {
+                case CONVERGED:
+                    return LoadFlowResult.ComponentResult.Status.CONVERGED;
+                case MAX_ITERATION_REACHED:
+                    return LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
+                case SOLVER_FAILED:
+                    return LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
+                default:
+                    return LoadFlowResult.ComponentResult.Status.FAILED;
+            }
+        }
+    }
 
+    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory);
 
         if (LOGGER.isInfoEnabled()) {
@@ -120,34 +131,21 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         List<LoadFlowResult.ComponentResult> componentResults = new ArrayList<>(results.size());
         for (AcLoadFlowResult result : results) {
             // update network state
-            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
+            if (result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED || parametersExt.isAlwaysUpdateNetwork()) {
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
                                                                           parameters.isDistributedSlack() && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
-                                                                          parameters.isDc());
+                                                                          parameters.isDc(),
+                                                                          acParameters.getNetworkParameters().isBreakers());
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
                 computeZeroImpedanceFlows(result.getNetwork(), false);
             }
 
-            LoadFlowResult.ComponentResult.Status status;
-            switch (result.getNewtonRaphsonStatus()) {
-                case CONVERGED:
-                    status = LoadFlowResult.ComponentResult.Status.CONVERGED;
-                    break;
-                case MAX_ITERATION_REACHED:
-                    status = LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED;
-                    break;
-                case SOLVER_FAILED:
-                    status = LoadFlowResult.ComponentResult.Status.SOLVER_FAILED;
-                    break;
-                default:
-                    status = LoadFlowResult.ComponentResult.Status.FAILED;
-                    break;
-            }
+            LoadFlowResult.ComponentResult.Status status = convertStatus(result);
             // FIXME a null slack bus ID should be allowed
             String slackBusId = result.getNetwork().isValid() ? result.getNetwork().getSlackBus().getId() : "";
             componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
@@ -168,22 +166,22 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         new ZeroImpedanceFlows(zeroImpedanceSubGraph, spanningTree, dc).compute();
     }
 
-    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, Reporter reporter) {
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
-        OpenLoadFlowParameters.logDc(parameters, parametersExt);
+    private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
+        dcParameters.getNetworkParameters()
+                .setCacheEnabled(false); // force not caching as not supported in DC LF
 
         List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reporter);
 
         Networks.resetState(network);
 
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters)).collect(Collectors.toList());
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, dcParameters.getNetworkParameters().isBreakers())).collect(Collectors.toList());
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSucceeded);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
 
-    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters) {
+    private LoadFlowResult.ComponentResult processResult(Network network, DcLoadFlowResult result, LoadFlowParameters parameters, boolean breakers) {
         if (result.isSucceeded() && parameters.isWriteSlackBus()) {
             SlackTerminal.reset(network);
         }
@@ -194,7 +192,8 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                                                                       parameters.isPhaseShifterRegulationOn(),
                                                                       parameters.isTransformerVoltageControlOn(),
                                                                       false,
-                                                                      true);
+                                                                      true,
+                                                                      breakers);
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
@@ -234,8 +233,11 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
             Stopwatch stopwatch = Stopwatch.createStarted();
 
-            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, lfReporter)
-                                                      : runAc(network, parameters, lfReporter);
+            OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
+            OpenLoadFlowParameters.log(parameters, parametersExt);
+
+            LoadFlowResult result = parameters.isDc() ? runDc(network, parameters, parametersExt, lfReporter)
+                                                      : runAc(network, parameters, parametersExt, lfReporter);
 
             stopwatch.stop();
             LOGGER.info(Markers.PERFORMANCE_MARKER, "Load flow ran in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));

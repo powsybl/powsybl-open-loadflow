@@ -1,7 +1,7 @@
 {
-  "version" : "1.0",
+  "version" : "1.1",
   "load-flow-parameters" : {
-    "version" : "1.8",
+    "version" : "1.9",
     "voltageInitMode" : "UNIFORM_VALUES",
     "transformerVoltageControlOn" : false,
     "phaseShifterRegulationOn" : false,
@@ -17,6 +17,7 @@
     "countriesToBalance" : [ ],
     "connectedComponentMode" : "MAIN",
     "hvdcAcEmulation" : true,
+    "dcPowerFactor" : 1.0,
     "extensions" : {
       "open-load-flow-parameters" : {
         "slackBusSelectionMode" : "NAME",
@@ -25,14 +26,21 @@
         "lowImpedanceBranchMode" : "REPLACE_BY_ZERO_IMPEDANCE_LINE",
         "loadPowerFactorConstant" : false,
         "plausibleActivePowerLimit" : 5000.0,
+        "newtonRaphsonStoppingCriteriaType" : "UNIFORM_CRITERIA",
+        "maxActivePowerMismatch" : 0.01,
+        "maxReactivePowerMismatch" : 0.01,
+        "maxVoltageMismatch" : 1.0E-4,
+        "maxAngleMismatch" : 1.0E-5,
+        "maxRatioMismatch" : 1.0E-5,
+        "maxSusceptanceMismatch" : 1.0E-4,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
-        "maxIteration" : 30,
+        "maxNewtonRaphsonIterations" : 15,
+        "maxOuterLoopIterations" : 20,
         "newtonRaphsonConvEpsPerEq" : 1.0E-4,
         "voltageInitModeOverride" : "NONE",
         "transformerVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
         "shuntVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
-        "dcPowerFactor" : 1.0,
         "minPlausibleTargetVoltage" : 0.8,
         "maxPlausibleTargetVoltage" : 1.2,
         "minRealisticVoltage" : 0.5,
@@ -46,10 +54,17 @@
         "debugDir" : null,
         "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
         "secondaryVoltageControl" : false,
+        "reactiveLimitsMaxPqPvSwitch" : 3,
+        "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
+        "alwaysUpdateNetwork" : false,
         "disym" : false
       }
     }
   },
+  "flow-flow-sensitivity-value-threshold" : 0.0,
+  "voltage-voltage-sensitivity-value-threshold" : 0.0,
+  "flow-voltage-sensitivity-value-threshold" : 0.0,
+  "angle-flow-sensitivity-value-threshold" : 0.0,
   "extensions" : {
     "open-sensitivity-parameters" : {
       "debugDir" : "/work"

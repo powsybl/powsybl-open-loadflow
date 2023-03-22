@@ -23,8 +23,8 @@ public class LfDanglingLineBus extends AbstractLfBus {
     private final double nominalV;
 
     public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine), false);
-        this.danglingLineRef = new Ref<>(danglingLine);
+        super(network, Networks.getPropertyV(danglingLine), Math.toRadians(Networks.getPropertyAngle(danglingLine)), false);
+        this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
         loadTargetP += danglingLine.getP0();
         loadTargetQ += danglingLine.getQ0();
@@ -71,7 +71,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         var danglingLine = getDanglingLine();
         Networks.setPropertyV(danglingLine, v);
-        Networks.setPropertyAngle(danglingLine, angle);
+        Networks.setPropertyAngle(danglingLine, Math.toDegrees(angle));
 
         super.updateState(parameters);
     }

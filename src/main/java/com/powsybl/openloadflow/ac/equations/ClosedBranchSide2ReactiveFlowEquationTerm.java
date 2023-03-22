@@ -42,7 +42,9 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         return dq2dph1(y, v1, r1, v2, sinTheta) * dph1
                 + dq2dph2(y, v1, r1, v2, sinTheta) * dph2
                 + dq2dv1(y, r1, v2, cosTheta) * dv1
-                + dq2dv2(y, FastMath.cos(ksi), b2, v1, r1, v2, cosTheta) * dv2;
+                + dq2dv2(y, FastMath.cos(ksi), b2, v1, r1, v2, cosTheta) * dv2
+                + dq2da1(y, v1, r1, v2, sinTheta) * da1
+                + dq2dr1(y, v1, v2, cosTheta) * dr1;
     }
 
     public static double q2(double y, double cosKsi, double b2, double v1, double r1, double v2, double cosTheta) {

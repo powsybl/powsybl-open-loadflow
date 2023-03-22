@@ -4,11 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopContext;
-import com.powsybl.openloadflow.ac.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.OuterLoopContext;
+import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -77,12 +77,12 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         // The transformer voltage controls are enabled.
         if (context.getIteration() == 0) {
             for (LfBus bus : context.getNetwork().getBuses()) {
-                if (!bus.isDisabled() && bus.isVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
-                    var voltageControl = bus.getVoltageControl().orElseThrow();
-                    voltageControl.getControllerBuses().forEach(controllerBus -> {
-                        if (controllerBus.isVoltageControlEnabled()) {
+                if (!bus.isDisabled() && bus.isGeneratorVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
+                    var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
+                    voltageControl.getControllerElements().forEach(controllerBus -> {
+                        if (controllerBus.isGeneratorVoltageControlEnabled()) {
                             controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                            controllerBus.setVoltageControlEnabled(false);
+                            controllerBus.setGeneratorVoltageControlEnabled(false);
                             contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
                         }
                     });
@@ -92,7 +92,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             for (LfBranch branch : getControllerBranches(context.getNetwork())) {
                 branch.getVoltageControl().ifPresent(voltageControl -> {
                     double targetV = voltageControl.getTargetValue();
-                    double v = voltageControl.getControlled().getV();
+                    double v = voltageControl.getControlledBus().getV();
                     double diffV = targetV - v;
                     double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
                     if (Math.abs(diffV) > halfTargetDeadband) {
@@ -110,7 +110,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             status.setValue(roundVoltageRatios(context));
             for (LfBus controllerBus : contextData.getBusesWithVoltageControlDisabled()) {
                 controllerBus.setGenerationTargetQ(0);
-                controllerBus.setVoltageControlEnabled(true);
+                controllerBus.setGeneratorVoltageControlEnabled(true);
                 status.setValue(OuterLoopStatus.UNSTABLE);
             }
         }

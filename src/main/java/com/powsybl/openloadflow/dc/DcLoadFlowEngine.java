@@ -52,7 +52,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         activePowerDistribution.run(buses, mismatch);
     }
 
-    private static double getActivePowerMismatch(Collection<LfBus> buses) {
+    public static double getActivePowerMismatch(Collection<LfBus> buses) {
         double mismatch = 0;
         for (LfBus b : buses) {
             mismatch += b.getGenerationTargetP() - b.getLoadTargetP();
@@ -72,7 +72,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         for (Variable<DcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_PHI:
-                    x[v.getRow()] = Math.toRadians(initializer.getAngle(network.getBus(v.getElementNum())));
+                    x[v.getRow()] = initializer.getAngle(network.getBus(v.getElementNum()));
                     break;
 
                 case BRANCH_ALPHA1:
@@ -95,7 +95,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         for (Variable<DcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_PHI:
-                    network.getBus(v.getElementNum()).setAngle(Math.toDegrees(x[v.getRow()]));
+                    network.getBus(v.getElementNum()).setAngle(x[v.getRow()]);
                     break;
 
                 case BRANCH_ALPHA1:

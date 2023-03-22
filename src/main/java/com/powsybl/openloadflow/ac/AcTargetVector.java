@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac.outerloop;
+package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
@@ -24,16 +24,22 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        return bus.getShuntVoltageControl().filter(dvc -> bus.isShuntVoltageControlled())
+        double targetV = bus.getShuntVoltageControl().filter(dvc -> bus.isShuntVoltageControlled())
                 .map(ShuntVoltageControl::getTargetValue)
                 .orElse(bus.getTransformerVoltageControl().filter(dvc -> bus.isTransformerVoltageControlled())
                         .map(TransformerVoltageControl::getTargetValue)
                         .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN)));
+        if (bus.hasGeneratorsWithSlope()) {
+            // take first generator with slope: network loading ensures that there's only one generator with slope
+            double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
+            targetV -= slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
+        }
+        return targetV;
     }
 
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
-        return bus.getVoltageControl().filter(vc -> bus.isVoltageControlled()).map(vc -> {
-            if (vc.getControllerBuses().stream().noneMatch(LfBus::isVoltageControlEnabled)) {
+        return bus.getGeneratorVoltageControl().filter(vc -> bus.isGeneratorVoltageControlled()).map(vc -> {
+            if (vc.getControllerElements().stream().noneMatch(LfBus::isGeneratorVoltageControlEnabled)) {
                 throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
             }
             return vc.getTargetValue();
@@ -43,18 +49,12 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
     private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
         double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
-        for (LfBus otherControllerBus : controllerBus.getVoltageControl().orElseThrow().getControllerBuses()) {
+        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getControllerElements()) {
             if (otherControllerBus != controllerBus) {
                 target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
             }
         }
         return target;
-    }
-
-    private static double createBusWithSlopeTarget(LfBus bus) {
-        // take first generator with slope: network loading ensures that there's only one generator with slope
-        double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
-        return getBusTargetV(bus) - slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
     }
 
     private static double getReactivePowerControlTarget(LfBranch branch) {
@@ -78,10 +78,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getElementNum()));
                 break;
 
-            case BUS_TARGET_V_WITH_SLOPE:
-                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getElementNum()));
-                break;
-
             case BUS_TARGET_PHI:
                 targets[equation.getColumn()] = 0;
                 break;
@@ -91,7 +87,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 break;
 
             case BRANCH_TARGET_P:
-                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), DiscretePhaseControl.Unit.MW);
+                targets[equation.getColumn()] = LfBranch.getDiscretePhaseControlTarget(network.getBranch(equation.getElementNum()), TransformerPhaseControl.Unit.MW);
                 break;
 
             case BRANCH_TARGET_Q:

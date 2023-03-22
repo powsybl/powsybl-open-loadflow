@@ -25,8 +25,15 @@ public class LfShuntImpl extends AbstractLfShunt {
 
     private final class ControllerImpl extends Controller {
 
-        private ControllerImpl(String id, List<Double> sectionsB, List<Double> sectionsG, int position) {
-            super(id, sectionsB, sectionsG, position);
+        private final Ref<ShuntCompensator> shuntCompensatorRef;
+
+        private ControllerImpl(Ref<ShuntCompensator> shuntCompensatorRef, List<Double> sectionsB, List<Double> sectionsG, int position) {
+            super(shuntCompensatorRef.get().getId(), sectionsB, sectionsG, position);
+            this.shuntCompensatorRef = shuntCompensatorRef;
+        }
+
+        private Ref<ShuntCompensator> getShuntCompensatorRef() {
+            return shuntCompensatorRef;
         }
 
         @Override
@@ -50,7 +57,7 @@ public class LfShuntImpl extends AbstractLfShunt {
 
     private boolean voltageControlEnabled = false;
 
-    private List<Controller> controllers = new ArrayList<>();
+    private final List<Controller> controllers = new ArrayList<>();
 
     private double b;
 
@@ -58,12 +65,15 @@ public class LfShuntImpl extends AbstractLfShunt {
 
     private double g;
 
-    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean voltageControlCapability) {
+    public LfShuntImpl(List<ShuntCompensator> shuntCompensators, LfNetwork network, LfBus bus, boolean voltageControlCapability,
+                       LfNetworkParameters parameters) {
         // if withVoltageControl equals to true, all shunt compensators that are listed must control voltage.
         // if withVoltageControl equals to false, all shunt compensators that are listed will be treated as fixed shunt
         // compensators.
         super(network);
-        shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream().map(Ref::new).collect(Collectors.toList());
+        shuntCompensatorsRefs = Objects.requireNonNull(shuntCompensators).stream()
+                .map(sc -> Ref.create(sc, parameters.isCacheEnabled()))
+                .collect(Collectors.toList());
         if (shuntCompensators.isEmpty()) {
             throw new IllegalArgumentException("Empty shunt compensator list");
         }
@@ -75,7 +85,8 @@ public class LfShuntImpl extends AbstractLfShunt {
         g = computeG(shuntCompensators, zb);
 
         if (voltageControlCapability) {
-            shuntCompensators.forEach(shuntCompensator -> {
+            shuntCompensatorsRefs.forEach(shuntCompensatorRef -> {
+                var shuntCompensator = shuntCompensatorRef.get();
                 List<Double> sectionsB = new ArrayList<>(1);
                 List<Double> sectionsG = new ArrayList<>(1);
                 sectionsB.add(0.0);
@@ -97,12 +108,10 @@ public class LfShuntImpl extends AbstractLfShunt {
                         }
                         break;
                 }
-                controllers.add(new ControllerImpl(shuntCompensator.getId(), sectionsB, sectionsG, shuntCompensator.getSectionCount()));
+                controllers.add(new ControllerImpl(shuntCompensatorRef, sectionsB, sectionsG, shuntCompensator.getSectionCount()));
             });
             // Controllers are always enabled, a contingency with shunt compensator with voltage control on is not supported yet.
-            controllers = controllers.stream()
-                    .sorted(Comparator.comparingDouble(Controller::getBMagnitude).reversed())
-                    .collect(Collectors.toList());
+            controllers.sort(Comparator.comparingDouble(Controller::getBMagnitude).reversed());
         }
     }
 
@@ -240,11 +249,11 @@ public class LfShuntImpl extends AbstractLfShunt {
                     sc.getTerminal().setQ(-sc.getB() * vSquare);
                 }
             } else {
-                for (int i = 0; i < shuntCompensatorsRefs.size(); i++) {
-                    ShuntCompensator sc = shuntCompensatorsRefs.get(i).get();
-                    sc.getTerminal().setP(controllers.get(i).getG() * vSquare / zb);
-                    sc.getTerminal().setQ(-controllers.get(i).getB() * vSquare / zb);
-                    sc.setSectionCount(controllers.get(i).getPosition());
+                for (Controller controller : controllers) {
+                    ShuntCompensator sc = ((ControllerImpl) controller).getShuntCompensatorRef().get();
+                    sc.getTerminal().setP(controller.getG() * vSquare / zb);
+                    sc.getTerminal().setQ(-controller.getB() * vSquare / zb);
+                    sc.setSectionCount(controller.getPosition());
                 }
             }
         }

@@ -24,7 +24,9 @@ public class GraphVizGraphBuilder {
     }
 
     private static String getNodeLabel(LfBus bus) {
-        StringBuilder builder = new StringBuilder(bus.getId());
+        StringBuilder builder = new StringBuilder(Integer.toString(bus.getNum()))
+                .append("\n")
+                .append(bus.getId());
         if (bus.getGenerationTargetP() != 0 || bus.getGenerationTargetQ() != 0) {
             builder.append("\ngen=")
                     .append(String.format(Locale.US, "%.1f", bus.getGenerationTargetP() * PerUnit.SB)).append(" MW ")
@@ -50,10 +52,6 @@ public class GraphVizGraphBuilder {
         return builder.toString();
     }
 
-    private static String getNodeColor(LfBus bus) {
-        return bus.isVoltageControlled() ? "red" : "";
-    }
-
     private static String getEdgeColor(LfBranch branch, boolean dc) {
         if (branch.isZeroImpedance(dc)) {
             return branch.isSpanningTreeEdge(dc) ? "red" : "orange";
@@ -70,8 +68,18 @@ public class GraphVizGraphBuilder {
                     .attr(GraphVizAttribute.shape, "box")
                     .attr(GraphVizAttribute.style, "filled,rounded")
                     .attr(GraphVizAttribute.fontsize, "10")
-                    .attr(GraphVizAttribute.color, getNodeColor(bus))
                     .attr(GraphVizAttribute.fillcolor, "grey");
+        }
+        // draw voltage controller -> controlled links
+        for (LfBus bus : network.getBuses()) {
+            if (bus.isGeneratorVoltageControlled()) {
+                GeneratorVoltageControl vc = bus.getGeneratorVoltageControl().orElseThrow();
+                for (LfBus controllerBus : vc.getControllerElements()) {
+                    GraphVizEdge edge = graph.edge(scope, controllerBus.getNum(), bus.getNum(), controllerBus);
+                    edge.attr(GraphVizAttribute.color, "lightgray")
+                            .attr(GraphVizAttribute.style, "dotted");
+                }
+            }
         }
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
@@ -80,6 +88,7 @@ public class GraphVizGraphBuilder {
                 GraphVizEdge edge = graph.edge(scope, bus1.getNum(), bus2.getNum(), branch.getNum());
                 edge.label().append(getEdgeLabel(branch));
                 edge.attr(GraphVizAttribute.color, getEdgeColor(branch, dc))
+                        .attr(GraphVizAttribute.style, branch.isDisabled() ? "dashed" : "")
                         .attr(GraphVizAttribute.dir, "none");
             }
         }

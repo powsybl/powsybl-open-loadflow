@@ -35,6 +35,9 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        if (dr1 != 0) {
+            throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
+        }
         double v1 = v1();
         double ph1 = ph1();
         double r1 = r1();
@@ -44,7 +47,8 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         return di1dph1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dph1
                 + di1dph2(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dph2
                 + di1dv1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dv1
-                + di1dv2(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dv2;
+                + di1dv2(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * dv2
+                + di1da1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) * da1;
     }
 
     private static double theta(double ksi, double a1, double ph2) {
@@ -150,6 +154,8 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
             return di1dph2(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(a1Var)) {
             return di1da1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+        } else if (variable.equals(r1Var)) {
+            throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

@@ -15,7 +15,10 @@ import com.powsybl.math.matrix.MatrixFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -107,25 +110,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         updateStatus(Status.VALUES_INVALID);
     }
 
-    private void clearLu() {
-        if (lu != null) {
-            lu.close();
-        }
-        lu = null;
-    }
-
-    private Map<Variable<V>, List<EquationTerm<V, E>>> indexTermsByVariable(Equation<V, E> eq) {
-        Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = new TreeMap<>();
-        for (EquationTerm<V, E> term : eq.getTerms()) {
-            for (Variable<V> v : term.getVariables()) {
-                termsByVariable.computeIfAbsent(v, k -> new ArrayList<>())
-                        .add(term);
-            }
-        }
-        return termsByVariable;
-    }
-
-    private void initMatrix() {
+    private void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         int rowCount = equationSystem.getIndex().getSortedEquationsToSolve().size();
@@ -141,8 +126,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
-            Map<Variable<V>, List<EquationTerm<V, E>>> termsByVariable = indexTermsByVariable(eq);
-            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : termsByVariable.entrySet()) {
+            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : eq.getTermsByVariable().entrySet()) {
                 Variable<V> v = e.getKey();
                 int row = v.getRow();
                 if (row != -1) {
@@ -151,7 +135,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                         // at jacobian update stage without any equation or variable index change
                         double value = term.isActive() ? term.der(v) : 0;
                         int elementIndex = matrix.addAndGetIndex(row, column, value);
-                        partialDerivatives.add(new JacobianMatrix.PartialDerivative<>(term, elementIndex, v));
+                        partialDerivatives.add(new PartialDerivative<>(term, elementIndex, v));
                     }
                 }
             }
@@ -161,21 +145,21 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         matrix.print(System.out);
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+    }
 
+    private void clearLu() {
+        if (lu != null) {
+            lu.close();
+        }
+        lu = null;
+    }
+
+    private void initMatrix() {
+        initDer();
         clearLu();
     }
 
-    private void updateLu(boolean allowIncrementalUpdate) {
-        if (lu != null) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
-
-            lu.update(allowIncrementalUpdate);
-
-            LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
-        }
-    }
-
-    private void updateValues(boolean allowIncrementalUpdate) {
+    private void updateDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
@@ -190,7 +174,20 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+    }
 
+    private void updateLu(boolean allowIncrementalUpdate) {
+        if (lu != null) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
+            lu.update(allowIncrementalUpdate);
+
+            LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        }
+    }
+
+    private void updateValues(boolean allowIncrementalUpdate) {
+        updateDer();
         updateLu(allowIncrementalUpdate);
     }
 
