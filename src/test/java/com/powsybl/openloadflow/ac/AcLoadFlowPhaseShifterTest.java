@@ -575,7 +575,8 @@ class AcLoadFlowPhaseShifterTest {
                                                                      Collections.emptyList(),
                                                                      AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
                                                                      new DenseMatrixFactory(),
-                                                                     new UniformValueVoltageInitializer());
+                                                                     new UniformValueVoltageInitializer(),
+                                                                     false);
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();

@@ -70,16 +70,16 @@ public class AbcResults {
 
     public void addBusAbcResult(LfBus bus) {
         double v = bus.getV();
-        double ph = Math.toRadians(bus.getAngle());
+        double ph = bus.getAngle();
         double vHomo = 0;
         double phHomo = 0;
         double vInv = 0;
         double phInv = 0;
         AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus != null) {
-            phHomo = Math.toRadians(asymBus.getAngleHompolar());
+            phHomo = asymBus.getAngleHompolar();
             vHomo = asymBus.getvHomopolar();
-            phInv = Math.toRadians(asymBus.getAngleInverse());
+            phInv = asymBus.getAngleInverse();
             vInv = asymBus.getvInverse();
             System.out.println("NEW>>>>>>>> " + bus.getId() + " H = " + vHomo + " (" + asymBus.getAngleHompolar());
             System.out.println("NEW>>>>>>>> " + bus.getId() + " D = " + v + " (" + bus.getAngle());
@@ -157,14 +157,14 @@ public class AbcResults {
         AsymBus asymBus1 = null;
         if (bus1 != null) {
             v1 = bus1.getV();
-            ph1 = Math.toRadians(bus1.getAngle());
+            ph1 = bus1.getAngle();
             asymBus1 = (AsymBus) bus1.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         }
 
         if (asymBus1 != null) {
-            ph1Homo = Math.toRadians(asymBus1.getAngleHompolar());
+            ph1Homo = asymBus1.getAngleHompolar();
             v1Homo = asymBus1.getvHomopolar();
-            ph1Inv = Math.toRadians(asymBus1.getAngleInverse());
+            ph1Inv = asymBus1.getAngleInverse();
             v1Inv = asymBus1.getvInverse();
         }
 
@@ -179,14 +179,14 @@ public class AbcResults {
         AsymBus asymBus2 = null;
         if (bus2 != null) {
             v2 = bus2.getV();
-            ph2 = Math.toRadians(bus2.getAngle());
+            ph2 = bus2.getAngle();
             asymBus2 = (AsymBus) bus2.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         }
         if (asymBus2 != null) {
 
-            ph2Homo = Math.toRadians(asymBus2.getAngleHompolar());
+            ph2Homo = asymBus2.getAngleHompolar();
             v2Homo = asymBus2.getvHomopolar();
-            ph2Inv = Math.toRadians(asymBus2.getAngleInverse());
+            ph2Inv = asymBus2.getAngleInverse();
             v2Inv = asymBus2.getvInverse();
         }
 
