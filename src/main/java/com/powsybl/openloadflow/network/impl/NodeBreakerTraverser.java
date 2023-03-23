@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.math.graph.TraverseResult;
 
-import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -19,13 +19,15 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
 
     private final Set<Switch> switchesToOpen;
     private final Set<Terminal> traversedTerminals;
+    private final List<Terminal> nextTerminals;
     private final int initNode;
     private final VoltageLevel.NodeBreakerView nodeBreakerView;
 
-    public NodeBreakerTraverser(Set<Switch> switchesToOpen, int initNode,
-                                VoltageLevel.NodeBreakerView nodeBreakerView) {
+    public NodeBreakerTraverser(Set<Switch> switchesToOpen, Set<Terminal> traversedTerminals, List<Terminal> nextTerminals,
+                                int initNode, VoltageLevel.NodeBreakerView nodeBreakerView) {
         this.switchesToOpen = switchesToOpen;
-        this.traversedTerminals = new HashSet<>();
+        this.traversedTerminals = traversedTerminals;
+        this.nextTerminals = nextTerminals;
         this.initNode = initNode;
         this.nodeBreakerView = nodeBreakerView;
     }
@@ -59,7 +61,7 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
                 }
                 if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
                     // Retaining the switch is equivalent to stop at the node after if the node after the switch is an end node (e.g. load or generator)
-                    sw.getVoltageLevel().getNodeBreakerView().getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
+                    sw.getVoltageLevel().getNodeBreakerView().getOptionalTerminal(nodeAfter).ifPresent(this::terminalTraversed);
                     return TraverseResult.TERMINATE_PATH;
                 }
                 switchesToOpen.add(sw);
@@ -68,8 +70,15 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
         }
 
         // The traverser continues, hence nodeAfter is traversed
-        nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(traversedTerminals::add);
+        nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(this::terminalTraversed);
         return TraverseResult.CONTINUE;
+    }
+
+    private void terminalTraversed(Terminal terminal) {
+        traversedTerminals.add(terminal);
+        ((Connectable<?>) terminal.getConnectable()).getTerminals().stream()
+                .filter(t -> t != terminal)
+                .forEach(nextTerminals::add);
     }
 
     private static boolean isEquivalentToStopAfterSwitch(Switch sw, int nodeAfter) {
@@ -125,9 +134,5 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
 
     private static boolean isOpenOrOpenable(Switch aSwitch) {
         return aSwitch.isOpen() || isOpenable(aSwitch);
-    }
-
-    protected Set<Terminal> getTraversedTerminals() {
-        return this.traversedTerminals;
     }
 }
