@@ -49,6 +49,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double loadTargetQ = 0;
 
+    protected Double generationTargetP;
+
     protected double generationTargetQ = 0;
 
     protected final List<LfGenerator> generators = new ArrayList<>();
@@ -271,8 +273,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public void invalidateGenerationTargetP() {
+        generationTargetP = null;
+    }
+
+    @Override
     public double getGenerationTargetP() {
-        return generators.stream().mapToDouble(LfGenerator::getTargetP).sum();
+        if (generationTargetP == null) {
+            generationTargetP = generators.stream().mapToDouble(LfGenerator::getTargetP).sum();
+        }
+        return generationTargetP;
     }
 
     @Override

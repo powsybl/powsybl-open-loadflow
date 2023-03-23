@@ -24,11 +24,17 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        return bus.getShuntVoltageControl().filter(dvc -> bus.isShuntVoltageControlled())
+        double targetV = bus.getShuntVoltageControl().filter(dvc -> bus.isShuntVoltageControlled())
                 .map(ShuntVoltageControl::getTargetValue)
                 .orElse(bus.getTransformerVoltageControl().filter(dvc -> bus.isTransformerVoltageControlled())
                         .map(TransformerVoltageControl::getTargetValue)
                         .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN)));
+        if (bus.hasGeneratorsWithSlope()) {
+            // take first generator with slope: network loading ensures that there's only one generator with slope
+            double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
+            targetV -= slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
+        }
+        return targetV;
     }
 
     private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
@@ -51,12 +57,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         return target;
     }
 
-    private static double createBusWithSlopeTarget(LfBus bus) {
-        // take first generator with slope: network loading ensures that there's only one generator with slope
-        double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
-        return getBusTargetV(bus) - slope * (bus.getLoadTargetQ() - bus.getGenerationTargetQ());
-    }
-
     private static double getReactivePowerControlTarget(LfBranch branch) {
         Objects.requireNonNull(branch);
         return branch.getReactivePowerControl().map(ReactivePowerControl::getTargetValue)
@@ -75,10 +75,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
             case BUS_TARGET_V:
                 targets[equation.getColumn()] = getBusTargetV(network.getBus(equation.getElementNum()));
-                break;
-
-            case BUS_TARGET_V_WITH_SLOPE:
-                targets[equation.getColumn()] = createBusWithSlopeTarget(network.getBus(equation.getElementNum()));
                 break;
 
             case BUS_TARGET_PHI:

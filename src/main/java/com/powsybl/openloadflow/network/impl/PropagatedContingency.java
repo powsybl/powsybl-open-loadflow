@@ -285,21 +285,20 @@ public class PropagatedContingency {
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
-        branchIdsToOpen.stream()
+
+        List<LfBranch> branchesToOpen = branchIdsToOpen.stream()
                 .map(network::getBranchById)
                 .filter(Objects::nonNull) // could be in another component
-                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .collect(Collectors.toList());
+
+        branchesToOpen.stream()
+                .filter(LfBranch::isConnectedAtBothSides)
                 .forEach(connectivity::removeEdge);
 
+        // FIXME
         network.getBranches().stream().filter(branch -> branch.isZeroImpedance(false) && !branch.isSpanningTreeEdge(false))
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
                 .forEach(connectivity::removeEdge);
-
-        // add to contingency description buses and branches that won't be part of the main connected
-        // component in post contingency state
-        int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
-        Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
-        Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
 
         if (connectivity.getConnectedComponent(network.getSlackBus()).size() == 1) {
             System.out.println(contingency.getId() + " :isolated slack bus");
@@ -307,7 +306,16 @@ public class PropagatedContingency {
             return Optional.empty();
         }
 
-        // we should manage branches open at one side.
+        // add to contingency description buses and branches that won't be part of the main connected
+        // component in post contingency state
+        int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
+        Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
+        Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
+
+        // we should manage branches open at one side
+        branchesToOpen.stream()
+                .filter(b -> !b.isConnectedAtBothSides())
+                .forEach(branches::add);
         for (LfBus bus : buses) {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
         }
