@@ -65,19 +65,19 @@ public class NewtonRaphson {
                 .collect(Collectors.toList());
     }
 
-    public static List<Pair<Equation<AcVariableType, AcEquationType>, Double>> findLargestMismatch(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, AcEquationType equationType) {
-        return equationSystem.getIndex().getSortedEquationsToSolve().stream()
+    public static void reportLargestMismatch(Reporter reporter, EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, LfNetwork network, int iteration) {
+        List<Pair<Equation<AcVariableType, AcEquationType>, Double>> mismatchEquations = equationSystem.getIndex().getSortedEquationsToSolve().stream()
                 .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
                 .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
-                .filter(e -> e.getKey().getType() == equationType)
                 .sorted(Comparator.comparingDouble((Map.Entry<Equation<AcVariableType, AcEquationType>, Double> e) -> Math.abs(e.getValue())).reversed())
-                .limit(1)
                 .collect(Collectors.toList());
-    }
 
-    public static void reportLargestMismatch(Reporter reporter, EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, LfNetwork network, int iteration) {
-        for (AcEquationType acEquationType : List.of(AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V)) {
-            findLargestMismatch(equationSystem, mismatch, acEquationType)
+        List<AcEquationType> acEquationTypes = List.of(AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V);
+
+        for (AcEquationType acEquationType : acEquationTypes) {
+            mismatchEquations.stream()
+                    .filter(e -> e.getKey().getType() == acEquationType)
+                    .limit(1)
                     .forEach(e -> {
                         Equation<AcVariableType, AcEquationType> equation = e.getKey();
                         int elementNum = equation.getElementNum();
