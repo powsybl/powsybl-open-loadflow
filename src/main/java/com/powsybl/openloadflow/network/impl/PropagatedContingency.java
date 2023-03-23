@@ -352,7 +352,7 @@ public class PropagatedContingency {
                 && busesLoadShift.isEmpty()
                 && generators.isEmpty()
                 && hvdcs.isEmpty()) {
-            LOGGER.warn("Contingency '{}' has no impact", contingency.getId());
+            LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
             return Optional.empty();
         }
 
