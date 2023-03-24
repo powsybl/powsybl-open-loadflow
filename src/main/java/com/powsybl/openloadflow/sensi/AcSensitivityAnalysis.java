@@ -57,9 +57,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         // Therefore, the sensitivity is known to value 0 and the reference value can be computed.
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
                 .forEach(factor -> {
-                    double unscaledSensi = unscaleFunction(factor, factor.getFunctionReference());
-                    if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
-                        resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, 0, unscaledSensi);
+                    if (!filterSensitivityValue(0, factor.getVariableType(), factor.getFunctionType(), parameters)) {
+                        resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference()));
                     }
                 });
 
@@ -85,7 +84,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 }
                 double unscaledSensi = unscaleSensitivity(factor, sensi);
                 if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, unscaleSensitivity(factor, sensi), unscaleFunction(factor, ref));
+                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, unscaledSensi, unscaleFunction(factor, ref));
                 }
             }
         }
