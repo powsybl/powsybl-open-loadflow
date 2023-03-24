@@ -30,8 +30,11 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.sensitivity.SensitivityAnalysisResult;
+import com.powsybl.sensitivity.SensitivityFactorReader;
+import com.powsybl.sensitivity.SensitivityResultWriter;
+import com.powsybl.sensitivity.SensitivityVariableSet;
 import com.powsybl.sensitivity.*;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -144,17 +147,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         // calculate sensitivity values
         calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, resultWriter);
-    }
-
-    @Override
-    public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
-        super.checkContingencies(lfNetwork, contingencies);
-
-        for (PropagatedContingency contingency : contingencies) {
-            if (!contingency.getShuntIdsToShift().isEmpty()) {
-                throw new NotImplementedException("Shunt Contingencies are not yet supported in AC mode.");
-            }
-        }
     }
 
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean throwsExceptionIfNoConvergence) {
