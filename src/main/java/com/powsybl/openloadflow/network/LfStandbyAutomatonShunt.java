@@ -21,7 +21,7 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     private final LfStaticVarCompensator svc;
 
-    private final double b;
+    private double b;
 
     private LfStandbyAutomatonShunt(LfStaticVarCompensator svc) {
         super(svc.getBus().getNetwork());
@@ -56,7 +56,12 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     @Override
     public void setB(double b) {
-        throw createUnsupportedForStandbyAutomatonShuntException();
+        if (b != this.b) {
+            this.b = b;
+            for (LfNetworkListener listener : getNetwork().getListeners()) {
+                listener.onShuntSusceptanceChange(this, b);
+            }
+        }
     }
 
     private static UnsupportedOperationException createUnsupportedForStandbyAutomatonShuntException() {
