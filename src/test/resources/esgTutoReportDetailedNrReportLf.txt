@@ -35,6 +35,11 @@
              Bus Id : 'VLHV1_0'
              Bus V : '1.0713810414454683'
              Bus Phi : '-3.393522766578452E-17'
+          + Iteration 0 mismatch on TargetV
+             Mismatch on TargetV : '0.0'
+             Bus Id : 'VLGEN_0'
+             Bus V : '1.0208333333333333'
+             Bus Phi : '0.044267798791154236'
         + Iteration 1 mismatch
            Norm |f(x)|='0.02735383065047368'
           + Iteration 1 mismatch on TargetP
@@ -47,6 +52,11 @@
              Bus Id : 'VLHV2_0'
              Bus V : '1.0267735150466015'
              Bus Phi : '-0.06136319436584185'
+          + Iteration 1 mismatch on TargetV
+             Mismatch on TargetV : '0.0'
+             Bus Id : 'VLGEN_0'
+             Bus V : '1.0208333333333333'
+             Bus Phi : '0.0407316584549734'
         + Iteration 2 mismatch
            Norm |f(x)|='2.0034253596371782E-5'
           + Iteration 2 mismatch on TargetP
@@ -59,6 +69,11 @@
              Bus Id : 'VLHV2_0'
              Bus V : '1.0261840057810543'
              Bus Phi : '-0.0611984592137325'
+          + Iteration 2 mismatch on TargetV
+             Mismatch on TargetV : '0.0'
+             Bus Id : 'VLGEN_0'
+             Bus V : '1.0208333333333333'
+             Bus Phi : '0.04069359966489529'
       + Outer loop Distributed slack on generation
          Iteration 0: slack bus active power (-1.4404045651219555 MW) distributed in 1 iterations
          Iteration 1: already balanced
@@ -75,6 +90,11 @@
              Bus Id : 'VLHV2_0'
              Bus V : '1.0261840057810543'
              Bus Phi : '-0.0611984592137325'
+          + Initial mismatch on TargetV
+             Mismatch on TargetV : '0.0'
+             Bus Id : 'VLGEN_0'
+             Bus V : '1.0208333333333333'
+             Bus Phi : '0.04069359966489529'
         + Iteration 0 mismatch
            Norm |f(x)|='7.102239009042218E-7'
           + Iteration 0 mismatch on TargetP
@@ -87,6 +107,11 @@
              Bus Id : 'VLHV1_0'
              Bus V : '1.058270597695305'
              Bus Phi : '7.399385937372922E-22'
+          + Iteration 0 mismatch on TargetV
+             Mismatch on TargetV : '0.0'
+             Bus Id : 'VLGEN_0'
+             Bus V : '1.0208333333333333'
+             Bus Phi : '0.04059603080710122'
       + Outer loop Voltage monitoring
       + Outer loop Reactive limits
       + Outer loop Distributed slack on generation

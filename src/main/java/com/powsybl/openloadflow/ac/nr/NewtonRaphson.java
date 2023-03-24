@@ -66,20 +66,17 @@ public class NewtonRaphson {
     }
 
     public static void reportLargestMismatch(Reporter reporter, EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, LfNetwork network, int iteration) {
-        List<Pair<Equation<AcVariableType, AcEquationType>, Double>> mismatchEquations = equationSystem.getIndex().getSortedEquationsToSolve().stream()
+        Map<AcEquationType, Optional<Pair<Equation<AcVariableType, AcEquationType>, Double>>> mismatchEquations = equationSystem.getIndex().getSortedEquationsToSolve().stream()
                 .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
-                .filter(e -> Math.abs(e.getValue()) > Math.pow(10, -7))
-                .sorted(Comparator.comparingDouble((Map.Entry<Equation<AcVariableType, AcEquationType>, Double> e) -> Math.abs(e.getValue())).reversed())
-                .collect(Collectors.toList());
+                .collect(Collectors.groupingBy(e -> e.getKey().getType(), Collectors.maxBy(Comparator.comparingDouble(e -> Math.abs(e.getValue())))));
 
         List<AcEquationType> acEquationTypes = List.of(AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V);
 
         for (AcEquationType acEquationType : acEquationTypes) {
-            mismatchEquations.stream()
-                    .filter(e -> e.getKey().getType() == acEquationType)
-                    .limit(1)
-                    .forEach(e -> {
-                        Equation<AcVariableType, AcEquationType> equation = e.getKey();
+            mismatchEquations.get(acEquationType)
+                    .ifPresent(equationPair -> {
+                        Equation<AcVariableType, AcEquationType> equation = equationPair.getKey();
+                        double equationMismatch = equationPair.getValue();
                         int elementNum = equation.getElementNum();
                         String elementId = equation.getElement(network).map(LfElement::getId).orElse("?");
                         int busVRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_V).getRow();
@@ -87,9 +84,9 @@ public class NewtonRaphson {
                         double busV = equationSystem.getStateVector().get(busVRow);
                         double busPhi = equationSystem.getStateVector().get(busPhiRow);
                         if (LOGGER.isTraceEnabled()) {
-                            LOGGER.trace("Mismatch `{}` for {}: {} (element={}) || Bus V /_ PHI = {} /_ {}", acEquationType, equation, e.getValue(), elementId, busV, busPhi);
+                            LOGGER.trace("Mismatch `{}` for {}: {} (element={}) || Bus V /_ PHI = {} /_ {}", acEquationType, equation, equationMismatch, elementId, busV, busPhi);
                         }
-                        Reports.reportNewtonRaphsonMismatch(reporter, acEquationType, e.getValue(), elementId, busV, busPhi, iteration);
+                        Reports.reportNewtonRaphsonMismatch(reporter, acEquationType, equationMismatch, elementId, busV, busPhi, iteration);
                     });
         }
     }

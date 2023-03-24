@@ -33,6 +33,11 @@
              Bus Id : 'VLHV1_0'
              Bus V : '1.058270597695305'
              Bus Phi : '7.399385937372922E-22'
+          + Initial mismatch on TargetV
+             Mismatch on TargetV : '0.0'
+             Bus Id : 'VLGEN_0'
+             Bus V : '1.0208333333333333'
+             Bus Phi : '0.040596030807101224'
         + Iteration 0 mismatch
            Norm |f(x)|='7.105375846338748E-7'
           + Iteration 0 mismatch on TargetP
@@ -45,5 +50,10 @@
              Bus Id : 'VLHV1_0'
              Bus V : '1.0582634572825331'
              Bus Phi : '-2.508257488317156E-22'
+          + Iteration 0 mismatch on TargetV
+             Mismatch on TargetV : '0.0'
+             Bus Id : 'VLGEN_0'
+             Bus V : '1.0208333333333333'
+             Bus Phi : '0.04069359150608377'
       + Outer loop Voltage monitoring
       + Outer loop Reactive limits
