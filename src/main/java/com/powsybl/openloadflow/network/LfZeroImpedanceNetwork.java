@@ -171,6 +171,9 @@ public class LfZeroImpedanceNetwork {
             } else {
                 boolean atLeastOneOfDisablingBranchIsPartOfSpanningTree = disabledBranches.stream()
                         .anyMatch(branch -> branch.isSpanningTreeEdge(dc));
+                for (LfBranch branch : disabledBranches) {
+                    branch.setSpanningTreeEdge(dc, false);
+                }
                 if (atLeastOneOfDisablingBranchIsPartOfSpanningTree) {
                     // just update the spanning
                     updateSpanningTree();
