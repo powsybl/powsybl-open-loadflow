@@ -241,6 +241,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             }
             if (lfSvc.getB0() != 0) {
                 svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
+                lfSvc.setStandByAutomatonShunt(svcShunt);
             }
         }
     }
