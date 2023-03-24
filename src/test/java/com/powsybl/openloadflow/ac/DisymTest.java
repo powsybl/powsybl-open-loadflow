@@ -1,6 +1,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -440,6 +441,14 @@ public class DisymTest {
                 .withRc(0.)
                 .withXc(line23fault.getX())
                 .withIsOpenC(false)
+                .add();
+
+        // addition of asymmetrical extensions
+        gen1.newExtension(GeneratorFortescueAdder.class)
+                .withRz(0.)
+                .withXz(0.1)
+                .withRn(0.)
+                .withXn(0.1)
                 .add();
 
         return network;

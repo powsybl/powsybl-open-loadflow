@@ -4,16 +4,12 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 
-import java.util.List;
 import java.util.Objects;
 
-public abstract class AbstractEquivalentShuntIyEquationTerm extends AbstractEquivalentShuntEquationTerm {
+public class ShuntFortescueIyEquationTerm extends AbstractShuntFortescueCurrentEquationTerm {
 
-    private final List<Variable<AcVariableType>> variables;
-
-    public AbstractEquivalentShuntIyEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, DisymAcSequenceType sequenceType) {
+    public ShuntFortescueIyEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, DisymAcSequenceType sequenceType) {
         super(bus, variableSet, sequenceType);
-        variables = List.of(vVar, phVar);
     }
 
     // By definition :
@@ -21,20 +17,6 @@ public abstract class AbstractEquivalentShuntIyEquationTerm extends AbstractEqui
     // I = y.V with y = g+jb
     // Therefore Ix + jIy = g.Vx - b.Vy + j(g.Vy + b.Vx)
     // then Iy = g.Vmagnitude.sin(theta) + b.Vmagnitude.cos(theta)
-
-    @Override
-    public List<Variable<AcVariableType>> getVariables() {
-        return variables;
-    }
-
-    // TODO : uniformize g and b with Ix
-    protected double g() {
-        return 1.;
-    } // TODO : check acceptable large value for target V close to zero
-
-    protected double b() {
-        return 1.;
-    } // TODO : check acceptable large value for target V close to zero
 
     private static double iy(double v, double phi, double g, double b) {
         return g * v * Math.sin(phi) + b * v * Math.cos(phi);
@@ -63,5 +45,10 @@ public abstract class AbstractEquivalentShuntIyEquationTerm extends AbstractEqui
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
+    }
+
+    @Override
+    protected String getName() {
+        return "ac_iy_fortescue_shunt";
     }
 }

@@ -1,6 +1,7 @@
 package com.powsybl.openloadflow.network.Extensions;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.util.Fortescue;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
@@ -18,9 +19,9 @@ public class AsymLineAdmittanceTerms {
     // [ Ii2 ]             [ Vi2 ]
     //
     // Given that at bus n where j are all neighbouring busses:
-    // Sum[j](S_nj) = P_n + j.Q_n = Sum[j](Vd_n.Id_nj*)
-    //                          0 = Sum[j](Vo_n.Io_nj*)
-    //                          0 = Sum[j](Vi_n.Ii_nj*)
+    // Sum[j](Sd_nj) = P_n + j.Q_n = Sum[j](Vd_n.Id_nj*)
+    //               Po_n + j.Qo_n = Sum[j](Vo_n.Io_nj*)
+    //               Pi_n + j.Qi_n = Sum[j](Vi_n.Ii_nj*)
     //
     // Substituting [I] by [Yodi]*[V] allows to know the equations terms that will fill the jacobian matrix
     //
@@ -84,21 +85,15 @@ public class AsymLineAdmittanceTerms {
         this.mYabc = buildYabcAdmittanceMatrix(asymLine);
         //System.out.println("Yabc = ");
         //mYabc.print(System.out);
-        this.mFortescue = buildFortescueMatrix();
-        this.mFortescueInverse = buildFortescueInverseMatrix();
-        this.mFortescueBloc = buildBlocMatrix(mFortescue);
-        this.mFortescueBlocInverse = buildBlocMatrix(mFortescueInverse);
-        this.mYodi = buildYodiMatrix(mYabc, mFortescueBloc, mFortescueBlocInverse);
+        this.mYodi = buildYodiMatrix(mYabc,
+                buildTwoBlocsMatrix(Fortescue.getFortescueMatrix()),
+                buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()));
         //System.out.println("Yodi = ");
         //mYodi.print(System.out);
 
     }
 
     private DenseMatrix mYabc;
-    private DenseMatrix mFortescue;
-    private DenseMatrix mFortescueInverse;
-    private DenseMatrix mFortescueBloc;
-    private DenseMatrix mFortescueBlocInverse;
     private DenseMatrix mYodi;
 
     public static DenseMatrix buildYabcAdmittanceMatrix(AsymLine asymLine) {
@@ -211,96 +206,7 @@ public class AsymLineAdmittanceTerms {
         return y;
     }
 
-    public static DenseMatrix buildFortescueMatrix() {
-        DenseMatrix mF = new DenseMatrix(6, 6);
-
-        //column 1
-        mF.add(0, 0, 1.);
-        mF.add(1, 1, 1.);
-
-        mF.add(2, 0, 1.);
-        mF.add(3, 1, 1.);
-
-        mF.add(4, 0, 1.);
-        mF.add(5, 1, 1.);
-
-        //column 2
-        mF.add(0, 2, 1.);
-        mF.add(1, 3, 1.);
-
-        mF.add(2, 2, -1. / 2.);
-        mF.add(2, 3, Math.sqrt(3.) / 2.);
-        mF.add(3, 2, -Math.sqrt(3.) / 2.);
-        mF.add(3, 3, -1. / 2.);
-
-        mF.add(4, 2, -1. / 2.);
-        mF.add(4, 3, -Math.sqrt(3.) / 2.);
-        mF.add(5, 2, Math.sqrt(3.) / 2.);
-        mF.add(5, 3, -1. / 2.);
-
-        //column 3
-        mF.add(0, 4, 1.);
-        mF.add(1, 5, 1.);
-
-        mF.add(2, 4, -1. / 2.);
-        mF.add(2, 5, -Math.sqrt(3.) / 2.);
-        mF.add(3, 4, Math.sqrt(3.) / 2.);
-        mF.add(3, 5, -1. / 2.);
-
-        mF.add(4, 4, -1. / 2.);
-        mF.add(4, 5, Math.sqrt(3.) / 2.);
-        mF.add(5, 4, -Math.sqrt(3.) / 2.);
-        mF.add(5, 5, -1. / 2.);
-
-        return mF;
-    }
-
-    public static DenseMatrix buildFortescueInverseMatrix() {
-        DenseMatrix mFinv = new DenseMatrix(6, 6);
-
-        double t = 1. / 3.;
-        //column 1
-        mFinv.add(0, 0, t);
-        mFinv.add(1, 1, t);
-
-        mFinv.add(2, 0, t);
-        mFinv.add(3, 1, t);
-
-        mFinv.add(4, 0, t);
-        mFinv.add(5, 1, t);
-
-        //column 2
-        mFinv.add(0, 2, t);
-        mFinv.add(1, 3, t);
-
-        mFinv.add(2, 2, -t / 2.);
-        mFinv.add(2, 3, -t * Math.sqrt(3.) / 2.);
-        mFinv.add(3, 2, t * Math.sqrt(3.) / 2.);
-        mFinv.add(3, 3, -t / 2.);
-
-        mFinv.add(4, 2, -t / 2.);
-        mFinv.add(4, 3, t * Math.sqrt(3.) / 2.);
-        mFinv.add(5, 2, -t * Math.sqrt(3.) / 2.);
-        mFinv.add(5, 3, -t / 2.);
-
-        //column 3
-        mFinv.add(0, 4, t);
-        mFinv.add(1, 5, t);
-
-        mFinv.add(2, 4, -t / 2.);
-        mFinv.add(2, 5, t * Math.sqrt(3.) / 2.);
-        mFinv.add(3, 4, -t * Math.sqrt(3.) / 2.);
-        mFinv.add(3, 5, -t / 2.);
-
-        mFinv.add(4, 4, -t / 2.);
-        mFinv.add(4, 5, -t * Math.sqrt(3.) / 2.);
-        mFinv.add(5, 4, t * Math.sqrt(3.) / 2.);
-        mFinv.add(5, 5, -t / 2.);
-
-        return mFinv;
-    }
-
-    public static DenseMatrix buildBlocMatrix(DenseMatrix m66) {
+    public static DenseMatrix buildTwoBlocsMatrix(DenseMatrix m66) {
         // expected 6x6 matrix in input to build a 12x12 matrix
         DenseMatrix mFbloc = new DenseMatrix(12, 12);
         for (int i = 0; i < 6; i++) {

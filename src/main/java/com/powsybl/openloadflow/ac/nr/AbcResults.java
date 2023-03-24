@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.HashMap;
@@ -91,9 +92,9 @@ public class AbcResults {
         // [G3]   [ 1  a  a²]   [Gi]
         MatrixFactory matrixFactory = new DenseMatrixFactory();
 
-        Pair<Double, Double> directComponent = getCartesianFromPolar(v, ph);
-        Pair<Double, Double> homopolarComponent = getCartesianFromPolar(vHomo, phHomo);
-        Pair<Double, Double> inversComponent = getCartesianFromPolar(vInv, phInv);
+        Pair<Double, Double> directComponent = Fortescue.getCartesianFromPolar(v, ph);
+        Pair<Double, Double> homopolarComponent = Fortescue.getCartesianFromPolar(vHomo, phHomo);
+        Pair<Double, Double> inversComponent = Fortescue.getCartesianFromPolar(vInv, phInv);
 
         Matrix mGfortescue = matrixFactory.create(6, 1, 6);
         mGfortescue.add(0, 0, homopolarComponent.getKey());
@@ -103,7 +104,7 @@ public class AbcResults {
         mGfortescue.add(4, 0, inversComponent.getKey());
         mGfortescue.add(5, 0, inversComponent.getValue());
 
-        DenseMatrix mGphase = getFortescueMatrix().times(mGfortescue).toDense();
+        DenseMatrix mGphase = Fortescue.getFortescueMatrix().times(mGfortescue).toDense();
 
         // used for computing currents
         busVax.put(bus, mGphase.get(0, 0));
@@ -113,9 +114,9 @@ public class AbcResults {
         busVcx.put(bus, mGphase.get(4, 0));
         busVcy.put(bus, mGphase.get(5, 0));
 
-        Pair<Double, Double> phase1 = getPolarFromCartesian(mGphase.get(0, 0), mGphase.get(1, 0));
-        Pair<Double, Double> phase2 = getPolarFromCartesian(mGphase.get(2, 0), mGphase.get(3, 0));
-        Pair<Double, Double> phase3 = getPolarFromCartesian(mGphase.get(4, 0), mGphase.get(5, 0));
+        Pair<Double, Double> phase1 = Fortescue.getPolarFromCartesian(mGphase.get(0, 0), mGphase.get(1, 0));
+        Pair<Double, Double> phase2 = Fortescue.getPolarFromCartesian(mGphase.get(2, 0), mGphase.get(3, 0));
+        Pair<Double, Double> phase3 = Fortescue.getPolarFromCartesian(mGphase.get(4, 0), mGphase.get(5, 0));
 
         busVa.put(bus, phase1.getKey());
         busPhaseA.put(bus, phase1.getValue());
@@ -124,13 +125,12 @@ public class AbcResults {
         busVc.put(bus, phase3.getKey());
         busPhaseC.put(bus, phase3.getValue());
 
-        //System.out.println("---------- BUS " + bus.getId());
-        //printVector(mGfortescue.toDense(), "mVfortescue " + bus.getId() + " = ", false);
+        System.out.println("---------- BUS " + bus.getId());
+        printVector(mGfortescue.toDense(), "mVfortescue " + bus.getId() + " = ", false);
 
-        //System.out.println("NEW>>>>>>>> " + bus.getId() + " PHASE A = " + phase1.getKey() + " (" + phase1.getValue());
-        //System.out.println("NEW>>>>>>>> " + bus.getId() + " PHASE B = " + phase2.getKey() + " (" + phase2.getValue());
-        //System.out.println("NEW>>>>>>>> " + bus.getId() + " PHASE C = " + phase3.getKey() + " (" + phase3.getValue());
-        //return new ThreePhaseValue(phase1.getKey() / Math.sqrt(3), phase2.getKey() / Math.sqrt(3), phase3.getKey() / Math.sqrt(3), phase1.getValue(), phase2.getValue(), phase3.getValue());
+        System.out.println("NEW>>>>>>>> " + bus.getId() + " PHASE A = " + phase1.getKey() + " (" + phase1.getValue());
+        System.out.println("NEW>>>>>>>> " + bus.getId() + " PHASE B = " + phase2.getKey() + " (" + phase2.getValue());
+        System.out.println("NEW>>>>>>>> " + bus.getId() + " PHASE C = " + phase3.getKey() + " (" + phase3.getValue());
     }
 
     public void addBranchAbcResult(LfBranch branch) {
@@ -255,22 +255,22 @@ public class AbcResults {
             mY.add(3, 3, g2 + g21);
 
             DenseMatrix mVh = new DenseMatrix(4, 1);
-            mVh.add(0, 0, getCartesianFromPolar(v1Homo, ph1Homo).getKey());
-            mVh.add(1, 0, getCartesianFromPolar(v1Homo, ph1Homo).getValue());
-            mVh.add(2, 0, getCartesianFromPolar(v2Homo, ph2Homo).getKey());
-            mVh.add(3, 0, getCartesianFromPolar(v2Homo, ph2Homo).getValue());
+            mVh.add(0, 0, Fortescue.getCartesianFromPolar(v1Homo, ph1Homo).getKey());
+            mVh.add(1, 0, Fortescue.getCartesianFromPolar(v1Homo, ph1Homo).getValue());
+            mVh.add(2, 0, Fortescue.getCartesianFromPolar(v2Homo, ph2Homo).getKey());
+            mVh.add(3, 0, Fortescue.getCartesianFromPolar(v2Homo, ph2Homo).getValue());
 
             DenseMatrix mVd = new DenseMatrix(4, 1);
-            mVd.add(0, 0, getCartesianFromPolar(v1, ph1).getKey());
-            mVd.add(1, 0, getCartesianFromPolar(v1, ph1).getValue());
-            mVd.add(2, 0, getCartesianFromPolar(v2, ph2).getKey());
-            mVd.add(3, 0, getCartesianFromPolar(v2, ph2).getValue());
+            mVd.add(0, 0, Fortescue.getCartesianFromPolar(v1, ph1).getKey());
+            mVd.add(1, 0, Fortescue.getCartesianFromPolar(v1, ph1).getValue());
+            mVd.add(2, 0, Fortescue.getCartesianFromPolar(v2, ph2).getKey());
+            mVd.add(3, 0, Fortescue.getCartesianFromPolar(v2, ph2).getValue());
 
             DenseMatrix mVi = new DenseMatrix(4, 1);
-            mVi.add(0, 0, getCartesianFromPolar(v1Inv, ph1Inv).getKey());
-            mVi.add(1, 0, getCartesianFromPolar(v1Inv, ph1Inv).getValue());
-            mVi.add(2, 0, getCartesianFromPolar(v2Inv, ph2Inv).getKey());
-            mVi.add(3, 0, getCartesianFromPolar(v2Inv, ph2Inv).getValue());
+            mVi.add(0, 0, Fortescue.getCartesianFromPolar(v1Inv, ph1Inv).getKey());
+            mVi.add(1, 0, Fortescue.getCartesianFromPolar(v1Inv, ph1Inv).getValue());
+            mVi.add(2, 0, Fortescue.getCartesianFromPolar(v2Inv, ph2Inv).getKey());
+            mVi.add(3, 0, Fortescue.getCartesianFromPolar(v2Inv, ph2Inv).getValue());
 
             DenseMatrix mIh = mY.times(mVh);
             DenseMatrix mId = mY.times(mVd);
@@ -292,8 +292,8 @@ public class AbcResults {
             mI2fortescue.add(4, 0, mIi.get(2, 0));
             mI2fortescue.add(5, 0, mIi.get(3, 0));
 
-            DenseMatrix mI1abcCalculated = getFortescueMatrix().times(mI1fortescue);
-            DenseMatrix mI2abcCalculated = getFortescueMatrix().times(mI2fortescue);
+            DenseMatrix mI1abcCalculated = Fortescue.getFortescueMatrix().times(mI1fortescue);
+            DenseMatrix mI2abcCalculated = Fortescue.getFortescueMatrix().times(mI2fortescue);
 
             DenseMatrix mS1Fortescue = matrixFactory.create(6, 1, 6).toDense();
             mS1Fortescue.add(0, 0, mI1fortescue.get(0, 0) * mVh.get(0, 0) + mI1fortescue.get(1, 0) * mVh.get(1, 0));
@@ -344,18 +344,18 @@ public class AbcResults {
             // we try to get the Tabc matrix
 
             Matrix mVfortescue = matrixFactory.create(12, 1, 12);
-            mVfortescue.add(0, 0, getCartesianFromPolar(v1Homo, ph1Homo).getKey());
-            mVfortescue.add(1, 0, getCartesianFromPolar(v1Homo, ph1Homo).getValue());
-            mVfortescue.add(2, 0, getCartesianFromPolar(v1, ph1).getKey());
-            mVfortescue.add(3, 0, getCartesianFromPolar(v1, ph1).getValue());
-            mVfortescue.add(4, 0, getCartesianFromPolar(v1Inv, ph1Inv).getKey());
-            mVfortescue.add(5, 0, getCartesianFromPolar(v1Inv, ph1Inv).getValue());
-            mVfortescue.add(6, 0, getCartesianFromPolar(v2Homo, ph2Homo).getKey());
-            mVfortescue.add(7, 0, getCartesianFromPolar(v2Homo, ph2Homo).getValue());
-            mVfortescue.add(8, 0, getCartesianFromPolar(v2, ph2).getKey());
-            mVfortescue.add(9, 0, getCartesianFromPolar(v2, ph2).getValue());
-            mVfortescue.add(10, 0, getCartesianFromPolar(v2Inv, ph2Inv).getKey());
-            mVfortescue.add(11, 0, getCartesianFromPolar(v2Inv, ph2Inv).getValue());
+            mVfortescue.add(0, 0, Fortescue.getCartesianFromPolar(v1Homo, ph1Homo).getKey());
+            mVfortescue.add(1, 0, Fortescue.getCartesianFromPolar(v1Homo, ph1Homo).getValue());
+            mVfortescue.add(2, 0, Fortescue.getCartesianFromPolar(v1, ph1).getKey());
+            mVfortescue.add(3, 0, Fortescue.getCartesianFromPolar(v1, ph1).getValue());
+            mVfortescue.add(4, 0, Fortescue.getCartesianFromPolar(v1Inv, ph1Inv).getKey());
+            mVfortescue.add(5, 0, Fortescue.getCartesianFromPolar(v1Inv, ph1Inv).getValue());
+            mVfortescue.add(6, 0, Fortescue.getCartesianFromPolar(v2Homo, ph2Homo).getKey());
+            mVfortescue.add(7, 0, Fortescue.getCartesianFromPolar(v2Homo, ph2Homo).getValue());
+            mVfortescue.add(8, 0, Fortescue.getCartesianFromPolar(v2, ph2).getKey());
+            mVfortescue.add(9, 0, Fortescue.getCartesianFromPolar(v2, ph2).getValue());
+            mVfortescue.add(10, 0, Fortescue.getCartesianFromPolar(v2Inv, ph2Inv).getKey());
+            mVfortescue.add(11, 0, Fortescue.getCartesianFromPolar(v2Inv, ph2Inv).getValue());
 
             DenseMatrix yodi = asymLine.getAdmittanceTerms().getmYodi();
             DenseMatrix mIfortescue = yodi.times(mVfortescue).toDense();
@@ -396,11 +396,11 @@ public class AbcResults {
             mI2abc.add(4, 0, mIabc.get(10, 0));
             mI2abc.add(5, 0, mIabc.get(11, 0));
 
-            DenseMatrix mI1fortescueCalcultated = getFortescueInverseMatrix().times(mI1abc);
-            DenseMatrix mI2fortescueCalcultated = getFortescueInverseMatrix().times(mI2abc);
+            DenseMatrix mI1fortescueCalcultated = Fortescue.getFortescueInverseMatrix().times(mI1abc);
+            DenseMatrix mI2fortescueCalcultated = Fortescue.getFortescueInverseMatrix().times(mI2abc);
 
-            DenseMatrix mI1abcCalculated = getFortescueMatrix().times(mI1fortescue);
-            DenseMatrix mI2abcCalculated = getFortescueMatrix().times(mI2fortescue);
+            DenseMatrix mI1abcCalculated = Fortescue.getFortescueMatrix().times(mI1fortescue);
+            DenseMatrix mI2abcCalculated = Fortescue.getFortescueMatrix().times(mI2fortescue);
 
             System.out.println("---------- BRANCH " + branch.getId());
             branchI1abc.put(branch, mI1abc);
@@ -528,107 +528,4 @@ public class AbcResults {
 
     }
 
-    public org.apache.commons.math3.util.Pair<Double, Double> getCartesianFromPolar(double magnitude, double angle) {
-        double xValue = magnitude * Math.cos(angle);
-        double yValue = magnitude * Math.sin(angle); // TODO : check radians and degrees
-        return new org.apache.commons.math3.util.Pair<>(xValue, yValue);
-    }
-
-    public org.apache.commons.math3.util.Pair<Double, Double> getPolarFromCartesian(double xValue, double yValue) {
-        double magnitude = Math.sqrt(xValue * xValue + yValue * yValue);
-        double phase = Math.atan2(yValue, xValue); // TODO : check radians and degrees
-        return new org.apache.commons.math3.util.Pair<>(magnitude, phase);
-    }
-
-    public static DenseMatrix getFortescueMatrix() {
-        // [G1]   [ 1  1  1 ]   [Gh]
-        // [G2] = [ 1  a²  a] * [Gd]
-        // [G3]   [ 1  a  a²]   [Gi]
-        //Matrix mFortescue = matrixFactory.create(6, 6, 6);
-        DenseMatrix mFortescue = new DenseMatrix(6, 6);
-        //column 1
-        mFortescue.add(0, 0, 1.);
-        mFortescue.add(1, 1, 1.);
-
-        mFortescue.add(2, 0, 1.);
-        mFortescue.add(3, 1, 1.);
-
-        mFortescue.add(4, 0, 1.);
-        mFortescue.add(5, 1, 1.);
-
-        //column 2
-        mFortescue.add(0, 2, 1.);
-        mFortescue.add(1, 3, 1.);
-
-        mFortescue.add(2, 2, -1. / 2.);
-        mFortescue.add(2, 3, Math.sqrt(3.) / 2.);
-        mFortescue.add(3, 2, -Math.sqrt(3.) / 2.);
-        mFortescue.add(3, 3, -1. / 2.);
-
-        mFortescue.add(4, 2, -1. / 2.);
-        mFortescue.add(4, 3, -Math.sqrt(3.) / 2.);
-        mFortescue.add(5, 2, Math.sqrt(3.) / 2.);
-        mFortescue.add(5, 3, -1. / 2.);
-
-        //column 3
-        mFortescue.add(0, 4, 1.);
-        mFortescue.add(1, 5, 1.);
-
-        mFortescue.add(2, 4, -1. / 2.);
-        mFortescue.add(2, 5, -Math.sqrt(3.) / 2.);
-        mFortescue.add(3, 4, Math.sqrt(3.) / 2.);
-        mFortescue.add(3, 5, -1. / 2.);
-
-        mFortescue.add(4, 4, -1. / 2.);
-        mFortescue.add(4, 5, Math.sqrt(3.) / 2.);
-        mFortescue.add(5, 4, -Math.sqrt(3.) / 2.);
-        mFortescue.add(5, 5, -1. / 2.);
-
-        return mFortescue.toDense();
-    }
-
-    public static DenseMatrix getFortescueInverseMatrix() {
-        DenseMatrix mFinv = new DenseMatrix(6, 6);
-
-        double t = 1. / 3.;
-        //column 1
-        mFinv.add(0, 0, t);
-        mFinv.add(1, 1, t);
-
-        mFinv.add(2, 0, t);
-        mFinv.add(3, 1, t);
-
-        mFinv.add(4, 0, t);
-        mFinv.add(5, 1, t);
-
-        //column 2
-        mFinv.add(0, 2, t);
-        mFinv.add(1, 3, t);
-
-        mFinv.add(2, 2, -t / 2.);
-        mFinv.add(2, 3, -t * Math.sqrt(3.) / 2.);
-        mFinv.add(3, 2, t * Math.sqrt(3.) / 2.);
-        mFinv.add(3, 3, -t / 2.);
-
-        mFinv.add(4, 2, -t / 2.);
-        mFinv.add(4, 3, t * Math.sqrt(3.) / 2.);
-        mFinv.add(5, 2, -t * Math.sqrt(3.) / 2.);
-        mFinv.add(5, 3, -t / 2.);
-
-        //column 3
-        mFinv.add(0, 4, t);
-        mFinv.add(1, 5, t);
-
-        mFinv.add(2, 4, -t / 2.);
-        mFinv.add(2, 5, t * Math.sqrt(3.) / 2.);
-        mFinv.add(3, 4, -t * Math.sqrt(3.) / 2.);
-        mFinv.add(3, 5, -t / 2.);
-
-        mFinv.add(4, 4, -t / 2.);
-        mFinv.add(4, 5, -t * Math.sqrt(3.) / 2.);
-        mFinv.add(5, 4, t * Math.sqrt(3.) / 2.);
-        mFinv.add(5, 5, -t / 2.);
-
-        return mFinv;
-    }
 }

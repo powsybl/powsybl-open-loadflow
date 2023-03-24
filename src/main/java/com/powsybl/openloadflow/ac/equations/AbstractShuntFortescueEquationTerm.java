@@ -4,6 +4,7 @@ import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.Extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.Objects;
@@ -12,7 +13,7 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public abstract class AbstractEquivalentShuntEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
+public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
     //protected final LfShunt shunt;
     //protected final LfGenerator gen;
@@ -22,13 +23,16 @@ public abstract class AbstractEquivalentShuntEquationTerm extends AbstractNamedE
 
     protected final Variable<AcVariableType> phVar;
 
-    protected AbstractEquivalentShuntEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, DisymAcSequenceType sequenceType) {
+    protected final DisymAcSequenceType sequenceType;
+
+    protected AbstractShuntFortescueEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, DisymAcSequenceType sequenceType) {
         super(true);
         this.bus = bus;
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
         AcVariableType vType = null;
         AcVariableType phType = null;
+        this.sequenceType = sequenceType;
         switch (sequenceType) {
             case HOMOPOLAR:
                 vType = AcVariableType.BUS_V_HOMOPOLAR;
@@ -64,6 +68,28 @@ public abstract class AbstractEquivalentShuntEquationTerm extends AbstractNamedE
 
     protected double ph() {
         return sv.get(phVar.getRow());
+    }
+
+    protected double b() {
+        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        if (sequenceType == DisymAcSequenceType.HOMOPOLAR) {
+            return asymBus.getbZeroEquivalent();
+        } else if (sequenceType == DisymAcSequenceType.INVERSE) {
+            return asymBus.getbNegativeEquivalent();
+        } else {
+            throw new IllegalStateException("Unexpected input sequence: " + sequenceType);
+        }
+    }
+
+    protected double g() {
+        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        if (sequenceType == DisymAcSequenceType.HOMOPOLAR) {
+            return asymBus.getgZeroEquivalent();
+        } else if (sequenceType == DisymAcSequenceType.INVERSE) {
+            return asymBus.getgNegativeEquivalent();
+        } else {
+            throw new IllegalStateException("Unexpected input sequence: " + sequenceType);
+        }
     }
 
 }

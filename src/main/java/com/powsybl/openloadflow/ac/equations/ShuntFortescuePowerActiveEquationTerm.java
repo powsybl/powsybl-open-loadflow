@@ -4,26 +4,23 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 
-import java.util.List;
 import java.util.Objects;
 
-public abstract class AbstractEquivalentShuntActiveEquationTerm extends AbstractEquivalentShuntEquationTerm {
+public class ShuntFortescuePowerActiveEquationTerm extends AbstractShuntFortescuePowerEquationTerm {
 
-    private final List<Variable<AcVariableType>> variables;
-
-    public AbstractEquivalentShuntActiveEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, DisymAcSequenceType sequenceType) {
+    public ShuntFortescuePowerActiveEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, DisymAcSequenceType sequenceType) {
         super(bus, variableSet, sequenceType);
-        variables = List.of(vVar);
     }
 
     @Override
-    public List<Variable<AcVariableType>> getVariables() {
-        return variables;
+    protected String getName() {
+        return "ac_p_fortescue_shunt";
     }
 
-    protected double g() {
-        return 1.;
-    } // TODO : check acceptable large value for target V close to zero
+    @Override
+    public int getElementNum() {
+        return bus.getNum(); // TODO : check if acceptable
+    }
 
     private static double p(double v, double g) {
         return g * v * v;
@@ -48,8 +45,4 @@ public abstract class AbstractEquivalentShuntActiveEquationTerm extends Abstract
         }
     }
 
-    /*@Override
-    protected String getName() {
-        return "ac_q_gen_shunt";
-    }*/
 }

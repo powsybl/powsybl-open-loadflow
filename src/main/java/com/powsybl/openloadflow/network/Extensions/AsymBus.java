@@ -77,6 +77,11 @@ public class AsymBus {
     private double totalDeltaPc = 0.;
     private double totalDeltaQc = 0.;
 
+    private double bZeroEquivalent = 0.; // equivalent shunt in zero and negative sequences induced by all equipment connected to the bus (generating units, loads modelled as shunts etc.)
+    private double gZeroEquivalent = 0.;
+    private double bNegativeEquivalent = 0.;
+    private double gNegativeEquivalent = 0.;
+
     private Evaluable pHomopolar = EvaluableConstants.NAN;
     private Evaluable qHomopolar = EvaluableConstants.NAN;
 
@@ -201,5 +206,37 @@ public class AsymBus {
             return false;
         }
         return true;
+    }
+
+    public double getbNegativeEquivalent() {
+        return bNegativeEquivalent;
+    }
+
+    public double getbZeroEquivalent() {
+        return bZeroEquivalent;
+    }
+
+    public double getgZeroEquivalent() {
+        return gZeroEquivalent;
+    }
+
+    public double getgNegativeEquivalent() {
+        return gNegativeEquivalent;
+    }
+
+    public void setbNegativeEquivalent(double bNegativeEquivalent) {
+        this.bNegativeEquivalent = bNegativeEquivalent;
+    }
+
+    public void setbZeroEquivalent(double bZeroEquivalent) {
+        this.bZeroEquivalent = bZeroEquivalent;
+    }
+
+    public void setgNegativeEquivalent(double gNegativeEquivalent) {
+        this.gNegativeEquivalent = gNegativeEquivalent;
+    }
+
+    public void setgZeroEquivalent(double gZeroEquivalent) {
+        this.gZeroEquivalent = gZeroEquivalent;
     }
 }

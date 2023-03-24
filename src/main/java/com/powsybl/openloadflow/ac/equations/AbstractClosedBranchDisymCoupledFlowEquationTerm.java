@@ -98,54 +98,6 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     }
 
-    /*protected double v1() {
-        return sv.get(v1Var.getRow());
-    }
-
-    protected double v2() {
-        return sv.get(v2Var.getRow());
-    }
-
-    protected double ph1() {
-        return sv.get(ph1Var.getRow());
-    }
-
-    protected double ph2() {
-        return sv.get(ph2Var.getRow());
-    }
-
-    protected double v1Inv() {
-        return sv.get(v1VarInv.getRow());
-    }
-
-    protected double v2Inv() {
-        return sv.get(v2VarInv.getRow());
-    }
-
-    protected double ph1Inv() {
-        return sv.get(ph1VarInv.getRow());
-    }
-
-    protected double ph2Inv() {
-        return sv.get(ph2VarInv.getRow());
-    }
-
-    protected double v1Hom() {
-        return sv.get(v1VarHom.getRow());
-    }
-
-    protected double v2Hom() {
-        return sv.get(v2VarHom.getRow());
-    }
-
-    protected double ph1Hom() {
-        return sv.get(ph1VarHom.getRow());
-    }
-
-    protected double ph2Hom() {
-        return sv.get(ph2VarHom.getRow());
-    }*/
-
     protected double v(int g, int i) {
         switch (g) {
             case 0: // homopolar
@@ -193,28 +145,6 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     protected double a(int i) {
         return i == 1 ? a1() : A2;
     }
-
-    /*public static double theta1(double ph1, double a1, double ph2) {
-        return -a1 + A2 - ph1 + ph2;
-    }*/
-
-    /*public static double theta2(double ph1, double a1, double ph2) {
-        return a1 - A2 + ph1 - ph2;
-    }*/
-
-    //protected abstract double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1);
-
-    /*@Override
-    public double calculateSensi(DenseMatrix dx, int column) {
-        Objects.requireNonNull(dx);
-        double dph1 = dx.get(ph1Var.getRow(), column);
-        double dph2 = dx.get(ph2Var.getRow(), column);
-        double dv1 = dx.get(v1Var.getRow(), column);
-        double dv2 = dx.get(v2Var.getRow(), column);
-        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
-        double dr1 = r1Var != null ? dx.get(r1Var.getRow(), column) : branch.getPiModel().getR1();
-        return calculateSensi(dph1, dph2, dv1, dv2, da1, dr1);
-    }*/
 
     @Override
     public List<Variable<AcVariableType>> getVariables() {

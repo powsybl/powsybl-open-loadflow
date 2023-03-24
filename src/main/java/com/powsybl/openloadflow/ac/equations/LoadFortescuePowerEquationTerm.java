@@ -7,6 +7,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.Extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
@@ -16,7 +17,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
+public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
     public enum LoadEquationTermType {
         POWER,
@@ -47,7 +48,7 @@ public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVar
 
     private final LoadEquationTermType loadEquationTermType;
 
-    public AlternativeLoadEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, boolean isActive, int sequenceNum, LoadEquationTermType loadEquationTermType) {
+    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, boolean isActive, int sequenceNum, LoadEquationTermType loadEquationTermType) {
         super(true);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
@@ -106,7 +107,7 @@ public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVar
         }
     }
 
-    public static double pq(boolean isActive, int sequenceNum, AlternativeLoadEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi, LoadEquationTermType loadEquationTermType) {
+    public static double pq(boolean isActive, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi, LoadEquationTermType loadEquationTermType) {
         /*System.out.println("eval PQ >>>>>>>> vo = " + vo);
         System.out.println("eval PQ >>>>>>>> pho = " + pho);
         System.out.println("eval PQ >>>>>>>> vd = " + vd);
@@ -131,12 +132,12 @@ public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVar
         // Build of Sabc/3 vector
         DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
 
-        Pair<Double, Double> directComponent = getCartesianFromPolar(vd, phd);
-        Pair<Double, Double> homopolarComponent = getCartesianFromPolar(vo, pho);
-        Pair<Double, Double> inversComponent = getCartesianFromPolar(vi, phi);
+        Pair<Double, Double> directComponent = Fortescue.getCartesianFromPolar(vd, phd);
+        Pair<Double, Double> homopolarComponent = Fortescue.getCartesianFromPolar(vo, pho);
+        Pair<Double, Double> inversComponent = Fortescue.getCartesianFromPolar(vi, phi);
 
         DenseMatrix mVfortescue = getCartesianMatrix(homopolarComponent.getKey(), homopolarComponent.getValue(), directComponent.getKey(), directComponent.getValue(), inversComponent.getKey(), inversComponent.getValue(), true); // vector build with cartesian values (Vx,Vy) of complex fortescue voltages
-        DenseMatrix mVabc = getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
+        DenseMatrix mVabc = Fortescue.getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build  1/Vabc square matrix
         DenseMatrix mInvVabc = getInvVabcSquare(mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0), eqTerm);
@@ -145,7 +146,7 @@ public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVar
         DenseMatrix mSquareVFortescue = getCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
 
         DenseMatrix m0T0 = mInvVabc.times(mSabc3);
-        DenseMatrix mIfortescueConjugate = getFortescueMatrix().times(m0T0);
+        DenseMatrix mIfortescueConjugate = Fortescue.getFortescueMatrix().times(m0T0);
         DenseMatrix mSfortescue = mSquareVFortescue.times(mIfortescueConjugate); //  term T0 = Sfortescue
 
         //String na
@@ -183,7 +184,7 @@ public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVar
         }
     }
 
-    public static double dpq(boolean isActive, int sequenceNum, AlternativeLoadEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi, LoadEquationTermType loadEquationTermType) {
+    public static double dpq(boolean isActive, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi, LoadEquationTermType loadEquationTermType) {
         // We derivate the PQ formula with complex matrices:
         //
         //    [So]              [dVo/dx  0   0]         [1/Va  0  0]   [Sa]        [Vo  0  0]                [Sa  0   0]   [1/Va  0  0]   [1/Va  0  0]         [dV0/dx]
@@ -229,11 +230,11 @@ public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVar
         }
 
         // build of voltage vectors
-        Pair<Double, Double> directComponent = getCartesianFromPolar(vd, phd);
-        Pair<Double, Double> homopolarComponent = getCartesianFromPolar(vo, pho);
-        Pair<Double, Double> inversComponent = getCartesianFromPolar(vi, phi);
+        Pair<Double, Double> directComponent = Fortescue.getCartesianFromPolar(vd, phd);
+        Pair<Double, Double> homopolarComponent = Fortescue.getCartesianFromPolar(vo, pho);
+        Pair<Double, Double> inversComponent = Fortescue.getCartesianFromPolar(vi, phi);
         DenseMatrix mVfortescue = getCartesianMatrix(homopolarComponent.getKey(), homopolarComponent.getValue(), directComponent.getKey(), directComponent.getValue(), inversComponent.getKey(), inversComponent.getValue(), true); // vector build with cartesian values of complex fortescue voltages
-        DenseMatrix mVabc = getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
+        DenseMatrix mVabc = Fortescue.getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build of Sabc vector
         DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
@@ -246,7 +247,7 @@ public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVar
 
         // computation of vector = term T1:
         DenseMatrix m0T1 = mInvVabc.times(mSabc3);
-        DenseMatrix m1T1 = getFortescueMatrix().times(m0T1);
+        DenseMatrix m1T1 = Fortescue.getFortescueMatrix().times(m0T1);
         DenseMatrix mT1 = mdVSquare.times(m1T1);
 
         // build Vfortescue square matrix
@@ -259,11 +260,11 @@ public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVar
         DenseMatrix mdV = getCartesianMatrix(dVox, dVoy, dVdx, dVdy, dVix, dViy, true);
 
         // computation of vector = term T2:
-        DenseMatrix m0T2 = getFortescueMatrix().times(mdV);
+        DenseMatrix m0T2 = Fortescue.getFortescueMatrix().times(mdV);
         DenseMatrix m1T2 = mInvVabc.times(m0T2);
         DenseMatrix m2T2 = mInvVabc.times(m1T2);
         DenseMatrix m3T2 = mMinusSabc3Square.times(m2T2);
-        DenseMatrix mdIFortescueConjugate = getFortescueMatrix().times(m3T2);
+        DenseMatrix mdIFortescueConjugate = Fortescue.getFortescueMatrix().times(m3T2);
         DenseMatrix mT2 = mSquareVFortescue.times(mdIFortescueConjugate);
 
         if (isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.POWER) {
@@ -321,68 +322,7 @@ public class AlternativeLoadEquationTerm extends AbstractNamedEquationTerm<AcVar
         return bus.getNum(); // TODO : check if acceptable
     }
 
-    public static Pair<Double, Double> getCartesianFromPolar(double magnitude, double angle) {
-        double xValue = magnitude * Math.cos(angle);
-        double yValue = magnitude * Math.sin(angle); // TODO : check radians and degrees
-        return new org.apache.commons.math3.util.Pair<>(xValue, yValue);
-    }
-
-    public static Pair<Double, Double> getPolarFromCartesian(double xValue, double yValue) {
-        double magnitude = Math.sqrt(xValue * xValue + yValue * yValue);
-        double phase = Math.atan2(yValue, xValue); // TODO : check radians and degrees
-        return new org.apache.commons.math3.util.Pair<>(magnitude, phase);
-    }
-
-    public static DenseMatrix getFortescueMatrix() {
-
-        // TODO : mutualize with abc results
-        // [G1]   [ 1  1  1 ]   [Gh]
-        // [G2] = [ 1  a²  a] * [Gd]
-        // [G3]   [ 1  a  a²]   [Gi]
-        //Matrix mFortescue = matrixFactory.create(6, 6, 6);
-        DenseMatrix mFortescue = new DenseMatrix(6, 6);
-        //column 1
-        mFortescue.add(0, 0, 1.);
-        mFortescue.add(1, 1, 1.);
-
-        mFortescue.add(2, 0, 1.);
-        mFortescue.add(3, 1, 1.);
-
-        mFortescue.add(4, 0, 1.);
-        mFortescue.add(5, 1, 1.);
-
-        //column 2
-        mFortescue.add(0, 2, 1.);
-        mFortescue.add(1, 3, 1.);
-
-        mFortescue.add(2, 2, -1. / 2.);
-        mFortescue.add(2, 3, Math.sqrt(3.) / 2.);
-        mFortescue.add(3, 2, -Math.sqrt(3.) / 2.);
-        mFortescue.add(3, 3, -1. / 2.);
-
-        mFortescue.add(4, 2, -1. / 2.);
-        mFortescue.add(4, 3, -Math.sqrt(3.) / 2.);
-        mFortescue.add(5, 2, Math.sqrt(3.) / 2.);
-        mFortescue.add(5, 3, -1. / 2.);
-
-        //column 3
-        mFortescue.add(0, 4, 1.);
-        mFortescue.add(1, 5, 1.);
-
-        mFortescue.add(2, 4, -1. / 2.);
-        mFortescue.add(2, 5, -Math.sqrt(3.) / 2.);
-        mFortescue.add(3, 4, Math.sqrt(3.) / 2.);
-        mFortescue.add(3, 5, -1. / 2.);
-
-        mFortescue.add(4, 4, -1. / 2.);
-        mFortescue.add(4, 5, Math.sqrt(3.) / 2.);
-        mFortescue.add(5, 4, -Math.sqrt(3.) / 2.);
-        mFortescue.add(5, 5, -1. / 2.);
-
-        return mFortescue.toDense();
-    }
-
-    public static DenseMatrix getInvVabcSquare(double vAx, double vAy, double vBx, double vBy, double vCx, double vCy, AlternativeLoadEquationTerm eqTerm) {
+    public static DenseMatrix getInvVabcSquare(double vAx, double vAy, double vBx, double vBy, double vCx, double vCy, LoadFortescuePowerEquationTerm eqTerm) {
         double epsilon = 0.00000001;
         double vAcongVa = vAx * vAx + vAy * vAy;
         if (vAcongVa < epsilon) {
