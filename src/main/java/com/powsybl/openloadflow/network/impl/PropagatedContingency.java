@@ -296,9 +296,9 @@ public class PropagatedContingency {
                 .forEach(connectivity::removeEdge);
 
         // FIXME
-        network.getBranches().stream().filter(branch -> branch.isZeroImpedance(false) && !branch.isSpanningTreeEdge(false))
+/*        network.getBranches().stream().filter(branch -> branch.isZeroImpedance(false) && !branch.isSpanningTreeEdge(false))
                 .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .forEach(connectivity::removeEdge);
+                .forEach(connectivity::removeEdge);*/
 
         if (connectivity.getConnectedComponent(network.getSlackBus()).size() == 1) {
             System.out.println(contingency.getId() + " :isolated slack bus");
