@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.extensions.StandbyAutomaton;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.LfStaticVarCompensator;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -42,6 +43,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     private StandByAutomaton standByAutomaton;
 
     private double b0 = 0.0;
+
+    private LfShunt standByAutomatonShunt;
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, LfNetworkParameters parameters,
                                        LfNetworkLoadingReport report) {
@@ -176,5 +179,15 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     @Override
     public Optional<StandByAutomaton> getStandByAutomaton() {
         return Optional.ofNullable(standByAutomaton);
+    }
+
+    @Override
+    public Optional<LfShunt> getStandByAutomatonShunt() {
+        return Optional.ofNullable(standByAutomatonShunt);
+    }
+
+    @Override
+    public void setStandByAutomatonShunt(LfShunt standByAutomatonShunt) {
+        this.standByAutomatonShunt = standByAutomatonShunt;
     }
 }
