@@ -15,7 +15,6 @@ import org.jgrapht.graph.AsSubgraph;
 import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -136,53 +135,43 @@ public class LfZeroImpedanceNetwork {
         }
     }
 
-    public void tryToSplit() {
-        List<LfBranch> disabledBranches = graph.edgeSet().stream()
-                .filter(LfElement::isDisabled)
-                .collect(Collectors.toList());
-        if (!disabledBranches.isEmpty()) {
-            for (LfBranch branch : disabledBranches) {
-                graph.removeEdge(branch);
+    public void removeBranchAndTryToSplit(LfBranch disabledBranch) {
+        graph.removeEdge(disabledBranch);
+
+        List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
+        if (connectedSets.size() > 1) { // real split
+            disabledBranch.setSpanningTreeEdge(dc, false);
+
+            Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
+            zeroImpedanceNetworks.remove(this);
+            List<LfZeroImpedanceNetwork> splitZns = new ArrayList<>(2);
+            for (Set<LfBus> connectedSet : connectedSets) {
+                var subGraph = new AsSubgraph<>(graph, connectedSet);
+                splitZns.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
             }
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
-            if (connectedSets.size() > 1) { // real split
-                for (LfBranch branch : disabledBranches) {
-                    branch.setSpanningTreeEdge(dc, false);
-                }
-                Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(dc);
-                zeroImpedanceNetworks.remove(this);
-                List<LfZeroImpedanceNetwork> splitZns = new ArrayList<>(2);
-                for (Set<LfBus> connectedSet : connectedSets) {
-                    var subGraph = new AsSubgraph<>(graph, connectedSet);
-                    splitZns.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
-                }
-                zeroImpedanceNetworks.addAll(splitZns);
+            zeroImpedanceNetworks.addAll(splitZns);
 
-                // update voltage control merge status
-                if (!dc) {
-                    for (LfZeroImpedanceNetwork splitZn : splitZns) {
-                        splitZn.updateVoltageControlMergeStatus();
-                    }
+            // update voltage control merge status
+            if (!dc) {
+                for (LfZeroImpedanceNetwork splitZn : splitZns) {
+                    splitZn.updateVoltageControlMergeStatus();
                 }
+            }
 
-                for (LfNetworkListener listener : network.getListeners()) {
-                    listener.onZeroImpedanceNetworkSplit(this, splitZns, dc);
-                }
-            } else {
-                boolean atLeastOneOfDisablingBranchIsPartOfSpanningTree = disabledBranches.stream()
-                        .anyMatch(branch -> branch.isSpanningTreeEdge(dc));
-                for (LfBranch branch : disabledBranches) {
-                    branch.setSpanningTreeEdge(dc, false);
-                }
-                if (atLeastOneOfDisablingBranchIsPartOfSpanningTree) {
-                    // just update the spanning
-                    updateSpanningTree();
-                }
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onZeroImpedanceNetworkSplit(this, splitZns, dc);
+            }
+        } else {
+            if (disabledBranch.isSpanningTreeEdge(dc)) {
+                disabledBranch.setSpanningTreeEdge(dc, false);
+
+                // just update the spanning
+                updateSpanningTree();
             }
         }
     }
 
-    public static void merge(LfZeroImpedanceNetwork zn1, LfZeroImpedanceNetwork zn2, LfBranch enabledBranch) {
+    public static void addBranchAndMerge(LfZeroImpedanceNetwork zn1, LfZeroImpedanceNetwork zn2, LfBranch enabledBranch) {
         Objects.requireNonNull(zn1);
         Objects.requireNonNull(zn2);
         Objects.requireNonNull(enabledBranch);
@@ -209,8 +198,16 @@ public class LfZeroImpedanceNetwork {
     }
 
     public void addBranch(LfBranch branch) {
-        if (!branch.isDisabled()) {
-            graph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        graph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        updateSpanningTree();
+    }
+
+    public void tryToRemoveBranch(LfBranch disabledBranch) {
+        if (graph.removeEdge(disabledBranch) && disabledBranch.isSpanningTreeEdge(dc)) {
+            disabledBranch.setSpanningTreeEdge(dc, false);
+
+            // just update the spanning
+            updateSpanningTree();
         }
     }
 
