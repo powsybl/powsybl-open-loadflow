@@ -208,6 +208,12 @@ public class LfZeroImpedanceNetwork {
         }
     }
 
+    public void addBranch(LfBranch branch) {
+        if (!branch.isDisabled()) {
+            graph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        }
+    }
+
     @Override
     public String toString() {
         return "LfZeroImpedanceNetwork(dc=" + dc

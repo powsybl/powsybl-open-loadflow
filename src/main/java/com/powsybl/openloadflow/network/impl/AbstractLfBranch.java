@@ -314,10 +314,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                         // zero impedance network merge
                         LfZeroImpedanceNetwork.merge(zn1, zn2, this);
                     } else {
-                        // branch enabling does not change anything as both side were already part of same
-                        // zero impedance network.
-                        // spanning tree calculation is still valid even if with the new branch could have been
-                        // different
+                        // we need to add the branch again to zero impedance graph and update spanning tree as
+                        // this branch might become part of spanning tree (and was not before because disabled)
+                        zn1.addBranch(this);
+                        zn1.updateSpanningTree();
                     }
                 }
             }
