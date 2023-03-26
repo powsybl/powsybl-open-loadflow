@@ -573,6 +573,7 @@ class AcLoadFlowPhaseShifterTest {
                                                                      new AcEquationSystemCreationParameters(),
                                                                      new NewtonRaphsonParameters(),
                                                                      Collections.emptyList(),
+                                                                     AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
                                                                      new DenseMatrixFactory(),
                                                                      new UniformValueVoltageInitializer());
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {

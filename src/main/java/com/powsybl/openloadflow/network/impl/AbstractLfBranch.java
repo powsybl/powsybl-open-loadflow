@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -161,8 +164,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     protected void updateTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
-        int tapPosition = Transformers.findTapPosition(rtc, ptcRho, rho);
-        rtc.setTapPosition(tapPosition);
+        Transformers.findTapPosition(rtc, ptcRho, rho).ifPresent(rtc::setTapPosition);
     }
 
     protected static double getScaleForLimitType(LimitType type, LfBus bus) {
