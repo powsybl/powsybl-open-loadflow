@@ -202,15 +202,6 @@ public class LfZeroImpedanceNetwork {
         updateSpanningTree();
     }
 
-    public void tryToRemoveBranch(LfBranch disabledBranch) {
-        if (graph.removeEdge(disabledBranch) && disabledBranch.isSpanningTreeEdge(dc)) {
-            disabledBranch.setSpanningTreeEdge(dc, false);
-
-            // just update the spanning
-            updateSpanningTree();
-        }
-    }
-
     @Override
     public String toString() {
         return "LfZeroImpedanceNetwork(dc=" + dc

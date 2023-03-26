@@ -306,10 +306,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                         // zero impedance network split (maybe)
                         zn1.removeBranchAndTryToSplit(this);
                     } else {
-                        // we remove branch in one the zero impedance network and update the spanning tree
-                        // if the branch was part of the spanning tree
-                        zn1.tryToRemoveBranch(this);
-                        zn2.tryToRemoveBranch(this);
+                        throw new IllegalStateException("Should not happen");
                     }
                 } else {
                     if (zn1 != zn2) {
