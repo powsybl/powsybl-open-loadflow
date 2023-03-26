@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -30,9 +31,12 @@ class MostMeshedSlackBusSelectorTest {
         var parameters = new LoadFlowParameters();
         LoadFlowResult result = runner.run(network, parameters);
         assertEquals("VLHV1_0", result.getComponentResults().get(0).getSlackBusId());
-        OpenLoadFlowParameters.create(parameters)
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(50);
         result = runner.run(network, parameters);
         assertEquals("VLLOAD_0", result.getComponentResults().get(0).getSlackBusId());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> parametersExt.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(120));
+        assertEquals("Invalid percent value: 120.0", exception.getMessage());
     }
 }
