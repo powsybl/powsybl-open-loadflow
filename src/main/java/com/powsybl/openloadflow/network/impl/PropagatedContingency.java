@@ -303,13 +303,8 @@ public class PropagatedContingency {
                 .filter(LfBranch::isConnectedAtBothSides)
                 .forEach(connectivity::removeEdge);
 
-        // FIXME
-        network.getBranches().stream().filter(branch -> branch.isZeroImpedance(false) && !branch.isSpanningTreeEdge(false))
-                .filter(b -> b.getBus1() != null && b.getBus2() != null)
-                .forEach(connectivity::removeEdge);
-
         if (connectivity.getConnectedComponent(network.getSlackBus()).size() == 1) {
-            System.out.println(contingency.getId() + " :isolated slack bus");
+            LOGGER.warn("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
             connectivity.undoTemporaryChanges();
             return Optional.empty();
         }
