@@ -57,8 +57,7 @@
         "reactiveLimitsMaxPqPvSwitch" : 3,
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
         "alwaysUpdateNetwork" : false,
-        "reportedFeatures" : [ ],
-        "detailedNrReport" : false
+        "reportedFeatures" : [ ]
       }
     }
   },

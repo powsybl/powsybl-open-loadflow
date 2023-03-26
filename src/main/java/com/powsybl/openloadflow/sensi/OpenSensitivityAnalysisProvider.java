@@ -152,7 +152,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
             LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
             OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
-            lfParametersExt.setDetailedNrReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SA));
             OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.

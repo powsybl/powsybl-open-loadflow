@@ -339,8 +339,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private Set<ReportedFeatures> reportedFeatures = REPORTED_FEATURES_DEFAULT_VALUE;
 
-    private boolean detailedNrReport = false;
-
     @Override
     public String getName() {
         return "open-load-flow-parameters";
@@ -741,15 +739,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean getDetailedNrReport() {
-        return detailedNrReport;
-    }
-
-    public OpenLoadFlowParameters setDetailedNrReport(boolean detailedNrReport) {
-        this.detailedNrReport = detailedNrReport;
-        return this;
-    }
-
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1101,8 +1090,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
-                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork())
-                .setDetailedNrReport(parametersExt.getDetailedNrReport());
+                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
         OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
