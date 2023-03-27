@@ -22,17 +22,11 @@ import java.util.stream.Collectors;
  */
 public class NetworkSlackBusSelector implements SlackBusSelector {
 
-    private static final SlackBusSelector DEFAULT_FALLBACK_SELECTOR = new MostMeshedSlackBusSelector();
-
     private static final String SELECTION_METHOD = "Network extension bus";
 
     private final SlackBusSelector fallbackSelector;
 
     private final Set<String> slackBusIds = new HashSet<>();
-
-    public NetworkSlackBusSelector(Network network) {
-        this(network, DEFAULT_FALLBACK_SELECTOR);
-    }
 
     public NetworkSlackBusSelector(Network network, SlackBusSelector fallbackSelector) {
         Objects.requireNonNull(network);
