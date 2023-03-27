@@ -3,12 +3,13 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.Objects;
 
 public class ShuntFortescuePowerReactiveEquationTerm extends AbstractShuntFortescuePowerEquationTerm {
 
-    public ShuntFortescuePowerReactiveEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, DisymAcSequenceType sequenceType) {
+    public ShuntFortescuePowerReactiveEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
         super(bus, variableSet, sequenceType);
     }
 

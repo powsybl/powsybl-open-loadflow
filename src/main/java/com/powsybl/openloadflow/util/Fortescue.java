@@ -5,6 +5,17 @@ import org.apache.commons.math3.util.Pair;
 
 public final class Fortescue {
 
+    public enum SequenceType {
+        POSITIVE,
+        NEGATIVE,
+        ZERO
+    }
+
+    public enum ComponentType {
+        ABC,
+        FORTESCUE;
+    }
+
     private Fortescue() {
     }
 

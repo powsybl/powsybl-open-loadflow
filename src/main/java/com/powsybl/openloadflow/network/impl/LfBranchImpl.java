@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.Extensions.AsymLine;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetrical;
+import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalPiValues;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
@@ -45,15 +46,35 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         // TODO : add here the building of the LfBranch extension when it is a Line with an extension
         var extension = line.getExtension(LineAsymmetrical.class);
         if (extension != null) {
-            double rA = extension.getPhaseA().getrPhase() / zb;
-            double xA = extension.getPhaseA().getxPhase() / zb;
-            boolean isOpenA = extension.getPhaseA().isPhaseOpen();
-            double rB = extension.getPhaseB().getrPhase() / zb;
-            double xB = extension.getPhaseB().getxPhase() / zb;
-            boolean isOpenB = extension.getPhaseB().isPhaseOpen();
-            double rC = extension.getPhaseC().getrPhase() / zb;
-            double xC = extension.getPhaseC().getxPhase() / zb;
-            boolean isOpenC = extension.getPhaseC().isPhaseOpen();
+            double rA = 0.;
+            double xA = 0.;
+            double rB = 0.;
+            double xB = 0.;
+            double rC = 0.;
+            double xC = 0.;
+            if (extension.getyFortescue() != null) {
+                // TODO : implementation
+                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' defined by Yfortescue is not yet supported");
+            } else if (extension.getPiValuesFortescue() != null) {
+                // TODO : implementation
+                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' defined by fortescue Pi model is not yet supported");
+            } else if (extension.getyAbc() != null) {
+                // TODO : implementation
+                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' defined by YABC is not yet supported");
+            } else if (extension.getPiValuesAbc() != null) {
+                LineAsymmetricalPiValues lineAsymmetricalPiValues = extension.getPiValuesAbc();
+                rA = lineAsymmetricalPiValues.getPiPhase1().getR() / zb;
+                xA = lineAsymmetricalPiValues.getPiPhase1().getX() / zb;
+                rB = lineAsymmetricalPiValues.getPiPhase2().getR() / zb;
+                xB = lineAsymmetricalPiValues.getPiPhase2().getX() / zb;
+                rC = lineAsymmetricalPiValues.getPiPhase3().getR() / zb;
+                xC = lineAsymmetricalPiValues.getPiPhase3().getX() / zb;
+            } else {
+                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical input data defined");
+            }
+            boolean isOpenA = extension.getOpenPhaseA();
+            boolean isOpenB = extension.getOpenPhaseB();
+            boolean isOpenC = extension.getOpenPhaseC();
             AsymLine asymLine = new AsymLine(rA, xA, isOpenA, rB, xB, isOpenB, rC, xC, isOpenC);
 
             lfBranchImpl.setProperty(AsymLine.PROPERTY_ASYMMETRICAL, asymLine);

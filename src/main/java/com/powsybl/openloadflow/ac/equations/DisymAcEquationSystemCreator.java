@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.util.Fortescue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -95,28 +96,28 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
 
         if (Math.abs(asymBus.getbZeroEquivalent()) > epsilon || Math.abs(asymBus.getgZeroEquivalent()) > epsilon) {
             if (isUseOfCurrents) {
-                ShuntFortescueIxEquationTerm ixShuntHomo = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+                ShuntFortescueIxEquationTerm ixShuntHomo = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.ZERO);
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_HOMOPOLAR).addTerm(ixShuntHomo);
-                ShuntFortescueIyEquationTerm iyShuntHomo = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+                ShuntFortescueIyEquationTerm iyShuntHomo = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.ZERO);
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_HOMOPOLAR).addTerm(iyShuntHomo);
             } else {
-                ShuntFortescuePowerReactiveEquationTerm qShuntHomo = new ShuntFortescuePowerReactiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+                ShuntFortescuePowerReactiveEquationTerm qShuntHomo = new ShuntFortescuePowerReactiveEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.ZERO);
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_HOMOPOLAR).addTerm(qShuntHomo);
-                ShuntFortescuePowerActiveEquationTerm pShuntHomo = new ShuntFortescuePowerActiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.HOMOPOLAR);
+                ShuntFortescuePowerActiveEquationTerm pShuntHomo = new ShuntFortescuePowerActiveEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.ZERO);
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_HOMOPOLAR).addTerm(pShuntHomo);
             }
         }
 
         if (Math.abs(asymBus.getgNegativeEquivalent()) > epsilon || Math.abs(asymBus.getbNegativeEquivalent()) > epsilon) {
             if (isUseOfCurrents) {
-                ShuntFortescueIxEquationTerm ixShuntInv = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+                ShuntFortescueIxEquationTerm ixShuntInv = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.NEGATIVE);
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_INVERSE).addTerm(ixShuntInv);
-                ShuntFortescueIyEquationTerm iyShuntInv = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+                ShuntFortescueIyEquationTerm iyShuntInv = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.NEGATIVE);
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_INVERSE).addTerm(iyShuntInv);
             } else {
-                ShuntFortescuePowerReactiveEquationTerm qShuntInv = new ShuntFortescuePowerReactiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+                ShuntFortescuePowerReactiveEquationTerm qShuntInv = new ShuntFortescuePowerReactiveEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.NEGATIVE);
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q_INVERSE).addTerm(qShuntInv);
-                ShuntFortescuePowerActiveEquationTerm pShuntInv = new ShuntFortescuePowerActiveEquationTerm(bus, equationSystem.getVariableSet(), DisymAcSequenceType.INVERSE);
+                ShuntFortescuePowerActiveEquationTerm pShuntInv = new ShuntFortescuePowerActiveEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.NEGATIVE);
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P_INVERSE).addTerm(pShuntInv);
             }
         }
@@ -221,24 +222,24 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
             if (!disconnectionAsymmetry) {
                 // no assymmetry is detected with this line, we handle the equations as decoupled
                 // direct
-                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
-                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
-                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
-                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
+                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
                 i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
 
                 // homopolar
-                ixh1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
-                iyh1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
-                ixh2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
-                iyh2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
+                ixh1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                iyh1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                ixh2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                iyh2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
 
                 // inverse
-                ixi1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
-                iyi1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
-                ixi2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
-                iyi2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
+                ixi1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                iyi1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                ixi2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                iyi2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
                 // direct
@@ -405,24 +406,24 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
             if (!disconnectionAsymmetry) {
                 // no assymmetry is detected with this line, we handle the equations as decoupled
                 // direct
-                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
-                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
-                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
-                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
+                p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+                q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+                p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+                q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
                 i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
 
                 // homopolar
-                ph1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
-                qh1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
-                ph2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
-                qh2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.HOMOPOLAR);
+                ph1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                qh1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                ph2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                qh2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
 
                 // inverse
-                pi1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
-                qi1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
-                pi2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
-                qi2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, DisymAcSequenceType.INVERSE);
+                pi1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                qi1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                pi2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                qi2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
                 // direct

@@ -14,6 +14,10 @@ public class LineAsymmetricalAdder extends AbstractExtensionAdder<Line, LineAsym
     private double xB = 1.;
     private double rC = 0.;
     private double xC = 1.; // TODO : replace this default value by direct value
+    private LineAsymmetricalAdmittanceMatrix yFortescue = null;
+    private LineAsymmetricalAdmittanceMatrix yAbc = null;
+    private LineAsymmetricalPiValues piValuesFortescue = null;
+    private LineAsymmetricalPiValues piValuesAbc = null;
 
     private boolean isOpenA = false;
     private boolean isOpenB = false;
@@ -30,31 +34,11 @@ public class LineAsymmetricalAdder extends AbstractExtensionAdder<Line, LineAsym
 
     @Override
     protected LineAsymmetrical createExtension(Line line) {
-        return new LineAsymmetrical(line, rA, xA, isOpenA, rB, xB, isOpenB, rC, xC, isOpenC);
-    }
-
-    public LineAsymmetricalAdder withRa(double rA) {
-        this.rA = rA;
-        return this;
-    }
-
-    public LineAsymmetricalAdder withXa(double xA) {
-        this.xA = xA;
-        return this;
+        return new LineAsymmetrical(line, isOpenA, isOpenB, isOpenC, yFortescue, piValuesFortescue, yAbc, piValuesAbc);
     }
 
     public LineAsymmetricalAdder withIsOpenA(boolean isOpenA) {
         this.isOpenA = isOpenA;
-        return this;
-    }
-
-    public LineAsymmetricalAdder withRb(double rB) {
-        this.rB = rB;
-        return this;
-    }
-
-    public LineAsymmetricalAdder withXb(double xB) {
-        this.xB = xB;
         return this;
     }
 
@@ -63,18 +47,28 @@ public class LineAsymmetricalAdder extends AbstractExtensionAdder<Line, LineAsym
         return this;
     }
 
-    public LineAsymmetricalAdder withRc(double rC) {
-        this.rC = rC;
-        return this;
-    }
-
-    public LineAsymmetricalAdder withXc(double xC) {
-        this.xC = xC;
-        return this;
-    }
-
     public LineAsymmetricalAdder withIsOpenC(boolean isOpenC) {
         this.isOpenC = isOpenC;
+        return this;
+    }
+
+    public LineAsymmetricalAdder withYfortescue(LineAsymmetricalAdmittanceMatrix yFortescue) {
+        this.yFortescue = yFortescue;
+        return this;
+    }
+
+    public LineAsymmetricalAdder withPiValuesFortescue(LineAsymmetricalPiValues piValuesFortescue) {
+        this.piValuesFortescue = piValuesFortescue;
+        return this;
+    }
+
+    public LineAsymmetricalAdder withYabc(LineAsymmetricalAdmittanceMatrix yAbc) {
+        this.yAbc = yAbc;
+        return this;
+    }
+
+    public LineAsymmetricalAdder withPiValuesAbc(LineAsymmetricalPiValues piValuesAbc) {
+        this.piValuesAbc = piValuesAbc;
         return this;
     }
 

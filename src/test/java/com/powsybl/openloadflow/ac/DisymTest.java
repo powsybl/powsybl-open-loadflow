@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalAdder;
+import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalPiValues;
 import com.powsybl.openloadflow.network.Extensions.iidm.LoadUnbalancedAdder;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
@@ -228,7 +229,7 @@ public class DisymTest {
 
         Line line23fault = network.getLine("B2_B3_fault");
         var extension = line23fault.getExtension(LineAsymmetrical.class);
-        extension.getPhaseA().setOpen(false);
+        extension.setOpenPhaseA(false);
 
         Load load4 = network.getLoad("LOAD_4");
 
@@ -430,17 +431,15 @@ public class DisymTest {
                 .setB2(0.0)
                 .add();
 
+        LineAsymmetricalPiValues piValuesAbc = new LineAsymmetricalPiValues(0., line23fault.getX(), 0., 0., 0, 0,
+                0., line23fault.getX(), 0., 0., 0, 0,
+                0., line23fault.getX(), 0., 0., 0, 0);
         // addition of asymmetrical extensions
         line23fault.newExtension(LineAsymmetricalAdder.class)
-                .withRa(0.)
-                .withXa(line23fault.getX())
                 .withIsOpenA(true) // TODO : activate this to have unbalanced grid
-                .withRb(0.)
-                .withXb(line23fault.getX())
                 .withIsOpenB(false)
-                .withRc(0.)
-                .withXc(line23fault.getX())
                 .withIsOpenC(false)
+                .withPiValuesAbc(piValuesAbc)
                 .add();
 
         // addition of asymmetrical extensions

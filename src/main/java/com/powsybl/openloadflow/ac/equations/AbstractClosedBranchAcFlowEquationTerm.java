@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,26 +38,26 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    private static AcVariableType getVoltageMagnitudeType(DisymAcSequenceType sequenceType) {
+    private static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
         switch (sequenceType) {
-            case DIRECT:
+            case POSITIVE:
                 return AcVariableType.BUS_V;
-            case INVERSE:
+            case NEGATIVE:
                 return AcVariableType.BUS_V_INVERSE;
-            case HOMOPOLAR:
+            case ZERO:
                 return AcVariableType.BUS_V_HOMOPOLAR;
             default:
                 throw new IllegalStateException("Unknown sequence type " + sequenceType);
         }
     }
 
-    private static AcVariableType getVoltageAngleType(DisymAcSequenceType sequenceType) {
+    private static AcVariableType getVoltageAngleType(Fortescue.SequenceType sequenceType) {
         switch (sequenceType) {
-            case DIRECT:
+            case POSITIVE:
                 return AcVariableType.BUS_PHI;
-            case INVERSE:
+            case NEGATIVE:
                 return AcVariableType.BUS_PHI_INVERSE;
-            case HOMOPOLAR:
+            case ZERO:
                 return AcVariableType.BUS_PHI_HOMOPOLAR;
             default:
                 throw new IllegalStateException("Unknown sequence type " + sequenceType);
@@ -64,7 +65,7 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     }
 
     protected AbstractClosedBranchAcFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1, DisymAcSequenceType sequenceType) {
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
