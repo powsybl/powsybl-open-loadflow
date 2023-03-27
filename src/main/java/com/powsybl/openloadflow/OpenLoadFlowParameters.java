@@ -164,11 +164,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String SECONDARY_VOLTAGE_CONTROL_PARAM_NAME = "secondaryVoltageControl";
 
-    public static final String REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME = "ReactiveLimitsMaxPqPvSwitch";
+    public static final String REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME = "reactiveLimitsMaxPqPvSwitch";
 
     public static final String PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME = "phaseShifterControlMode";
 
     private static final String ALWAYS_UPDATE_NETWORK_PARAM_NAME = "alwaysUpdateNetwork";
+
+    private static final String MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME = "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -213,7 +215,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE),
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
         new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
-        new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE)
+        new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
+        new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -326,6 +329,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private PhaseShifterControlMode phaseShifterControlMode = PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE;
 
     private boolean alwaysUpdateNetwork = NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
+
+    private double mostMeshedSlackBusSelectorMaxNominalVoltagePercentile = MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -718,6 +723,22 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() {
+        return mostMeshedSlackBusSelectorMaxNominalVoltagePercentile;
+    }
+
+    private static void checkPercent(double percent) {
+        if (percent < 0 || percent > 100) {
+            throw new IllegalArgumentException("Invalid percent value: " + percent);
+        }
+    }
+
+    public OpenLoadFlowParameters setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(double mostMeshedSlackBusSelectorMaxNominalVoltagePercentile) {
+        checkPercent(mostMeshedSlackBusSelectorMaxNominalVoltagePercentile);
+        this.mostMeshedSlackBusSelectorMaxNominalVoltagePercentile = mostMeshedSlackBusSelectorMaxNominalVoltagePercentile;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -767,7 +788,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
                 .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
-                .setAlwaysUpdateNetwork(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME, NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE)));
+                .setAlwaysUpdateNetwork(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME, NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
+                .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(config.getDoubleProperty(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -854,6 +876,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setPhaseShifterControlMode(PhaseShifterControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(ALWAYS_UPDATE_NETWORK_PARAM_NAME))
                 .ifPresent(prop -> this.setAlwaysUpdateNetwork(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME))
+                .ifPresent(prop -> this.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(Double.parseDouble(prop)));
         return this;
     }
 
@@ -898,6 +922,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, reactiveLimitsMaxPqPvSwitch);
         map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
         map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME, alwaysUpdateNetwork);
+        map.put(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile);
         return map;
     }
 
@@ -1048,7 +1073,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static AcLoadFlowParameters createAcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
+                parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile());
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
@@ -1089,7 +1115,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static DcLoadFlowParameters createDcParameters(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(), parametersExt.getPlausibleActivePowerLimit());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
+                parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile());
 
         var networkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
@@ -1195,7 +1222,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
                 extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
-                extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork();
+                extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
+                extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1252,7 +1280,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
                     .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
-                    .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork());
+                    .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
+                    .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(extension.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }
