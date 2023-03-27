@@ -6,10 +6,8 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.iidm.xml.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -18,11 +16,13 @@ import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.ShuntNetworkFactory;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.network.ShuntNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,11 +36,13 @@ class AcLoadFlowWithCachingTest {
 
     private LoadFlowParameters parameters;
 
+    private OpenLoadFlowParameters parametersExt;
+
     @BeforeEach
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setNetworkCacheEnabled(true);
         NetworkCache.INSTANCE.clear();
     }
@@ -248,9 +250,10 @@ class AcLoadFlowWithCachingTest {
         var network = NodeBreakerNetworkFactory.create();
         var l1 = network.getLine("L1");
         var l2 = network.getLine("L2");
-        for (Switch sw : network.getSwitches()) {
-            sw.setRetained(sw.getId().equals("C"));
-        }
+
+        parametersExt.setActionableSwitchesIds(Set.of("C"));
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -258,7 +261,11 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(301.884, l1.getTerminal1());
         assertActivePowerEquals(301.884, l2.getTerminal1());
 
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
         network.getSwitch("C").setOpen(true);
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -272,11 +279,13 @@ class AcLoadFlowWithCachingTest {
         var network = NodeBreakerNetworkFactory.create();
         var l1 = network.getLine("L1");
         var l2 = network.getLine("L2");
-        for (Switch sw : network.getSwitches()) {
-            sw.setRetained(sw.getId().equals("C"));
-        }
+
+        parametersExt.setActionableSwitchesIds(Set.of("C"));
+
         var c = network.getSwitch("C");
         c.setOpen(true);
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -284,26 +293,16 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(3.912, l1.getTerminal1());
         assertActivePowerEquals(603.769, l2.getTerminal1());
 
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
         network.getSwitch("C").setOpen(false);
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(301.884, l1.getTerminal1());
         assertActivePowerEquals(301.884, l2.getTerminal1());
-    }
-
-    @Test
-    void testSwitchOpeningIssue() {
-        var network = MetrixTutorialSixBusesFactory.create();
-        for (Switch sw : network.getSwitches()) {
-            sw.setRetained(sw.getId().equals("SOO1_SOO1_DJ_OMN"));
-        }
-        var c = network.getSwitch("SOO1_SOO1_DJ_OMN");
-        c.setOpen(false);
-        var result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        c.setOpen(true);
-        result = loadFlowRunner.run(network, parameters);
     }
 }

@@ -9,7 +9,6 @@ package com.powsybl.openloadflow;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -17,6 +16,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.List;
@@ -29,38 +30,41 @@ import java.util.stream.Collectors;
  */
 public class AcLoadFlowFromCache {
 
-    private static final int MAX_PLAUSIBLE_SWITCHES_TO_RETAIN = 10;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcLoadFlowFromCache.class);
 
     private final Network network;
 
     private final LoadFlowParameters parameters;
 
+    private final OpenLoadFlowParameters parametersExt;
+
     private final AcLoadFlowParameters acParameters;
 
     private final Reporter reporter;
 
-    public AcLoadFlowFromCache(Network network, LoadFlowParameters parameters, AcLoadFlowParameters acParameters, Reporter reporter) {
+    public AcLoadFlowFromCache(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                               AcLoadFlowParameters acParameters, Reporter reporter) {
         this.network = Objects.requireNonNull(network);
         this.parameters = Objects.requireNonNull(parameters);
+        this.parametersExt = Objects.requireNonNull(parametersExt);
         this.acParameters = Objects.requireNonNull(acParameters);
         this.reporter = Objects.requireNonNull(reporter);
     }
 
     private void configureSwitches(Set<Switch> switchesToOpen, Set<Switch> switchesToClose) {
-        List<Switch> retainedSwitches = network.getSwitchStream()
-                .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER
-                        && sw.isRetained())
-                .collect(Collectors.toList());
-        // if number of switch to retain is small, we can consider that open ones could be closed during simulation
-        // and closed ones could be opened during simulation
-        if (retainedSwitches.size() < MAX_PLAUSIBLE_SWITCHES_TO_RETAIN) {
-            for (Switch sw : retainedSwitches) {
+        for (String switchId : parametersExt.getActionableSwitchesIds()) {
+            Switch sw = network.getSwitch(switchId);
+            if (sw != null) {
                 if (sw.isOpen()) {
                     switchesToClose.add(sw);
                 } else {
                     switchesToOpen.add(sw);
                 }
+            } else {
+                LOGGER.warn("Actionable switch '{}' does not exist", switchId);
             }
+        }
+        if (!switchesToClose.isEmpty() || !switchesToOpen.isEmpty()) {
             acParameters.getNetworkParameters().setBreakers(true);
         }
     }

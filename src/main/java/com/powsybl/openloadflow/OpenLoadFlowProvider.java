@@ -114,7 +114,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         List<AcLoadFlowResult> results;
         if (parametersExt.isNetworkCacheEnabled()) {
-            results = new AcLoadFlowFromCache(network, parameters, acParameters, reporter)
+            results = new AcLoadFlowFromCache(network, parameters, parametersExt, acParameters, reporter)
                     .run();
         } else {
             results = AcloadFlowEngine.run(network, new LfNetworkLoaderImpl(), acParameters, reporter);
