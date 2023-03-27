@@ -456,7 +456,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
-        double qToDispatch = generationQ / PerUnit.SB;
+        double qToDispatch = generationQ;
         List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
         for (LfGenerator generator : generators) {
             if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
@@ -477,7 +477,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState((generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ) * PerUnit.SB, parameters.isReactiveLimits());
+        updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ, parameters.isReactiveLimits());
 
         // update load power
         lfAggregatedLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
