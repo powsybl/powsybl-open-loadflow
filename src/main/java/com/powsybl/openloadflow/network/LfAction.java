@@ -15,6 +15,8 @@ import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.action.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -23,6 +25,8 @@ import java.util.*;
  * @author Jean-Luc Bouchot (Artelys) <jlbouchot at gmail.com>
  */
 public final class LfAction {
+
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LfAction.class);
 
     private static final class TapPositionChange {
 
@@ -150,6 +154,7 @@ public final class LfAction {
                 return Optional.of(new LfAction(action.getId(), null, null, null, null, null, lfHvdc));
             }
         }
+        LOGGER.warn("Hvdc action {}: not supported", action.getId());
         return Optional.empty(); // could be in another component or not operated in AC emulation
     }
 
