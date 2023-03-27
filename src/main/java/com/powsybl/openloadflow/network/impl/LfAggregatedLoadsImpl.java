@@ -83,7 +83,7 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
                 participationFactors[i] /= absVariableLoadTargetP;
             }
         }
-
+        absVariableLoadTargetP = absVariableLoadTargetP / PerUnit.SB;
         initialized = true;
     }
 

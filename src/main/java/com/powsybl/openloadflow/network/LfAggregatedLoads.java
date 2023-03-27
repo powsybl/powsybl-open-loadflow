@@ -18,7 +18,7 @@ public interface LfAggregatedLoads extends PropertyBag {
 
     double getAbsVariableLoadTargetP();
 
-    void setAbsVariableLoadTargetP(double absVariableLoadTargetP); // not in per-unit
+    void setAbsVariableLoadTargetP(double absVariableLoadTargetP);
 
     double getLoadCount();
 
