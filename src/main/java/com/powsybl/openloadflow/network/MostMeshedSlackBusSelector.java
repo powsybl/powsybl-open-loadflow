@@ -17,7 +17,7 @@ import org.apache.commons.math3.stat.descriptive.rank.Percentile;
  */
 public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
-    public static final double MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE = 90;
+    public static final double MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE = 95;
 
     private final double maxNominalVoltagePercentile;
 
