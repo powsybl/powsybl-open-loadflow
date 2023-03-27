@@ -12,8 +12,8 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
     // - its A,B,C connexion status (phase connected / disconnected)
     // - the values of its physical attributes. We use the following values in order of priority if defined:
     //    1- Y012 admittance matrix
-    //    2- R0,X0,R2,X2 (R1 and X1 are the values from the balanced Pi-model)
-    //    3- YABC admittance matrix
+    //    2- YABC admittance matrix
+    //    3- R0,X0,R2,X2 (R1 and X1 are the values from the balanced Pi-model)
     //    4- RA,XA,RB,XB,RC,XC
     //
     // From those values we define the fortescue admittance matrix that will be used the the load-flow equations

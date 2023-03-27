@@ -357,7 +357,7 @@ public class AbcResults {
             mVfortescue.add(10, 0, Fortescue.getCartesianFromPolar(v2Inv, ph2Inv).getKey());
             mVfortescue.add(11, 0, Fortescue.getCartesianFromPolar(v2Inv, ph2Inv).getValue());
 
-            DenseMatrix yodi = asymLine.getAdmittanceTerms().getmYodi();
+            DenseMatrix yodi = asymLine.getAdmittanceMatrix().getmY012();
             DenseMatrix mIfortescue = yodi.times(mVfortescue).toDense();
 
             DenseMatrix mI1fortescue = matrixFactory.create(6, 1, 6).toDense();
@@ -376,7 +376,7 @@ public class AbcResults {
             mI2fortescue.add(4, 0, mIfortescue.get(10, 0));
             mI2fortescue.add(5, 0, mIfortescue.get(11, 0));
 
-            DenseMatrix yabc = asymLine.getAdmittanceTerms().getmYabc();
+            DenseMatrix yabc = asymLine.getAdmittanceMatrix().getmYabc();
             DenseMatrix mIabc = yabc.times(mVabc).toDense();
 
             // compute Iodi from Iabc to check differences

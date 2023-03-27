@@ -8,7 +8,7 @@ public final class GenericBranchCurrentTerm {
 
     // We define T(i,j,g,h) = rho_i * rho_j * exp(j(a_j-a_i)) * y*_ij_gh * V_hj
     //    where i,j are line's ends i,j included in {1,2}
-    //    where g,h are fortescue sequences g,h included in {o,d,i}
+    //    where g,h are fortescue sequences g,h included in {o,d,i} (o = zero = homopolar = 0, d = direct = positive = 1, i = inverse = negative = 2)
 
     // Expanded formula :
     // T(i,j,g,h) =     rho_i * rho_j * V_hj * yx_ij_gh * cos(a_j - a_i + th_hj)
@@ -37,8 +37,8 @@ public final class GenericBranchCurrentTerm {
         double vhj = equationTerm.v(h, j);
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
+        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
@@ -59,8 +59,8 @@ public final class GenericBranchCurrentTerm {
         double vhj = equationTerm.v(h, j);
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
+        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
@@ -78,8 +78,8 @@ public final class GenericBranchCurrentTerm {
         double vhj = equationTerm.v(h, j);
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // TODO: use conjugate?
+        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // TODO: use conjugate?
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
@@ -279,8 +279,8 @@ public final class GenericBranchCurrentTerm {
         double vhj = equationTerm.v(h, j);
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
+        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 

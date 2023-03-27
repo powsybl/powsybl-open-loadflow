@@ -11,7 +11,9 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.Extensions.AsymLine;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetrical;
+import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalAdmittanceMatrix;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalPiValues;
+import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
@@ -46,36 +48,63 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         // TODO : add here the building of the LfBranch extension when it is a Line with an extension
         var extension = line.getExtension(LineAsymmetrical.class);
         if (extension != null) {
-            double rA = 0.;
-            double xA = 0.;
-            double rB = 0.;
-            double xB = 0.;
-            double rC = 0.;
-            double xC = 0.;
-            if (extension.getyFortescue() != null) {
-                // TODO : implementation
-                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' defined by Yfortescue is not yet supported");
-            } else if (extension.getPiValuesFortescue() != null) {
-                // TODO : implementation
-                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' defined by fortescue Pi model is not yet supported");
-            } else if (extension.getyAbc() != null) {
-                // TODO : implementation
-                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' defined by YABC is not yet supported");
-            } else if (extension.getPiValuesAbc() != null) {
-                LineAsymmetricalPiValues lineAsymmetricalPiValues = extension.getPiValuesAbc();
-                rA = lineAsymmetricalPiValues.getPiPhase1().getR() / zb;
-                xA = lineAsymmetricalPiValues.getPiPhase1().getX() / zb;
-                rB = lineAsymmetricalPiValues.getPiPhase2().getR() / zb;
-                xB = lineAsymmetricalPiValues.getPiPhase2().getX() / zb;
-                rC = lineAsymmetricalPiValues.getPiPhase3().getR() / zb;
-                xC = lineAsymmetricalPiValues.getPiPhase3().getX() / zb;
-            } else {
-                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical input data defined");
-            }
+            AsymLine asymLine;
             boolean isOpenA = extension.getOpenPhaseA();
             boolean isOpenB = extension.getOpenPhaseB();
             boolean isOpenC = extension.getOpenPhaseC();
-            AsymLine asymLine = new AsymLine(rA, xA, isOpenA, rB, xB, isOpenB, rC, xC, isOpenC);
+            if (extension.getyFortescue() != null || extension.getyAbc() != null) {
+                Fortescue.ComponentType componentType;
+                LineAsymmetricalAdmittanceMatrix y;
+                if (extension.getyFortescue() != null) {
+                    componentType = Fortescue.ComponentType.FORTESCUE;
+                    y = extension.getyFortescue();
+                } else {
+                    componentType = Fortescue.ComponentType.ABC;
+                    y = extension.getyAbc();
+                }
+                asymLine = new AsymLine(y.getY11().getFirst() * zb, y.getY11().getSecond() * zb, y.getY12().getFirst() * zb, y.getY12().getSecond() * zb, y.getY13().getFirst() * zb, y.getY13().getSecond() * zb,
+                        y.getY21().getFirst() * zb, y.getY21().getSecond() * zb, y.getY22().getFirst() * zb, y.getY22().getSecond() * zb, y.getY23().getFirst() * zb, y.getY23().getSecond() * zb,
+                        y.getY31().getFirst() * zb, y.getY31().getSecond() * zb, y.getY32().getFirst() * zb, y.getY32().getSecond() * zb, y.getY33().getFirst() * zb, y.getY33().getSecond() * zb,
+                        isOpenA, isOpenB, isOpenC, componentType);
+            } else if (extension.getPiValuesFortescue() != null) {
+                LineAsymmetricalPiValues lineAsymmetricalPiValues = extension.getPiValuesFortescue();
+                LineAsymmetricalPiValues.PiValuesPhase piZero = lineAsymmetricalPiValues.getPiPhase1();
+                LineAsymmetricalPiValues.PiValuesPhase piNegative = lineAsymmetricalPiValues.getPiPhase3();
+                asymLine = new AsymLine(piZero.getR() / zb, piZero.getX() / zb, piZero.getGi() * zb, piZero.getBi() * zb, piZero.getGj() * zb, piZero.getBj() * zb, isOpenA,
+                        piModel.getR(), piModel.getX(), piModel.getG1(), piModel.getB1(), piModel.getG2(), piModel.getB2(), isOpenB,
+                        piNegative.getR() / zb, piNegative.getX() / zb, piNegative.getGi() * zb, piNegative.getBi() * zb, piNegative.getGj() * zb, piNegative.getBj() * zb, isOpenC,
+                        Fortescue.ComponentType.FORTESCUE);
+                //throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' defined by fortescue Pi model is not yet supported");
+            } else if (extension.getPiValuesAbc() != null) {
+                LineAsymmetricalPiValues lineAsymmetricalPiValues = extension.getPiValuesAbc();
+                double rA = lineAsymmetricalPiValues.getPiPhase1().getR() / zb;
+                double xA = lineAsymmetricalPiValues.getPiPhase1().getX() / zb;
+                double gAi = lineAsymmetricalPiValues.getPiPhase1().getGi() * zb;
+                double gAj = lineAsymmetricalPiValues.getPiPhase1().getGj() * zb;
+                double bAi = lineAsymmetricalPiValues.getPiPhase1().getBi() * zb;
+                double bAj = lineAsymmetricalPiValues.getPiPhase1().getBj() * zb;
+
+                double rB = lineAsymmetricalPiValues.getPiPhase2().getR() / zb;
+                double xB = lineAsymmetricalPiValues.getPiPhase2().getX() / zb;
+                double gBi = lineAsymmetricalPiValues.getPiPhase2().getGi() * zb;
+                double gBj = lineAsymmetricalPiValues.getPiPhase2().getGj() * zb;
+                double bBi = lineAsymmetricalPiValues.getPiPhase2().getBi() * zb;
+                double bBj = lineAsymmetricalPiValues.getPiPhase2().getBj() * zb;
+
+                double rC = lineAsymmetricalPiValues.getPiPhase3().getR() / zb;
+                double xC = lineAsymmetricalPiValues.getPiPhase3().getX() / zb;
+                double gCi = lineAsymmetricalPiValues.getPiPhase3().getGi() * zb;
+                double gCj = lineAsymmetricalPiValues.getPiPhase3().getGj() * zb;
+                double bCi = lineAsymmetricalPiValues.getPiPhase3().getBi() * zb;
+                double bCj = lineAsymmetricalPiValues.getPiPhase3().getBj() * zb;
+
+                asymLine = new AsymLine(rA, xA, gAi, bAi, gAj, bAj, isOpenA,
+                        rB, xB, gBi, bBi, gBj, bBj, isOpenB,
+                        rC, xC, gCi, bCi, gCj, bCj, isOpenC,
+                        Fortescue.ComponentType.ABC);
+            } else {
+                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical input data defined");
+            }
 
             lfBranchImpl.setProperty(AsymLine.PROPERTY_ASYMMETRICAL, asymLine);
         }

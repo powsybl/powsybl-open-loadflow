@@ -1,5 +1,7 @@
 package com.powsybl.openloadflow.network.Extensions.iidm;
 
+import org.apache.commons.math3.util.Pair;
+
 public class LineAsymmetricalAdmittanceMatrix {
 
     // We define the admittance matrix by the matrix verifying the relation:
@@ -12,50 +14,68 @@ public class LineAsymmetricalAdmittanceMatrix {
     //                         (0,1,2) in 3-sequence Fortescue representation
 
     // used to define Yabc or Y012
-    private final double y11x;
-    private final double y11y;
-    private final double y12x;
-    private final double y12y;
-    private final double y13x;
-    private final double y13y;
+    private Pair<Double, Double> y11;
+    private Pair<Double, Double> y12;
+    private Pair<Double, Double> y13;
 
-    private final double y21x;
-    private final double y21y;
-    private final double y22x;
-    private final double y22y;
-    private final double y23x;
-    private final double y23y;
+    private Pair<Double, Double> y21;
+    private Pair<Double, Double> y22;
+    private Pair<Double, Double> y23;
 
-    private final double y31x;
-    private final double y31y;
-    private final double y32x;
-    private final double y32y;
-    private final double y33x;
-    private final double y33y;
+    private Pair<Double, Double> y31;
+    private Pair<Double, Double> y32;
+    private Pair<Double, Double> y33;
 
     LineAsymmetricalAdmittanceMatrix(double y11x, double y11y, double y12x, double y12y, double y13x, double y13y,
                      double y21x, double y21y, double y22x, double y22y, double y23x, double y23y,
                      double y31x, double y31y, double y32x, double y32y, double y33x, double y33y) {
 
-        this.y11x = y11x;
-        this.y11y = y11y;
-        this.y12x = y12x;
-        this.y12y = y12y;
-        this.y13x = y13x;
-        this.y13y = y13y;
+        this.y11 = new Pair<>(y11x, y11y);
+        this.y12 = new Pair<>(y12x, y12y);
+        this.y13 = new Pair<>(y13x, y13y);
 
-        this.y21x = y21x;
-        this.y21y = y21y;
-        this.y22x = y22x;
-        this.y22y = y22y;
-        this.y23x = y23x;
-        this.y23y = y23y;
+        this.y21 = new Pair<>(y21x, y21y);
+        this.y22 = new Pair<>(y22x, y22y);
+        this.y23 = new Pair<>(y23x, y23y);
 
-        this.y31x = y31x;
-        this.y31y = y31y;
-        this.y32x = y32x;
-        this.y32y = y32y;
-        this.y33x = y33x;
-        this.y33y = y33y;
+        this.y31 = new Pair<>(y31x, y31y);
+        this.y32 = new Pair<>(y32x, y32y);
+        this.y33 = new Pair<>(y33x, y33y);
+    }
+
+    public Pair<Double, Double> getY11() {
+        return y11;
+    }
+
+    public Pair<Double, Double> getY12() {
+        return y12;
+    }
+
+    public Pair<Double, Double> getY13() {
+        return y13;
+    }
+
+    public Pair<Double, Double> getY21() {
+        return y21;
+    }
+
+    public Pair<Double, Double> getY22() {
+        return y22;
+    }
+
+    public Pair<Double, Double> getY23() {
+        return y23;
+    }
+
+    public Pair<Double, Double> getY31() {
+        return y31;
+    }
+
+    public Pair<Double, Double> getY32() {
+        return y32;
+    }
+
+    public Pair<Double, Double> getY33() {
+        return y33;
     }
 }

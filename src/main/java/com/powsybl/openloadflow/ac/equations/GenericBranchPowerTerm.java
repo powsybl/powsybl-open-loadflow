@@ -40,8 +40,8 @@ public final class GenericBranchPowerTerm {
         double vhj = equationTerm.v(h, j);
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double conjYyijgh = -equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
+        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+        double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
@@ -57,8 +57,8 @@ public final class GenericBranchPowerTerm {
         double vhj = equationTerm.v(h, j);
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double conjYyijgh = -equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
+        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+        double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
@@ -76,8 +76,8 @@ public final class GenericBranchPowerTerm {
         double vhj = equationTerm.v(h, j);
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double conjYyijgh = -equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // TODO: use conjugate?
+        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+        double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // TODO: use conjugate?
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
@@ -317,8 +317,8 @@ public final class GenericBranchPowerTerm {
         double vhj = equationTerm.v(h, j);
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmYodi().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double conjYyijgh = -equationTerm.getmYodi().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
+        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+        double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 

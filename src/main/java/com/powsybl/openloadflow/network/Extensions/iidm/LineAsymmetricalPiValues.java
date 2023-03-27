@@ -7,8 +7,8 @@ public class LineAsymmetricalPiValues {
     private final PiValuesPhase piPhase3;
 
     public LineAsymmetricalPiValues(double r1, double x1, double gi1, double bi1, double gj1, double bj1,
-                             double r2, double x2, double gi2, double bi2, double gj2, double bj2,
-                             double r3, double x3, double gi3, double bi3, double gj3, double bj3) {
+                                    double r2, double x2, double gi2, double bi2, double gj2, double bj2,
+                                    double r3, double x3, double gi3, double bi3, double gj3, double bj3) {
         this.piPhase1 = new PiValuesPhase(r1, x1, gi1, bi1, gj1, bj1);
         this.piPhase2 = new PiValuesPhase(r2, x2, gi2, bi2, gj2, bj2);
         this.piPhase3 = new PiValuesPhase(r3, x3, gi3, bi3, gj3, bj3);
