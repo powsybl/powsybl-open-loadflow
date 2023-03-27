@@ -17,6 +17,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysis;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
@@ -361,6 +362,36 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testAngleFlowSensitivityFiltering() {
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        sensiParameters.setAngleFlowSensitivityValueThreshold(15.0);
+
+        List<SensitivityFactor> factorsSide1 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.ONE)).collect(Collectors.toList());
+        List<SensitivityFactor> factorsSide2 = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23", Branch.Side.TWO)).collect(Collectors.toList());
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.addAll(factorsSide1);
+        factors.addAll(factorsSide2);
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(6, result.getValues().size());
+
+        //Check values for side 1 using generic and function type specific api
+        assertEquals(37.6799d, result.getSensitivityValue("l23", "l23", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+        assertEquals(37.3710d, result.getBranchCurrent1SensitivityValue("l23", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+        assertEquals(-25.0905d, result.getBranchCurrent1SensitivityValue("l23", "l13", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+
+        //Check values for side 2 using generic and function type specific api
+        assertEquals(37.6816d, result.getSensitivityValue("l23", "l23", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+        assertEquals(37.3727d, result.getBranchCurrent2SensitivityValue("l23", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+        assertEquals(-25.0917d, result.getBranchCurrent2SensitivityValue("l23", "l13", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_I);
+    }
+
+    @Test
     void test4busesPhaseShiftIntensityFunctionReference() {
         Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
 
@@ -417,6 +448,24 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(1d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // 1 on itself
         assertEquals(0.3423d, result.getBusVoltageSensitivityValue("g2", "b3", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
         assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b4", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
+    }
+
+    @Test
+    void testFilterVoltageVoltageSensitivityValues() {
+        Network network = FourBusNetworkFactory.create();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        sensiParameters.setVoltageVoltageSensitivityValueThreshold(0.5);
+
+        List<SensitivityFactor> factors = network.getBusBreakerView().getBusStream()
+                .map(bus -> createBusVoltagePerTargetV(bus.getId(), "g2"))
+                .collect(Collectors.toList());
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        assertEquals(1, result.getValues().size());
+        assertEquals(1d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // 1 on itself
     }
 
     @Test
@@ -1119,6 +1168,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     void testThreeWindingsTransformerAsVariable() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        sensiParameters.setAngleFlowSensitivityValueThreshold(0.1);
         Network network = PhaseControlFactory.createNetworkWithT3wt();
 
         //Add phase tap changer to leg1 and leg3 of the twt for testing purpose
@@ -1159,10 +1209,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityFactor factorPhase3 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeWindingsTransformer.Side.THREE);
         List<SensitivityFactor> factors = List.of(factorPhase1, factorPhase2, factorPhase3);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
-        assertEquals(3, result.getValues().size());
+        assertEquals(2, result.getValues().size());
         assertEquals(-5.421, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(5.421, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_2), LoadFlowAssert.DELTA_POWER);
-        assertEquals(0.0, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_3), LoadFlowAssert.DELTA_POWER);
+        //Sensitivity value at phase 3 is filtered because it is 0
     }
 
     @Test
@@ -1191,5 +1241,49 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
         assertEquals("Three windings transformer 'transfo' not found", e.getCause().getMessage());
+    }
+
+    @Test
+    void testGenericSensitivityThresholdFiltering() {
+
+        SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
+        parameters.setAngleFlowSensitivityValueThreshold(1.0);
+        parameters.setFlowFlowSensitivityValueThreshold(1.0);
+        parameters.setFlowVoltageSensitivityValueThreshold(1.0);
+        parameters.setVoltageVoltageSensitivityValueThreshold(1.0);
+
+        //Angle Flow
+        assertTrue(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.TRANSFORMER_PHASE,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(2.0, SensitivityVariableType.TRANSFORMER_PHASE,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.TRANSFORMER_PHASE,
+                SensitivityFunctionType.BUS_VOLTAGE, parameters));
+
+        //Flow Flow
+        assertTrue(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(2.0, SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                SensitivityFunctionType.BUS_VOLTAGE, parameters));
+
+        //Flow Voltage
+        assertTrue(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BRANCH_CURRENT_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(2.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BRANCH_CURRENT_1, parameters));
+
+        //Voltage Voltage
+        assertTrue(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BUS_VOLTAGE, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(2.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BUS_VOLTAGE, parameters));
+
+        //Reactive power based function and variable are not filtered
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.INJECTION_REACTIVE_POWER,
+                SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, parameters));
+        assertFalse(AbstractSensitivityAnalysis.filterSensitivityValue(0.0, SensitivityVariableType.BUS_TARGET_VOLTAGE,
+                SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, parameters));
     }
 }

@@ -22,17 +22,18 @@ public class NameSlackBusSelector implements SlackBusSelector {
 
     private final List<String> busesOrVoltageLevelsIds;
 
-    private final SlackBusSelector secondLevelSelector = new MostMeshedSlackBusSelector();
+    private final SlackBusSelector secondLevelSelector;
 
-    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds) {
+    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds, SlackBusSelector secondLevelSelector) {
         if (busesOrVoltageLevelsIds.isEmpty()) {
             throw new IllegalArgumentException("Empty bus or voltage level ID list");
         }
         this.busesOrVoltageLevelsIds = Objects.requireNonNull(busesOrVoltageLevelsIds);
+        this.secondLevelSelector = Objects.requireNonNull(secondLevelSelector);
     }
 
     public NameSlackBusSelector(String... busesOrVoltageLevelsIds) {
-        this(List.of(busesOrVoltageLevelsIds));
+        this(List.of(busesOrVoltageLevelsIds), new MostMeshedSlackBusSelector());
     }
 
     @Override
