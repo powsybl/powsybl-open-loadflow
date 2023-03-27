@@ -29,6 +29,10 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
         this.maxNominalVoltagePercentile = maxNominalVoltagePercentile;
     }
 
+    private static int getBranchCountConnectedAtBothSides(LfBus bus) {
+        return (int) bus.getBranches().stream().filter(LfBranch::isConnectedAtBothSides).count();
+    }
+
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
         double[] nominalVoltages = buses.stream()
@@ -41,7 +45,7 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
         // select non-fictitious and most meshed bus among buses with the highest nominal voltage
         List<LfBus> slackBuses = buses.stream()
             .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
-            .sorted(Comparator.comparingInt((LfBus bus) -> bus.getBranches().size())
+            .sorted(Comparator.comparingInt(MostMeshedSlackBusSelector::getBranchCountConnectedAtBothSides)
                     .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
             .limit(limit)
             .collect(Collectors.toList());
