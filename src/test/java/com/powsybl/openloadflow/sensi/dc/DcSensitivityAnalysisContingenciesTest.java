@@ -136,6 +136,27 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testFlowFlowSensitivityValueFiltering() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        sensiParameters.setFlowFlowSensitivityValueThreshold(0.1);
+
+        List<Contingency> contingencies = List.of(new Contingency("l12", new BranchContingency("l12")));
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l13", "g2"),
+                createBranchFlowPerInjectionIncrease("l14", "g2"),
+                createBranchFlowPerInjectionIncrease("l34", "g2"),
+                createBranchFlowPerInjectionIncrease("l12", "g2"));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, contingencies, Collections.emptyList(), sensiParameters);
+        assertEquals(3, result.getPreContingencyValues().size());
+        assertEquals(2, result.getValues("l12").size());
+    }
+
+    @Test
     void testFunctionRefOnOneElement() {
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
