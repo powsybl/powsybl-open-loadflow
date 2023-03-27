@@ -192,6 +192,7 @@ public class LfContingency {
     }
 
     private static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
+        // initialP0 and initialVariableActivePower are in per-unit, result is in per-unit.
         double factor = 0.0;
         if (bus.getAggregatedLoads().getLoadCount() > 0) {
             if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
