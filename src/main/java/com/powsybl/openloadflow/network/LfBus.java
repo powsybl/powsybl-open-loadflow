@@ -42,8 +42,6 @@ public interface LfBus extends LfElement {
 
     void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl);
 
-    void removeGeneratorVoltageControl();
-
     boolean isGeneratorVoltageControlled();
 
     boolean isGeneratorVoltageControlEnabled();

@@ -162,10 +162,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         return Optional.ofNullable(generatorVoltageControl);
     }
 
-    public void removeGeneratorVoltageControl() {
-        this.generatorVoltageControl = null;
-    }
-
     @Override
     public void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl) {
         this.generatorVoltageControl = Objects.requireNonNull(generatorVoltageControl);
