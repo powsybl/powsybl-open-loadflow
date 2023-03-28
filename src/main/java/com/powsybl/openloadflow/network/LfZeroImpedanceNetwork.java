@@ -39,13 +39,19 @@ public class LfZeroImpedanceNetwork {
         updateSpanningTree();
     }
 
+    private static Graph<LfBus, LfBranch> createSubgraph(Graph<LfBus, LfBranch> graph, Set<LfBus> vertexSubset) {
+        Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
+        Graphs.addGraph(subGraph, new AsSubgraph<>(graph, vertexSubset));
+        return subGraph;
+    }
+
     public static Set<LfZeroImpedanceNetwork> create(LfNetwork network, boolean dc) {
         Objects.requireNonNull(network);
         Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = new LinkedHashSet<>();
         var graph = createZeroImpedanceSubGraph(network, dc);
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         for (Set<LfBus> connectedSet : connectedSets) {
-            var subGraph = new AsSubgraph<>(graph, connectedSet);
+            var subGraph = createSubgraph(graph, connectedSet);
             LfZeroImpedanceNetwork zn = new LfZeroImpedanceNetwork(network, dc, subGraph);
             if (!dc) {
                 zn.updateVoltageControlMergeStatus();
@@ -146,7 +152,7 @@ public class LfZeroImpedanceNetwork {
             zeroImpedanceNetworks.remove(this);
             List<LfZeroImpedanceNetwork> splitZns = new ArrayList<>(2);
             for (Set<LfBus> connectedSet : connectedSets) {
-                var subGraph = new AsSubgraph<>(graph, connectedSet);
+                var subGraph = createSubgraph(graph, connectedSet);
                 splitZns.add(new LfZeroImpedanceNetwork(network, dc, subGraph));
             }
             zeroImpedanceNetworks.addAll(splitZns);

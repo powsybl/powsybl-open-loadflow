@@ -81,7 +81,7 @@ public class AcEquationSystemCreator {
                 .ifPresent(voltageControl -> {
                     if (bus.isGeneratorVoltageControlled()) {
                         if (voltageControl.isLocalControl()) {
-                            createLocalVoltageControlEquation(bus, equationSystem);
+                            createGeneratorLocalVoltageControlEquation(bus, equationSystem);
                         } else {
                             createGeneratorRemoteVoltageControlEquations(voltageControl, equationSystem);
                         }
@@ -90,8 +90,8 @@ public class AcEquationSystemCreator {
                 });
     }
 
-    private void createLocalVoltageControlEquation(LfBus bus,
-                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createGeneratorLocalVoltageControlEquation(LfBus bus,
+                                                            EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
@@ -334,14 +334,14 @@ public class AcEquationSystemCreator {
                         .setActive(false);
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
-                        .setActive(!controlledBus.isDisabled());
+                        .setActive(false);
             } else {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
-                        .setActive(!controlledBus.isDisabled() && controlledBus.isGeneratorVoltageControlEnabled());
+                        .setActive(controlledBus.isGeneratorVoltageControlEnabled());
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_Q)
                         .orElseThrow()
-                        .setActive(!controlledBus.isDisabled() && !controlledBus.isGeneratorVoltageControlEnabled());
+                        .setActive(!controlledBus.isGeneratorVoltageControlEnabled());
             }
         } else {
             updateRemoteGeneratorVoltageControlEquations(voltageControl, equationSystem);
