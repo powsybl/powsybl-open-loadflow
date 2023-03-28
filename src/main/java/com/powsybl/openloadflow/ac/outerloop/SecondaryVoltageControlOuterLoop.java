@@ -144,12 +144,12 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
             MutableDouble sq = new MutableDouble();
             for (LfBranch branch : controllerBus.getBranches()) {
-                if (branch.getBus1() == controllerBus) {
+                // we can skip branches disconnected at the other side
+                if (branch.getBus1() == controllerBus && branch.getBus2() != null) {
                     sq.add(getQ1(branch).calculateSensi(sensitivities, controlledBusSensiColumn));
-                } else if (branch.getBus2() == controllerBus) {
+                } else if (branch.getBus2() == controllerBus && branch.getBus1() != null) {
                     sq.add(getQ2(branch).calculateSensi(sensitivities, controlledBusSensiColumn));
                 }
-                // disconnected at the other side, we can skip
             }
 
             controllerBus.getShunt().ifPresent(shunt -> sq.add(getQ(shunt).calculateSensi(sensitivities, controlledBusSensiColumn)));

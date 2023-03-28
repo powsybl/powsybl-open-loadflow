@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -51,9 +52,12 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
 
     protected final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
-    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
+    protected SensitivityAnalysisParameters parameters;
+
+    protected AbstractSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.connectivityFactory = Objects.requireNonNull(connectivityFactory);
+        this.parameters = Objects.requireNonNull(parameters);
     }
 
     interface LfSensitivityFactor<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
@@ -705,7 +709,9 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
                 // ZERO status is for factors where variable element is in the main connected component and reference element is not.
                 // Therefore, the sensitivity is known to value 0, but the reference cannot be known and is set to NaN.
-                resultWriter.writeSensitivityValue(factor.getIndex(), -1, 0, Double.NaN);
+                if (!filterSensitivityValue(0, factor.getVariableType(), factor.getFunctionType(), parameters)) {
+                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, 0, Double.NaN);
+                }
             } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
                 resultWriter.writeSensitivityValue(factor.getIndex(), -1, Double.NaN, Double.NaN);
                 skippedVariables.add(factor.getVariableId());
@@ -753,6 +759,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                     && contingency.getHvdcIdsToOpen().isEmpty()
                     && contingency.getGeneratorIdsToLose().isEmpty()
                     && contingency.getBusIdsToShift().isEmpty()
+                    && contingency.getShuntIdsToShift().isEmpty()
                     && contingency.getBusIdsToLose().isEmpty()) {
                 LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
             }
@@ -873,20 +880,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (twt == null) {
             throw new PowsyblException("Three windings transformer '" + transformerId + "' not found");
         }
-        ThreeWindingsTransformer.Leg l;
-        switch (type) {
-            case TRANSFORMER_PHASE_1:
-                l = twt.getLeg1();
-                break;
-            case TRANSFORMER_PHASE_2:
-                l = twt.getLeg2();
-                break;
-            case TRANSFORMER_PHASE_3:
-                l = twt.getLeg3();
-                break;
-            default:
-                throw new PowsyblException("Three transformer variable type " + type + " cannot be converted to a leg");
-        }
+        ThreeWindingsTransformer.Leg l = twt.getLegs().get(getLegNumber(type) - 1);
         if (l.getPhaseTapChanger() == null) {
             throw new PowsyblException("Three windings transformer '" + transformerId + "' leg on side '" + type + "' has no phase tap changer");
         }
@@ -1186,31 +1180,58 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     }
 
     protected static int getLegNumber(SensitivityFunctionType type) {
-        switch (type) {
-            case BRANCH_ACTIVE_POWER_1:
-            case BRANCH_CURRENT_1:
-                return 1;
-            case BRANCH_ACTIVE_POWER_2:
-            case BRANCH_CURRENT_2:
-                return 2;
-            case BRANCH_ACTIVE_POWER_3:
-            case BRANCH_CURRENT_3:
-                return 3;
-            default:
-                throw new PowsyblException("Cannot convert function type " + type + " to a leg number");
-        }
+        return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert function type " + type + " to a leg number"));
     }
 
     protected static int getLegNumber(SensitivityVariableType type) {
-        switch (type) {
+        return type.getSide().orElseThrow(() -> new PowsyblException("Cannot convert variable type " + type + " to a leg number"));
+    }
+
+    public abstract void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets, SensitivityFactorReader factorReader,
+                                 SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen, Set<String> allBusIdsToLose);
+
+    public static boolean filterSensitivityValue(double value, SensitivityVariableType variable, SensitivityFunctionType function, SensitivityAnalysisParameters parameters) {
+        switch (variable) {
+            case INJECTION_ACTIVE_POWER:
+            case HVDC_LINE_ACTIVE_POWER:
+                return isFlowFunction(function) && Math.abs(value) < parameters.getFlowFlowSensitivityValueThreshold();
+            case TRANSFORMER_PHASE:
             case TRANSFORMER_PHASE_1:
-                return 1;
             case TRANSFORMER_PHASE_2:
-                return 2;
             case TRANSFORMER_PHASE_3:
-                return 3;
+                return isFlowFunction(function) && Math.abs(value) < parameters.getAngleFlowSensitivityValueThreshold();
+            case BUS_TARGET_VOLTAGE:
+                return filterBusTargetVoltageVariable(value, function, parameters);
             default:
-                throw new PowsyblException("Cannot convert variable type " + type + " to a leg number");
+                return false;
+        }
+    }
+
+    protected static boolean filterBusTargetVoltageVariable(double value, SensitivityFunctionType function,
+                                                            SensitivityAnalysisParameters parameters) {
+        switch (function) {
+            case BRANCH_CURRENT_1:
+            case BRANCH_CURRENT_2:
+            case BRANCH_CURRENT_3:
+                return Math.abs(value) < parameters.getFlowVoltageSensitivityValueThreshold();
+            case BUS_VOLTAGE:
+                return Math.abs(value) < parameters.getVoltageVoltageSensitivityValueThreshold();
+            default:
+                return false;
+        }
+    }
+
+    protected static boolean isFlowFunction(SensitivityFunctionType function) {
+        switch (function) {
+            case BRANCH_ACTIVE_POWER_1:
+            case BRANCH_ACTIVE_POWER_2:
+            case BRANCH_ACTIVE_POWER_3:
+            case BRANCH_CURRENT_1:
+            case BRANCH_CURRENT_2:
+            case BRANCH_CURRENT_3:
+                return true;
+            default:
+                return false;
         }
     }
 }

@@ -42,6 +42,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openloadflow.sa.AcSecurityAnalysis.distributedMismatch;
+
 public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext> {
 
     private static class DcSecurityAnalysisContext {
@@ -127,7 +129,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
         SensitivityAnalysisParameters sensitivityAnalysisParameters = new SensitivityAnalysisParameters();
-        sensitivityAnalysisParameters.setLoadFlowParameters(securityAnalysisParameters.getLoadFlowParameters());
+        LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
+        sensitivityAnalysisParameters.setLoadFlowParameters(loadFlowParameters);
 
         ContingencyContext contingencyContext = new ContingencyContext(null, ContingencyContextType.ALL);
         String variableId = network.getLoads().iterator().next().getId();
@@ -135,8 +138,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.allOf(LoadingLimitType.class));
 
         // CosPhi for DC power to current conversion
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, parametersExt.getDcPowerFactor());
+        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, loadFlowParameters.getDcPowerFactor());
         SensitivityFactorReader factorReader = handler -> {
             for (Branch<?> b : network.getBranches()) {
                 SensitivityFactor f = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
@@ -285,14 +287,18 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
             new DcLoadFlowEngine(lfContext).run();
             NetworkState networkState = NetworkState.save(lfNetwork);
 
-            OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(context.getParameters());
+            SecurityAnalysisParameters securityAnalysisParameters = context.getParameters();
+            OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
+            LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
+            OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
+
             boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
             var preContingencyLimitViolationManager = new LimitViolationManager();
             preContingencyLimitViolationManager.detectViolations(lfNetwork);
 
             Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = indexOperatorStrategiesByContingencyId(propagatedContingencies, operatorStrategies, actionsById, neededActions);
-            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, false);
+            Map<String, LfAction> lfActionById = createLfActions(lfNetwork, neededActions, network, parameters.getNetworkParameters());
             Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
 
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
@@ -307,9 +313,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                     if (checkCondition(operatorStrategy, context.getLimitViolationsPerContingencyId().get(propagatedContingency.getContingency().getId()))) {
                         propagatedContingency.toLfContingency(lfNetwork)
                                 .ifPresent(lfContingency -> {
-                                    lfContingency.apply(context.getParameters().getLoadFlowParameters().getBalanceType());
-                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, context.getParameters().getIncreasedViolationsParameters(),
-                                            lfActionById, createResultExtension, lfContingency, parameters.getBalanceType());
+                                    lfContingency.apply(loadFlowParameters.getBalanceType());
+                                    distributedMismatch(lfNetwork, DcLoadFlowEngine.getActivePowerMismatch(lfNetwork.getBuses().stream().filter(bus -> !bus.isDisabled()).collect(Collectors.toSet())),
+                                            loadFlowParameters, openLoadFlowParameters);
+                                    OperatorStrategyResult result = runActionSimulation(lfNetwork, lfContext, operatorStrategy, preContingencyLimitViolationManager, securityAnalysisParameters.getIncreasedViolationsParameters(),
+                                            lfActionById, createResultExtension, lfContingency, parameters.getNetworkParameters());
                                     operatorStrategyResults.add(result);
                                     networkState.restore();
                                 });

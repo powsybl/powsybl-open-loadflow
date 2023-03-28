@@ -203,8 +203,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        super(matrixFactory, connectivityFactory);
+    public DcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
+        super(matrixFactory, connectivityFactory, parameters);
     }
 
     private JacobianMatrix<DcVariableType, DcEquationType> createJacobianMatrix(LfNetwork network, EquationSystem<DcVariableType, DcEquationType> equationSystem, VoltageInitializer voltageInitializer) {
@@ -286,7 +286,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             }
         }
 
-        resultWriter.writeSensitivityValue(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, unscaleSensitivity(factor, sensitivityValue), unscaleFunction(factor, functionValue));
+        double unscaledSensi = unscaleSensitivity(factor, sensitivityValue);
+        if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
+            resultWriter.writeSensitivityValue(factor.getIndex(), contingency != null ? contingency.getIndex() : -1, unscaledSensi, unscaleFunction(factor, functionValue));
+        }
     }
 
     /**
@@ -766,23 +769,26 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return contingencyElementByBranch;
     }
 
+    @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
-                        LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
-                        SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen, Set<String> allBusIdsToLose) {
+                        SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen,
+                        Set<String> allBusIdsToLose) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
         Objects.requireNonNull(variableSets);
-        Objects.requireNonNull(lfParameters);
-        Objects.requireNonNull(lfParametersExt);
         Objects.requireNonNull(factorReader);
         Objects.requireNonNull(resultWriter);
+
+        LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
+        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allBusIdsToLose.isEmpty());
 
         // create the network (we only manage main connected component)
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(), lfParametersExt.getPlausibleActivePowerLimit());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(),
+                lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
