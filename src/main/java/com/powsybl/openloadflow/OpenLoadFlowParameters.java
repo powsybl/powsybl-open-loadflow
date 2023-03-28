@@ -1114,6 +1114,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     newVoltageInitializer = new FullVoltageInitializer(createVoltageMagnitudeInitializer(parameters, acParameters.getNetworkParameters(), matrixFactory),
                                                                        createDcValueVoltageInitializer(parameters, acParameters.getNetworkParameters(), matrixFactory));
                     break;
+
+                default:
+                    break;
             }
             if (newVoltageInitializer != null) {
                 LOGGER.warn("Large angle phase shifters have been detected {}, replace voltage initializer {} by {}",
