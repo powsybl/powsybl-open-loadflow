@@ -207,19 +207,11 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         boolean deriveA1 = isDeriveA1(branch);
         boolean deriveR1 = isDeriveR1(branch);
 
-        // check the existence of an extension
-        AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
-        boolean disconnectionAsymmetry = false;
-        if (asymLine != null) {
-            disconnectionAsymmetry = asymLine.isDisconnectionAsymmetryDetected();
-            System.out.println("Disymmetry detected  for branch : " + branch.getId() + " = " + disconnectionAsymmetry);
-        } else {
-            System.out.println("No disymmetry detected  for branch : " + branch.getId() + " with no asym extension");
-        }
+        boolean asymmetry = hasBranchAsymmetry(branch);
 
         if (bus1 != null && bus2 != null) {
 
-            if (!disconnectionAsymmetry) {
+            if (!asymmetry) {
                 // no assymmetry is detected with this line, we handle the equations as decoupled
                 // direct
                 p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
@@ -392,18 +384,11 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         boolean deriveR1 = isDeriveR1(branch);
 
         // check the existence of an extension
-        AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
-        boolean disconnectionAsymmetry = false;
-        if (asymLine != null) {
-            disconnectionAsymmetry = asymLine.isDisconnectionAsymmetryDetected();
-            System.out.println("Disymmetry detected  for branch : " + branch.getId() + " = " + disconnectionAsymmetry);
-        } else {
-            System.out.println("No disymmetry detected  for branch : " + branch.getId() + " with no asym extension");
-        }
+        boolean asymmetry = hasBranchAsymmetry(branch);
 
         if (bus1 != null && bus2 != null) {
 
-            if (!disconnectionAsymmetry) {
+            if (!asymmetry) {
                 // no assymmetry is detected with this line, we handle the equations as decoupled
                 // direct
                 p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
@@ -548,6 +533,23 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+    }
+
+    public boolean hasBranchAsymmetry(LfBranch branch) {
+        // check the existence of an extension
+        AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
+        boolean asymmetry = false;
+        if (asymLine != null) {
+            if (asymLine.isAdmittanceAsymmetryDetected() || asymLine.isDisconnectionAsymmetryDetected()) {
+                asymmetry = true;
+                System.out.println("Asymmetry detected  for branch : " + branch.getId() + " = " + asymmetry);
+            } else {
+                System.out.println("No asymmetry detected  for branch : " + branch.getId() + " with asym extension");
+            }
+        } else {
+            System.out.println("No asymmetry detected  for branch : " + branch.getId() + " with no asym extension");
+        }
+        return asymmetry;
     }
 
     @Override

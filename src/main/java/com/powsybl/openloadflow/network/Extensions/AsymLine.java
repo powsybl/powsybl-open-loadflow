@@ -56,6 +56,15 @@ public class AsymLine {
         return isOpenA | isOpenB | isOpenC;
     }
 
+    public boolean isAdmittanceAsymmetryDetected() {
+        boolean isAsymmetry = false;
+        if (admittanceMatrix != null) {
+            isAsymmetry = AsymLineAdmittanceMatrix.isAdmittanceDecoupled(admittanceMatrix.getmY012());
+        }
+
+        return isAsymmetry;
+    }
+
     public AsymLineAdmittanceMatrix getAdmittanceMatrix() {
         return admittanceMatrix;
     }
