@@ -12,6 +12,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializerType;
 
 import java.util.List;
 import java.util.Objects;
@@ -38,6 +39,11 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         this.balanceType = Objects.requireNonNull(balanceType);
         this.useTransformerRatio = useTransformerRatio;
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+    }
+
+    @Override
+    public VoltageInitializerType getType() {
+        return VoltageInitializerType.DC_VALUE;
     }
 
     @Override

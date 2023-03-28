@@ -28,6 +28,11 @@ public class PreviousValueVoltageInitializer implements VoltageInitializer {
     }
 
     @Override
+    public VoltageInitializerType getType() {
+        return VoltageInitializerType.PREVIOUS_VALUE;
+    }
+
+    @Override
     public void prepare(LfNetwork network) {
         // nothing to do
     }

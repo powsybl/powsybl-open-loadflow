@@ -57,7 +57,8 @@
         "reactiveLimitsMaxPqPvSwitch" : 3,
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
         "alwaysUpdateNetwork" : false,
-        "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile" : 95.0
+        "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile" : 95.0,
+        "autoDcInitPhaseShifterAngleThreshold" : 20.0
       }
     }
   },

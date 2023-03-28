@@ -12,6 +12,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializerType;
 import gnu.trove.list.array.TDoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -181,6 +182,11 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             default:
                 throw new IllegalStateException("Unknown equation type: " + equation.getType());
         }
+    }
+
+    @Override
+    public VoltageInitializerType getType() {
+        return VoltageInitializerType.VOLTAGE_MAGNITUDE;
     }
 
     @Override

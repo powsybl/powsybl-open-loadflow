@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializerType;
 
 import java.util.Objects;
 
@@ -29,6 +30,11 @@ public class FullVoltageInitializer implements VoltageInitializer {
     public FullVoltageInitializer(VoltageMagnitudeInitializer magnitudeInitializer, DcValueVoltageInitializer angleInitializer) {
         this.magnitudeInitializer = Objects.requireNonNull(magnitudeInitializer);
         this.angleInitializer = Objects.requireNonNull(angleInitializer);
+    }
+
+    @Override
+    public VoltageInitializerType getType() {
+        return VoltageInitializerType.FULL_VOLTAGE;
     }
 
     @Override

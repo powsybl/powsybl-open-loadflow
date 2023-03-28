@@ -13,6 +13,7 @@ import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.commons.parameters.ParameterType;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -32,6 +33,7 @@ import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import de.vandermeer.asciitable.AsciiTable;
 import de.vandermeer.asciitable.CWC_LongestWord;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +93,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final ShuntVoltageControlMode SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE = ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL;
 
     public static final PhaseShifterControlMode PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE = PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION;
+
+    public static final double AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_DEFAULT_VALUE = 20;
 
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
@@ -172,6 +176,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME = "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile";
 
+    private static final String AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME = "autoDcInitPhaseShifterAngleThreshold";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -216,7 +222,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
         new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
         new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
-        new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE)
+        new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE),
+        new Parameter(AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "Phase shifter angle threshold in degree to which we try to automatically switch voltage init mode to DC", AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_DEFAULT_VALUE)
     );
 
     public enum VoltageInitModeOverride {
@@ -331,6 +338,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean alwaysUpdateNetwork = NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
     private double mostMeshedSlackBusSelectorMaxNominalVoltagePercentile = MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE;
+
+    private double autoDcInitPhaseShifterAngleThreshold = AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -739,6 +748,18 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getAutoDcInitPhaseShifterAngleThreshold() {
+        return autoDcInitPhaseShifterAngleThreshold;
+    }
+
+    public OpenLoadFlowParameters setAutoDcInitPhaseShifterAngleThreshold(double autoDcInitPhaseShifterAngleThreshold) {
+        if (autoDcInitPhaseShifterAngleThreshold <= 0 || autoDcInitPhaseShifterAngleThreshold >= 360) {
+            throw new IllegalArgumentException("Invalid angle: " + autoDcInitPhaseShifterAngleThreshold);
+        }
+        this.autoDcInitPhaseShifterAngleThreshold = autoDcInitPhaseShifterAngleThreshold;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -789,7 +810,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
                 .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
                 .setAlwaysUpdateNetwork(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME, NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
-                .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(config.getDoubleProperty(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE)));
+                .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(config.getDoubleProperty(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE))
+                .setAutoDcInitPhaseShifterAngleThreshold(config.getDoubleProperty(AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME, AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -878,6 +900,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setAlwaysUpdateNetwork(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME))
                 .ifPresent(prop -> this.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME))
+                .ifPresent(prop -> this.setAutoDcInitPhaseShifterAngleThreshold(Double.parseDouble(prop)));
         return this;
     }
 
@@ -923,6 +947,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
         map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME, alwaysUpdateNetwork);
         map.put(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile);
+        map.put(AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME, autoDcInitPhaseShifterAngleThreshold);
         return map;
     }
 
@@ -973,6 +998,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
+    private static DcValueVoltageInitializer createDcValueVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
+        return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory);
+    }
+
+    private static VoltageMagnitudeInitializer createVoltageMagnitudeInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
+        return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold());
+    }
+
     static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
@@ -980,7 +1013,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory);
+                return createDcValueVoltageInitializer(parameters, networkParameters, matrixFactory);
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
@@ -993,15 +1026,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 return getVoltageInitializer(parameters, networkParameters, matrixFactory);
 
             case VOLTAGE_MAGNITUDE:
-                return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold());
+                return createVoltageMagnitudeInitializer(parameters, networkParameters, matrixFactory);
 
             case FULL_VOLTAGE:
-                return new FullVoltageInitializer(new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold()),
-                        new DcValueVoltageInitializer(networkParameters,
-                                                      parameters.isDistributedSlack(),
-                                                      parameters.getBalanceType(),
-                                                      parameters.isDcUseTransformerRatio(),
-                                                      matrixFactory));
+                return new FullVoltageInitializer(createVoltageMagnitudeInitializer(parameters, networkParameters, matrixFactory),
+                                                  createDcValueVoltageInitializer(parameters, networkParameters, matrixFactory));
 
             default:
                 throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());
@@ -1046,12 +1075,51 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return createAcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, false, false);
     }
 
+    private static void addLargeAnglePhaseShifter(String id, PhaseTapChanger ptc, OpenLoadFlowParameters parametersExt,
+                                                  List<Pair<String, Double>> largeAnglePhaseShifters) {
+        if (ptc != null && Math.abs(ptc.getCurrentStep().getAlpha()) > parametersExt.getAutoDcInitPhaseShifterAngleThreshold()) {
+            largeAnglePhaseShifters.add(Pair.of(id, ptc.getCurrentStep().getAlpha()));
+        }
+    }
+
+    private static List<Pair<String, Double>> findLargeAnglePhaseShifters(Network network, OpenLoadFlowParameters parametersExt) {
+        List<Pair<String, Double>> largeAnglePhaseShifters = new ArrayList<>();
+        for (var twt : network.getTwoWindingsTransformers()) {
+            addLargeAnglePhaseShifter(twt.getId(), twt.getPhaseTapChanger(), parametersExt, largeAnglePhaseShifters);
+        }
+        for (var twt : network.getThreeWindingsTransformers()) {
+            addLargeAnglePhaseShifter(twt.getId(), twt.getLeg1().getPhaseTapChanger(), parametersExt, largeAnglePhaseShifters);
+            addLargeAnglePhaseShifter(twt.getId(), twt.getLeg2().getPhaseTapChanger(), parametersExt, largeAnglePhaseShifters);
+            addLargeAnglePhaseShifter(twt.getId(), twt.getLeg3().getPhaseTapChanger(), parametersExt, largeAnglePhaseShifters);
+        }
+        return largeAnglePhaseShifters;
+    }
+
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
         AcLoadFlowParameters acParameters = createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, breakers, forceA1Var);
         if (parameters.isReadSlackBus()) {
             acParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, acParameters.getNetworkParameters().getSlackBusSelector()));
+        }
+        var largeAnglePhaseShifters = findLargeAnglePhaseShifters(network, parametersExt);
+        if (!largeAnglePhaseShifters.isEmpty()) {
+            VoltageInitializer newVoltageInitializer = null;
+            switch (acParameters.getVoltageInitializer().getType()) {
+                case UNIFORM_VALUE:
+                    newVoltageInitializer = createDcValueVoltageInitializer(parameters, acParameters.getNetworkParameters(), matrixFactory);
+                    break;
+
+                case VOLTAGE_MAGNITUDE:
+                    newVoltageInitializer = new FullVoltageInitializer(createVoltageMagnitudeInitializer(parameters, acParameters.getNetworkParameters(), matrixFactory),
+                                                                       createDcValueVoltageInitializer(parameters, acParameters.getNetworkParameters(), matrixFactory));
+                    break;
+            }
+            if (newVoltageInitializer != null) {
+                LOGGER.warn("Large angle phase shifters have been detected {}, replace voltage initializer {} by {}",
+                        largeAnglePhaseShifters, acParameters.getVoltageInitializer().getType(), newVoltageInitializer.getType());
+                acParameters.setVoltageInitializer(newVoltageInitializer);
+            }
         }
         return acParameters;
     }
@@ -1223,7 +1291,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
                 extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
                 extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
-                extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile();
+                extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() &&
+                extension1.getAutoDcInitPhaseShifterAngleThreshold() == extension2.getAutoDcInitPhaseShifterAngleThreshold();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1281,7 +1350,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
                     .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
                     .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
-                    .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(extension.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile());
+                    .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(extension.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile())
+                    .setAutoDcInitPhaseShifterAngleThreshold(extension.getAutoDcInitPhaseShifterAngleThreshold());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

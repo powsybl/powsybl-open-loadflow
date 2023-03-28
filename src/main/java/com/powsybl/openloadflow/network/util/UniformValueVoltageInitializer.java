@@ -15,6 +15,11 @@ import com.powsybl.openloadflow.network.LfNetwork;
 public class UniformValueVoltageInitializer implements VoltageInitializer {
 
     @Override
+    public VoltageInitializerType getType() {
+        return VoltageInitializerType.UNIFORM_VALUE;
+    }
+
+    @Override
     public void prepare(LfNetwork network) {
         // nothing to do
     }
