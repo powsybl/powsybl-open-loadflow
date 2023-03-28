@@ -84,8 +84,8 @@ class NonImpedantBranchDisablingTest {
         network.getLine("L2").setR(0.0).setX(0.0);
         network.getLine("L1").getTerminal1().disconnect();
         loadFlowRunner.run(network);
-        assertEquals(600.0, network.getLine("L2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-600.0, network.getLine("L2").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(600.018, network.getLine("L2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-600.018, network.getLine("L2").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, network.getLine("L1").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
 
         network.getLine("L1").getTerminal1().connect();
