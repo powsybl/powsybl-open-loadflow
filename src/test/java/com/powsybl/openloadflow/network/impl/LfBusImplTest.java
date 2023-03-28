@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -133,7 +132,7 @@ class LfBusImplTest {
         lfBus.addStaticVarCompensator(svc2, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc3, parameters, lfNetworkLoadingReport);
         double generationQ = -6.412103131789854;
-        lfBus.updateGeneratorsState(generationQ * PerUnit.SB, true);
+        lfBus.updateGeneratorsState(generationQ, true);
         double sumQ = 0;
         for (LfGenerator lfGenerator : lfBus.getGenerators()) {
             sumQ += lfGenerator.getCalculatedQ();
