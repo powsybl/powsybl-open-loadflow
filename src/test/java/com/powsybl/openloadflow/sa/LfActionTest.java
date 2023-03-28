@@ -151,4 +151,24 @@ class LfActionTest extends AbstractConverterTest {
             assertEquals("Hvdc action: line is already in AC emulation, not supported yet.", e.getMessage());
         }
     }
+
+    @Test
+    void testHvdcAction2() {
+        // the hvc line is in active power setpoint mode before applying the action. Not supported yet.
+        Network network = HvdcNetworkFactory.createVsc();
+        HvdcAction hvdcAction = new HvdcActionBuilder()
+                .withId("action")
+                .withHvdcId("hvdc23")
+                .withAcEmulationEnabled(true)
+                .withP0(200.0)
+                .withDroop(90.0)
+                .build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), Reporter.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            assertTrue(LfAction.create(hvdcAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
+        }
+    }
 }
