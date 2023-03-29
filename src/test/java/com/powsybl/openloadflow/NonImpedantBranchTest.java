@@ -6,6 +6,11 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.contingency.BranchContingency;
+import com.powsybl.contingency.ContingenciesProvider;
+import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
@@ -14,10 +19,17 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
+import com.powsybl.security.*;
+import com.powsybl.security.detectors.DefaultLimitViolationDetector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -265,7 +277,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
      *       l2 (4 MW, 2 MVar)
      */
     @Test
-    void nonImpedentNetworkWithTwoPVBusesTest() {
+    void nonImpedantNetworkWithTwoPVBusesTest() {
         Network network = Network.create("TwoPVBusesInNonImpNet", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -296,7 +308,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
     }
 
     @Test
-    void nonImpedentNetworkWithCycleTest() {
+    void nonImpedantNetworkWithCycleTest() {
         Network network = Network.create("ThreeBusesNetworkWithCycle", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -317,5 +329,40 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         assertAngleEquals(0, b1);
         assertAngleEquals(0, b2);
         assertAngleEquals(0, b3);
+    }
+
+    @Test
+    void securityAnalysisTest() {
+        Network network = Network.create("test", "code");
+        Bus b0 = createBus(network, "b0");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b5 = createBus(network, "b5");
+        Bus b7 = createBus(network, "b7");
+        Bus b9 = createBus(network, "b9");
+        createGenerator(b1, "g1", 2);
+        createGenerator(b9, "g9", 1);
+        createLoad(b2, "d2", 1);
+        createLoad(b7, "d7", 4);
+        createLine(network, b0, b1, "l01", 0.0);
+        createLine(network, b0, b2, "l02", 0.0);
+        createLine(network, b1, b3, "l13", 0.0);
+        createLine(network, b2, b3, "l23", 0.0);
+        createLine(network, b2, b5, "l25", 0.0);
+        createLine(network, b5, b9, "l59", 0.1);
+        createLine(network, b7, b9, "l79", 0.1);
+
+        List<Contingency> contingencies = List.of(new Contingency("contingency1", List.of(new BranchContingency("l01"), new BranchContingency("l02"))),
+                                                  new Contingency("contingency2", List.of(new BranchContingency("l01"), new BranchContingency("l13"))));
+
+        ContingenciesProvider provider = n -> contingencies;
+        SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        SecurityAnalysisReport report = securityAnalysisProvider.run(network, network.getVariantManager().getWorkingVariantId(), new DefaultLimitViolationDetector(),
+                new LimitViolationFilter(), LocalComputationManager.getDefault(), new SecurityAnalysisParameters(), provider, Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), Reporter.NO_OP).join();
+        assertTrue(report.getResult().getPostContingencyResults().get(0).getStatus().equals(PostContingencyComputationStatus.CONVERGED));
+        assertTrue(report.getResult().getPostContingencyResults().get(1).getStatus().equals(PostContingencyComputationStatus.CONVERGED));
     }
 }
