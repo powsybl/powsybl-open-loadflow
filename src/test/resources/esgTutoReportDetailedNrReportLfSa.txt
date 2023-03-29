@@ -79,9 +79,9 @@
          Iteration 1: already balanced
       + Newton Raphson on Network CC0 SC0 || Outer loop iteration 1 and type `Distributed slack on generation`
         + Initial mismatch
-           Norm |f(x0)|='0.014405623086541253'
+           Norm |f(x0)|='0.014405623086540364'
           + Initial mismatch on TargetP
-             Mismatch on TargetP : '0.014405609240326633'
+             Mismatch on TargetP : '0.014405609240325745'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
              Bus Phi : '0.04069359966489529'
@@ -101,17 +101,17 @@
              Mismatch on TargetP : '-1.0630223634677805E-7'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
-             Bus Phi : '0.04059603080710122'
+             Bus Phi : '0.040596030807101224'
           + Iteration 0 mismatch on TargetQ
              Mismatch on TargetQ : '7.02222821225007E-7'
              Bus Id : 'VLHV1_0'
              Bus V : '1.058270597695305'
-             Bus Phi : '7.399385937372922E-22'
+             Bus Phi : '-1.0929937937293232E-22'
           + Iteration 0 mismatch on TargetV
              Mismatch on TargetV : '0.0'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
-             Bus Phi : '0.04059603080710122'
+             Bus Phi : '0.040596030807101224'
       + Outer loop Voltage monitoring
       + Outer loop Reactive limits
       + Outer loop Distributed slack on generation
@@ -126,38 +126,38 @@
          Network balance: active generation=607.0 MW, active load=600.0 MW, reactive generation=0.0 MVar, reactive load=200.0 MVar
       + Newton Raphson on Network CC0 SC0 || No outer loops calculations
         + Initial mismatch
-           Norm |f(x0)|='0.014404151970573112'
+           Norm |f(x0)|='0.014404151970572224'
           + Initial mismatch on TargetP
-             Mismatch on TargetP : '-0.014404151953455901'
+             Mismatch on TargetP : '-0.014404151953455013'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
-             Bus Phi : '0.040596030807101224'
+             Bus Phi : '0.04059603080710123'
           + Initial mismatch on TargetQ
              Mismatch on TargetQ : '7.02222821225007E-7'
              Bus Id : 'VLHV1_0'
              Bus V : '1.058270597695305'
-             Bus Phi : '7.399385937372922E-22'
+             Bus Phi : '-1.0929937937293232E-22'
           + Initial mismatch on TargetV
              Mismatch on TargetV : '0.0'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
-             Bus Phi : '0.040596030807101224'
+             Bus Phi : '0.04059603080710123'
         + Iteration 0 mismatch
-           Norm |f(x)|='7.105375846338748E-7'
+           Norm |f(x)|='7.105375844976278E-7'
           + Iteration 0 mismatch on TargetP
-             Mismatch on TargetP : '-1.0899671565312019E-7'
+             Mismatch on TargetP : '-1.0899671476494177E-7'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
-             Bus Phi : '0.04069359150608377'
+             Bus Phi : '0.04069359150608378'
           + Iteration 0 mismatch on TargetQ
              Mismatch on TargetQ : '7.021268124685065E-7'
              Bus Id : 'VLHV1_0'
              Bus V : '1.0582634572825331'
-             Bus Phi : '-2.508257488317156E-22'
+             Bus Phi : '1.7377614707535564E-22'
           + Iteration 0 mismatch on TargetV
              Mismatch on TargetV : '0.0'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
-             Bus Phi : '0.04069359150608377'
+             Bus Phi : '0.04069359150608378'
       + Outer loop Voltage monitoring
       + Outer loop Reactive limits

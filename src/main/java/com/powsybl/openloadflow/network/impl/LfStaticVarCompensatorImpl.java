@@ -108,7 +108,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
             }
         }
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.REACTIVE_POWER) {
-            targetQ = -svc.getReactivePowerSetpoint();
+            targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
         }
     }
 
@@ -133,7 +133,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     @Override
     public double getTargetQ() {
-        return targetQ / PerUnit.SB;
+        return targetQ;
     }
 
     @Override
@@ -155,7 +155,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     public void updateState() {
         double vSquare = bus.getV() * bus.getV() * nominalV * nominalV;
         double newTargetQ = Double.isNaN(targetQ) ? 0 : -targetQ;
-        double q = Double.isNaN(calculatedQ) ? newTargetQ : -calculatedQ;
+        double q = (Double.isNaN(calculatedQ) ? newTargetQ : -calculatedQ) * PerUnit.SB;
         getSvc().getTerminal()
                 .setP(0)
                 .setQ(q - b0 * vSquare);

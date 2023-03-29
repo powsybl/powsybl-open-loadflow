@@ -33,7 +33,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     private double participationFactor;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, generator.getTargetP());
+        super(network, generator.getTargetP() / PerUnit.SB);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
@@ -142,7 +142,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     public void updateState() {
         var generator = getGenerator();
         generator.getTerminal()
-                .setP(-targetP)
-                .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
+                .setP(-targetP * PerUnit.SB)
+                .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ * PerUnit.SB);
     }
 }

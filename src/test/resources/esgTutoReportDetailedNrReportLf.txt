@@ -79,9 +79,9 @@
          Iteration 1: already balanced
       + Newton Raphson on Network CC0 SC0 || Outer loop iteration 1 and type `Distributed slack on generation`
         + Initial mismatch
-           Norm |f(x0)|='0.014405623086541253'
+           Norm |f(x0)|='0.014405623086540364'
           + Initial mismatch on TargetP
-             Mismatch on TargetP : '0.014405609240326633'
+             Mismatch on TargetP : '0.014405609240325745'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
              Bus Phi : '0.04069359966489529'
@@ -101,17 +101,17 @@
              Mismatch on TargetP : '-1.0630223634677805E-7'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
-             Bus Phi : '0.04059603080710122'
+             Bus Phi : '0.040596030807101224'
           + Iteration 0 mismatch on TargetQ
              Mismatch on TargetQ : '7.02222821225007E-7'
              Bus Id : 'VLHV1_0'
              Bus V : '1.058270597695305'
-             Bus Phi : '7.399385937372922E-22'
+             Bus Phi : '-1.0929937937293232E-22'
           + Iteration 0 mismatch on TargetV
              Mismatch on TargetV : '0.0'
              Bus Id : 'VLGEN_0'
              Bus V : '1.0208333333333333'
-             Bus Phi : '0.04059603080710122'
+             Bus Phi : '0.040596030807101224'
       + Outer loop Voltage monitoring
       + Outer loop Reactive limits
       + Outer loop Distributed slack on generation
