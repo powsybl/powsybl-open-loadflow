@@ -140,13 +140,13 @@ public final class LfAction {
             LfBus lfBus = lfNetwork.getBusById(bus.getId());
             double activePowerShift = 0;
             double reactivePowerShift = 0;
-            Optional<Double> activePowerValue = action.getActivePowerValue();
-            Optional<Double> reactivePowerValue = action.getReactivePowerValue();
+            OptionalDouble activePowerValue = action.getActivePowerValue();
+            OptionalDouble reactivePowerValue = action.getReactivePowerValue();
             if (activePowerValue.isPresent()) {
-                activePowerShift = action.isRelativeValue() ? activePowerValue.get() : activePowerValue.get() - load.getP0();
+                activePowerShift = action.isRelativeValue() ? activePowerValue.getAsDouble() : activePowerValue.getAsDouble() - load.getP0();
             }
             if (reactivePowerValue.isPresent()) {
-                reactivePowerShift = action.isRelativeValue() ? reactivePowerValue.get() : reactivePowerValue.get() - load.getQ0();
+                reactivePowerShift = action.isRelativeValue() ? reactivePowerValue.getAsDouble() : reactivePowerValue.getAsDouble() - load.getQ0();
             }
             // In case of a power shift, we suppose that the shift on a load P0 is exactly the same on the variable active power
             // of P0 that could be described in a LoadDetail extension.
@@ -199,14 +199,14 @@ public final class LfAction {
     private static Optional<LfAction> create(GeneratorAction action, LfNetwork lfNetwork) {
         LfGenerator generator = lfNetwork.getGeneratorById(action.getGeneratorId());
         if (generator != null) {
-            Optional<Double> activePowerValue = action.getActivePowerValue();
+            OptionalDouble activePowerValue = action.getActivePowerValue();
             Optional<Boolean> relativeValue = action.isActivePowerRelativeValue();
             if (relativeValue.isPresent() && activePowerValue.isPresent()) {
                 double deltaTargetP;
                 if (relativeValue.get().equals(Boolean.TRUE)) {
-                    deltaTargetP = activePowerValue.get() / PerUnit.SB;
+                    deltaTargetP = activePowerValue.getAsDouble() / PerUnit.SB;
                 } else {
-                    deltaTargetP = activePowerValue.get() / PerUnit.SB - generator.getInitialTargetP();
+                    deltaTargetP = activePowerValue.getAsDouble() / PerUnit.SB - generator.getInitialTargetP();
                 }
                 var generatorChange = new GeneratorChange(generator, deltaTargetP);
                 return Optional.of(new LfAction(action.getId(), null, null, null, null, generatorChange));
@@ -308,7 +308,7 @@ public final class LfAction {
                 bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
                 bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
                 bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP()
-                        + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()) * PerUnit.SB);
+                        + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
             }
         }
 

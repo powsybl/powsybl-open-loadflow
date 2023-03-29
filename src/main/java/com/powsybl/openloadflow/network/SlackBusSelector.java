@@ -16,16 +16,17 @@ public interface SlackBusSelector {
 
     SelectedSlackBus select(List<LfBus> buses, int limit);
 
-    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds, double plausibleActivePowerLimit) {
+    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds, double plausibleActivePowerLimit,
+                                     double mostMeshedMaxNominalVoltagePercentile) {
         Objects.requireNonNull(mode);
         Objects.requireNonNull(slackBusesIds);
         switch (mode) {
             case FIRST:
                 return new FirstSlackBusSelector();
             case MOST_MESHED:
-                return new MostMeshedSlackBusSelector();
+                return new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile);
             case NAME:
-                return new NameSlackBusSelector(slackBusesIds);
+                return new NameSlackBusSelector(slackBusesIds, new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile));
             case LARGEST_GENERATOR:
                 return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit);
             default:
