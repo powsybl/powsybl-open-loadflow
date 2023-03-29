@@ -78,23 +78,22 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     @Override
     public double getInitialTargetP() {
-        return initialTargetP / PerUnit.SB;
+        return initialTargetP;
     }
 
     @Override
     public double getTargetP() {
-        return targetP / PerUnit.SB;
+        return targetP;
     }
 
     @Override
     public void setTargetP(double targetP) {
-        double newTargetP = targetP * PerUnit.SB;
-        if (newTargetP != this.targetP) {
+        if (targetP != this.targetP) {
             double oldTargetP = this.targetP;
-            this.targetP = newTargetP;
+            this.targetP = targetP;
             bus.invalidateGenerationTargetP();
             for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
-                listener.onGenerationActivePowerTargetChange(this, oldTargetP, newTargetP);
+                listener.onGenerationActivePowerTargetChange(this, oldTargetP, targetP);
             }
         }
     }
@@ -129,14 +128,14 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public double getMinQ() {
         return getReactiveLimits()
-                .map(limits -> limits.getMinQ(targetP) / PerUnit.SB)
+                .map(limits -> limits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB)
                 .orElse(-Double.MAX_VALUE);
     }
 
     @Override
     public double getMaxQ() {
         return getReactiveLimits()
-                .map(limits -> limits.getMaxQ(targetP) / PerUnit.SB)
+                .map(limits -> limits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB)
                 .orElse(Double.MAX_VALUE);
     }
 
@@ -158,7 +157,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                             }
                         }
                     } else if (rangeMode == ReactiveRangeMode.TARGET_P) {
-                        rangeQ = reactiveLimits.getMaxQ(targetP) - reactiveLimits.getMinQ(targetP);
+                        rangeQ = reactiveLimits.getMaxQ(targetP * PerUnit.SB) - reactiveLimits.getMinQ(targetP * PerUnit.SB);
                     } else {
                         throw new PowsyblException("Unsupported reactive range mode: " + rangeMode);
                     }
@@ -180,12 +179,12 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     @Override
     public double getCalculatedQ() {
-        return calculatedQ / PerUnit.SB;
+        return calculatedQ;
     }
 
     @Override
     public void setCalculatedQ(double calculatedQ) {
-        this.calculatedQ = calculatedQ * PerUnit.SB;
+        this.calculatedQ = calculatedQ;
     }
 
     @Override
