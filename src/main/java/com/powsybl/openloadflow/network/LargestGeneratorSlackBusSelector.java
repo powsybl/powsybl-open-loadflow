@@ -9,24 +9,26 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LargestGeneratorSlackBusSelector implements SlackBusSelector {
+public class LargestGeneratorSlackBusSelector extends AbstractSlackBusSelector {
 
     private final double plausibleActivePowerLimit;
-    private final Set<Country> countriesForSlackBusSelection;
 
     public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit) {
         this(plausibleActivePowerLimit, Collections.emptySet());
     }
 
-    public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit, Set<Country> countriesForSlackBusSelection) {
+    public LargestGeneratorSlackBusSelector(double plausibleActivePowerLimit, Set<Country> countries) {
+        super(countries);
         this.plausibleActivePowerLimit = plausibleActivePowerLimit;
-        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
     }
 
     private static double getMaxP(LfBus bus) {
@@ -41,7 +43,7 @@ public class LargestGeneratorSlackBusSelector implements SlackBusSelector {
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
         List<LfBus> slackBuses = buses.stream()
                 .filter(bus -> !bus.isFictitious())
-                .filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus))
+                .filter(this::filterByCountry)
                 .filter(bus -> !bus.getGenerators().isEmpty() && bus.getGenerators().stream().noneMatch(this::isGeneratorInvalid))
                 .sorted(Comparator.comparingDouble(LargestGeneratorSlackBusSelector::getMaxP).reversed())
                 .limit(limit)

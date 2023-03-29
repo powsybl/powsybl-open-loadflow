@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class NetworkSlackBusSelector implements SlackBusSelector {
+public class NetworkSlackBusSelector extends AbstractSlackBusSelector {
 
     private static final String SELECTION_METHOD = "Network extension bus";
 
@@ -29,12 +29,10 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
 
     private final Set<String> slackBusIds = new HashSet<>();
 
-    private final Set<Country> countriesForSlackBusSelection;
-
-    public NetworkSlackBusSelector(Network network, Set<Country> countriesForSlackBusSelection, SlackBusSelector fallbackSelector) {
+    public NetworkSlackBusSelector(Network network, Set<Country> countries, SlackBusSelector fallbackSelector) {
+        super(countries);
         Objects.requireNonNull(network);
         this.fallbackSelector = Objects.requireNonNull(fallbackSelector);
-        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
         for (VoltageLevel vl : network.getVoltageLevels()) {
             SlackTerminal slackTerminal = vl.getExtension(SlackTerminal.class);
             if (slackTerminal != null) {
@@ -53,8 +51,9 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
         List<LfBus> slackBuses = buses.stream()
-                .filter(bus -> !bus.isFictitious() && slackBusIds.contains(bus.getId()))
-                .filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus))
+                .filter(bus -> !bus.isFictitious())
+                .filter(this::filterByCountry)
+                .filter(bus -> slackBusIds.contains(bus.getId()))
                 .collect(Collectors.toList());
         if (slackBuses.isEmpty()) {
             // fallback to automatic selection

@@ -16,24 +16,22 @@ import java.util.stream.Stream;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NameSlackBusSelector implements SlackBusSelector {
+public class NameSlackBusSelector extends AbstractSlackBusSelector {
 
     private static final String SELECTION_METHOD = "Parameter bus";
 
     private final List<String> busesOrVoltageLevelsIds;
 
-    private final Set<Country> countriesForSlackBusSelection;
-
     private final SlackBusSelector secondLevelSelector;
 
-    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds, Set<Country> countriesForSlackBusSelection,
+    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds, Set<Country> countries,
                                 SlackBusSelector secondLevelSelector) {
+        super(countries);
         if (busesOrVoltageLevelsIds.isEmpty()) {
             throw new IllegalArgumentException("Empty bus or voltage level ID list");
         }
         this.busesOrVoltageLevelsIds = Objects.requireNonNull(busesOrVoltageLevelsIds);
         this.secondLevelSelector = Objects.requireNonNull(secondLevelSelector);
-        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
     }
 
     public NameSlackBusSelector(String... busesOrVoltageLevelsIds) {
@@ -56,7 +54,7 @@ public class NameSlackBusSelector implements SlackBusSelector {
                 return slackBusCandidates.stream();
             }
             return Stream.empty();
-        }).filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus)).collect(Collectors.toList());
+        }).filter(this::filterByCountry).collect(Collectors.toList());
 
         if (slackBuses.isEmpty()) {
             // fallback to automatic selection among all buses

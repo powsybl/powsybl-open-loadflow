@@ -12,7 +12,9 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -40,9 +42,9 @@ public class LfNetworkParameters {
 
     public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
 
-    public static final Set<Country> COUNTRIES_FOR_SLACK_BUS_SELECTION_DEFAULT_VALUE = Collections.unmodifiableSet(EnumSet.noneOf(Country.class));
+    public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
 
-    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(COUNTRIES_FOR_SLACK_BUS_SELECTION_DEFAULT_VALUE);
+    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
@@ -97,8 +99,6 @@ public class LfNetworkParameters {
     private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
-
-    private Set<Country> countriesForSlackBusSelection = COUNTRIES_FOR_SLACK_BUS_SELECTION_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -362,15 +362,6 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public Set<Country> getCountriesForSlackBusSelection() {
-        return countriesForSlackBusSelection;
-    }
-
-    public LfNetworkParameters setCountriesForSlackBusSelection(Set<Country> countriesForSlackBusSelection) {
-        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
-        return this;
-    }
-
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -401,7 +392,6 @@ public class LfNetworkParameters {
                 ", debugDir=" + debugDir +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
-                ", countriesForSlackBusSelection=" + countriesForSlackBusSelection +
                 ')';
     }
 }

@@ -13,9 +13,8 @@ import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -41,7 +40,7 @@ class FirstSlackBusSelectorTest {
         assertEquals("S3VL1_0", slackBus.getId());
 
         lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
-                new FirstSlackBusSelector(new HashSet<>(Arrays.asList(Country.BE, Country.FR)))).get(0);
+                new FirstSlackBusSelector(Set.of(Country.BE, Country.FR))).get(0);
         slackBus = lfNetwork.getSlackBus();
         assertEquals("S2VL1_0", slackBus.getId());
     }

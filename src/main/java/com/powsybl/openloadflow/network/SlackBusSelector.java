@@ -20,26 +20,20 @@ public interface SlackBusSelector {
     SelectedSlackBus select(List<LfBus> buses, int limit);
 
     static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds, double plausibleActivePowerLimit,
-                                     double mostMeshedMaxNominalVoltagePercentile, Set<Country> countriesForSlackBusSelection) {
+                                     double mostMeshedMaxNominalVoltagePercentile, Set<Country> countries) {
         Objects.requireNonNull(mode);
         Objects.requireNonNull(slackBusesIds);
         switch (mode) {
             case FIRST:
-                return new FirstSlackBusSelector(countriesForSlackBusSelection);
+                return new FirstSlackBusSelector(countries);
             case MOST_MESHED:
-                return new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile, countriesForSlackBusSelection);
+                return new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile, countries);
             case NAME:
-                return new NameSlackBusSelector(slackBusesIds, countriesForSlackBusSelection,
-                        new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile, countriesForSlackBusSelection));
+                return new NameSlackBusSelector(slackBusesIds, countries, new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile, countries));
             case LARGEST_GENERATOR:
-                return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit, countriesForSlackBusSelection);
+                return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit, countries);
             default:
                 throw new IllegalStateException("Unknown slack bus selection mode: " + mode);
         }
-    }
-
-    static boolean participateToSlackBusSelection(Set<Country> countriesForSlackBusSelection, LfBus bus) {
-        return countriesForSlackBusSelection.isEmpty()
-                || bus.getCountry().map(countriesForSlackBusSelection::contains).orElse(false);
     }
 }

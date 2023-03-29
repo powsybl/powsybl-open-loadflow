@@ -10,30 +10,27 @@ import com.powsybl.iidm.network.Country;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class FirstSlackBusSelector implements SlackBusSelector {
-
-    private final Set<Country> countriesForSlackBusSelection;
+public class FirstSlackBusSelector extends AbstractSlackBusSelector {
 
     public FirstSlackBusSelector() { // for tests only
         this(Collections.emptySet());
     }
 
-    public FirstSlackBusSelector(Set<Country> countriesForSlackBusSelection) {
-        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
+    public FirstSlackBusSelector(Set<Country> countries) {
+        super(countries);
     }
 
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
         return new SelectedSlackBus(buses.stream()
                 .filter(bus -> !bus.isFictitious())
-                .filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus))
+                .filter(this::filterByCountry)
                 .limit(limit).collect(Collectors.toList()), "First bus");
     }
 }

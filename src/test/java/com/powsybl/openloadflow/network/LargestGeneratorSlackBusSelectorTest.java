@@ -12,10 +12,7 @@ import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -81,7 +78,7 @@ class LargestGeneratorSlackBusSelectorTest {
 
         lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
                 new LargestGeneratorSlackBusSelector(5000,
-                        new HashSet<>(Arrays.asList(Country.BE, Country.FR)))).get(0);
+                        Set.of(Country.BE, Country.FR))).get(0);
         slackBus = lfNetwork.getSlackBus();
         assertEquals("S2VL1_0", slackBus.getId());
     }
