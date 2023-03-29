@@ -336,7 +336,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double mostMeshedSlackBusSelectorMaxNominalVoltagePercentile = MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE;
 
-    private Set<Country> countriesForSlackBusSelection = new HashSet<>(LfNetworkParameters.COUNTRIES_FOR_SLACK_BUS_SELECTION_DEFAULT_VALUE);
+    private Set<Country> countriesForSlackBusSelection = LfNetworkParameters.COUNTRIES_FOR_SLACK_BUS_SELECTION_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -750,7 +750,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setCountriesForSlackBusSelection(Set<Country> countriesForSlackBusSelection) {
-        this.countriesForSlackBusSelection = countriesForSlackBusSelection;
+        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
         return this;
     }
 

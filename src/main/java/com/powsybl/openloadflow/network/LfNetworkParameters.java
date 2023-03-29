@@ -366,8 +366,8 @@ public class LfNetworkParameters {
         return countriesForSlackBusSelection;
     }
 
-    public LfNetworkParameters setCountriesForSlackBusSelection(Set<Country> countries) {
-        this.countriesForSlackBusSelection = countries;
+    public LfNetworkParameters setCountriesForSlackBusSelection(Set<Country> countriesForSlackBusSelection) {
+        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
         return this;
     }
 

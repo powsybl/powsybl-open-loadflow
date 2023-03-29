@@ -36,7 +36,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final boolean breakers;
 
-    private Country country;
+    private final Country country;
 
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
@@ -47,7 +47,7 @@ public class LfBusImpl extends AbstractLfBus {
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
         this.breakers = parameters.isBreakers();
-        bus.getVoltageLevel().getSubstation().ifPresent(substation -> substation.getCountry().ifPresent(c -> this.country = c));
+        country = bus.getVoltageLevel().getSubstation().flatMap(substation -> substation.getCountry()).orElse(null);
     }
 
     public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {
