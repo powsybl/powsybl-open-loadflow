@@ -85,7 +85,7 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
-    public boolean getDetailedNrReport() {
+    public boolean isDetailedNrReport() {
         return detailedNrReport;
     }
 

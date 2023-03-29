@@ -31,6 +31,8 @@ public class NewtonRaphson {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NewtonRaphson.class);
 
+    public static final List<AcEquationType> REPORTED_AC_EQUATION_TYPES = List.of(AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V);
+
     private final LfNetwork network;
 
     private final NewtonRaphsonParameters parameters;
@@ -65,14 +67,23 @@ public class NewtonRaphson {
                 .collect(Collectors.toList());
     }
 
-    public static void reportLargestMismatch(Reporter reporter, EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, LfNetwork network, int iteration) {
-        Map<AcEquationType, Optional<Pair<Equation<AcVariableType, AcEquationType>, Double>>> mismatchEquations = equationSystem.getIndex().getSortedEquationsToSolve().stream()
+    public static Map<AcEquationType, Optional<Pair<Equation<AcVariableType, AcEquationType>, Double>>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
+        return equationSystem.getIndex().getSortedEquationsToSolve().stream()
                 .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
                 .collect(Collectors.groupingBy(e -> e.getKey().getType(), Collectors.maxBy(Comparator.comparingDouble(e -> Math.abs(e.getValue())))));
+    }
 
-        List<AcEquationType> acEquationTypes = List.of(AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V);
+    public void reportAndLogLargestMismatchByAcEquationType(Reporter reporter, EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, double norm, int iteration) {
+        Map<AcEquationType, Optional<Pair<Equation<AcVariableType, AcEquationType>, Double>>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
 
-        for (AcEquationType acEquationType : acEquationTypes) {
+        Reporter iterationMismatchReporter = null;
+        if (parameters.isDetailedNrReport()) {
+            // report largest mismatches in (P, Q, V) equations
+            iterationMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(reporter, iteration);
+        }
+
+        for (AcEquationType acEquationType : REPORTED_AC_EQUATION_TYPES) {
+            Reporter finalIterationMismatchReporter = iterationMismatchReporter;
             mismatchEquations.get(acEquationType)
                     .ifPresent(equationPair -> {
                         Equation<AcVariableType, AcEquationType> equation = equationPair.getKey();
@@ -83,11 +94,15 @@ public class NewtonRaphson {
                         int busPhiRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_PHI).getRow();
                         double busV = equationSystem.getStateVector().get(busVRow);
                         double busPhi = equationSystem.getStateVector().get(busPhiRow);
-                        if (LOGGER.isTraceEnabled()) {
-                            LOGGER.trace("Mismatch `{}` for {}: {} (element={}) || Bus V /_ PHI = {} /_ {}", acEquationType, equation, equationMismatch, elementId, busV, busPhi);
+                        LOGGER.trace("Mismatch `{}` for {}: {} (element={}) || Bus V /_ PHI = {} /_ {}", acEquationType, equation, equationMismatch, elementId, busV, busPhi);
+                        if (parameters.isDetailedNrReport()) {
+                            Reports.reportNewtonRaphsonMismatch(finalIterationMismatchReporter, acEquationType, equationMismatch, elementId, busV, busPhi, iteration);
                         }
-                        Reports.reportNewtonRaphsonMismatch(reporter, acEquationType, equationMismatch, elementId, busV, busPhi, iteration);
                     });
+        }
+
+        if (parameters.isDetailedNrReport()) {
+            Reports.reportNewtonRaphsonNorm(iterationMismatchReporter, norm, iteration);
         }
     }
 
@@ -130,11 +145,8 @@ public class NewtonRaphson {
 
             LOGGER.debug("|f(x)|={}", testResult.getNorm());
 
-            if (parameters.getDetailedNrReport()) {
-                // report largest mismatches in (P, Q, V) equations
-                Reporter iterationMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(reporter, iterations.getValue());
-                reportLargestMismatch(iterationMismatchReporter, equationSystem, equationVector.getArray(), network, iterations.getValue());
-                Reports.reportNewtonRaphsonNorm(iterationMismatchReporter, testResult.getNorm(), iterations.getValue());
+            if (parameters.isDetailedNrReport() || LOGGER.isTraceEnabled()) {
+                reportAndLogLargestMismatchByAcEquationType(reporter, equationSystem, equationVector.getArray(), testResult.getNorm(), iterations.getValue());
             }
 
             if (testResult.isStop()) {
@@ -243,7 +255,7 @@ public class NewtonRaphson {
 
     public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter, int outerLoopIteration, String outerLoopType) {
 
-        Reporter nrReporter = Reports.createNewtonRaphsonReporter(reporter, parameters.getDetailedNrReport(), network.getNumCC(), network.getNumSC(), outerLoopIteration, outerLoopType);
+        Reporter nrReporter = Reports.createNewtonRaphsonReporter(reporter, parameters.isDetailedNrReport(), network.getNumCC(), network.getNumSC(), outerLoopIteration, outerLoopType);
 
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);
@@ -255,11 +267,8 @@ public class NewtonRaphson {
 
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-        if (parameters.getDetailedNrReport()) {
-            // report largest mismatches in (P, Q, V) equations of starting point
-            Reporter initialMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(nrReporter, -1);
-            reportLargestMismatch(initialMismatchReporter, equationSystem, equationVector.getArray(), network, -1);
-            Reports.reportNewtonRaphsonNorm(initialMismatchReporter, initialTestResult.getNorm(), -1);
+        if (parameters.isDetailedNrReport() || LOGGER.isTraceEnabled()) {
+            reportAndLogLargestMismatchByAcEquationType(nrReporter, equationSystem, equationVector.getArray(), initialTestResult.getNorm(), -1);
         }
 
         // start iterations

@@ -756,7 +756,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public OpenLoadFlowParameters setReportedFeatures(Set<ReportedFeatures> reportedFeatures) {
-        this.reportedFeatures = reportedFeatures;
+        this.reportedFeatures = Objects.requireNonNull(reportedFeatures);
         return this;
     }
 
@@ -1252,7 +1252,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
                 extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
                 extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() &&
-                extension1.getReportedFeatures() == extension2.getReportedFeatures();
+                extension1.getReportedFeatures().equals(extension2.getReportedFeatures());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {

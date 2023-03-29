@@ -67,7 +67,6 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
         var lfParameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(lfParameters);
         OpenLoadFlowParameters.create(lfParameters).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
         runAcLf(network, reporter, lfParameters);
 
