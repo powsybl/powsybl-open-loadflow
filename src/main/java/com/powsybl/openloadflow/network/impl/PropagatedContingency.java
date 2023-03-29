@@ -174,9 +174,9 @@ public class PropagatedContingency {
                     if (shuntCompensatorVoltageControlOn && shunt.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + shunt.getId() + "' with voltage control on: not supported yet");
                     }
-                    double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
-                    shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(shunt.getG() * nominalV * nominalV / PerUnit.SB,
-                            shunt.getB() * nominalV * nominalV / PerUnit.SB));
+                    double zb = PerUnit.zb(shunt.getTerminal().getVoltageLevel().getNominalV());
+                    shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(shunt.getG() * zb,
+                            shunt.getB() * zb));
                     break;
 
                 case HVDC_CONVERTER_STATION:

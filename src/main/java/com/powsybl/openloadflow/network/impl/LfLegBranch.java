@@ -47,8 +47,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
         PiModel piModel = null;
 
-        double nominalV2 = twt.getRatedU0();
-        double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        double zb = PerUnit.zb(twt.getRatedU0());
         double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
         PhaseTapChanger ptc = leg.getPhaseTapChanger();
         if (ptc != null
