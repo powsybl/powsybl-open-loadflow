@@ -362,7 +362,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                 new LimitViolationFilter(), LocalComputationManager.getDefault(), new SecurityAnalysisParameters(), provider, Collections.emptyList(),
                 Collections.emptyList(), Collections.emptyList(),
                 Collections.emptyList(), Reporter.NO_OP).join();
-        assertTrue(report.getResult().getPostContingencyResults().get(0).getStatus().equals(PostContingencyComputationStatus.CONVERGED));
-        assertTrue(report.getResult().getPostContingencyResults().get(1).getStatus().equals(PostContingencyComputationStatus.CONVERGED));
+        assertEquals(report.getResult().getPostContingencyResults().get(0).getStatus(), PostContingencyComputationStatus.CONVERGED);
+        assertEquals(report.getResult().getPostContingencyResults().get(1).getStatus(), PostContingencyComputationStatus.CONVERGED);
     }
 }
