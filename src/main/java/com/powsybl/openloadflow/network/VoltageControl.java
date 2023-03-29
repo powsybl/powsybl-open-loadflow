@@ -134,6 +134,9 @@ public class VoltageControl<T extends LfElement> extends Control {
         return voltageControls;
     }
 
+    /**
+     * FIXME: take into account controllers status
+     */
     public boolean isHidden() {
         // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
         // from merged ones

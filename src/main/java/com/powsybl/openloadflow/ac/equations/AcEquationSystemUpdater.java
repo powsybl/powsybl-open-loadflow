@@ -125,8 +125,9 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     @Override
     public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc) {
         if (!dc) {
-            // TODO only recreate distribution equations if controllers buses are redistributed on the different
-            // TODO split networks (should be a rare case) and not only ate the end on only one of the split network
+            // TODO
+            // only recreate distribution equations if controllers buses are redistributed on the different
+            // split networks (should be a rare case) and not only ate the end on only one of the split network
             for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
                 recreateDistributionEquations(splitNetwork);
             }
@@ -136,9 +137,10 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     @Override
     public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc) {
         if (!dc) {
-            // TODO only recreate distribution equations if controllers buses are merged (should be a rare case)
-            // TODO so we have to check here that controllers were spread over network1 and network2 and were not
-            // TODO already only on network1 or network2
+            // TODO
+            // only recreate distribution equations if controllers buses are merged (should be a rare case)
+            // so we have to check here that controllers were spread over network1 and network2 and were not
+            // already only on network1 or network2
             recreateDistributionEquations(mergedNetwork);
         }
     }
