@@ -16,8 +16,6 @@ import java.util.Objects;
  */
 public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
-    //protected final LfShunt shunt;
-    //protected final LfGenerator gen;
     protected final LfBus bus;
 
     protected final Variable<AcVariableType> vVar;
