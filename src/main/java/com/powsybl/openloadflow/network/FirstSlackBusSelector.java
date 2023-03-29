@@ -19,11 +19,9 @@ import java.util.stream.Collectors;
  */
 public class FirstSlackBusSelector implements SlackBusSelector {
 
-    private final Set<Country> countriesForSlackBusSelection;
+    private Set<Country> countriesForSlackBusSelection = Collections.emptySet();
 
-    public FirstSlackBusSelector() {
-        // for tests only
-        this.countriesForSlackBusSelection = Objects.requireNonNull(Collections.emptySet());
+    public FirstSlackBusSelector() { // for tests only
     }
 
     public FirstSlackBusSelector(Set<Country> countriesForSlackBusSelection) {

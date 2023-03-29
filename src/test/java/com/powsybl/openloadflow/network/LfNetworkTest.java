@@ -30,7 +30,6 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -67,7 +66,7 @@ class LfNetworkTest extends AbstractConverterTest {
                     .add()
                 .add();
 
-        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector(Collections.emptySet()));
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(1, lfNetworks.size());
         Path file = fileSystem.getPath("/work/n.json");
@@ -90,7 +89,7 @@ class LfNetworkTest extends AbstractConverterTest {
                 .setRegulationValue(83);
 
         LfNetworkParameters parameters = new LfNetworkParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector(Collections.emptySet()))
+                .setSlackBusSelector(new MostMeshedSlackBusSelector())
                 .setPhaseControl(true);
         List<LfNetwork> lfNetworks = Networks.load(network, parameters);
         LfNetwork mainNetwork = lfNetworks.get(0);
@@ -105,7 +104,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void getBranchByIdtest() {
         Network network = EurostagTutorialExample1Factory.create();
-        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector(Collections.emptySet()));
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertNull(lfNetwork.getBranchById("AAA"));
@@ -115,7 +114,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void testDanglingLine() {
         Network network = DanglingLineNetworkFactory.create();
-        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector(Collections.emptySet()));
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertFalse(lfNetwork.getBusById("DL_BUS").isDisabled());
@@ -125,7 +124,7 @@ class LfNetworkTest extends AbstractConverterTest {
     @Test
     void testVsc() {
         Network network = HvdcNetworkFactory.createVsc();
-        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector(Collections.emptySet()));
+        List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(2, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals(0.0, lfNetwork.getGeneratorById("cs2").getParticipationFactor(), 1E-6);

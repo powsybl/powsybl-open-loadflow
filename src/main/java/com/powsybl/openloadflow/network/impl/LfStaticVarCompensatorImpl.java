@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.extensions.StandbyAutomaton;
 import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.LfStaticVarCompensator;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -42,6 +43,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     private StandByAutomaton standByAutomaton;
 
     private double b0 = 0.0;
+
+    private LfShunt standByAutomatonShunt;
 
     private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, LfNetworkParameters parameters,
                                        LfNetworkLoadingReport report) {
@@ -105,7 +108,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
             }
         }
         if (svc.getRegulationMode() == StaticVarCompensator.RegulationMode.REACTIVE_POWER) {
-            targetQ = -svc.getReactivePowerSetpoint();
+            targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
         }
     }
 
@@ -130,7 +133,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     @Override
     public double getTargetQ() {
-        return targetQ / PerUnit.SB;
+        return targetQ;
     }
 
     @Override
@@ -152,7 +155,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     public void updateState() {
         double vSquare = bus.getV() * bus.getV() * nominalV * nominalV;
         double newTargetQ = Double.isNaN(targetQ) ? 0 : -targetQ;
-        double q = Double.isNaN(calculatedQ) ? newTargetQ : -calculatedQ;
+        double q = (Double.isNaN(calculatedQ) ? newTargetQ : -calculatedQ) * PerUnit.SB;
         getSvc().getTerminal()
                 .setP(0)
                 .setQ(q - b0 * vSquare);
@@ -176,5 +179,15 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     @Override
     public Optional<StandByAutomaton> getStandByAutomaton() {
         return Optional.ofNullable(standByAutomaton);
+    }
+
+    @Override
+    public Optional<LfShunt> getStandByAutomatonShunt() {
+        return Optional.ofNullable(standByAutomatonShunt);
+    }
+
+    @Override
+    public void setStandByAutomatonShunt(LfShunt standByAutomatonShunt) {
+        this.standByAutomatonShunt = standByAutomatonShunt;
     }
 }

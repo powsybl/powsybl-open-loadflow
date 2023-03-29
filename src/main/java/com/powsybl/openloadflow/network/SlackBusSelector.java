@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Country;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -20,23 +19,18 @@ public interface SlackBusSelector {
 
     SelectedSlackBus select(List<LfBus> buses, int limit);
 
-    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds,
-                                     double plausibleActivePowerLimit) {
-        return fromMode(mode, slackBusesIds, plausibleActivePowerLimit, Collections.emptySet());
-    }
-
-    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds,
-                                     double plausibleActivePowerLimit,
-                                     Set<Country> countriesForSlackBusSelection) {
+    static SlackBusSelector fromMode(SlackBusSelectionMode mode, List<String> slackBusesIds, double plausibleActivePowerLimit,
+                                     double mostMeshedMaxNominalVoltagePercentile, Set<Country> countriesForSlackBusSelection) {
         Objects.requireNonNull(mode);
         Objects.requireNonNull(slackBusesIds);
         switch (mode) {
             case FIRST:
                 return new FirstSlackBusSelector(countriesForSlackBusSelection);
             case MOST_MESHED:
-                return new MostMeshedSlackBusSelector(countriesForSlackBusSelection);
+                return new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile, countriesForSlackBusSelection);
             case NAME:
-                return new NameSlackBusSelector(slackBusesIds, countriesForSlackBusSelection);
+                return new NameSlackBusSelector(slackBusesIds, countriesForSlackBusSelection,
+                        new MostMeshedSlackBusSelector(mostMeshedMaxNominalVoltagePercentile, countriesForSlackBusSelection));
             case LARGEST_GENERATOR:
                 return new LargestGeneratorSlackBusSelector(plausibleActivePowerLimit, countriesForSlackBusSelection);
             default:

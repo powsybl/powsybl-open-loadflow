@@ -22,18 +22,22 @@ public class NameSlackBusSelector implements SlackBusSelector {
 
     private final List<String> busesOrVoltageLevelsIds;
 
+    private final Set<Country> countriesForSlackBusSelection;
+
     private final SlackBusSelector secondLevelSelector;
 
-    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds, Set<Country> countriesForSlackBusSelection) {
+    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds, Set<Country> countriesForSlackBusSelection,
+                                SlackBusSelector secondLevelSelector) {
         if (busesOrVoltageLevelsIds.isEmpty()) {
             throw new IllegalArgumentException("Empty bus or voltage level ID list");
         }
         this.busesOrVoltageLevelsIds = Objects.requireNonNull(busesOrVoltageLevelsIds);
-        this.secondLevelSelector = new MostMeshedSlackBusSelector(countriesForSlackBusSelection);
+        this.secondLevelSelector = Objects.requireNonNull(secondLevelSelector);
+        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
     }
 
     public NameSlackBusSelector(String... busesOrVoltageLevelsIds) {
-        this(List.of(busesOrVoltageLevelsIds), Collections.emptySet()); // FIXME
+        this(List.of(busesOrVoltageLevelsIds), Collections.emptySet(), new MostMeshedSlackBusSelector());
     }
 
     @Override
@@ -52,7 +56,7 @@ public class NameSlackBusSelector implements SlackBusSelector {
                 return slackBusCandidates.stream();
             }
             return Stream.empty();
-        }).collect(Collectors.toList());
+        }).filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus)).collect(Collectors.toList());
 
         if (slackBuses.isEmpty()) {
             // fallback to automatic selection among all buses

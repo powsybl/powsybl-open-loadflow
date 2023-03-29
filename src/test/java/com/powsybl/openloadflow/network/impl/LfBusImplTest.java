@@ -12,14 +12,12 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
@@ -118,13 +116,13 @@ class LfBusImplTest {
     @BeforeEach
     void setUp() {
         network = createNetwork();
-        List<LfNetwork> networks = Networks.load(network, new MostMeshedSlackBusSelector(Collections.emptySet()));
+        List<LfNetwork> networks = Networks.load(network, new MostMeshedSlackBusSelector());
         lfNetwork = networks.get(0);
     }
 
     @Test
     void updateGeneratorsStateTest() {
-        List<LfNetwork> networks = Networks.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector(Collections.emptySet()));
+        List<LfNetwork> networks = Networks.load(EurostagTutorialExample1Factory.create(), new MostMeshedSlackBusSelector());
         LfNetwork mainNetwork = networks.get(0);
 
         LfNetworkParameters parameters = new LfNetworkParameters()
@@ -135,7 +133,7 @@ class LfBusImplTest {
         lfBus.addStaticVarCompensator(svc2, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc3, parameters, lfNetworkLoadingReport);
         double generationQ = -6.412103131789854;
-        lfBus.updateGeneratorsState(generationQ * PerUnit.SB, true);
+        lfBus.updateGeneratorsState(generationQ, true);
         double sumQ = 0;
         for (LfGenerator lfGenerator : lfBus.getGenerators()) {
             sumQ += lfGenerator.getCalculatedQ();

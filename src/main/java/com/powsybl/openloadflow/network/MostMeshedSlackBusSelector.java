@@ -17,10 +17,23 @@ import org.apache.commons.math3.stat.descriptive.rank.Percentile;
  */
 public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
+    public static final double MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE = 95;
+
+    private final double maxNominalVoltagePercentile;
+
     private final Set<Country> countriesForSlackBusSelection;
 
-    public MostMeshedSlackBusSelector(Set<Country> countriesForSlackBusSelection) {
+    public MostMeshedSlackBusSelector() {
+        this(MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE, Collections.emptySet());
+    }
+
+    public MostMeshedSlackBusSelector(double maxNominalVoltagePercentile, Set<Country> countriesForSlackBusSelection) {
+        this.maxNominalVoltagePercentile = maxNominalVoltagePercentile;
         this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
+    }
+
+    private static int getBranchCountConnectedAtBothSides(LfBus bus) {
+        return (int) bus.getBranches().stream().filter(LfBranch::isConnectedAtBothSides).count();
     }
 
     @Override
@@ -31,16 +44,16 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
                 .map(LfBus::getNominalV).mapToDouble(Double::valueOf).toArray();
         double maxNominalV = new Percentile()
                 .withEstimationType(Percentile.EstimationType.R_3)
-                .evaluate(nominalVoltages, 90);
+                .evaluate(nominalVoltages, maxNominalVoltagePercentile);
 
         // select non-fictitious and most meshed bus among buses with the highest nominal voltage
         List<LfBus> slackBuses = buses.stream()
                 .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
                 .filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus))
-                .sorted(Comparator.comparingInt((LfBus bus) -> bus.getBranches().size())
-                        .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
-                .limit(limit)
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparingInt(MostMeshedSlackBusSelector::getBranchCountConnectedAtBothSides)
+                    .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
+            .limit(limit)
+            .collect(Collectors.toList());
 
         return new SelectedSlackBus(slackBuses, "Most meshed bus");
     }

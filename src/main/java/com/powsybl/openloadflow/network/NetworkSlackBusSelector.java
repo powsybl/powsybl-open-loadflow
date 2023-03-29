@@ -7,11 +7,15 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -19,21 +23,18 @@ import java.util.stream.Collectors;
  */
 public class NetworkSlackBusSelector implements SlackBusSelector {
 
-    private static final SlackBusSelector DEFAULT_FALLBACK_SELECTOR = new MostMeshedSlackBusSelector(Collections.emptySet());
-
     private static final String SELECTION_METHOD = "Network extension bus";
 
     private final SlackBusSelector fallbackSelector;
 
     private final Set<String> slackBusIds = new HashSet<>();
 
-    public NetworkSlackBusSelector(Network network) {
-        this(network, DEFAULT_FALLBACK_SELECTOR);
-    }
+    private final Set<Country> countriesForSlackBusSelection;
 
-    public NetworkSlackBusSelector(Network network, SlackBusSelector fallbackSelector) {
+    public NetworkSlackBusSelector(Network network, Set<Country> countriesForSlackBusSelection, SlackBusSelector fallbackSelector) {
         Objects.requireNonNull(network);
         this.fallbackSelector = Objects.requireNonNull(fallbackSelector);
+        this.countriesForSlackBusSelection = Objects.requireNonNull(countriesForSlackBusSelection);
         for (VoltageLevel vl : network.getVoltageLevels()) {
             SlackTerminal slackTerminal = vl.getExtension(SlackTerminal.class);
             if (slackTerminal != null) {
@@ -51,7 +52,10 @@ public class NetworkSlackBusSelector implements SlackBusSelector {
 
     @Override
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
-        List<LfBus> slackBuses = buses.stream().filter(bus -> !bus.isFictitious() && slackBusIds.contains(bus.getId())).collect(Collectors.toList());
+        List<LfBus> slackBuses = buses.stream()
+                .filter(bus -> !bus.isFictitious() && slackBusIds.contains(bus.getId()))
+                .filter(bus -> SlackBusSelector.participateToSlackBusSelection(countriesForSlackBusSelection, bus))
+                .collect(Collectors.toList());
         if (slackBuses.isEmpty()) {
             // fallback to automatic selection
             return fallbackSelector.select(buses, limit);

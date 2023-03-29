@@ -32,7 +32,7 @@ class NetworkSlackBusSelectorTest {
     @BeforeEach
     void setUp() {
         network = EurostagTutorialExample1Factory.create();
-        MostMeshedSlackBusSelector selectorFallback = new MostMeshedSlackBusSelector(Collections.emptySet());
+        MostMeshedSlackBusSelector selectorFallback = new MostMeshedSlackBusSelector();
         selectorMock = (buses, limit) -> {
             fallbackBusCount = buses.size();
             return selectorFallback.select(buses, limit);
@@ -41,7 +41,7 @@ class NetworkSlackBusSelectorTest {
 
     @Test
     void noExtensionTest() {
-        List<LfNetwork> lfNetworks = Networks.load(network, new NetworkSlackBusSelector(network, selectorMock));
+        List<LfNetwork> lfNetworks = Networks.load(network, new NetworkSlackBusSelector(network, Collections.emptySet(), selectorMock));
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId());
         assertEquals(4, fallbackBusCount);
@@ -54,7 +54,7 @@ class NetworkSlackBusSelectorTest {
         vlload.newExtension(SlackTerminalAdder.class)
                 .withTerminal(load.getTerminal())
                 .add();
-        List<LfNetwork> lfNetworks = Networks.load(network, new NetworkSlackBusSelector(network, selectorMock));
+        List<LfNetwork> lfNetworks = Networks.load(network, new NetworkSlackBusSelector(network, Collections.emptySet(), selectorMock));
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
         assertEquals(-1, fallbackBusCount);
@@ -72,7 +72,7 @@ class NetworkSlackBusSelectorTest {
         vlgen.newExtension(SlackTerminalAdder.class)
                 .withTerminal(gen.getTerminal())
                 .add();
-        List<LfNetwork> lfNetworks = Networks.load(network, new NetworkSlackBusSelector(network, selectorMock));
+        List<LfNetwork> lfNetworks = Networks.load(network, new NetworkSlackBusSelector(network, Collections.emptySet(), selectorMock));
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
         assertEquals(2, fallbackBusCount);

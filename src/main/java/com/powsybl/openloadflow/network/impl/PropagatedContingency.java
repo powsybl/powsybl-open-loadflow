@@ -15,6 +15,8 @@ import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
  * @author Gaël Macherel <gael.macherel@artelys.com>
  */
 public class PropagatedContingency {
+
+    protected static final Logger LOGGER = LoggerFactory.getLogger(PropagatedContingency.class);
 
     private final Contingency contingency;
 
@@ -152,6 +156,7 @@ public class PropagatedContingency {
                     break;
 
                 case GENERATOR:
+                case STATIC_VAR_COMPENSATOR:
                     generatorIdsToLose.add(connectable.getId());
                     break;
 
@@ -166,9 +171,9 @@ public class PropagatedContingency {
                     if (shuntCompensatorVoltageControlOn && shunt.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + shunt.getId() + "' with voltage control on: not supported yet");
                     }
-                    double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
-                    shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(-shunt.getG() * nominalV * nominalV / PerUnit.SB,
-                            shunt.getB() * nominalV * nominalV / PerUnit.SB));
+                    double zb = PerUnit.zb(shunt.getTerminal().getVoltageLevel().getNominalV());
+                    shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(shunt.getG() * zb,
+                            shunt.getB() * zb));
                     break;
 
                 case HVDC_CONVERTER_STATION:
@@ -247,6 +252,10 @@ public class PropagatedContingency {
             case GENERATOR:
                 identifiable = network.getGenerator(element.getId());
                 identifiableType = "Generator";
+                break;
+            case STATIC_VAR_COMPENSATOR:
+                identifiable = network.getStaticVarCompensator(element.getId());
+                identifiableType = "Static var compensator";
                 break;
             case LOAD:
                 identifiable = network.getLoad(element.getId());
@@ -343,6 +352,7 @@ public class PropagatedContingency {
                 && busesLoadShift.isEmpty()
                 && generators.isEmpty()
                 && hvdcs.isEmpty()) {
+            LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
             return Optional.empty();
         }
 

@@ -29,7 +29,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     private LfHvdc hvdc; // set only when AC emulation is activated
 
     public LfVscConverterStationImpl(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, HvdcConverterStations.getConverterStationTargetP(station, parameters.isBreakers()));
+        super(network, HvdcConverterStations.getConverterStationTargetP(station, parameters.isBreakers()) / PerUnit.SB);
         this.stationRef = Ref.create(station, parameters.isCacheEnabled());
         this.lossFactor = station.getLossFactor();
 
@@ -57,7 +57,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     @Override
     public double getTargetP() {
         // because in case of AC emulation, active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
-        return hvdc == null ? super.getTargetP() : 0;
+        return (hvdc == null || hvdc.isDisabled()) ? super.getTargetP() : 0;
     }
 
     @Override
@@ -94,9 +94,9 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     public void updateState() {
         var station = getStation();
         station.getTerminal()
-                .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ);
+                .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ * PerUnit.SB);
         if (hvdc == null) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
-            station.getTerminal().setP(-targetP);
+            station.getTerminal().setP(-targetP * PerUnit.SB);
         }
     }
 }

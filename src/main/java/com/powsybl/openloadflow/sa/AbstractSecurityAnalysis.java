@@ -166,6 +166,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
+                case HvdcAction.NAME: {
+                    HvdcAction hvdcAction = (HvdcAction) action;
+                    if (network.getHvdcLine(hvdcAction.getHvdcId()) == null) {
+                        throw new PowsyblException("Hvdc line '" + hvdcAction.getHvdcId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
