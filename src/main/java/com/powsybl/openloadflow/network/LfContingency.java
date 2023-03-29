@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.util.PerUnit;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -160,7 +159,7 @@ public class LfContingency {
                     .filter(bus.getAggregatedLoads().getOriginalIds()::contains) // maybe not optimized.
                     .collect(Collectors.toSet());
             if (!loadsIdsInContingency.isEmpty()) { // it could be a LCC in contingency.
-                bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
+                bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()));
                 loadsIdsInContingency.stream().forEach(loadId -> bus.getAggregatedLoads().setDisabled(loadId, true));
             }
         }
@@ -195,9 +194,9 @@ public class LfContingency {
         double factor = 0.0;
         if (bus.getAggregatedLoads().getLoadCount() > 0) {
             if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                factor = Math.abs(initialP0) / (bus.getAggregatedLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+                factor = Math.abs(initialP0) / bus.getAggregatedLoads().getAbsVariableLoadTargetP();
             } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                factor = initialVariableActivePower / (bus.getAggregatedLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+                factor = initialVariableActivePower / bus.getAggregatedLoads().getAbsVariableLoadTargetP();
             }
         }
         return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;

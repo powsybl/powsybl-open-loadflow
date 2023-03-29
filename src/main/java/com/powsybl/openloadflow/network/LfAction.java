@@ -308,7 +308,7 @@ public final class LfAction {
                 bus.setLoadTargetP(bus.getLoadTargetP() + shift.getActive());
                 bus.setLoadTargetQ(bus.getLoadTargetQ() + shift.getReactive());
                 bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP()
-                        + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()) * PerUnit.SB);
+                        + Math.signum(shift.getActive()) * Math.abs(shift.getVariableActive()));
             }
         }
 
