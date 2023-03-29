@@ -141,7 +141,7 @@ public class PropagatedContingency {
             Identifiable<?> identifiable = getIdentifiable(network, element);
             if (identifiable.getType().equals(IdentifiableType.BUS)) {
                 Bus bus = (Bus) identifiable;
-                if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.BUS_BREAKER) {
+                if (bus.getVoltageLevel().getTopologyKind() == TopologyKind.BUS_BREAKER) { // TODO: ask for good behaviour
                     busIdsToLose.add(identifiable.getId());
                 } else {
                     throw new UnsupportedOperationException("Unsupported contingency element type " + element.getType() + ": voltage level should be in bus/breaker topology");
@@ -311,9 +311,11 @@ public class PropagatedContingency {
         // these branches are indeed just open at one side.
         for (String busId : busIdsToLose) {
             LfBus bus = network.getBusById(busId);
-            if (!bus.isSlack()) {
-                // slack bus disabling is not supported
-                bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
+            if (bus != null) {
+                if (!bus.isSlack()) {
+                    // slack bus disabling is not supported
+                    bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
+                }
             }
         }
     }
@@ -323,11 +325,13 @@ public class PropagatedContingency {
         // these branches are indeed just open at one side.
         for (String busId : busIdsToLose) {
             LfBus bus = network.getBusById(busId);
-            if (bus.isSlack()) {
-                // slack bus disabling is not supported
-                return Optional.empty();
+            if (bus != null) {
+                if (bus.isSlack()) {
+                    // slack bus disabling is not supported
+                    return Optional.empty();
+                }
+                bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
             }
-            bus.getBranches().stream().forEach(branch -> branchIdsToOpen.add(branch.getId()));
         }
 
         // update connectivity with triggered branches of this network
