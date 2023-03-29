@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -47,7 +48,7 @@ public class LfBusImpl extends AbstractLfBus {
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
         this.breakers = parameters.isBreakers();
-        country = bus.getVoltageLevel().getSubstation().flatMap(substation -> substation.getCountry()).orElse(null);
+        country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
     }
 
     public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {
