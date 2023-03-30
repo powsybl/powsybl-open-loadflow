@@ -205,7 +205,6 @@ public class LfZeroImpedanceNetwork {
 
     public void addBranch(LfBranch branch) {
         graph.addEdge(branch.getBus1(), branch.getBus2(), branch);
-        updateSpanningTree();
     }
 
     @Override
