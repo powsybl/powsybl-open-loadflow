@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BusResult;
 
@@ -174,4 +175,8 @@ public interface LfBus extends LfElement {
      * Only make sens for slack bus.
      */
     double getMismatchP();
+
+    default Optional<Country> getCountry() {
+        return Optional.empty();
+    }
 }
