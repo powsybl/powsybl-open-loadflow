@@ -6,9 +6,9 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import com.powsybl.iidm.network.Country;
+
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NameSlackBusSelector implements SlackBusSelector {
+public class NameSlackBusSelector extends AbstractSlackBusSelector {
 
     private static final String SELECTION_METHOD = "Parameter bus";
 
@@ -24,7 +24,9 @@ public class NameSlackBusSelector implements SlackBusSelector {
 
     private final SlackBusSelector secondLevelSelector;
 
-    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds, SlackBusSelector secondLevelSelector) {
+    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds, Set<Country> countries,
+                                SlackBusSelector secondLevelSelector) {
+        super(countries);
         if (busesOrVoltageLevelsIds.isEmpty()) {
             throw new IllegalArgumentException("Empty bus or voltage level ID list");
         }
@@ -33,7 +35,7 @@ public class NameSlackBusSelector implements SlackBusSelector {
     }
 
     public NameSlackBusSelector(String... busesOrVoltageLevelsIds) {
-        this(List.of(busesOrVoltageLevelsIds), new MostMeshedSlackBusSelector());
+        this(List.of(busesOrVoltageLevelsIds), Collections.emptySet(), new MostMeshedSlackBusSelector());
     }
 
     @Override
@@ -52,7 +54,7 @@ public class NameSlackBusSelector implements SlackBusSelector {
                 return slackBusCandidates.stream();
             }
             return Stream.empty();
-        }).collect(Collectors.toList());
+        }).filter(this::filterByCountry).collect(Collectors.toList());
 
         if (slackBuses.isEmpty()) {
             // fallback to automatic selection among all buses

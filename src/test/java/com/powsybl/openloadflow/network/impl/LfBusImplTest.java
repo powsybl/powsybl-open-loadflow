@@ -21,6 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Fabien Rigaux (https://github.com/frigaux)
@@ -39,6 +41,7 @@ class LfBusImplTest {
         Network network = Network.create("svc", "test");
         Substation s1 = network.newSubstation()
                 .setId("S1")
+                .setCountry(Country.FR)
                 .add();
         VoltageLevel vl1 = s1.newVoltageLevel()
                 .setId("vl1")
@@ -102,7 +105,7 @@ class LfBusImplTest {
                 .setQ0(100)
                 .setP0(0)
                 .add();
-        Line line = network.newLine()
+        network.newLine()
                 .setId("line")
                 .setBus1("b1")
                 .setBus2("b2")
@@ -137,7 +140,7 @@ class LfBusImplTest {
         for (LfGenerator lfGenerator : lfBus.getGenerators()) {
             sumQ += lfGenerator.getCalculatedQ();
         }
-        Assertions.assertEquals(generationQ, sumQ, DELTA_POWER, "sum of generators calculatedQ should be equals to qToDispatch");
+        assertEquals(generationQ, sumQ, DELTA_POWER, "sum of generators calculatedQ should be equals to qToDispatch");
     }
 
     private static List<LfGenerator> createLfGeneratorsWithInitQ(List<Double> initQs) {
@@ -172,11 +175,11 @@ class LfBusImplTest {
         double qToDispatch = 21;
         double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generators.get(1).getCalculatedQ() + generatorToRemove.getCalculatedQ();
-        Assertions.assertEquals(7.0, generators.get(0).getCalculatedQ());
-        Assertions.assertEquals(7.0, generators.get(1).getCalculatedQ());
-        Assertions.assertEquals(2, generators.size());
-        Assertions.assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
-        Assertions.assertEquals(generatorToRemove.getMaxQ(), generatorToRemove.getCalculatedQ());
+        assertEquals(7.0, generators.get(0).getCalculatedQ());
+        assertEquals(7.0, generators.get(1).getCalculatedQ());
+        assertEquals(2, generators.size());
+        assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
+        assertEquals(generatorToRemove.getMaxQ(), generatorToRemove.getCalculatedQ());
     }
 
     @Test
@@ -188,11 +191,11 @@ class LfBusImplTest {
         double qToDispatch = 20;
         double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove1.getCalculatedQ() + generatorToRemove2.getCalculatedQ();
-        Assertions.assertEquals(1, generators.size());
-        Assertions.assertEquals(qToDispatch + qInitial - totalCalculatedQ, residueQ, 0.0001);
-        Assertions.assertEquals(8.17, generators.get(0).getCalculatedQ(), 0.01);
-        Assertions.assertEquals(generatorToRemove1.getMaxQ(), generatorToRemove1.getCalculatedQ(), 0.01);
-        Assertions.assertEquals(generatorToRemove2.getMaxQ(), generatorToRemove2.getCalculatedQ(), 0.01);
+        assertEquals(1, generators.size());
+        assertEquals(qToDispatch + qInitial - totalCalculatedQ, residueQ, 0.0001);
+        assertEquals(8.17, generators.get(0).getCalculatedQ(), 0.01);
+        assertEquals(generatorToRemove1.getMaxQ(), generatorToRemove1.getCalculatedQ(), 0.01);
+        assertEquals(generatorToRemove2.getMaxQ(), generatorToRemove2.getCalculatedQ(), 0.01);
     }
 
     @Test
@@ -203,11 +206,11 @@ class LfBusImplTest {
         double qToDispatch = -21;
         double residueQ = AbstractLfBus.dispatchQ(generators, true, qToDispatch);
         double totalCalculatedQ = generators.get(0).getCalculatedQ() + generatorToRemove2.getCalculatedQ() + generatorToRemove3.getCalculatedQ();
-        Assertions.assertEquals(-7.0, generators.get(0).getCalculatedQ());
-        Assertions.assertEquals(1, generators.size());
-        Assertions.assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
-        Assertions.assertEquals(generatorToRemove2.getMinQ(), generatorToRemove2.getCalculatedQ());
-        Assertions.assertEquals(generatorToRemove3.getMinQ(), generatorToRemove3.getCalculatedQ());
+        assertEquals(-7.0, generators.get(0).getCalculatedQ());
+        assertEquals(1, generators.size());
+        assertEquals(qToDispatch - totalCalculatedQ, residueQ, 0.00001);
+        assertEquals(generatorToRemove2.getMinQ(), generatorToRemove2.getCalculatedQ());
+        assertEquals(generatorToRemove3.getMinQ(), generatorToRemove3.getCalculatedQ());
     }
 
     @Test
@@ -216,5 +219,13 @@ class LfBusImplTest {
         double qToDispatch = -21;
         Assertions.assertThrows(IllegalArgumentException.class, () -> AbstractLfBus.dispatchQ(generators, true, qToDispatch),
                 "the generator list to dispatch Q can not be empty");
+    }
+
+    @Test
+    void testBusHasCountryAttributeAfterLoading() {
+        assertTrue(lfNetwork.getBusById("vl1_0").getCountry().isPresent());
+        assertTrue(lfNetwork.getBusById("vl2_0").getCountry().isPresent());
+        assertEquals(Country.FR, lfNetwork.getBusById("vl1_0").getCountry().orElseThrow());
+        assertEquals(Country.FR, lfNetwork.getBusById("vl2_0").getCountry().orElseThrow());
     }
 }
