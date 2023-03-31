@@ -10,51 +10,51 @@ public class AsymLineAdmittanceMatrix {
 
     // This class is made to build and access the admittance terms that will be used to fill the Jacobian :
     // The following formulation approach is used :
-    //                                        1      ________        2
-    // [ Io1 ]             [ Vo1 ]            o-----|        |-------o
-    // [ Id1 ]             [ Vd1 ]            d-----|  Yodi  |-------d
-    // [ Ii1 ]             [ Vi1 ]            i-----|________|-------i
-    // [ Io2 ] = [Yodi] *  [ Vo2 ]
-    // [ Id2 ]             [ Vd2 ]
-    // [ Ii2 ]             [ Vi2 ]
+    //                                        side 1   ________     side 2
+    // [ I0_1 ]             [ V0_1 ]            0-----|        |-------0
+    // [ I1_1 ]             [ V1_1 ]            1-----|  Y012  |-------1
+    // [ I2_1 ]             [ V2_1 ]            2-----|________|-------2
+    // [ I0_2 ] = [Y012] *  [ V0_2 ]
+    // [ I1_2 ]             [ V1_2 ]
+    // [ I2_2 ]             [ V2_2 ]
     //
-    // Given that at bus n where j are all neighbouring busses:
-    // Sum[j](Sd_nj) = P_n + j.Q_n = Sum[j](Vd_n.Id_nj*)
-    //               Po_n + j.Qo_n = Sum[j](Vo_n.Io_nj*)
-    //               Pi_n + j.Qi_n = Sum[j](Vi_n.Ii_nj*)
+    // Given that at bus 1 where j are all neighbouring busses, the injection at bus 1 is equal to the sum of Powers from neighboring busses:
+    // Sum[j](Sd_1j) = P_1 + j.Q_1 = Sum[j](V1_1.I1_1j*)
+    //               P0_1 + j.Q0_1 = Sum[j](V0_1.I0_1j*)
+    //               P2_1 + j.Q2_1 = Sum[j](V2_1.I2_1j*)
     //
-    // Substituting [I] by [Yodi]*[V] allows to know the equations terms that will fill the jacobian matrix
+    // Substituting [I] by [Y012]*[V] allows to know the equations terms that will fill the jacobian matrix
     //
-    // Step 1: Get [Yodi]
+    // Step 1: Get [Y012]
     // ------------------
-    // First step is to compute [ Yodi ] from a 3-phase description because this is how we can describe unbalances of phases for a line:
+    // First step is to compute [ Y012 ] from a 3-phase description because this is how we can describe unbalances of phases for a line:
     // For each a,b,c phase we know the following relation (only true for lines with no mutual inductances, otherwise we must handle full [Yabc] matrix):
-    // [Ia1]   [ ya11 ya12 ]   [Va1]
-    // [Ia2] = [ ya21 ya22 ] * [Va2]
-    //            with (for a line only)  :  ya11 = ga1 + j.ba1 + 1/za   , ya12 = -1/za   ,   ya21 = -1/za   ,  ya22 = ga2 + j.ba2 + 1/za
+    // [Ia_1]   [ ya_11 ya_12 ]   [Va_1]
+    // [Ia_2] = [ ya_21 ya_22 ] * [Va_2]
+    //            with (for a line only)  :  ya_11 = ga1 + j.ba1 + 1/za   , ya_12 = -1/za   ,   ya_21 = -1/za   ,  ya_22 = ga2 + j.ba2 + 1/za
     //
     // From the fortescue transformation we have:
-    // [Ga]         [Go]
-    // [Gb] = [F] * [Gd]
-    // [Gc]         [Gi]
+    // [Ga]         [G0]
+    // [Gb] = [F] * [G1]
+    // [Gc]         [G2]
     //     where [G] might be [V] or [I]
     //     where [F] is the fortescue transformation matrix
     //
     // Therefore we have:
-    //                           [ya11  0    0  ya12  0   0  ]
-    //                           [  0  yb11  0    0  yb12 0  ]
-    //          [inv(F)   O  ]   [  0   0   yc11  0   0  yc12]   [ F  0 ]
-    // [Yodi] = [  0   inv(F)] * [ya21  0    0  ya22  0   0  ] * [ 0  F ]
-    //                           [  0  yb21  0    0  yb22 0  ]
-    //                           [  0   0   yc21  0   0  yc22]
+    //                           [ya_11  0    0  ya_12  0   0  ]
+    //                           [  0  yb_11  0    0  yb_12 0  ]
+    //          [inv(F)   O  ]   [  0   0   yc_11  0   0  yc_12]   [ F  0 ]
+    // [Y012] = [  0   inv(F)] * [ya_21  0    0  ya_22  0   0  ] * [ 0  F ]
+    //                           [  0  yb_21  0    0  yb_22 0  ]
+    //                           [  0   0   yc_21  0   0  yc_22]
     //
-    // [Yodi] is a complex matrix
+    // [Y012] is a complex matrix
     //
-    // Step 2: Define the generic term that will be used to make the link between [Yodi] and S[o,d,i] the apparent power
+    // Step 2: Define the generic term that will be used to make the link between [Y012] and S[0,1,2] the apparent power
     // -----------------------------------------------------------------------------------------------------------------
     // We define T(i,j,g,h) = rho_i * rho_j * exp(j(a_i-a_j)) * y*_ij_gh * V_gi * V*_hj
-    //    where i,j are line's ends i,j included in {1,2}
-    //    where g,h are fortescue sequences g,h included in {o,d,i}
+    //    where i,j are line's ends included in {1,2}
+    //    where g,h are fortescue sequences included in {o,d,i}={0,1,2}
     //
     //
     // Step 3 : express the expanded value of T(i,j,g,h):
@@ -66,16 +66,16 @@ public class AsymLineAdmittanceMatrix {
     //
     // Step 4 : express the apparent powers with T():
     // ----------------------------------------------
-    // S_o_12 = T(1,1,o,o) + T(1,1,o,d) + T(1,1,o,i) - T(1,2,o,o) - T(1,2,o,d) - T(1,2,o,i)
-    // S_d_12 = T(1,1,d,o) + T(1,1,d,d) + T(1,1,d,i) - T(1,2,d,o) - T(1,2,d,d) - T(1,2,d,i)
-    // S_i_12 = T(1,1,i,o) + T(1,1,i,d) + T(1,1,i,i) - T(1,2,i,o) - T(1,2,i,d) - T(1,2,i,i)
+    // S_0_12 = T(1,1,o,o) + T(1,1,o,d) + T(1,1,o,i) - T(1,2,o,o) - T(1,2,o,d) - T(1,2,o,i)
+    // S_1_12 = T(1,1,d,o) + T(1,1,d,d) + T(1,1,d,i) - T(1,2,d,o) - T(1,2,d,d) - T(1,2,d,i)
+    // S_2_12 = T(1,1,i,o) + T(1,1,i,d) + T(1,1,i,i) - T(1,2,i,o) - T(1,2,i,d) - T(1,2,i,i)
     //
-    // Step 5 : make the link between y_ij_gh in T() and [Yodi]:
+    // Step 5 : make the link between y_ij_gh in T() and [Y012]:
     // ---------------------------------------------------------
     // By construction we have :
     //          [ y_11_oo y_11_od y_11_oi y_12_oo y_12_od y_12_oi ]
     //          [ y_11_do y_11_dd y_11_di y_12_do y_12_dd y_12_di ]
-    // [Yodi] = [ y_11_io y_11_id y_11_ii y_12_io y_12_id y_12_ii ]
+    // [Y012] = [ y_11_io y_11_id y_11_ii y_12_io y_12_id y_12_ii ]
     //          [ y_21_oo y_21_od y_21_oi y_22_oo y_22_od y_22_oi ]
     //          [ y_21_do y_21_dd y_21_di y_22_do y_22_dd y_22_di ]
     //          [ y_21_io y_21_id y_21_ii y_22_io y_22_id y_22_ii ]
@@ -84,12 +84,12 @@ public class AsymLineAdmittanceMatrix {
     private DenseMatrix mY012;
 
     public AsymLineAdmittanceMatrix(AsymLine asymLine) {
-        // input values are given in fortescue component, we build first Yodi and deduce Yabc
+        // input values are given in fortescue component, we build first Y012 and deduce Yabc
 
         this.mY012 = buildYadmittanceMatrix(asymLine);
         this.mYabc = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.getFortescueMatrix()), mY012,
                 buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()));
-        // if one phase or more are disconnected we need to update Yabc and then Yodi
+        // if one phase or more are disconnected we need to update Yabc and then Y012
         boolean isOpen = false;
         if (asymLine.isOpenA()) {
             // we cancel all lines and columns that impact Va or Ia
@@ -128,7 +128,7 @@ public class AsymLineAdmittanceMatrix {
 
         DenseMatrix mY = new DenseMatrix(12, 12);
 
-        double r1 = piValues.piComponent1.getR(); // TODO : give right pu from iidm
+        double r1 = piValues.piComponent1.getR();
         double x1 = piValues.piComponent1.getX();
         double g1i = piValues.piComponent1.getG1();
         double g1j = piValues.piComponent1.getG2();
@@ -140,7 +140,7 @@ public class AsymLineAdmittanceMatrix {
         double g1ji = g1ij;
         double b1ji = b1ij;
 
-        double r2 = piValues.piComponent2.getR();  // TODO : give right pu from iidm
+        double r2 = piValues.piComponent2.getR();
         double x2 = piValues.piComponent2.getX();
         double g2i = piValues.piComponent2.getG1();
         double g2j = piValues.piComponent2.getG2();
@@ -152,7 +152,7 @@ public class AsymLineAdmittanceMatrix {
         double g2ji = g2ij;
         double b2ji = b2ij;
 
-        double r3 = piValues.piComponent3.getR(); // TODO : give right pu from iidm
+        double r3 = piValues.piComponent3.getR();
         double x3 = piValues.piComponent3.getX();
         double g3i = piValues.piComponent3.getG1();
         double g3j = piValues.piComponent3.getG2();
@@ -164,7 +164,6 @@ public class AsymLineAdmittanceMatrix {
         double g3ji = g3ij;
         double b3ji = b3ij;
 
-        // TODO : add gi, gj, bi, bj in the matrix
         //bloc ya11
         add22Bloc(g1ij + g1i, b1ij + b1i, 1, 1, mY);
         //bloc ya12
@@ -178,7 +177,6 @@ public class AsymLineAdmittanceMatrix {
         //bloc yc12
         add22Bloc(-g3ij, -b3ij, 3, 6, mY);
 
-        //-----
         //bloc ya22
         add22Bloc(g1ji + g1j, b1ji + b1j, 4, 4, mY);
         //bloc ya21

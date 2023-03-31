@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
@@ -89,17 +90,21 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             double z0Square = r0 * r0 + x0 * x0;
             double z2Square = r2 * r2 + x2 * x2;
             double epsilon = 0.0000000001;
-            double bZero = 0;
-            double gZero = 0;
-            double bNegative = 0;
-            double gNegative = 0;
+            double bZero;
+            double gZero;
+            double bNegative;
+            double gNegative;
             if (z0Square > epsilon) {
                 bZero = -x0 / z0Square;
                 gZero = r0 / z0Square;
+            } else {
+                throw new PowsyblException("Generator '" + generator.getId() + "' has fortescue zero sequence values that will bring singularity in the equation system");
             }
             if (z2Square > epsilon) {
                 bNegative = -x2 / z2Square;
                 gNegative = r2 / z2Square;
+            } else {
+                throw new PowsyblException("Generator '" + generator.getId() + "' has fortescue negative sequence values that will bring singularity in the equation system");
             }
             AsymGenerator asymGenerator = new AsymGenerator(gZero, bZero, gNegative, bNegative);
             lfGeneratorImpl.setProperty(AsymGenerator.PROPERTY_ASYMMETRICAL, asymGenerator);

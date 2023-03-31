@@ -57,7 +57,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                         piModel.getR(), piModel.getX(), 0, 0, 0, 0, isOpenB,
                         piModel.getR(), piModel.getX(), 0, 0, 0, 0, isOpenC);
             } else {
-                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical input data defined");
+                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical Pi values input data defined");
             }
 
             lfBranchImpl.setProperty(AsymLine.PROPERTY_ASYMMETRICAL, asymLine);
