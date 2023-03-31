@@ -15,6 +15,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -25,7 +26,7 @@ import static com.powsybl.openloadflow.util.ReportTestsUtil.compareReportWithRef
 /**
  * @author Bertrand Rix <bertrand.rix at artelys.com>
  */
-public class AcLoadFlowReportTest {
+class AcLoadFlowReportTest {
 
     @Test
     void testEsgTutoDetailedNrLogsLf() throws IOException {
@@ -36,7 +37,7 @@ public class AcLoadFlowReportTest {
 
         LoadFlow.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reporter);
 
-        compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReportDetailedNrReportLf.txt"));
+        Assertions.assertTrue(compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReportDetailedNrReportLf.txt")));
     }
 
 }

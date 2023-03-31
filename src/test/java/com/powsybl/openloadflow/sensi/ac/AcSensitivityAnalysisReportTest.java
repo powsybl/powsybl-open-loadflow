@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.sensi.AbstractSensitivityAnalysisTest;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 import com.powsybl.sensitivity.SensitivityFactor;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -45,7 +46,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
             sensiParameters, LocalComputationManager.getDefault(), reporter);
 
-        compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReport.txt"));
+        Assertions.assertTrue(compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReport.txt")));
     }
 
     @Test
@@ -61,6 +62,6 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(), factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault(), reporter);
 
-        compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReportDetailedNrReportSensi.txt"));
+        Assertions.assertTrue(compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReportDetailedNrReportSensi.txt")));
     }
 }

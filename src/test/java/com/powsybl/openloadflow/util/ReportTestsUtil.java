@@ -15,8 +15,6 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 /**
  * @author Bertrand Rix <bertrand.rix at artelys.com>
  */
@@ -29,12 +27,12 @@ public final class ReportTestsUtil {
         return str.replace("\r\n", "\n").replace("\r", "\n");
     }
 
-    public static void compareReportWithReference(ReporterModel reporter, InputStream ref) throws IOException {
+    public static boolean compareReportWithReference(ReporterModel reporter, InputStream ref) throws IOException {
         StringWriter sw = new StringWriter();
         reporter.export(sw);
 
         String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(ref), StandardCharsets.UTF_8));
         String logExport = normalizeLineSeparator(sw.toString());
-        assertEquals(refLogExport, logExport);
+        return refLogExport.equals(logExport);
     }
 }

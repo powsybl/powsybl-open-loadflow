@@ -2791,7 +2791,7 @@ class OpenSecurityAnalysisTest {
         runSecurityAnalysis(network, contingencies, Collections.emptyList(),
                 saParameters, Collections.emptyList(), Collections.emptyList(), reporter);
 
-        compareReportWithReference(reporter, getClass().getResourceAsStream("/detailedNrReportSecurityAnalysis.txt"));
+        assertTrue(compareReportWithReference(reporter, getClass().getResourceAsStream("/detailedNrReportSecurityAnalysis.txt")));
     }
 
     void testBusBarSectionContingency() {
