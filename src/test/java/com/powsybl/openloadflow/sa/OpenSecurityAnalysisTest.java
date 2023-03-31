@@ -59,6 +59,7 @@ import java.util.stream.Stream;
 
 import static com.powsybl.commons.test.TestUtil.normalizeLineSeparator;
 
+import static com.powsybl.openloadflow.util.ReportTestsUtil.compareReportWithReference;
 import static java.lang.Double.NaN;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -2717,5 +2718,28 @@ class OpenSecurityAnalysisTest {
         assertEquals(network.getLine("l13").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l12").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l23").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSecurityAnalysisReport() throws IOException {
+
+        Network network = createNodeBreakerNetwork();
+        network.getLine("L1").getCurrentLimits1().ifPresent(limits -> limits.setPermanentLimit(200));
+
+        List<Contingency> contingencies = List.of(new Contingency("L2", new BranchContingency("L2")));
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
+        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        ReporterModel reporter = new ReporterModel("testSaReport", "Test report of security analysis");
+        runSecurityAnalysis(network, contingencies, Collections.emptyList(),
+                saParameters, Collections.emptyList(), Collections.emptyList(), reporter);
+
+        compareReportWithReference(reporter, getClass().getResourceAsStream("/detailedNrReportSecurityAnalysis.txt"));
     }
 }

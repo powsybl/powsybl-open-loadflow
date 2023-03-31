@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.sensi.ac;
 
-import com.google.common.io.ByteStreams;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
@@ -21,24 +20,17 @@ import com.powsybl.sensitivity.SensitivityFactor;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static com.powsybl.openloadflow.util.ReportTestsUtil.compareReportWithReference;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
 class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
-
-    protected static String normalizeLineSeparator(String str) {
-        return str.replace("\r\n", "\n").replace("\r", "\n");
-    }
 
     @Test
     void testEsgTuto() throws IOException {
@@ -53,85 +45,22 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
             sensiParameters, LocalComputationManager.getDefault(), reporter);
 
-        StringWriter sw = new StringWriter();
-        reporter.export(sw);
-
-        InputStream refStream = getClass().getResourceAsStream("/esgTutoReport.txt");
-        String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(refStream), StandardCharsets.UTF_8));
-        String logExport = normalizeLineSeparator(sw.toString());
-        assertEquals(refLogExport, logExport);
+        compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReport.txt"));
     }
 
     @Test
-    void testEsgTutoDetailedNrLogsLf() throws IOException {
+    void testEsgTutoDetailedNrLogsSensi() throws IOException {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
-        var lfParameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(lfParameters).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
-        runAcLf(network, reporter, lfParameters);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
-        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters())
+                .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SENSITIVITY_ANALYSIS));
         List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
                 network.getLineStream().collect(Collectors.toList()));
-        sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
+        sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(), factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault(), reporter);
 
-        StringWriter sw = new StringWriter();
-        reporter.export(sw);
-
-        InputStream refStream = getClass().getResourceAsStream("/esgTutoReportDetailedNrReportLf.txt");
-        String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(refStream), StandardCharsets.UTF_8));
-        String logExport = normalizeLineSeparator(sw.toString());
-        assertEquals(refLogExport, logExport);
-    }
-
-    @Test
-    void testEsgTutoDetailedNrLogsSa() throws IOException {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
-        var lfParameters = new LoadFlowParameters();
-        runAcLf(network, reporter, lfParameters);
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
-        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
-        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters()).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SA));
-        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                network.getLineStream().collect(Collectors.toList()));
-        sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
-                sensiParameters, LocalComputationManager.getDefault(), reporter);
-
-        StringWriter sw = new StringWriter();
-        reporter.export(sw);
-
-        InputStream refStream = getClass().getResourceAsStream("/esgTutoReportDetailedNrReportSa.txt");
-        String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(refStream), StandardCharsets.UTF_8));
-        String logExport = normalizeLineSeparator(sw.toString());
-        assertEquals(refLogExport, logExport);
-    }
-
-    @Test
-    void testEsgTutoDetailedNrLogsLfSa() throws IOException {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        ReporterModel reporter = new ReporterModel("testEsgTutoReport", "Test ESG tutorial report");
-        var lfParameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(lfParameters).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
-        runAcLf(network, reporter, lfParameters);
-
-        SensitivityAnalysisParameters sensiParameters = createParameters(false, "VLLOAD_0");
-        sensiParameters.getLoadFlowParameters().setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
-        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters()).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SA));
-        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
-                network.getLineStream().collect(Collectors.toList()));
-        sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
-                sensiParameters, LocalComputationManager.getDefault(), reporter);
-
-        StringWriter sw = new StringWriter();
-        reporter.export(sw);
-
-        InputStream refStream = getClass().getResourceAsStream("/esgTutoReportDetailedNrReportLfSa.txt");
-        String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(refStream), StandardCharsets.UTF_8));
-        String logExport = normalizeLineSeparator(sw.toString());
-        assertEquals(refLogExport, logExport);
+        compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReportDetailedNrReportSensi.txt"));
     }
 }

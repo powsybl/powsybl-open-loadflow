@@ -197,22 +197,18 @@ public final class Reports {
                 "contingencyId", contingencyId);
     }
 
-    public static Reporter createNewtonRaphsonReporter(Reporter reporter, boolean detailedNrLogs, int networkNumCc, int networkNumSc, int outerLoopIteration, String outerLoopType) {
-        if (detailedNrLogs) {
-            if (outerLoopIteration == 0) {
-                return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || No outer loops calculations",
-                        Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                                "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED)));
-            } else {
-                return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || Outer loop iteration ${newtonRaphsonOuterLoopIteration} and type `${newtonRaphsonOuterLoopType}`",
-                        Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
-                                "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED),
-                                "newtonRaphsonOuterLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED),
-                                "newtonRaphsonOuterLoopType", new TypedValue(outerLoopType, TypedValue.UNTYPED)));
-            }
-        } else {
-            return reporter;
-        }
+    public static Reporter createDetailedNewtonRaphsonReporter(Reporter reporter, int networkNumCc, int networkNumSc) {
+        return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || No outer loops calculations",
+                Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+    }
+
+    public static Reporter createDetailedNewtonRaphsonReporterOuterLoop(Reporter reporter, int networkNumCc, int networkNumSc, int outerLoopIteration, String outerLoopType) {
+        return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || Outer loop iteration ${newtonRaphsonOuterLoopIteration} and type `${newtonRaphsonOuterLoopType}`",
+                Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED),
+                        "newtonRaphsonOuterLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED),
+                        "newtonRaphsonOuterLoopType", new TypedValue(outerLoopType, TypedValue.UNTYPED)));
     }
 
     public static Reporter createNewtonRaphsonMismatchReporter(Reporter reporter, int iteration) {

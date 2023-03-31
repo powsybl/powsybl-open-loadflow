@@ -77,8 +77,16 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getType(), runningContext.outerLoopTotalIterations);
 
+                Reporter nrReporter = context.getNetwork().getReporter();
+                if (context.getParameters().getNewtonRaphsonParameters().isDetailedNrReport()) {
+                    nrReporter = Reports.createDetailedNewtonRaphsonReporterOuterLoop(nrReporter,
+                            context.getNetwork().getNumCC(),
+                            context.getNetwork().getNumSC(),
+                            outerLoopIteration.toInteger() + 1, outerLoop.getType());
+                }
+
                 // if not yet stable, restart Newton-Raphson
-                runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer(), context.getNetwork().getReporter(), outerLoopIteration.toInteger() + 1, outerLoop.getType());
+                runningContext.lastNrResult = newtonRaphson.run(new PreviousValueVoltageInitializer(), nrReporter);
 
                 runningContext.nrTotalIterations.add(runningContext.lastNrResult.getIterations());
                 runningContext.outerLoopTotalIterations++;
@@ -120,8 +128,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             outerLoop.initialize(outerLoopContext);
         }
 
+        Reporter nrReporter = context.getNetwork().getReporter();
+        if (context.getParameters().getNewtonRaphsonParameters().isDetailedNrReport()) {
+            nrReporter = Reports.createDetailedNewtonRaphsonReporter(nrReporter,
+                    context.getNetwork().getNumCC(),
+                    context.getNetwork().getNumSC());
+        }
         // run initial Newton-Raphson
-        runningContext.lastNrResult = newtonRaphson.run(voltageInitializer, context.getNetwork().getReporter(), 0, null);
+        runningContext.lastNrResult = newtonRaphson.run(voltageInitializer, nrReporter);
         double initialSlackBusActivePowerMismatch = runningContext.lastNrResult.getSlackBusActivePowerMismatch();
 
         runningContext.nrTotalIterations.add(runningContext.lastNrResult.getIterations());

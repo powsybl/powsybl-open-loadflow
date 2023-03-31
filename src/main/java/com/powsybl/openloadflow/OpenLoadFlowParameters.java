@@ -248,7 +248,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public enum ReportedFeatures {
         NEWTON_RAPHSON_LOAD_FLOW,
-        NEWTON_RAPHSON_SA,
+        NEWTON_RAPHSON_SECURITY_ANALYSIS,
+        NEWTON_RAPHSON_SENSITIVITY_ANALYSIS,
     }
 
     private SlackBusSelectionMode slackBusSelectionMode = SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE;

@@ -253,10 +253,7 @@ public class NewtonRaphson {
         return !busesOutOfNormalVoltageRange.isEmpty();
     }
 
-    public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter, int outerLoopIteration, String outerLoopType) {
-
-        Reporter nrReporter = Reports.createNewtonRaphsonReporter(reporter, parameters.isDetailedNrReport(), network.getNumCC(), network.getNumSC(), outerLoopIteration, outerLoopType);
-
+    public NewtonRaphsonResult run(VoltageInitializer voltageInitializer, Reporter reporter) {
         // initialize state vector
         initStateVector(network, equationSystem, voltageInitializer);
 
@@ -268,14 +265,14 @@ public class NewtonRaphson {
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
         if (parameters.isDetailedNrReport() || LOGGER.isTraceEnabled()) {
-            reportAndLogLargestMismatchByAcEquationType(nrReporter, equationSystem, equationVector.getArray(), initialTestResult.getNorm(), -1);
+            reportAndLogLargestMismatchByAcEquationType(reporter, equationSystem, equationVector.getArray(), initialTestResult.getNorm(), -1);
         }
 
         // start iterations
         NewtonRaphsonStatus status = NewtonRaphsonStatus.NO_CALCULATION;
         MutableInt iterations = new MutableInt();
         while (iterations.getValue() <= parameters.getMaxIterations()) {
-            NewtonRaphsonStatus newStatus = runIteration(svScaling, iterations, nrReporter);
+            NewtonRaphsonStatus newStatus = runIteration(svScaling, iterations, reporter);
             if (newStatus != null) {
                 status = newStatus;
                 break;
