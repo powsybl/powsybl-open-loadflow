@@ -185,6 +185,8 @@ public class PropagatedContingency {
                     if (control != null && control.isEnabled() && hvdcAcEmulation) {
                         hvdcIdsToOpen.add(station.getHvdcLine().getId());
                     }
+                    // FIXME
+                    // the other converter station should be considered to if in the same synchronous component (hvdc setpoint mode).
                     if (connectable instanceof VscConverterStation) {
                         generatorIdsToLose.add(connectable.getId());
                     } else {
@@ -304,7 +306,10 @@ public class PropagatedContingency {
                 .forEach(connectivity::removeEdge);
 
         if (connectivity.getConnectedComponent(network.getSlackBus()).size() == 1) {
-            LOGGER.warn("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
+            // FIXME
+            // If a contingency leads to an isolated slack bus, this bus is considered as the main component.
+            // In that case, we have an issue with a different number of variables and equations.
+            LOGGER.error("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
             connectivity.undoTemporaryChanges();
             return Optional.empty();
         }
@@ -324,6 +329,9 @@ public class PropagatedContingency {
         }
 
         for (LfHvdc hvdcLine : network.getHvdcs()) {
+            // FIXME
+            // if we loose a bus with a converter station, the other converter station should be considered to if in the
+            // same synchronous component (hvdc setpoint mode).
             if (buses.contains(hvdcLine.getBus1()) || buses.contains(hvdcLine.getBus2())) {
                 hvdcIdsToOpen.add(hvdcLine.getId());
             }
