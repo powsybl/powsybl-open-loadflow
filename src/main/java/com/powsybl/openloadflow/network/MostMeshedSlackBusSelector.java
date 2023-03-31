@@ -6,26 +6,30 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Country;
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
+
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class MostMeshedSlackBusSelector implements SlackBusSelector {
+public class MostMeshedSlackBusSelector extends AbstractSlackBusSelector {
 
     public static final double MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE = 95;
 
     private final double maxNominalVoltagePercentile;
 
     public MostMeshedSlackBusSelector() {
-        this(MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE);
+        this(MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE, Collections.emptySet());
     }
 
-    public MostMeshedSlackBusSelector(double maxNominalVoltagePercentile) {
+    public MostMeshedSlackBusSelector(double maxNominalVoltagePercentile, Set<Country> countries) {
+        super(countries);
         this.maxNominalVoltagePercentile = maxNominalVoltagePercentile;
     }
 
@@ -37,6 +41,7 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
     public SelectedSlackBus select(List<LfBus> buses, int limit) {
         double[] nominalVoltages = buses.stream()
                 .filter(bus -> !bus.isFictitious())
+                .filter(this::filterByCountry)
                 .map(LfBus::getNominalV).mapToDouble(Double::valueOf).toArray();
         double maxNominalV = new Percentile()
                 .withEstimationType(Percentile.EstimationType.R_3)
@@ -44,8 +49,9 @@ public class MostMeshedSlackBusSelector implements SlackBusSelector {
 
         // select non-fictitious and most meshed bus among buses with the highest nominal voltage
         List<LfBus> slackBuses = buses.stream()
-            .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
-            .sorted(Comparator.comparingInt(MostMeshedSlackBusSelector::getBranchCountConnectedAtBothSides)
+                .filter(bus -> !bus.isFictitious() && bus.getNominalV() == maxNominalV)
+                .filter(this::filterByCountry)
+                .sorted(Comparator.comparingInt(MostMeshedSlackBusSelector::getBranchCountConnectedAtBothSides)
                     .thenComparing(Comparator.comparing(LfBus::getId).reversed()).reversed())
             .limit(limit)
             .collect(Collectors.toList());
