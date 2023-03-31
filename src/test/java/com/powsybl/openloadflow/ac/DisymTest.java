@@ -2,6 +2,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
+import com.powsybl.iidm.network.extensions.LineFortescueAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -10,7 +11,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalAdder;
-import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalPiValues;
 import com.powsybl.openloadflow.network.Extensions.iidm.LoadUnbalancedAdder;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
@@ -375,15 +375,16 @@ public class DisymTest {
                 .setB2(0.0)
                 .add();
 
-        LineAsymmetricalPiValues piValuesAbc = new LineAsymmetricalPiValues(0., line23fault.getX(), 0., 0., 0, 0,
-                0., line23fault.getX(), 0., 0., 0, 0,
-                0., line23fault.getX(), 0., 0., 0, 0);
         // addition of asymmetrical extensions
         line23fault.newExtension(LineAsymmetricalAdder.class)
                 .withIsOpenA(true) // TODO : activate this to have unbalanced grid
                 .withIsOpenB(false)
                 .withIsOpenC(false)
-                .withPiValuesAbc(piValuesAbc)
+                .add();
+
+        line23fault.newExtension(LineFortescueAdder.class)
+                .withRz(0)
+                .withXz(line23fault.getX())
                 .add();
 
         // addition of asymmetrical extensions

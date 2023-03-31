@@ -83,73 +83,45 @@ public class AsymLineAdmittanceMatrix {
     private DenseMatrix mYabc;
     private DenseMatrix mY012;
 
-    public AsymLineAdmittanceMatrix(AsymLine asymLine, Fortescue.ComponentType componentType) {
+    public AsymLineAdmittanceMatrix(AsymLine asymLine) {
+        // input values are given in fortescue component, we build first Yodi and deduce Yabc
 
-        if (componentType == Fortescue.ComponentType.FORTESCUE) {
-            // input values are given in fortescue component, we build first Yodi and deduce Yabc
+        this.mY012 = buildYadmittanceMatrix(asymLine);
+        this.mYabc = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.getFortescueMatrix()), mY012,
+                buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()));
+        // if one phase or more are disconnected we need to update Yabc and then Yodi
+        boolean isOpen = false;
+        if (asymLine.isOpenA()) {
+            // we cancel all lines and columns that impact Va or Ia
+            cancelComponentMatrix(mYabc, 1);
+            isOpen = true;
+        }
 
-            this.mY012 = buildYadmittanceMatrix(asymLine);
-            this.mYabc = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.getFortescueMatrix()), mYabc,
-                    buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()));
-            // if one phase or more are disconnected we need to update Yabc and then Yodi
-            boolean isOpen = false;
-            if (asymLine.isOpenA()) {
-                // we cancel all lines and columns that impact Va or Ia
-                cancelComponentMatrix(mYabc, 1);
-                isOpen = true;
-            }
+        if (asymLine.isOpenB()) {
+            // we cancel all lines and columns that impact Va or Ia
+            cancelComponentMatrix(mYabc, 2);
+            isOpen = true;
+        }
 
-            if (asymLine.isOpenB()) {
-                // we cancel all lines and columns that impact Va or Ia
-                cancelComponentMatrix(mYabc, 2);
-                isOpen = true;
-            }
+        if (asymLine.isOpenC()) {
+            // we cancel all lines and columns that impact Va or Ia
+            cancelComponentMatrix(mYabc, 3);
+            isOpen = true;
+        }
 
-            if (asymLine.isOpenC()) {
-                // we cancel all lines and columns that impact Va or Ia
-                cancelComponentMatrix(mYabc, 3);
-                isOpen = true;
-            }
-
-            if (isOpen) {
-                this.mY012 = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()), mYabc,
-                        buildTwoBlocsMatrix(Fortescue.getFortescueMatrix()));
-            }
-        } else {
-            // input values are given in ABC component, we build first Yabc and deduce Yodi
-            this.mYabc = buildYadmittanceMatrix(asymLine);
+        if (isOpen) {
             this.mY012 = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()), mYabc,
                     buildTwoBlocsMatrix(Fortescue.getFortescueMatrix()));
         }
     }
 
     public DenseMatrix buildYadmittanceMatrix(AsymLine asymLine) {
-        if (asymLine.getAdmittanceTerms() != null) {
-            AsymLineAdmittanceTerms admittanceTerms = asymLine.getAdmittanceTerms();
-            return buildYadmittanceMatrix(admittanceTerms);
-        } else if (asymLine.getPiValues() != null) {
+        if (asymLine.getPiValues() != null) {
             AsymLinePiValues piValues = asymLine.getPiValues();
             return buildYadmittanceMatrix(asymLine, piValues);
         } else {
-            throw new IllegalStateException("Could not build Yabc of line : ");
+            throw new IllegalStateException("No Pi Values available, could not build Y of line : ");
         }
-    }
-
-    public DenseMatrix buildYadmittanceMatrix(AsymLineAdmittanceTerms admTerms) {
-        DenseMatrix mY = new DenseMatrix(12, 12);
-        add22Bloc(admTerms.getY11().getFirst(), admTerms.getY11().getSecond(), 1, 1, mY);
-        add22Bloc(admTerms.getY12().getFirst(), admTerms.getY12().getSecond(), 1, 2, mY);
-        add22Bloc(admTerms.getY13().getFirst(), admTerms.getY13().getSecond(), 1, 3, mY);
-
-        add22Bloc(admTerms.getY21().getFirst(), admTerms.getY21().getSecond(), 2, 1, mY);
-        add22Bloc(admTerms.getY22().getFirst(), admTerms.getY22().getSecond(), 2, 2, mY);
-        add22Bloc(admTerms.getY23().getFirst(), admTerms.getY23().getSecond(), 2, 3, mY);
-
-        add22Bloc(admTerms.getY31().getFirst(), admTerms.getY31().getSecond(), 3, 1, mY);
-        add22Bloc(admTerms.getY32().getFirst(), admTerms.getY32().getSecond(), 3, 2, mY);
-        add22Bloc(admTerms.getY33().getFirst(), admTerms.getY33().getSecond(), 3, 3, mY);
-
-        return mY;
     }
 
     public DenseMatrix buildYadmittanceMatrix(AsymLine asymLine, AsymLinePiValues piValues) {
@@ -164,14 +136,7 @@ public class AsymLineAdmittanceMatrix {
         double b1j = piValues.piComponent1.getB2();
         double g1ij = r1 / (r1 * r1 + x1 * x1);
         double b1ij = -x1 / (r1 * r1 + x1 * x1);
-        if (asymLine.isOpenA()) {
-            g1ij = 0.;
-            b1ij = 0.;
-            g1i = 0.;
-            g1j = 0;
-            b1i = 0;
-            b1j = 0;
-        }
+
         double g1ji = g1ij;
         double b1ji = b1ij;
 
@@ -183,14 +148,7 @@ public class AsymLineAdmittanceMatrix {
         double b2j = piValues.piComponent2.getB2();
         double g2ij = r2 / (r2 * r2 + x2 * x2);
         double b2ij = -x2 / (r2 * r2 + x2 * x2);
-        if (asymLine.isOpenB()) {
-            g2ij = 0.;
-            b2ij = 0.;
-            g2i = 0.;
-            g2j = 0;
-            b2i = 0;
-            b2j = 0;
-        }
+
         double g2ji = g2ij;
         double b2ji = b2ij;
 
@@ -202,14 +160,7 @@ public class AsymLineAdmittanceMatrix {
         double b3j = piValues.piComponent3.getB2();
         double g3ij = r3 / (r3 * r3 + x3 * x3);
         double b3ij = -x3 / (r3 * r3 + x3 * x3);
-        if (asymLine.isOpenC()) {
-            g3ij = 0.;
-            b3ij = 0.;
-            g3i = 0.;
-            g3j = 0;
-            b3i = 0;
-            b3j = 0;
-        }
+
         double g3ji = g3ij;
         double b3ji = b3ij;
 
@@ -307,10 +258,6 @@ public class AsymLineAdmittanceMatrix {
 
     public DenseMatrix getmY012() {
         return mY012;
-    }
-
-    public DenseMatrix getmYabc() {
-        return mYabc;
     }
 
     public static boolean isAdmittanceDecoupled(DenseMatrix m) {

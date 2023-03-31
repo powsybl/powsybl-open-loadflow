@@ -78,33 +78,11 @@ public class AsymBus {
     private double bNegativeEquivalent = 0.;
     private double gNegativeEquivalent = 0.;
 
-    private Evaluable pZero = EvaluableConstants.NAN;
-    private Evaluable qZero = EvaluableConstants.NAN;
-
-    private Evaluable pNegative = EvaluableConstants.NAN;
-    private Evaluable qNegative = EvaluableConstants.NAN;
-
     private Evaluable ixZero = EvaluableConstants.NAN;
     private Evaluable iyZero = EvaluableConstants.NAN;
 
     private Evaluable ixNegative = EvaluableConstants.NAN;
     private Evaluable iyNegative = EvaluableConstants.NAN;
-
-    public double getAngleZero() {
-        return angleZero;
-    }
-
-    public double getAngleNegative() {
-        return angleNegative;
-    }
-
-    public double getvZero() {
-        return vZero;
-    }
-
-    public double getvNegative() {
-        return vNegative;
-    }
 
     public void setAngleZero(double angleZero) {
         this.angleZero = angleZero;
