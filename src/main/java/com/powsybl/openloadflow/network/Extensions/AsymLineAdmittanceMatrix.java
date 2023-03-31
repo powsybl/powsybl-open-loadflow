@@ -118,19 +118,15 @@ public class AsymLineAdmittanceMatrix {
         } else {
             // input values are given in ABC component, we build first Yabc and deduce Yodi
             this.mYabc = buildYadmittanceMatrix(asymLine);
-            //System.out.println("Yabc = ");
-            //mYabc.print(System.out);
             this.mY012 = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()), mYabc,
                     buildTwoBlocsMatrix(Fortescue.getFortescueMatrix()));
-            //System.out.println("Yodi = ");
-            //mYodi.print(System.out);
         }
     }
 
     public DenseMatrix buildYadmittanceMatrix(AsymLine asymLine) {
         if (asymLine.getAdmittanceTerms() != null) {
             AsymLineAdmittanceTerms admittanceTerms = asymLine.getAdmittanceTerms();
-            return buildYadmittanceMatrix(asymLine, admittanceTerms);
+            return buildYadmittanceMatrix(admittanceTerms);
         } else if (asymLine.getPiValues() != null) {
             AsymLinePiValues piValues = asymLine.getPiValues();
             return buildYadmittanceMatrix(asymLine, piValues);
@@ -139,7 +135,7 @@ public class AsymLineAdmittanceMatrix {
         }
     }
 
-    public DenseMatrix buildYadmittanceMatrix(AsymLine asymLine, AsymLineAdmittanceTerms admTerms) {
+    public DenseMatrix buildYadmittanceMatrix(AsymLineAdmittanceTerms admTerms) {
         DenseMatrix mY = new DenseMatrix(12, 12);
         add22Bloc(admTerms.getY11().getFirst(), admTerms.getY11().getSecond(), 1, 1, mY);
         add22Bloc(admTerms.getY12().getFirst(), admTerms.getY12().getSecond(), 1, 2, mY);

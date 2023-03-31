@@ -108,12 +108,6 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
     }
 
     public static double pq(boolean isActive, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi, LoadEquationTermType loadEquationTermType) {
-        /*System.out.println("eval PQ >>>>>>>> vo = " + vo);
-        System.out.println("eval PQ >>>>>>>> pho = " + pho);
-        System.out.println("eval PQ >>>>>>>> vd = " + vd);
-        System.out.println("eval PQ >>>>>>>> phd = " + phd);
-        System.out.println("eval PQ >>>>>>>> vi = " + vi);
-        System.out.println("eval PQ >>>>>>>> phi = " + phi);*/
         // We use the formula with complex matrices:
         //
         // [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
@@ -151,34 +145,25 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
         //String na
         if (isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.POWER) {
-            //System.out.println("OUT>>>>>>>> Po load = " + mSfortescue.get(0, 0));
-            return mSfortescue.get(0, 0); // Po
+            return mSfortescue.get(0, 0); // Pzero
         } else if (isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return mIfortescueConjugate.get(0, 0); // Ixo
+            return mIfortescueConjugate.get(0, 0); // IxZero
         } else if (!isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.POWER) {
-            //System.out.println("OUT>>>>>>>> Qo load = " + mSfortescue.get(1, 0));
-            return mSfortescue.get(1, 0); // Qo
+            return mSfortescue.get(1, 0); // Qzero
         } else if (!isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            //System.out.println("OUT>>>>>>>> Qo load = " + mSfortescue.get(1, 0));
-            return -mIfortescueConjugate.get(1, 0); // Iyo
+            return -mIfortescueConjugate.get(1, 0); // IyZero
         } else if (isActive && sequenceNum == 1) {
-            //System.out.println("OUT>>>>>>>> Pd load = " + mSfortescue.get(2, 0));
-            return mSfortescue.get(2, 0); // Pd
+            return mSfortescue.get(2, 0); // P
         } else if (!isActive && sequenceNum == 1) {
-            //System.out.println("OUT>>>>>>>> Qd load = " + mSfortescue.get(3, 0));
-            return mSfortescue.get(3, 0); // Qd
+            return mSfortescue.get(3, 0); // Q
         } else if (isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.POWER) {
-            //System.out.println("OUT>>>>>>>> Pi load = " + mSfortescue.get(4, 0));
-            return mSfortescue.get(4, 0); // Pi
+            return mSfortescue.get(4, 0); // Pnegative
         } else if (isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            //System.out.println("OUT>>>>>>>> Pi load = " + mSfortescue.get(4, 0));
-            return mIfortescueConjugate.get(4, 0); // Ixi
+            return mIfortescueConjugate.get(4, 0); // IxNegative
         } else if (!isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.POWER) {
-            //System.out.println("OUT>>>>>>>> Qi load = " + mSfortescue.get(5, 0));
-            return mSfortescue.get(5, 0); // Qi
+            return mSfortescue.get(5, 0); // Qnegative
         } else if (!isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            //System.out.println("OUT>>>>>>>> Qi load = " + mSfortescue.get(5, 0));
-            return -mIfortescueConjugate.get(5, 0); // Iyi
+            return -mIfortescueConjugate.get(5, 0); // IyNegative
         } else {
             throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
         }
@@ -200,40 +185,40 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + eqTerm.bus.getId());
         }
 
-        // computation of dVo/dx , dVd/dx, dVi/dx
-        double dVox = 0;
-        double dVoy = 0;
-        double dVdx = 0;
-        double dVdy = 0;
-        double dVix = 0;
-        double dViy = 0;
+        // computation of dV0/dx , dV1/dx, dV2/dx
+        double dV0x = 0;
+        double dV0y = 0;
+        double dV1x = 0;
+        double dV1y = 0;
+        double dV2x = 0;
+        double dV2y = 0;
         if (derVariable.getType() == AcVariableType.BUS_V) {
-            dVdx = Math.cos(phd);
-            dVdy = Math.sin(phd);
+            dV1x = Math.cos(phd);
+            dV1y = Math.sin(phd);
         } else if (derVariable.getType() == AcVariableType.BUS_V_ZERO) {
-            dVox = Math.cos(pho);
-            dVoy = Math.sin(pho);
+            dV0x = Math.cos(pho);
+            dV0y = Math.sin(pho);
         } else if (derVariable.getType() == AcVariableType.BUS_V_NEGATIVE) {
-            dVix = Math.cos(phi);
-            dViy = Math.sin(phi);
+            dV2x = Math.cos(phi);
+            dV2y = Math.sin(phi);
         } else if (derVariable.getType() == AcVariableType.BUS_PHI) {
-            dVdx = vd * -Math.sin(phd);
-            dVdy = vd * Math.cos(phd);
+            dV1x = vd * -Math.sin(phd);
+            dV1y = vd * Math.cos(phd);
         } else if (derVariable.getType() == AcVariableType.BUS_PHI_ZERO) {
-            dVox = vo * -Math.sin(pho);
-            dVoy = vo * Math.cos(pho);
+            dV0x = vo * -Math.sin(pho);
+            dV0y = vo * Math.cos(pho);
         } else if (derVariable.getType() == AcVariableType.BUS_PHI_NEGATIVE) {
-            dVix = vi * -Math.sin(phi);
-            dViy = vi * Math.cos(phi);
+            dV2x = vi * -Math.sin(phi);
+            dV2y = vi * Math.cos(phi);
         } else {
             throw new IllegalStateException("Unknown variable: " + derVariable);
         }
 
         // build of voltage vectors
-        Pair<Double, Double> directComponent = Fortescue.getCartesianFromPolar(vd, phd);
-        Pair<Double, Double> homopolarComponent = Fortescue.getCartesianFromPolar(vo, pho);
-        Pair<Double, Double> inversComponent = Fortescue.getCartesianFromPolar(vi, phi);
-        DenseMatrix mVfortescue = getCartesianMatrix(homopolarComponent.getKey(), homopolarComponent.getValue(), directComponent.getKey(), directComponent.getValue(), inversComponent.getKey(), inversComponent.getValue(), true); // vector build with cartesian values of complex fortescue voltages
+        Pair<Double, Double> positiveComponent = Fortescue.getCartesianFromPolar(vd, phd);
+        Pair<Double, Double> zeroComponent = Fortescue.getCartesianFromPolar(vo, pho);
+        Pair<Double, Double> negativeComponent = Fortescue.getCartesianFromPolar(vi, phi);
+        DenseMatrix mVfortescue = getCartesianMatrix(zeroComponent.getKey(), zeroComponent.getValue(), positiveComponent.getKey(), positiveComponent.getValue(), negativeComponent.getKey(), negativeComponent.getValue(), true); // vector build with cartesian values of complex fortescue voltages
         DenseMatrix mVabc = Fortescue.getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build of Sabc vector
@@ -243,7 +228,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         DenseMatrix mInvVabc = getInvVabcSquare(mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0), eqTerm);
 
         // build of derivative fortescue voltage square matrix
-        DenseMatrix mdVSquare = getCartesianMatrix(dVox, dVoy, dVdx, dVdy, dVix, dViy, false);
+        DenseMatrix mdVSquare = getCartesianMatrix(dV0x, dV0y, dV1x, dV1y, dV2x, dV2y, false);
 
         // computation of vector = term T1:
         DenseMatrix m0T1 = mInvVabc.times(mSabc3);
@@ -257,7 +242,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         DenseMatrix mMinusSabc3Square = getCartesianMatrix(-asymBus.getPa() / 3, -asymBus.getQa() / 3, -asymBus.getPb() / 3, -asymBus.getQb() / 3, -asymBus.getPc() / 3, -asymBus.getQc() / 3, false);
 
         // buils of fortescue derivative vector
-        DenseMatrix mdV = getCartesianMatrix(dVox, dVoy, dVdx, dVdy, dVix, dViy, true);
+        DenseMatrix mdV = getCartesianMatrix(dV0x, dV0y, dV1x, dV1y, dV2x, dV2y, true);
 
         // computation of vector = term T2:
         DenseMatrix m0T2 = Fortescue.getFortescueMatrix().times(mdV);
@@ -268,25 +253,25 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         DenseMatrix mT2 = mSquareVFortescue.times(mdIFortescueConjugate);
 
         if (isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mT1.get(0, 0) + mT2.get(0, 0); // dPo
+            return mT1.get(0, 0) + mT2.get(0, 0); // dPzero
         } else if (isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return mdIFortescueConjugate.get(0, 0); // dIox
+            return mdIFortescueConjugate.get(0, 0); // dIxZero
         } else if (!isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mT1.get(1, 0) + mT2.get(1, 0); // dQo
+            return mT1.get(1, 0) + mT2.get(1, 0); // dQzero
         } else if (!isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return -mdIFortescueConjugate.get(1, 0); // dIoy
+            return -mdIFortescueConjugate.get(1, 0); // dIyZero
         } else if (isActive && sequenceNum == 1) {
-            return mT1.get(2, 0) + mT2.get(2, 0); // dPd
+            return mT1.get(2, 0) + mT2.get(2, 0); // dPpositive
         } else if (!isActive && sequenceNum == 1) {
-            return mT1.get(3, 0) + mT2.get(3, 0); // dQd
+            return mT1.get(3, 0) + mT2.get(3, 0); // dQpositive
         } else if (isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mT1.get(4, 0) + mT2.get(4, 0); // dPi
+            return mT1.get(4, 0) + mT2.get(4, 0); // dPnegative
         } else if (isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return mdIFortescueConjugate.get(4, 0);
+            return mdIFortescueConjugate.get(4, 0); // dQnegative
         } else if (!isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mT1.get(5, 0) + mT2.get(5, 0); // dIxi
+            return mT1.get(5, 0) + mT2.get(5, 0); // dIxNegative
         } else if (!isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return -mdIFortescueConjugate.get(5, 0); // dIyi
+            return -mdIFortescueConjugate.get(5, 0); // dIyNegative
         } else {
             throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
         }

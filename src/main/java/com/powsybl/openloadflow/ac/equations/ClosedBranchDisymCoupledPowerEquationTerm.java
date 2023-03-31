@@ -84,31 +84,6 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
         }
     }
 
-    /*private static double dp1dv1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
-
-        return r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
-    }
-
-    private static double dp1dv2(double y, double v1, double r1, double sinTheta) {
-        return -y * r1 * R2 * v1 * sinTheta;
-    }
-
-    private static double dp1dph1(double y, double v1, double r1, double v2, double cosTheta) {
-        return y * r1 * R2 * v1 * v2 * cosTheta;
-    }
-
-    private static double dp1dph2(double y, double v1, double r1, double v2, double cosTheta) {
-        return -dp1dph1(y, v1, r1, v2, cosTheta);
-    }
-
-    private static double dp1da1(double y, double v1, double r1, double v2, double cosTheta) {
-        return dp1dph1(y, v1, r1, v2, cosTheta);
-    }
-
-    private static double dp1dr1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
-        return v1 * (2 * r1 * v1 * (g1 + y * sinKsi) - y * R2 * v2 * sinTheta);
-    }*/
-
     public static double dpqij(boolean isActive, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledPowerEquationTerm eqTerm, Variable<AcVariableType> var, int di) {
 
         // di is the side of "variable" that is used for derivation
@@ -168,30 +143,7 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
 
     @Override
     public double eval() {
-        //return p1(y, FastMath.sin(ksi), g1, v1(), r1(), v2(), FastMath.sin(theta1(ksi, ph1(), a1(), ph2())));
-        // TODO : test with negative sign ????
-        double pQij = pqij(isActive, isSide1, sequenceNum, this);
-
-        /*String seq = "_o";
-        if (sequenceNum == 1) {
-            seq = "_d";
-        } else if (sequenceNum == 2) {
-            seq = "_i";
-        }
-
-        int side = 2;
-        if (isSide1) {
-            side = 1;
-        }
-
-        String pq = "Q";
-        if (isActive) {
-            pq = "P";
-        }
-
-        System.out.println("========>  Branch : " + this.getName() + " has " + pq + side + seq + " = " + pQij);*/
-        return pQij;
-        //return pqij(isActive, isSide1, sequenceNum, this);
+        return pqij(isActive, isSide1, sequenceNum, this);
     }
 
     @Override
@@ -211,24 +163,6 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
         Objects.requireNonNull(variable);
 
         return dpqij(isActive, isSide1, sequenceNum, this, variable, di);
-        /*
-        double theta = theta1(ksi, ph1(), a1(), ph2());
-        if (variable.equals(v1Var)) {
-            return dp1dv1(y, FastMath.sin(ksi), g1, v1(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(v2Var)) {
-            return dp1dv2(y, v1(), r1(), FastMath.sin(theta));
-        } else if (variable.equals(ph1Var)) {
-            return dp1dph1(y, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(ph2Var)) {
-            return dp1dph2(y, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(a1Var)) {
-            return dp1da1(y, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(r1Var)) {
-            return dp1dr1(y, FastMath.sin(ksi), g1, v1(), r1(), v2(), FastMath.sin(theta));
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
-        }
-        */
     }
 
     @Override

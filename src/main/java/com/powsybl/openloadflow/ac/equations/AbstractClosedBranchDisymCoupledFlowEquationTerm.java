@@ -17,7 +17,7 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends AbstractBranchDisymFlowEquationTerm {
 
-    // direct
+    // positive
     protected final Variable<AcVariableType> v1Var;
 
     protected final Variable<AcVariableType> v2Var;
@@ -26,7 +26,7 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     protected final Variable<AcVariableType> ph2Var;
 
-    // inverse
+    // negative
     protected final Variable<AcVariableType> v1VarNegative;
 
     protected final Variable<AcVariableType> v2VarNegative;
@@ -35,7 +35,7 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     protected final Variable<AcVariableType> ph2VarNegative;
 
-    // homopolar
+    // zero
     protected final Variable<AcVariableType> v1VarZero;
 
     protected final Variable<AcVariableType> v2VarZero;
@@ -100,13 +100,13 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     protected double v(int g, int i) {
         switch (g) {
-            case 0: // homopolar
+            case 0: // zero
                 return i == 1 ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
 
-            case 1: // direct
+            case 1: // positive
                 return i == 1 ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
 
-            case 2: // inverse
+            case 2: // negative
                 return i == 1 ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
 
             default:
@@ -116,13 +116,13 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     protected double ph(int g, int i) {
         switch (g) {
-            case 0: // homopolar
+            case 0: // zero
                 return i == 1 ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
 
-            case 1: // direct
+            case 1: // positive
                 return i == 1 ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
 
-            case 2: // inverse
+            case 2: // negative
                 return i == 1 ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
 
             default:

@@ -54,11 +54,11 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEq
     @Override
     public ElementType getElementType() {
         return ElementType.BUS;
-    } // TODO : check if acceptable
+    }
 
     @Override
     public int getElementNum() {
-        return bus.getNum(); // TODO : check if acceptable
+        return bus.getNum();
     }
 
     protected double v() {

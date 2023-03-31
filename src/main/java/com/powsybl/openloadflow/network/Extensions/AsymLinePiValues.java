@@ -14,7 +14,7 @@ public class AsymLinePiValues {
         this(r1, x1, gi1, bi1, gj1, bj1, r3, x3, gi3, bi3, gj3, bj3, componentType);
 
         this.piComponent2 = new SimplePiModel()
-                .setR1(1.) // .setR1(1 / Transformers.getRatioPerUnitBase(line))
+                .setR1(1.)
                 .setR(r2)
                 .setX(x2)
                 .setG1(gi2)

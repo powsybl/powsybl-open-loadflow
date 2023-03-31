@@ -115,8 +115,6 @@ public final class GenericBranchCurrentTerm {
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
-
-        //return 0.;
     }
 
     public static double dtxdv1(int i, int j, int g, int h,
@@ -289,7 +287,6 @@ public final class GenericBranchCurrentTerm {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
 
-        //return 0.;
     }
 
     public static double dtydv1(int i, int j, int g, int h,
@@ -344,7 +341,7 @@ public final class GenericBranchCurrentTerm {
         } else if (j == 1) {
             return ri * vhj * tmpTerm;
         }
-        return 0; // TODO : check should never be 0
+        return 0;
     }
 
     public static double dtydv1i(int i, int j, int g, int h,

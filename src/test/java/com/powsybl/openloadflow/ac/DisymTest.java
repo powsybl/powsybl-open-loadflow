@@ -31,20 +31,6 @@ public class DisymTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
-/*
-    @BeforeEach
-    void setUp() {
-        network = TwoBusNetworkFactory.create();
-        bus1 = network.getBusBreakerView().getBus("b1");
-        bus2 = network.getBusBreakerView().getBus("b2");
-        line1 = network.getLine("l12");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-    }*/
 
     @Test
     void baseCaseTest() {
@@ -72,33 +58,6 @@ public class DisymTest {
         assertActivePowerEquals(-2, line1.getTerminal2());
         assertReactivePowerEquals(-1, line1.getTerminal2());
     }
-/*
-    @Test
-    void baseCaseDissymTest() {
-
-        network = TwoBusNetworkFactory.create();
-        bus1 = network.getBusBreakerView().getBus("b1");
-        bus2 = network.getBusBreakerView().getBus("b2");
-        line1 = network.getLine("l12");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory(), true));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-
-        assertVoltageEquals(1, bus1);
-        assertAngleEquals(0, bus1);
-        assertVoltageEquals(0.855, bus2);
-        assertAngleEquals(-13.520904, bus2);
-        assertActivePowerEquals(2, line1.getTerminal1());
-        assertReactivePowerEquals(1.683, line1.getTerminal1());
-        assertActivePowerEquals(-2, line1.getTerminal2());
-        assertReactivePowerEquals(-1, line1.getTerminal2());
-    }*/
 
     @Test
     void fourNodesBalancedTest() {
@@ -161,11 +120,8 @@ public class DisymTest {
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
-        //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
         assertVoltageEquals(99.45937102112217, bus3); // balanced = 99.54462759204546
-        //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
         assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
-        //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
     }
 
     @Test
@@ -206,11 +162,8 @@ public class DisymTest {
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(99.72834946229246, bus2); // balanced = 99.79736062173895
-        //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
         assertVoltageEquals(99.2189311203843, bus3); // balanced = 99.54462759204546
-        //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
         assertVoltageEquals(98.88078638550749, bus4); // balanced = 99.29252809145005
-        //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
     }
 
     @Test
@@ -224,7 +177,7 @@ public class DisymTest {
         line1 = network.getLine("B1_B2");
 
         Line line23 = network.getLine("B2_B3");
-        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        double coeff = 1.;
         line23.setX(coeff * 1 / 0.2);
 
         Line line23fault = network.getLine("B2_B3_fault");
@@ -255,11 +208,8 @@ public class DisymTest {
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(99.78067026758131, bus2); // balanced = 99.79736062173895
-        //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
         assertVoltageEquals(99.5142639108648, bus3); // balanced = 99.54462759204546
-        //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
         assertVoltageEquals(99.2565397779297, bus4); // balanced = 99.29252809145005
-        //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
     }
 
     public static Network fourNodescreate() {
@@ -303,12 +253,6 @@ public class DisymTest {
                 .setTargetV(100.0)
                 .setVoltageRegulatorOn(true)
                 .add();
-
-        /*gen1.newExtension(GeneratorShortCircuitAdder.class)
-                .withDirectSubtransX(20)
-                .withDirectTransX(20)
-                .withStepUpTransformerX(0.)
-                .add();*/
 
         // Bus 2
         Substation substation2 = network.newSubstation()

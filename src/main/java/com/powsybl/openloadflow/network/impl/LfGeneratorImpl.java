@@ -82,7 +82,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         if (extension != null) {
             double vNom = generator.getTerminal().getVoltageLevel().getNominalV();
             double zb = vNom * vNom / PerUnit.SB;
-            double r0 = extension.getRz() / zb; // TODO : per unitizing
+            double r0 = extension.getRz() / zb;
             double x0 = extension.getXz() / zb;
             double r2 = extension.getRn() / zb;
             double x2 = extension.getXn() / zb;
@@ -94,12 +94,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             double bNegative = 0;
             double gNegative = 0;
             if (z0Square > epsilon) {
-                // TODO : add Lf extension for gen
                 bZero = -x0 / z0Square;
                 gZero = r0 / z0Square;
             }
             if (z2Square > epsilon) {
-                // TODO : add Lf extension for gen
                 bNegative = -x2 / z2Square;
                 gNegative = r2 / z2Square;
             }
@@ -107,7 +105,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             lfGeneratorImpl.setProperty(AsymGenerator.PROPERTY_ASYMMETRICAL, asymGenerator);
 
         }
-        return lfGeneratorImpl; //LfGeneratorImpl(generator, network, parameters, report);
+        return lfGeneratorImpl;
     }
 
     private Generator getGenerator() {
