@@ -151,6 +151,46 @@
                Bus V : '0.995'
                Bus Phi : '-2.5754427337441792E-23'
         + Outer loop Distributed slack on generation
-           Iteration 0: failed to distribute slack bus active power mismatch, 4.564672167502337 MW remains
+           Iteration 0: slack bus active power (4.564672167502337 MW) distributed in 1 iterations
+           Iteration 1: already balanced
+        + Newton Raphson on Network CC0 SC0 || Outer loop iteration 1 and type `Distributed slack on generation`
+          + Initial mismatch
+             Norm |f(x0)|='2.477060158074254E-8'
+            + Initial mismatch on TargetP
+               Mismatch on TargetP : '1.5427132460388293E-8'
+               Bus Id : 'VL2_0'
+               Bus V : '0.9365534403203294'
+               Bus Phi : '-0.12968139838112844'
+            + Initial mismatch on TargetQ
+               Mismatch on TargetQ : '1.9380048676964634E-8'
+               Bus Id : 'VL2_0'
+               Bus V : '0.9365534403203294'
+               Bus Phi : '-0.12968139838112844'
+            + Initial mismatch on TargetV
+               Mismatch on TargetV : '0.0'
+               Bus Id : 'VL1_0'
+               Bus V : '0.995'
+               Bus Phi : '-2.5754427337441792E-23'
+          + Iteration 0 mismatch
+             Norm |f(x)|='8.263520563790825E-15'
+            + Iteration 0 mismatch on TargetP
+               Mismatch on TargetP : '8.881784197001252E-16'
+               Bus Id : 'VL2_0'
+               Bus V : '0.9365534397778421'
+               Bus Phi : '-0.12968139876104615'
+            + Iteration 0 mismatch on TargetQ
+               Mismatch on TargetQ : '8.215650382226158E-15'
+               Bus Id : 'VL2_0'
+               Bus V : '0.9365534397778421'
+               Bus Phi : '-0.12968139876104615'
+            + Iteration 0 mismatch on TargetV
+               Mismatch on TargetV : '0.0'
+               Bus Id : 'VL1_0'
+               Bus V : '0.995'
+               Bus Phi : '2.3836834369535747E-26'
+        + Outer loop Voltage monitoring
+        + Outer loop Reactive limits
+        + Outer loop Distributed slack on generation
+           Iteration 1: already balanced
         + Outer loop Voltage monitoring
         + Outer loop Reactive limits

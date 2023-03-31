@@ -58,7 +58,8 @@
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
         "alwaysUpdateNetwork" : false,
         "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile" : 95.0,
-        "reportedFeatures" : [ ]
+        "reportedFeatures" : [ ],
+        "slackBusCountryFilter" : [ ]
       }
     }
   },
