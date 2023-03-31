@@ -34,13 +34,13 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEq
         this.sequenceType = sequenceType;
         switch (sequenceType) {
             case ZERO:
-                vType = AcVariableType.BUS_V_HOMOPOLAR;
-                phType = AcVariableType.BUS_PHI_HOMOPOLAR;
+                vType = AcVariableType.BUS_V_ZERO;
+                phType = AcVariableType.BUS_PHI_ZERO;
                 break;
 
             case NEGATIVE:
-                vType = AcVariableType.BUS_V_INVERSE;
-                phType = AcVariableType.BUS_PHI_INVERSE;
+                vType = AcVariableType.BUS_V_NEGATIVE;
+                phType = AcVariableType.BUS_PHI_NEGATIVE;
                 break;
 
             default:

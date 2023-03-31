@@ -8,8 +8,6 @@ import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.Objects;
 
-//import static com.powsybl.openloadflow.network.PiModel.R2;
-
 public class ClosedBranchI1xFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchI1xFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
@@ -23,19 +21,6 @@ public class ClosedBranchI1xFlowEquationTerm extends AbstractClosedBranchAcFlowE
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        /*double v1 = v1();
-        double r1 = r1();
-        double v2 = v2();
-        double theta = theta1(ksi, ph1(), a1(), ph2());
-        double cosTheta = FastMath.cos(theta);
-        double sinTheta = FastMath.sin(theta);
-        double sinKsi = FastMath.sin(ksi);
-        return dp1dph1(y, v1, r1, v2, cosTheta) * dph1
-                + dp1dph2(y, v1, r1, v2, cosTheta) * dph2
-                + dp1dv1(y, sinKsi, g1, v1, r1, v2, sinTheta) * dv1
-                + dp1dv2(y, v1, r1, sinTheta) * dv2
-                + dp1da1(y, v1, r1, v2, cosTheta) * da1
-                + dp1dr1(y, sinKsi, g1, v1, r1, v2, sinTheta) * dr1;*/
         return 0;
     }
 

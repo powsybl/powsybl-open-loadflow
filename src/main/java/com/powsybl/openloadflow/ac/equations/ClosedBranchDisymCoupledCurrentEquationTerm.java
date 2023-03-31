@@ -18,21 +18,8 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
     }
 
     private final boolean isActive; // true if active power asked, false if reactive power asked
-    private final boolean isSide1; // true if p1 or q1, false if p2 or q2
-    private final int sequenceNum; // 0 = hompolar, 1 = direct, 2 = inverse
-
-    /* protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        double v1 = v1();
-        double r1 = r1();
-        double v2 = v2();
-        double theta = theta1(ph1(), a1(), ph2());
-        double cosTheta = FastMath.cos(theta);
-        double sinTheta = FastMath.sin(theta);
-        return dp1dph1(y, v1, r1, v2, cosTheta) * dph1
-                + dp1dph2(y, v1, r1, v2, cosTheta) * dph2
-                + dp1dv1(y, FastMath.sin(ksi), g1, v1, r1, v2, sinTheta) * dv1
-                + dp1dv2(y, v1, r1, sinTheta) * dv2;
-    }*/ // TODO : check sensi is  useful here
+    private final boolean isSide1; // true if i1x or i1y, false if i2x or i2y
+    private final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
 
     public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
         return GenericBranchCurrentTerm.tx(i, j, g, h, equationTerm);
@@ -93,31 +80,6 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
         }
     }
 
-    /*private static double dp1dv1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
-
-        return r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
-    }
-
-    private static double dp1dv2(double y, double v1, double r1, double sinTheta) {
-        return -y * r1 * R2 * v1 * sinTheta;
-    }
-
-    private static double dp1dph1(double y, double v1, double r1, double v2, double cosTheta) {
-        return y * r1 * R2 * v1 * v2 * cosTheta;
-    }
-
-    private static double dp1dph2(double y, double v1, double r1, double v2, double cosTheta) {
-        return -dp1dph1(y, v1, r1, v2, cosTheta);
-    }
-
-    private static double dp1da1(double y, double v1, double r1, double v2, double cosTheta) {
-        return dp1dph1(y, v1, r1, v2, cosTheta);
-    }
-
-    private static double dp1dr1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
-        return v1 * (2 * r1 * v1 * (g1 + y * sinKsi) - y * R2 * v2 * sinTheta);
-    }*/
-
     public static double dpqij(boolean isActive, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm, Variable<AcVariableType> var, int di) {
 
         // di is the side of "variable" that is used for derivation
@@ -177,42 +139,19 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
 
     @Override
     public double eval() {
-        //return p1(y, FastMath.sin(ksi), g1, v1(), r1(), v2(), FastMath.sin(theta1(ksi, ph1(), a1(), ph2())));
-        // TODO : test with negative sign ????
-        double pQij = pqij(isActive, isSide1, sequenceNum, this);
-
-        /*String seq = "_o";
-        if (sequenceNum == 1) {
-            seq = "_d";
-        } else if (sequenceNum == 2) {
-            seq = "_i";
-        }
-
-        int side = 2;
-        if (isSide1) {
-            side = 1;
-        }
-
-        String pq = "Q";
-        if (isActive) {
-            pq = "P";
-        }
-
-        System.out.println("========>  Branch : " + this.getName() + " has " + pq + side + seq + " = " + pQij);*/
-        return pQij;
-        //return pqij(isActive, isSide1, sequenceNum, this);
+        return pqij(isActive, isSide1, sequenceNum, this);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
 
-        int di = 0; // side of the derivation variable
-        if (variable.equals(v1Var) || variable.equals(v1VarHom) || variable.equals(v1VarInv)
-                || variable.equals(ph1Var) || variable.equals(ph1VarHom) || variable.equals(ph1VarInv)
+        int di; // side of the derivation variable
+        if (variable.equals(v1Var) || variable.equals(v1VarZero) || variable.equals(v1VarNegative)
+                || variable.equals(ph1Var) || variable.equals(ph1VarZero) || variable.equals(ph1VarNegative)
                 || variable.equals(a1Var) || variable.equals(r1Var)) {
             di = 1;
-        } else if (variable.equals(v2Var) || variable.equals(v2VarHom) || variable.equals(v2VarInv)
-                || variable.equals(ph2Var) || variable.equals(ph2VarHom) || variable.equals(ph2VarInv)) {
+        } else if (variable.equals(v2Var) || variable.equals(v2VarZero) || variable.equals(v2VarNegative)
+                || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
             di = 2;
         } else {
             throw new IllegalStateException("Unknown variable type");
@@ -220,24 +159,6 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
         Objects.requireNonNull(variable);
 
         return dpqij(isActive, isSide1, sequenceNum, this, variable, di);
-        /*
-        double theta = theta1(ksi, ph1(), a1(), ph2());
-        if (variable.equals(v1Var)) {
-            return dp1dv1(y, FastMath.sin(ksi), g1, v1(), r1(), v2(), FastMath.sin(theta));
-        } else if (variable.equals(v2Var)) {
-            return dp1dv2(y, v1(), r1(), FastMath.sin(theta));
-        } else if (variable.equals(ph1Var)) {
-            return dp1dph1(y, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(ph2Var)) {
-            return dp1dph2(y, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(a1Var)) {
-            return dp1da1(y, v1(), r1(), v2(), FastMath.cos(theta));
-        } else if (variable.equals(r1Var)) {
-            return dp1dr1(y, FastMath.sin(ksi), g1, v1(), r1(), v2(), FastMath.sin(theta));
-        } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
-        }
-        */
     }
 
     @Override

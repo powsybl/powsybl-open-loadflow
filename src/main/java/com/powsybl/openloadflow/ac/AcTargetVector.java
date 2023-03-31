@@ -63,7 +63,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 .orElseThrow(() -> new PowsyblException("Branch '" + branch.getId() + "' has no target in for reactive remote control"));
     }
 
-    // TODO : adapt for asym
     public static void init(Equation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
         switch (equation.getType()) {
             case BUS_TARGET_P:
@@ -119,14 +118,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
             case DUMMY_TARGET_P:
             case DUMMY_TARGET_Q:
             case BUS_DISTR_SLACK_P:
-            case BUS_TARGET_P_INVERSE: // TODO : for now we do not support unbalanced injections at buses, therefore target is for now zero for inverse and homopolar sequences
-            case BUS_TARGET_Q_INVERSE:
-            case BUS_TARGET_P_HOMOPOLAR:
-            case BUS_TARGET_Q_HOMOPOLAR:
-            case BUS_TARGET_IX_HOMOPOLAR:
-            case BUS_TARGET_IY_HOMOPOLAR:
-            case BUS_TARGET_IX_INVERSE: // TODO : for now we do not support unbalanced injections at buses, therefore target is for now zero for inverse and homopolar sequences
-            case BUS_TARGET_IY_INVERSE:
+            case BUS_TARGET_IX_ZERO:
+            case BUS_TARGET_IY_ZERO:
+            case BUS_TARGET_IX_NEGATIVE:
+            case BUS_TARGET_IY_NEGATIVE:
                 targets[equation.getColumn()] = 0;
                 break;
 

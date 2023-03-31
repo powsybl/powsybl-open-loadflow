@@ -43,9 +43,9 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
             case POSITIVE:
                 return AcVariableType.BUS_V;
             case NEGATIVE:
-                return AcVariableType.BUS_V_INVERSE;
+                return AcVariableType.BUS_V_NEGATIVE;
             case ZERO:
-                return AcVariableType.BUS_V_HOMOPOLAR;
+                return AcVariableType.BUS_V_ZERO;
             default:
                 throw new IllegalStateException("Unknown sequence type " + sequenceType);
         }
@@ -56,9 +56,9 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
             case POSITIVE:
                 return AcVariableType.BUS_PHI;
             case NEGATIVE:
-                return AcVariableType.BUS_PHI_INVERSE;
+                return AcVariableType.BUS_PHI_NEGATIVE;
             case ZERO:
-                return AcVariableType.BUS_PHI_HOMOPOLAR;
+                return AcVariableType.BUS_PHI_ZERO;
             default:
                 throw new IllegalStateException("Unknown sequence type " + sequenceType);
         }

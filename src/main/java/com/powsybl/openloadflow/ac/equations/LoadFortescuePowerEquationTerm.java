@@ -61,11 +61,11 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
         phVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI);
 
-        vVarInv = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_INVERSE);
-        phVarInv = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_INVERSE);
+        vVarInv = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_NEGATIVE);
+        phVarInv = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
 
-        vVarHom = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_HOMOPOLAR);
-        phVarHom = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_HOMOPOLAR);
+        vVarHom = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_ZERO);
+        phVarHom = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_ZERO);
 
         variables.add(vVar);
         variables.add(phVar);
@@ -210,19 +210,19 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         if (derVariable.getType() == AcVariableType.BUS_V) {
             dVdx = Math.cos(phd);
             dVdy = Math.sin(phd);
-        } else if (derVariable.getType() == AcVariableType.BUS_V_HOMOPOLAR) {
+        } else if (derVariable.getType() == AcVariableType.BUS_V_ZERO) {
             dVox = Math.cos(pho);
             dVoy = Math.sin(pho);
-        } else if (derVariable.getType() == AcVariableType.BUS_V_INVERSE) {
+        } else if (derVariable.getType() == AcVariableType.BUS_V_NEGATIVE) {
             dVix = Math.cos(phi);
             dViy = Math.sin(phi);
         } else if (derVariable.getType() == AcVariableType.BUS_PHI) {
             dVdx = vd * -Math.sin(phd);
             dVdy = vd * Math.cos(phd);
-        } else if (derVariable.getType() == AcVariableType.BUS_PHI_HOMOPOLAR) {
+        } else if (derVariable.getType() == AcVariableType.BUS_PHI_ZERO) {
             dVox = vo * -Math.sin(pho);
             dVoy = vo * Math.cos(pho);
-        } else if (derVariable.getType() == AcVariableType.BUS_PHI_INVERSE) {
+        } else if (derVariable.getType() == AcVariableType.BUS_PHI_NEGATIVE) {
             dVix = vi * -Math.sin(phi);
             dViy = vi * Math.cos(phi);
         } else {

@@ -36,20 +36,18 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         super.createBusEquation(bus, equationSystem);
 
         // addition of asymmetric equations, supposing that existing v, theta, p and q are linked to the direct sequence
-        // TODO : In a first version, extensions of busses to carry additional info related to inverse and homopolar sequences are created here
-        //  this will reduce the number of modified files between AC and a first Disym implementation
         AsymBus asymBus = new AsymBus(bus); // bus is used to reach potential bus extensions in iidm that will be used to setup asymbus
         bus.setProperty(AsymBus.PROPERTY_ASYMMETRICAL, asymBus);
 
-        var ixh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_HOMOPOLAR);
-        asymBus.setIxHomopolar(ixh);
-        var iyh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_HOMOPOLAR);
-        asymBus.setIyHomopolar(iyh);
+        var ixh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO);
+        asymBus.setIxZero(ixh);
+        var iyh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO);
+        asymBus.setIyZero(iyh);
 
-        var ixi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_INVERSE);
-        asymBus.setIxInverse(ixi);
-        var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_INVERSE);
-        asymBus.setIyInverse(iyi);
+        var ixi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE);
+        asymBus.setIxNegative(ixi);
+        var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE);
+        asymBus.setIyNegative(iyi);
 
         ixi.setActive(true);
         iyi.setActive(true);
@@ -77,39 +75,39 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
 
         if (Math.abs(asymBus.getbZeroEquivalent()) > epsilon || Math.abs(asymBus.getgZeroEquivalent()) > epsilon) {
             ShuntFortescueIxEquationTerm ixShuntHomo = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.ZERO);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_HOMOPOLAR).addTerm(ixShuntHomo);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO).addTerm(ixShuntHomo);
             ShuntFortescueIyEquationTerm iyShuntHomo = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.ZERO);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_HOMOPOLAR).addTerm(iyShuntHomo);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO).addTerm(iyShuntHomo);
         }
 
         if (Math.abs(asymBus.getgNegativeEquivalent()) > epsilon || Math.abs(asymBus.getbNegativeEquivalent()) > epsilon) {
             ShuntFortescueIxEquationTerm ixShuntInv = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.NEGATIVE);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_INVERSE).addTerm(ixShuntInv);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixShuntInv);
             ShuntFortescueIyEquationTerm iyShuntInv = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), Fortescue.SequenceType.NEGATIVE);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_INVERSE).addTerm(iyShuntInv);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE).addTerm(iyShuntInv);
         }
 
         if (Math.abs(bus.getLoadTargetP()) > epsilon || Math.abs(bus.getLoadTargetQ()) > epsilon) {
             // load modelled as a constant power load in abc phase representation leading to a model depending on vd, vi, vo in fortescue representation
             LoadFortescuePowerEquationTerm ixLoadHomo = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), true, 0, LoadFortescuePowerEquationTerm.LoadEquationTermType.CURRENT);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_HOMOPOLAR).addTerm(ixLoadHomo);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO).addTerm(ixLoadHomo);
             LoadFortescuePowerEquationTerm pLoadDirect = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), true, 1, LoadFortescuePowerEquationTerm.LoadEquationTermType.POWER);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadDirect);
             LoadFortescuePowerEquationTerm ixLoadInv = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), true, 2, LoadFortescuePowerEquationTerm.LoadEquationTermType.CURRENT);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_INVERSE).addTerm(ixLoadInv);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixLoadInv);
             LoadFortescuePowerEquationTerm iyLoadHomo = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), false, 0, LoadFortescuePowerEquationTerm.LoadEquationTermType.CURRENT);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_HOMOPOLAR).addTerm(iyLoadHomo);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO).addTerm(iyLoadHomo);
             LoadFortescuePowerEquationTerm qLoadDirect = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), false, 1, LoadFortescuePowerEquationTerm.LoadEquationTermType.POWER);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadDirect);
             LoadFortescuePowerEquationTerm iyLoadInv = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), false, 2, LoadFortescuePowerEquationTerm.LoadEquationTermType.CURRENT);
-            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_INVERSE).addTerm(iyLoadInv);
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE).addTerm(iyLoadInv);
         }
     }
 
     @Override
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // TODO :
-        // direct sequence
+        // positive sequence
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> q1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
@@ -117,17 +115,17 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         EquationTerm<AcVariableType, AcEquationType> i1 = null;
         EquationTerm<AcVariableType, AcEquationType> i2 = null;
 
-        // homopolar sequence
-        EquationTerm<AcVariableType, AcEquationType> ixh1 = null;
-        EquationTerm<AcVariableType, AcEquationType> iyh1 = null;
-        EquationTerm<AcVariableType, AcEquationType> ixh2 = null;
-        EquationTerm<AcVariableType, AcEquationType> iyh2 = null;
+        // zero sequence
+        EquationTerm<AcVariableType, AcEquationType> ixz1 = null;
+        EquationTerm<AcVariableType, AcEquationType> iyz1 = null;
+        EquationTerm<AcVariableType, AcEquationType> ixz2 = null;
+        EquationTerm<AcVariableType, AcEquationType> iyz2 = null;
 
-        // inverse sequence
-        EquationTerm<AcVariableType, AcEquationType> ixi1 = null;
-        EquationTerm<AcVariableType, AcEquationType> iyi1 = null;
-        EquationTerm<AcVariableType, AcEquationType> ixi2 = null;
-        EquationTerm<AcVariableType, AcEquationType> iyi2 = null;
+        // negative sequence
+        EquationTerm<AcVariableType, AcEquationType> ixn1 = null;
+        EquationTerm<AcVariableType, AcEquationType> iyn1 = null;
+        EquationTerm<AcVariableType, AcEquationType> ixn2 = null;
+        EquationTerm<AcVariableType, AcEquationType> iyn2 = null;
 
         boolean deriveA1 = isDeriveA1(branch);
         boolean deriveR1 = isDeriveR1(branch);
@@ -138,7 +136,7 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
 
             if (!asymmetry) {
                 // no assymmetry is detected with this line, we handle the equations as decoupled
-                // direct
+                // positive
                 p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
                 q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
                 p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
@@ -146,45 +144,45 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
                 i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
                 i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
 
-                // homopolar
-                ixh1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
-                iyh1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
-                ixh2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
-                iyh2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                // zero
+                ixz1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                iyz1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                ixz2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
+                iyz2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.ZERO);
 
-                // inverse
-                ixi1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
-                iyi1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
-                ixi2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
-                iyi2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                // negative
+                ixn1 = new ClosedBranchI1xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                iyn1 = new ClosedBranchI1yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                ixn2 = new ClosedBranchI2xFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
+                iyn2 = new ClosedBranchI2yFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.NEGATIVE);
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
-                // direct
+                // positive
                 p1 = new ClosedBranchDisymCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, true, 1);
                 q1 = new ClosedBranchDisymCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, true, 1);
                 p2 = new ClosedBranchDisymCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, false, 1);
                 q2 = new ClosedBranchDisymCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, false, 1);
 
-                // homopolar
-                ixh1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, true, 0);
-                iyh1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, true, 0);
-                ixh2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, false, 0);
-                iyh2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, false, 0);
+                // zero
+                ixz1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, true, 0);
+                iyz1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, true, 0);
+                ixz2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, false, 0);
+                iyz2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, false, 0);
 
-                // inverse
-                ixi1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, true, 2);
-                iyi1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, true, 2);
-                ixi2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, false, 2);
-                iyi2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, false, 2);
+                // negative
+                ixn1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, true, 2);
+                iyn1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, true, 2);
+                ixn2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, true, false, 2);
+                iyn2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, false, false, 2);
             }
 
         } else if (bus1 != null) {
-            throw new IllegalStateException("Line open at one side not yet supported in disym load flow: ");
+            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow: ");
         } else if (bus2 != null) {
-            throw new IllegalStateException("Line open at one side not yet supported in disym load flow: ");
+            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow: ");
         }
 
-        // direct
+        // positive
         if (p1 != null) {
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
                     .orElseThrow()
@@ -220,56 +218,48 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
             branch.setI2(i2);
         }
 
-        // homopolar
-        if (ixh1 != null) {
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_IX_HOMOPOLAR)
+        // zero
+        if (ixz1 != null) {
+            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_IX_ZERO)
                     .orElseThrow()
-                    .addTerm(ixh1);
-            //branch.setP1(p1); // TODO : check not necessary
+                    .addTerm(ixz1);
         }
-        if (iyh1 != null) {
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_IY_HOMOPOLAR)
+        if (iyz1 != null) {
+            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_IY_ZERO)
                     .orElseThrow()
-                    .addTerm(iyh1);
-            //branch.setQ1(q1); // TODO : check not necessary
+                    .addTerm(iyz1);
         }
-        if (ixh2 != null) {
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_IX_HOMOPOLAR)
+        if (ixz2 != null) {
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_IX_ZERO)
                     .orElseThrow()
-                    .addTerm(ixh2);
-            //branch.setP2(ph2);
+                    .addTerm(ixz2);
         }
-        if (iyh2 != null) {
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_IY_HOMOPOLAR)
+        if (iyz2 != null) {
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_IY_ZERO)
                     .orElseThrow()
-                    .addTerm(iyh2);
-            //branch.setQ2(qh2);
+                    .addTerm(iyz2);
         }
 
-        // inverse
-        if (ixi1 != null) {
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_IX_INVERSE)
+        // negative
+        if (ixn1 != null) {
+            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE)
                     .orElseThrow()
-                    .addTerm(ixi1);
-            //branch.setP1(pi1);
+                    .addTerm(ixn1);
         }
-        if (iyi1 != null) {
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_IY_INVERSE)
+        if (iyn1 != null) {
+            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE)
                     .orElseThrow()
-                    .addTerm(iyi1);
-            //branch.setQ1(qi1);
+                    .addTerm(iyn1);
         }
-        if (ixi2 != null) {
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_IX_INVERSE)
+        if (ixn2 != null) {
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE)
                     .orElseThrow()
-                    .addTerm(ixi2);
-            //branch.setP2(pi2);
+                    .addTerm(ixn2);
         }
-        if (iyi2 != null) {
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_IY_INVERSE)
+        if (iyn2 != null) {
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE)
                     .orElseThrow()
-                    .addTerm(iyi2);
-            //branch.setQ2(qi2);
+                    .addTerm(iyn2);
         }
 
         createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
@@ -283,16 +273,8 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
         boolean asymmetry = false;
         if (asymLine != null) {
-            if (asymLine.isAdmittanceAsymmetryDetected() || asymLine.isDisconnectionAsymmetryDetected()) {
-                asymmetry = true;
-                System.out.println("Asymmetry detected  for branch : " + branch.getId() + " = " + asymmetry);
-            } else {
-                System.out.println("No asymmetry detected  for branch : " + branch.getId() + " with asym extension");
-            }
-        } else {
-            System.out.println("No asymmetry detected  for branch : " + branch.getId() + " with no asym extension");
+            asymmetry = asymLine.isAdmittanceAsymmetryDetected() || asymLine.isDisconnectionAsymmetryDetected();
         }
         return asymmetry;
     }
-
 }

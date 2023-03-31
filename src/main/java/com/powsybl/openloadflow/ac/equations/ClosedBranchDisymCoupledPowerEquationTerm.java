@@ -23,20 +23,7 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
 
     private final boolean isActive; // true if active power asked, false if reactive power asked
     private final boolean isSide1; // true if p1 or q1, false if p2 or q2
-    private final int sequenceNum; // 0 = hompolar, 1 = direct, 2 = inverse
-
-    /* protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        double v1 = v1();
-        double r1 = r1();
-        double v2 = v2();
-        double theta = theta1(ph1(), a1(), ph2());
-        double cosTheta = FastMath.cos(theta);
-        double sinTheta = FastMath.sin(theta);
-        return dp1dph1(y, v1, r1, v2, cosTheta) * dph1
-                + dp1dph2(y, v1, r1, v2, cosTheta) * dph2
-                + dp1dv1(y, FastMath.sin(ksi), g1, v1, r1, v2, sinTheta) * dv1
-                + dp1dv2(y, v1, r1, sinTheta) * dv2;
-    }*/ // TODO : check sensi is  useful here
+    private final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
 
     public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm) {
         return GenericBranchPowerTerm.tx(i, j, g, h, equationTerm);
@@ -211,12 +198,12 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
     public double der(Variable<AcVariableType> variable) {
 
         int di = 0; // side of the derivation variable
-        if (variable.equals(v1Var) || variable.equals(v1VarHom) || variable.equals(v1VarInv)
-                || variable.equals(ph1Var) || variable.equals(ph1VarHom) || variable.equals(ph1VarInv)
+        if (variable.equals(v1Var) || variable.equals(v1VarZero) || variable.equals(v1VarNegative)
+                || variable.equals(ph1Var) || variable.equals(ph1VarZero) || variable.equals(ph1VarNegative)
                 || variable.equals(a1Var) || variable.equals(r1Var)) {
             di = 1;
-        } else if (variable.equals(v2Var) || variable.equals(v2VarHom) || variable.equals(v2VarInv)
-                || variable.equals(ph2Var) || variable.equals(ph2VarHom) || variable.equals(ph2VarInv)) {
+        } else if (variable.equals(v2Var) || variable.equals(v2VarZero) || variable.equals(v2VarNegative)
+                || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
             di = 2;
         } else {
             throw new IllegalStateException("Unknown variable type");

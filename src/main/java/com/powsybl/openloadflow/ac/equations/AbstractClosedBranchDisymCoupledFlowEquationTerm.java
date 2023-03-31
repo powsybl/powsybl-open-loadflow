@@ -27,22 +27,22 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     protected final Variable<AcVariableType> ph2Var;
 
     // inverse
-    protected final Variable<AcVariableType> v1VarInv;
+    protected final Variable<AcVariableType> v1VarNegative;
 
-    protected final Variable<AcVariableType> v2VarInv;
+    protected final Variable<AcVariableType> v2VarNegative;
 
-    protected final Variable<AcVariableType> ph1VarInv;
+    protected final Variable<AcVariableType> ph1VarNegative;
 
-    protected final Variable<AcVariableType> ph2VarInv;
+    protected final Variable<AcVariableType> ph2VarNegative;
 
     // homopolar
-    protected final Variable<AcVariableType> v1VarHom;
+    protected final Variable<AcVariableType> v1VarZero;
 
-    protected final Variable<AcVariableType> v2VarHom;
+    protected final Variable<AcVariableType> v2VarZero;
 
-    protected final Variable<AcVariableType> ph1VarHom;
+    protected final Variable<AcVariableType> ph1VarZero;
 
-    protected final Variable<AcVariableType> ph2VarHom;
+    protected final Variable<AcVariableType> ph2VarZero;
 
     // rho and angle
     protected final Variable<AcVariableType> a1Var;
@@ -63,15 +63,15 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
 
-        v1VarInv = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_INVERSE);
-        v2VarInv = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_INVERSE);
-        ph1VarInv = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_INVERSE);
-        ph2VarInv = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_INVERSE);
+        v1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_NEGATIVE);
+        v2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_NEGATIVE);
+        ph1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
+        ph2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
 
-        v1VarHom = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_HOMOPOLAR);
-        v2VarHom = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_HOMOPOLAR);
-        ph1VarHom = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_HOMOPOLAR);
-        ph2VarHom = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_HOMOPOLAR);
+        v1VarZero = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_ZERO);
+        v2VarZero = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_ZERO);
+        ph1VarZero = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_ZERO);
+        ph2VarZero = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_ZERO);
 
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
@@ -80,14 +80,14 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
         variables.add(v2Var);
         variables.add(ph1Var);
         variables.add(ph2Var);
-        variables.add(v1VarInv);
-        variables.add(v2VarInv);
-        variables.add(ph1VarInv);
-        variables.add(ph2VarInv);
-        variables.add(v1VarHom);
-        variables.add(v2VarHom);
-        variables.add(ph1VarHom);
-        variables.add(ph2VarHom);
+        variables.add(v1VarNegative);
+        variables.add(v2VarNegative);
+        variables.add(ph1VarNegative);
+        variables.add(ph2VarNegative);
+        variables.add(v1VarZero);
+        variables.add(v2VarZero);
+        variables.add(ph1VarZero);
+        variables.add(ph2VarZero);
 
         if (a1Var != null) {
             variables.add(a1Var);
@@ -101,13 +101,13 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     protected double v(int g, int i) {
         switch (g) {
             case 0: // homopolar
-                return i == 1 ? sv.get(v1VarHom.getRow()) : sv.get(v2VarHom.getRow());
+                return i == 1 ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
 
             case 1: // direct
                 return i == 1 ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
 
             case 2: // inverse
-                return i == 1 ? sv.get(v1VarInv.getRow()) : sv.get(v2VarInv.getRow());
+                return i == 1 ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
 
             default:
                 throw new IllegalStateException("Unknown variable: ");
@@ -117,13 +117,13 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     protected double ph(int g, int i) {
         switch (g) {
             case 0: // homopolar
-                return i == 1 ? sv.get(ph1VarHom.getRow()) : sv.get(ph2VarHom.getRow());
+                return i == 1 ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
 
             case 1: // direct
                 return i == 1 ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
 
             case 2: // inverse
-                return i == 1 ? sv.get(ph1VarInv.getRow()) : sv.get(ph2VarInv.getRow());
+                return i == 1 ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
 
             default:
                 throw new IllegalStateException("Unknown variable: ");
