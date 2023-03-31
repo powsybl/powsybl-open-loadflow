@@ -88,6 +88,13 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         checkFlows(0.0, 0.0, l23p.getTerminal1(), 0.0, 0.0, l23p.getTerminal2());
     }
 
+    /**
+     *   g1             --- b4
+     *   |            /     |
+     *  b1 --- b2--- b3     |
+     *                \     |
+     *                  --- b5
+     */
     @Test
     void fiveBusesZeroImpedanceLineTest() {
         Network network = Network.create("FiveBusesWithZeroImpedanceLine", "code");

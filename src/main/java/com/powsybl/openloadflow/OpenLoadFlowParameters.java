@@ -12,6 +12,7 @@ import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.commons.parameters.ParameterType;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -176,6 +177,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME = "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile";
 
+    public static final String SLACK_BUS_COUNTRY_FILTER_PARAM_NAME = "slackBusCountryFilter";
+
     private static final String AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME = "autoDcInitPhaseShifterAngleThreshold";
 
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
@@ -223,6 +226,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
         new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
         new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE),
+        new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slac bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE)),
         new Parameter(AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "Phase shifter angle threshold in degree to which we try to automatically switch voltage init mode to DC", AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_DEFAULT_VALUE)
     );
 
@@ -338,6 +342,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean alwaysUpdateNetwork = NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
     private double mostMeshedSlackBusSelectorMaxNominalVoltagePercentile = MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE;
+
+    private Set<Country> slackBusCountryFilter = LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE;
 
     private double autoDcInitPhaseShifterAngleThreshold = AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_DEFAULT_VALUE;
 
@@ -760,6 +766,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public Set<Country> getSlackBusCountryFilter() {
+        return slackBusCountryFilter;
+    }
+
+    public OpenLoadFlowParameters setSlackBusCountryFilter(Set<Country> slackBusCountryFilter) {
+        this.slackBusCountryFilter = Objects.requireNonNull(slackBusCountryFilter);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -811,6 +826,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
                 .setAlwaysUpdateNetwork(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME, NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
                 .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(config.getDoubleProperty(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE))
+                .setSlackBusCountryFilter(config.getEnumSetProperty(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, Country.class, LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE))
                 .setAutoDcInitPhaseShifterAngleThreshold(config.getDoubleProperty(AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME, AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_DEFAULT_VALUE)));
         return parameters;
     }
@@ -819,11 +835,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return new OpenLoadFlowParameters().update(properties);
     }
 
+    private static List<String> parseStringListProp(String prop) {
+        return Arrays.asList(prop.split("[:,]"));
+    }
+
     public OpenLoadFlowParameters update(Map<String, String> properties) {
         Optional.ofNullable(properties.get(SLACK_BUS_SELECTION_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setSlackBusSelectionMode(SlackBusSelectionMode.valueOf(prop)));
         Optional.ofNullable(properties.get(SLACK_BUSES_IDS_PARAM_NAME))
-                .ifPresent(prop -> this.setSlackBusesIds(Arrays.asList(prop.split("[:,]"))));
+                .ifPresent(prop -> this.setSlackBusesIds(parseStringListProp(prop)));
         Optional.ofNullable(properties.get(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setLowImpedanceBranchMode(LowImpedanceBranchMode.valueOf(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_REMOTE_CONTROL_PARAM_NAME))
@@ -900,13 +920,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setAlwaysUpdateNetwork(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME))
                 .ifPresent(prop -> this.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME))
+                .ifPresent(prop -> this.setSlackBusCountryFilter(parseStringListProp(prop).stream().map(Country::valueOf).collect(Collectors.toSet())));
         Optional.ofNullable(properties.get(AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME))
                 .ifPresent(prop -> this.setAutoDcInitPhaseShifterAngleThreshold(Double.parseDouble(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(39);
+        Map<String, Object> map = new LinkedHashMap<>(42);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
@@ -947,6 +969,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
         map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME, alwaysUpdateNetwork);
         map.put(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile);
+        map.put(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, slackBusCountryFilter);
         map.put(AUTO_DC_INIT_PHASE_SHIFTER_ANGLE_THRESHOLD_PARAM_NAME, autoDcInitPhaseShifterAngleThreshold);
         return map;
     }
@@ -1100,7 +1123,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                           boolean breakers, boolean forceA1Var) {
         AcLoadFlowParameters acParameters = createAcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, breakers, forceA1Var);
         if (parameters.isReadSlackBus()) {
-            acParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, acParameters.getNetworkParameters().getSlackBusSelector()));
+            acParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, parametersExt.getSlackBusCountryFilter(),
+                    acParameters.getNetworkParameters().getSlackBusSelector()));
         }
         var largeAnglePhaseShifters = findLargeAnglePhaseShifters(network, parametersExt);
         if (!largeAnglePhaseShifters.isEmpty()) {
@@ -1145,7 +1169,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean breakers, boolean forceA1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
-                parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile());
+                parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), parametersExt.getSlackBusCountryFilter());
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
@@ -1178,7 +1202,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
         var dcParameters = createDcParameters(parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
         if (parameters.isReadSlackBus()) {
-            dcParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, dcParameters.getNetworkParameters().getSlackBusSelector()));
+            dcParameters.getNetworkParameters().setSlackBusSelector(new NetworkSlackBusSelector(network, parametersExt.getSlackBusCountryFilter(),
+                    dcParameters.getNetworkParameters().getSlackBusSelector()));
         }
         return dcParameters;
     }
@@ -1187,7 +1212,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                           MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                                           boolean forcePhaseControlOffAndAddAngle1Var) {
         SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(parametersExt.getSlackBusSelectionMode(), parametersExt.getSlackBusesIds(),
-                parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile());
+                parametersExt.getPlausibleActivePowerLimit(), parametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), parametersExt.getSlackBusCountryFilter());
 
         var networkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
@@ -1295,6 +1320,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
                 extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
                 extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() &&
+                extension1.getSlackBusCountryFilter().equals(extension2.getSlackBusCountryFilter()) &&
                 extension1.getAutoDcInitPhaseShifterAngleThreshold() == extension2.getAutoDcInitPhaseShifterAngleThreshold();
     }
 
@@ -1354,6 +1380,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
                     .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
                     .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(extension.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile())
+                    .setSlackBusCountryFilter(new HashSet<>(extension.getSlackBusCountryFilter()))
                     .setAutoDcInitPhaseShifterAngleThreshold(extension.getAutoDcInitPhaseShifterAngleThreshold());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);

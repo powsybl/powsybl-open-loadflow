@@ -230,9 +230,19 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge) {
         if (dc) {
-            dcSpanningTreeEdge = spanningTreeEdge;
+            if (spanningTreeEdge != dcSpanningTreeEdge) {
+                dcSpanningTreeEdge = spanningTreeEdge;
+                for (LfNetworkListener listener : network.getListeners()) {
+                    listener.onZeroImpedanceNetworkSpanningTreeChange(this, dc, spanningTreeEdge);
+                }
+            }
         } else {
-            acSpanningTreeEdge = spanningTreeEdge;
+            if (spanningTreeEdge != acSpanningTreeEdge) {
+                acSpanningTreeEdge = spanningTreeEdge;
+                for (LfNetworkListener listener : network.getListeners()) {
+                    listener.onZeroImpedanceNetworkSpanningTreeChange(this, dc, spanningTreeEdge);
+                }
+            }
         }
     }
 
@@ -283,6 +293,44 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
         } else {
             return piModel.getZ() < lowImpedanceThreshold;
+        }
+    }
+
+    private void updateZeroImpedanceNetworks(boolean disabled, boolean dc) {
+        if (isZeroImpedance(dc)) {
+            LfZeroImpedanceNetwork zn1 = bus1.getZeroImpedanceNetwork(dc);
+            LfZeroImpedanceNetwork zn2 = bus2.getZeroImpedanceNetwork(dc);
+            if (zn1 != null && zn2 != null) {
+                if (disabled) {
+                    if (zn1 == zn2) {
+                        // zero impedance network split (maybe)
+                        zn1.removeBranchAndTryToSplit(this);
+                    } else {
+                        throw new IllegalStateException("Should not happen");
+                    }
+                } else {
+                    if (zn1 != zn2) {
+                        // zero impedance network merge
+                        LfZeroImpedanceNetwork.addBranchAndMerge(zn1, zn2, this);
+                    } else {
+                        // we need to add the branch again to zero impedance graph and update spanning tree as
+                        // this branch might become part of spanning tree (and was not before because disabled)
+                        zn1.addBranch(this);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        if (disabled != this.disabled) {
+            this.disabled = disabled;
+            notifyDisable();
+            if (bus1 != null && bus2 != null) {
+                updateZeroImpedanceNetworks(disabled, false);
+                updateZeroImpedanceNetworks(disabled, true);
+            }
         }
     }
 }

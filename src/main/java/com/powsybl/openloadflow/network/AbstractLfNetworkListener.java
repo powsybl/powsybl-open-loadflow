@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -68,6 +70,21 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onShuntSusceptanceChange(LfShunt shunt, double b) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc) {
         // empty
     }
 }
