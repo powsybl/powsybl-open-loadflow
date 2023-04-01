@@ -106,7 +106,6 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
 
     @Override
     protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // TODO :
         // positive sequence
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> q1 = null;

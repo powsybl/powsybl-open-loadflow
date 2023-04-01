@@ -104,7 +104,7 @@ public class DisymTest {
         line1 = network.getLine("B1_B2");
 
         Line line23 = network.getLine("B2_B3");
-        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        double coeff = 1.;
         line23.setX(coeff * 1 / 0.2);
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -135,7 +135,7 @@ public class DisymTest {
         line1 = network.getLine("B1_B2");
 
         Line line23 = network.getLine("B2_B3");
-        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        double coeff = 1.;
         line23.setX(coeff * 1 / 0.2);
 
         Load load4 = network.getLoad("LOAD_4");
@@ -377,7 +377,7 @@ public class DisymTest {
 
         // addition of asymmetrical extensions
         line23fault.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(true) // TODO : activate this to have unbalanced grid
+                .withIsOpenA(true)
                 .withIsOpenB(false)
                 .withIsOpenC(false)
                 .add();

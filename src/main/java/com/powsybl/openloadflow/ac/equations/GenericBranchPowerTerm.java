@@ -412,7 +412,7 @@ public final class GenericBranchPowerTerm {
         } else if (j == 1) {
             return ri * vgi * vhj * tmpTerm;
         }
-        return 0; // TODO : check should never be 0
+        return 0;
     }
 
     public static double dtydv1i(int i, int j, int g, int h,

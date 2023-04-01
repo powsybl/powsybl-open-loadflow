@@ -266,7 +266,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
     @Override
     public ElementType getElementType() {
         return ElementType.BUS;
-    } // TODO : check if acceptable
+    }
 
     @Override
     public List<Variable<AcVariableType>> getVariables() {
@@ -275,7 +275,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     @Override
     public int getElementNum() {
-        return bus.getNum(); // TODO : check if acceptable
+        return bus.getNum();
     }
 
     public static DenseMatrix getInvVabcSquare(double vAx, double vAy, double vBx, double vBy, double vCx, double vCy, LoadFortescuePowerEquationTerm eqTerm) {
