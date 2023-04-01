@@ -30,10 +30,6 @@ public enum AcEquationType implements Quantity {
     DUMMY_TARGET_P("dummy_target_p", ElementType.BRANCH),
     DUMMY_TARGET_Q("dummy_target_q", ElementType.BRANCH),
     BUS_DISTR_SLACK_P("bus_distr_slack_p", ElementType.BUS), // multiple slack buses distribution
-    BUS_TARGET_P_HOMOPOLAR("bus_target_p_homopolar", ElementType.BUS), // bus active power target
-    BUS_TARGET_Q_HOMOPOLAR("bus_target_q_homopolar", ElementType.BUS), // bus reactive power target
-    BUS_TARGET_P_INVERSE("bus_target_p_inverse", ElementType.BUS), // bus active power target
-    BUS_TARGET_Q_INVERSE("bus_target_q_inverse", ElementType.BUS), // bus reactive power target
     BUS_TARGET_IX_ZERO("bus_target_ix_homopolar", ElementType.BUS), // bus active power target
     BUS_TARGET_IY_ZERO("bus_target_iy_homopolar", ElementType.BUS), // bus reactive power target
     BUS_TARGET_IX_NEGATIVE("bus_target_ix_inverse", ElementType.BUS), // bus active power target

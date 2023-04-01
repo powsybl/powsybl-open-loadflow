@@ -19,11 +19,6 @@ import java.util.Objects;
  */
 public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
 
-    public enum LoadEquationTermType {
-        POWER,
-        CURRENT
-    }
-
     protected final LfBus bus;
 
     // direct
@@ -46,9 +41,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
     private final boolean isActive; // true if active power asked, false if reactive power asked
     private final int sequenceNum; // 0 = hompolar, 1 = direct, 2 = inverse
 
-    private final LoadEquationTermType loadEquationTermType;
-
-    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, boolean isActive, int sequenceNum, LoadEquationTermType loadEquationTermType) {
+    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, boolean isActive, int sequenceNum) {
         super(true);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
@@ -56,7 +49,6 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         this.bus = bus;
         this.isActive = isActive;
         this.sequenceNum = sequenceNum;
-        this.loadEquationTermType = loadEquationTermType;
 
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
         phVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI);
@@ -107,7 +99,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         }
     }
 
-    public static double pq(boolean isActive, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi, LoadEquationTermType loadEquationTermType) {
+    public static double pq(boolean isActive, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi) {
         // We use the formula with complex matrices:
         //
         // [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
@@ -143,33 +135,22 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         DenseMatrix mIfortescueConjugate = Fortescue.getFortescueMatrix().times(m0T0);
         DenseMatrix mSfortescue = mSquareVFortescue.times(mIfortescueConjugate); //  term T0 = Sfortescue
 
-        //String na
-        if (isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mSfortescue.get(0, 0); // Pzero
-        } else if (isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return mIfortescueConjugate.get(0, 0); // IxZero
-        } else if (!isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mSfortescue.get(1, 0); // Qzero
-        } else if (!isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return -mIfortescueConjugate.get(1, 0); // IyZero
-        } else if (isActive && sequenceNum == 1) {
-            return mSfortescue.get(2, 0); // P
-        } else if (!isActive && sequenceNum == 1) {
-            return mSfortescue.get(3, 0); // Q
-        } else if (isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mSfortescue.get(4, 0); // Pnegative
-        } else if (isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return mIfortescueConjugate.get(4, 0); // IxNegative
-        } else if (!isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mSfortescue.get(5, 0); // Qnegative
-        } else if (!isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return -mIfortescueConjugate.get(5, 0); // IyNegative
-        } else {
-            throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
+        switch (sequenceNum) {
+            case 0: // zero
+                return isActive ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
+
+            case 1: // positive
+                return isActive ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
+
+            case 2: // negative
+                return isActive ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
+
+            default:
+                throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
         }
     }
 
-    public static double dpq(boolean isActive, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi, LoadEquationTermType loadEquationTermType) {
+    public static double dpq(boolean isActive, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
         // We derivate the PQ formula with complex matrices:
         //
         //    [So]              [dVo/dx  0   0]         [1/Va  0  0]   [Sa]        [Vo  0  0]                [Sa  0   0]   [1/Va  0  0]   [1/Va  0  0]         [dV0/dx]
@@ -252,39 +233,29 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         DenseMatrix mdIFortescueConjugate = Fortescue.getFortescueMatrix().times(m3T2);
         DenseMatrix mT2 = mSquareVFortescue.times(mdIFortescueConjugate);
 
-        if (isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mT1.get(0, 0) + mT2.get(0, 0); // dPzero
-        } else if (isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return mdIFortescueConjugate.get(0, 0); // dIxZero
-        } else if (!isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mT1.get(1, 0) + mT2.get(1, 0); // dQzero
-        } else if (!isActive && sequenceNum == 0 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return -mdIFortescueConjugate.get(1, 0); // dIyZero
-        } else if (isActive && sequenceNum == 1) {
-            return mT1.get(2, 0) + mT2.get(2, 0); // dPpositive
-        } else if (!isActive && sequenceNum == 1) {
-            return mT1.get(3, 0) + mT2.get(3, 0); // dQpositive
-        } else if (isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mT1.get(4, 0) + mT2.get(4, 0); // dPnegative
-        } else if (isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return mdIFortescueConjugate.get(4, 0); // dQnegative
-        } else if (!isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.POWER) {
-            return mT1.get(5, 0) + mT2.get(5, 0); // dIxNegative
-        } else if (!isActive && sequenceNum == 2 && loadEquationTermType == LoadEquationTermType.CURRENT) {
-            return -mdIFortescueConjugate.get(5, 0); // dIyNegative
-        } else {
-            throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
+        switch (sequenceNum) {
+            case 0: // zero
+                return isActive ? mdIFortescueConjugate.get(0, 0) : -mdIFortescueConjugate.get(1, 0); // dIxZero or dIyZero
+
+            case 1: // positive
+                return isActive ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
+
+            case 2: // negative
+                return isActive ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
+
+            default:
+                throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
         }
     }
 
     @Override
     public double eval() {
-        return pq(isActive, sequenceNum, this, v(0), ph(0), v(1), ph(1), v(2), ph(2), loadEquationTermType);
+        return pq(isActive, sequenceNum, this, v(0), ph(0), v(1), ph(1), v(2), ph(2));
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        return dpq(isActive, sequenceNum, this, variable, v(0), ph(0), v(1), ph(1), v(2), ph(2), loadEquationTermType);
+        return dpq(isActive, sequenceNum, this, variable, v(0), ph(0), v(1), ph(1), v(2), ph(2));
     }
 
     @Override
