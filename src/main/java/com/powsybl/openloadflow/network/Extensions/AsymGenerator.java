@@ -1,5 +1,8 @@
 package com.powsybl.openloadflow.network.Extensions;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public class AsymGenerator {
 
     public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";

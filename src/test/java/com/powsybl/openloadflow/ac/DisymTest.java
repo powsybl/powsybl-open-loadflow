@@ -20,6 +20,9 @@ import org.junit.jupiter.api.Test;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public class DisymTest {
 
     private Network network;

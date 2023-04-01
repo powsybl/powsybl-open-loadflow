@@ -4,6 +4,9 @@ import com.powsybl.openloadflow.equations.Variable;
 
 import java.util.Objects;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public final class GenericBranchCurrentTerm {
 
     // We define T(i,j,g,h) = rho_i * rho_j * exp(j(a_j-a_i)) * y*_ij_gh * V_hj

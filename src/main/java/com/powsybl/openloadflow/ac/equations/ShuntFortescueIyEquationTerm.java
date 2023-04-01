@@ -7,6 +7,9 @@ import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.Objects;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public class ShuntFortescueIyEquationTerm extends AbstractShuntFortescueCurrentEquationTerm {
 
     public ShuntFortescueIyEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {

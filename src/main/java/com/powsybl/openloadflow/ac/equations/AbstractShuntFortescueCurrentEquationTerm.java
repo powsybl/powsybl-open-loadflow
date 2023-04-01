@@ -7,6 +7,9 @@ import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.List;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public abstract class AbstractShuntFortescueCurrentEquationTerm extends AbstractShuntFortescueEquationTerm {
 
     private final List<Variable<AcVariableType>> variables;

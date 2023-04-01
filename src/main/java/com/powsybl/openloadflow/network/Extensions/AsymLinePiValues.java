@@ -3,6 +3,9 @@ package com.powsybl.openloadflow.network.Extensions;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.SimplePiModel;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public class AsymLinePiValues {
 
     public AsymLinePiValues(double r1, double x1, double gi1, double bi1, double gj1, double bj1,

@@ -3,17 +3,15 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.math.matrix.DenseMatrix;
 import org.apache.commons.math3.util.Pair;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public final class Fortescue {
 
     public enum SequenceType {
         POSITIVE,
         NEGATIVE,
         ZERO
-    }
-
-    public enum ComponentType {
-        ABC,
-        FORTESCUE;
     }
 
     private Fortescue() {
@@ -113,13 +111,13 @@ public final class Fortescue {
 
     public static Pair<Double, Double> getCartesianFromPolar(double magnitude, double angle) {
         double xValue = magnitude * Math.cos(angle);
-        double yValue = magnitude * Math.sin(angle); // TODO : check radians and degrees
+        double yValue = magnitude * Math.sin(angle);
         return new org.apache.commons.math3.util.Pair<>(xValue, yValue);
     }
 
     public static Pair<Double, Double> getPolarFromCartesian(double xValue, double yValue) {
         double magnitude = Math.sqrt(xValue * xValue + yValue * yValue);
-        double phase = Math.atan2(yValue, xValue); // TODO : check radians and degrees
+        double phase = Math.atan2(yValue, xValue);
         return new org.apache.commons.math3.util.Pair<>(magnitude, phase);
     }
 }
