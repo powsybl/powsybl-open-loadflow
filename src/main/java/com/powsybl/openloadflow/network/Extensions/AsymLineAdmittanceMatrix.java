@@ -8,7 +8,7 @@ import com.powsybl.openloadflow.util.Fortescue;
  */
 public class AsymLineAdmittanceMatrix {
 
-    // This class is made to build and access the admittance terms that will be used to fill the Jacobian :
+    // This class is made to build and access the admittance terms that will be used to fill up the Jacobian :
     // The following formulation approach is used :
     //                                        side 1   ________     side 2
     // [ I0_1 ]             [ V0_1 ]            0-----|        |-------0
@@ -118,13 +118,13 @@ public class AsymLineAdmittanceMatrix {
     public DenseMatrix buildYadmittanceMatrix(AsymLine asymLine) {
         if (asymLine.getPiValues() != null) {
             AsymLinePiValues piValues = asymLine.getPiValues();
-            return buildYadmittanceMatrix(asymLine, piValues);
+            return buildYadmittanceMatrix(piValues);
         } else {
             throw new IllegalStateException("No Pi Values available, could not build Y of line : ");
         }
     }
 
-    public DenseMatrix buildYadmittanceMatrix(AsymLine asymLine, AsymLinePiValues piValues) {
+    public DenseMatrix buildYadmittanceMatrix(AsymLinePiValues piValues) {
 
         DenseMatrix mY = new DenseMatrix(12, 12);
 

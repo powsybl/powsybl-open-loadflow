@@ -13,14 +13,14 @@ import java.util.Objects;
 public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedBranchDisymCoupledFlowEquationTerm {
 
     public ClosedBranchDisymCoupledCurrentEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1, boolean isActive, boolean isSide1, int sequenceNum) {
+                                                     boolean deriveA1, boolean deriveR1, boolean isRealPart, boolean isSide1, int sequenceNum) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
-        this.isActive = isActive;
+        this.isRealPart = isRealPart;
         this.isSide1 = isSide1;
         this.sequenceNum = sequenceNum;
     }
 
-    private final boolean isActive; // true if active power asked, false if reactive power asked
+    private final boolean isRealPart; // true if active power asked, false if reactive power asked
     private final boolean isSide1; // true if i1x or i1y, false if i2x or i2y
     private final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
 
@@ -40,109 +40,48 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
         return GenericBranchCurrentTerm.dty(i, j, g, h, equationTerm, var, di);
     }
 
-    public static double pqij(boolean isActive, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm) {
+    public static double ixIyij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm) {
 
-        if (isActive && isSide1 && sequenceNum == 1) { // P1
-            return tx(1, 1, 1, 0, eqTerm) + tx(1, 1, 1, 1, eqTerm) + tx(1, 1, 1, 2, eqTerm)
-                    + tx(1, 2, 1, 0, eqTerm) + tx(1, 2, 1, 1, eqTerm) + tx(1, 2, 1, 2, eqTerm);
-        } else if (!isActive && isSide1 && sequenceNum == 1) { // Q1
-            return ty(1, 1, 1, 0, eqTerm) + ty(1, 1, 1, 1, eqTerm) + ty(1, 1, 1, 2, eqTerm)
-                    + ty(1, 2, 1, 0, eqTerm) + ty(1, 2, 1, 1, eqTerm) + ty(1, 2, 1, 2, eqTerm);
-        } else if (isActive && !isSide1 && sequenceNum == 1) { // P2
-            return tx(2, 2, 1, 0, eqTerm) + tx(2, 2, 1, 1, eqTerm) + tx(2, 2, 1, 2, eqTerm)
-                    + tx(2, 1, 1, 0, eqTerm) + tx(2, 1, 1, 1, eqTerm) + tx(2, 1, 1, 2, eqTerm);
-        } else if (!isActive && !isSide1 && sequenceNum == 1) { // Q2
-            return ty(2, 2, 1, 0, eqTerm) + ty(2, 2, 1, 1, eqTerm) + ty(2, 2, 1, 2, eqTerm)
-                    + ty(2, 1, 1, 0, eqTerm) + ty(2, 1, 1, 1, eqTerm) + ty(2, 1, 1, 2, eqTerm);
-        } else if (isActive && isSide1 && sequenceNum == 0) { // Po1
-            return tx(1, 1, 0, 0, eqTerm) + tx(1, 1, 0, 1, eqTerm) + tx(1, 1, 0, 2, eqTerm)
-                    + tx(1, 2, 0, 0, eqTerm) + tx(1, 2, 0, 1, eqTerm) + tx(1, 2, 0, 2, eqTerm);
-        } else if (!isActive && isSide1 && sequenceNum == 0) { // Qo1
-            return ty(1, 1, 0, 0, eqTerm) + ty(1, 1, 0, 1, eqTerm) + ty(1, 1, 0, 2, eqTerm)
-                    + ty(1, 2, 0, 0, eqTerm) + ty(1, 2, 0, 1, eqTerm) + ty(1, 2, 0, 2, eqTerm);
-        } else if (isActive && !isSide1 && sequenceNum == 0) { // Po2
-            return tx(2, 2, 0, 0, eqTerm) + tx(2, 2, 0, 1, eqTerm) + tx(2, 2, 0, 2, eqTerm)
-                    + tx(2, 1, 0, 0, eqTerm) + tx(2, 1, 0, 1, eqTerm) + tx(2, 1, 0, 2, eqTerm);
-        } else if (!isActive && !isSide1 && sequenceNum == 0) { // Qo2
-            return ty(2, 2, 0, 0, eqTerm) + ty(2, 2, 0, 1, eqTerm) + ty(2, 2, 0, 2, eqTerm)
-                    + ty(2, 1, 0, 0, eqTerm) + ty(2, 1, 0, 1, eqTerm) + ty(2, 1, 0, 2, eqTerm);
-        } else if (isActive && isSide1 && sequenceNum == 2) { // Pi1
-            return tx(1, 1, 2, 0, eqTerm) + tx(1, 1, 2, 1, eqTerm) + tx(1, 1, 2, 2, eqTerm)
-                    + tx(1, 2, 2, 0, eqTerm) + tx(1, 2, 2, 1, eqTerm) + tx(1, 2, 2, 2, eqTerm);
-        } else if (!isActive && isSide1 && sequenceNum == 2) { // Qi1
-            return ty(1, 1, 2, 0, eqTerm) + ty(1, 1, 2, 1, eqTerm) + ty(1, 1, 2, 2, eqTerm)
-                    + ty(1, 2, 2, 0, eqTerm) + ty(1, 2, 2, 1, eqTerm) + ty(1, 2, 2, 2, eqTerm);
-        } else if (isActive && !isSide1 && sequenceNum == 2) { // Pi2
-            return tx(2, 2, 2, 0, eqTerm) + tx(2, 2, 2, 1, eqTerm) + tx(2, 2, 2, 2, eqTerm)
-                    + tx(2, 1, 2, 0, eqTerm) + tx(2, 1, 2, 1, eqTerm) + tx(2, 1, 2, 2, eqTerm);
-        } else if (!isActive && !isSide1 && sequenceNum == 2) { // Qi2
-            return ty(2, 2, 2, 0, eqTerm) + ty(2, 2, 2, 1, eqTerm) + ty(2, 2, 2, 2, eqTerm)
-                    + ty(2, 1, 2, 0, eqTerm) + ty(2, 1, 2, 1, eqTerm) + ty(2, 1, 2, 2, eqTerm);
-        } else {
-            throw new IllegalStateException("Unknow variable type");
+        int s1 = 1;
+        int s2 = 2;
+        if (!isSide1) {
+            s1 = 2;
+            s2 = 1;
+        }
+
+        if (isRealPart) { // Ix
+            return tx(s1, s1, sequenceNum, 0, eqTerm) + tx(s1, s1, sequenceNum, 1, eqTerm) + tx(s1, s1, sequenceNum, 2, eqTerm)
+                    + tx(s1, s2, sequenceNum, 0, eqTerm) + tx(s1, s2, sequenceNum, 1, eqTerm) + tx(s1, s2, sequenceNum, 2, eqTerm);
+        } else { // Iy
+            return ty(s1, s1, sequenceNum, 0, eqTerm) + ty(s1, s1, sequenceNum, 1, eqTerm) + ty(s1, s1, sequenceNum, 2, eqTerm)
+                    + ty(s1, s2, sequenceNum, 0, eqTerm) + ty(s1, s2, sequenceNum, 1, eqTerm) + ty(s1, s2, sequenceNum, 2, eqTerm);
         }
     }
 
-    public static double dpqij(boolean isActive, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm, Variable<AcVariableType> var, int di) {
+    public static double dIxIyij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm, Variable<AcVariableType> var, int di) {
+
+        int s1 = 1;
+        int s2 = 2;
+        if (!isSide1) {
+            s1 = 2;
+            s2 = 1;
+        }
 
         // di is the side of "variable" that is used for derivation
-        if (isActive && isSide1 && sequenceNum == 1) {
-            // dP1
-            return dtx(1, 1, 1, 0, eqTerm, var, di) + dtx(1, 1, 1, 1, eqTerm, var, di) + dtx(1, 1, 1, 2, eqTerm, var, di)
-                    + dtx(1, 2, 1, 0, eqTerm, var, di) + dtx(1, 2, 1, 1, eqTerm, var, di) + dtx(1, 2, 1, 2, eqTerm, var, di);
-        } else if (!isActive && isSide1 && sequenceNum == 1) {
-            // dQ1
-            return dty(1, 1, 1, 0, eqTerm, var, di) + dty(1, 1, 1, 1, eqTerm, var, di) + dty(1, 1, 1, 2, eqTerm, var, di)
-                    + dty(1, 2, 1, 0, eqTerm, var, di) + dty(1, 2, 1, 1, eqTerm, var, di) + dty(1, 2, 1, 2, eqTerm, var, di);
-        } else if (isActive && !isSide1 && sequenceNum == 1) {
-            // dP2
-            return dtx(2, 2, 1, 0, eqTerm, var, di) + dtx(2, 2, 1, 1, eqTerm, var, di) + dtx(2, 2, 1, 2, eqTerm, var, di)
-                    + dtx(2, 1, 1, 0, eqTerm, var, di) + dtx(2, 1, 1, 1, eqTerm, var, di) + dtx(2, 1, 1, 2, eqTerm, var, di);
-        } else if (!isActive && !isSide1 && sequenceNum == 1) {
-            // dQ2
-            return dty(2, 2, 1, 0, eqTerm, var, di) + dty(2, 2, 1, 1, eqTerm, var, di) + dty(2, 2, 1, 2, eqTerm, var, di)
-                    + dty(2, 1, 1, 0, eqTerm, var, di) + dty(2, 1, 1, 1, eqTerm, var, di) + dty(2, 1, 1, 2, eqTerm, var, di);
-        } else if (isActive && isSide1 && sequenceNum == 0) {
-            // dPo1
-            return dtx(1, 1, 0, 0, eqTerm, var, di) + dtx(1, 1, 0, 1, eqTerm, var, di) + dtx(1, 1, 0, 2, eqTerm, var, di)
-                    + dtx(1, 2, 0, 0, eqTerm, var, di) + dtx(1, 2, 0, 1, eqTerm, var, di) + dtx(1, 2, 0, 2, eqTerm, var, di);
-        } else if (!isActive && isSide1 && sequenceNum == 0) {
-            // dQo1
-            return dty(1, 1, 0, 0, eqTerm, var, di) + dty(1, 1, 0, 1, eqTerm, var, di) + dty(1, 1, 0, 2, eqTerm, var, di)
-                    + dty(1, 2, 0, 0, eqTerm, var, di) + dty(1, 2, 0, 1, eqTerm, var, di) + dty(1, 2, 0, 2, eqTerm, var, di);
-        } else if (isActive && !isSide1 && sequenceNum == 0) {
-            // dPo2
-            return dtx(2, 2, 0, 0, eqTerm, var, di) + dtx(2, 2, 0, 1, eqTerm, var, di) + dtx(2, 2, 0, 2, eqTerm, var, di)
-                    + dtx(2, 1, 0, 0, eqTerm, var, di) + dtx(2, 1, 0, 1, eqTerm, var, di) + dtx(2, 1, 0, 2, eqTerm, var, di);
-
-        } else if (!isActive && !isSide1 && sequenceNum == 0) {
-            // dQo2
-            return dty(2, 2, 0, 0, eqTerm, var, di) + dty(2, 2, 0, 1, eqTerm, var, di) + dty(2, 2, 0, 2, eqTerm, var, di)
-                    + dty(2, 1, 0, 0, eqTerm, var, di) + dty(2, 1, 0, 1, eqTerm, var, di) + dty(2, 1, 0, 2, eqTerm, var, di);
-        } else if (isActive && isSide1 && sequenceNum == 2) {
-            // dPi1
-            return dtx(1, 1, 2, 0, eqTerm, var, di) + dtx(1, 1, 2, 1, eqTerm, var, di) + dtx(1, 1, 2, 2, eqTerm, var, di)
-                    + dtx(1, 2, 2, 0, eqTerm, var, di) + dtx(1, 2, 2, 1, eqTerm, var, di) + dtx(1, 2, 2, 2, eqTerm, var, di);
-        } else if (!isActive && isSide1 && sequenceNum == 2) {
-            // dQi1
-            return dty(1, 1, 2, 0, eqTerm, var, di) + dty(1, 1, 2, 1, eqTerm, var, di) + dty(1, 1, 2, 2, eqTerm, var, di)
-                    + dty(1, 2, 2, 0, eqTerm, var, di) + dty(1, 2, 2, 1, eqTerm, var, di) + dty(1, 2, 2, 2, eqTerm, var, di);
-        } else if (isActive && !isSide1 && sequenceNum == 2) {
-            // dPi2
-            return dtx(2, 2, 2, 0, eqTerm, var, di) + dtx(2, 2, 2, 1, eqTerm, var, di) + dtx(2, 2, 2, 2, eqTerm, var, di)
-                    + dtx(2, 1, 2, 0, eqTerm, var, di) + dtx(2, 1, 2, 1, eqTerm, var, di) + dtx(2, 1, 2, 2, eqTerm, var, di);
-        } else if (!isActive && !isSide1 && sequenceNum == 2) {
-            // dQi2
-            return dty(2, 2, 2, 0, eqTerm, var, di) + dty(2, 2, 2, 1, eqTerm, var, di) + dty(2, 2, 2, 2, eqTerm, var, di)
-                    + dty(2, 1, 2, 0, eqTerm, var, di) + dty(2, 1, 2, 1, eqTerm, var, di) + dty(2, 1, 2, 2, eqTerm, var, di);
+        if (isRealPart) {
+            // dIx
+            return dtx(s1, s1, sequenceNum, 0, eqTerm, var, di) + dtx(s1, s1, sequenceNum, 1, eqTerm, var, di) + dtx(s1, s1, sequenceNum, 2, eqTerm, var, di)
+                    + dtx(s1, s2, sequenceNum, 0, eqTerm, var, di) + dtx(s1, s2, sequenceNum, 1, eqTerm, var, di) + dtx(s1, s2, sequenceNum, 2, eqTerm, var, di);
         } else {
-            throw new IllegalStateException("Unknown variable type");
+            // dIy
+            return dty(s1, s1, sequenceNum, 0, eqTerm, var, di) + dty(s1, s1, sequenceNum, 1, eqTerm, var, di) + dty(s1, s1, sequenceNum, 2, eqTerm, var, di)
+                    + dty(s1, s2, sequenceNum, 0, eqTerm, var, di) + dty(s1, s2, sequenceNum, 1, eqTerm, var, di) + dty(s1, s2, sequenceNum, 2, eqTerm, var, di);
         }
     }
 
     @Override
     public double eval() {
-        return pqij(isActive, isSide1, sequenceNum, this);
+        return ixIyij(isRealPart, isSide1, sequenceNum, this);
     }
 
     @Override
@@ -161,7 +100,7 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
         }
         Objects.requireNonNull(variable);
 
-        return dpqij(isActive, isSide1, sequenceNum, this, variable, di);
+        return dIxIyij(isRealPart, isSide1, sequenceNum, this, variable, di);
     }
 
     @Override
