@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.ac.OuterLoopContext;
 import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.VoltageControl;
 import org.apache.commons.lang3.mutable.MutableObject;
 
 import java.util.ArrayList;
@@ -79,14 +80,16 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
             for (LfBus bus : context.getNetwork().getBuses()) {
                 if (!bus.isDisabled() && bus.isGeneratorVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
                     var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
-                    voltageControl.getControllerElements().forEach(controllerBus -> {
-                        if (controllerBus.isGeneratorVoltageControlEnabled()) {
-                            controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                            controllerBus.setGeneratorVoltageControlEnabled(false);
-                            contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
-                        }
-                    });
-                    status.setValue(OuterLoopStatus.UNSTABLE);
+                    if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN) {
+                        voltageControl.getMergedControllerElements().forEach(controllerBus -> {
+                            if (controllerBus.isGeneratorVoltageControlEnabled()) {
+                                controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
+                                controllerBus.setGeneratorVoltageControlEnabled(false);
+                                contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
+                            }
+                        });
+                        status.setValue(OuterLoopStatus.UNSTABLE);
+                    }
                 }
             }
             for (LfBranch branch : getControllerBranches(context.getNetwork())) {

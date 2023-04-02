@@ -82,6 +82,7 @@ public final class NodeBreakerNetworkFactory {
                 .setId("C")
                 .setNode1(6)
                 .setNode2(1)
+                .setRetained(true)
                 .add();
         vl1.getNodeBreakerView().newBreaker()
                 .setId("B1")
@@ -99,8 +100,8 @@ public final class NodeBreakerNetworkFactory {
         vl1.newGenerator()
                 .setId("G")
                 .setNode(4)
-                .setMinP(-9999.99)
-                .setMaxP(9999.99)
+                .setMinP(0.0)
+                .setMaxP(1000.0)
                 .setVoltageRegulatorOn(true)
                 .setTargetV(398)
                 .setTargetP(603.77)

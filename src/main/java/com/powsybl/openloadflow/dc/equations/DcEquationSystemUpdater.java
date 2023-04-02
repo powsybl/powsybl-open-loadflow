@@ -8,7 +8,9 @@ package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
