@@ -4,6 +4,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,8 +52,12 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
+    protected final boolean isRealPart; // true if active power asked, false if reactive power asked
+    protected final boolean isSide1; // true if i1x or i1y, false if i2x or i2y
+    protected final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
+
     protected AbstractClosedBranchDisymCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                                 boolean deriveA1, boolean deriveR1) {
+                                                                 boolean deriveA1, boolean deriveR1, boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
@@ -94,6 +99,25 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
         }
         if (r1Var != null) {
             variables.add(r1Var);
+        }
+
+        this.isRealPart = isRealPart;
+        this.isSide1 = isSide1;
+        switch (sequenceType) {
+            case ZERO: // zero
+                this.sequenceNum = 0;
+                break;
+
+            case POSITIVE: // positive
+                this.sequenceNum = 1;
+                break;
+
+            case NEGATIVE: // negative
+                this.sequenceNum = 2;
+                break;
+
+            default:
+                throw new IllegalStateException("Unknow variable at branch : " + branch.getId());
         }
 
     }
@@ -150,4 +174,19 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     public List<Variable<AcVariableType>> getVariables() {
         return variables;
     }
+
+    public int sideOfDerivative(Variable<AcVariableType> variable) {
+        Objects.requireNonNull(variable);
+        if (variable.equals(v1Var) || variable.equals(v1VarZero) || variable.equals(v1VarNegative)
+                || variable.equals(ph1Var) || variable.equals(ph1VarZero) || variable.equals(ph1VarNegative)
+                || variable.equals(a1Var) || variable.equals(r1Var)) {
+            return 1;
+        } else if (variable.equals(v2Var) || variable.equals(v2VarZero) || variable.equals(v2VarNegative)
+                || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
+            return 2;
+        } else {
+            throw new IllegalStateException("Unknown variable type");
+        }
+    }
+
 }

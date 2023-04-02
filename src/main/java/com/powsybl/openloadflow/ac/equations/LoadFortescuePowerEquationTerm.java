@@ -38,16 +38,16 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    private final boolean isActive; // true if active power asked, false if reactive power asked
-    private final int sequenceNum; // 0 = hompolar, 1 = direct, 2 = inverse
+    private final boolean isRealPart; // true if active power asked, false if reactive power asked
+    private final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
 
-    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, boolean isActive, int sequenceNum) {
+    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, boolean isRealPart, int sequenceNum) {
         super(true);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
 
         this.bus = bus;
-        this.isActive = isActive;
+        this.isRealPart = isRealPart;
         this.sequenceNum = sequenceNum;
 
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
@@ -69,13 +69,13 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     public double ph(int g) {
         switch (g) {
-            case 0: // homopolar
+            case 0: // zero
                 return sv.get(phVarHom.getRow());
 
-            case 1: // direct
+            case 1: // positive
                 return sv.get(phVar.getRow());
 
-            case 2: // inverse
+            case 2: // negative
                 return sv.get(phVarInv.getRow());
 
             default:
@@ -85,13 +85,13 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     public double v(int g) {
         switch (g) {
-            case 0: // homopolar
+            case 0: // zero
                 return sv.get(vVarHom.getRow());
 
-            case 1: // direct
+            case 1: // positive
                 return sv.get(vVar.getRow());
 
-            case 2: // inverse
+            case 2: // negative
                 return sv.get(vVarInv.getRow());
 
             default:
@@ -99,7 +99,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         }
     }
 
-    public static double pq(boolean isActive, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi) {
+    public static double pq(boolean isRealPart, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi) {
         // We use the formula with complex matrices:
         //
         // [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
@@ -137,20 +137,20 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
         switch (sequenceNum) {
             case 0: // zero
-                return isActive ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
+                return isRealPart ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
 
             case 1: // positive
-                return isActive ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
+                return isRealPart ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
 
             case 2: // negative
-                return isActive ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
+                return isRealPart ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
 
             default:
                 throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
         }
     }
 
-    public static double dpq(boolean isActive, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
+    public static double dpq(boolean isRealPart, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
         // We derivate the PQ formula with complex matrices:
         //
         //    [So]              [dVo/dx  0   0]         [1/Va  0  0]   [Sa]        [Vo  0  0]                [Sa  0   0]   [1/Va  0  0]   [1/Va  0  0]         [dV0/dx]
@@ -235,13 +235,13 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
         switch (sequenceNum) {
             case 0: // zero
-                return isActive ? mdIFortescueConjugate.get(0, 0) : -mdIFortescueConjugate.get(1, 0); // dIxZero or dIyZero
+                return isRealPart ? mdIFortescueConjugate.get(0, 0) : -mdIFortescueConjugate.get(1, 0); // dIxZero or dIyZero
 
             case 1: // positive
-                return isActive ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
+                return isRealPart ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
 
             case 2: // negative
-                return isActive ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
+                return isRealPart ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
 
             default:
                 throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
@@ -250,12 +250,12 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     @Override
     public double eval() {
-        return pq(isActive, sequenceNum, this, v(0), ph(0), v(1), ph(1), v(2), ph(2));
+        return pq(isRealPart, sequenceNum, this, v(0), ph(0), v(1), ph(1), v(2), ph(2));
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        return dpq(isActive, sequenceNum, this, variable, v(0), ph(0), v(1), ph(1), v(2), ph(2));
+        return dpq(isRealPart, sequenceNum, this, variable, v(0), ph(0), v(1), ph(1), v(2), ph(2));
     }
 
     @Override

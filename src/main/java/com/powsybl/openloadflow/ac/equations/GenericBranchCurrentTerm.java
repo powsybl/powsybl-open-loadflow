@@ -82,7 +82,7 @@ public final class GenericBranchCurrentTerm {
         double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // TODO: use conjugate?
+        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
         //    where i,j are line's ends i,j included in {1,2}
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
@@ -326,7 +326,7 @@ public final class GenericBranchCurrentTerm {
 
     public static double dtyda1(int i, int j, int g, int h,
                                 double ri, double rj, double ai, double aj, double vgi, double vhj, double thgi, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 1) { // TODO : check if only direct
+        if (j == 1 && h == 1) {
             return ri * rj * vhj * (-yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
         } else if (i == 1 && g == 1) {
             return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
