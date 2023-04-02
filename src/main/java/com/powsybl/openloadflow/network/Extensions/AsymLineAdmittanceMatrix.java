@@ -18,8 +18,8 @@ public class AsymLineAdmittanceMatrix {
     // [ I1_2 ]             [ V1_2 ]
     // [ I2_2 ]             [ V2_2 ]
     //
-    // Given that at bus 1 where j are all neighbouring busses, the injection at bus 1 is equal to the sum of Powers from neighboring busses:
-    // Sum[j](Sd_1j) = P_1 + j.Q_1 = Sum[j](V1_1.I1_1j*)
+    // Given that at bus 1 where j is one neighbouring bus, the injection at bus 1 is equal to the sum of Powers from neighboring busses:
+    // Sum[j](S_1j) = P_1 + j.Q_1  = Sum[j](V1_1.I1_1j*)
     //               P0_1 + j.Q0_1 = Sum[j](V0_1.I0_1j*)
     //               P2_1 + j.Q2_1 = Sum[j](V2_1.I2_1j*)
     //
@@ -66,9 +66,9 @@ public class AsymLineAdmittanceMatrix {
     //
     // Step 4 : express the apparent powers with T():
     // ----------------------------------------------
-    // S_0_12 = T(1,1,o,o) + T(1,1,o,d) + T(1,1,o,i) - T(1,2,o,o) - T(1,2,o,d) - T(1,2,o,i)
-    // S_1_12 = T(1,1,d,o) + T(1,1,d,d) + T(1,1,d,i) - T(1,2,d,o) - T(1,2,d,d) - T(1,2,d,i)
-    // S_2_12 = T(1,1,i,o) + T(1,1,i,d) + T(1,1,i,i) - T(1,2,i,o) - T(1,2,i,d) - T(1,2,i,i)
+    // S_0_12 = T(1,1,o,o) + T(1,1,o,d) + T(1,1,o,i) + T(1,2,o,o) + T(1,2,o,d) + T(1,2,o,i)
+    // S_1_12 = T(1,1,d,o) + T(1,1,d,d) + T(1,1,d,i) + T(1,2,d,o) + T(1,2,d,d) + T(1,2,d,i)
+    // S_2_12 = T(1,1,i,o) + T(1,1,i,d) + T(1,1,i,i) + T(1,2,i,o) + T(1,2,i,d) + T(1,2,i,i)
     //
     // Step 5 : make the link between y_ij_gh in T() and [Y012]:
     // ---------------------------------------------------------

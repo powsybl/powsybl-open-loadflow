@@ -104,15 +104,15 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
         this.isRealPart = isRealPart;
         this.isSide1 = isSide1;
         switch (sequenceType) {
-            case ZERO: // zero
+            case ZERO:
                 this.sequenceNum = 0;
                 break;
 
-            case POSITIVE: // positive
+            case POSITIVE:
                 this.sequenceNum = 1;
                 break;
 
-            case NEGATIVE: // negative
+            case NEGATIVE:
                 this.sequenceNum = 2;
                 break;
 

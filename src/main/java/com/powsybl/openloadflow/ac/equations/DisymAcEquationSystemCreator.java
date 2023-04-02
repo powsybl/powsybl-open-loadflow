@@ -129,11 +129,9 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         boolean deriveA1 = isDeriveA1(branch);
         boolean deriveR1 = isDeriveR1(branch);
 
-        boolean asymmetry = hasBranchAsymmetry(branch);
-
         if (bus1 != null && bus2 != null) {
 
-            if (!asymmetry) {
+            if (!hasBranchAsymmetry(branch)) {
                 // no assymmetry is detected with this line, we handle the equations as decoupled
                 // positive
                 p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
@@ -176,9 +174,9 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
             }
 
         } else if (bus1 != null) {
-            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow: ");
+            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow at bus: " + bus1.getId());
         } else if (bus2 != null) {
-            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow: ");
+            throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow  at bus: " + bus2.getId());
         }
 
         // positive
@@ -268,9 +266,9 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
     }
 
     public boolean hasBranchAsymmetry(LfBranch branch) {
+        boolean asymmetry = false;
         // check the existence of an extension
         AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
-        boolean asymmetry = false;
         if (asymLine != null) {
             asymmetry = asymLine.isAdmittanceAsymmetryDetected() || asymLine.isDisconnectionAsymmetryDetected();
         }
