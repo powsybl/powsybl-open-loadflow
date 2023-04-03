@@ -94,13 +94,22 @@ public class NewtonRaphson {
                         double busPhi = equationSystem.getStateVector().get(busPhiRow);
                         LOGGER.trace("Mismatch `{}` for {}: {} (element={}) || Bus V /_ PHI = {} /_ {}", acEquationType, equation, equationMismatch, elementId, busV, busPhi);
                         if (iterationMismatchReporter != null) {
-                            Reports.reportNewtonRaphsonMismatch(iterationMismatchReporter, acEquationType, equationMismatch, elementId, busV, busPhi, iteration);
+                            Reports.reportNewtonRaphsonMismatch(iterationMismatchReporter, getEquationTypeDescription(acEquationType), equationMismatch, elementId, busV, busPhi, iteration);
                         }
                     });
         }
 
         if (iterationMismatchReporter != null) {
             Reports.reportNewtonRaphsonNorm(iterationMismatchReporter, norm, iteration);
+        }
+    }
+
+    private String getEquationTypeDescription(AcEquationType acEquationType) {
+        switch (acEquationType) {
+            case BUS_TARGET_P: return "TargetP";
+            case BUS_TARGET_Q: return "TargetQ";
+            case BUS_TARGET_V: return "TargetV";
+            default: return null; // not implemented for other ac equation types
         }
     }
 

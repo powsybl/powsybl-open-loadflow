@@ -10,7 +10,6 @@ import com.powsybl.commons.reporter.Report;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
 
 import java.util.Map;
 
@@ -219,29 +218,12 @@ public final class Reports {
         }
     }
 
-    public static void reportNewtonRaphsonMismatch(Reporter reporter, AcEquationType acEquationType, double mismatch, String busId, double busV, double busPhi, int iteration) {
-
-        String prefixAcEquationType;
-        switch (acEquationType) {
-            case BUS_TARGET_P:
-                prefixAcEquationType = "TargetP";
-                break;
-            case BUS_TARGET_Q:
-                prefixAcEquationType = "TargetQ";
-                break;
-            case BUS_TARGET_V:
-                prefixAcEquationType = "TargetV";
-                break;
-            default:
-                // not implemented for other ac equation types
-                return;
-        }
-
+    public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, String busId, double busV, double busPhi, int iteration) {
         Reporter subReporter;
         if (iteration == -1) {
-            subReporter = reporter.createSubReporter("NRInitial", "Initial mismatch on ${equationType}", "equationType", prefixAcEquationType);
+            subReporter = reporter.createSubReporter("NRInitial", "Initial mismatch on ${equationType}", "equationType", acEquationType);
         } else {
-            subReporter = reporter.createSubReporter("NRMismatch", "Iteration ${iteration} mismatch on ${equationType}", Map.of("equationType", new TypedValue(prefixAcEquationType, TypedValue.UNTYPED),
+            subReporter = reporter.createSubReporter("NRMismatch", "Iteration ${iteration} mismatch on ${equationType}", Map.of("equationType", new TypedValue(acEquationType, TypedValue.UNTYPED),
                     "iteration", new TypedValue(iteration, TypedValue.UNTYPED)));
         }
 
