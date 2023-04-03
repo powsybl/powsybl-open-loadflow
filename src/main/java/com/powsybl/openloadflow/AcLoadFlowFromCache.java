@@ -74,16 +74,14 @@ public class AcLoadFlowFromCache {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Switch> switchesToClose = new HashSet<>();
         configureSwitches(switchesToOpen, switchesToClose);
-        try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), switchesToOpen, switchesToClose, reporter)) {
+        try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), switchesToOpen, switchesToClose,
+                LfNetworkList.WorkingVariantReverter::new, reporter)) {
             contexts = lfNetworkList.getList()
                     .stream()
                     .map(n -> new AcLoadFlowContext(n, acParameters))
                     .collect(Collectors.toList());
             entry.setContexts(contexts);
-            LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.release();
-            if (variantCleaner != null) {
-                entry.setTmpVariantId(variantCleaner.getTmpVariantId());
-            }
+            lfNetworkList.getTmpWorkingVariantId().ifPresent(entry::setTmpVariantId);
         }
         return contexts;
     }

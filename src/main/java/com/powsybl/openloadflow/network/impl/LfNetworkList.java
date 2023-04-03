@@ -72,22 +72,10 @@ public class LfNetworkList implements AutoCloseable {
         }
     }
 
-    public static class VariantRemover extends AbstractVariantCleaner {
-
-        public VariantRemover(Network network, String tmpVariantId) {
-            super(network, null, Objects.requireNonNull(tmpVariantId));
-        }
-
-        @Override
-        public void clean() {
-            network.getVariantManager().removeVariant(tmpVariantId);
-        }
-    }
-
     public static class WorkingVariantReverter extends AbstractVariantCleaner {
 
-        public WorkingVariantReverter(Network network, String workingVariantId) {
-            super(network, Objects.requireNonNull(workingVariantId), null);
+        public WorkingVariantReverter(Network network, String workingVariantId, String tmpVariantId) {
+            super(network, Objects.requireNonNull(workingVariantId), tmpVariantId);
         }
 
         @Override
@@ -96,10 +84,15 @@ public class LfNetworkList implements AutoCloseable {
         }
     }
 
+    @FunctionalInterface
+    public interface VariantCleanerFactory {
+        VariantCleaner create(Network network, String workingVariantId, String tmpVariantId);
+    }
+
     // list of networks sorted by descending size
     private final List<LfNetwork> list;
 
-    private VariantCleaner variantCleaner;
+    private final VariantCleaner variantCleaner;
 
     public LfNetworkList(List<LfNetwork> list, VariantCleaner variantCleaner) {
         this.list = Objects.requireNonNull(list);
@@ -118,20 +111,14 @@ public class LfNetworkList implements AutoCloseable {
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
-    public VariantCleaner release() {
-        if (variantCleaner != null) {
-            // only need to switch back to working variant but not to remove the variant
-            VariantRemover variantRemover = new VariantRemover(variantCleaner.getNetwork(), variantCleaner.getTmpVariantId());
-            variantCleaner = new WorkingVariantReverter(variantCleaner.getNetwork(), variantCleaner.getWorkingVariantId());
-            return variantRemover;
-        }
-        return null;
-    }
-
     @Override
     public void close() {
         if (variantCleaner != null) {
             variantCleaner.clean();
         }
+    }
+
+    public Optional<String> getTmpWorkingVariantId() {
+        return variantCleaner != null ? Optional.ofNullable(variantCleaner.getTmpVariantId()) : Optional.empty();
     }
 }

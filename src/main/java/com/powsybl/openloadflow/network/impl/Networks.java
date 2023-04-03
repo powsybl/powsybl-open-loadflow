@@ -139,6 +139,12 @@ public final class Networks {
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
                                      Set<Switch> switchesToOpen, Set<Switch> switchesToClose, Reporter reporter) {
+        return load(network, networkParameters, switchesToOpen, switchesToClose, LfNetworkList.DefaultVariantCleaner::new, reporter);
+    }
+
+    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
+                                     Set<Switch> switchesToOpen, Set<Switch> switchesToClose,
+                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
         if (switchesToOpen.isEmpty() && switchesToClose.isEmpty()) {
             return new LfNetworkList(load(network, networkParameters, reporter));
         } else {
@@ -164,7 +170,7 @@ public final class Networks {
                 }
             }
 
-            return new LfNetworkList(lfNetworks, new LfNetworkList.DefaultVariantCleaner(network, workingVariantId, tmpVariantId));
+            return new LfNetworkList(lfNetworks, variantCleanerFactory.create(network, workingVariantId, tmpVariantId));
         }
     }
 
