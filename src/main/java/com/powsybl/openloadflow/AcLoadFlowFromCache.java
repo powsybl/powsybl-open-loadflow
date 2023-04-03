@@ -74,6 +74,9 @@ public class AcLoadFlowFromCache {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Switch> switchesToClose = new HashSet<>();
         configureSwitches(switchesToOpen, switchesToClose);
+
+        // Because of caching, we only need to switch back to working variant but not to remove the variant, thus
+        // WorkingVariantReverter is used instead of DefaultVariantCleaner
         try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), switchesToOpen, switchesToClose,
                 LfNetworkList.WorkingVariantReverter::new, reporter)) {
             contexts = lfNetworkList.getList()
