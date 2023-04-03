@@ -112,6 +112,7 @@ public class NewtonRaphsonParameters {
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
+                ", detailedNrReport=" + detailedNrReport +
                 ')';
     }
 }
