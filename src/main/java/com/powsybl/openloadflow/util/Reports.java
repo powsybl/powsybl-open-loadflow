@@ -242,12 +242,15 @@ public final class Reports {
     }
 
     public static void reportNewtonRaphsonNorm(Reporter reporter, double norm, int iteration) {
-        String keyIteration = iteration == -1 ? "initialNorm" : "iterationNorm";
-        String xVariable = iteration == -1 ? "x0" : "x";
-        reporter.report(Report.builder()
-                .withKey(keyIteration)
-                .withDefaultMessage(String.format("Norm |f(%s)|='${norm}'", xVariable))
-                .withValue("norm", norm)
+        ReportBuilder reportBuilder = Report.builder();
+        if (iteration == -1) {
+            reportBuilder.withKey("NRInitialNorm")
+                    .withDefaultMessage("Norm |f(x0)|=${norm}");
+        } else {
+            reportBuilder.withKey("NRIterationNorm")
+                    .withDefaultMessage("Norm |f(x)|=${norm}");
+        }
+        reporter.report(reportBuilder.withValue("norm", norm)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
     }

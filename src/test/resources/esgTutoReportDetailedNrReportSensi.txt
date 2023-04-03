@@ -10,21 +10,21 @@
            Initial mismatch on TargetP: 5.999135514403292, Bus Id: 'VLLOAD_0', Bus V: 1.0, Bus Phi: 0.0
            Initial mismatch on TargetQ: -7.397518453004565, Bus Id: 'VLHV1_0', Bus V: 1.0, Bus Phi: 0.0
            Initial mismatch on TargetV: -0.02083333333333326, Bus Id: 'VLGEN_0', Bus V: 1.0, Bus Phi: 0.0
-           Norm |f(x0)|='11.37683042330867'
+           Norm |f(x0)|=11.37683042330867
         + Iteration 0 mismatch
            Iteration 0 mismatch on TargetP: 0.5654241868659025, Bus Id: 'VLGEN_0', Bus V: 1.0208333333333333, Bus Phi: 0.044267798791154236
            Iteration 0 mismatch on TargetQ: 0.9076781074655959, Bus Id: 'VLHV1_0', Bus V: 1.0713810414454683, Bus Phi: -3.393522766578452E-17
            Iteration 0 mismatch on TargetV: 0.0, Bus Id: 'VLGEN_0', Bus V: 1.0208333333333333, Bus Phi: 0.044267798791154236
-           Norm |f(x)|='1.370521997338349'
+           Norm |f(x)|=1.370521997338349
         + Iteration 1 mismatch
            Iteration 1 mismatch on TargetP: -0.011906013412646743, Bus Id: 'VLHV2_0', Bus V: 1.0267735150466015, Bus Phi: -0.06136319436584185
            Iteration 1 mismatch on TargetQ: 0.015807200344973626, Bus Id: 'VLHV2_0', Bus V: 1.0267735150466015, Bus Phi: -0.06136319436584185
            Iteration 1 mismatch on TargetV: 0.0, Bus Id: 'VLGEN_0', Bus V: 1.0208333333333333, Bus Phi: 0.0407316584549734
-           Norm |f(x)|='0.02735383065047368'
+           Norm |f(x)|=0.02735383065047368
         + Iteration 2 mismatch
            Iteration 2 mismatch on TargetP: -1.2624760780788336E-5, Bus Id: 'VLHV2_0', Bus V: 1.0261840057810543, Bus Phi: -0.0611984592137325
            Iteration 2 mismatch on TargetQ: 1.0873067915362356E-5, Bus Id: 'VLHV2_0', Bus V: 1.0261840057810543, Bus Phi: -0.0611984592137325
            Iteration 2 mismatch on TargetV: 0.0, Bus Id: 'VLGEN_0', Bus V: 1.0208333333333333, Bus Phi: 0.04069359966489529
-           Norm |f(x)|='2.0034253596371782E-5'
+           Norm |f(x)|=2.0034253596371782E-5
       + Outer loop Voltage monitoring
       + Outer loop Reactive limits
