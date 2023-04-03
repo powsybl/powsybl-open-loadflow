@@ -237,8 +237,6 @@ public final class Reports {
                 return;
         }
 
-        String suffixIteration = iteration == -1 ? "Initial" : String.format("Iteration%s", iteration);
-
         Reporter subReporter;
         if (iteration == -1) {
             subReporter = reporter.createSubReporter("NRInitial", "Initial mismatch on ${equationType}", "equationType", prefixAcEquationType);
