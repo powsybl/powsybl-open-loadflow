@@ -246,19 +246,19 @@ public final class Reports {
                 .build());
         subReporter.report(Report.builder()
                 .withKey(String.format("%sBusId%s", prefixAcEquationType, suffixIteration))
-                .withDefaultMessage(String.format("Bus Id : '${busId}'", prefixAcEquationType))
+                .withDefaultMessage("Bus Id : '${busId}'")
                 .withValue("busId", busId)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
         subReporter.report(Report.builder()
                 .withKey(String.format("%sBusV%s", prefixAcEquationType, suffixIteration))
-                .withDefaultMessage(String.format("Bus V : '${busV}'", prefixAcEquationType))
+                .withDefaultMessage("Bus V : '${busV}'")
                 .withValue("busV", busV)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
         subReporter.report(Report.builder()
                 .withKey(String.format("%sBusPhi%s", prefixAcEquationType, suffixIteration))
-                .withDefaultMessage(String.format("Bus Phi : '${busPhi}'", prefixAcEquationType))
+                .withDefaultMessage("Bus Phi : '${busPhi}'")
                 .withValue("busPhi", busPhi)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
