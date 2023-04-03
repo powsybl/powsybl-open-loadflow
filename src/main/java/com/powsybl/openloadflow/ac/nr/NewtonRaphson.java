@@ -22,6 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -67,20 +69,20 @@ public class NewtonRaphson {
                 .collect(Collectors.toList());
     }
 
-    public static Map<AcEquationType, Optional<Pair<Equation<AcVariableType, AcEquationType>, Double>>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
+    public static Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> getLargestMismatchByAcEquationType(EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch) {
         return equationSystem.getIndex().getSortedEquationsToSolve().stream()
                 .map(equation -> Pair.of(equation, mismatch[equation.getColumn()]))
-                .collect(Collectors.groupingBy(e -> e.getKey().getType(), Collectors.maxBy(Comparator.comparingDouble(e -> Math.abs(e.getValue())))));
+                .collect(Collectors.toMap(e -> e.getKey().getType(), Function.identity(), BinaryOperator.maxBy(Comparator.comparingDouble(e -> Math.abs(e.getValue())))));
     }
 
     public void reportAndLogLargestMismatchByAcEquationType(Reporter reporter, EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, double norm, int iteration) {
-        Map<AcEquationType, Optional<Pair<Equation<AcVariableType, AcEquationType>, Double>>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
+        Map<AcEquationType, Pair<Equation<AcVariableType, AcEquationType>, Double>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
 
         // report largest mismatches in (P, Q, V) equations
         Reporter iterationMismatchReporter = parameters.isDetailedNrReport() ? Reports.createNewtonRaphsonMismatchReporter(reporter, iteration) : null;
 
         for (AcEquationType acEquationType : REPORTED_AC_EQUATION_TYPES) {
-            mismatchEquations.get(acEquationType)
+            Optional.ofNullable(mismatchEquations.get(acEquationType))
                     .ifPresent(equationPair -> {
                         Equation<AcVariableType, AcEquationType> equation = equationPair.getKey();
                         double equationMismatch = equationPair.getValue();
