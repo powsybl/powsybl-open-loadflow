@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -101,7 +102,7 @@ class AcLoadFlowWithCachingTest {
 
     @Test
     @Disabled("Disabled by default because not reliable, depends on JVM, garbage collector, and machine performance")
-    void testCacheEviction() {
+    void testCacheEvictionBusBreaker() {
         int runCount = 10;
         for (int i = 0; i < runCount; i++) {
             var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
@@ -109,6 +110,33 @@ class AcLoadFlowWithCachingTest {
             System.gc();
         }
         assertTrue(NetworkCache.INSTANCE.getEntryCount() < runCount);
+    }
+
+    @Test
+    @Disabled("Disabled by default because not reliable, depends on JVM, garbage collector, and machine performance")
+    void testCacheEvictionNodeBreaker() {
+        int runCount = 10;
+        parametersExt.setActionableSwitchesIds(Set.of("S1VL1_LD1_BREAKER"));
+        for (int i = 0; i < runCount; i++) {
+            var network = FourSubstationsNodeBreakerFactory.create();
+            loadFlowRunner.run(network, parameters);
+            System.gc();
+        }
+        assertTrue(NetworkCache.INSTANCE.getEntryCount() < runCount);
+    }
+
+    @Test
+    void testEntryEviction() {
+        var network = FourSubstationsNodeBreakerFactory.create();
+        assertEquals(1, network.getVariantManager().getVariantIds().size());
+
+        parametersExt.setActionableSwitchesIds(Set.of("S1VL1_LD1_BREAKER"));
+        loadFlowRunner.run(network, parameters);
+        assertEquals(2, network.getVariantManager().getVariantIds().size());
+
+        parametersExt.setActionableSwitchesIds(Set.of("S1VL1_TWT_BREAKER"));
+        loadFlowRunner.run(network, parameters);
+        assertEquals(2, network.getVariantManager().getVariantIds().size());
     }
 
     @Test
