@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -16,10 +17,13 @@ import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.ShuntNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,11 +37,13 @@ class AcLoadFlowWithCachingTest {
 
     private LoadFlowParameters parameters;
 
+    private OpenLoadFlowParameters parametersExt;
+
     @BeforeEach
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setNetworkCacheEnabled(true);
         NetworkCache.INSTANCE.clear();
     }
@@ -96,7 +102,7 @@ class AcLoadFlowWithCachingTest {
 
     @Test
     @Disabled("Disabled by default because not reliable, depends on JVM, garbage collector, and machine performance")
-    void testCacheEviction() {
+    void testCacheEvictionBusBreaker() {
         int runCount = 10;
         for (int i = 0; i < runCount; i++) {
             var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
@@ -104,6 +110,33 @@ class AcLoadFlowWithCachingTest {
             System.gc();
         }
         assertTrue(NetworkCache.INSTANCE.getEntryCount() < runCount);
+    }
+
+    @Test
+    @Disabled("Disabled by default because not reliable, depends on JVM, garbage collector, and machine performance")
+    void testCacheEvictionNodeBreaker() {
+        int runCount = 10;
+        parametersExt.setActionableSwitchesIds(Set.of("S1VL1_LD1_BREAKER"));
+        for (int i = 0; i < runCount; i++) {
+            var network = FourSubstationsNodeBreakerFactory.create();
+            loadFlowRunner.run(network, parameters);
+            System.gc();
+        }
+        assertTrue(NetworkCache.INSTANCE.getEntryCount() < runCount);
+    }
+
+    @Test
+    void testEntryEviction() {
+        var network = FourSubstationsNodeBreakerFactory.create();
+        assertEquals(1, network.getVariantManager().getVariantIds().size());
+
+        parametersExt.setActionableSwitchesIds(Set.of("S1VL1_LD1_BREAKER"));
+        loadFlowRunner.run(network, parameters);
+        assertEquals(2, network.getVariantManager().getVariantIds().size());
+
+        parametersExt.setActionableSwitchesIds(Set.of("S1VL1_TWT_BREAKER"));
+        loadFlowRunner.run(network, parameters);
+        assertEquals(2, network.getVariantManager().getVariantIds().size());
     }
 
     @Test
@@ -238,5 +271,66 @@ class AcLoadFlowWithCachingTest {
 
         shunt.setSectionCount(1);
         assertNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts()); // cache has been invalidated
+    }
+
+    @Test
+    void testSwitchOpen() {
+        var network = NodeBreakerNetworkFactory.create();
+        var l1 = network.getLine("L1");
+        var l2 = network.getLine("L2");
+
+        parametersExt.setActionableSwitchesIds(Set.of("C"));
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(301.884, l1.getTerminal1());
+        assertActivePowerEquals(301.884, l2.getTerminal1());
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        network.getSwitch("C").setOpen(true);
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(0.0993, l1.getTerminal1());
+        assertActivePowerEquals(607.682, l2.getTerminal1());
+    }
+
+    @Test
+    void testSwitchClose() {
+        var network = NodeBreakerNetworkFactory.create();
+        var l1 = network.getLine("L1");
+        var l2 = network.getLine("L2");
+
+        parametersExt.setActionableSwitchesIds(Set.of("C"));
+
+        var c = network.getSwitch("C");
+        c.setOpen(true);
+
+        assertTrue(NetworkCache.INSTANCE.findEntry(network).isEmpty());
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(0.0994, l1.getTerminal1());
+        assertActivePowerEquals(607.681, l2.getTerminal1());
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        network.getSwitch("C").setOpen(false);
+
+        assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(301.884, l1.getTerminal1());
+        assertActivePowerEquals(301.884, l2.getTerminal1());
     }
 }

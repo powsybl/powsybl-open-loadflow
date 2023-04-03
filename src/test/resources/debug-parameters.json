@@ -59,7 +59,8 @@
         "alwaysUpdateNetwork" : false,
         "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile" : 95.0,
         "reportedFeatures" : [ ],
-        "slackBusCountryFilter" : [ ]
+        "slackBusCountryFilter" : [ ],
+        "actionableSwitchesIds" : [ ]
       }
     }
   },
