@@ -215,7 +215,7 @@ public final class Reports {
         if (iteration == -1) {
             return reporter.createSubReporter("mismatchInitial", "Initial mismatch");
         } else {
-            return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} mismatch", "iteration", iteration);
+            return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} mismatch", ITERATION, iteration);
         }
     }
 
