@@ -247,25 +247,10 @@ public final class Reports {
 
         subReporter.report(Report.builder()
                 .withKey("NRMismatchValue")
-                .withDefaultMessage("Mismatch: '${mismatch}'")
+                .withDefaultMessage("Mismatch: '${mismatch}', Bus Id : '${busId}', Bus V : '${busV}', Bus Phi : '${busPhi}'")
                 .withTypedValue("mismatch", mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
-                .withSeverity(TypedValue.TRACE_SEVERITY)
-                .build());
-        subReporter.report(Report.builder()
-                .withKey("NRMismatchBusId")
-                .withDefaultMessage("Bus Id : '${busId}'")
                 .withValue("busId", busId)
-                .withSeverity(TypedValue.TRACE_SEVERITY)
-                .build());
-        subReporter.report(Report.builder()
-                .withKey("NRMismatchBusV")
-                .withDefaultMessage("Bus V : '${busV}'")
                 .withTypedValue("busV", busV, TypedValue.VOLTAGE)
-                .withSeverity(TypedValue.TRACE_SEVERITY)
-                .build());
-        subReporter.report(Report.builder()
-                .withKey("NRMismatchBusPhi")
-                .withDefaultMessage("Bus Phi : '${busPhi}'")
                 .withTypedValue("busPhi", busPhi, TypedValue.ANGLE)
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build());
