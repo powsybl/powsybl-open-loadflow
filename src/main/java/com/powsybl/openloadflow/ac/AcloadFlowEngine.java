@@ -78,7 +78,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getType(), runningContext.outerLoopTotalIterations);
 
                 Reporter nrReporter = context.getNetwork().getReporter();
-                if (context.getParameters().getNewtonRaphsonParameters().isDetailedNrReport()) {
+                if (context.getParameters().getNewtonRaphsonParameters().isDetailedReport()) {
                     nrReporter = Reports.createDetailedNewtonRaphsonReporterOuterLoop(nrReporter,
                             context.getNetwork().getNumCC(),
                             context.getNetwork().getNumSC(),
@@ -129,7 +129,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
 
         Reporter nrReporter = context.getNetwork().getReporter();
-        if (context.getParameters().getNewtonRaphsonParameters().isDetailedNrReport()) {
+        if (context.getParameters().getNewtonRaphsonParameters().isDetailedReport()) {
             nrReporter = Reports.createDetailedNewtonRaphsonReporter(nrReporter,
                     context.getNetwork().getNumCC(),
                     context.getNetwork().getNumSC());

@@ -31,7 +31,7 @@ public class NewtonRaphsonParameters {
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
-    private boolean detailedNrReport = false;
+    private boolean detailedReport = false;
 
     public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
@@ -85,12 +85,12 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
-    public boolean isDetailedNrReport() {
-        return detailedNrReport;
+    public boolean isDetailedReport() {
+        return detailedReport;
     }
 
-    public NewtonRaphsonParameters setDetailedNrReport(boolean detailedNrReport) {
-        this.detailedNrReport = detailedNrReport;
+    public NewtonRaphsonParameters setDetailedReport(boolean detailedReport) {
+        this.detailedReport = detailedReport;
         return this;
     }
 
@@ -112,7 +112,7 @@ public class NewtonRaphsonParameters {
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
-                ", detailedNrReport=" + detailedNrReport +
+                ", detailedNrReport=" + detailedReport +
                 ')';
     }
 }
