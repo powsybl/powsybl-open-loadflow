@@ -130,6 +130,8 @@ public class PropagatedContingency {
             Identifiable<?> identifiable = getIdentifiable(network, element);
             if (contingencyPropagation) {
                 ContingencyTripping.createContingencyTripping(network, identifiable).traverse(switchesToOpen, terminalsToDisconnect);
+            } else if (identifiable instanceof BusbarSection) {
+                ContingencyTripping.createBusbarSectionMinimalTripping(network, (BusbarSection) identifiable).traverse(switchesToOpen, terminalsToDisconnect);
             }
             terminalsToDisconnect.addAll(getTerminals(identifiable));
             if (identifiable instanceof Switch) {
@@ -157,6 +159,7 @@ public class PropagatedContingency {
 
                 case GENERATOR:
                 case STATIC_VAR_COMPENSATOR:
+                case BATTERY:
                     generatorIdsToLose.add(connectable.getId());
                     break;
 
@@ -182,6 +185,8 @@ public class PropagatedContingency {
                     if (control != null && control.isEnabled() && hvdcAcEmulation) {
                         hvdcIdsToOpen.add(station.getHvdcLine().getId());
                     }
+                    // FIXME
+                    // the other converter station should be considered to if in the same synchronous component (hvdc setpoint mode).
                     if (connectable instanceof VscConverterStation) {
                         generatorIdsToLose.add(connectable.getId());
                     } else {
@@ -273,6 +278,10 @@ public class PropagatedContingency {
                 identifiable = network.getThreeWindingsTransformer(element.getId());
                 identifiableType = "Three windings transformer";
                 break;
+            case BUSBAR_SECTION:
+                identifiable = network.getBusbarSection(element.getId());
+                identifiableType = "Busbar section";
+                break;
             default:
                 throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
         }
@@ -296,6 +305,15 @@ public class PropagatedContingency {
                 .filter(LfBranch::isConnectedAtBothSides)
                 .forEach(connectivity::removeEdge);
 
+        if (connectivity.getConnectedComponent(network.getSlackBus()).size() == 1) {
+            // FIXME
+            // If a contingency leads to an isolated slack bus, this bus is considered as the main component.
+            // In that case, we have an issue with a different number of variables and equations.
+            LOGGER.error("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
+            connectivity.undoTemporaryChanges();
+            return Optional.empty();
+        }
+
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
         int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
@@ -308,6 +326,15 @@ public class PropagatedContingency {
                 .forEach(branches::add);
         for (LfBus bus : buses) {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
+        }
+
+        for (LfHvdc hvdcLine : network.getHvdcs()) {
+            // FIXME
+            // if we loose a bus with a converter station, the other converter station should be considered to if in the
+            // same synchronous component (hvdc setpoint mode).
+            if (buses.contains(hvdcLine.getBus1()) || buses.contains(hvdcLine.getBus2())) {
+                hvdcIdsToOpen.add(hvdcLine.getId());
+            }
         }
 
         // reset connectivity to discard triggered branches

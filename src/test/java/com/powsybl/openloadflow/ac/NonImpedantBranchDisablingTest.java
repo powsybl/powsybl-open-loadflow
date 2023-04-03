@@ -11,8 +11,10 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -21,6 +23,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -29,11 +32,19 @@ import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 class NonImpedantBranchDisablingTest {
+
+    private LoadFlow.Runner loadFlowRunner;
+
+    @BeforeEach
+    void setUp() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+    }
 
     @Test
     void test() {
@@ -72,14 +83,14 @@ class NonImpedantBranchDisablingTest {
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getLine("L2").setR(0.0).setX(0.0);
         network.getLine("L1").getTerminal1().disconnect();
-        LoadFlow.run(network);
+        loadFlowRunner.run(network);
         assertEquals(600.018, network.getLine("L2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-600.018, network.getLine("L2").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, network.getLine("L1").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
 
         network.getLine("L1").getTerminal1().connect();
         network.getLine("L1").getTerminal2().disconnect();
-        LoadFlow.run(network);
+        loadFlowRunner.run(network);
         assertEquals(600.0, network.getLine("L2").getTerminal1().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-600.0, network.getLine("L2").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, network.getLine("L1").getTerminal2().getP(), LoadFlowAssert.DELTA_POWER);
@@ -96,7 +107,7 @@ class NonImpedantBranchDisablingTest {
                 .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
                 .setSlackBusesIds(List.of("VL2_0"));
 
-        LoadFlow.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
 
         assertActivePowerEquals(401.757, network.getLine("L1").getTerminal1());
         assertActivePowerEquals(100.878, network.getLine("L2").getTerminal1());
@@ -116,9 +127,27 @@ class NonImpedantBranchDisablingTest {
                 new AcloadFlowEngine(context).run();
             }
             // should be the same as with previous LF
-            assertEquals(401.740, largestNetwork.getBranchById("L1").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
-            assertEquals(100.870, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
-            assertEquals(100.870, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+            assertEquals(401.757, largestNetwork.getBranchById("L1").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.878, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
+            assertEquals(100.878, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
         }
+    }
+
+    @Test
+    void testOpenAtOneSideZeroImpedanceBranch() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getLine("L2").setR(0.0).setX(0.0);
+        network.getLine("L2").getTerminal2().disconnect();
+        LoadFlowResult result = loadFlowRunner.run(network);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertTrue(Double.isNaN(network.getLine("L2").getTerminal1().getP()));
+        assertTrue(Double.isNaN(network.getLine("L2").getTerminal2().getP()));
+
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setDc(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertTrue(Double.isNaN(network.getLine("L2").getTerminal1().getP()));
+        assertTrue(Double.isNaN(network.getLine("L2").getTerminal2().getP()));
     }
 }

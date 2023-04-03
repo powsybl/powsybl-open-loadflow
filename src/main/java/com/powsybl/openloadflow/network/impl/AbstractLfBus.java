@@ -85,6 +85,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double remoteVoltageControlReactivePercent = Double.NaN;
 
+    protected LfZeroImpedanceNetwork dcZeroImpedanceNetwork;
+
+    protected LfZeroImpedanceNetwork acZeroImpedanceNetwork;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
         lfAggregatedLoads = new LfAggregatedLoadsImpl(distributedOnConformLoad);
@@ -130,6 +134,25 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
+    public List<VoltageControl<?>> getVoltageControls() {
+        List<VoltageControl<?>> voltageControls = new ArrayList<>(3);
+        getGeneratorVoltageControl().ifPresent(voltageControls::add);
+        getTransformerVoltageControl().ifPresent(voltageControls::add);
+        getShuntVoltageControl().ifPresent(voltageControls::add);
+        return voltageControls;
+    }
+
+    @Override
+    public boolean isVoltageControlled() {
+        return isGeneratorVoltageControlled() || isShuntVoltageControlled() || isTransformerVoltageControlled();
+    }
+
+    @Override
+    public Optional<VoltageControl<?>> getHighestPriorityVoltageControl() {
+        return VoltageControl.findVoltageControlsSortedByPriority(this).stream().findFirst();
+    }
+
+    @Override
     public boolean hasGeneratorVoltageControllerCapability() {
         return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
     }
@@ -137,10 +160,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public Optional<GeneratorVoltageControl> getGeneratorVoltageControl() {
         return Optional.ofNullable(generatorVoltageControl);
-    }
-
-    public void removeGeneratorVoltageControl() {
-        this.generatorVoltageControl = null;
     }
 
     @Override
@@ -580,5 +599,20 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getMismatchP() {
         return p.eval() - getTargetP(); // slack bus can also have real injection connected
+    }
+
+    @Override
+    public void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
+        Objects.requireNonNull(zeroImpedanceNetwork);
+        if (dc) {
+            dcZeroImpedanceNetwork = zeroImpedanceNetwork;
+        } else {
+            acZeroImpedanceNetwork = zeroImpedanceNetwork;
+        }
+    }
+
+    @Override
+    public LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc) {
+        return dc ? dcZeroImpedanceNetwork : acZeroImpedanceNetwork;
     }
 }
