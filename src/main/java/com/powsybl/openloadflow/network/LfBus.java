@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BusResult;
 
@@ -28,6 +29,22 @@ public interface LfBus extends LfElement {
 
     void setReference(boolean reference);
 
+    /**
+     * Get list of all voltage controls (generator + transformer + shunt) linked to this bus.
+     */
+    List<VoltageControl<?>> getVoltageControls();
+
+    /**
+     * Check if this bus is voltage controlled so either by a generator, a transformer or a shunt.
+     */
+    boolean isVoltageControlled();
+
+    /**
+     * Get the highest priority voltage control connected to a bus of the zero impedance subgraph to which this bus
+     * belong.
+     */
+    Optional<VoltageControl<?>> getHighestPriorityVoltageControl();
+
     // generator voltage control
 
     boolean hasGeneratorVoltageControllerCapability();
@@ -35,8 +52,6 @@ public interface LfBus extends LfElement {
     Optional<GeneratorVoltageControl> getGeneratorVoltageControl();
 
     void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl);
-
-    void removeGeneratorVoltageControl();
 
     boolean isGeneratorVoltageControlled();
 
@@ -174,4 +189,12 @@ public interface LfBus extends LfElement {
      * Only make sens for slack bus.
      */
     double getMismatchP();
+
+    default Optional<Country> getCountry() {
+        return Optional.empty();
+    }
+
+    void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork);
+
+    LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc);
 }

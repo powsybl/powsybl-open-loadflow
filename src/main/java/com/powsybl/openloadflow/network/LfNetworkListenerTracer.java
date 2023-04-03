@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -112,5 +113,24 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     public void onShuntSusceptanceChange(LfShunt shunt, double b) {
         LOGGER.trace("onShuntSusceptanceChange(shuntId='{}', b={})", shunt.getId(), b);
         delegate.onShuntSusceptanceChange(shunt, b);
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
+        LOGGER.trace("onZeroImpedanceNetworkSpanningTreeChange(branchId='{}', dc={}, spanningTree={})",
+                branch, dc, spanningTree);
+        delegate.onZeroImpedanceNetworkSpanningTreeChange(branch, dc, spanningTree);
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc) {
+        LOGGER.trace("onZeroImpedanceNetworkSplit(initialNetwork={}, splitNetworks={}, dc={})", initialNetwork, splitNetworks, dc);
+        delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks, dc);
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc) {
+        LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={}, dc={})", network1, network2, mergedNetwork, dc);
+        delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork, dc);
     }
 }

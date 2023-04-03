@@ -20,8 +20,10 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorVoltageControl.class);
 
+    private static final int PRIORITY = 0;
+
     public GeneratorVoltageControl(LfBus controlledBus, double targetValue) {
-        super(targetValue, controlledBus);
+        super(targetValue, Type.GENERATOR, PRIORITY, controlledBus);
     }
 
     @Override
@@ -48,6 +50,10 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
      * @return true if the voltage control is ONLY local, false otherwise
      */
     public boolean isLocalControl() {
+        return isLocalControl(getMergedControllerElements());
+    }
+
+    private boolean isLocalControl(List<LfBus> controllerElements) {
         return controllerElements.size() == 1 && controllerElements.contains(controlledBus);
     }
 
@@ -61,11 +67,15 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
     }
 
     public void updateReactiveKeys() {
-        double[] reactiveKeys = createReactiveKeys(controllerElements);
+        updateReactiveKeys(getMergedControllerElements());
+    }
+
+    public static void updateReactiveKeys(List<LfBus> controllerBuses) {
+        double[] reactiveKeys = createReactiveKeys(controllerBuses);
 
         // no reactive dispatch on PQ buses, so we set the key to 0
-        for (int i = 0; i < controllerElements.size(); i++) {
-            LfBus controllerBus = controllerElements.get(i);
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
             if (controllerBus.isDisabled() || !controllerBus.isGeneratorVoltageControlEnabled()) {
                 reactiveKeys[i] = 0d;
             }
@@ -73,8 +83,8 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
 
         // update bus reactive keys
         double reactiveKeysSum = Arrays.stream(reactiveKeys).sum();
-        for (int i = 0; i < controllerElements.size(); i++) {
-            LfBus controllerBus = controllerElements.get(i);
+        for (int i = 0; i < controllerBuses.size(); i++) {
+            LfBus controllerBus = controllerBuses.get(i);
             controllerBus.setRemoteVoltageControlReactivePercent(reactiveKeysSum == 0 ? 0 : reactiveKeys[i] / reactiveKeysSum);
         }
     }
