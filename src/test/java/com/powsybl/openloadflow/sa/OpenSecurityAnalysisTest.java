@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.google.common.io.ByteStreams;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
@@ -49,16 +48,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.powsybl.commons.test.TestUtil.normalizeLineSeparator;
-
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
 import static java.lang.Double.NaN;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -1787,13 +1783,7 @@ class OpenSecurityAnalysisTest {
 
         runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), reporter);
 
-        String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(Objects.requireNonNull(getClass().getResourceAsStream("/saReport.txt"))), StandardCharsets.UTF_8));
-
-        StringWriter writer = new StringWriter();
-        reporter.export(writer);
-        String logExport = normalizeLineSeparator(writer.toString());
-
-        assertEquals(refLogExport, logExport);
+        assertReportEquals("/saReport.txt", reporter);
     }
 
     @Test
@@ -2789,7 +2779,7 @@ class OpenSecurityAnalysisTest {
         runSecurityAnalysis(network, contingencies, Collections.emptyList(),
                 saParameters, Collections.emptyList(), Collections.emptyList(), reporter);
 
-        LoadFlowAssert.assertReportEquals("/detailedNrReportSecurityAnalysis.txt", reporter);
+        assertReportEquals("/detailedNrReportSecurityAnalysis.txt", reporter);
     }
 
     void testBusBarSectionContingency() {
