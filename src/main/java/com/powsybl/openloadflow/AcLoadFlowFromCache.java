@@ -80,7 +80,10 @@ public class AcLoadFlowFromCache {
                     .map(n -> new AcLoadFlowContext(n, acParameters))
                     .collect(Collectors.toList());
             entry.setContexts(contexts);
-            entry.setVariantCleaner(lfNetworkList.release());
+            LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.release();
+            if (variantCleaner != null) {
+                entry.setTmpVariantId(variantCleaner.getTmpVariantId());
+            }
         }
         return contexts;
     }
