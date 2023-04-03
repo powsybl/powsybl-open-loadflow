@@ -940,7 +940,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REPORTED_FEATURES_PARAM_NAME))
                 .ifPresent(prop -> this.setReportedFeatures(
-                        Arrays.stream(prop.split(",\\s+"))
+                        parseStringListProp(prop).stream()
                         .map(ReportedFeatures::valueOf)
                         .collect(Collectors.toSet())));
         Optional.ofNullable(properties.get(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME))
@@ -951,7 +951,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(42);
+        Map<String, Object> map = new LinkedHashMap<>(43);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
@@ -1359,8 +1359,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
                     .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
                     .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(extension.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile())
-                    .setSlackBusCountryFilter(new HashSet<>(extension.getSlackBusCountryFilter()))
                     .setReportedFeatures(extension.getReportedFeatures())
+                    .setSlackBusCountryFilter(new HashSet<>(extension.getSlackBusCountryFilter()))
                     .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()));
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
