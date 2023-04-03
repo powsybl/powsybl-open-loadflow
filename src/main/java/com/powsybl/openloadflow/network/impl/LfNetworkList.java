@@ -111,7 +111,7 @@ public class LfNetworkList implements AutoCloseable {
         }
     }
 
-    public Optional<String> getTmpWorkingVariantId() {
-        return variantCleaner != null ? Optional.ofNullable(variantCleaner.getTmpVariantId()) : Optional.empty();
+    public VariantCleaner getVariantCleaner() {
+        return variantCleaner;
     }
 }
