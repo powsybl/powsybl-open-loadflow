@@ -297,9 +297,9 @@ class AcLoadFlowWithCachingTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(3.912, l1.getTerminal1());
-        assertActivePowerEquals(603.769, l2.getTerminal1());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(0.0993, l1.getTerminal1());
+        assertActivePowerEquals(607.682, l2.getTerminal1());
     }
 
     @Test
@@ -317,9 +317,9 @@ class AcLoadFlowWithCachingTest {
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(3.912, l1.getTerminal1());
-        assertActivePowerEquals(603.769, l2.getTerminal1());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(0.0994, l1.getTerminal1());
+        assertActivePowerEquals(607.681, l2.getTerminal1());
 
         assertNotNull(NetworkCache.INSTANCE.findEntry(network).orElseThrow().getContexts());
 
@@ -329,7 +329,7 @@ class AcLoadFlowWithCachingTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(301.884, l1.getTerminal1());
         assertActivePowerEquals(301.884, l2.getTerminal1());
     }
