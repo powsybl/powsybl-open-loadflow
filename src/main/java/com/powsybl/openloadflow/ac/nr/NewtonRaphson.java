@@ -76,14 +76,10 @@ public class NewtonRaphson {
     public void reportAndLogLargestMismatchByAcEquationType(Reporter reporter, EquationSystem<AcVariableType, AcEquationType> equationSystem, double[] mismatch, double norm, int iteration) {
         Map<AcEquationType, Optional<Pair<Equation<AcVariableType, AcEquationType>, Double>>> mismatchEquations = getLargestMismatchByAcEquationType(equationSystem, mismatch);
 
-        Reporter iterationMismatchReporter = null;
-        if (parameters.isDetailedNrReport()) {
-            // report largest mismatches in (P, Q, V) equations
-            iterationMismatchReporter = Reports.createNewtonRaphsonMismatchReporter(reporter, iteration);
-        }
+        // report largest mismatches in (P, Q, V) equations
+        Reporter iterationMismatchReporter = parameters.isDetailedNrReport() ? Reports.createNewtonRaphsonMismatchReporter(reporter, iteration) : null;
 
         for (AcEquationType acEquationType : REPORTED_AC_EQUATION_TYPES) {
-            Reporter finalIterationMismatchReporter = iterationMismatchReporter;
             mismatchEquations.get(acEquationType)
                     .ifPresent(equationPair -> {
                         Equation<AcVariableType, AcEquationType> equation = equationPair.getKey();
@@ -95,13 +91,13 @@ public class NewtonRaphson {
                         double busV = equationSystem.getStateVector().get(busVRow);
                         double busPhi = equationSystem.getStateVector().get(busPhiRow);
                         LOGGER.trace("Mismatch `{}` for {}: {} (element={}) || Bus V /_ PHI = {} /_ {}", acEquationType, equation, equationMismatch, elementId, busV, busPhi);
-                        if (parameters.isDetailedNrReport()) {
-                            Reports.reportNewtonRaphsonMismatch(finalIterationMismatchReporter, acEquationType, equationMismatch, elementId, busV, busPhi, iteration);
+                        if (iterationMismatchReporter != null) {
+                            Reports.reportNewtonRaphsonMismatch(iterationMismatchReporter, acEquationType, equationMismatch, elementId, busV, busPhi, iteration);
                         }
                     });
         }
 
-        if (parameters.isDetailedNrReport()) {
+        if (iterationMismatchReporter != null) {
             Reports.reportNewtonRaphsonNorm(iterationMismatchReporter, norm, iteration);
         }
     }
