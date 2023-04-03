@@ -59,7 +59,6 @@ import java.util.stream.Stream;
 
 import static com.powsybl.commons.test.TestUtil.normalizeLineSeparator;
 
-import static com.powsybl.openloadflow.util.ReportTestsUtil.compareReportWithReference;
 import static java.lang.Double.NaN;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -2773,7 +2772,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testSecurityAnalysisReport() throws IOException {
-
         Network network = createNodeBreakerNetwork();
         network.getLine("L1").getCurrentLimits1().ifPresent(limits -> limits.setPermanentLimit(200));
 
@@ -2791,7 +2789,7 @@ class OpenSecurityAnalysisTest {
         runSecurityAnalysis(network, contingencies, Collections.emptyList(),
                 saParameters, Collections.emptyList(), Collections.emptyList(), reporter);
 
-        assertTrue(compareReportWithReference(reporter, getClass().getResourceAsStream("/detailedNrReportSecurityAnalysis.txt")));
+        LoadFlowAssert.assertReportEquals("/detailedNrReportSecurityAnalysis.txt", reporter);
     }
 
     void testBusBarSectionContingency() {

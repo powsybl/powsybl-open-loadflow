@@ -13,15 +13,21 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowProvider;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
-import org.junit.jupiter.api.Assertions;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Set;
 
-import static com.powsybl.openloadflow.util.ReportTestsUtil.compareReportWithReference;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Bertrand Rix <bertrand.rix at artelys.com>
@@ -35,9 +41,11 @@ class AcLoadFlowReportTest {
         var lfParameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(lfParameters).setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
-        LoadFlow.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reporter);
+        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowResult result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), lfParameters, reporter);
 
-        Assertions.assertTrue(compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReportDetailedNrReportLf.txt")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/esgTutoReportDetailedNrReportLf.txt", reporter);
     }
-
 }

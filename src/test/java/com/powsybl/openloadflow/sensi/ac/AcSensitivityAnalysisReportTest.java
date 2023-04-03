@@ -25,8 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.util.ReportTestsUtil.compareReportWithReference;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
 
 /**
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
@@ -46,7 +45,7 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         sensiRunner.run(network, VariantManagerConstants.INITIAL_VARIANT_ID, factors, Collections.emptyList(), Collections.emptyList(),
             sensiParameters, LocalComputationManager.getDefault(), reporter);
 
-        assertTrue(compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReport.txt")));
+        assertReportEquals("/esgTutoReport.txt", reporter);
     }
 
     @Test
@@ -62,6 +61,6 @@ class AcSensitivityAnalysisReportTest extends AbstractSensitivityAnalysisTest {
         sensiRunner.run(network, network.getVariantManager().getWorkingVariantId(), factors, Collections.emptyList(), Collections.emptyList(),
                 sensiParameters, LocalComputationManager.getDefault(), reporter);
 
-        assertTrue(compareReportWithReference(reporter, getClass().getResourceAsStream("/esgTutoReportDetailedNrReportSensi.txt")));
+        assertReportEquals("/esgTutoReportDetailedNrReportSensi.txt", reporter);
     }
 }
