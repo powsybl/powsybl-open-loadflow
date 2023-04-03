@@ -26,12 +26,12 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
         return GenericBranchCurrentTerm.ty(i, j, g, h, equationTerm);
     }
 
-    public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> var, int iDerivative) {
-        return GenericBranchCurrentTerm.dtx(i, j, g, h, equationTerm, var, iDerivative);
+    public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int iDerivative) {
+        return GenericBranchCurrentTerm.dtx(i, j, g, h, equationTerm, variable, iDerivative);
     }
 
-    public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> var, int iDerivative) {
-        return GenericBranchCurrentTerm.dty(i, j, g, h, equationTerm, var, iDerivative);
+    public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int iDerivative) {
+        return GenericBranchCurrentTerm.dty(i, j, g, h, equationTerm, variable, iDerivative);
     }
 
     public static double ixIyij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm) {
@@ -52,7 +52,7 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
         }
     }
 
-    public static double dIxIyij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm, Variable<AcVariableType> var, int iDerivative) {
+    public static double dIxIyij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm, Variable<AcVariableType> variable, int iDerivative) {
 
         int s1 = 1;
         int s2 = 2;
@@ -64,12 +64,12 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
         // iDerivative is the side of "variable" that is used for derivation
         if (isRealPart) {
             // dIx
-            return dtx(s1, s1, sequenceNum, 0, eqTerm, var, iDerivative) + dtx(s1, s1, sequenceNum, 1, eqTerm, var, iDerivative) + dtx(s1, s1, sequenceNum, 2, eqTerm, var, iDerivative)
-                    + dtx(s1, s2, sequenceNum, 0, eqTerm, var, iDerivative) + dtx(s1, s2, sequenceNum, 1, eqTerm, var, iDerivative) + dtx(s1, s2, sequenceNum, 2, eqTerm, var, iDerivative);
+            return dtx(s1, s1, sequenceNum, 0, eqTerm, variable, iDerivative) + dtx(s1, s1, sequenceNum, 1, eqTerm, variable, iDerivative) + dtx(s1, s1, sequenceNum, 2, eqTerm, variable, iDerivative)
+                    + dtx(s1, s2, sequenceNum, 0, eqTerm, variable, iDerivative) + dtx(s1, s2, sequenceNum, 1, eqTerm, variable, iDerivative) + dtx(s1, s2, sequenceNum, 2, eqTerm, variable, iDerivative);
         } else {
             // dIy
-            return dty(s1, s1, sequenceNum, 0, eqTerm, var, iDerivative) + dty(s1, s1, sequenceNum, 1, eqTerm, var, iDerivative) + dty(s1, s1, sequenceNum, 2, eqTerm, var, iDerivative)
-                    + dty(s1, s2, sequenceNum, 0, eqTerm, var, iDerivative) + dty(s1, s2, sequenceNum, 1, eqTerm, var, iDerivative) + dty(s1, s2, sequenceNum, 2, eqTerm, var, iDerivative);
+            return dty(s1, s1, sequenceNum, 0, eqTerm, variable, iDerivative) + dty(s1, s1, sequenceNum, 1, eqTerm, variable, iDerivative) + dty(s1, s1, sequenceNum, 2, eqTerm, variable, iDerivative)
+                    + dty(s1, s2, sequenceNum, 0, eqTerm, variable, iDerivative) + dty(s1, s2, sequenceNum, 1, eqTerm, variable, iDerivative) + dty(s1, s2, sequenceNum, 2, eqTerm, variable, iDerivative);
         }
     }
 

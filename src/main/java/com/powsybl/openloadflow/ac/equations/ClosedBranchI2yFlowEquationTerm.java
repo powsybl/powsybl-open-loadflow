@@ -33,47 +33,39 @@ public class ClosedBranchI2yFlowEquationTerm extends AbstractClosedBranchAcFlowE
     // [I2x] = [  -g21     b21    g2+g21  -b2-b21 ] * [V2x]
     // [I2y]   [  -b21    -g21    b2+b21   g2+g21 ]   [V2y]
 
-    public static double i2y(double g2, double b2, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    public static double i2y(double g2, double b2, double v1, double ph1, double v2, double ph2, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
         return -b21 * v1 * Math.cos(ph1) - g21 * v1 * Math.sin(ph1) + (b2 + b21) * v2 * Math.cos(ph2) + (g2 + g21) * v2 * Math.sin(ph2);
     }
 
-    private static double di2ydv1(double g2, double b2, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    private static double di2ydv1(double ph1, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
         return -b21 * Math.cos(ph1) - g21 * Math.sin(ph1);
     }
 
-    private static double di2ydv2(double g2, double b2, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    private static double di2ydv2(double g2, double b2, double ph2, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
         return (b2 + b21) * Math.cos(ph2) + (g2 + g21) * Math.sin(ph2);
     }
 
-    private static double di2ydph1(double g2, double b2, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    private static double di2ydph1(double v1, double ph1, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
         return b21 * v1 * Math.sin(ph1) - g21 * v1 * Math.cos(ph1);
     }
 
-    private static double di2ydph2(double g2, double b2, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    private static double di2ydph2(double g2, double b2, double v2, double ph2, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
         return -(b2 + b21) * v2 * Math.sin(ph2) + (g2 + g21) * v2 * Math.cos(ph2);
     }
 
-    private static double di2yda1(double g2, double b2, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
-        return 0;
-    }
-
-    private static double di2ydr1(double g2, double b2, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
-        return 0;
-    }
-
     @Override
     public double eval() {
-        return i2y(g2, b2, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+        return i2y(g2, b2, v1(), ph1(), v2(), ph2(), g12, b12);
     }
 
     @Override
@@ -81,17 +73,17 @@ public class ClosedBranchI2yFlowEquationTerm extends AbstractClosedBranchAcFlowE
         Objects.requireNonNull(variable);
         double theta = theta1(ksi, ph1(), a1(), ph2());
         if (variable.equals(v1Var)) {
-            return di2ydv1(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return di2ydv1(ph1(), g12, b12);
         } else if (variable.equals(v2Var)) {
-            return di2ydv2(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return di2ydv2(g2, b2, ph2(), g12, b12);
         } else if (variable.equals(ph1Var)) {
-            return di2ydph1(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return di2ydph1(v1(), ph1(), g12, b12);
         } else if (variable.equals(ph2Var)) {
-            return di2ydph2(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return di2ydph2(g2, b2, v2(), ph2(), g12, b12);
         } else if (variable.equals(a1Var)) {
-            return di2yda1(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return 0;
         } else if (variable.equals(r1Var)) {
-            return di2ydr1(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return 0;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

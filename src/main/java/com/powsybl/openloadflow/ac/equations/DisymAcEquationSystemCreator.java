@@ -23,10 +23,6 @@ import com.powsybl.openloadflow.util.Fortescue;
  */
 public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
 
-    public DisymAcEquationSystemCreator(LfNetwork network) {
-        super(network);
-    }
-
     public DisymAcEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
     }

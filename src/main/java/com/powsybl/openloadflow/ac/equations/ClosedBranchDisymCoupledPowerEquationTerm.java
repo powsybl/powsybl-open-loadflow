@@ -27,12 +27,12 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
         return GenericBranchPowerTerm.ty(i, j, g, h, equationTerm);
     }
 
-    public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> var, int iDerivative) {
-        return GenericBranchPowerTerm.dtx(i, j, g, h, equationTerm, var, iDerivative);
+    public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int iDerivative) {
+        return GenericBranchPowerTerm.dtx(i, j, g, h, equationTerm, variable, iDerivative);
     }
 
-    public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> var, int iDerivative) {
-        return GenericBranchPowerTerm.dty(i, j, g, h, equationTerm, var, iDerivative);
+    public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int iDerivative) {
+        return GenericBranchPowerTerm.dty(i, j, g, h, equationTerm, variable, iDerivative);
     }
 
     public static double pqij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledPowerEquationTerm eqTerm) {
@@ -53,7 +53,7 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
         }
     }
 
-    public static double dpqij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledPowerEquationTerm eqTerm, Variable<AcVariableType> var, int iDerivative) {
+    public static double dpqij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledPowerEquationTerm eqTerm, Variable<AcVariableType> variable, int iDerivative) {
 
         int s1 = 1;
         int s2 = 2;
@@ -65,12 +65,12 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
         // iDerivative is the side of "variable" that is used for derivation
         if (isRealPart) {
             // dP
-            return dtx(s1, s1, sequenceNum, 0, eqTerm, var, iDerivative) + dtx(s1, s1, sequenceNum, 1, eqTerm, var, iDerivative) + dtx(s1, s1, sequenceNum, 2, eqTerm, var, iDerivative)
-                    + dtx(s1, s2, sequenceNum, 0, eqTerm, var, iDerivative) + dtx(s1, s2, sequenceNum, 1, eqTerm, var, iDerivative) + dtx(s1, s2, sequenceNum, 2, eqTerm, var, iDerivative);
+            return dtx(s1, s1, sequenceNum, 0, eqTerm, variable, iDerivative) + dtx(s1, s1, sequenceNum, 1, eqTerm, variable, iDerivative) + dtx(s1, s1, sequenceNum, 2, eqTerm, variable, iDerivative)
+                    + dtx(s1, s2, sequenceNum, 0, eqTerm, variable, iDerivative) + dtx(s1, s2, sequenceNum, 1, eqTerm, variable, iDerivative) + dtx(s1, s2, sequenceNum, 2, eqTerm, variable, iDerivative);
         } else {
             // dQ
-            return dty(s1, s1, sequenceNum, 0, eqTerm, var, iDerivative) + dty(s1, s1, sequenceNum, 1, eqTerm, var, iDerivative) + dty(s1, s1, sequenceNum, 2, eqTerm, var, iDerivative)
-                    + dty(s1, s2, sequenceNum, 0, eqTerm, var, iDerivative) + dty(s1, s2, sequenceNum, 1, eqTerm, var, iDerivative) + dty(s1, s2, sequenceNum, 2, eqTerm, var, iDerivative);
+            return dty(s1, s1, sequenceNum, 0, eqTerm, variable, iDerivative) + dty(s1, s1, sequenceNum, 1, eqTerm, variable, iDerivative) + dty(s1, s1, sequenceNum, 2, eqTerm, variable, iDerivative)
+                    + dty(s1, s2, sequenceNum, 0, eqTerm, variable, iDerivative) + dty(s1, s2, sequenceNum, 1, eqTerm, variable, iDerivative) + dty(s1, s2, sequenceNum, 2, eqTerm, variable, iDerivative);
         }
     }
 

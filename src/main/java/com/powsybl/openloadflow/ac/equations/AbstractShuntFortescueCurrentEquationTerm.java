@@ -14,7 +14,7 @@ public abstract class AbstractShuntFortescueCurrentEquationTerm extends Abstract
 
     private final List<Variable<AcVariableType>> variables;
 
-    public AbstractShuntFortescueCurrentEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
+    protected AbstractShuntFortescueCurrentEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
         super(bus, variableSet, sequenceType);
         variables = List.of(vVar, phVar);
     }

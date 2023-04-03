@@ -33,55 +33,46 @@ public class ClosedBranchI1yFlowEquationTerm extends AbstractClosedBranchAcFlowE
     // [I2x] = [  -g21     b21    g2+g21  -b2-b21 ] * [V2x]
     // [I2y]   [  -b21    -g21    b2+b21   g2+g21 ]   [V2y]
 
-    public static double i1y(double g1, double b1, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    public static double i1y(double g1, double b1, double v1, double ph1, double v2, double ph2, double g12, double b12) {
         return (b1 + b12) * v1 * Math.cos(ph1) + (g1 + g12) * v1 * Math.sin(ph1) - b12 * v2 * Math.cos(ph2) - g12 * v2 * Math.sin(ph2);
     }
 
-    private static double di1ydv1(double g1, double b1, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    private static double di1ydv1(double g1, double b1, double ph1, double g12, double b12) {
         return (b1 + b12) * Math.cos(ph1) + (g1 + g12) * Math.sin(ph1);
     }
 
-    private static double di1ydv2(double g1, double b1, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    private static double di1ydv2(double ph2, double g12, double b12) {
         return -b12 * Math.cos(ph2) - g12 * Math.sin(ph2);
     }
 
-    private static double di1ydph1(double g1, double b1, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    private static double di1ydph1(double g1, double b1, double v1, double ph1, double g12, double b12) {
         return -(b1 + b12) * v1 * Math.sin(ph1) + (g1 + g12) * v1 * Math.cos(ph1);
     }
 
-    private static double di1ydph2(double g1, double b1, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
+    private static double di1ydph2(double v2, double ph2, double g12, double b12) {
         return b12 * v2 * Math.sin(ph2) - g12 * v2 * Math.cos(ph2);
-    }
-
-    private static double di1yda1(double g1, double b1, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
-        return 0;
-    }
-
-    private static double di1ydr1(double g1, double b1, double v1, double ph1, double r1, double v2, double ph2, double g12, double b12) {
-        return 0;
     }
 
     @Override
     public double eval() {
-        return i1y(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+        return i1y(g1, b1, v1(), ph1(), v2(), ph2(), g12, b12);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        double theta = theta1(ksi, ph1(), a1(), ph2());
         if (variable.equals(v1Var)) {
-            return di1ydv1(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return di1ydv1(g1, b1, ph1(), g12, b12);
         } else if (variable.equals(v2Var)) {
-            return di1ydv2(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return di1ydv2(ph2(), g12, b12);
         } else if (variable.equals(ph1Var)) {
-            return di1ydph1(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return di1ydph1(g1, b1, v1(), ph1(), g12, b12);
         } else if (variable.equals(ph2Var)) {
-            return di1ydph2(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return di1ydph2(v2(), ph2(), g12, b12);
         } else if (variable.equals(a1Var)) {
-            return di1yda1(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return 0;
         } else if (variable.equals(r1Var)) {
-            return di1ydr1(g1, b1, v1(), ph1(), r1(), v2(), ph2(), g12, b12);
+            return 0;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
