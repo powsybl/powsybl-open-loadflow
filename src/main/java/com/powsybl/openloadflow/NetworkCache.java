@@ -63,10 +63,6 @@ public enum NetworkCache {
             this.tmpVariantId = tmpVariantId;
         }
 
-        public String getTmpVariantId() {
-            return tmpVariantId;
-        }
-
         public List<AcLoadFlowContext> getContexts() {
             return contexts;
         }

@@ -22,8 +22,6 @@ public class LfNetworkList implements AutoCloseable {
 
         Network getNetwork();
 
-        String getWorkingVariantId();
-
         String getTmpVariantId();
 
         void clean();
@@ -39,18 +37,13 @@ public class LfNetworkList implements AutoCloseable {
 
         protected AbstractVariantCleaner(Network network, String workingVariantId, String tmpVariantId) {
             this.network = Objects.requireNonNull(network);
-            this.workingVariantId = workingVariantId;
-            this.tmpVariantId = tmpVariantId;
+            this.workingVariantId = Objects.requireNonNull(workingVariantId);
+            this.tmpVariantId = Objects.requireNonNull(tmpVariantId);
         }
 
         @Override
         public Network getNetwork() {
             return network;
-        }
-
-        @Override
-        public String getWorkingVariantId() {
-            return workingVariantId;
         }
 
         @Override
@@ -62,7 +55,7 @@ public class LfNetworkList implements AutoCloseable {
     public static class DefaultVariantCleaner extends AbstractVariantCleaner {
 
         public DefaultVariantCleaner(Network network, String workingVariantId, String tmpVariantId) {
-            super(network, Objects.requireNonNull(workingVariantId), Objects.requireNonNull(tmpVariantId));
+            super(network, workingVariantId, tmpVariantId);
         }
 
         @Override
@@ -75,7 +68,7 @@ public class LfNetworkList implements AutoCloseable {
     public static class WorkingVariantReverter extends AbstractVariantCleaner {
 
         public WorkingVariantReverter(Network network, String workingVariantId, String tmpVariantId) {
-            super(network, Objects.requireNonNull(workingVariantId), tmpVariantId);
+            super(network, workingVariantId, tmpVariantId);
         }
 
         @Override
