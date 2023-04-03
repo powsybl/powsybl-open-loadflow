@@ -20,8 +20,6 @@ public class LfNetworkList implements AutoCloseable {
 
     public interface VariantCleaner {
 
-        Network getNetwork();
-
         String getTmpVariantId();
 
         void clean();
@@ -39,11 +37,6 @@ public class LfNetworkList implements AutoCloseable {
             this.network = Objects.requireNonNull(network);
             this.workingVariantId = Objects.requireNonNull(workingVariantId);
             this.tmpVariantId = Objects.requireNonNull(tmpVariantId);
-        }
-
-        @Override
-        public Network getNetwork() {
-            return network;
         }
 
         @Override
