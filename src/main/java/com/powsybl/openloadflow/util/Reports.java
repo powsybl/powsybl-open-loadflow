@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.reporter.Report;
+import com.powsybl.commons.reporter.ReportBuilder;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
@@ -219,17 +220,19 @@ public final class Reports {
     }
 
     public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, String busId, double busV, double busPhi, int iteration) {
-        Reporter subReporter;
+
+        ReportBuilder reportBuilder = Report.builder();
+        String mismatchDetails = " on ${equationType}: ${mismatch}, Bus Id: '${busId}', Bus V: ${busV}, Bus Phi: ${busPhi}";
         if (iteration == -1) {
-            subReporter = reporter.createSubReporter("NRInitial", "Initial mismatch on ${equationType}", "equationType", acEquationType);
+            reportBuilder.withKey("NRInitialMismatch")
+                    .withDefaultMessage("Initial mismatch" + mismatchDetails);
         } else {
-            subReporter = reporter.createSubReporter("NRMismatch", "Iteration ${iteration} mismatch on ${equationType}", Map.of("equationType", new TypedValue(acEquationType, TypedValue.UNTYPED),
-                    "iteration", new TypedValue(iteration, TypedValue.UNTYPED)));
+            reportBuilder.withKey("NRIterationMismatch")
+                    .withDefaultMessage("Iteration ${iteration} mismatch" + mismatchDetails)
+                    .withValue(ITERATION, iteration);
         }
 
-        subReporter.report(Report.builder()
-                .withKey("NRMismatchValue")
-                .withDefaultMessage("Mismatch: '${mismatch}', Bus Id : '${busId}', Bus V : '${busV}', Bus Phi : '${busPhi}'")
+        reporter.report(reportBuilder.withValue("equationType", acEquationType)
                 .withTypedValue("mismatch", mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
                 .withValue("busId", busId)
                 .withTypedValue("busV", busV, TypedValue.VOLTAGE)
