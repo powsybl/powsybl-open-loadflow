@@ -806,7 +806,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setDc(true)
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
-                .setHvdcAcEmulation(false)
+                .setHvdcAcEmulation(false) // FIXME
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
                 .setCacheEnabled(false); // force not caching as not supported in sensi analysis

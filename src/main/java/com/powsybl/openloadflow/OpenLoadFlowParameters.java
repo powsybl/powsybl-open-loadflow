@@ -1182,7 +1182,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDc(true)
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
-                .setHvdcAcEmulation(false) // FIXME
+                .setHvdcAcEmulation(true)
                 .setMinPlausibleTargetVoltage(parametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(parametersExt.getMaxPlausibleTargetVoltage())
                 .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX) // not useful for DC.

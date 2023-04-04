@@ -204,7 +204,7 @@ class AcLoadFlowVscTest {
     }
 
     @Test
-    void testHvdcAcEmulationNonSupported2() {
+    void testHvdcAcEmulationDc() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
                 .withDroop(180)
@@ -223,10 +223,10 @@ class AcLoadFlowVscTest {
         assertTrue(result.isOk());
 
         VscConverterStation cs3 = network.getVscConverterStation("cs3");
-        assertActivePowerEquals(-1.956, cs3.getTerminal());
+        assertActivePowerEquals(-0.09, cs3.getTerminal());
 
         VscConverterStation cs4 = network.getVscConverterStation("cs4");
-        assertActivePowerEquals(2.0, cs4.getTerminal());
+        assertActivePowerEquals(0.092, cs4.getTerminal());
     }
 
     @Test

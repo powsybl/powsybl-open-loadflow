@@ -21,10 +21,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
@@ -729,7 +726,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
     private static void cleanBranchIdsToOpen(LfNetwork lfNetwork, PropagatedContingency contingency) {
         // Elements have already been checked and found in PropagatedContingency, so there is no need to
         // check them again
-        Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
+        Set<String> branchesToRemove = new HashSet<>();
         for (String branchId : contingency.getBranchIdsToOpen()) {
             LfBranch lfBranch = lfNetwork.getBranchById(branchId);
             if (lfBranch == null) {
@@ -743,6 +740,17 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
     }
 
+    private static void cleanHvdcIdsToOpen(LfNetwork lfNetwork, PropagatedContingency contingency) {
+        Set<String> hvdcsToRemove = new HashSet<>(); // branches connected to one side, or switches
+        for (String hvdcId : contingency.getHvdcIdsToOpen()) {
+            LfHvdc hvdc = lfNetwork.getHvdcById(hvdcId);
+            if (hvdc == null) {
+                hvdcsToRemove.add(hvdcId);
+            }
+        }
+        contingency.getBranchIdsToOpen().removeAll(hvdcsToRemove);
+    }
+
     public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
         Set<String> contingenciesIds = new HashSet<>();
         for (PropagatedContingency contingency : contingencies) {
@@ -754,6 +762,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             contingenciesIds.add(contingencyId);
 
             cleanBranchIdsToOpen(lfNetwork, contingency);
+            cleanHvdcIdsToOpen(lfNetwork, contingency);
 
             if (contingency.getBranchIdsToOpen().isEmpty()
                     && contingency.getHvdcIdsToOpen().isEmpty()

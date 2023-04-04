@@ -119,12 +119,16 @@ public class DcEquationSystemCreator {
     }
 
     private static void createHvdcEquations(LfHvdc hvdc, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        // FIXME support of ac emulation?
         EquationTerm<DcVariableType, DcEquationType> p1 = null;
         EquationTerm<DcVariableType, DcEquationType> p2 = null;
         if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
-            p1 = new HvdcSide1ActiveFlowEquationTerm(hvdc);
-            p2 = new HvdcSide2ActiveFlowEquationTerm(hvdc);
+            if (hvdc.isAcEmulationEnabled()) {
+                p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+                p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+            } else {
+                p1 = new HvdcSide1ActiveFlowEquationTerm(hvdc);
+                p2 = new HvdcSide2ActiveFlowEquationTerm(hvdc);
+            }
         } else {
             // nothing to do
         }
