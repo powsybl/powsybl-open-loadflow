@@ -74,12 +74,8 @@ public class ClosedBranchI2xFlowEquationTerm extends AbstractClosedBranchAcFlowE
             return di2xdph1(v1(), ph1(), g12, b12);
         } else if (variable.equals(ph2Var)) {
             return di2xdph2(g2, b2, v2(), ph2(), g12, b12);
-        } else if (variable.equals(a1Var)) {
-            return 0;
-        } else if (variable.equals(r1Var)) {
-            return 0;
         } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+            throw new IllegalStateException("Unexpected variable: " + variable);
         }
     }
 

@@ -79,7 +79,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
                 return sv.get(phVarInv.getRow());
 
             default:
-                throw new IllegalStateException("Unknown variable: ");
+                throw new IllegalStateException("Unknown Phi variable at bus: " + bus.getId());
         }
     }
 
@@ -95,7 +95,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
                 return sv.get(vVarInv.getRow());
 
             default:
-                throw new IllegalStateException("Unknown variable: ");
+                throw new IllegalStateException("Unknown V variable at bus: " + bus.getId());
         }
     }
 
@@ -146,7 +146,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
                 return isRealPart ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
 
             default:
-                throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
+                throw new IllegalStateException("Unknown sequence at bus : " + eqTerm.bus.getId());
         }
     }
 
@@ -192,7 +192,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
             dV2x = vi * -Math.sin(phi);
             dV2y = vi * Math.cos(phi);
         } else {
-            throw new IllegalStateException("Unknown variable: " + derVariable);
+            throw new IllegalStateException("Unknown derivation variable: " + derVariable + " at bus : " + eqTerm.bus.getId());
         }
 
         // build of voltage vectors
@@ -244,7 +244,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
                 return isRealPart ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
 
             default:
-                throw new IllegalStateException("Unknown variable at bus : " + eqTerm.bus.getId());
+                throw new IllegalStateException("Unknown sequence at bus : " + eqTerm.bus.getId());
         }
     }
 
