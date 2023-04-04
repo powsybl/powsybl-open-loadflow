@@ -130,7 +130,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         return value;
     }
 
-    interface DerHandler<V extends Enum<V> & Quantity> {
+    public interface DerHandler<V extends Enum<V> & Quantity> {
 
         int onDer(Variable<V> variable, double value, int matrixElementIndex);
     }
