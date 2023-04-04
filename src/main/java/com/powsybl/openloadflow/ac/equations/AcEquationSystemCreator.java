@@ -667,7 +667,7 @@ public class AcEquationSystemCreator {
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
     }
 
-    private static void createHvdcAcEmulationEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private static void createHvdcEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
         if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
@@ -770,7 +770,7 @@ public class AcEquationSystemCreator {
         createBranchesEquations(equationSystem);
 
         for (LfHvdc hvdc : network.getHvdcs()) {
-            createHvdcAcEmulationEquations(hvdc, equationSystem);
+            createHvdcEquations(hvdc, equationSystem);
         }
 
         createVoltageControlEquations(equationSystem);

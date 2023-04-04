@@ -110,7 +110,7 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public double getLosses(double p) {
-        return r * p * p; // check per unit.
+        return r * p * p;
     }
 
     @Override
