@@ -180,9 +180,9 @@ public class PropagatedContingency {
 
                 case HVDC_CONVERTER_STATION:
                     HvdcConverterStation<?> station = (HvdcConverterStation<?>) connectable;
-                    hvdcIdsToOpen.add(station.getHvdcLine().getId()); // FIXME?
                     if (connectable instanceof VscConverterStation) {
                         generatorIdsToLose.add(connectable.getId());
+                        hvdcIdsToOpen.add(station.getHvdcLine().getId());
                     } else {
                         LccConverterStation lcc = (LccConverterStation) connectable;
                         PowerShift lccPowerShift = new PowerShift(HvdcConverterStations.getConverterStationTargetP(lcc, breakers) / PerUnit.SB, 0,

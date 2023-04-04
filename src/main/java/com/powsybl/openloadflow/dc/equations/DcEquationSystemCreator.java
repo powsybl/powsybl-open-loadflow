@@ -9,8 +9,6 @@ package com.powsybl.openloadflow.dc.equations;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.HvdcSide1ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.equations.HvdcSide2ActiveFlowEquationTerm;
 import com.powsybl.openloadflow.network.LfNetworkListenerTracer;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -121,16 +119,9 @@ public class DcEquationSystemCreator {
     private static void createHvdcEquations(LfHvdc hvdc, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         EquationTerm<DcVariableType, DcEquationType> p1 = null;
         EquationTerm<DcVariableType, DcEquationType> p2 = null;
-        if (hvdc.getBus1() != null && hvdc.getBus2() != null) {
-            if (hvdc.isAcEmulationEnabled()) {
-                p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
-                p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
-            } else {
-                p1 = new HvdcSide1ActiveFlowEquationTerm(hvdc);
-                p2 = new HvdcSide2ActiveFlowEquationTerm(hvdc);
-            }
-        } else {
-            // nothing to do
+        if (hvdc.getBus1() != null && hvdc.getBus2() != null && hvdc.isAcEmulationEnabled()) {
+            p1 = new HvdcAcEmulationSide1ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
+            p2 = new HvdcAcEmulationSide2ActiveFlowEquationTerm(hvdc, hvdc.getBus1(), hvdc.getBus2(), equationSystem.getVariableSet());
         }
 
         if (p1 != null) {

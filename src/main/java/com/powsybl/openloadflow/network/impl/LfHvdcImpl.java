@@ -63,6 +63,15 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         }
     }
 
+    protected static double getLossMultiplier(double lossFactor) {
+        return 1 - lossFactor;
+    }
+
+    protected double getNonControllerTargetP(double power, double controllerLossFactor, double nonControllerLossFactor) {
+        double controllerPDc = power * getLossMultiplier(controllerLossFactor);
+        return (controllerPDc - getLosses(controllerPDc)) * getLossMultiplier(nonControllerLossFactor);
+    }
+
     @Override
     public ElementType getType() {
         return ElementType.HVDC;
@@ -162,7 +171,9 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
 
     @Override
     public void updateState() {
-        ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
-        ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
+        if (acEmulation) {
+            ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
+            ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
+        }
     }
 }

@@ -57,7 +57,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     @Override
     public double getTargetP() {
         // because in case of AC emulation, active power is injected by HvdcAcEmulationSideXActiveFlowEquationTerm equations
-        return (hvdc == null || hvdc.isDisabled()) ? super.getTargetP() : 0;
+        return (hvdc == null || hvdc.isDisabled() || !hvdc.isAcEmulationEnabled()) ? super.getTargetP() : 0;
     }
 
     @Override
@@ -95,7 +95,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         var station = getStation();
         station.getTerminal()
                 .setQ(Double.isNaN(calculatedQ) ? -station.getReactivePowerSetpoint() : -calculatedQ * PerUnit.SB);
-        if (hvdc == null) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
+        if (hvdc == null || !hvdc.isAcEmulationEnabled()) { // because when AC emulation is activated, update of p is done in LFHvdcImpl
             station.getTerminal().setP(-targetP * PerUnit.SB);
         }
     }
