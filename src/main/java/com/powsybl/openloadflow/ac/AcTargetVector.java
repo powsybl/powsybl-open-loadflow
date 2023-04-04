@@ -15,7 +15,6 @@ import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -24,11 +23,9 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     private static double getBusTargetV(LfBus bus) {
         Objects.requireNonNull(bus);
-        double targetV = bus.getShuntVoltageControl().filter(dvc -> bus.isShuntVoltageControlled())
-                .map(ShuntVoltageControl::getTargetValue)
-                .orElse(bus.getTransformerVoltageControl().filter(dvc -> bus.isTransformerVoltageControlled())
-                        .map(TransformerVoltageControl::getTargetValue)
-                        .orElse(getVoltageControlledTargetValue(bus).orElse(Double.NaN)));
+        double targetV = bus.getHighestPriorityVoltageControl()
+                .map(Control::getTargetValue)
+                .orElseThrow(() -> new IllegalStateException("No active voltage control has been found for bus '" + bus.getId() + "'"));
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
@@ -37,19 +34,10 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         return targetV;
     }
 
-    private static Optional<Double> getVoltageControlledTargetValue(LfBus bus) {
-        return bus.getGeneratorVoltageControl().filter(vc -> bus.isGeneratorVoltageControlled()).map(vc -> {
-            if (vc.getControllerElements().stream().noneMatch(LfBus::isGeneratorVoltageControlEnabled)) {
-                throw new IllegalStateException("None of the controller buses of bus '" + bus.getId() + "'has voltage control on");
-            }
-            return vc.getTargetValue();
-        });
-    }
-
     private static double getReactivePowerDistributionTarget(LfNetwork network, int busNum) {
         LfBus controllerBus = network.getBus(busNum);
         double target = (controllerBus.getRemoteVoltageControlReactivePercent() - 1) * controllerBus.getTargetQ();
-        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getControllerElements()) {
+        for (LfBus otherControllerBus : controllerBus.getGeneratorVoltageControl().orElseThrow().getMergedControllerElements()) {
             if (otherControllerBus != controllerBus) {
                 target += controllerBus.getRemoteVoltageControlReactivePercent() * otherControllerBus.getTargetQ();
             }

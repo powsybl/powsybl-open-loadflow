@@ -50,4 +50,8 @@ public interface LfStaticVarCompensator extends LfGenerator {
     double getB0();
 
     Optional<StandByAutomaton> getStandByAutomaton();
+
+    Optional<LfShunt> getStandByAutomatonShunt();
+
+    void setStandByAutomatonShunt(LfShunt standByAutomatonShunt);
 }
