@@ -31,6 +31,8 @@ public class NewtonRaphsonParameters {
 
     private boolean alwaysUpdateNetwork = ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE;
 
+    private boolean detailedReport = false;
+
     public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
             throw new IllegalArgumentException("Invalid max iteration value: " + maxIteration);
@@ -83,6 +85,15 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
+    public boolean isDetailedReport() {
+        return detailedReport;
+    }
+
+    public NewtonRaphsonParameters setDetailedReport(boolean detailedReport) {
+        this.detailedReport = detailedReport;
+        return this;
+    }
+
     public boolean isAlwaysUpdateNetwork() {
         return alwaysUpdateNetwork;
     }
@@ -101,6 +112,7 @@ public class NewtonRaphsonParameters {
                 ", stoppingCriteria=" + stoppingCriteria.getClass().getSimpleName() +
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
+                ", detailedNrReport=" + detailedReport +
                 ')';
     }
 }

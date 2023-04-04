@@ -93,6 +93,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
         acParameters.getNetworkParameters()
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
+        acParameters.getNewtonRaphsonParameters()
+                .setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {
