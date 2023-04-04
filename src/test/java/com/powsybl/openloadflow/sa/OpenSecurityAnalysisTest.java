@@ -16,6 +16,7 @@ import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.LoadDetailAdder;
+import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.xml.test.MetrixTutorialSixBusesFactory;
@@ -34,10 +35,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.*;
-import com.powsybl.security.action.Action;
-import com.powsybl.security.action.LineConnectionAction;
-import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.action.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;
@@ -59,7 +57,8 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.powsybl.commons.TestUtil.normalizeLineSeparator;
+import static com.powsybl.commons.test.TestUtil.normalizeLineSeparator;
+
 import static java.lang.Double.NaN;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -71,6 +70,8 @@ class OpenSecurityAnalysisTest {
 
     private ComputationManager computationManager;
 
+    private MatrixFactory matrixFactory;
+
     private OpenSecurityAnalysisProvider securityAnalysisProvider;
 
     private OpenLoadFlowProvider loadFlowProvider;
@@ -79,7 +80,7 @@ class OpenSecurityAnalysisTest {
     void setUp() {
         computationManager = Mockito.mock(ComputationManager.class);
         Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
+        matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
         loadFlowProvider = new OpenLoadFlowProvider(matrixFactory, connectivityFactory);
@@ -721,8 +722,8 @@ class OpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
 
         assertEquals(2, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
-        assertEquals("l14", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0).getBranchId());
-        assertEquals("l12", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(1).getBranchId());
+        assertEquals("l12", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0).getBranchId());
+        assertEquals("l14", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(1).getBranchId());
 
         assertEquals(5, result.getPostContingencyResults().size());
         for (PostContingencyResult pcResult : result.getPostContingencyResults()) {
@@ -938,33 +939,21 @@ class OpenSecurityAnalysisTest {
         Network network = PhaseControlFactory.createNetworkWithT2wt();
 
         network.newLine().setId("L3")
-                .setVoltageLevel1("VL1")
                 .setConnectableBus1("B1")
                 .setBus1("B1")
-                .setVoltageLevel2("VL2")
                 .setConnectableBus2("B2")
                 .setBus2("B2")
                 .setR(4.0)
                 .setX(200.0)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
                 .add();
 
         network.newLine().setId("L4")
-                .setVoltageLevel1("VL3")
                 .setConnectableBus1("B3")
                 .setBus1("B3")
-                .setVoltageLevel2("VL2")
                 .setConnectableBus2("B2")
                 .setBus2("B2")
                 .setR(4.0)
                 .setX(200.0)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
                 .add();
 
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
@@ -1271,7 +1260,7 @@ class OpenSecurityAnalysisTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
-        parameters.setNoGeneratorReactiveLimits(true);
+        parameters.setUseReactiveLimits(false);
 
         List<Contingency> contingencies = List.of(new Contingency("g1", new GeneratorContingency("g1")),
                 new Contingency("l34", new BranchContingency("l34")),
@@ -1591,10 +1580,38 @@ class OpenSecurityAnalysisTest {
 
         // post-contingency tests
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "C");
-        assertEquals(3.912, postContingencyResult.getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-3.895, postContingencyResult.getNetworkResult().getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(603.769, postContingencyResult.getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-596.104, postContingencyResult.getNetworkResult().getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.099, postContingencyResult.getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.083, postContingencyResult.getNetworkResult().getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(607.682, postContingencyResult.getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-599.918, postContingencyResult.getNetworkResult().getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSwitchContingency2() {
+        Network network = BusBreakerNetworkFactory.create();
+
+        List<Contingency> contingencies = List.of(new Contingency("C", new SwitchContingency("C")),
+                                                  new Contingency("C2", new LoadContingency("LD")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+
+        // post-contingency tests
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "C");
+        assertEquals(607.782, postContingencyResult.getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-600.016, postContingencyResult.getNetworkResult().getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, postContingencyResult.getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0163, postContingencyResult.getNetworkResult().getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
+
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "C2");
+        assertEquals(0.0180, postContingencyResult2.getNetworkResult().getBranchResult("L1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, postContingencyResult2.getNetworkResult().getBranchResult("L1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0180, postContingencyResult2.getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, postContingencyResult2.getNetworkResult().getBranchResult("L2").getP2(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
@@ -1681,9 +1698,8 @@ class OpenSecurityAnalysisTest {
         Network network = FourBusNetworkFactory.create();
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters lfParameters = new LoadFlowParameters()
-                .setDc(true);
-        OpenLoadFlowParameters lfParametersExt = new OpenLoadFlowParameters().setDcPowerFactor(Math.tan(0.4));
-        lfParameters.addExtension(OpenLoadFlowParameters.class, lfParametersExt);
+                .setDc(true)
+                .setDcPowerFactor(Math.tan(0.4));
         setSlackBusId(lfParameters, "b1_vl");
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
 
@@ -1792,7 +1808,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testSecurityAnalysisWithOperatorStrategy() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -1815,9 +1830,9 @@ class OpenSecurityAnalysisTest {
         List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
                                        new SwitchAction("action3", "C2", false));
 
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", "L1", new TrueCondition(), List.of("action1")),
-                                                            new OperatorStrategy("strategyL3", "L3", new TrueCondition(), List.of("action3")),
-                                                            new OperatorStrategy("strategyL2", "L2", new TrueCondition(), List.of("action1", "action3")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("action1")),
+                                                            new OperatorStrategy("strategyL3", ContingencyContext.specificContingency("L3"), new TrueCondition(), List.of("action3")),
+                                                            new OperatorStrategy("strategyL2", ContingencyContext.specificContingency("L2"), new TrueCondition(), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1829,26 +1844,72 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
-        assertEquals(578.3, result.getPreContingencyResult().getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(578.740, result.getPreContingencyResult().getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(0.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(292.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(0.0, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(318.3, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(583.5, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(302.0, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(292.708, result.getPreContingencyResult().getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(0.002, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(318.294, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(583.624, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(303.513, getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(0.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(431.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(302.2, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(583.5, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(583.5, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(302.2, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(602.965, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(303.513, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(583.624, getOperatorStrategyResult(result, "strategyL3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(583.624, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(303.513, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.539, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.539, getOperatorStrategyResult(result, "strategyL2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+
+        // re-run with loadflows
+        LoadFlow.run(network, parameters);
+        assertEquals(578.740, network.getLine("L1").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(0.0, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(292.708, network.getLine("L3").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getLine("L1").getTerminal1().disconnect();
+        network.getLine("L1").getTerminal2().disconnect();
+        LoadFlow.run(network, parameters);
+        assertEquals(0.002, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(318.284, network.getLine("L3").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getSwitch("C1").setOpen(false);
+        LoadFlow.run(network, parameters);
+        assertEquals(583.624, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(303.513, network.getLine("L3").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getLine("L1").getTerminal1().connect();
+        network.getLine("L1").getTerminal2().connect();
+        network.getLine("L3").getTerminal1().disconnect();
+        network.getLine("L3").getTerminal2().disconnect();
+        network.getSwitch("C1").setOpen(true);
+        LoadFlow.run(network, parameters);
+        assertEquals(602.965, network.getLine("L1").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(0.0, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getSwitch("C2").setOpen(false);
+        LoadFlow.run(network, parameters);
+        assertEquals(583.624, network.getLine("L1").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(303.513, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getLine("L3").getTerminal1().connect();
+        network.getLine("L3").getTerminal2().connect();
+        network.getLine("L2").getTerminal1().disconnect();
+        network.getLine("L2").getTerminal2().disconnect();
+        network.getSwitch("C2").setOpen(true);
+        LoadFlow.run(network, parameters);
+        assertEquals(583.624, network.getLine("L1").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(303.513, network.getLine("L3").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getSwitch("C1").setOpen(false);
+        network.getSwitch("C2").setOpen(false);
+        LoadFlow.run(network, parameters);
+        assertEquals(441.539, network.getLine("L1").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(89.429, network.getLine("L2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.539, network.getLine("L3").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
     }
 
     @Test
     void testSecurityAnalysisWithOperatorStrategy2() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -1867,10 +1928,10 @@ class OpenSecurityAnalysisTest {
         List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
                                        new SwitchAction("action3", "C2", false));
 
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", "L1", new AnyViolationCondition(), List.of("action1")),
-                                                            new OperatorStrategy("strategyL3", "L3", new AnyViolationCondition(), List.of("action3")),
-                                                            new OperatorStrategy("strategyL2_1", "L2", new AtLeastOneViolationCondition(List.of("L1")), List.of("action1", "action3")),
-                                                            new OperatorStrategy("strategyL2_2", "L2", new AllViolationCondition(List.of("L1")), List.of("action1", "action3")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", ContingencyContext.specificContingency("L1"), new AnyViolationCondition(), List.of("action1")),
+                                                            new OperatorStrategy("strategyL3", ContingencyContext.specificContingency("L3"), new AnyViolationCondition(), List.of("action3")),
+                                                            new OperatorStrategy("strategyL2_1", ContingencyContext.specificContingency("L2"), new AtLeastOneViolationCondition(List.of("L1")), List.of("action1", "action3")),
+                                                            new OperatorStrategy("strategyL2_2", ContingencyContext.specificContingency("L2"), new AllViolationCondition(List.of("L1")), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1882,33 +1943,34 @@ class OpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
-        assertEquals(578.3, result.getPreContingencyResult().getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(578.740, result.getPreContingencyResult().getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
         assertEquals(0.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(292.0, result.getPreContingencyResult().getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(292.708, result.getPreContingencyResult().getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
         // L1 contingency
         assertEquals(0.0, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(318.3, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(318.284, getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
         assertTrue(getPostContingencyResult(result, "L1").getLimitViolationsResult().getLimitViolations().isEmpty());
         assertTrue(getOptionalOperatorStrategyResult(result, "strategyL1").isEmpty());
         // L3 contingency
         assertEquals(0.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(431.0, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(602.965, getPostContingencyResult(result, "L3").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
         assertFalse(getPostContingencyResult(result, "L3").getLimitViolationsResult().getLimitViolations().isEmpty()); // HIGH_VOLTAGE
         assertFalse(getOptionalOperatorStrategyResult(result, "strategyL3").isEmpty());
         // L2 contingency
-        assertEquals(583.5, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(302.2, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2_1").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(441.5, getOperatorStrategyResult(result, "strategyL2_2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(583.624, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(303.513, getPostContingencyResult(result, "L2").getNetworkResult().getBranchResult("L3").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.539, getOperatorStrategyResult(result, "strategyL2_1").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(441.539, getOperatorStrategyResult(result, "strategyL2_2").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
     }
 
     @Test
     void testSecurityAnalysisWithOperatorStrategy3() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = NodeBreakerNetworkFactory.create3Bars();
+        network.getVoltageLevel("VL1").setLowVoltageLimit(390.0);
+        network.getVoltageLevel("VL2").setLowVoltageLimit(390.0);
         network.getSwitch("C1").setOpen(true);
         network.getSwitch("C2").setOpen(true);
         network.getLine("L1").getCurrentLimits1().orElseThrow().setPermanentLimit(580.0);
@@ -1921,12 +1983,12 @@ class OpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
 
         List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
-                new SwitchAction("action3", "C2", false));
+                                       new SwitchAction("action3", "C2", false));
 
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL3", "L3", new AllViolationCondition(List.of("VL1", "VL2")), List.of("action3")),
-                new OperatorStrategy("strategyL2", "L2", new AtLeastOneViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL3", ContingencyContext.specificContingency("L3"), new AllViolationCondition(List.of("VL1", "VL2")), List.of("action3")),
+                                                            new OperatorStrategy("strategyL2", ContingencyContext.specificContingency("L2"), new AtLeastOneViolationCondition(List.of("L1", "L3")), List.of("action1", "action3")));
 
-        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<StateMonitor> monitors = createNetworkMonitors(network);
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDistributedSlack(false);
@@ -1944,7 +2006,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testWithSeveralConnectedComponents() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -1956,7 +2017,7 @@ class OpenSecurityAnalysisTest {
 
         List<Action> actions = List.of(new SwitchAction("action1", "s34", true));
 
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyS25", "s25", new TrueCondition(), List.of("action1")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyS25", ContingencyContext.specificContingency("s25"), new TrueCondition(), List.of("action1")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -1977,12 +2038,11 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testMetrixTutorial() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
         Network network = MetrixTutorialSixBusesFactory.create();
-        network.getGenerator("SO_G2").setTargetP(628);
+        network.getGenerator("SO_G2").setTargetP(960);
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -1998,39 +2058,40 @@ class OpenSecurityAnalysisTest {
                                        new LineConnectionAction("openLineSSO2", "S_SO_2", true, true),
                                        new PhaseTapChangerTapPositionAction("pst", "NE_NO_1", false, 1), // PST at tap position 17.
                                        new PhaseTapChangerTapPositionAction("pst2", "NE_NO_1", true, -16));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitchS0")),
-                                                            new OperatorStrategy("strategy2", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
-                                                            new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")),
-                                                            new OperatorStrategy("strategy4", "S_SO_1", new TrueCondition(), List.of("pst2")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitchS0")),
+                                                            new OperatorStrategy("strategy2", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLineSSO2")),
+                                                            new OperatorStrategy("strategy3", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")),
+                                                            new OperatorStrategy("strategy4", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst2")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP);
-        assertEquals(271.99, result.getPreContingencyResult().getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(504.40, getPostContingencyResult(result, "S_SO_1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(301.69, getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(488.99, getOperatorStrategyResult(result, "strategy2").getNetworkResult().getBranchResult("SO_NO_1").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(499.984, getOperatorStrategyResult(result, "strategy3").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
-        assertEquals(499.984, getOperatorStrategyResult(result, "strategy4").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(346.296, result.getPreContingencyResult().getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(642.805, getPostContingencyResult(result, "S_SO_1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(240.523, getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(599.161, getOperatorStrategyResult(result, "strategy2").getNetworkResult().getBranchResult("SO_NO_1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(639.268, getOperatorStrategyResult(result, "strategy3").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(639.268, getOperatorStrategyResult(result, "strategy4").getNetworkResult().getBranchResult("S_SO_2").getI1(), LoadFlowAssert.DELTA_I);
 
-        network.getGenerator("SO_G2").setTargetP(628);
+        LoadFlow.run(network, parameters);
+        assertEquals(346.296, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
         network.getLine("S_SO_1").getTerminal1().disconnect();
         network.getLine("S_SO_1").getTerminal2().disconnect();
-
-        LoadFlowParameters parameters2 = new LoadFlowParameters();
-        parameters2.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
-        parameters2.setHvdcAcEmulation(false);
-
         LoadFlow.run(network, parameters);
-        assertEquals(504.40, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(642.805, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
 
+        network.getSwitch("SOO1_SOO1_DJ_OMN").setOpen(true);
+        LoadFlow.run(network, parameters);
+        assertEquals(240.523, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+
+        network.getSwitch("SOO1_SOO1_DJ_OMN").setOpen(false);
         network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().setTapPosition(1);
         LoadFlow.run(network, parameters);
-        assertEquals(499.989, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
+        assertEquals(639.268, network.getLine("S_SO_2").getTerminal1().getI(), LoadFlowAssert.DELTA_I);
     }
 
     @Test
     void testBranchOpenAtOneSideRecovery() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -2040,7 +2101,7 @@ class OpenSecurityAnalysisTest {
         network.getSwitch("s34").setOpen(true);
         List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l12")));
         List<Action> actions = List.of(new SwitchAction("closeSwitch", "s25", false));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", "line", new TrueCondition(), List.of("closeSwitch")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("line"), new TrueCondition(), List.of("closeSwitch")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
                 operatorStrategies, actions, Reporter.NO_OP);
@@ -2081,31 +2142,31 @@ class OpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
 
         List<Action> actions = List.of(new SwitchAction("openSwitch", "switch", true));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openSwitch")));
         CompletionException exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, Reporter.NO_OP));
         assertEquals("Switch 'switch' not found", exception.getCause().getMessage());
 
         List<Action> actions2 = List.of(new LineConnectionAction("openLine", "line", true, true));
-        List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", "S_SO_1", new AllViolationCondition(List.of("S_SO_2")), List.of("openLine")));
+        List<OperatorStrategy> operatorStrategies2 = List.of(new OperatorStrategy("strategy2", ContingencyContext.specificContingency("S_SO_1"), new AllViolationCondition(List.of("S_SO_2")), List.of("openLine")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies2, actions2, Reporter.NO_OP));
         assertEquals("Branch 'line' not found", exception.getCause().getMessage());
 
         List<Action> actions3 = List.of(new PhaseTapChangerTapPositionAction("pst", "pst1", false, 1));
-        List<OperatorStrategy> operatorStrategies3 = List.of(new OperatorStrategy("strategy3", "S_SO_1", new TrueCondition(), List.of("pst")));
+        List<OperatorStrategy> operatorStrategies3 = List.of(new OperatorStrategy("strategy3", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pst")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies3, actions3, Reporter.NO_OP));
         assertEquals("Branch 'pst1' not found", exception.getCause().getMessage());
 
         List<Action> actions4 = Collections.emptyList();
-        List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", "S_SO_1", new TrueCondition(), List.of("x")));
+        List<OperatorStrategy> operatorStrategies4 = List.of(new OperatorStrategy("strategy4", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("x")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies4, actions4, Reporter.NO_OP));
         assertEquals("Operator strategy 'strategy4' is associated to action 'x' but this action is not present in the list", exception.getCause().getMessage());
 
         List<Action> actions5 = List.of(new SwitchAction("openSwitch", "NOD1_NOD1  NE1  1_SC5_0", true));
-        List<OperatorStrategy> operatorStrategies5 = List.of(new OperatorStrategy("strategy5", "y", new TrueCondition(), List.of("openSwitch")));
+        List<OperatorStrategy> operatorStrategies5 = List.of(new OperatorStrategy("strategy5", ContingencyContext.specificContingency("y"), new TrueCondition(), List.of("openSwitch")));
         exception = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies5, actions5, Reporter.NO_OP));
         assertEquals("Operator strategy 'strategy5' is associated to contingency 'y' but this contingency is not present in the list", exception.getCause().getMessage());
@@ -2113,7 +2174,6 @@ class OpenSecurityAnalysisTest {
 
     @Test
     void testDcSecurityAnalysisWithOperatorStrategy() {
-        MatrixFactory matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
 
@@ -2136,9 +2196,9 @@ class OpenSecurityAnalysisTest {
         List<Action> actions = List.of(new SwitchAction("action1", "C1", false),
                 new SwitchAction("action3", "C2", false));
 
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", "L1", new TrueCondition(), List.of("action1")),
-                new OperatorStrategy("strategyL3", "L3", new TrueCondition(), List.of("action3")),
-                new OperatorStrategy("strategyL2", "L2", new TrueCondition(), List.of("action1", "action3")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("action1")),
+                new OperatorStrategy("strategyL3", ContingencyContext.specificContingency("L3"), new TrueCondition(), List.of("action3")),
+                new OperatorStrategy("strategyL2", ContingencyContext.specificContingency("L2"), new TrueCondition(), List.of("action1", "action3")));
 
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
@@ -2182,7 +2242,7 @@ class OpenSecurityAnalysisTest {
                 .collect(Collectors.toList());
 
         List<Action> actions = List.of(new LineConnectionAction("openLine", "l13", true, true));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", "l14", new TrueCondition(), List.of("openLine")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", ContingencyContext.specificContingency("l14"), new TrueCondition(), List.of("openLine")));
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
 
         LoadFlowParameters parameters = new LoadFlowParameters();
@@ -2222,8 +2282,8 @@ class OpenSecurityAnalysisTest {
         List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstAbsChange", "NE_NO_1", false, 1),
                 new PhaseTapChangerTapPositionAction("pstRelChange", "NE_NO_1", true, -1));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyTapAbsChange", "S_SO_1", new TrueCondition(), List.of("pstAbsChange")),
-                new OperatorStrategy("strategyTapRelChange", "S_SO_1", new TrueCondition(), List.of("pstRelChange")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyTapAbsChange", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pstAbsChange")),
+                new OperatorStrategy("strategyTapRelChange", ContingencyContext.specificContingency("S_SO_1"), new TrueCondition(), List.of("pstRelChange")));
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setDistributedSlack(false);
@@ -2257,5 +2317,532 @@ class OpenSecurityAnalysisTest {
         // Compare results
         assertEquals(network.getLine("S_SO_2").getTerminal1().getP(), brRel.getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getBranch("S_SO_2").getTerminal2().getP(), brRel.getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    private void testLoadAction(boolean dc) {
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        network.getLine("l24").newActivePowerLimits1().setPermanentLimit(150).add();
+        double initialL4 = network.getLoad("l4").getP0();
+
+        List<Contingency> contingencies = Stream.of("l2")
+                .map(id -> new Contingency(id, new LoadContingency(id)))
+                .collect(Collectors.toList());
+
+        List<Action> actions = List.of(new LoadActionBuilder().withId("action1").withLoadId("l4").withRelativeValue(false).withActivePowerValue(90).build(),
+                new LoadActionBuilder().withId("action2").withLoadId("l1").withRelativeValue(true).withActivePowerValue(50).build(),
+                new LoadActionBuilder().withId("action3").withLoadId("l2").withRelativeValue(true).withActivePowerValue(10).build());
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action1", "action2")),
+                new OperatorStrategy("strategy2", ContingencyContext.specificContingency("l2"), new AnyViolationCondition(), List.of("action3")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDc(dc);
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        network.getLoad("l2").getTerminal().disconnect();
+        LoadFlow.run(network, parameters);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "l2");
+        assertEquals(network.getLine("l24").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        network.getLoadStream().filter(load -> !load.getId().equals("l2")).forEach(load -> load.setP0(load.getTerminal().getP()));
+        network.getLoad("l2").setP0(0);
+        double postContingencyL1 = network.getLoad("l1").getP0();
+        double postContingencyL2 = network.getLoad("l2").getP0();
+        double postContingencyL4 = network.getLoad("l4").getP0();
+
+        network.getLoad("l4").setP0(90 + postContingencyL4 - initialL4);
+        network.getLoad("l1").setP0(postContingencyL1 + 50);
+        LoadFlow.run(network, parameters);
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(network.getLine("l24").getTerminal1().getP(), operatorStrategyResult.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), operatorStrategyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        network.getLoad("l1").setP0(postContingencyL1);
+        network.getLoad("l2").setP0(postContingencyL2); // because in contingency
+        network.getLoad("l4").setP0(postContingencyL4);
+        LoadFlow.run(network, parameters);
+        OperatorStrategyResult operatorStrategyResult2 = getOperatorStrategyResult(result, "strategy2");
+        assertEquals(network.getLine("l24").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLoadAction() {
+        testLoadAction(true);
+        testLoadAction(false);
+    }
+
+    @Test
+    void testDcEquationSystemUpdater() {
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters().setDc(true);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        String id = network.getTwoWindingsTransformer("tr2").getId();
+        List<Contingency> contingencies = List.of(new Contingency(id, new TwoWindingsTransformerContingency(id)));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Action> actions = List.of(new LoadActionBuilder().withId("action").withLoadId("l4").withRelativeValue(false).withActivePowerValue(260).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("tr2"), new TrueCondition(), List.of("action")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
+        assertFalse(result.getPostContingencyResults().isEmpty());
+    }
+
+    @Test
+    void testConnectivityResultWhenNoSplit() {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l12")));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+
+        //Test AC
+        parameters.getLoadFlowParameters().setDc(false);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        var postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(0, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+
+        //Test DC
+        parameters.getLoadFlowParameters().setDc(true);
+        result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(0, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+    }
+
+    @Test
+    void testConnectivityResultOnSplit() {
+        Network network = ConnectedComponentNetworkFactory.createTwoComponentWithGeneratorAndLoad();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34")));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+
+        //Test AC
+        parameters.getLoadFlowParameters().setDc(false);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(), Reporter.NO_OP);
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+        assertEquals(3.0, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
+        assertEquals(2.0, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
+        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(
+                List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
+
+        //Test DC
+        parameters.getLoadFlowParameters().setDc(true);
+
+        result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+        assertEquals(3.0, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower());
+        assertEquals(2.0, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower());
+        assertTrue(postContingencyResult.getConnectivityResult().getDisconnectedElements().containsAll(List.of("d4", "d5", "g6", "l46", "l34", "l45", "l56")));
+    }
+
+    @Test
+    void testConnectivityResultOnSplitThreeCC() {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("line", new BranchContingency("l34"), new BranchContingency("l45")));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+
+        //Test AC
+        parameters.getLoadFlowParameters().setDc(false);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+
+        //Test DC
+        parameters.getLoadFlowParameters().setDc(true);
+        runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+        postContingencyResult = result.getPostContingencyResults().get(0);
+        assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
+    }
+
+    private void testGeneratorAction(boolean dc, LoadFlowParameters.BalanceType balanceType, double deltaG1, double deltaG2,
+                                     double targetPG4, double slackBusPMaxMismatch) {
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = FourBusNetworkFactory.create();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(gen.getMaxP() + 1.0));
+        network.getLoad("d2").setP0(2.3); // to unbalance the network.
+
+        final String lineInContingencyId = "l13";
+        List<Contingency> contingencies = Stream.of(lineInContingencyId)
+                .map(id -> new Contingency(id, new BranchContingency(id)))
+                .collect(Collectors.toList());
+
+        final String g1 = "g1";
+        final String g2 = "g2";
+        final String g4 = "g4";
+        List<Action> actions = List.of(new GeneratorActionBuilder().withId("genAction_" + g1).withGeneratorId(g1).withActivePowerRelativeValue(true).withActivePowerValue(deltaG1).build(),
+                                       new GeneratorActionBuilder().withId("genAction_" + g2).withGeneratorId(g2).withActivePowerRelativeValue(true).withActivePowerValue(deltaG2).build(),
+                                       new GeneratorActionBuilder().withId("genAction_" + g4).withGeneratorId(g4).withActivePowerRelativeValue(false).withActivePowerValue(targetPG4).build());
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyG1", ContingencyContext.specificContingency(lineInContingencyId), new TrueCondition(), List.of("genAction_" + g1)),
+                                                            new OperatorStrategy("strategyG2", ContingencyContext.specificContingency(lineInContingencyId), new TrueCondition(), List.of("genAction_" + g2)),
+                                                            new OperatorStrategy("strategyG3", ContingencyContext.specificContingency(lineInContingencyId), new TrueCondition(), List.of("genAction_" + g4)),
+                                                            new OperatorStrategy("strategyG4", ContingencyContext.specificContingency(lineInContingencyId), new TrueCondition(), List.of("genAction_" + g1, "genAction_" + g2, "genAction_" + g4)));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDistributedSlack(true).setBalanceType(balanceType);
+        parameters.setDc(dc);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setSlackBusPMaxMismatch(slackBusPMaxMismatch);
+        parameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        // verify security analysis result through load flows step by step
+        // apply contingency
+        network.getLine(lineInContingencyId).getTerminal1().disconnect();
+        network.getLine(lineInContingencyId).getTerminal2().disconnect();
+        LoadFlow.run(network, parameters);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getPostContingencyResult(result, lineInContingencyId).getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        double g4InitialTargetP = network.getGenerator(g4).getTargetP();
+        network.getGeneratorStream().forEach(gen -> gen.setTargetP(-gen.getTerminal().getP()));
+        double g1PostContingencyTargetP = network.getGenerator(g1).getTargetP();
+        double g2PostContingencyTargetP = network.getGenerator(g2).getTargetP();
+        double g4PostContingencyTargetP = network.getGenerator(g4).getTargetP();
+
+        // apply remedial action
+        network.getGenerator(g1).setTargetP(g1PostContingencyTargetP + deltaG1);
+        LoadFlow.run(network, parameters);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG1").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // reverse action and apply second remedial action
+        network.getGenerator(g1).setTargetP(g1PostContingencyTargetP);
+        network.getGenerator(g2).setTargetP(g2PostContingencyTargetP + deltaG2);
+        LoadFlow.run(network, parameters);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG2").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // reverse action and apply third remedial action
+        network.getGenerator(g2).setTargetP(g2PostContingencyTargetP);
+        network.getGenerator(g4).setTargetP(targetPG4 + g4PostContingencyTargetP - g4InitialTargetP);
+        LoadFlow.run(network, parameters);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG3").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        // reverse action and apply fourth remedial action
+        network.getGenerator(g2).setTargetP(g2PostContingencyTargetP + deltaG2);
+        network.getGenerator(g1).setTargetP(g1PostContingencyTargetP + deltaG1);
+        LoadFlow.run(network, parameters);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l14").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l34").getTerminal1().getP(), getOperatorStrategyResult(result, "strategyG4").getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+    }
+
+    @Test
+    void testGeneratorAction() {
+        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, 2.0, -1.5, 2, 0.0001);
+        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, 1.0, -1.0, 4, 0.0001);
+        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, 1.77, -1.0, 0.0, 0.0005);
+        testGeneratorAction(false, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, 1.0, -1.0, 2, 0.0005);
+        testGeneratorAction(true, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD, 2.0, -1.5, 0, 0.0001);
+        testGeneratorAction(true, LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, 1.0, -1.0, 2, 0.0001);
+    }
+
+    @Test
+    void testActionOnGeneratorInContingency() {
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
+
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
+        network.getGenerator("g2").setTargetV(400).setVoltageRegulatorOn(true);
+
+        List<Contingency> contingencies = Stream.of("g1")
+                .map(id -> new Contingency(id, new GeneratorContingency(id)))
+                .collect(Collectors.toList());
+
+        List<Action> actions = List.of(new GeneratorActionBuilder().withId("action1").withGeneratorId("g1").withActivePowerRelativeValue(true).withActivePowerValue(100).build(),
+                                       new GeneratorActionBuilder().withId("action2").withGeneratorId("g2").withActivePowerRelativeValue(false).withActivePowerValue(300).build());
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("g1"), new TrueCondition(), List.of("action1")),
+                                                            new OperatorStrategy("strategy2", ContingencyContext.specificContingency("g1"), new TrueCondition(), List.of("action2")));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, Reporter.NO_OP);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "g1");
+        assertEquals(147.059, postContingencyResult.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-26.471, postContingencyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-44.118, postContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(147.059, operatorStrategyResult.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-26.471, operatorStrategyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-44.118, operatorStrategyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        OperatorStrategyResult operatorStrategyResult2 = getOperatorStrategyResult(result, "strategy2");
+        assertEquals(229.412, operatorStrategyResult2.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-35.294, operatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-58.824, operatorStrategyResult2.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLineDisconnectedOnOneSideContingency() {
+        Network network = DistributedSlackNetworkFactory.create();
+        network.getBranch("l24").getTerminal1().disconnect();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(new Contingency("l24", new BranchContingency("l24"))), monitors);
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "l24");
+        assertEquals(200.000, postContingencyResult.getNetworkResult().getBranchResult("l14").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(140.141, postContingencyResult.getNetworkResult().getBranchResult("l14").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(300.000, postContingencyResult.getNetworkResult().getBranchResult("l34").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(260.005, postContingencyResult.getNetworkResult().getBranchResult("l34").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1, result.getPostContingencyResults().size());
+    }
+
+    @Test
+    void testStaticVarCompensatorContingency() {
+        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        network.getStaticVarCompensator("svc1").setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("svc1", new StaticVarCompensatorContingency("svc1")));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+
+        // test AC
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+
+        // compare with a simple load low
+        network.getStaticVarCompensator("svc1").getTerminal().disconnect();
+        LoadFlow.run(network, parameters.getLoadFlowParameters());
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "svc1");
+        assertEquals(network.getLine("l1").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l1").getTerminal2().getP(), postContingencyResult.getNetworkResult().getBranchResult("l1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l1").getTerminal1().getQ(), postContingencyResult.getNetworkResult().getBranchResult("l1").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l1").getTerminal2().getQ(), postContingencyResult.getNetworkResult().getBranchResult("l1").getQ2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testStaticVarCompensatorContingencyWithStandByAutomaton() {
+        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
+        svc1.setVoltageSetpoint(385).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        svc1.newExtension(StandbyAutomatonAdder.class)
+                .withHighVoltageThreshold(400)
+                .withLowVoltageThreshold(380)
+                .withLowVoltageSetpoint(385)
+                .withHighVoltageSetpoint(395)
+                .withB0(-0.001f)
+                .withStandbyStatus(true)
+                .add();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("svc1", new StaticVarCompensatorContingency("svc1")),
+                new Contingency("ld1", new LoadContingency("ld1")));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+
+        // test AC
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, Reporter.NO_OP);
+
+        // compare with a simple load low
+        network.getStaticVarCompensator("svc1").getTerminal().disconnect();
+        LoadFlow.run(network);
+
+        PostContingencyResult postContingencyResult = getPostContingencyResult(result, "svc1");
+        assertEquals(network.getLine("l1").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l1").getTerminal2().getP(), postContingencyResult.getNetworkResult().getBranchResult("l1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l1").getTerminal1().getQ(), postContingencyResult.getNetworkResult().getBranchResult("l1").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l1").getTerminal2().getQ(), postContingencyResult.getNetworkResult().getBranchResult("l1").getQ2(), LoadFlowAssert.DELTA_POWER);
+
+        // test restore.
+        network.getStaticVarCompensator("svc1").getTerminal().connect();
+        network.getLoad("ld1").getTerminal().disconnect();
+        LoadFlow.run(network);
+        PostContingencyResult postContingencyResult2 = getPostContingencyResult(result, "ld1");
+        assertEquals(network.getLine("l1").getTerminal1().getP(), postContingencyResult2.getNetworkResult().getBranchResult("l1").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l1").getTerminal2().getP(), postContingencyResult2.getNetworkResult().getBranchResult("l1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l1").getTerminal1().getQ(), postContingencyResult2.getNetworkResult().getBranchResult("l1").getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l1").getTerminal2().getQ(), postContingencyResult2.getNetworkResult().getBranchResult("l1").getQ2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testNotFoundHvdcAction() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(Contingency.generator("g5"));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Action> actions = List.of(new HvdcActionBuilder().withId("action").withHvdcId("hvdc").withAcEmulationEnabled(false).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("action")));
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        CompletionException e = assertThrows(CompletionException.class, () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP));
+        assertEquals("Hvdc line 'hvdc' not found", e.getCause().getMessage());
+    }
+
+    @Test
+    void testHvdcAction() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        List<Contingency> contingencies = new ArrayList<>();
+        contingencies.add(Contingency.generator("g5"));
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        List<Action> actions = List.of(new HvdcActionBuilder().withId("action1").withHvdcId("hvdc34").withAcEmulationEnabled(false).build(),
+                new LoadActionBuilder().withId("action2").withLoadId("d2").withRelativeValue(true).withActivePowerValue(-2).build());
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy1", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("action1")),
+                new OperatorStrategy("strategy2", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("action2")));
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, Reporter.NO_OP);
+
+        // compare with a loadflow.
+        network.getGenerator("g5").getTerminal().disconnect();
+        LoadFlow.run(network, parameters);
+        network.getHvdcLine("hvdc34").setActivePowerSetpoint(Math.abs(Math.abs(network.getVscConverterStation("cs3").getTerminal().getP())));
+        network.getHvdcLine("hvdc34").setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER);
+        parameters.setHvdcAcEmulation(false);
+        LoadFlow.run(network, parameters);
+
+        OperatorStrategyResult operatorStrategyResult1 = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(network.getLine("l13").getTerminal1().getP(), operatorStrategyResult1.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), operatorStrategyResult1.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), operatorStrategyResult1.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+
+        parameters.setHvdcAcEmulation(true);
+        network.getLoad("d2").setP0(network.getLoad("d2").getP0() - 2);
+        LoadFlow.run(network, parameters);
+
+        OperatorStrategyResult operatorStrategyResult2 = getOperatorStrategyResult(result, "strategy2");
+        assertEquals(network.getLine("l13").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l12").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("l23").getTerminal1().getP(), operatorStrategyResult2.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testBusBarSectionContingency() {
+        Network network = createNodeBreakerNetwork();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "VL1_1");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        List<Contingency> contingencies = Stream.of("BBS1")
+                .map(id -> new Contingency(id, new BusbarSectionContingency(id)))
+                .collect(Collectors.toList());
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        NetworkResult preContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
+        assertEquals(446.765, preContingencyNetworkResult.getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(446.765, preContingencyNetworkResult.getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+
+        assertEquals(945.514, getPostContingencyResult(result, "BBS1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertNull(getPostContingencyResult(result, "BBS1").getNetworkResult().getBranchResult("L1"));
+
+        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
+        openSecurityAnalysisParameters.setContingencyPropagation(false);
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        NetworkResult preContingencyNetworkResult2 = result2.getPreContingencyResult().getNetworkResult();
+        assertEquals(446.765, preContingencyNetworkResult2.getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(446.765, preContingencyNetworkResult2.getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+
+        assertEquals(945.514, getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertNull(getPostContingencyResult(result2, "BBS1").getNetworkResult().getBranchResult("L1"));
+    }
+
+    @Test
+    void testDcBusBarSectionContingency() {
+        Network network = createNodeBreakerNetwork();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        lfParameters.setDc(true);
+        setSlackBusId(lfParameters, "VL1_1");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        List<Contingency> contingencies = Stream.of("BBS1")
+                .map(id -> new Contingency(id, new BusbarSectionContingency(id)))
+                .collect(Collectors.toList());
+
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+
+        NetworkResult preContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
+        assertEquals(433.012, preContingencyNetworkResult.getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(433.012, preContingencyNetworkResult.getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+
+        assertEquals(866.025, getPostContingencyResult(result, "BBS1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
+        assertEquals(Double.NaN, getPostContingencyResult(result, "BBS1").getNetworkResult().getBranchResult("L1").getI1(), LoadFlowAssert.DELTA_I);
+    }
+
+    @Test
+    void testBusBarSectionContingencyIssue() {
+        Network network = NodeBreakerNetworkFactory.create3Bars();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        // setSlackBusId(lfParameters, "VL1_0"); // issue with slack bus to be disabled.
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        List<Contingency> contingencies = List.of(new Contingency("B1", new SwitchContingency("B1")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
     }
 }

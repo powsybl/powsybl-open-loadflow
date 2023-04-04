@@ -6,16 +6,18 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public interface LfNetworkListener {
 
-    void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
+    void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled);
 
-    void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage);
+    void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage);
 
-    void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled);
+    void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled);
 
     void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled);
 
@@ -32,4 +34,12 @@ public interface LfNetworkListener {
     void onDisableChange(LfElement element, boolean disabled);
 
     void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition);
+
+    void onShuntSusceptanceChange(LfShunt shunt, double b);
+
+    void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree);
+
+    void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc);
+
+    void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc);
 }

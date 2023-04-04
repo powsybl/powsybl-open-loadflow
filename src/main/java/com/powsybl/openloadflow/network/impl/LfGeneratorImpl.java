@@ -30,21 +30,28 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double droop;
 
+    private double participationFactor;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, generator.getTargetP());
-        this.generatorRef = new Ref<>(generator);
+        super(network, generator.getTargetP() / PerUnit.SB);
+        this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
-        // get participation factor from extension
+
+        // get participation factor and droop from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
-            if (activePowerControl.getDroop() != 0) {
+            participating = activePowerControl.isParticipate();
+            if (!Double.isNaN(activePowerControl.getDroop())) {
                 droop = activePowerControl.getDroop();
+            }
+            if (activePowerControl.getParticipationFactor() > 0) {
+                participationFactor = activePowerControl.getParticipationFactor();
             }
         }
 
-        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), parameters, report)) {
+        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
+                parameters.getPlausibleActivePowerLimit(), report)) {
             participating = false;
         }
 
@@ -127,10 +134,15 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public double getParticipationFactor() {
+        return participationFactor;
+    }
+
+    @Override
     public void updateState() {
         var generator = getGenerator();
         generator.getTerminal()
-                .setP(-targetP)
-                .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
+                .setP(-targetP * PerUnit.SB)
+                .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ * PerUnit.SB);
     }
 }

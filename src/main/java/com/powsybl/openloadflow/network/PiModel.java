@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import org.apache.commons.lang3.Range;
+
 import java.util.Optional;
 
 /**
@@ -53,30 +55,13 @@ public interface PiModel {
 
     void roundR1ToClosestTap();
 
-    enum Direction {
-        INCREASE(AllowedDirection.INCREASE),
-        DECREASE(AllowedDirection.DECREASE);
+    boolean shiftOneTapPositionToChangeA1(Direction direction);
 
-        private final AllowedDirection allowedDirection;
+    Optional<Direction> updateTapPositionToReachNewR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection);
 
-        Direction(AllowedDirection allowedDirection) {
-            this.allowedDirection = allowedDirection;
-        }
+    Optional<Direction> updateTapPositionToExceedNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection);
 
-        public AllowedDirection getAllowedDirection() {
-            return allowedDirection;
-        }
-    }
-
-    enum AllowedDirection {
-        INCREASE,
-        DECREASE,
-        BOTH
-    }
-
-    boolean updateTapPositionA1(Direction direction);
-
-    Optional<Direction> updateTapPositionR1(double deltaR1, int maxTapShift, AllowedDirection allowedDirection);
+    Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection);
 
     boolean setMinZ(double minZ, boolean dc);
 
@@ -85,4 +70,6 @@ public interface PiModel {
     int getTapPosition();
 
     PiModel setTapPosition(int tapPosition);
+
+    Range<Integer> getTapPositionRange();
 }

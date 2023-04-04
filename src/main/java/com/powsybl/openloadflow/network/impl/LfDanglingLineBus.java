@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.List;
 
@@ -23,11 +24,11 @@ public class LfDanglingLineBus extends AbstractLfBus {
     private final double nominalV;
 
     public LfDanglingLineBus(LfNetwork network, DanglingLine danglingLine, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, Networks.getPropertyV(danglingLine), Networks.getPropertyAngle(danglingLine), false);
-        this.danglingLineRef = new Ref<>(danglingLine);
+        super(network, Networks.getPropertyV(danglingLine), Math.toRadians(Networks.getPropertyAngle(danglingLine)), false);
+        this.danglingLineRef = Ref.create(danglingLine, parameters.isCacheEnabled());
         nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
-        loadTargetP += danglingLine.getP0();
-        loadTargetQ += danglingLine.getQ0();
+        loadTargetP += danglingLine.getP0() / PerUnit.SB;
+        loadTargetQ += danglingLine.getQ0() / PerUnit.SB;
         DanglingLine.Generation generation = danglingLine.getGeneration();
         if (generation != null) {
             add(LfDanglingLineGenerator.create(danglingLine, network, getId(), parameters, report));
@@ -71,7 +72,7 @@ public class LfDanglingLineBus extends AbstractLfBus {
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         var danglingLine = getDanglingLine();
         Networks.setPropertyV(danglingLine, v);
-        Networks.setPropertyAngle(danglingLine, angle);
+        Networks.setPropertyAngle(danglingLine, Math.toDegrees(angle));
 
         super.updateState(parameters);
     }

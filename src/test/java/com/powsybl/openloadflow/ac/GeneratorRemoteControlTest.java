@@ -61,7 +61,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         tr3 = network.getTwoWindingsTransformer("tr3");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                   .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
@@ -101,25 +101,19 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .add();
         network.newLine()
                 .setId("ln1")
-                .setVoltageLevel1("vl3")
                 .setConnectableBus1("b3")
                 .setBus1("b3")
-                .setVoltageLevel2("vl5")
                 .setConnectableBus2("b5")
                 .setBus2("b5")
                 .setR(0)
                 .setX(0)
-                .setB1(0)
-                .setG1(0)
-                .setB2(0)
-                .setG2(0)
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertReactivePowerEquals(-79.891, g1.getTerminal());
-        assertReactivePowerEquals(-79.891, g2.getTerminal());
-        assertReactivePowerEquals(-79.891, g3.getTerminal());
+        assertReactivePowerEquals(-79.892, g1.getTerminal());
+        assertReactivePowerEquals(-79.892, g2.getTerminal());
+        assertReactivePowerEquals(-79.892, g3.getTerminal());
     }
 
     @Test
@@ -236,7 +230,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testWith3GeneratorsAndFirstGeneratorToLimit() {
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits()
                 .setMinQ(-50)
                 .setMaxQ(50)
@@ -568,7 +562,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
     @Test
     void testReactiveRangeCheckMode() {
-        parameters.setNoGeneratorReactiveLimits(false);
+        parameters.setUseReactiveLimits(true);
         Network network = EurostagTutorialExample1Factory.create();
         VoltageLevel vlload = network.getVoltageLevel("VLLOAD");
         Bus nload = vlload.getBusBreakerView().getBus("NLOAD");

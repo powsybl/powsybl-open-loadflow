@@ -6,10 +6,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.EnergySource;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 
 /**
@@ -135,6 +132,43 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
         createLine(network, b1, b4, "l14", 0.1f);
         createLine(network, b2, b4, "l24", 0.15f);
         createLine(network, b3, b4, "l34", 0.12f);
+        return network;
+    }
+
+    public static Network createWithBattery() {
+        Network network = create();
+        Battery bat1 = network.getBusBreakerView().getBus("b1")
+                .getVoltageLevel()
+                .newBattery()
+                .setId("bat1")
+                .setMinP(-10)
+                .setMaxP(10)
+                .setTargetP(2)
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setTargetQ(0)
+                .add();
+        bat1.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(false)
+                .withDroop(0)
+                .withParticipationFactor(0)
+                .add();
+        Battery bat2 = network.getBusBreakerView().getBus("b2")
+                .getVoltageLevel()
+                .newBattery()
+                .setId("bat2")
+                .setMinP(-20)
+                .setMaxP(20)
+                .setTargetP(-5)
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setTargetQ(0)
+                .add();
+        bat2.newExtension(ActivePowerControlAdder.class)
+                .withParticipate(true)
+                .withDroop(3)
+                .withParticipationFactor(0.5)
+                .add();
         return network;
     }
 }

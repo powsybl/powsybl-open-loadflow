@@ -34,7 +34,17 @@ public class LfNetworkParameters {
 
     public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX;
 
-    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
+    public static final int DEFAULT_MAX_SLACK_BUS_COUNT = 1;
+
+    public static final String DEBUG_DIR_DEFAULT_VALUE = null;
+
+    public static final boolean SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE = false;
+
+    public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
+
+    public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
+
+    private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
     private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
@@ -81,6 +91,14 @@ public class LfNetworkParameters {
     private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
     private boolean svcVoltageMonitoring = true;
+
+    private int maxSlackBusCount = DEFAULT_MAX_SLACK_BUS_COUNT;
+
+    private String debugDir = DEBUG_DIR_DEFAULT_VALUE;
+
+    private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
+
+    private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -301,6 +319,49 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public int getMaxSlackBusCount() {
+        return maxSlackBusCount;
+    }
+
+    public static int checkMaxSlackBusCount(int maxSlackBusCount) {
+        if (maxSlackBusCount < 1) {
+            throw new IllegalArgumentException("Max slack bus count should be >= 1");
+        }
+        return maxSlackBusCount;
+    }
+
+    public LfNetworkParameters setMaxSlackBusCount(int maxSlackBusCount) {
+        this.maxSlackBusCount = checkMaxSlackBusCount(maxSlackBusCount);
+        return this;
+    }
+
+    public String getDebugDir() {
+        return debugDir;
+    }
+
+    public LfNetworkParameters setDebugDir(String debugDir) {
+        this.debugDir = debugDir;
+        return this;
+    }
+
+    public boolean isSecondaryVoltageControl() {
+        return secondaryVoltageControl;
+    }
+
+    public LfNetworkParameters setSecondaryVoltageControl(boolean secondaryVoltageControl) {
+        this.secondaryVoltageControl = secondaryVoltageControl;
+        return this;
+    }
+
+    public boolean isCacheEnabled() {
+        return cacheEnabled;
+    }
+
+    public LfNetworkParameters setCacheEnabled(boolean cacheEnabled) {
+        this.cacheEnabled = cacheEnabled;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -327,6 +388,10 @@ public class LfNetworkParameters {
                 ", reactiveRangeCheckMode=" + reactiveRangeCheckMode +
                 ", lowImpedanceThreshold=" + lowImpedanceThreshold +
                 ", svcVoltageMonitoring=" + svcVoltageMonitoring +
+                ", maxSlackBusCount=" + maxSlackBusCount +
+                ", debugDir=" + debugDir +
+                ", secondaryVoltageControl=" + secondaryVoltageControl +
+                ", cacheEnabled=" + cacheEnabled +
                 ')';
     }
 }

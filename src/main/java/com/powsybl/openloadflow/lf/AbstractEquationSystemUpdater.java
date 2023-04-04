@@ -22,8 +22,11 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
 
     protected final EquationSystem<V, E> equationSystem;
 
-    protected AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem) {
+    protected final boolean dc;
+
+    protected AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem, boolean dc) {
         this.equationSystem = equationSystem;
+        this.dc = dc;
     }
 
     protected static void checkSlackBus(LfBus bus, boolean disabled) {
@@ -34,9 +37,16 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
 
     protected abstract void updateNonImpedantBranchEquations(LfBranch branch, boolean enable);
 
+    @Override
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
+        if (dc == this.dc) {
+            updateNonImpedantBranchEquations(branch, !branch.isDisabled() && spanningTree);
+        }
+    }
+
     protected void updateElementEquations(LfElement element, boolean enable) {
-        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedance() && ((LfBranch) element).isSpanningTreeEdge()) {
-            updateNonImpedantBranchEquations((LfBranch) element, enable);
+        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedance(dc)) {
+            updateNonImpedantBranchEquations((LfBranch) element, enable && ((LfBranch) element).isSpanningTreeEdge(dc));
         } else {
             // update all equations related to the element
             for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {

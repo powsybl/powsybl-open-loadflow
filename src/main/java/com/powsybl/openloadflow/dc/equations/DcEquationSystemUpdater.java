@@ -8,7 +8,9 @@ package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -16,7 +18,7 @@ import com.powsybl.openloadflow.network.*;
 public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVariableType, DcEquationType> {
 
     public DcEquationSystemUpdater(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        super(equationSystem);
+        super(equationSystem, true);
     }
 
     @Override
@@ -45,6 +47,7 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                 break;
             case BRANCH:
             case HVDC:
+            case SHUNT_COMPENSATOR:
                 // nothing to do.
                 break;
             default:

@@ -14,15 +14,14 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -31,8 +30,11 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.sensitivity.SensitivityAnalysisResult;
+import com.powsybl.sensitivity.SensitivityFactorReader;
+import com.powsybl.sensitivity.SensitivityResultWriter;
+import com.powsybl.sensitivity.SensitivityVariableSet;
 import com.powsybl.sensitivity.*;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -46,8 +48,8 @@ import java.util.stream.Collectors;
  */
 public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariableType, AcEquationType> {
 
-    public AcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        super(matrixFactory, connectivityFactory);
+    public AcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
+        super(matrixFactory, connectivityFactory, parameters);
     }
 
     private void calculateSensitivityValues(List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors, SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups, DenseMatrix factorsState,
@@ -57,7 +59,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         // VALID_ONLY_FOR_FUNCTION status is for factors where variable element is not in the main connected component but reference element is.
         // Therefore, the sensitivity is known to value 0 and the reference value can be computed.
         lfFactors.stream().filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)
-                .forEach(factor -> resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference())));
+                .forEach(factor -> {
+                    if (!filterSensitivityValue(0, factor.getVariableType(), factor.getFunctionType(), parameters)) {
+                        resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, 0, unscaleFunction(factor, factor.getFunctionReference()));
+                    }
+                });
 
         for (SensitivityFactorGroup<AcVariableType, AcEquationType> factorGroup : factorGroups.getList()) {
             for (LfSensitivityFactor<AcVariableType, AcEquationType> factor : factorGroup.getFactors()) {
@@ -73,27 +79,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                     }
                     sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
-                    if (factor.getFunctionElement() instanceof LfBranch &&
-                            factor instanceof SingleVariableLfSensitivityFactor &&
-                            ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement() instanceof LfBranch &&
-                            ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) factor).getVariableElement().equals(factor.getFunctionElement())) {
-                        // add nabla_p eta, fr specific cases
-                        // the only case currently: if we are computing the sensitivity of a phasetap change on itself
-                        Variable<AcVariableType> phi1Var = factor.getFunctionEquationTerm().getVariables()
-                                .stream()
-                                .filter(var -> var.getElementNum() == factor.getFunctionElement().getNum() && var.getType().equals(AcVariableType.BRANCH_ALPHA1))
-                                .findAny()
-                                .orElseThrow(() -> new PowsyblException("No alpha_1 variable on the function branch"));
-                        sensi += Math.toRadians(factor.getFunctionEquationTerm().der(phi1Var));
-                    }
                 }
                 if (factor.getFunctionPredefinedResult() != null) {
                     ref = factor.getFunctionPredefinedResult();
                 } else {
                     ref = factor.getFunctionReference();
                 }
-
-                resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, unscaleSensitivity(factor, sensi), unscaleFunction(factor, ref));
+                double unscaledSensi = unscaleSensitivity(factor, sensi);
+                if (!filterSensitivityValue(unscaledSensi, factor.getVariableType(), factor.getFunctionType(), parameters)) {
+                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, unscaledSensi, unscaleFunction(factor, ref));
+                }
             }
         }
     }
@@ -154,17 +149,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, resultWriter);
     }
 
-    @Override
-    public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
-        super.checkContingencies(lfNetwork, contingencies);
-
-        for (PropagatedContingency contingency : contingencies) {
-            if (!contingency.getShuntIdsToShift().isEmpty()) {
-                throw new NotImplementedException("Shunt Contingencies are not yet supported in AC mode.");
-            }
-        }
-    }
-
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean throwsExceptionIfNoConvergence) {
         AcLoadFlowResult result = new AcloadFlowEngine(context)
                 .run();
@@ -183,17 +167,17 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     /**
      * https://people.montefiore.uliege.be/vct/elec0029/lf.pdf / Equation 32 is transposed
      */
+    @Override
     public void analyse(Network network, List<PropagatedContingency> contingencies, List<SensitivityVariableSet> variableSets,
-                        LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, SensitivityFactorReader factorReader,
-                        SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen) {
+                        SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, Reporter reporter, Set<Switch> allSwitchesToOpen) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(contingencies);
-        Objects.requireNonNull(lfParameters);
-        Objects.requireNonNull(lfParametersExt);
         Objects.requireNonNull(factorReader);
         Objects.requireNonNull(resultWriter);
         Objects.requireNonNull(reporter);
 
+        LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
+        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
         Pair<Boolean, Boolean> hasBusTargetVoltage = hasBusTargetVoltage(factorReader, network);
         boolean breakers = !allSwitchesToOpen.isEmpty();
         if (breakers && Boolean.TRUE.equals(hasBusTargetVoltage.getLeft())) {
@@ -209,7 +193,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // voltage control for the AC load flow engine.
             lfParameters.setTransformerVoltageControlOn(true);
         }
-        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(), lfParametersExt.getPlausibleActivePowerLimit());
+        SlackBusSelector slackBusSelector = SlackBusSelector.fromMode(lfParametersExt.getSlackBusSelectionMode(), lfParametersExt.getSlackBusesIds(),
+                lfParametersExt.getPlausibleActivePowerLimit(), lfParametersExt.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(), lfParametersExt.getSlackBusCountryFilter());
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
@@ -227,10 +212,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setReactivePowerRemoteControl(lfParametersExt.hasReactivePowerRemoteControl())
                 .setDc(lfParameters.isDc())
                 .setShuntVoltageControl(lfParameters.isShuntCompensatorVoltageControlOn())
-                .setReactiveLimits(!lfParameters.isNoGeneratorReactiveLimits())
+                .setReactiveLimits(lfParameters.isUseReactiveLimits())
                 .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
-                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage());
+                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
+                .setCacheEnabled(false); // force not caching as not supported in sensi analysis
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, Collections.emptySet(), reporter)) {

@@ -139,6 +139,12 @@ public final class Networks {
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
                                      Set<Switch> switchesToOpen, Set<Switch> switchesToClose, Reporter reporter) {
+        return load(network, networkParameters, switchesToOpen, switchesToClose, LfNetworkList.DefaultVariantCleaner::new, reporter);
+    }
+
+    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
+                                     Set<Switch> switchesToOpen, Set<Switch> switchesToClose,
+                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
         if (switchesToOpen.isEmpty() && switchesToClose.isEmpty()) {
             return new LfNetworkList(load(network, networkParameters, reporter));
         } else {
@@ -164,7 +170,7 @@ public final class Networks {
                 }
             }
 
-            return new LfNetworkList(lfNetworks, new LfNetworkList.VariantCleaner(network, workingVariantId, tmpVariantId));
+            return new LfNetworkList(lfNetworks, variantCleanerFactory.create(network, workingVariantId, tmpVariantId));
         }
     }
 
@@ -176,5 +182,41 @@ public final class Networks {
     public static Bus getBus(Terminal terminal, boolean breakers) {
         return breakers ? terminal.getBusBreakerView().getBus()
                         : terminal.getBusView().getBus();
+    }
+
+    public static Optional<Terminal> getEquipmentRegulatingTerminal(Network network, String equipmentId) {
+        Generator generator = network.getGenerator(equipmentId);
+        if (generator != null) {
+            return Optional.of(generator.getRegulatingTerminal());
+        }
+        StaticVarCompensator staticVarCompensator = network.getStaticVarCompensator(equipmentId);
+        if (staticVarCompensator != null) {
+            return Optional.of(staticVarCompensator.getRegulatingTerminal());
+        }
+        TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer(equipmentId);
+        if (t2wt != null) {
+            RatioTapChanger rtc = t2wt.getRatioTapChanger();
+            if (rtc != null) {
+                return Optional.of(rtc.getRegulationTerminal());
+            }
+        }
+        ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer(equipmentId);
+        if (t3wt != null) {
+            for (ThreeWindingsTransformer.Leg leg : t3wt.getLegs()) {
+                RatioTapChanger rtc = leg.getRatioTapChanger();
+                if (rtc != null && rtc.isRegulating()) {
+                    return Optional.of(rtc.getRegulationTerminal());
+                }
+            }
+        }
+        ShuntCompensator shuntCompensator = network.getShuntCompensator(equipmentId);
+        if (shuntCompensator != null) {
+            return Optional.of(shuntCompensator.getRegulatingTerminal());
+        }
+        VscConverterStation vsc = network.getVscConverterStation(equipmentId);
+        if (vsc != null) {
+            return Optional.of(vsc.getTerminal()); // local regulation only
+        }
+        return Optional.empty();
     }
 }

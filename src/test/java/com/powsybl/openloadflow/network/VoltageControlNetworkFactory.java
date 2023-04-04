@@ -111,48 +111,36 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
-                .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr2")
-                .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
                 .setConnectableBus1(b2.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.2)
                 .setRatedU2(398)
                 .setR(1)
                 .setX(36)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr3")
-                .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
                 .setConnectableBus1(b3.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(21.3)
                 .setRatedU2(397)
                 .setR(2)
                 .setX(50)
-                .setG(0)
-                .setB(0)
                 .add();
 
         return network;
@@ -245,48 +233,36 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
-                .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr2")
-                .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
                 .setConnectableBus1(b2.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr3")
-                .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
                 .setConnectableBus1(b3.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
 
         return network;
@@ -360,16 +336,11 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         network.newLine()
                 .setId("LINE_12")
-                .setVoltageLevel1("VL_1")
-                .setVoltageLevel2("VL_2")
                 .setBus1("BUS_1")
                 .setBus2("BUS_2")
                 .setR(1.05)
                 .setX(10.0)
                 .setG1(0.0000005)
-                .setG2(0.)
-                .setB1(0.)
-                .setB2(0.)
                 .add();
 
         return network;
@@ -391,8 +362,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         TwoWindingsTransformer t2wt = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
                 .setRatedU1(132.0)
                 .setRatedU2(33.0)
                 .setR(17.0)
@@ -442,6 +411,89 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         return network;
     }
 
+    public static Network createNetworkWithT2wt2() {
+
+        Network network = VoltageControlNetworkFactory.createTransformerBaseNetwork("two-windings-transformer-control");
+
+        TwoWindingsTransformer t2wt = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
+                .setId("T2wT")
+                .setRatedU1(132.0)
+                .setRatedU2(33.0)
+                .setR(17.0)
+                .setX(10.0)
+                .setG(0.00573921028466483)
+                .setB(0.000573921028466483)
+                .setBus1("BUS_2")
+                .setBus2("BUS_3")
+                .add();
+
+        t2wt.newRatioTapChanger()
+                .beginStep()
+                .setRho(1.75)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.7)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.5)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.2)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.05)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .beginStep()
+                .setRho(1.0)
+                .setR(0.121)
+                .setX(0.0121)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(0.9)
+                .setR(0.1089)
+                .setX(0.01089)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .setRegulating(false)
+                .setTargetV(33.0)
+                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .add();
+
+        return network;
+    }
+
     /**
      * A very small network to test with two T2wt.
      *
@@ -458,8 +510,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         TwoWindingsTransformer t2wt1 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT1")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
                 .setRatedU1(132.0)
                 .setRatedU2(33.0)
                 .setR(17.0)
@@ -508,8 +558,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         TwoWindingsTransformer t2wt2 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
                 .setId("T2wT2")
-                .setVoltageLevel1("VL_2")
-                .setVoltageLevel2("VL_3")
                 .setRatedU1(132.0)
                 .setRatedU2(33.0)
                 .setR(17.0)
@@ -605,30 +653,21 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .newLeg1()
                 .setR(2.0)
                 .setX(10.0)
-                .setG(0.0)
-                .setB(0.0)
                 .setRatedU(130.0)
-                .setVoltageLevel("VL_2")
                 .setConnectableBus("BUS_2")
                 .setBus("BUS_2")
                 .add()
                 .newLeg2()
                 .setR(2.0)
                 .setX(10.0)
-                .setG(0.0)
-                .setB(0.0)
                 .setRatedU(30.0)
-                .setVoltageLevel("VL_3")
                 .setConnectableBus("BUS_3")
                 .setBus("BUS_3")
                 .add()
                 .newLeg3()
                 .setR(2.0)
                 .setX(10.0)
-                .setG(0.0)
-                .setB(0.0)
                 .setRatedU(10.0)
-                .setVoltageLevel("VL_4")
                 .setConnectableBus("BUS_4")
                 .setBus("BUS_4")
                 .add()
@@ -681,8 +720,6 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         TwoWindingsTransformer t2wt2 = network.getSubstation("SUBSTATION")
                 .newTwoWindingsTransformer()
                     .setId("T2wT2")
-                    .setVoltageLevel1("VL_2")
-                    .setVoltageLevel2("VL_3")
                     .setRatedU1(132.0)
                     .setRatedU2(33.0)
                     .setR(17.0)
@@ -842,50 +879,106 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
-                .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr2")
-                .setVoltageLevel1(b2.getVoltageLevel().getId())
                 .setBus1(b2.getId())
                 .setConnectableBus1(b2.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr3")
-                .setVoltageLevel1(b3.getVoltageLevel().getId())
                 .setBus1(b3.getId())
                 .setConnectableBus1(b3.getId())
-                .setVoltageLevel2(vl4.getId())
                 .setBus2(b4.getId())
                 .setConnectableBus2(b4.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
 
+        return network;
+    }
+
+    /**
+     * SVC test case.
+     *
+     * g1        ld1
+     * |          |
+     * b1---------b2
+     *      l1    |
+     *           svc1
+     */
+    public static Network createWithStaticVarCompensator() {
+        Network network = Network.create("svc", "test");
+        Substation s1 = network.newSubstation()
+                .setId("S1")
+                .add();
+        Substation s2 = network.newSubstation()
+                .setId("S2")
+                .add();
+        VoltageLevel vl1 = s1.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        vl1.newGenerator()
+                .setId("g1")
+                .setConnectableBus("b1")
+                .setBus("b1")
+                .setTargetP(101.3664)
+                .setTargetV(390)
+                .setMinP(0)
+                .setMaxP(150)
+                .setVoltageRegulatorOn(true)
+                .add();
+        VoltageLevel vl2 = s2.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        vl2.newLoad()
+                .setId("ld1")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setP0(101)
+                .setQ0(150)
+                .add();
+        vl2.newStaticVarCompensator()
+                .setId("svc1")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
+                .setBmin(-0.008)
+                .setBmax(0.008)
+                .add();
+        network.newLine()
+                .setId("l1")
+                .setBus1("b1")
+                .setBus2("b2")
+                .setR(1)
+                .setX(3)
+                .add();
         return network;
     }
 }

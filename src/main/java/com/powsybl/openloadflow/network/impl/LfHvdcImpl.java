@@ -151,19 +151,18 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     @Override
     public void setConverterStation1(LfVscConverterStation converterStation1) {
         this.converterStation1 = Objects.requireNonNull(converterStation1);
-        converterStation1.setTargetP(0); // FIXME
+        converterStation1.setHvdc(this);
     }
 
     @Override
     public void setConverterStation2(LfVscConverterStation converterStation2) {
         this.converterStation2 = Objects.requireNonNull(converterStation2);
-        converterStation2.setTargetP(0); // FIXME
+        converterStation2.setHvdc(this);
     }
 
     @Override
     public void updateState() {
-        // Should be done before updating state of generators.
-        converterStation1.setTargetP(-p1.eval());
-        converterStation2.setTargetP(-p2.eval());
+        ((LfVscConverterStationImpl) converterStation1).getStation().getTerminal().setP(p1.eval() * PerUnit.SB);
+        ((LfVscConverterStationImpl) converterStation2).getStation().getTerminal().setP(p2.eval() * PerUnit.SB);
     }
 }

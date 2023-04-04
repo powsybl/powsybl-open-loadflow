@@ -74,18 +74,14 @@ class GeneratorRemoteControlLocalRescaleTest {
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
-                .setVoltageLevel1(b1.getVoltageLevel().getId())
                 .setBus1(b1.getId())
                 .setConnectableBus1(b1.getId())
-                .setVoltageLevel2(vl2.getId())
                 .setBus2(b2.getId())
                 .setConnectableBus2(b2.getId())
                 .setRatedU1(20.5)
                 .setRatedU2(399)
                 .setR(1)
                 .setX(30)
-                .setG(0)
-                .setB(0)
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));

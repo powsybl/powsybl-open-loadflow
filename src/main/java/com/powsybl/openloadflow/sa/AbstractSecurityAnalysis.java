@@ -24,10 +24,7 @@ import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.security.*;
-import com.powsybl.security.action.Action;
-import com.powsybl.security.action.LineConnectionAction;
-import com.powsybl.security.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.security.action.SwitchAction;
+import com.powsybl.security.action.*;
 import com.powsybl.security.condition.AllViolationCondition;
 import com.powsybl.security.condition.AnyViolationCondition;
 import com.powsybl.security.condition.AtLeastOneViolationCondition;
@@ -153,15 +150,39 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     break;
                 }
 
+                case LoadAction.NAME: {
+                    LoadAction loadAction = (LoadAction) action;
+                    if (network.getLoad(loadAction.getLoadId()) == null) {
+                        throw new PowsyblException("Load '" + loadAction.getLoadId() + "' not found");
+                    }
+                    break;
+                }
+
+                case GeneratorAction.NAME: {
+                    GeneratorAction generatorAction = (GeneratorAction) action;
+                    if (network.getGenerator(generatorAction.getGeneratorId()) == null) {
+                        throw new PowsyblException("Generator '" + generatorAction.getGeneratorId() + "' not found");
+                    }
+                    break;
+                }
+
+                case HvdcAction.NAME: {
+                    HvdcAction hvdcAction = (HvdcAction) action;
+                    if (network.getHvdcLine(hvdcAction.getHvdcId()) == null) {
+                        throw new PowsyblException("Hvdc line '" + hvdcAction.getHvdcId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
         }
     }
 
-    protected static Map<String, LfAction> createLfActions(LfNetwork network, Set<Action> actions) {
+    protected static Map<String, LfAction> createLfActions(LfNetwork lfNetwork, Set<Action> actions, Network network, LfNetworkParameters parameters) {
         return actions.stream()
-                .map(action -> LfAction.create(action, network))
+                .map(action -> LfAction.create(action, lfNetwork, network, parameters.isBreakers()))
                 .flatMap(Optional::stream)
                 .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
@@ -184,7 +205,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Set<String> contingencyIds = propagatedContingencies.stream().map(propagatedContingency -> propagatedContingency.getContingency().getId()).collect(Collectors.toSet());
         Map<String, List<OperatorStrategy>> operatorStrategiesByContingencyId = new HashMap<>();
         for (OperatorStrategy operatorStrategy : operatorStrategies) {
-            if (contingencyIds.contains(operatorStrategy.getContingencyId())) {
+            if (contingencyIds.contains(operatorStrategy.getContingencyContext().getContingencyId())) {
                 // check actions IDs exists
                 for (String actionId : operatorStrategy.getActionIds()) {
                     Action action = actionsById.get(actionId);
@@ -194,11 +215,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                     }
                     neededActions.add(action);
                 }
-                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyId(), key -> new ArrayList<>())
+                operatorStrategiesByContingencyId.computeIfAbsent(operatorStrategy.getContingencyContext().getContingencyId(), key -> new ArrayList<>())
                         .add(operatorStrategy);
             } else {
                 throw new PowsyblException("Operator strategy '" + operatorStrategy.getId() + "' is associated to contingency '"
-                        + operatorStrategy.getContingencyId() + "' but this contingency is not present in the list");
+                        + operatorStrategy.getContingencyContext().getContingencyId() + "' but this contingency is not present in the list");
             }
         }
         return operatorStrategiesByContingencyId;
@@ -251,9 +272,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected OperatorStrategyResult runActionSimulation(LfNetwork network, C context, OperatorStrategy operatorStrategy,
                                                          LimitViolationManager preContingencyLimitViolationManager,
                                                          SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                                         Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency) {
+                                                         Map<String, LfAction> lfActionById, boolean createResultExtension, LfContingency contingency,
+                                                         LfNetworkParameters networkParameters) {
         LOGGER.info("Start operator strategy {} after contingency '{}' simulation on network {}", operatorStrategy.getId(),
-                operatorStrategy.getContingencyId(), network);
+                operatorStrategy.getContingencyContext().getContingencyId(), network);
 
         // get LF action for this operator strategy, as all actions have been previously checked against IIDM
         // network, an empty LF action means it is for another component (so another LF network) so we can
@@ -263,7 +285,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        LfAction.apply(operatorStrategyLfActions, network, contingency);
+        LfAction.apply(operatorStrategyLfActions, network, contingency, networkParameters);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -283,7 +305,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         stopwatch.stop();
 
         LOGGER.info("Operator strategy {} after contingency '{}' simulation done on network {} in {} ms", operatorStrategy.getId(),
-                operatorStrategy.getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                operatorStrategy.getContingencyContext().getContingencyId(), network, stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
         return new OperatorStrategyResult(operatorStrategy, status,
                 new LimitViolationsResult(postActionsViolationManager.getLimitViolations()),
