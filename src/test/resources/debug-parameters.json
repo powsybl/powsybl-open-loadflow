@@ -57,6 +57,10 @@
         "reactiveLimitsMaxPqPvSwitch" : 3,
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
         "alwaysUpdateNetwork" : false,
+        "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile" : 95.0,
+        "reportedFeatures" : [ ],
+        "slackBusCountryFilter" : [ ],
+        "actionableSwitchesIds" : [ ],
         "disym" : false
       }
     }

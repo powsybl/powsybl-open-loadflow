@@ -44,9 +44,13 @@ public abstract class AbstractElement extends AbstractPropertyBag implements LfE
     public void setDisabled(boolean disabled) {
         if (disabled != this.disabled) {
             this.disabled = disabled;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onDisableChange(this, disabled);
-            }
+            notifyDisable();
+        }
+    }
+
+    protected void notifyDisable() {
+        for (LfNetworkListener listener : network.getListeners()) {
+            listener.onDisableChange(this, disabled);
         }
     }
 

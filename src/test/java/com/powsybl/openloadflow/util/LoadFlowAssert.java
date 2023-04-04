@@ -6,12 +6,19 @@
  */
 package com.powsybl.openloadflow.util;
 
+import com.google.common.io.ByteStreams;
+import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
+import static com.powsybl.commons.test.TestUtil.normalizeLineSeparator;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -81,5 +88,18 @@ public final class LoadFlowAssert {
                     componentResult.getSlackBusActivePowerMismatch(), DELTA_MISMATCH,
                     "Wrong active power mismatch");
         }
+    }
+
+    public static void assertReportEquals(String refResourceName, ReporterModel reporter) throws IOException {
+        assertReportEquals(LoadFlowAssert.class.getResourceAsStream(refResourceName), reporter);
+    }
+
+    public static void assertReportEquals(InputStream ref, ReporterModel reporter) throws IOException {
+        StringWriter sw = new StringWriter();
+        reporter.export(sw);
+
+        String refLogExport = normalizeLineSeparator(new String(ByteStreams.toByteArray(ref), StandardCharsets.UTF_8));
+        String logExport = normalizeLineSeparator(sw.toString());
+        assertEquals(refLogExport, logExport);
     }
 }
