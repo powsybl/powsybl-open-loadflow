@@ -17,11 +17,11 @@ public class AsymBus {
 
     public static final double SB = 100.;
 
-    public AsymBus(LfBus lfBus, double vHomopolar, double angleHompolar, double vInverse, double angleInverse) {
-        this.vZero = vHomopolar;
-        this.angleZero = angleHompolar;
-        this.vNegative = vInverse;
-        this.angleNegative = angleInverse;
+    public AsymBus(LfBus lfBus, double vZero, double angleZero, double vNegative, double angleNegative) {
+        this.vZero = vZero;
+        this.angleZero = angleZero;
+        this.vNegative = vNegative;
+        this.angleNegative = angleNegative;
         this.lfBus = lfBus;
 
         LfBusImpl lfBusImpl = null;

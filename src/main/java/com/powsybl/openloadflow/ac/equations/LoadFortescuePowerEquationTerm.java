@@ -8,7 +8,7 @@ import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.Extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,15 +67,15 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         variables.add(phVarHom);
     }
 
-    public double ph(int g) {
+    public double ph(Fortescue.SequenceType g) {
         switch (g) {
-            case 0: // zero
+            case ZERO: // zero
                 return sv.get(phVarHom.getRow());
 
-            case 1: // positive
+            case POSITIVE: // positive
                 return sv.get(phVar.getRow());
 
-            case 2: // negative
+            case NEGATIVE: // negative
                 return sv.get(phVarInv.getRow());
 
             default:
@@ -83,15 +83,15 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         }
     }
 
-    public double v(int g) {
+    public double v(Fortescue.SequenceType g) {
         switch (g) {
-            case 0: // zero
+            case ZERO: // zero
                 return sv.get(vVarHom.getRow());
 
-            case 1: // positive
+            case POSITIVE: // positive
                 return sv.get(vVar.getRow());
 
-            case 2: // negative
+            case NEGATIVE: // negative
                 return sv.get(vVarInv.getRow());
 
             default:
@@ -118,11 +118,11 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         // Build of Sabc/3 vector
         DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
 
-        Pair<Double, Double> directComponent = Fortescue.getCartesianFromPolar(vd, phd);
-        Pair<Double, Double> homopolarComponent = Fortescue.getCartesianFromPolar(vo, pho);
-        Pair<Double, Double> inversComponent = Fortescue.getCartesianFromPolar(vi, phi);
+        Vector2D directComponent = Fortescue.getCartesianFromPolar(vd, phd);
+        Vector2D homopolarComponent = Fortescue.getCartesianFromPolar(vo, pho);
+        Vector2D inversComponent = Fortescue.getCartesianFromPolar(vi, phi);
 
-        DenseMatrix mVfortescue = getCartesianMatrix(homopolarComponent.getKey(), homopolarComponent.getValue(), directComponent.getKey(), directComponent.getValue(), inversComponent.getKey(), inversComponent.getValue(), true); // vector build with cartesian values (Vx,Vy) of complex fortescue voltages
+        DenseMatrix mVfortescue = getCartesianMatrix(homopolarComponent.getX(), homopolarComponent.getY(), directComponent.getX(), directComponent.getY(), inversComponent.getX(), inversComponent.getY(), true); // vector build with cartesian values (Vx,Vy) of complex fortescue voltages
         DenseMatrix mVabc = Fortescue.getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build  1/Vabc square matrix
@@ -196,10 +196,11 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         }
 
         // build of voltage vectors
-        Pair<Double, Double> positiveComponent = Fortescue.getCartesianFromPolar(vd, phd);
-        Pair<Double, Double> zeroComponent = Fortescue.getCartesianFromPolar(vo, pho);
-        Pair<Double, Double> negativeComponent = Fortescue.getCartesianFromPolar(vi, phi);
-        DenseMatrix mVfortescue = getCartesianMatrix(zeroComponent.getKey(), zeroComponent.getValue(), positiveComponent.getKey(), positiveComponent.getValue(), negativeComponent.getKey(), negativeComponent.getValue(), true); // vector build with cartesian values of complex fortescue voltages
+        Vector2D positiveComponent = Fortescue.getCartesianFromPolar(vd, phd);
+        Vector2D zeroComponent = Fortescue.getCartesianFromPolar(vo, pho);
+        Vector2D negativeComponent = Fortescue.getCartesianFromPolar(vi, phi);
+
+        DenseMatrix mVfortescue = getCartesianMatrix(zeroComponent.getX(), zeroComponent.getY(), positiveComponent.getX(), positiveComponent.getY(), negativeComponent.getX(), negativeComponent.getY(), true); // vector build with cartesian values of complex fortescue voltages
         DenseMatrix mVabc = Fortescue.getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build of Sabc vector
@@ -250,12 +251,18 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     @Override
     public double eval() {
-        return pq(isRealPart, sequenceNum, this, v(0), ph(0), v(1), ph(1), v(2), ph(2));
+        return pq(isRealPart, sequenceNum, this,
+                v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
+                v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        return dpq(isRealPart, sequenceNum, this, variable, v(0), ph(0), v(1), ph(1), v(2), ph(2));
+        return dpq(isRealPart, sequenceNum, this, variable,
+                v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
+                v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
+                v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
     }
 
     @Override
@@ -299,9 +306,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         double invVcx = vCx / vCcongVc;
         double invVcy = -vCy / vCcongVc;
 
-        DenseMatrix mInvVabc = getCartesianMatrix(invVax, invVay, invVbx, invVby, invVcx, invVcy, false);
-
-        return mInvVabc;
+        return getCartesianMatrix(invVax, invVay, invVbx, invVby, invVcx, invVcy, false);
     }
 
     public static DenseMatrix getCartesianMatrix(double m1x, double m1y, double m2x, double m2y, double m3x, double m3y, boolean isVector) {

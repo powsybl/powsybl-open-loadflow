@@ -1,7 +1,7 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.math.matrix.DenseMatrix;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
@@ -109,15 +109,9 @@ public final class Fortescue {
         return mFortescue.toDense();
     }
 
-    public static Pair<Double, Double> getCartesianFromPolar(double magnitude, double angle) {
+    public static Vector2D getCartesianFromPolar(double magnitude, double angle) {
         double xValue = magnitude * Math.cos(angle);
         double yValue = magnitude * Math.sin(angle);
-        return new org.apache.commons.math3.util.Pair<>(xValue, yValue);
-    }
-
-    public static Pair<Double, Double> getPolarFromCartesian(double xValue, double yValue) {
-        double magnitude = Math.sqrt(xValue * xValue + yValue * yValue);
-        double phase = Math.atan2(yValue, xValue);
-        return new org.apache.commons.math3.util.Pair<>(magnitude, phase);
+        return new Vector2D(xValue, yValue);
     }
 }

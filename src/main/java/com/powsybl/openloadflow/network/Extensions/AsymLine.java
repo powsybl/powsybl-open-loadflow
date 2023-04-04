@@ -29,7 +29,7 @@ public class AsymLine {
     private final AsymLineAdmittanceMatrix admittanceMatrix;
 
     public boolean isDisconnectionAsymmetryDetected() {
-        return isOpenA | isOpenB | isOpenC;
+        return isOpenA || isOpenB || isOpenC;
     }
 
     public boolean isAdmittanceAsymmetryDetected() {

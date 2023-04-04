@@ -73,22 +73,16 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEq
         AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (sequenceType == Fortescue.SequenceType.ZERO) {
             return asymBus.getbZeroEquivalent();
-        } else if (sequenceType == Fortescue.SequenceType.NEGATIVE) {
-            return asymBus.getbNegativeEquivalent();
-        } else {
-            throw new IllegalStateException("Unexpected input sequence: " + sequenceType);
         }
+        return asymBus.getbNegativeEquivalent();
     }
 
     protected double g() {
         AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (sequenceType == Fortescue.SequenceType.ZERO) {
             return asymBus.getgZeroEquivalent();
-        } else if (sequenceType == Fortescue.SequenceType.NEGATIVE) {
-            return asymBus.getgNegativeEquivalent();
-        } else {
-            throw new IllegalStateException("Unexpected input sequence: " + sequenceType);
         }
+        return asymBus.getgNegativeEquivalent();
     }
 
 }
