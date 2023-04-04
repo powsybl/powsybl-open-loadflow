@@ -244,7 +244,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
                 return isRealPart ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
 
             default:
-                throw new IllegalStateException("Unknow variable at bus : " + eqTerm.bus.getId());
+                throw new IllegalStateException("Unknown variable at bus : " + eqTerm.bus.getId());
         }
     }
 

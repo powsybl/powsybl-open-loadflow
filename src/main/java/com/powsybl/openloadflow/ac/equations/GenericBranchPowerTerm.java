@@ -91,9 +91,9 @@ public final class GenericBranchPowerTerm {
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
             return dtxdph2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return dtxda1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
+            return 0;
         } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return dtxdr1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
+            return 0;
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 1) {
             return dtxdv1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 2) {
@@ -161,31 +161,6 @@ public final class GenericBranchPowerTerm {
             return ri * rj * vgi * vhj * (yxijgh * -Math.sin(ai - aj + thgi - thhj) - yyijgh * Math.cos(ai - aj + thgi - thhj));
         } else if (j == 2 && h == 1) {
             return ri * rj * vgi * vhj * (yxijgh * -Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxda1(int i, int j, int g, int h,
-                                double ri, double rj, double ai, double aj, double vgi, double vhj, double thgi, double thhj, double yxijgh, double yyijgh) {
-        if (i == 1 && g == 1 && j == 1 && h == 1) {
-            return 0;
-        } else if (i == 1 && g == 1) {
-            return ri * rj * vgi * vhj * (yxijgh * -Math.sin(ai - aj + thgi - thhj) - yyijgh * Math.cos(ai - aj + thgi - thhj));
-        } else if (j == 1 && h == 1) {
-            return ri * rj * vgi * vhj * (yxijgh * -Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdr1(int i, int j, int g, int h,
-                                double ri, double rj, double ai, double aj, double vgi, double vhj, double thgi, double thhj, double yxijgh, double yyijgh) {
-        double tmpVal = vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj));
-        if (i == 1 && g == 1 && j == 1 && h == 1) {
-            return 2 * ri * tmpVal;
-        } else if (i == 1) {
-            return rj * vgi * vhj * tmpVal;
-        } else if (j == 1) {
-            return ri * vgi * vhj * tmpVal;
         }
         return 0;
     }
@@ -316,9 +291,9 @@ public final class GenericBranchPowerTerm {
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
             return dtydph2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return dtyda1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
+            return 0;
         } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return dtydr1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
+            return 0;
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 1) {
             return dtydv1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 2) {
@@ -386,31 +361,6 @@ public final class GenericBranchPowerTerm {
             return ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj));
         } else if (j == 2 && h == 1) {
             return ri * rj * vgi * vhj * (yxijgh * -Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj));
-        }
-        return 0;
-    }
-
-    public static double dtyda1(int i, int j, int g, int h,
-                                double ri, double rj, double ai, double aj, double vgi, double vhj, double thgi, double thhj, double yxijgh, double yyijgh) {
-        if (i == 1 && g == 1 && j == 1 && h == 1) {
-            return 0;
-        } else if (i == 1 && g == 1) {
-            return ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj));
-        } else if (j == 1 && h == 1) {
-            return ri * rj * vgi * vhj * (yxijgh * -Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj));
-        }
-        return 0;
-    }
-
-    public static double dtydr1(int i, int j, int g, int h,
-                                double ri, double rj, double ai, double aj, double vgi, double vhj, double thgi, double thhj, double yxijgh, double yyijgh) {
-        double tmpTerm = yxijgh * Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj);
-        if (i == 1 && j == 1) {
-            return 2 * ri * vgi * vhj * tmpTerm;
-        } else if (i == 1) {
-            return rj * vgi * vhj * tmpTerm;
-        } else if (j == 1) {
-            return ri * vgi * vhj * tmpTerm;
         }
         return 0;
     }

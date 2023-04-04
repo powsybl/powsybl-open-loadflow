@@ -18,30 +18,67 @@ import java.util.Optional;
  */
 public class LfNetworkList implements AutoCloseable {
 
-    public static class VariantCleaner {
+    public interface VariantCleaner {
 
-        private final Network network;
+        String getTmpVariantId();
 
-        private final String workingVariantId;
+        void clean();
+    }
 
-        private final String tmpVariantId;
+    public abstract static class AbstractVariantCleaner implements VariantCleaner {
 
-        public VariantCleaner(Network network, String workingVariantId, String tmpVariantId) {
+        protected final Network network;
+
+        protected final String workingVariantId;
+
+        protected final String tmpVariantId;
+
+        protected AbstractVariantCleaner(Network network, String workingVariantId, String tmpVariantId) {
             this.network = Objects.requireNonNull(network);
             this.workingVariantId = Objects.requireNonNull(workingVariantId);
             this.tmpVariantId = Objects.requireNonNull(tmpVariantId);
         }
 
+        @Override
+        public String getTmpVariantId() {
+            return tmpVariantId;
+        }
+    }
+
+    public static class DefaultVariantCleaner extends AbstractVariantCleaner {
+
+        public DefaultVariantCleaner(Network network, String workingVariantId, String tmpVariantId) {
+            super(network, workingVariantId, tmpVariantId);
+        }
+
+        @Override
         public void clean() {
             network.getVariantManager().removeVariant(tmpVariantId);
             network.getVariantManager().setWorkingVariant(workingVariantId);
         }
     }
 
+    public static class WorkingVariantReverter extends AbstractVariantCleaner {
+
+        public WorkingVariantReverter(Network network, String workingVariantId, String tmpVariantId) {
+            super(network, workingVariantId, tmpVariantId);
+        }
+
+        @Override
+        public void clean() {
+            network.getVariantManager().setWorkingVariant(workingVariantId);
+        }
+    }
+
+    @FunctionalInterface
+    public interface VariantCleanerFactory {
+        VariantCleaner create(Network network, String workingVariantId, String tmpVariantId);
+    }
+
     // list of networks sorted by descending size
     private final List<LfNetwork> list;
 
-    private VariantCleaner variantCleaner;
+    private final VariantCleaner variantCleaner;
 
     public LfNetworkList(List<LfNetwork> list, VariantCleaner variantCleaner) {
         this.list = Objects.requireNonNull(list);
@@ -60,16 +97,14 @@ public class LfNetworkList implements AutoCloseable {
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
-    public VariantCleaner release() {
-        VariantCleaner variantCleanerToReturn = variantCleaner;
-        variantCleaner = null;
-        return variantCleanerToReturn;
-    }
-
     @Override
     public void close() {
         if (variantCleaner != null) {
             variantCleaner.clean();
         }
+    }
+
+    public VariantCleaner getVariantCleaner() {
+        return variantCleaner;
     }
 }

@@ -73,9 +73,7 @@ public final class GenericBranchCurrentTerm {
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
         double aj = equationTerm.a(j);
-        double vgi = equationTerm.v(g, i);
         double vhj = equationTerm.v(h, j);
-        double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
@@ -92,9 +90,9 @@ public final class GenericBranchCurrentTerm {
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
             return dtxdph2(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
         } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return dtxda1(i, j, g, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
+            return 0;
         } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return dtxdr1(i, j, g, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
+            return 0;
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 1) {
             return dtxdv1i(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 2) {
@@ -144,31 +142,6 @@ public final class GenericBranchCurrentTerm {
                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
         if (j == 2 && h == 1) {
             return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) - yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxda1(int i, int j, int g, int h,
-                                double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (i == 1 && g == 1 && j == 1 && h == 1) {
-            return 0;
-        } else if (i == 1 && g == 1) {
-            return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
-        } else if (j == 1 && h == 1) {
-            return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdr1(int i, int j, int g, int h,
-                                double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        double tmpVal = vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        if (i == 1 && g == 1 && j == 1 && h == 1) {
-            return 2 * ri * tmpVal;
-        } else if (i == 1) {
-            return rj * tmpVal;
-        } else if (j == 1) {
-            return ri * tmpVal;
         }
         return 0;
     }
@@ -246,7 +219,6 @@ public final class GenericBranchCurrentTerm {
         double aj = equationTerm.a(j);
         double vgi = equationTerm.v(g, i);
         double vhj = equationTerm.v(h, j);
-        double thgi = equationTerm.ph(g, i);
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
@@ -263,9 +235,9 @@ public final class GenericBranchCurrentTerm {
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
             return dtydph2(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
         } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return dtyda1(i, j, g, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
+            return 0;
         } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return dtydr1(i, j, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
+            return 0;
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 1) {
             return dtydv1i(j, h, ri, rj, ai, aj, vgi, thhj, yxijgh, yyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 2) {
@@ -316,29 +288,6 @@ public final class GenericBranchCurrentTerm {
                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
         if (j == 2 && h == 1) {
             return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtyda1(int i, int j, int g, int h,
-                                double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 1) {
-            return ri * rj * vhj * (-yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        } else if (i == 1 && g == 1) {
-            return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtydr1(int i, int j,
-                                double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        double tmpTerm = yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj);
-        if (i == 1 && j == 1) {
-            return 2 * ri * vhj * tmpTerm;
-        } else if (i == 1) {
-            return rj * vhj * tmpTerm;
-        } else if (j == 1) {
-            return ri * vhj * tmpTerm;
         }
         return 0;
     }

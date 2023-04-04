@@ -29,8 +29,8 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEq
         this.bus = bus;
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
-        AcVariableType vType = null;
-        AcVariableType phType = null;
+        AcVariableType vType;
+        AcVariableType phType;
         this.sequenceType = sequenceType;
         switch (sequenceType) {
             case ZERO:

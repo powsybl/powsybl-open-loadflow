@@ -14,11 +14,6 @@ import java.util.Objects;
 public class ClosedBranchI2yFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchI2yFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                           boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
-    }
-
-    public ClosedBranchI2yFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                            boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
