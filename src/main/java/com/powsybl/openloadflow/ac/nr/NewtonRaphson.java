@@ -193,16 +193,13 @@ public class NewtonRaphson {
 
                 case DUMMY_P:
                 case DUMMY_Q:
-                //case BUS_V_HOMOPOLAR: // when balanced, homopolar and inverse sequence should be zero
-                case BUS_PHI_HOMOPOLAR:
-                //case BUS_V_INVERSE:
-                case BUS_PHI_INVERSE:
+                case BUS_PHI_ZERO:
+                case BUS_PHI_NEGATIVE:
                     x[v.getRow()] = 0;
                     break;
 
-                case BUS_V_HOMOPOLAR: // when balanced, homopolar and inverse sequence should be zero
-                case BUS_V_INVERSE:
-                    // TODO : check if this has an influence on init [J]
+                case BUS_V_ZERO: // when balanced, zero and negative sequence should be zero
+                case BUS_V_NEGATIVE:
                     x[v.getRow()] = 0.1;
                     break;
 
@@ -220,36 +217,30 @@ public class NewtonRaphson {
             switch (v.getType()) {
                 case BUS_V:
                     network.getBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
-                    //System.out.println(">>>>>>>> UPDATE V(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI:
                     network.getBus(v.getElementNum()).setAngle(stateVector.get(v.getRow()));
-                    //System.out.println(">>>>>>>> UPDATE PH(" + network.getBus(v.getElementNum()).getId() + ")= " + Math.toDegrees(stateVector.get(v.getRow())));
                     break;
 
-                case BUS_V_HOMOPOLAR:
+                case BUS_V_ZERO:
                     AsymBus asymBusVh = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusVh.setvHomopolar(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
-                    //System.out.println(">>>>>>>> UPDATE V_H(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
+                    asymBusVh.setvZero(stateVector.get(v.getRow()));
                     break;
 
-                case BUS_PHI_HOMOPOLAR:
+                case BUS_PHI_ZERO:
                     AsymBus asymBusPhiH = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusPhiH.setAngleHompolar(Math.toDegrees(stateVector.get(v.getRow()))); // TODO : check asymbus : should not be null by construction
-                    //System.out.println(">>>>>>>> UPDATE PH_H(" + network.getBus(v.getElementNum()).getId() + ")= " + Math.toDegrees(stateVector.get(v.getRow())));
+                    asymBusPhiH.setAngleZero(stateVector.get(v.getRow()));
                     break;
 
-                case BUS_V_INVERSE:
+                case BUS_V_NEGATIVE:
                     AsymBus asymBusVi = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusVi.setvInverse(stateVector.get(v.getRow())); // TODO : check asymbus : should not be null by construction
-                    //System.out.println(">>>>>>>> UPDATE V_I(" + network.getBus(v.getElementNum()).getId() + ")= " + stateVector.get(v.getRow()));
+                    asymBusVi.setvNegative(stateVector.get(v.getRow()));
                     break;
 
-                case BUS_PHI_INVERSE:
+                case BUS_PHI_NEGATIVE:
                     AsymBus asymBusPhiI = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusPhiI.setAngleInverse(Math.toDegrees(stateVector.get(v.getRow()))); // TODO : check asymbus : should not be null by construction
-                    //System.out.println(">>>>>>>> UPDATE PH_I(" + network.getBus(v.getElementNum()).getId() + ")= " + Math.toDegrees(stateVector.get(v.getRow())));
+                    asymBusPhiI.setAngleNegative(stateVector.get(v.getRow()));
                     break;
 
                 case SHUNT_B:
@@ -329,10 +320,6 @@ public class NewtonRaphson {
 
         if (status == NewtonRaphsonStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             updateNetwork();
-            AbcResults abcResults = new AbcResults();
-            abcResults.fillAbcBussesResults(network); // stores ABC voltages and phases
-            abcResults.fillAbcBranchesResults(network);
-            //abcResults.getNodalSum(network); // used for debug
         }
 
         // update network state variable
@@ -342,17 +329,5 @@ public class NewtonRaphson {
 
         double slackBusActivePowerMismatch = network.getSlackBuses().stream().mapToDouble(LfBus::getMismatchP).sum();
         return new NewtonRaphsonResult(status, iterations.getValue(), slackBusActivePowerMismatch);
-    }
-
-    public org.apache.commons.math3.util.Pair<Double, Double> getCartesianFromPolar(double magnitude, double angle) {
-        double xValue = magnitude * Math.cos(angle);
-        double yValue = magnitude * Math.sin(angle); // TODO : check radians and degrees
-        return new org.apache.commons.math3.util.Pair<>(xValue, yValue);
-    }
-
-    public org.apache.commons.math3.util.Pair<Double, Double> getPolarFromCartesian(double xValue, double yValue) {
-        double magnitude = Math.sqrt(xValue * xValue + yValue * yValue);
-        double phase = Math.atan2(yValue, xValue); // TODO : check radians and degrees
-        return new org.apache.commons.math3.util.Pair<>(magnitude, phase);
     }
 }

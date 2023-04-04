@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.Extensions.AsymLine;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetrical;
@@ -42,19 +43,22 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
         LfBranchImpl lfBranchImpl = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
 
-        // TODO : add here the building of the LfBranch extension when it is a Line with an extension
         var extension = line.getExtension(LineAsymmetrical.class);
         if (extension != null) {
-            double rA = extension.getPhaseA().getrPhase() / zb;
-            double xA = extension.getPhaseA().getxPhase() / zb;
-            boolean isOpenA = extension.getPhaseA().isPhaseOpen();
-            double rB = extension.getPhaseB().getrPhase() / zb;
-            double xB = extension.getPhaseB().getxPhase() / zb;
-            boolean isOpenB = extension.getPhaseB().isPhaseOpen();
-            double rC = extension.getPhaseC().getrPhase() / zb;
-            double xC = extension.getPhaseC().getxPhase() / zb;
-            boolean isOpenC = extension.getPhaseC().isPhaseOpen();
-            AsymLine asymLine = new AsymLine(rA, xA, isOpenA, rB, xB, isOpenB, rC, xC, isOpenC);
+            AsymLine asymLine;
+            boolean isOpenA = extension.getOpenPhaseA();
+            boolean isOpenB = extension.getOpenPhaseB();
+            boolean isOpenC = extension.getOpenPhaseC();
+            var extensionIidm = line.getExtension(LineFortescue.class);
+            if (extensionIidm != null) {
+                double rz = extensionIidm.getRz();
+                double xz = extensionIidm.getXz();
+                asymLine = new AsymLine(rz / zb, xz / zb, 0, 0, 0, 0, isOpenA,
+                        piModel.getR(), piModel.getX(), 0, 0, 0, 0, isOpenB,
+                        piModel.getR(), piModel.getX(), 0, 0, 0, 0, isOpenC);
+            } else {
+                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical Pi values input data defined");
+            }
 
             lfBranchImpl.setProperty(AsymLine.PROPERTY_ASYMMETRICAL, asymLine);
         }

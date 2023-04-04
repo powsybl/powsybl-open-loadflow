@@ -8,62 +8,56 @@ public class AsymLine {
 
     public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";
 
-    public class AsymLinePhase {
-        private final double rPhase;
-        private final double xPhase;
-        private final boolean isPhaseOpen;
+    public AsymLine(double r1, double x1, double gi1, double bi1, double gj1, double bj1, boolean isPhaseOpenA,
+                    double r2, double x2, double gi2, double bi2, double gj2, double bj2, boolean isPhaseOpenB,
+                    double r3, double x3, double gi3, double bi3, double gj3, double bj3, boolean isPhaseOpenC) {
 
-        AsymLinePhase(double rPhase, double xPhase, boolean isPhaseOpen) {
-            this.rPhase = rPhase;
-            this.xPhase = xPhase;
-            this.isPhaseOpen = isPhaseOpen;
-        }
+        this.isOpenA = isPhaseOpenA;
+        this.isOpenB = isPhaseOpenB;
+        this.isOpenC = isPhaseOpenC;
+        this.piValues = new AsymLinePiValues(r1, x1, gi1, bi1, gj1, bj1,
+                r2, x2, gi2, bi2, gj2, bj2,
+                r3, x3, gi3, bi3, gj3, bj3);
+        this.admittanceMatrix = new AsymLineAdmittanceMatrix(this);
 
-        public double getrPhase() {
-            return rPhase;
-        }
-
-        public boolean isPhaseOpen() {
-            return isPhaseOpen;
-        }
-
-        public double getxPhase() {
-            return xPhase;
-        }
     }
 
-    public AsymLine(double rPhaseA, double xPhaseA, boolean isPhaseOpenA,
-                    double rPhaseB, double xPhaseB, boolean isPhaseOpenB,
-                    double rPhaseC, double xPhaseC, boolean isPhaseOpenC) {
-
-        this.linePhaseA = new AsymLinePhase(rPhaseA, xPhaseA, isPhaseOpenA);
-        this.linePhaseB = new AsymLinePhase(rPhaseB, xPhaseB, isPhaseOpenB);
-        this.linePhaseC = new AsymLinePhase(rPhaseC, xPhaseC, isPhaseOpenC);
-        this.admittanceTerms = new AsymLineAdmittanceTerms(this);
-    }
-
-    private final AsymLinePhase linePhaseA;
-    private final AsymLinePhase linePhaseB;
-    private final AsymLinePhase linePhaseC;
-    private final AsymLineAdmittanceTerms admittanceTerms;
-
-    public AsymLinePhase getLinePhaseA() {
-        return linePhaseA;
-    }
-
-    public AsymLinePhase getLinePhaseB() {
-        return linePhaseB;
-    }
-
-    public AsymLinePhase getLinePhaseC() {
-        return linePhaseC;
-    }
+    private final boolean isOpenA;
+    private final boolean isOpenB;
+    private final boolean isOpenC;
+    private final AsymLinePiValues piValues;
+    private final AsymLineAdmittanceMatrix admittanceMatrix;
 
     public boolean isDisconnectionAsymmetryDetected() {
-        return linePhaseA.isPhaseOpen() | linePhaseB.isPhaseOpen() | linePhaseC.isPhaseOpen();
+        return isOpenA | isOpenB | isOpenC;
     }
 
-    public AsymLineAdmittanceTerms getAdmittanceTerms() {
-        return admittanceTerms;
+    public boolean isAdmittanceAsymmetryDetected() {
+        boolean isAsymmetry = false;
+        if (admittanceMatrix != null) {
+            isAsymmetry = AsymLineAdmittanceMatrix.isAdmittanceDecoupled(admittanceMatrix.getmY012());
+        }
+
+        return isAsymmetry;
+    }
+
+    public AsymLineAdmittanceMatrix getAdmittanceMatrix() {
+        return admittanceMatrix;
+    }
+
+    public AsymLinePiValues getPiValues() {
+        return piValues;
+    }
+
+    public boolean isOpenA() {
+        return isOpenA;
+    }
+
+    public boolean isOpenB() {
+        return isOpenB;
+    }
+
+    public boolean isOpenC() {
+        return isOpenC;
     }
 }

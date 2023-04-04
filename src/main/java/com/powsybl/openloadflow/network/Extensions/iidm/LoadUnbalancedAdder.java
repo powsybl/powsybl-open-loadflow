@@ -3,6 +3,9 @@ package com.powsybl.openloadflow.network.Extensions.iidm;
 import com.powsybl.commons.extensions.AbstractExtensionAdder;
 import com.powsybl.iidm.network.Load;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public class LoadUnbalancedAdder extends AbstractExtensionAdder<Load, LoadUnbalanced> {
 
     private double deltaPa = 0.;

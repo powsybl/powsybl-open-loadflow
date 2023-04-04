@@ -18,13 +18,12 @@ public class AsymBus {
     public static final double SB = 100.;
 
     public AsymBus(LfBus lfBus, double vHomopolar, double angleHompolar, double vInverse, double angleInverse) {
-        this.vHomopolar = vHomopolar;
-        this.angleHompolar = angleHompolar;
-        this.vInverse = vInverse;
-        this.angleInverse = angleInverse;
+        this.vZero = vHomopolar;
+        this.angleZero = angleHompolar;
+        this.vNegative = vInverse;
+        this.angleNegative = angleInverse;
         this.lfBus = lfBus;
 
-        // TODO : add here info about unbalanced lfLoad
         LfBusImpl lfBusImpl = null;
         if (lfBus instanceof LfBusImpl) {
             lfBusImpl = (LfBusImpl) lfBus;
@@ -50,9 +49,6 @@ public class AsymBus {
                     totalDeltaQb = totalDeltaQb + deltaQb / SB;
                     totalDeltaPc = totalDeltaPc + deltaPc / SB;
                     totalDeltaQc = totalDeltaQc + deltaQc / SB;
-                    System.out.println("********************* >>>>>>>> completion of unbalanced load of bus = " + bus.getId() + "*************************************");
-                    //System.out.println(">>>>>>>> total Pa = " + totalDeltaPa);
-                    //System.out.println(">>>>>>>> total Qa = " + totalDeltaQa);
                 }
             }
         }
@@ -64,11 +60,11 @@ public class AsymBus {
 
     private final LfBus lfBus;
 
-    private double vHomopolar;
-    private double angleHompolar;
+    private double vZero;
+    private double angleZero;
 
-    private double vInverse;
-    private double angleInverse;
+    private double vNegative;
+    private double angleNegative;
 
     private double totalDeltaPa = 0.;
     private double totalDeltaQa = 0.;
@@ -77,87 +73,57 @@ public class AsymBus {
     private double totalDeltaPc = 0.;
     private double totalDeltaQc = 0.;
 
-    private Evaluable pHomopolar = EvaluableConstants.NAN;
-    private Evaluable qHomopolar = EvaluableConstants.NAN;
+    private double bZeroEquivalent = 0.; // equivalent shunt in zero and negative sequences induced by all equipment connected to the bus (generating units, loads modelled as shunts etc.)
+    private double gZeroEquivalent = 0.;
+    private double bNegativeEquivalent = 0.;
+    private double gNegativeEquivalent = 0.;
 
-    private Evaluable pInverse = EvaluableConstants.NAN;
-    private Evaluable qInverse = EvaluableConstants.NAN;
+    private Evaluable ixZero = EvaluableConstants.NAN;
+    private Evaluable iyZero = EvaluableConstants.NAN;
 
-    public double getAngleHompolar() {
-        return angleHompolar;
+    private Evaluable ixNegative = EvaluableConstants.NAN;
+    private Evaluable iyNegative = EvaluableConstants.NAN;
+
+    public void setAngleZero(double angleZero) {
+        this.angleZero = angleZero;
     }
 
-    public double getAngleInverse() {
-        return angleInverse;
+    public void setAngleNegative(double angleNegative) {
+        this.angleNegative = angleNegative;
     }
 
-    public double getvHomopolar() {
-        return vHomopolar;
+    public void setvZero(double vZero) {
+        this.vZero = vZero;
     }
 
-    public double getvInverse() {
-        return vInverse;
+    public void setvNegative(double vNegative) {
+        this.vNegative = vNegative;
     }
 
-    public void setAngleHompolar(double angleHompolar) {
-        this.angleHompolar = angleHompolar;
+    public void setIxZero(Evaluable ixZero) {
+        this.ixZero = ixZero;
     }
 
-    public void setAngleInverse(double angleInverse) {
-        this.angleInverse = angleInverse;
+    public void setIxNegative(Evaluable ixNegative) {
+        this.ixNegative = ixNegative;
     }
 
-    public void setvHomopolar(double vHomopolar) {
-        this.vHomopolar = vHomopolar;
+    public void setIyZero(Evaluable iyZero) {
+        this.iyZero = iyZero;
     }
 
-    public void setvInverse(double vInverse) {
-        this.vInverse = vInverse;
+    public void setIyNegative(Evaluable iyNegative) {
+        this.iyNegative = iyNegative;
     }
 
-    public Evaluable getPHomopolar() {
-        return pHomopolar;
-    }
-
-    public Evaluable getPInverse() {
-        return pInverse;
-    }
-
-    public Evaluable getQHomopolar() {
-        return qHomopolar;
-    }
-
-    public Evaluable getQInverse() {
-        return qInverse;
-    }
-
-    public void setPHomopolar(Evaluable pHomopolar) {
-        this.pHomopolar = pHomopolar;
-    }
-
-    public void setPInverse(Evaluable pInverse) {
-        this.pInverse = pInverse;
-    }
-
-    public void setQHomopolar(Evaluable qHomopolar) {
-        this.qHomopolar = qHomopolar;
-    }
-
-    public void setQInverse(Evaluable qInverse) {
-        this.qInverse = qInverse;
-    }
-
-    // TODO : check if there is a x3 coefficient somewhere
     public double getPa() {
         return lfBus.getLoadTargetP() + totalDeltaPa;
     }
 
-    // TODO : check if there is a x3 coefficient somewhere
     public double getPb() {
         return lfBus.getLoadTargetP() + totalDeltaPb;
     }
 
-    // TODO : check if there is a x3 coefficient somewhere
     public double getPc() {
         return lfBus.getLoadTargetP() + totalDeltaPc;
     }
@@ -174,10 +140,35 @@ public class AsymBus {
         return lfBus.getLoadTargetQ() + totalDeltaQc;
     }
 
-    public boolean isBalancedLoad() {
-        if (Math.abs(totalDeltaPa) + Math.abs(totalDeltaQa) + Math.abs(totalDeltaPb) + Math.abs(totalDeltaQb) + Math.abs(totalDeltaPc) + Math.abs(totalDeltaQc) > 0.000001) {
-            return false;
-        }
-        return true;
+    public double getbNegativeEquivalent() {
+        return bNegativeEquivalent;
+    }
+
+    public double getbZeroEquivalent() {
+        return bZeroEquivalent;
+    }
+
+    public double getgZeroEquivalent() {
+        return gZeroEquivalent;
+    }
+
+    public double getgNegativeEquivalent() {
+        return gNegativeEquivalent;
+    }
+
+    public void setbNegativeEquivalent(double bNegativeEquivalent) {
+        this.bNegativeEquivalent = bNegativeEquivalent;
+    }
+
+    public void setbZeroEquivalent(double bZeroEquivalent) {
+        this.bZeroEquivalent = bZeroEquivalent;
+    }
+
+    public void setgNegativeEquivalent(double gNegativeEquivalent) {
+        this.gNegativeEquivalent = gNegativeEquivalent;
+    }
+
+    public void setgZeroEquivalent(double gZeroEquivalent) {
+        this.gZeroEquivalent = gZeroEquivalent;
     }
 }

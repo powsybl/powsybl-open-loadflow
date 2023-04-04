@@ -9,7 +9,7 @@ import com.powsybl.iidm.network.Load;
 public class LoadUnbalanced extends AbstractExtension<Load> {
 
     // This class is used as an extension of a "classical" balanced direct load
-    // we store here the deltas of power that will build the unblalanced loads. The reference is the direct load stored in "Load"
+    // we store here the deltas of power that will build the unblalanced loads. The reference is the positive sequence load stored in "Load"
     private final double deltaPa;
     private final double deltaQa;
     private final double deltaPb;

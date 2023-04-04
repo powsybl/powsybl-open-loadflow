@@ -1,6 +1,8 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
+import com.powsybl.iidm.network.extensions.LineFortescueAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -13,12 +15,14 @@ import com.powsybl.openloadflow.network.Extensions.iidm.LoadUnbalancedAdder;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.joda.time.DateTime;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
+ */
 public class DisymTest {
 
     private Network network;
@@ -30,20 +34,6 @@ public class DisymTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
-/*
-    @BeforeEach
-    void setUp() {
-        network = TwoBusNetworkFactory.create();
-        bus1 = network.getBusBreakerView().getBus("b1");
-        bus2 = network.getBusBreakerView().getBus("b2");
-        line1 = network.getLine("l12");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-    }*/
 
     @Test
     void baseCaseTest() {
@@ -71,35 +61,7 @@ public class DisymTest {
         assertActivePowerEquals(-2, line1.getTerminal2());
         assertReactivePowerEquals(-1, line1.getTerminal2());
     }
-/*
-    @Test
-    void baseCaseDissymTest() {
 
-        network = TwoBusNetworkFactory.create();
-        bus1 = network.getBusBreakerView().getBus("b1");
-        bus2 = network.getBusBreakerView().getBus("b2");
-        line1 = network.getLine("l12");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory(), true));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-
-        assertVoltageEquals(1, bus1);
-        assertAngleEquals(0, bus1);
-        assertVoltageEquals(0.855, bus2);
-        assertAngleEquals(-13.520904, bus2);
-        assertActivePowerEquals(2, line1.getTerminal1());
-        assertReactivePowerEquals(1.683, line1.getTerminal1());
-        assertActivePowerEquals(-2, line1.getTerminal2());
-        assertReactivePowerEquals(-1, line1.getTerminal2());
-    }*/
-
-    //@Disabled
     @Test
     void fourNodesBalancedTest() {
 
@@ -145,7 +107,7 @@ public class DisymTest {
         line1 = network.getLine("B1_B2");
 
         Line line23 = network.getLine("B2_B3");
-        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        double coeff = 1.;
         line23.setX(coeff * 1 / 0.2);
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
@@ -161,14 +123,10 @@ public class DisymTest {
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
         assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
-        //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
-        assertVoltageEquals(99.48102055956122, bus3); // balanced = 99.54462759204546
-        //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
-        assertVoltageEquals(99.22875843696357, bus4); // balanced = 99.29252809145005
-        //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
+        assertVoltageEquals(99.45937102112217, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
     }
 
-    @Disabled
     @Test
     void fourNodesDissymUnbalancedLoadLineTest() {
 
@@ -180,7 +138,7 @@ public class DisymTest {
         line1 = network.getLine("B1_B2");
 
         Line line23 = network.getLine("B2_B3");
-        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        double coeff = 1.;
         line23.setX(coeff * 1 / 0.2);
 
         Load load4 = network.getLoad("LOAD_4");
@@ -206,15 +164,11 @@ public class DisymTest {
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(99.08357436616448, bus2); // balanced = 99.79736062173895
-        //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
-        assertVoltageEquals(97.76409290089546, bus3); // balanced = 99.54462759204546
-        //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
-        assertVoltageEquals(96.61947230759934, bus4); // balanced = 99.29252809145005
-        //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
+        assertVoltageEquals(99.72834946229246, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.2189311203843, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(98.88078638550749, bus4); // balanced = 99.29252809145005
     }
 
-    @Disabled
     @Test
     void fourNodesDissymUnbalancedLoadTest() {
 
@@ -226,12 +180,12 @@ public class DisymTest {
         line1 = network.getLine("B1_B2");
 
         Line line23 = network.getLine("B2_B3");
-        double coeff = 1.; //0.50001; // TODO : singular matrix when coef = 0.5 ????
+        double coeff = 1.;
         line23.setX(coeff * 1 / 0.2);
 
         Line line23fault = network.getLine("B2_B3_fault");
         var extension = line23fault.getExtension(LineAsymmetrical.class);
-        extension.getPhaseA().setOpen(false);
+        extension.setOpenPhaseA(false);
 
         Load load4 = network.getLoad("LOAD_4");
 
@@ -256,12 +210,9 @@ public class DisymTest {
 
         assertVoltageEquals(100., bus1);
         assertAngleEquals(0, bus1);
-        assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
-        //assertAngleEquals(-0.34451266748355286, bus2); // balanced = -0.11482430885268813
-        assertVoltageEquals(99.48102055956122, bus3); // balanced = 99.54462759204546
-        //assertAngleEquals(-1.2121634768022864, bus3); // balanced = -0.2590112700040258
-        assertVoltageEquals(99.22875843696357, bus4); // balanced = 99.29252809145005
-        //assertAngleEquals(-1.3578903977709909, bus4); // balanced = -0.40393118155914964
+        assertVoltageEquals(99.78067026758131, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.5142639108648, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.2565397779297, bus4); // balanced = 99.29252809145005
     }
 
     public static Network fourNodescreate() {
@@ -305,12 +256,6 @@ public class DisymTest {
                 .setTargetV(100.0)
                 .setVoltageRegulatorOn(true)
                 .add();
-
-        /*gen1.newExtension(GeneratorShortCircuitAdder.class)
-                .withDirectSubtransX(20)
-                .withDirectTransX(20)
-                .withStepUpTransformerX(0.)
-                .add();*/
 
         // Bus 2
         Substation substation2 = network.newSubstation()
@@ -435,15 +380,22 @@ public class DisymTest {
 
         // addition of asymmetrical extensions
         line23fault.newExtension(LineAsymmetricalAdder.class)
-                .withRa(0.)
-                .withXa(line23fault.getX())
-                .withIsOpenA(true) // TODO : activate this to have unbalanced grid
-                .withRb(0.)
-                .withXb(line23fault.getX())
+                .withIsOpenA(true)
                 .withIsOpenB(false)
-                .withRc(0.)
-                .withXc(line23fault.getX())
                 .withIsOpenC(false)
+                .add();
+
+        line23fault.newExtension(LineFortescueAdder.class)
+                .withRz(0)
+                .withXz(line23fault.getX())
+                .add();
+
+        // addition of asymmetrical extensions
+        gen1.newExtension(GeneratorFortescueAdder.class)
+                .withRz(0.)
+                .withXz(0.1)
+                .withRn(0.)
+                .withXn(0.1)
                 .add();
 
         return network;

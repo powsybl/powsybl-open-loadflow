@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -24,11 +25,11 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
 
     public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                    boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, DisymAcSequenceType.DIRECT);
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
     }
 
     public ClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                   boolean deriveA1, boolean deriveR1, DisymAcSequenceType sequenceType) {
+                                                   boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
 

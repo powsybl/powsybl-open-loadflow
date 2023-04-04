@@ -4,6 +4,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,7 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends AbstractBranchDisymFlowEquationTerm {
 
-    // direct
+    // positive
     protected final Variable<AcVariableType> v1Var;
 
     protected final Variable<AcVariableType> v2Var;
@@ -26,23 +27,23 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     protected final Variable<AcVariableType> ph2Var;
 
-    // inverse
-    protected final Variable<AcVariableType> v1VarInv;
+    // negative
+    protected final Variable<AcVariableType> v1VarNegative;
 
-    protected final Variable<AcVariableType> v2VarInv;
+    protected final Variable<AcVariableType> v2VarNegative;
 
-    protected final Variable<AcVariableType> ph1VarInv;
+    protected final Variable<AcVariableType> ph1VarNegative;
 
-    protected final Variable<AcVariableType> ph2VarInv;
+    protected final Variable<AcVariableType> ph2VarNegative;
 
-    // homopolar
-    protected final Variable<AcVariableType> v1VarHom;
+    // zero
+    protected final Variable<AcVariableType> v1VarZero;
 
-    protected final Variable<AcVariableType> v2VarHom;
+    protected final Variable<AcVariableType> v2VarZero;
 
-    protected final Variable<AcVariableType> ph1VarHom;
+    protected final Variable<AcVariableType> ph1VarZero;
 
-    protected final Variable<AcVariableType> ph2VarHom;
+    protected final Variable<AcVariableType> ph2VarZero;
 
     // rho and angle
     protected final Variable<AcVariableType> a1Var;
@@ -51,8 +52,12 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
+    protected final boolean isRealPart; // true if active power asked, false if reactive power asked
+    protected final boolean isSide1; // true if i1x or i1y, false if i2x or i2y
+    protected final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
+
     protected AbstractClosedBranchDisymCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                                 boolean deriveA1, boolean deriveR1) {
+                                                                 boolean deriveA1, boolean deriveR1, boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
@@ -63,15 +68,15 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
         ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
         ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
 
-        v1VarInv = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_INVERSE);
-        v2VarInv = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_INVERSE);
-        ph1VarInv = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_INVERSE);
-        ph2VarInv = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_INVERSE);
+        v1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_NEGATIVE);
+        v2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_NEGATIVE);
+        ph1VarNegative = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
+        ph2VarNegative = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
 
-        v1VarHom = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_HOMOPOLAR);
-        v2VarHom = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_HOMOPOLAR);
-        ph1VarHom = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_HOMOPOLAR);
-        ph2VarHom = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_HOMOPOLAR);
+        v1VarZero = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V_ZERO);
+        v2VarZero = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V_ZERO);
+        ph1VarZero = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_ZERO);
+        ph2VarZero = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_ZERO);
 
         a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
@@ -80,14 +85,14 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
         variables.add(v2Var);
         variables.add(ph1Var);
         variables.add(ph2Var);
-        variables.add(v1VarInv);
-        variables.add(v2VarInv);
-        variables.add(ph1VarInv);
-        variables.add(ph2VarInv);
-        variables.add(v1VarHom);
-        variables.add(v2VarHom);
-        variables.add(ph1VarHom);
-        variables.add(ph2VarHom);
+        variables.add(v1VarNegative);
+        variables.add(v2VarNegative);
+        variables.add(ph1VarNegative);
+        variables.add(ph2VarNegative);
+        variables.add(v1VarZero);
+        variables.add(v2VarZero);
+        variables.add(ph1VarZero);
+        variables.add(ph2VarZero);
 
         if (a1Var != null) {
             variables.add(a1Var);
@@ -96,66 +101,37 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
             variables.add(r1Var);
         }
 
-    }
+        this.isRealPart = isRealPart;
+        this.isSide1 = isSide1;
+        switch (sequenceType) {
+            case ZERO:
+                this.sequenceNum = 0;
+                break;
 
-    /*protected double v1() {
-        return sv.get(v1Var.getRow());
-    }
+            case POSITIVE:
+                this.sequenceNum = 1;
+                break;
 
-    protected double v2() {
-        return sv.get(v2Var.getRow());
-    }
+            case NEGATIVE:
+                this.sequenceNum = 2;
+                break;
 
-    protected double ph1() {
-        return sv.get(ph1Var.getRow());
-    }
+            default:
+                throw new IllegalStateException("Unknow variable at branch : " + branch.getId());
+        }
 
-    protected double ph2() {
-        return sv.get(ph2Var.getRow());
     }
-
-    protected double v1Inv() {
-        return sv.get(v1VarInv.getRow());
-    }
-
-    protected double v2Inv() {
-        return sv.get(v2VarInv.getRow());
-    }
-
-    protected double ph1Inv() {
-        return sv.get(ph1VarInv.getRow());
-    }
-
-    protected double ph2Inv() {
-        return sv.get(ph2VarInv.getRow());
-    }
-
-    protected double v1Hom() {
-        return sv.get(v1VarHom.getRow());
-    }
-
-    protected double v2Hom() {
-        return sv.get(v2VarHom.getRow());
-    }
-
-    protected double ph1Hom() {
-        return sv.get(ph1VarHom.getRow());
-    }
-
-    protected double ph2Hom() {
-        return sv.get(ph2VarHom.getRow());
-    }*/
 
     protected double v(int g, int i) {
         switch (g) {
-            case 0: // homopolar
-                return i == 1 ? sv.get(v1VarHom.getRow()) : sv.get(v2VarHom.getRow());
+            case 0: // zero
+                return i == 1 ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
 
-            case 1: // direct
+            case 1: // positive
                 return i == 1 ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
 
-            case 2: // inverse
-                return i == 1 ? sv.get(v1VarInv.getRow()) : sv.get(v2VarInv.getRow());
+            case 2: // negative
+                return i == 1 ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
 
             default:
                 throw new IllegalStateException("Unknown variable: ");
@@ -164,14 +140,14 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     protected double ph(int g, int i) {
         switch (g) {
-            case 0: // homopolar
-                return i == 1 ? sv.get(ph1VarHom.getRow()) : sv.get(ph2VarHom.getRow());
+            case 0: // zero
+                return i == 1 ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
 
-            case 1: // direct
+            case 1: // positive
                 return i == 1 ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
 
-            case 2: // inverse
-                return i == 1 ? sv.get(ph1VarInv.getRow()) : sv.get(ph2VarInv.getRow());
+            case 2: // negative
+                return i == 1 ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
 
             default:
                 throw new IllegalStateException("Unknown variable: ");
@@ -194,30 +170,23 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
         return i == 1 ? a1() : A2;
     }
 
-    /*public static double theta1(double ph1, double a1, double ph2) {
-        return -a1 + A2 - ph1 + ph2;
-    }*/
-
-    /*public static double theta2(double ph1, double a1, double ph2) {
-        return a1 - A2 + ph1 - ph2;
-    }*/
-
-    //protected abstract double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1);
-
-    /*@Override
-    public double calculateSensi(DenseMatrix dx, int column) {
-        Objects.requireNonNull(dx);
-        double dph1 = dx.get(ph1Var.getRow(), column);
-        double dph2 = dx.get(ph2Var.getRow(), column);
-        double dv1 = dx.get(v1Var.getRow(), column);
-        double dv2 = dx.get(v2Var.getRow(), column);
-        double da1 = a1Var != null ? dx.get(a1Var.getRow(), column) : branch.getPiModel().getA1();
-        double dr1 = r1Var != null ? dx.get(r1Var.getRow(), column) : branch.getPiModel().getR1();
-        return calculateSensi(dph1, dph2, dv1, dv2, da1, dr1);
-    }*/
-
     @Override
     public List<Variable<AcVariableType>> getVariables() {
         return variables;
     }
+
+    public int sideOfDerivative(Variable<AcVariableType> variable) {
+        Objects.requireNonNull(variable);
+        if (variable.equals(v1Var) || variable.equals(v1VarZero) || variable.equals(v1VarNegative)
+                || variable.equals(ph1Var) || variable.equals(ph1VarZero) || variable.equals(ph1VarNegative)
+                || variable.equals(a1Var) || variable.equals(r1Var)) {
+            return 1;
+        } else if (variable.equals(v2Var) || variable.equals(v2VarZero) || variable.equals(v2VarNegative)
+                || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
+            return 2;
+        } else {
+            throw new IllegalStateException("Unknown variable type");
+        }
+    }
+
 }

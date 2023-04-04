@@ -129,12 +129,10 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public double getTargetP() {
         AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-        boolean isAbcConstantLoad = true;
-        if (asymBus != null && isAbcConstantLoad) {
-            //System.out.println(">>>>>>>> GetTargetP() of bus = " + this.getId() + " is asymmetric and mofified");
-            return getGenerationTargetP(); // TODO : uncomment when we will use a ABC constant load
+        if (asymBus != null) {
+            return getGenerationTargetP();
             // we use the detection of the asymmetry extension at bus to check if we are in dissym calculation
-            // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on vd, vi, vo (equivalent fortescue representation
+            // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
         return getGenerationTargetP() - getLoadTargetP();
     }
@@ -142,12 +140,10 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public double getTargetQ() {
         AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-        boolean isAbcConstantLoad = true;
-        if (asymBus != null && isAbcConstantLoad) {
-
-            return getGenerationTargetQ(); // TODO : uncomment when we will use a ABC constant load
-            // we use the detection of the asymmetry extension at bus to check if we are in dissym calculation
-            // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on vd, vi, vo (equivalent fortescue representation
+        if (asymBus != null) {
+            return getGenerationTargetQ();
+            // we use the detection of the asymmetry extension at bus to check if we are in asymmetric calculation
+            // in this case, load target is set to zero and the constant power load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
         return getGenerationTargetQ() - getLoadTargetQ();
     }

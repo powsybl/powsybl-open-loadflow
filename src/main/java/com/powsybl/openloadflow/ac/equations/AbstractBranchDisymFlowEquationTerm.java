@@ -18,14 +18,8 @@ import com.powsybl.openloadflow.network.PiModel;
  */
 abstract class AbstractBranchDisymFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
-    //protected final double b1;
-    //protected final double b2;
-    //protected final double g1;
-    //protected final double g2;
-    //protected final double ksi;
-
     // Classical line parameters are replaced by a 12x12 admittance matrix
-    protected final DenseMatrix mYodi;
+    protected final DenseMatrix mY012;
 
     protected AbstractBranchDisymFlowEquationTerm(LfBranch branch) {
         super(branch);
@@ -35,18 +29,12 @@ abstract class AbstractBranchDisymFlowEquationTerm extends AbstractElementEquati
         }
         AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
         if (asymLine == null) {
-            throw new IllegalStateException("Line : " + branch.getId() + " has no dissymmetric extension but is required here : ");
+            throw new IllegalStateException("Line : " + branch.getId() + " has no dissymmetric extension but is required here ");
         }
-        mYodi = asymLine.getAdmittanceTerms().getmYodi();
-        /*b1 = piModel.getB1();
-        b2 = piModel.getB2();
-        g1 = piModel.getG1();
-        g2 = piModel.getG2();
-        y = piModel.getY();
-        ksi = piModel.getKsi();*/
+        mY012 = asymLine.getAdmittanceMatrix().getmY012();
     }
 
-    public DenseMatrix getmYodi() {
-        return mYodi;
+    public DenseMatrix getmY012() {
+        return mY012;
     }
 }
