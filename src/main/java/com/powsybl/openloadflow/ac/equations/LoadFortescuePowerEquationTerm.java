@@ -299,9 +299,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         double invVcx = vCx / vCcongVc;
         double invVcy = -vCy / vCcongVc;
 
-        DenseMatrix mInvVabc = getCartesianMatrix(invVax, invVay, invVbx, invVby, invVcx, invVcy, false);
-
-        return mInvVabc;
+        return getCartesianMatrix(invVax, invVay, invVbx, invVby, invVcx, invVcy, false);
     }
 
     public static DenseMatrix getCartesianMatrix(double m1x, double m1y, double m2x, double m2y, double m3x, double m3y, boolean isVector) {
