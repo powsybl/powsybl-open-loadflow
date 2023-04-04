@@ -816,7 +816,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
             checkContingencies(lfNetwork, contingencies);
             checkLoadFlowParameters(lfParameters);
-            contingencies.stream().forEach(contingency -> contingency.update(lfNetwork)); // FIXME
 
             Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
             SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);

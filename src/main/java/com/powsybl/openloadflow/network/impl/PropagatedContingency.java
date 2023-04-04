@@ -323,14 +323,7 @@ public class PropagatedContingency {
         return identifiable;
     }
 
-    public void update(LfNetwork network) {
-        // update branches to open connected with buses in contingency. This is an approximation:
-        // these branches are indeed just open at one side.
-        // for dc sensitivity analysis only.
-        branchIdsToOpen.addAll(fixBranchIdsToOpen(network, busIdsToLose));
-    }
-
-    public static Set<String> fixBranchIdsToOpen(LfNetwork network, Set<String> busIdsToLose) {
+    public static Set<String> addBranchIdsConnectedToLostBuses(LfNetwork network, Set<String> busIdsToLose) {
         // update branches to open connected with buses in contingency. This is an approximation:
         // these branches are indeed just open at one side.
         Set<String> branchIds = new HashSet<>();
@@ -349,7 +342,7 @@ public class PropagatedContingency {
     public Optional<LfContingency> toLfContingency(LfNetwork network) {
         // update branches to open connected with buses in contingency. This is an approximation:
         // these branches are indeed just open at one side.
-        branchIdsToOpen.addAll(fixBranchIdsToOpen(network, busIdsToLose));
+        branchIdsToOpen.addAll(addBranchIdsConnectedToLostBuses(network, busIdsToLose));
 
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();

@@ -736,11 +736,15 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
                 branchesToRemove.add(branchId); // disconnected branch
                 continue;
             }
-            if (lfBranch.getBus2() == null || lfBranch.getBus1() == null) {
+            if (!lfBranch.isConnectedAtBothSides()) {
                 branchesToRemove.add(branchId); // branch connected only on one side
             }
         }
         contingency.getBranchIdsToOpen().removeAll(branchesToRemove);
+
+        // update branches to open connected with buses in contingency. This is an approximation:
+        // these branches are indeed just open at one side.
+        contingency.getBranchIdsToOpen().addAll(PropagatedContingency.addBranchIdsConnectedToLostBuses(lfNetwork, contingency.getBusIdsToLose()));
     }
 
     public void checkContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
