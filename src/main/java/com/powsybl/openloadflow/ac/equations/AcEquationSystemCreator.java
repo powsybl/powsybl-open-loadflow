@@ -22,7 +22,7 @@ public class AcEquationSystemCreator {
 
     protected final LfNetwork network;
 
-    private final AcEquationSystemCreationParameters creationParameters;
+    protected final AcEquationSystemCreationParameters creationParameters;
 
     public AcEquationSystemCreator(LfNetwork network) {
         this(network, new AcEquationSystemCreationParameters());

@@ -126,7 +126,7 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         EquationTerm<AcVariableType, AcEquationType> ixn2 = null;
         EquationTerm<AcVariableType, AcEquationType> iyn2 = null;
 
-        boolean deriveA1 = isDeriveA1(branch);
+        boolean deriveA1 = isDeriveA1(branch, creationParameters);
         boolean deriveR1 = isDeriveR1(branch);
 
         if (bus1 != null && bus2 != null) {
