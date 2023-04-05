@@ -90,10 +90,6 @@ public final class GenericBranchPowerTerm {
             return dtxdph1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
             return dtxdph2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
-        } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return 0;
-        } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return 0;
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 1) {
             return dtxdv1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 2) {
@@ -290,10 +286,6 @@ public final class GenericBranchPowerTerm {
             return dtydph1(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
             return dtydph2(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
-        } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return 0;
-        } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return 0;
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 1) {
             return dtydv1i(i, j, g, h, ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh);
         } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 2) {

@@ -23,10 +23,6 @@ abstract class AbstractBranchDisymFlowEquationTerm extends AbstractElementEquati
 
     protected AbstractBranchDisymFlowEquationTerm(LfBranch branch) {
         super(branch);
-        PiModel piModel = branch.getPiModel();
-        if (piModel.getR() == 0 && piModel.getX() == 0) {
-            throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
-        }
         AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
         if (asymLine == null) {
             throw new IllegalStateException("Line : " + branch.getId() + " has no dissymmetric extension but is required here ");

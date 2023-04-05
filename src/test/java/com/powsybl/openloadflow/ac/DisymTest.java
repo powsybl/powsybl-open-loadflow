@@ -25,8 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
@@ -137,7 +136,6 @@ public class DisymTest {
         assertEquals(0, iy2Branch.calculateSensi(0, 0, 0, 0, 0, 0));
 
         assertEquals(3, equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().size());
-        System.out.println("><<<<<<<< BUS1 ID = " + branch2.getBus1().getId());
         EquationTerm<AcVariableType, AcEquationType> eqTerm9 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(0);
         EquationTerm<AcVariableType, AcEquationType> eqTerm10 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(1);
         EquationTerm<AcVariableType, AcEquationType> eqTerm11 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(2);

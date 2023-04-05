@@ -29,11 +29,6 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
     }
 
-    public ClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                         boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
-    }
-
     @Override
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
         if (dr1 != 0) {
