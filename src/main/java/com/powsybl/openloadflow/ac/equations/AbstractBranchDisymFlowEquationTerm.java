@@ -10,7 +10,6 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.network.Extensions.AsymLine;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.PiModel;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
