@@ -266,8 +266,8 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
     }
 
     @Override
-    protected String getName() {
-        return "ac_pq_load";
+    public String getName() {
+        return "ac_pq_fortescue_load";
     }
 
     @Override

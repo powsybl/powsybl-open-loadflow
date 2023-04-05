@@ -86,7 +86,7 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
     }
 
     @Override
-    protected String getName() {
+    public String getName() {
         return "ac_pq_coupled_closed_1";
     }
 }

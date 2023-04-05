@@ -85,7 +85,7 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
     }
 
     @Override
-    protected String getName() {
+    public String getName() {
         return "ac_ixiy_coupled_closed_1";
     }
 

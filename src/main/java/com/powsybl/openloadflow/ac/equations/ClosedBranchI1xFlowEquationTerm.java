@@ -18,7 +18,7 @@ public class ClosedBranchI1xFlowEquationTerm extends AbstractClosedBranchAcFlowE
         super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
 
-    protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+    public double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
         return 0;
     }
 
@@ -70,7 +70,7 @@ public class ClosedBranchI1xFlowEquationTerm extends AbstractClosedBranchAcFlowE
     }
 
     @Override
-    protected String getName() {
+    public String getName() {
         return "ac_ix_closed_1";
     }
 }

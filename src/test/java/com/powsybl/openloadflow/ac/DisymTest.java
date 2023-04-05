@@ -9,15 +9,23 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.equations.*;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.network.Extensions.iidm.LineAsymmetricalAdder;
 import com.powsybl.openloadflow.network.Extensions.iidm.LoadUnbalancedAdder;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
+import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -34,6 +42,131 @@ public class DisymTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+
+    @Test
+    void asymmetricEquationSystemTest() {
+
+        network = fourNodescreate();
+
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new DisymAcEquationSystemCreator(mainNetwork, new AcEquationSystemCreationParameters()).create();
+        NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+
+        LfBranch branch = mainNetwork.getBranchById("B1_B2");
+        assertEquals(2, equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().size());
+        EquationTerm<AcVariableType, AcEquationType> eqTerm1 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm2 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().get(1);
+        ClosedBranchI1xFlowEquationTerm ix1Branch;
+        ShuntFortescueIxEquationTerm ix1Shunt;
+        if (eqTerm1.getElementType() == ElementType.BUS) {
+            ix1Shunt = (ShuntFortescueIxEquationTerm) eqTerm1;
+            ix1Branch = (ClosedBranchI1xFlowEquationTerm) eqTerm2;
+        } else {
+            ix1Shunt = (ShuntFortescueIxEquationTerm) eqTerm2;
+            ix1Branch = (ClosedBranchI1xFlowEquationTerm) eqTerm1;
+        }
+        assertEquals(ElementType.BUS, ix1Shunt.getElementType());
+        assertEquals(ElementType.BRANCH, ix1Branch.getElementType());
+        assertEquals(0, ix1Shunt.getElementNum());
+        assertEquals(0, ix1Branch.getElementNum());
+        assertEquals("ac_ix_fortescue_shunt", ix1Shunt.getName());
+        assertEquals("ac_ix_closed_1", ix1Branch.getName());
+        assertEquals(0, ix1Branch.calculateSensi(0, 0, 0, 0, 0, 0));
+
+        assertEquals(2, equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IY_ZERO).get().getTerms().size());
+        EquationTerm<AcVariableType, AcEquationType> eqTerm3 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IY_ZERO).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm4 = equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IY_ZERO).get().getTerms().get(1);
+        ClosedBranchI1yFlowEquationTerm iy1Branch;
+        ShuntFortescueIyEquationTerm iy1Shunt;
+        if (eqTerm3.getElementType() == ElementType.BUS) {
+            iy1Shunt = (ShuntFortescueIyEquationTerm) eqTerm3;
+            iy1Branch = (ClosedBranchI1yFlowEquationTerm) eqTerm4;
+        } else {
+            iy1Shunt = (ShuntFortescueIyEquationTerm) eqTerm4;
+            iy1Branch = (ClosedBranchI1yFlowEquationTerm) eqTerm3;
+        }
+        assertEquals(ElementType.BUS, iy1Shunt.getElementType());
+        assertEquals(ElementType.BRANCH, iy1Branch.getElementType());
+        assertEquals(0, iy1Shunt.getElementNum());
+        assertEquals(0, iy1Branch.getElementNum());
+        assertEquals("ac_iy_fortescue_shunt", iy1Shunt.getName());
+        assertEquals("ac_iy_closed_1", iy1Branch.getName());
+        assertEquals(0, iy1Branch.calculateSensi(0, 0, 0, 0, 0, 0));
+
+        LfBranch branch2 = mainNetwork.getBranchById("B3_B4");
+        assertEquals(2, equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().size());
+        EquationTerm<AcVariableType, AcEquationType> eqTerm5 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm6 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(1);
+        ClosedBranchI2xFlowEquationTerm ix2Branch;
+        LoadFortescuePowerEquationTerm ix2Load;
+        if (eqTerm5.getElementType() == ElementType.BUS) {
+            ix2Load = (LoadFortescuePowerEquationTerm) eqTerm5;
+            ix2Branch = (ClosedBranchI2xFlowEquationTerm) eqTerm6;
+        } else {
+            ix2Load = (LoadFortescuePowerEquationTerm) eqTerm6;
+            ix2Branch = (ClosedBranchI2xFlowEquationTerm) eqTerm5;
+        }
+        assertEquals(ElementType.BUS, ix2Load.getElementType());
+        assertEquals(ElementType.BRANCH, ix2Branch.getElementType());
+        assertEquals(3, ix2Load.getElementNum());
+        assertEquals(3, ix2Branch.getElementNum());
+        assertEquals("ac_pq_fortescue_load", ix2Load.getName());
+        assertEquals("ac_ix_closed_2", ix2Branch.getName());
+        assertEquals(0, ix2Branch.calculateSensi(0, 0, 0, 0, 0, 0));
+
+        assertEquals(2, equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE).get().getTerms().size());
+        EquationTerm<AcVariableType, AcEquationType> eqTerm7 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm8 = equationSystem.getEquation(branch2.getBus2().getNum(), AcEquationType.BUS_TARGET_IY_NEGATIVE).get().getTerms().get(1);
+        ClosedBranchI2yFlowEquationTerm iy2Branch;
+        LoadFortescuePowerEquationTerm iy2Load;
+        if (eqTerm7.getElementType() == ElementType.BUS) {
+            iy2Load = (LoadFortescuePowerEquationTerm) eqTerm7;
+            iy2Branch = (ClosedBranchI2yFlowEquationTerm) eqTerm8;
+        } else {
+            iy2Load = (LoadFortescuePowerEquationTerm) eqTerm8;
+            iy2Branch = (ClosedBranchI2yFlowEquationTerm) eqTerm7;
+        }
+        assertEquals(ElementType.BUS, iy2Load.getElementType());
+        assertEquals(ElementType.BRANCH, iy2Branch.getElementType());
+        assertEquals(3, iy2Load.getElementNum());
+        assertEquals(3, iy2Branch.getElementNum());
+        assertEquals("ac_pq_fortescue_load", iy2Load.getName());
+        assertEquals("ac_iy_closed_2", iy2Branch.getName());
+        assertEquals(0, iy2Branch.calculateSensi(0, 0, 0, 0, 0, 0));
+
+        assertEquals(3, equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().size());
+        System.out.println("><<<<<<<< BUS1 ID = " + branch2.getBus1().getId());
+        EquationTerm<AcVariableType, AcEquationType> eqTerm9 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm10 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(1);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm11 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_NEGATIVE).get().getTerms().get(2);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm12 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(0);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm13 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(1);
+        EquationTerm<AcVariableType, AcEquationType> eqTerm14 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(2);
+        ClosedBranchDisymCoupledCurrentEquationTerm coupledEquTerm;
+        if (eqTerm11 instanceof ClosedBranchDisymCoupledCurrentEquationTerm) {
+            coupledEquTerm = (ClosedBranchDisymCoupledCurrentEquationTerm) eqTerm11;
+        } else if (eqTerm10 instanceof ClosedBranchDisymCoupledCurrentEquationTerm) {
+            coupledEquTerm = (ClosedBranchDisymCoupledCurrentEquationTerm) eqTerm10;
+        } else {
+            coupledEquTerm = (ClosedBranchDisymCoupledCurrentEquationTerm) eqTerm9;
+        }
+        assertEquals(2, coupledEquTerm.getElementNum());
+        assertEquals("ac_ixiy_coupled_closed_1", coupledEquTerm.getName());
+
+        ClosedBranchDisymCoupledPowerEquationTerm coupledPowerEquTerm;
+        if (eqTerm12 instanceof ClosedBranchDisymCoupledPowerEquationTerm) {
+            coupledPowerEquTerm = (ClosedBranchDisymCoupledPowerEquationTerm) eqTerm12;
+        } else if (eqTerm13 instanceof ClosedBranchDisymCoupledPowerEquationTerm) {
+            coupledPowerEquTerm = (ClosedBranchDisymCoupledPowerEquationTerm) eqTerm13;
+        } else {
+            coupledPowerEquTerm = (ClosedBranchDisymCoupledPowerEquationTerm) eqTerm14;
+        }
+        assertEquals(2, coupledPowerEquTerm.getElementNum());
+        assertEquals("ac_pq_coupled_closed_1", coupledPowerEquTerm.getName());
+
+    }
 
     @Test
     void baseCaseTest() {

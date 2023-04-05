@@ -51,7 +51,7 @@ public class ShuntFortescueIxEquationTerm extends AbstractShuntFortescueCurrentE
     }
 
     @Override
-    protected String getName() {
+    public String getName() {
         return "ac_ix_fortescue_shunt";
     }
 }

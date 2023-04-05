@@ -52,7 +52,7 @@ public class ShuntFortescueIyEquationTerm extends AbstractShuntFortescueCurrentE
     }
 
     @Override
-    protected String getName() {
+    public String getName() {
         return "ac_iy_fortescue_shunt";
     }
 }
