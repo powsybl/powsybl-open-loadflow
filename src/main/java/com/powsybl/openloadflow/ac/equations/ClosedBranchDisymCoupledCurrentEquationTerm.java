@@ -19,19 +19,19 @@ public class ClosedBranchDisymCoupledCurrentEquationTerm extends AbstractClosedB
     }
 
     public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
-        return GenericBranchCurrentTerm.tx(i, j, g, h, equationTerm);
+        return GenericBranchCurrentTerm.iTx(i, j, g, h, equationTerm);
     }
 
     public static double ty(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
-        return GenericBranchCurrentTerm.ty(i, j, g, h, equationTerm);
+        return GenericBranchCurrentTerm.iTy(i, j, g, h, equationTerm);
     }
 
     public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int iDerivative) {
-        return GenericBranchCurrentTerm.dtx(i, j, g, h, equationTerm, variable, iDerivative);
+        return GenericBranchCurrentTerm.idTx(i, j, g, h, equationTerm, variable, iDerivative);
     }
 
     public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int iDerivative) {
-        return GenericBranchCurrentTerm.dty(i, j, g, h, equationTerm, variable, iDerivative);
+        return GenericBranchCurrentTerm.idTy(i, j, g, h, equationTerm, variable, iDerivative);
     }
 
     public static double ixIyij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledCurrentEquationTerm eqTerm) {

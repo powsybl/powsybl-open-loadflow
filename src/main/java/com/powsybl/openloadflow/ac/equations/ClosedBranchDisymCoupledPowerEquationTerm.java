@@ -20,19 +20,19 @@ public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBra
     }
 
     public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm) {
-        return GenericBranchPowerTerm.tx(i, j, g, h, equationTerm);
+        return GenericBranchPowerTerm.powerTx(i, j, g, h, equationTerm);
     }
 
     public static double ty(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm) {
-        return GenericBranchPowerTerm.ty(i, j, g, h, equationTerm);
+        return GenericBranchPowerTerm.powerTy(i, j, g, h, equationTerm);
     }
 
     public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int iDerivative) {
-        return GenericBranchPowerTerm.dtx(i, j, g, h, equationTerm, variable, iDerivative);
+        return GenericBranchPowerTerm.powerdTx(i, j, g, h, equationTerm, variable, iDerivative);
     }
 
     public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int iDerivative) {
-        return GenericBranchPowerTerm.dty(i, j, g, h, equationTerm, variable, iDerivative);
+        return GenericBranchPowerTerm.powerdTy(i, j, g, h, equationTerm, variable, iDerivative);
     }
 
     public static double pqij(boolean isRealPart, boolean isSide1, int sequenceNum, ClosedBranchDisymCoupledPowerEquationTerm eqTerm) {

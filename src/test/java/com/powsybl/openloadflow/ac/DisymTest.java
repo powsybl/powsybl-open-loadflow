@@ -237,10 +237,6 @@ public class DisymTest {
         bus4 = network.getBusBreakerView().getBus("B4");
         line1 = network.getLine("B1_B2");
 
-        Line line23 = network.getLine("B2_B3");
-        double coeff = 1.;
-        line23.setX(coeff * 1 / 0.2);
-
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
@@ -256,6 +252,33 @@ public class DisymTest {
         assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
         assertVoltageEquals(99.45937102112217, bus3); // balanced = 99.54462759204546
         assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
+
+        Line line23fault = network.getLine("B2_B3_fault");
+        var extension = line23fault.getExtension(LineAsymmetrical.class);
+        extension.setOpenPhaseA(false);
+        extension.setOpenPhaseB(true);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(100., bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.45937102112217, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
+
+        extension.setOpenPhaseB(false);
+        extension.setOpenPhaseC(true);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(100., bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.45937102112217, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
+
     }
 
     @Test

@@ -40,6 +40,14 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
         this.isOpenPhaseA = isOpen;
     }
 
+    public void setOpenPhaseB(boolean isOpen) {
+        this.isOpenPhaseB = isOpen;
+    }
+
+    public void setOpenPhaseC(boolean isOpen) {
+        this.isOpenPhaseC = isOpen;
+    }
+
     public Boolean getOpenPhaseA() {
         return isOpenPhaseA;
     }

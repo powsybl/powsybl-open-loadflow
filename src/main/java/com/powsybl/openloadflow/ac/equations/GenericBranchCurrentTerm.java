@@ -1,6 +1,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
+import org.apache.commons.math3.util.Pair;
 
 import java.util.Objects;
 
@@ -31,7 +32,7 @@ public final class GenericBranchCurrentTerm {
 
     }
 
-    public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
+    public static double iTx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
         double ri = equationTerm.r(i);
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
@@ -51,7 +52,7 @@ public final class GenericBranchCurrentTerm {
         return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
     }
 
-    public static double ty(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
+    public static double iTy(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
         double ri = equationTerm.r(i);
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
@@ -66,7 +67,7 @@ public final class GenericBranchCurrentTerm {
         return ri * rj * vhj * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
     }
 
-    public static double dtx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
+    public static double idTx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
 
         // di is the side of the derivation variable and belongs to {1,2}
         double ri = equationTerm.r(i);
@@ -81,143 +82,44 @@ public final class GenericBranchCurrentTerm {
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         Objects.requireNonNull(variable);
-        if (variable.getType() == AcVariableType.BUS_V && di == 1) {
-            return dtxdv1(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_V && di == 2) {
-            return dtxdv2(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI && di == 1) {
-            return dtxdph1(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
-            return dtxdph2(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return 0;
-        } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return 0;
-        } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 1) {
-            return dtxdv1i(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 2) {
-            return dtxdv2i(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI_NEGATIVE && di == 1) {
-            return dtxdph1i(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI_NEGATIVE && di == 2) {
-            return dtxdph2i(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_V_ZERO && di == 1) {
-            return dtxdv1h(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_V_ZERO && di == 2) {
-            return dtxdv2h(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI_ZERO && di == 1) {
-            return dtxdph1h(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI_ZERO && di == 2) {
-            return dtxdph2h(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
+        Pair<Integer, Boolean> sequenceAndIsPhase = getSequenceAndPhaseType(variable);
+        int derivationSequence = sequenceAndIsPhase.getFirst();
+        boolean isPhase = sequenceAndIsPhase.getSecond();
+
+        if (isPhase) {
+            return idTxdPh(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh, di, derivationSequence);
         } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+            return idTxdV(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh, di, derivationSequence);
         }
     }
 
-    public static double dtxdv1(int j, int h,
-                                double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 1) {
+    public static double idTxdV(int j, int h,
+                                double ri, double rj, double ai, double aj,
+                                double thhj, double yxijgh, double yyijgh,
+                                int derivSide, int derivSequence) {
+        if (j == derivSide && h == derivSequence) {
             return ri * rj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
         }
         return 0;
     }
 
-    public static double dtxdv2(int j, int h,
-                                double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 1) {
-            return ri * rj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdph1(int j, int h,
-                                 double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 1) {
+    public static double idTxdPh(int j, int h,
+                                 double ri, double rj, double ai, double aj,
+                                 double vhj, double thhj, double yxijgh, double yyijgh,
+                                 int derivSide, int derivSequence) {
+        if (j == derivSide && h == derivSequence) {
             return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) - yyijgh * Math.cos(aj - ai + thhj));
         }
         return 0;
     }
 
-    public static double dtxdph2(int j, int h,
-                                 double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 1) {
-            return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) - yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdv1i(int j, int h,
-                                 double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 2) {
-            return ri * rj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdv2i(int j, int h,
-                                 double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 2) {
-            return ri * rj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdph1i(int j, int h,
-                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 2) {
-            return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) - yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdph2i(int j, int h,
-                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 2) {
-            return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) - yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdv1h(int j, int h,
-                                 double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 0) {
-            return ri * rj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdv2h(int j, int h,
-                                 double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 0) {
-            return ri * rj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdph1h(int j, int h,
-                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 0) {
-            return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) - yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtxdph2h(int j, int h,
-                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 0) {
-            return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) - yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dty(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
+    public static double idTy(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
 
         // di is the side of the derivation variable and belongs to {1,2}
         double ri = equationTerm.r(i);
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
         double aj = equationTerm.a(j);
-        double vgi = equationTerm.v(g, i);
         double vhj = equationTerm.v(h, j);
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
@@ -226,139 +128,76 @@ public final class GenericBranchCurrentTerm {
         //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         Objects.requireNonNull(variable);
-        if (variable.getType() == AcVariableType.BUS_V && di == 1) {
-            return dtydv1(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_V && di == 2) {
-            return dtydv2(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI && di == 1) {
-            return dtydph1(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI && di == 2) {
-            return dtydph2(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BRANCH_ALPHA1 && di == 1) {
-            return 0;
-        } else if (variable.getType() == AcVariableType.BRANCH_RHO1 && di == 1) {
-            return 0;
-        } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 1) {
-            return dtydv1i(j, h, ri, rj, ai, aj, vgi, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_V_NEGATIVE && di == 2) {
-            return dtydv2i(j, h, ri, rj, ai, aj, vgi, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI_NEGATIVE && di == 1) {
-            return dtydph1i(i, j, g, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI_NEGATIVE && di == 2) {
-            return dtydph2i(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_V_ZERO && di == 1) {
-            return dtydv1h(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_V_ZERO && di == 2) {
-            return dtydv2h(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI_ZERO && di == 1) {
-            return dtydph1h(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
-        } else if (variable.getType() == AcVariableType.BUS_PHI_ZERO && di == 2) {
-            return dtydph2h(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh);
+        Pair<Integer, Boolean> sequenceAndIsPhase = getSequenceAndPhaseType(variable);
+        int derivationSequence = sequenceAndIsPhase.getFirst();
+        boolean isPhase = sequenceAndIsPhase.getSecond();
+
+        if (isPhase) {
+            return idTydPh(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh, di, derivationSequence);
         } else {
-            throw new IllegalStateException("Unknown variable: " + variable);
+            return idTydv(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh, di, derivationSequence);
         }
-
     }
 
-    public static double dtydv1(int j, int h,
-                                double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 1) {
+    public static double idTydv(int j, int h,
+                                double ri, double rj, double ai, double aj,
+                                double thhj, double yxijgh, double yyijgh,
+                                int derivSide, int derivSequence) {
+        if (j == derivSide && h == derivSequence) {
             return ri * rj * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
         }
         return 0;
     }
 
-    public static double dtydv2(int j, int h,
-                                double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 1) {
-            return ri * rj * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtydph1(int j, int h,
-                                 double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 1) {
+    public static double idTydPh(int j, int h,
+                                 double ri, double rj, double ai, double aj,
+                                 double vhj, double thhj, double yxijgh, double yyijgh,
+                                 int derivSide, int derivSequence) {
+        if (j == derivSide && h == derivSequence) {
             return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
         }
         return 0;
     }
 
-    public static double dtydph2(int j, int h,
-                                 double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 1) {
-            return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
+    public static Pair<Integer, Boolean> getSequenceAndPhaseType(Variable<AcVariableType> variable) {
+        int derivationSequence;
+        boolean isPhase;
+        switch (variable.getType()) {
+            case BUS_V:
+                derivationSequence = 1;
+                isPhase = false;
+                break;
 
-    public static double dtydv1i(int j, int h,
-                                 double ri, double rj, double ai, double aj, double vgi, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 2) {
-            return ri * rj * vgi * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
+            case BUS_PHI:
+                derivationSequence = 1;
+                isPhase = true;
+                break;
 
-    public static double dtydv2i(int j, int h,
-                                 double ri, double rj, double ai, double aj, double vgi, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 2) {
-            return ri * rj * vgi * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
+            case BUS_V_NEGATIVE:
+                derivationSequence = 2;
+                isPhase = false;
+                break;
 
-    public static double dtydph1i(int i, int j, int g, int h,
-                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (i == 1 && g == 2 && j == 1 && h == 2) {
-            return 0;
-        } else if (i == 1 && g == 2) {
-            return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        } else if (j == 1 && h == 2) {
-            return ri * rj * vhj * (-yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
+            case BUS_PHI_NEGATIVE:
+                derivationSequence = 2;
+                isPhase = true;
+                break;
 
-    public static double dtydph2i(int j, int h,
-                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 2) {
-            return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
+            case BUS_V_ZERO:
+                derivationSequence = 0;
+                isPhase = false;
+                break;
 
-    }
+            case BUS_PHI_ZERO:
+                derivationSequence = 0;
+                isPhase = true;
+                break;
 
-    public static double dtydv1h(int j, int h,
-                                 double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 0) {
-            return ri * rj * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
+            default:
+                throw new IllegalStateException("Unknown variable: ");
         }
-        return 0;
-    }
 
-    public static double dtydv2h(int j, int h,
-                                 double ri, double rj, double ai, double aj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 0) {
-            return ri * rj * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtydph1h(int j, int h,
-                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 1 && h == 0) {
-            return ri * rj * vhj * (-yxijgh * Math.cos(aj - ai + thhj) + yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
-    }
-
-    public static double dtydph2h(int j, int h,
-                                  double ri, double rj, double ai, double aj, double vhj, double thhj, double yxijgh, double yyijgh) {
-        if (j == 2 && h == 0) {
-            return ri * rj * vhj * (-yxijgh * Math.cos(aj - ai + thhj) + yyijgh * Math.sin(aj - ai + thhj));
-        }
-        return 0;
+        return new Pair<>(derivationSequence, isPhase);
     }
 
 }

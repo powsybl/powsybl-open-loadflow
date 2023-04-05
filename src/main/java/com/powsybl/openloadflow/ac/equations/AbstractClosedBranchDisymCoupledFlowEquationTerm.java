@@ -45,11 +45,6 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
 
     protected final Variable<AcVariableType> ph2VarZero;
 
-    // rho and angle
-    protected final Variable<AcVariableType> a1Var;
-
-    protected final Variable<AcVariableType> r1Var;
-
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
     protected final boolean isRealPart; // true if active power asked, false if reactive power asked
@@ -78,9 +73,6 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
         ph1VarZero = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI_ZERO);
         ph2VarZero = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI_ZERO);
 
-        a1Var = deriveA1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1) : null;
-        r1Var = deriveR1 ? variableSet.getVariable(branch.getNum(), AcVariableType.BRANCH_RHO1) : null;
-
         variables.add(v1Var);
         variables.add(v2Var);
         variables.add(ph1Var);
@@ -93,13 +85,6 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
         variables.add(v2VarZero);
         variables.add(ph1VarZero);
         variables.add(ph2VarZero);
-
-        if (a1Var != null) {
-            variables.add(a1Var);
-        }
-        if (r1Var != null) {
-            variables.add(r1Var);
-        }
 
         this.isRealPart = isRealPart;
         this.isSide1 = isSide1;
@@ -155,11 +140,11 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     }
 
     protected double r1() {
-        return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
+        return 1;
     }
 
     protected double a1() {
-        return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
+        return 0;
     }
 
     protected double r(int i) {
@@ -178,8 +163,7 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     public int sideOfDerivative(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var) || variable.equals(v1VarZero) || variable.equals(v1VarNegative)
-                || variable.equals(ph1Var) || variable.equals(ph1VarZero) || variable.equals(ph1VarNegative)
-                || variable.equals(a1Var) || variable.equals(r1Var)) {
+                || variable.equals(ph1Var) || variable.equals(ph1VarZero) || variable.equals(ph1VarNegative)) {
             return 1;
         } else if (variable.equals(v2Var) || variable.equals(v2VarZero) || variable.equals(v2VarNegative)
                 || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
