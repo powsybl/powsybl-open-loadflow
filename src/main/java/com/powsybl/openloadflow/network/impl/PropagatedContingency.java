@@ -329,11 +329,9 @@ public class PropagatedContingency {
         Set<String> branchIds = new HashSet<>();
         for (String busId : busIdsToLose) {
             LfBus bus = network.getBusById(busId);
-            if (bus != null) {
-                if (!bus.isSlack()) {
-                    // slack bus disabling is not supported
-                    bus.getBranches().stream().forEach(branch -> branchIds.add(branch.getId()));
-                }
+            if (bus != null && !bus.isSlack()) {
+                // slack bus disabling is not supported
+                bus.getBranches().stream().forEach(branch -> branchIds.add(branch.getId()));
             }
         }
         return branchIds;
