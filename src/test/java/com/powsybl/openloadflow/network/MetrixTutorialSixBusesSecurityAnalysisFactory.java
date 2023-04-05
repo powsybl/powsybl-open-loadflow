@@ -33,6 +33,7 @@ public class MetrixTutorialSixBusesSecurityAnalysisFactory extends AbstractLoadF
 
     public static Network createWithCurrentLimits2() {
         Network network = MetrixTutorialSixBusesFactory.create();
+        network.getVoltageLevel("SE_poste").setLowVoltageLimit(375);
 
         Set<String> specialLimitLines = Set.of("S_SE_1", "S_SE_2", "SE_NE_1", "SE_NE_2");
         network.getGenerator("SO_G2")
@@ -44,7 +45,7 @@ public class MetrixTutorialSixBusesSecurityAnalysisFactory extends AbstractLoadF
                 .setVoltageRegulatorOn(false)
                 .setTargetP(50.0);
         network.getLoad("SE_L1")
-                .setP0(1500);
+                .setP0(300.0);
 
         // change resistance
         for (Line line : network.getLines()) {
