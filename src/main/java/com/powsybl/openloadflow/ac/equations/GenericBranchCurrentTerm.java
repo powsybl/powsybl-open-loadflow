@@ -41,13 +41,6 @@ public final class GenericBranchCurrentTerm {
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
-        //    where i,j are line's ends i,j included in {1,2}
-        //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
-
-        // T(i,j,g,h) =     rho_i * rho_j * V_hj * yx_ij_gh * cos(a_j - a_i + th_hj)
-        //                - rho_i * rho_j * V_hj * yy_ij_gh * sin(a_j - a_i + th_hj)
-        //             +j(  rho_i * rho_j * V_hj * yx_ij_gh * sin(a_j - a_i + th_hj)
-        //                + rho_i * rho_j * V_hj * yy_ij_gh * cos(a_j - a_i + th_hj) )
 
         return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
     }
@@ -61,15 +54,12 @@ public final class GenericBranchCurrentTerm {
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
-        //    where i,j are line's ends i,j included in {1,2}
-        //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         return ri * rj * vhj * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
     }
 
-    public static double idTx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
+    public static double idTx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int derivativeSide) {
 
-        // di is the side of the derivation variable and belongs to {1,2}
         double ri = equationTerm.r(i);
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
@@ -78,8 +68,6 @@ public final class GenericBranchCurrentTerm {
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
-        //    where i,j are line's ends i,j included in {1,2}
-        //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = getSequenceAndPhaseType(variable);
@@ -87,9 +75,9 @@ public final class GenericBranchCurrentTerm {
         boolean isPhase = sequenceAndIsPhase.getSecond();
 
         if (isPhase) {
-            return idTxdPh(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh, di, derivationSequence);
+            return idTxdPh(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh, derivativeSide, derivationSequence);
         } else {
-            return idTxdV(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh, di, derivationSequence);
+            return idTxdV(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh, derivativeSide, derivationSequence);
         }
     }
 
@@ -113,9 +101,8 @@ public final class GenericBranchCurrentTerm {
         return 0;
     }
 
-    public static double idTy(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
+    public static double idTy(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int derivativeSide) {
 
-        // di is the side of the derivation variable and belongs to {1,2}
         double ri = equationTerm.r(i);
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
@@ -124,8 +111,6 @@ public final class GenericBranchCurrentTerm {
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
-        //    where i,j are line's ends i,j included in {1,2}
-        //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = getSequenceAndPhaseType(variable);
@@ -133,9 +118,9 @@ public final class GenericBranchCurrentTerm {
         boolean isPhase = sequenceAndIsPhase.getSecond();
 
         if (isPhase) {
-            return idTydPh(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh, di, derivationSequence);
+            return idTydPh(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh, derivativeSide, derivationSequence);
         } else {
-            return idTydv(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh, di, derivationSequence);
+            return idTydv(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh, derivativeSide, derivationSequence);
         }
     }
 

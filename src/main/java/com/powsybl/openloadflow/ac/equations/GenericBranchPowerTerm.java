@@ -43,8 +43,6 @@ public final class GenericBranchPowerTerm {
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
-        //    where i,j are line's ends i,j included in {1,2}
-        //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         return ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - conjYyijgh * Math.sin(ai - aj + thgi - thhj));
     }
@@ -60,15 +58,12 @@ public final class GenericBranchPowerTerm {
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
-        //    where i,j are line's ends i,j included in {1,2}
-        //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         return ri * rj * vgi * vhj * (yxijgh * Math.sin(ai - aj + thgi - thhj) + conjYyijgh * Math.cos(ai - aj + thgi - thhj));
     }
 
-    public static double powerdTx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
+    public static double powerdTx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int derivativeSide) {
 
-        // di is the side of the derivation variable and belongs to {1,2}
         double ri = equationTerm.r(i);
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
@@ -79,8 +74,6 @@ public final class GenericBranchPowerTerm {
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
-        //    where i,j are line's ends i,j included in {1,2}
-        //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = GenericBranchCurrentTerm.getSequenceAndPhaseType(variable);
@@ -89,10 +82,10 @@ public final class GenericBranchPowerTerm {
 
         if (isPhase) {
             return powerdTxdPh(i, j, g, h,
-                    ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, di, derivationSequence);
+                    ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, derivativeSide, derivationSequence);
         } else {
             return powerdTxdV(i, j, g, h,
-            ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, di, derivationSequence);
+            ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, derivativeSide, derivationSequence);
         }
     }
 
@@ -121,9 +114,8 @@ public final class GenericBranchPowerTerm {
         return 0;
     }
 
-    public static double powerdTy(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int di) {
+    public static double powerdTy(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int derivativeSide) {
 
-        // di is the side of the derivation variable and belongs to {1,2}
         double ri = equationTerm.r(i);
         double rj = equationTerm.r(j);
         double ai = equationTerm.a(i);
@@ -134,8 +126,6 @@ public final class GenericBranchPowerTerm {
         double thhj = equationTerm.ph(h, j);
         double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
         double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
-        //    where i,j are line's ends i,j included in {1,2}
-        //    where g,h are fortescue sequences g,h included in {o,d,i} = {0,1,2}
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = GenericBranchCurrentTerm.getSequenceAndPhaseType(variable);
@@ -144,10 +134,10 @@ public final class GenericBranchPowerTerm {
 
         if (isPhase) {
             return powerdTydPh(i, j, g, h,
-                    ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, di, derivationSequence);
+                    ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, derivativeSide, derivationSequence);
         } else {
             return powerdTydV(i, j, g, h,
-                    ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, di, derivationSequence);
+                    ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, derivativeSide, derivationSequence);
         }
     }
 

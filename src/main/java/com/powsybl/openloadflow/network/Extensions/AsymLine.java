@@ -28,14 +28,10 @@ public class AsymLine {
     private final AsymLinePiValues piValues;
     private final AsymLineAdmittanceMatrix admittanceMatrix;
 
-    public boolean isDisconnectionAsymmetryDetected() {
-        return isOpenA || isOpenB || isOpenC;
-    }
-
     public boolean isAdmittanceAsymmetryDetected() {
         boolean isAsymmetry = false;
         if (admittanceMatrix != null) {
-            isAsymmetry = AsymLineAdmittanceMatrix.isAdmittanceDecoupled(admittanceMatrix.getmY012());
+            isAsymmetry = AsymLineAdmittanceMatrix.isAdmittanceCoupled(admittanceMatrix.getmY012());
         }
 
         return isAsymmetry;

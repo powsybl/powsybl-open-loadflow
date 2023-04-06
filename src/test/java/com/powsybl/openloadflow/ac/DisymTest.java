@@ -23,6 +23,7 @@ import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -163,7 +164,6 @@ public class DisymTest {
         }
         assertEquals(2, coupledPowerEquTerm.getElementNum());
         assertEquals("ac_pq_coupled_closed_1", coupledPowerEquTerm.getName());
-
     }
 
     @Test
@@ -278,6 +278,26 @@ public class DisymTest {
         assertVoltageEquals(99.7971047825933, bus2); // balanced = 99.79736062173895
         assertVoltageEquals(99.45937102112217, bus3); // balanced = 99.54462759204546
         assertVoltageEquals(99.2070528211056, bus4); // balanced = 99.29252809145005
+
+        Line line23New = network.newLine()
+                .setId("B2_B3_New")
+                .setVoltageLevel1(network.getVoltageLevel("VL_2").getId())
+                .setConnectableBus1(bus2.getId())
+                .setVoltageLevel2(network.getVoltageLevel("VL_3").getId())
+                .setBus2(bus3.getId())
+                .setConnectableBus2(bus3.getId())
+                .setR(0.0)
+                .setX(1 / 0.2)
+                .setG1(0.0)
+                .setB1(0.0)
+                .setG2(0.0)
+                .setB2(0.0)
+                .add();
+
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        line23New.getTerminal1().connect();
+        line23New.getTerminal2().disconnect();
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
 
     }
 

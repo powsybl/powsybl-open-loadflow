@@ -266,7 +266,7 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
         // check the existence of an extension
         AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
         if (asymLine != null) {
-            asymmetry = asymLine.isAdmittanceAsymmetryDetected() || asymLine.isDisconnectionAsymmetryDetected();
+            asymmetry = asymLine.isAdmittanceAsymmetryDetected();
         }
         return asymmetry;
     }
