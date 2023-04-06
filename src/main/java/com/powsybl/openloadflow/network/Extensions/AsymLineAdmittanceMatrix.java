@@ -258,17 +258,21 @@ public class AsymLineAdmittanceMatrix {
         return mY012;
     }
 
-    public static boolean isAdmittanceDecoupled(DenseMatrix m) {
+    public static boolean isAdmittanceCoupled(DenseMatrix m) {
         // checking values of extra diagonal bloc term to see if equations between the three sequences are independant
-        return checkBloc(m, 1, 2) || checkBloc(m, 1, 3) || checkBloc(m, 1, 5) || checkBloc(m, 1, 6)
-                || checkBloc(m, 2, 1) || checkBloc(m, 2, 3) || checkBloc(m, 2, 4) || checkBloc(m, 2, 6)
-                || checkBloc(m, 3, 1) || checkBloc(m, 3, 2) || checkBloc(m, 3, 4) || checkBloc(m, 3, 5)
-                || checkBloc(m, 4, 2) || checkBloc(m, 4, 3) || checkBloc(m, 4, 5) || checkBloc(m, 4, 6)
-                || checkBloc(m, 5, 1) || checkBloc(m, 5, 3) || checkBloc(m, 5, 4) || checkBloc(m, 5, 6)
-                || checkBloc(m, 6, 1) || checkBloc(m, 6, 2) || checkBloc(m, 6, 4) || checkBloc(m, 6, 5);
+        boolean isCoupled = false;
+        for (int i = 1; i <= 6; i++) {
+            for (int j = 1; j <= 6; j++) {
+                if (i != j && isResidualExistsBloc(m, i, j)) {
+                    isCoupled = true;
+                    break;
+                }
+            }
+        }
+        return isCoupled;
     }
 
-    public static boolean checkBloc(DenseMatrix m, int i, int j) {
+    public static boolean isResidualExistsBloc(DenseMatrix m, int i, int j) {
         double epsilon = 0.00000001;
         double residual = Math.abs(m.get(2 * i - 2, 2 * j - 2)) + Math.abs(m.get(2 * i - 1, 2 * j - 2));
         return residual > epsilon;

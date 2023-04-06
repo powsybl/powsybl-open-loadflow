@@ -35,7 +35,7 @@ public class AsymLine {
     public boolean isAdmittanceAsymmetryDetected() {
         boolean isAsymmetry = false;
         if (admittanceMatrix != null) {
-            isAsymmetry = AsymLineAdmittanceMatrix.isAdmittanceDecoupled(admittanceMatrix.getmY012());
+            isAsymmetry = AsymLineAdmittanceMatrix.isAdmittanceCoupled(admittanceMatrix.getmY012());
         }
 
         return isAsymmetry;
