@@ -32,48 +32,17 @@ public final class GenericBranchPowerTerm {
 
     }
 
-    public static double powerTx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm) {
-        double ri = equationTerm.r(i);
-        double rj = equationTerm.r(j);
-        double ai = equationTerm.a(i);
-        double aj = equationTerm.a(j);
-        double vgi = equationTerm.v(g, i);
-        double vhj = equationTerm.v(h, j);
-        double thgi = equationTerm.ph(g, i);
-        double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
-
-        return ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - conjYyijgh * Math.sin(ai - aj + thgi - thhj));
+    public static double powerTx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT) {
+        return eT.r(i) * eT.r(j) * eT.v(g, i) * eT.v(h, j) * (getYxijgh(i, j, g, h, eT) * Math.cos(eT.a(i) - eT.a(j) + eT.ph(g, i) - eT.ph(h, j))
+                + getYyijgh(i, j, g, h, eT) * Math.sin(eT.a(i) - eT.a(j) + eT.ph(g, i) - eT.ph(h, j)));
     }
 
-    public static double powerTy(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm) {
-        double ri = equationTerm.r(i);
-        double rj = equationTerm.r(j);
-        double ai = equationTerm.a(i);
-        double aj = equationTerm.a(j);
-        double vgi = equationTerm.v(g, i);
-        double vhj = equationTerm.v(h, j);
-        double thgi = equationTerm.ph(g, i);
-        double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
-
-        return ri * rj * vgi * vhj * (yxijgh * Math.sin(ai - aj + thgi - thhj) + conjYyijgh * Math.cos(ai - aj + thgi - thhj));
+    public static double powerTy(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT) {
+        return eT.r(i) * eT.r(j) * eT.v(g, i) * eT.v(h, j) * (getYxijgh(i, j, g, h, eT) * Math.sin(eT.a(i) - eT.a(j) + eT.ph(g, i) - eT.ph(h, j))
+                - getYyijgh(i, j, g, h, eT) * Math.cos(eT.a(i) - eT.a(j) + eT.ph(g, i) - eT.ph(h, j)));
     }
 
-    public static double powerdTx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int derivativeSide) {
-
-        double ri = equationTerm.r(i);
-        double rj = equationTerm.r(j);
-        double ai = equationTerm.a(i);
-        double aj = equationTerm.a(j);
-        double vgi = equationTerm.v(g, i);
-        double vhj = equationTerm.v(h, j);
-        double thgi = equationTerm.ph(g, i);
-        double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
+    public static double powerdTx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = GenericBranchCurrentTerm.getSequenceAndPhaseType(variable);
@@ -82,16 +51,16 @@ public final class GenericBranchPowerTerm {
 
         if (isPhase) {
             return powerdTxdPh(i, j, g, h,
-                    ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, derivativeSide, derivationSequence);
+                    eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(g, i), eT.v(h, j), eT.ph(g, i), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         } else {
             return powerdTxdV(i, j, g, h,
-            ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, derivativeSide, derivationSequence);
+                    eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(g, i), eT.v(h, j), eT.ph(g, i), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         }
     }
 
     public static double powerdTxdV(int i, int j, int g, int h,
                                     double ri, double rj, double ai, double aj, double vgi, double vhj, double thgi, double thhj, double yxijgh, double yyijgh, int derivSide, int derivSequence) {
-        double tmpVal = yxijgh * Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj);
+        double tmpVal = yxijgh * Math.cos(ai - aj + thgi - thhj) + yyijgh * Math.sin(ai - aj + thgi - thhj);
         if (i == derivSide && g == derivSequence && j == derivSide && h == derivSequence) {
             return 2 * ri * rj * vgi * tmpVal;
         } else if (i == derivSide && g == derivSequence) {
@@ -107,25 +76,14 @@ public final class GenericBranchPowerTerm {
         if (i == derivSide && g == derivSequence && j == derivSide && h == derivSequence) {
             return 0;
         } else if (i == derivSide && g == derivSequence) {
-            return ri * rj * vgi * vhj * (yxijgh * -Math.sin(ai - aj + thgi - thhj) - yyijgh * Math.cos(ai - aj + thgi - thhj));
-        } else if (j == derivSide && h == derivSequence) {
             return ri * rj * vgi * vhj * (yxijgh * -Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj));
+        } else if (j == derivSide && h == derivSequence) {
+            return ri * rj * vgi * vhj * (yxijgh * -Math.sin(ai - aj + thgi - thhj) - yyijgh * Math.cos(ai - aj + thgi - thhj));
         }
         return 0;
     }
 
-    public static double powerdTy(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm, Variable<AcVariableType> variable, int derivativeSide) {
-
-        double ri = equationTerm.r(i);
-        double rj = equationTerm.r(j);
-        double ai = equationTerm.a(i);
-        double aj = equationTerm.a(j);
-        double vgi = equationTerm.v(g, i);
-        double vhj = equationTerm.v(h, j);
-        double thgi = equationTerm.ph(g, i);
-        double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double conjYyijgh = -equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
+    public static double powerdTy(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = GenericBranchCurrentTerm.getSequenceAndPhaseType(variable);
@@ -134,16 +92,16 @@ public final class GenericBranchPowerTerm {
 
         if (isPhase) {
             return powerdTydPh(i, j, g, h,
-                    ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, derivativeSide, derivationSequence);
+                    eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(g, i), eT.v(h, j), eT.ph(g, i), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         } else {
             return powerdTydV(i, j, g, h,
-                    ri, rj, ai, aj, vgi, vhj, thgi, thhj, yxijgh, conjYyijgh, derivativeSide, derivationSequence);
+                    eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(g, i), eT.v(h, j), eT.ph(g, i), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         }
     }
 
     public static double powerdTydV(int i, int j, int g, int h,
                                     double ri, double rj, double ai, double aj, double vgi, double vhj, double thgi, double thhj, double yxijgh, double yyijgh, int derivSide, int derivSequence) {
-        double tmpVal = yxijgh * Math.sin(ai - aj + thgi - thhj) + yyijgh * Math.cos(ai - aj + thgi - thhj);
+        double tmpVal = yxijgh * Math.sin(ai - aj + thgi - thhj) - yyijgh * Math.cos(ai - aj + thgi - thhj);
         if (i == derivSide && g == derivSequence && j == derivSide && h == derivSequence) {
             return 2 * ri * rj * vgi * tmpVal;
         } else if (i == derivSide && g == derivSequence) {
@@ -159,10 +117,18 @@ public final class GenericBranchPowerTerm {
         if (i == derivSide && g == derivSequence && j == derivSide && h == derivSequence) {
             return 0;
         } else if (i == derivSide && g == derivSequence) {
-            return ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj));
+            return ri * rj * vgi * vhj * (yxijgh * Math.cos(ai - aj + thgi - thhj) + yyijgh * Math.sin(ai - aj + thgi - thhj));
         } else if (j == derivSide && h == derivSequence) {
-            return ri * rj * vgi * vhj * (yxijgh * -Math.cos(ai - aj + thgi - thhj) - yyijgh * Math.sin(ai - aj + thgi - thhj));
+            return ri * rj * vgi * vhj * (yxijgh * -Math.cos(ai - aj + thgi - thhj) + yyijgh * Math.sin(ai - aj + thgi - thhj));
         }
         return 0;
+    }
+
+    public static double getYxijgh(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT) {
+        return eT.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+    }
+
+    public static double getYyijgh(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT) {
+        return eT.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
     }
 }

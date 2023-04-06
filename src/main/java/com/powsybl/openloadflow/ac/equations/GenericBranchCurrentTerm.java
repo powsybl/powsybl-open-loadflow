@@ -32,42 +32,17 @@ public final class GenericBranchCurrentTerm {
 
     }
 
-    public static double iTx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
-        double ri = equationTerm.r(i);
-        double rj = equationTerm.r(j);
-        double ai = equationTerm.a(i);
-        double aj = equationTerm.a(j);
-        double vhj = equationTerm.v(h, j);
-        double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
-
-        return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
+    public static double iTx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm eT) {
+        return eT.r(i) * eT.r(j) * eT.v(h, j) * (getYxijgh(i, j, g, h, eT) * Math.cos(eT.a(j) - eT.a(i) + eT.ph(h, j))
+                        - getYyijgh(i, j, g, h, eT) * Math.sin(eT.a(j) - eT.a(i) + eT.ph(h, j)));
     }
 
-    public static double iTy(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm) {
-        double ri = equationTerm.r(i);
-        double rj = equationTerm.r(j);
-        double ai = equationTerm.a(i);
-        double aj = equationTerm.a(j);
-        double vhj = equationTerm.v(h, j);
-        double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate value
-
-        return ri * rj * vhj * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
+    public static double iTy(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm eT) {
+        return eT.r(i) * eT.r(j) * eT.v(h, j) * (getYxijgh(i, j, g, h, eT) * Math.sin(eT.a(j) - eT.a(i) + eT.ph(h, j))
+                        + getYyijgh(i, j, g, h, eT) * Math.cos(eT.a(j) - eT.a(i) + eT.ph(h, j)));
     }
 
-    public static double idTx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int derivativeSide) {
-
-        double ri = equationTerm.r(i);
-        double rj = equationTerm.r(j);
-        double ai = equationTerm.a(i);
-        double aj = equationTerm.a(j);
-        double vhj = equationTerm.v(h, j);
-        double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
+    public static double idTx(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = getSequenceAndPhaseType(variable);
@@ -75,9 +50,9 @@ public final class GenericBranchCurrentTerm {
         boolean isPhase = sequenceAndIsPhase.getSecond();
 
         if (isPhase) {
-            return idTxdPh(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh, derivativeSide, derivationSequence);
+            return idTxdPh(j, h, eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(h, j), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         } else {
-            return idTxdV(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh, derivativeSide, derivationSequence);
+            return idTxdV(j, h, eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         }
     }
 
@@ -101,16 +76,7 @@ public final class GenericBranchCurrentTerm {
         return 0;
     }
 
-    public static double idTy(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm equationTerm, Variable<AcVariableType> variable, int derivativeSide) {
-
-        double ri = equationTerm.r(i);
-        double rj = equationTerm.r(j);
-        double ai = equationTerm.a(i);
-        double aj = equationTerm.a(j);
-        double vhj = equationTerm.v(h, j);
-        double thhj = equationTerm.ph(h, j);
-        double yxijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
-        double yyijgh = equationTerm.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h)); // we use conjugate
+    public static double idTy(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = getSequenceAndPhaseType(variable);
@@ -118,9 +84,9 @@ public final class GenericBranchCurrentTerm {
         boolean isPhase = sequenceAndIsPhase.getSecond();
 
         if (isPhase) {
-            return idTydPh(j, h, ri, rj, ai, aj, vhj, thhj, yxijgh, yyijgh, derivativeSide, derivationSequence);
+            return idTydPh(j, h, eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(h, j), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         } else {
-            return idTydv(j, h, ri, rj, ai, aj, thhj, yxijgh, yyijgh, derivativeSide, derivationSequence);
+            return idTydv(j, h, eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         }
     }
 
@@ -142,6 +108,14 @@ public final class GenericBranchCurrentTerm {
             return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
         }
         return 0;
+    }
+
+    public static double getYxijgh(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm eT) {
+        return eT.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+    }
+
+    public static double getYyijgh(int i, int j, int g, int h, ClosedBranchDisymCoupledCurrentEquationTerm eT) {
+        return eT.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
     }
 
     public static Pair<Integer, Boolean> getSequenceAndPhaseType(Variable<AcVariableType> variable) {
