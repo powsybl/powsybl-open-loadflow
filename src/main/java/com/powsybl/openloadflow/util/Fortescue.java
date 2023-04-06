@@ -66,7 +66,7 @@ public final class Fortescue {
         // [G1]   [ 1  1  1 ]   [Gh]
         // [G2] = [ 1  a²  a] * [Gd]
         // [G3]   [ 1  a  a²]   [Gi]
-        //Matrix mFortescue = matrixFactory.create(6, 6, 6);
+
         DenseMatrix mFortescue = new DenseMatrix(6, 6);
         //column 1
         mFortescue.add(0, 0, 1.);

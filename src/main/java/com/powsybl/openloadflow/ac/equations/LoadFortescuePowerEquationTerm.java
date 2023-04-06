@@ -288,16 +288,17 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
     public static DenseMatrix getInvVabcSquare(double vAx, double vAy, double vBx, double vBy, double vCx, double vCy, LoadFortescuePowerEquationTerm eqTerm) {
         double epsilon = 0.00000001;
         double vAcongVa = vAx * vAx + vAy * vAy;
+        String cantBuildLoad = " is null at bus : " + eqTerm.bus.getId() + " : cannot build load model";
         if (vAcongVa < epsilon) {
-            throw new IllegalStateException("Va is null at bus : " + eqTerm.bus.getId() + " : cannot build load model");
+            throw new IllegalStateException("Va" + cantBuildLoad);
         }
         double vBcongVb = vBx * vBx + vBy * vBy;
         if (vBcongVb < epsilon) {
-            throw new IllegalStateException("Vb is null at bus : " + eqTerm.bus.getId() + " : cannot build load model");
+            throw new IllegalStateException("Vb" + cantBuildLoad);
         }
         double vCcongVc = vCx * vCx + vCy * vCy;
         if (vCcongVc < epsilon) {
-            throw new IllegalStateException("Vc is null at bus : " + eqTerm.bus.getId() + " : cannot build load model");
+            throw new IllegalStateException("Vc" + cantBuildLoad);
         }
         double invVax = vAx / vAcongVa;
         double invVay = -vAy / vAcongVa;

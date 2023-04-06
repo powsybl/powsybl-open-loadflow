@@ -52,7 +52,7 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     protected final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
 
     protected AbstractClosedBranchDisymCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                                 boolean deriveA1, boolean deriveR1, boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
+                                                                 boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);

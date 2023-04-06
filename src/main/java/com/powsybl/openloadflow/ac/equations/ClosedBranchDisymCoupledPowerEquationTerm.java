@@ -15,8 +15,8 @@ import java.util.Objects;
 public class ClosedBranchDisymCoupledPowerEquationTerm extends AbstractClosedBranchDisymCoupledFlowEquationTerm {
 
     public ClosedBranchDisymCoupledPowerEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                     boolean deriveA1, boolean deriveR1, boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, isRealPart, isSide1, sequenceType);
+                                                     boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
+        super(branch, bus1, bus2, variableSet, isRealPart, isSide1, sequenceType);
     }
 
     public static double tx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm equationTerm) {
