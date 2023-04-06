@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.network.Extensions.iidm;
+package com.powsybl.openloadflow.network.extensions.iidm;
 
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.iidm.network.Line;

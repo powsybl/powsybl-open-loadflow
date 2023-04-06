@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.network.Extensions;
+package com.powsybl.openloadflow.network.extensions;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>

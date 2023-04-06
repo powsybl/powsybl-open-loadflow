@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.network.Extensions.iidm;
+package com.powsybl.openloadflow.network.extensions.iidm;
 
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.extensions.ExtensionAdderProvider;

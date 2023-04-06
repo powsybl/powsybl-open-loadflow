@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.network.Extensions;
+package com.powsybl.openloadflow.network.extensions;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.util.Fortescue;

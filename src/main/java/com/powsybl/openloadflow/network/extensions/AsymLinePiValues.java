@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.network.Extensions;
+package com.powsybl.openloadflow.network.extensions;
 
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.SimplePiModel;

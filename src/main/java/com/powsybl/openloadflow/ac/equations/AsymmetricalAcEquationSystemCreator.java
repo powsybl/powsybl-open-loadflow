@@ -8,9 +8,9 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.network.Extensions.AsymBus;
-import com.powsybl.openloadflow.network.Extensions.AsymGenerator;
-import com.powsybl.openloadflow.network.Extensions.AsymLine;
+import com.powsybl.openloadflow.network.extensions.AsymBus;
+import com.powsybl.openloadflow.network.extensions.AsymGenerator;
+import com.powsybl.openloadflow.network.extensions.AsymLine;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;

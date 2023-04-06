@@ -1,8 +1,8 @@
-package com.powsybl.openloadflow.network.Extensions;
+package com.powsybl.openloadflow.network.extensions;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Load;
-import com.powsybl.openloadflow.network.Extensions.iidm.LoadUnbalanced;
+import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalanced;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.impl.LfBusImpl;
 import com.powsybl.openloadflow.util.Evaluable;

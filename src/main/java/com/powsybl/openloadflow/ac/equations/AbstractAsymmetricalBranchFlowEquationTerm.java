@@ -8,7 +8,7 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
-import com.powsybl.openloadflow.network.Extensions.AsymLine;
+import com.powsybl.openloadflow.network.extensions.AsymLine;
 import com.powsybl.openloadflow.network.LfBranch;
 
 /**
