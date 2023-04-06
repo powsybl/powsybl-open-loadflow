@@ -34,18 +34,18 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private VoltageInitializer voltageInitializer;
 
-    private final boolean disym;
+    private final boolean isAsymmetrical;
 
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
                                 NewtonRaphsonParameters newtonRaphsonParameters, List<OuterLoop> outerLoops, int maxOuterLoopIterations,
-                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean disym) {
+                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean isAsymmetrical) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.maxOuterLoopIterations = maxOuterLoopIterations;
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
-        this.disym = disym;
+        this.isAsymmetrical = isAsymmetrical;
     }
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
@@ -72,8 +72,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
     }
 
-    public boolean isDisym() {
-        return disym;
+    public boolean isAsymmetrical() {
+        return isAsymmetrical;
     }
 
     @Override
@@ -86,7 +86,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
                 ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
-                ", disym=" + disym +
+                ", isAsymmetrical=" + isAsymmetrical +
                 ')';
     }
 }

@@ -357,7 +357,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private Set<String> actionableSwitchesIds = ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE;
 
-    private boolean disym = false;
+    private boolean asymmetrical = false;
 
     @Override
     public String getName() {
@@ -793,12 +793,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public boolean isDisym() {
-        return disym;
+    public boolean isAsymmetrical() {
+        return asymmetrical;
     }
 
-    public OpenLoadFlowParameters setDisym(boolean disym) {
-        this.disym = disym;
+    public OpenLoadFlowParameters setAsymmetrical(boolean asymmetrical) {
+        this.asymmetrical = asymmetrical;
         return this;
     }
 
@@ -1184,7 +1184,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                         parametersExt.getMaxOuterLoopIterations(),
                                         matrixFactory,
                                         voltageInitializer,
-                                        parametersExt.isDisym());
+                                        parametersExt.isAsymmetrical());
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

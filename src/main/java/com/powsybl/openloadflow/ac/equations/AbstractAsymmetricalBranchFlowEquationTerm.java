@@ -15,12 +15,12 @@ import com.powsybl.openloadflow.network.LfBranch;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-abstract class AbstractBranchDisymFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
+abstract class AbstractAsymmetricalBranchFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
     // Classical line parameters are replaced by a 12x12 admittance matrix
     protected final DenseMatrix mY012;
 
-    protected AbstractBranchDisymFlowEquationTerm(LfBranch branch) {
+    protected AbstractAsymmetricalBranchFlowEquationTerm(LfBranch branch) {
         super(branch);
         AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
         if (asymLine == null) {

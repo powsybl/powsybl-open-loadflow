@@ -21,9 +21,9 @@ import com.powsybl.openloadflow.util.Fortescue;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
+public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator {
 
-    public DisymAcEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
+    public AsymmetricalAcEquationSystemCreator(LfNetwork network, AcEquationSystemCreationParameters creationParameters) {
         super(network, creationParameters);
     }
 
@@ -151,22 +151,22 @@ public class DisymAcEquationSystemCreator extends AcEquationSystemCreator {
             } else {
                 // assymmetry is detected with this line, we handle the equations as coupled between the different sequences
                 // positive
-                p1 = new ClosedBranchDisymCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, true, Fortescue.SequenceType.POSITIVE);
-                q1 = new ClosedBranchDisymCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, true, Fortescue.SequenceType.POSITIVE);
-                p2 = new ClosedBranchDisymCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, false, Fortescue.SequenceType.POSITIVE);
-                q2 = new ClosedBranchDisymCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, false, Fortescue.SequenceType.POSITIVE);
+                p1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, true, Fortescue.SequenceType.POSITIVE);
+                q1 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, true, Fortescue.SequenceType.POSITIVE);
+                p2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, false, Fortescue.SequenceType.POSITIVE);
+                q2 = new AsymmetricalClosedBranchCoupledPowerEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, false, Fortescue.SequenceType.POSITIVE);
 
                 // zero
-                ixz1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, true, Fortescue.SequenceType.ZERO);
-                iyz1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, true, Fortescue.SequenceType.ZERO);
-                ixz2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, false, Fortescue.SequenceType.ZERO);
-                iyz2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, false, Fortescue.SequenceType.ZERO);
+                ixz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, true, Fortescue.SequenceType.ZERO);
+                iyz1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, true, Fortescue.SequenceType.ZERO);
+                ixz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, false, Fortescue.SequenceType.ZERO);
+                iyz2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, false, Fortescue.SequenceType.ZERO);
 
                 // negative
-                ixn1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, true, Fortescue.SequenceType.NEGATIVE);
-                iyn1 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, true, Fortescue.SequenceType.NEGATIVE);
-                ixn2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, false, Fortescue.SequenceType.NEGATIVE);
-                iyn2 = new ClosedBranchDisymCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, false, Fortescue.SequenceType.NEGATIVE);
+                ixn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, true, Fortescue.SequenceType.NEGATIVE);
+                iyn1 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, true, Fortescue.SequenceType.NEGATIVE);
+                ixn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), true, false, Fortescue.SequenceType.NEGATIVE);
+                iyn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, false, Fortescue.SequenceType.NEGATIVE);
             }
 
         } else if (bus1 != null) {

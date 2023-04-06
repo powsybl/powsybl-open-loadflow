@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.openloadflow.ac.equations.DisymAcEquationSystemCreator;
+import com.powsybl.openloadflow.ac.equations.AsymmetricalAcEquationSystemCreator;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
@@ -36,7 +36,7 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     @Override
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         if (equationSystem == null) {
-            var creator = parameters.isDisym() ? new DisymAcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters())
+            var creator = parameters.isAsymmetrical() ? new AsymmetricalAcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters())
                                                : new AcEquationSystemCreator(network, parameters.getEquationSystemCreationParameters());
             equationSystem = creator.create();
         }

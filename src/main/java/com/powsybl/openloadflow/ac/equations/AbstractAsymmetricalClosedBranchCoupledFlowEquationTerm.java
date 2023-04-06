@@ -16,7 +16,7 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends AbstractBranchDisymFlowEquationTerm {
+public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm extends AbstractAsymmetricalBranchFlowEquationTerm {
 
     // positive
     protected final Variable<AcVariableType> v1Var;
@@ -51,8 +51,8 @@ public abstract class AbstractClosedBranchDisymCoupledFlowEquationTerm extends A
     protected final boolean isSide1; // true if i1x or i1y, false if i2x or i2y
     protected final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
 
-    protected AbstractClosedBranchDisymCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                                 boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
+    protected AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                                      boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);

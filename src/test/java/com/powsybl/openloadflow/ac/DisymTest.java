@@ -51,7 +51,7 @@ public class DisymTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new DisymAcEquationSystemCreator(mainNetwork, new AcEquationSystemCreationParameters()).create();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AsymmetricalAcEquationSystemCreator(mainNetwork, new AcEquationSystemCreationParameters()).create();
         NewtonRaphson.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
 
         LfBranch branch = mainNetwork.getBranchById("B1_B2");
@@ -143,24 +143,24 @@ public class DisymTest {
         EquationTerm<AcVariableType, AcEquationType> eqTerm12 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(0);
         EquationTerm<AcVariableType, AcEquationType> eqTerm13 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(1);
         EquationTerm<AcVariableType, AcEquationType> eqTerm14 = equationSystem.getEquation(branch2.getBus1().getNum(), AcEquationType.BUS_TARGET_P).get().getTerms().get(2);
-        ClosedBranchDisymCoupledCurrentEquationTerm coupledEquTerm;
-        if (eqTerm11 instanceof ClosedBranchDisymCoupledCurrentEquationTerm) {
-            coupledEquTerm = (ClosedBranchDisymCoupledCurrentEquationTerm) eqTerm11;
-        } else if (eqTerm10 instanceof ClosedBranchDisymCoupledCurrentEquationTerm) {
-            coupledEquTerm = (ClosedBranchDisymCoupledCurrentEquationTerm) eqTerm10;
+        AsymmetricalClosedBranchCoupledCurrentEquationTerm coupledEquTerm;
+        if (eqTerm11 instanceof AsymmetricalClosedBranchCoupledCurrentEquationTerm) {
+            coupledEquTerm = (AsymmetricalClosedBranchCoupledCurrentEquationTerm) eqTerm11;
+        } else if (eqTerm10 instanceof AsymmetricalClosedBranchCoupledCurrentEquationTerm) {
+            coupledEquTerm = (AsymmetricalClosedBranchCoupledCurrentEquationTerm) eqTerm10;
         } else {
-            coupledEquTerm = (ClosedBranchDisymCoupledCurrentEquationTerm) eqTerm9;
+            coupledEquTerm = (AsymmetricalClosedBranchCoupledCurrentEquationTerm) eqTerm9;
         }
         assertEquals(2, coupledEquTerm.getElementNum());
         assertEquals("ac_ixiy_coupled_closed_1", coupledEquTerm.getName());
 
-        ClosedBranchDisymCoupledPowerEquationTerm coupledPowerEquTerm;
-        if (eqTerm12 instanceof ClosedBranchDisymCoupledPowerEquationTerm) {
-            coupledPowerEquTerm = (ClosedBranchDisymCoupledPowerEquationTerm) eqTerm12;
-        } else if (eqTerm13 instanceof ClosedBranchDisymCoupledPowerEquationTerm) {
-            coupledPowerEquTerm = (ClosedBranchDisymCoupledPowerEquationTerm) eqTerm13;
+        AsymmetricalClosedBranchCoupledPowerEquationTerm coupledPowerEquTerm;
+        if (eqTerm12 instanceof AsymmetricalClosedBranchCoupledPowerEquationTerm) {
+            coupledPowerEquTerm = (AsymmetricalClosedBranchCoupledPowerEquationTerm) eqTerm12;
+        } else if (eqTerm13 instanceof AsymmetricalClosedBranchCoupledPowerEquationTerm) {
+            coupledPowerEquTerm = (AsymmetricalClosedBranchCoupledPowerEquationTerm) eqTerm13;
         } else {
-            coupledPowerEquTerm = (ClosedBranchDisymCoupledPowerEquationTerm) eqTerm14;
+            coupledPowerEquTerm = (AsymmetricalClosedBranchCoupledPowerEquationTerm) eqTerm14;
         }
         assertEquals(2, coupledPowerEquTerm.getElementNum());
         assertEquals("ac_pq_coupled_closed_1", coupledPowerEquTerm.getName());
@@ -208,7 +208,7 @@ public class DisymTest {
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setDisym(false);
+                .setAsymmetrical(false);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -242,7 +242,7 @@ public class DisymTest {
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setDisym(true);
+                .setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -331,7 +331,7 @@ public class DisymTest {
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setDisym(true);
+                .setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -377,7 +377,7 @@ public class DisymTest {
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setDisym(true);
+                .setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());

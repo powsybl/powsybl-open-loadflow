@@ -32,17 +32,17 @@ public final class GenericBranchPowerTerm {
 
     }
 
-    public static double powerTx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT) {
+    public static double powerTx(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledPowerEquationTerm eT) {
         return eT.r(i) * eT.r(j) * eT.v(g, i) * eT.v(h, j) * (getYxijgh(i, j, g, h, eT) * Math.cos(eT.a(i) - eT.a(j) + eT.ph(g, i) - eT.ph(h, j))
                 + getYyijgh(i, j, g, h, eT) * Math.sin(eT.a(i) - eT.a(j) + eT.ph(g, i) - eT.ph(h, j)));
     }
 
-    public static double powerTy(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT) {
+    public static double powerTy(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledPowerEquationTerm eT) {
         return eT.r(i) * eT.r(j) * eT.v(g, i) * eT.v(h, j) * (getYxijgh(i, j, g, h, eT) * Math.sin(eT.a(i) - eT.a(j) + eT.ph(g, i) - eT.ph(h, j))
                 - getYyijgh(i, j, g, h, eT) * Math.cos(eT.a(i) - eT.a(j) + eT.ph(g, i) - eT.ph(h, j)));
     }
 
-    public static double powerdTx(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
+    public static double powerdTx(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledPowerEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = GenericBranchCurrentTerm.getSequenceAndPhaseType(variable);
@@ -83,7 +83,7 @@ public final class GenericBranchPowerTerm {
         return 0;
     }
 
-    public static double powerdTy(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
+    public static double powerdTy(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledPowerEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
         Pair<Integer, Boolean> sequenceAndIsPhase = GenericBranchCurrentTerm.getSequenceAndPhaseType(variable);
@@ -124,11 +124,11 @@ public final class GenericBranchPowerTerm {
         return 0;
     }
 
-    public static double getYxijgh(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT) {
+    public static double getYxijgh(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledPowerEquationTerm eT) {
         return eT.getmY012().get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
     }
 
-    public static double getYyijgh(int i, int j, int g, int h, ClosedBranchDisymCoupledPowerEquationTerm eT) {
+    public static double getYyijgh(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledPowerEquationTerm eT) {
         return eT.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
     }
 }

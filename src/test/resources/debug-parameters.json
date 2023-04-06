@@ -61,7 +61,7 @@
         "reportedFeatures" : [ ],
         "slackBusCountryFilter" : [ ],
         "actionableSwitchesIds" : [ ],
-        "disym" : false
+        "asymmetrical" : false
       }
     }
   },
