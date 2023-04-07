@@ -164,6 +164,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 .forEach(column -> targetVectorArray[column] = 0);
         }
 
+        // First linear system solution
         boolean succeeded;
         try {
             j.solveTransposed(targetVectorArray);
@@ -177,6 +178,15 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         equationSystem.getStateVector().set(targetVectorArray);
         updateNetwork(network, equationSystem, targetVectorArray);
+
+        // continue with PST active power control outer loop only if first linear system solution has succeeded
+        if (succeeded && parameters.getNetworkParameters().isPhaseControl()) {
+            do {
+                // 2 run outerloop
+                // runPhaseShifterControlOuterLoop();
+                // 3 continue with next outer loop only if previous has succeeded, and we have not reached max number of outer loop iterations
+            } while (true);
+        }
 
         // set all calculated voltages to NaN
         if (parameters.isSetVToNan()) {
