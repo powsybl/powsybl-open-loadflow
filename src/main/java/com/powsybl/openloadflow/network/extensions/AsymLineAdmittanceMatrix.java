@@ -91,19 +91,19 @@ public class AsymLineAdmittanceMatrix {
                 buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()));
         // if one phase or more are disconnected we need to update Yabc and then Y012
         boolean isOpen = false;
-        if (asymLine.isOpenA()) {
+        if (asymLine.isPhaseOpenA()) {
             // we cancel all lines and columns that impact Va or Ia
             cancelComponentMatrix(mYabc, 1);
             isOpen = true;
         }
 
-        if (asymLine.isOpenB()) {
+        if (asymLine.isPhaseOpenB()) {
             // we cancel all lines and columns that impact Va or Ia
             cancelComponentMatrix(mYabc, 2);
             isOpen = true;
         }
 
-        if (asymLine.isOpenC()) {
+        if (asymLine.isPhaseOpenC()) {
             // we cancel all lines and columns that impact Va or Ia
             cancelComponentMatrix(mYabc, 3);
             isOpen = true;
@@ -128,36 +128,36 @@ public class AsymLineAdmittanceMatrix {
 
         DenseMatrix mY = new DenseMatrix(12, 12);
 
-        double r1 = piValues.piComponent1.getR();
-        double x1 = piValues.piComponent1.getX();
-        double g1i = piValues.piComponent1.getG1();
-        double g1j = piValues.piComponent1.getG2();
-        double b1i = piValues.piComponent1.getB1();
-        double b1j = piValues.piComponent1.getB2();
+        double r1 = piValues.getPiComponent1().getR();
+        double x1 = piValues.getPiComponent1().getX();
+        double g1i = piValues.getPiComponent1().getG1();
+        double g1j = piValues.getPiComponent1().getG2();
+        double b1i = piValues.getPiComponent1().getB1();
+        double b1j = piValues.getPiComponent1().getB2();
         double g1ij = r1 / (r1 * r1 + x1 * x1);
         double b1ij = -x1 / (r1 * r1 + x1 * x1);
 
         double g1ji = g1ij;
         double b1ji = b1ij;
 
-        double r2 = piValues.piComponent2.getR();
-        double x2 = piValues.piComponent2.getX();
-        double g2i = piValues.piComponent2.getG1();
-        double g2j = piValues.piComponent2.getG2();
-        double b2i = piValues.piComponent2.getB1();
-        double b2j = piValues.piComponent2.getB2();
+        double r2 = piValues.getPiComponent2().getR();
+        double x2 = piValues.getPiComponent2().getX();
+        double g2i = piValues.getPiComponent2().getG1();
+        double g2j = piValues.getPiComponent2().getG2();
+        double b2i = piValues.getPiComponent2().getB1();
+        double b2j = piValues.getPiComponent2().getB2();
         double g2ij = r2 / (r2 * r2 + x2 * x2);
         double b2ij = -x2 / (r2 * r2 + x2 * x2);
 
         double g2ji = g2ij;
         double b2ji = b2ij;
 
-        double r3 = piValues.piComponent3.getR();
-        double x3 = piValues.piComponent3.getX();
-        double g3i = piValues.piComponent3.getG1();
-        double g3j = piValues.piComponent3.getG2();
-        double b3i = piValues.piComponent3.getB1();
-        double b3j = piValues.piComponent3.getB2();
+        double r3 = piValues.getPiComponent3().getR();
+        double x3 = piValues.getPiComponent3().getX();
+        double g3i = piValues.getPiComponent3().getG1();
+        double g3j = piValues.getPiComponent3().getG2();
+        double b3i = piValues.getPiComponent3().getB1();
+        double b3j = piValues.getPiComponent3().getB2();
         double g3ij = r3 / (r3 * r3 + x3 * x3);
         double b3ij = -x3 / (r3 * r3 + x3 * x3);
 

@@ -19,19 +19,19 @@ public class AsymGenerator {
         this.b2 = b2;
     }
 
-    public double getg0() {
+    public double getG0() {
         return g0;
     }
 
-    public double getg2() {
+    public double getG2() {
         return g2;
     }
 
-    public double getb0() {
+    public double getB0() {
         return b0;
     }
 
-    public double getb2() {
+    public double getB2() {
         return b2;
     }
 }
