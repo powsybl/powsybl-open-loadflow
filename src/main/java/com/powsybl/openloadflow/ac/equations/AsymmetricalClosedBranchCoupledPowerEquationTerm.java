@@ -76,13 +76,13 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
 
     @Override
     public double eval() {
-        return pqij(isRealPart, isSide1, sequenceNum, this);
+        return pqij(isRealPart, isSide1, sequenceType.getNum(), this);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        return dpqij(isRealPart, isSide1, sequenceNum, this, variable, sideOfDerivative(variable));
+        return dpqij(isRealPart, isSide1, sequenceType.getNum(), this, variable, sideOfDerivative(variable));
     }
 
     @Override

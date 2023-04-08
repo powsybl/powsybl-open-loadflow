@@ -49,7 +49,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
     protected final boolean isRealPart; // true if active power asked, false if reactive power asked
     protected final boolean isSide1; // true if i1x or i1y, false if i2x or i2y
-    protected final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
+    protected final Fortescue.SequenceType sequenceType;
 
     protected AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                                       boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
@@ -88,23 +88,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
         this.isRealPart = isRealPart;
         this.isSide1 = isSide1;
-        switch (sequenceType) {
-            case ZERO:
-                this.sequenceNum = 0;
-                break;
-
-            case POSITIVE:
-                this.sequenceNum = 1;
-                break;
-
-            case NEGATIVE:
-                this.sequenceNum = 2;
-                break;
-
-            default:
-                throw new IllegalStateException("Unknow variable at branch : " + branch.getId());
-        }
-
+        this.sequenceType = sequenceType;
     }
 
     protected double v(int g, int i) {

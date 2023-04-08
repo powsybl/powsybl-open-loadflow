@@ -1,7 +1,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
-import org.apache.commons.math3.util.Pair;
+import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.Objects;
 
@@ -45,11 +45,8 @@ public final class GenericBranchCurrentTerm {
     public static double idTx(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledCurrentEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
-        Pair<Integer, Boolean> sequenceAndIsPhase = getSequenceAndPhaseType(variable);
-        int derivationSequence = sequenceAndIsPhase.getFirst();
-        boolean isPhase = sequenceAndIsPhase.getSecond();
-
-        if (isPhase) {
+        int derivationSequence = getSequenceType(variable).getNum();
+        if (isPhase(variable)) {
             return idTxdPh(j, h, eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(h, j), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         } else {
             return idTxdV(j, h, eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
@@ -79,11 +76,8 @@ public final class GenericBranchCurrentTerm {
     public static double idTy(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledCurrentEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
-        Pair<Integer, Boolean> sequenceAndIsPhase = getSequenceAndPhaseType(variable);
-        int derivationSequence = sequenceAndIsPhase.getFirst();
-        boolean isPhase = sequenceAndIsPhase.getSecond();
-
-        if (isPhase) {
+        int derivationSequence = getSequenceType(variable).getNum();
+        if (isPhase(variable)) {
             return idTydPh(j, h, eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(h, j), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         } else {
             return idTydv(j, h, eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
@@ -118,45 +112,33 @@ public final class GenericBranchCurrentTerm {
         return eT.getmY012().get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
     }
 
-    public static Pair<Integer, Boolean> getSequenceAndPhaseType(Variable<AcVariableType> variable) {
-        int derivationSequence;
-        boolean isPhase;
+    public static Fortescue.SequenceType getSequenceType(Variable<AcVariableType> variable) {
         switch (variable.getType()) {
             case BUS_V:
-                derivationSequence = 1;
-                isPhase = false;
-                break;
-
             case BUS_PHI:
-                derivationSequence = 1;
-                isPhase = true;
-                break;
+                return Fortescue.SequenceType.POSITIVE;
 
             case BUS_V_NEGATIVE:
-                derivationSequence = 2;
-                isPhase = false;
-                break;
-
             case BUS_PHI_NEGATIVE:
-                derivationSequence = 2;
-                isPhase = true;
-                break;
+                return Fortescue.SequenceType.NEGATIVE;
 
             case BUS_V_ZERO:
-                derivationSequence = 0;
-                isPhase = false;
-                break;
-
             case BUS_PHI_ZERO:
-                derivationSequence = 0;
-                isPhase = true;
-                break;
+                return Fortescue.SequenceType.ZERO;
 
             default:
                 throw new IllegalStateException("Unknown variable: ");
         }
-
-        return new Pair<>(derivationSequence, isPhase);
     }
 
+    public static boolean isPhase(Variable<AcVariableType> variable) {
+        switch (variable.getType()) {
+            case BUS_PHI:
+            case BUS_PHI_NEGATIVE:
+            case BUS_PHI_ZERO:
+                return true;
+            default:
+                return false;
+        }
+    }
 }

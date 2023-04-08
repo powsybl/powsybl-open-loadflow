@@ -1,9 +1,11 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
-import org.apache.commons.math3.util.Pair;
 
 import java.util.Objects;
+
+import static com.powsybl.openloadflow.ac.equations.GenericBranchCurrentTerm.getSequenceType;
+import static com.powsybl.openloadflow.ac.equations.GenericBranchCurrentTerm.isPhase;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
@@ -45,11 +47,8 @@ public final class GenericBranchPowerTerm {
     public static double powerdTx(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledPowerEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
-        Pair<Integer, Boolean> sequenceAndIsPhase = GenericBranchCurrentTerm.getSequenceAndPhaseType(variable);
-        int derivationSequence = sequenceAndIsPhase.getFirst();
-        boolean isPhase = sequenceAndIsPhase.getSecond();
-
-        if (isPhase) {
+        int derivationSequence = getSequenceType(variable).getNum();
+        if (isPhase(variable)) {
             return powerdTxdPh(i, j, g, h,
                     eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(g, i), eT.v(h, j), eT.ph(g, i), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         } else {
@@ -86,11 +85,8 @@ public final class GenericBranchPowerTerm {
     public static double powerdTy(int i, int j, int g, int h, AsymmetricalClosedBranchCoupledPowerEquationTerm eT, Variable<AcVariableType> variable, int derivativeSide) {
 
         Objects.requireNonNull(variable);
-        Pair<Integer, Boolean> sequenceAndIsPhase = GenericBranchCurrentTerm.getSequenceAndPhaseType(variable);
-        int derivationSequence = sequenceAndIsPhase.getFirst();
-        boolean isPhase = sequenceAndIsPhase.getSecond();
-
-        if (isPhase) {
+        int derivationSequence = getSequenceType(variable).getNum();
+        if (isPhase(variable)) {
             return powerdTydPh(i, j, g, h,
                     eT.r(i), eT.r(j), eT.a(i), eT.a(j), eT.v(g, i), eT.v(h, j), eT.ph(g, i), eT.ph(h, j), getYxijgh(i, j, g, h, eT), getYyijgh(i, j, g, h, eT), derivativeSide, derivationSequence);
         } else {

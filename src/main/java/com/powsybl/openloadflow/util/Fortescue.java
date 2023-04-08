@@ -9,9 +9,19 @@ import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 public final class Fortescue {
 
     public enum SequenceType {
-        POSITIVE,
-        NEGATIVE,
-        ZERO
+        POSITIVE(1),
+        NEGATIVE(2),
+        ZERO(0);
+
+        private final int num;
+
+        SequenceType(int num) {
+            this.num = num;
+        }
+
+        public int getNum() {
+            return num;
+        }
     }
 
     private Fortescue() {
@@ -106,7 +116,7 @@ public final class Fortescue {
         mFortescue.add(5, 4, -Math.sqrt(3.) / 2.);
         mFortescue.add(5, 5, -1. / 2.);
 
-        return mFortescue.toDense();
+        return mFortescue;
     }
 
     public static Vector2D getCartesianFromPolar(double magnitude, double angle) {

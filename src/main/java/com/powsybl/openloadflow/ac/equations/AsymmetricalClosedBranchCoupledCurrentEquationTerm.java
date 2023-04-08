@@ -75,13 +75,13 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
 
     @Override
     public double eval() {
-        return ixIyij(isRealPart, isSide1, sequenceNum, this);
+        return ixIyij(isRealPart, isSide1, sequenceType.getNum(), this);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        return dIxIyij(isRealPart, isSide1, sequenceNum, this, variable, sideOfDerivative(variable));
+        return dIxIyij(isRealPart, isSide1, sequenceType.getNum(), this, variable, sideOfDerivative(variable));
     }
 
     @Override

@@ -39,16 +39,16 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
     private final boolean isRealPart; // true if active power asked, false if reactive power asked
-    private final int sequenceNum; // 0 = zero, 1 = positive, 2 = negative
+    private final Fortescue.SequenceType sequenceType; // 0 = zero, 1 = positive, 2 = negative
 
-    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, boolean isRealPart, int sequenceNum) {
+    public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, boolean isRealPart, Fortescue.SequenceType sequenceType) {
         super(true);
         Objects.requireNonNull(bus);
         Objects.requireNonNull(variableSet);
 
         this.bus = bus;
         this.isRealPart = isRealPart;
-        this.sequenceNum = sequenceNum;
+        this.sequenceType = sequenceType;
 
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
         phVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI);
@@ -99,7 +99,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         }
     }
 
-    public static double pq(boolean isRealPart, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi) {
+    public static double pq(boolean isRealPart, Fortescue.SequenceType sequenceType, LoadFortescuePowerEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi) {
         // We use the formula with complex matrices:
         //
         // [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
@@ -135,14 +135,14 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         DenseMatrix mIfortescueConjugate = Fortescue.getFortescueMatrix().times(m0T0);
         DenseMatrix mSfortescue = mSquareVFortescue.times(mIfortescueConjugate); //  term T0 = Sfortescue
 
-        switch (sequenceNum) {
-            case 0: // zero
+        switch (sequenceType) {
+            case ZERO: // zero
                 return isRealPart ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
 
-            case 1: // positive
+            case POSITIVE: // positive
                 return isRealPart ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
 
-            case 2: // negative
+            case NEGATIVE: // negative
                 return isRealPart ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
 
             default:
@@ -150,7 +150,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         }
     }
 
-    public static double dpq(boolean isRealPart, int sequenceNum, LoadFortescuePowerEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
+    public static double dpq(boolean isRealPart, Fortescue.SequenceType sequenceType, LoadFortescuePowerEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
         // We derivate the PQ formula with complex matrices:
         //
         //    [So]              [dVo/dx  0   0]         [1/Va  0  0]   [Sa]        [Vo  0  0]                [Sa  0   0]   [1/Va  0  0]   [1/Va  0  0]         [dV0/dx]
@@ -234,14 +234,14 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         DenseMatrix mdIFortescueConjugate = Fortescue.getFortescueMatrix().times(m3T2);
         DenseMatrix mT2 = mSquareVFortescue.times(mdIFortescueConjugate);
 
-        switch (sequenceNum) {
-            case 0: // zero
+        switch (sequenceType) {
+            case ZERO: // zero
                 return isRealPart ? mdIFortescueConjugate.get(0, 0) : -mdIFortescueConjugate.get(1, 0); // dIxZero or dIyZero
 
-            case 1: // positive
+            case POSITIVE: // positive
                 return isRealPart ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
 
-            case 2: // negative
+            case NEGATIVE: // negative
                 return isRealPart ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
 
             default:
@@ -251,7 +251,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     @Override
     public double eval() {
-        return pq(isRealPart, sequenceNum, this,
+        return pq(isRealPart, sequenceType, this,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
                 v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
@@ -259,7 +259,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        return dpq(isRealPart, sequenceNum, this, variable,
+        return dpq(isRealPart, sequenceType, this, variable,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
                 v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
