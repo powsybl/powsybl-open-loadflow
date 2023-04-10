@@ -31,18 +31,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         this.branchRef = Ref.create(branch, parameters.isCacheEnabled());
     }
 
-    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, LfNetworkParameters parameters) {
-        PiModel piModel = new SimplePiModel()
-                .setR1(1 / Transformers.getRatioPerUnitBase(line))
-                .setR(line.getR() / zb)
-                .setX(line.getX() / zb)
-                .setG1(line.getG1() * zb)
-                .setG2(line.getG2() * zb)
-                .setB1(line.getB1() * zb)
-                .setB2(line.getB2() * zb);
-
-        LfBranchImpl lfBranchImpl = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
-
+    private static void createLineAsymExt(Line line, double zb, PiModel piModel, LfBranchImpl lfBranchImpl) {
         var extension = line.getExtension(LineAsymmetrical.class);
         if (extension != null) {
             AsymLine asymLine;
@@ -59,10 +48,24 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             } else {
                 throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical Pi values input data defined");
             }
-
             lfBranchImpl.setProperty(AsymLine.PROPERTY_ASYMMETRICAL, asymLine);
         }
+    }
 
+    private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, LfNetworkParameters parameters) {
+        PiModel piModel = new SimplePiModel()
+                .setR1(1 / Transformers.getRatioPerUnitBase(line))
+                .setR(line.getR() / zb)
+                .setX(line.getX() / zb)
+                .setG1(line.getG1() * zb)
+                .setG2(line.getG2() * zb)
+                .setB1(line.getB1() * zb)
+                .setB2(line.getB2() * zb);
+
+        LfBranchImpl lfBranchImpl = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
+        if (parameters.isAsymmetrical()) {
+            createLineAsymExt(line, zb, piModel, lfBranchImpl);
+        }
         return lfBranchImpl;
     }
 

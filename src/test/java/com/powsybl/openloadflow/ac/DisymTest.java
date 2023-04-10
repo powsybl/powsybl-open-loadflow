@@ -48,7 +48,9 @@ public class DisymTest {
 
         network = fourNodescreate();
 
-        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setAsymmetrical(true);
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters);
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AsymmetricalAcEquationSystemCreator(mainNetwork, new AcEquationSystemCreationParameters()).create();
@@ -373,7 +375,8 @@ public class DisymTest {
                 .add();
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
+        parameters = new LoadFlowParameters()
+                .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)

@@ -1,9 +1,11 @@
 package com.powsybl.openloadflow.network.extensions;
 
 /**
+ * This is an extension to a LfBranch Line to describe the asymmetry of a line to be used for an
+ * unbalanced load flow.
+ *
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-// This is an extension to a LfBranch Line to describe the asymmetry of a line to be used for an unbalanced load flow
 public class AsymLine {
 
     public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";

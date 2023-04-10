@@ -8,12 +8,15 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalanced;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 
 import java.util.List;
@@ -52,13 +55,39 @@ public class LfBusImpl extends AbstractLfBus {
         country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
     }
 
+    private static void createAsymExt(Bus bus, LfBusImpl lfBus) {
+        double totalDeltaPa = 0;
+        double totalDeltaQa = 0;
+        double totalDeltaPb = 0;
+        double totalDeltaQb = 0;
+        double totalDeltaPc = 0;
+        double totalDeltaQc = 0;
+        for (Load load : bus.getLoads()) {
+            var extension = load.getExtension(LoadUnbalanced.class);
+            if (extension != null) {
+                totalDeltaPa += extension.getDeltaPa() / PerUnit.SB;
+                totalDeltaQa += extension.getDeltaQa() / PerUnit.SB;
+                totalDeltaPb += extension.getDeltaPb() / PerUnit.SB;
+                totalDeltaQb += extension.getDeltaQb() / PerUnit.SB;
+                totalDeltaPc += extension.getDeltaPc() / PerUnit.SB;
+                totalDeltaQc += extension.getDeltaQc() / PerUnit.SB;
+            }
+        }
+        AsymBus asymBus = new AsymBus(lfBus, totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc);
+        lfBus.setProperty(AsymBus.PROPERTY_ASYMMETRICAL, asymBus);
+    }
+
     public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {
         Objects.requireNonNull(bus);
         Objects.requireNonNull(parameters);
-        return new LfBusImpl(bus, network, bus.getV(), Math.toRadians(bus.getAngle()), parameters, participating);
+        var lfBus = new LfBusImpl(bus, network, bus.getV(), Math.toRadians(bus.getAngle()), parameters, participating);
+        if (parameters.isAsymmetrical()) {
+            createAsymExt(bus, lfBus);
+        }
+        return lfBus;
     }
 
-    public Bus getBus() {
+    private Bus getBus() {
         return busRef.get();
     }
 
@@ -131,7 +160,7 @@ public class LfBusImpl extends AbstractLfBus {
         AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus != null) {
             return getGenerationTargetP();
-            // we use the detection of the asymmetry extension at bus to check if we are in dissym calculation
+            // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
             // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
         return getGenerationTargetP() - getLoadTargetP();
@@ -142,7 +171,7 @@ public class LfBusImpl extends AbstractLfBus {
         AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus != null) {
             return getGenerationTargetQ();
-            // we use the detection of the asymmetry extension at bus to check if we are in asymmetric calculation
+            // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
             // in this case, load target is set to zero and the constant power load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
         return getGenerationTargetQ() - getLoadTargetQ();

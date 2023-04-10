@@ -98,13 +98,13 @@ public class AsymLineAdmittanceMatrix {
         }
 
         if (asymLine.isPhaseOpenB()) {
-            // we cancel all lines and columns that impact Va or Ia
+            // we cancel all lines and columns that impact Vb or Ib
             cancelComponentMatrix(mYabc, 2);
             isOpen = true;
         }
 
         if (asymLine.isPhaseOpenC()) {
-            // we cancel all lines and columns that impact Va or Ia
+            // we cancel all lines and columns that impact Vc or Ic
             cancelComponentMatrix(mYabc, 3);
             isOpen = true;
         }

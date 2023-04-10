@@ -21,20 +21,20 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     protected final LfBus bus;
 
-    // direct
+    // positive
     protected final Variable<AcVariableType> vVar;
 
     protected final Variable<AcVariableType> phVar;
 
-    // inverse
-    protected final Variable<AcVariableType> vVarInv;
+    // negative
+    protected final Variable<AcVariableType> vVarNegative;
 
-    protected final Variable<AcVariableType> phVarInv;
+    protected final Variable<AcVariableType> phVarNegative;
 
-    // homopolar
-    protected final Variable<AcVariableType> vVarHom;
+    // zero
+    protected final Variable<AcVariableType> vVarZero;
 
-    protected final Variable<AcVariableType> phVarHom;
+    protected final Variable<AcVariableType> phVarZero;
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
@@ -53,30 +53,30 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
         phVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI);
 
-        vVarInv = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_NEGATIVE);
-        phVarInv = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
+        vVarNegative = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_NEGATIVE);
+        phVarNegative = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
 
-        vVarHom = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_ZERO);
-        phVarHom = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_ZERO);
+        vVarZero = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_ZERO);
+        phVarZero = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_ZERO);
 
         variables.add(vVar);
         variables.add(phVar);
-        variables.add(vVarInv);
-        variables.add(phVarInv);
-        variables.add(vVarHom);
-        variables.add(phVarHom);
+        variables.add(vVarNegative);
+        variables.add(phVarNegative);
+        variables.add(vVarZero);
+        variables.add(phVarZero);
     }
 
     public double ph(Fortescue.SequenceType g) {
         switch (g) {
-            case ZERO: // zero
-                return sv.get(phVarHom.getRow());
+            case ZERO:
+                return sv.get(phVarZero.getRow());
 
-            case POSITIVE: // positive
+            case POSITIVE:
                 return sv.get(phVar.getRow());
 
-            case NEGATIVE: // negative
-                return sv.get(phVarInv.getRow());
+            case NEGATIVE:
+                return sv.get(phVarNegative.getRow());
 
             default:
                 throw new IllegalStateException("Unknown Phi variable at bus: " + bus.getId());
@@ -85,21 +85,21 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
 
     public double v(Fortescue.SequenceType g) {
         switch (g) {
-            case ZERO: // zero
-                return sv.get(vVarHom.getRow());
+            case ZERO:
+                return sv.get(vVarZero.getRow());
 
-            case POSITIVE: // positive
+            case POSITIVE:
                 return sv.get(vVar.getRow());
 
-            case NEGATIVE: // negative
-                return sv.get(vVarInv.getRow());
+            case NEGATIVE:
+                return sv.get(vVarNegative.getRow());
 
             default:
                 throw new IllegalStateException("Unknown V variable at bus: " + bus.getId());
         }
     }
 
-    public static double pq(boolean isRealPart, Fortescue.SequenceType sequenceType, LoadFortescuePowerEquationTerm eqTerm, double vo, double pho, double vd, double phd, double vi, double phi) {
+    public static double pq(boolean isRealPart, Fortescue.SequenceType sequenceType, LoadFortescuePowerEquationTerm eqTerm, double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
         // We use the formula with complex matrices:
         //
         // [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
@@ -118,11 +118,11 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         // Build of Sabc/3 vector
         DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
 
-        Vector2D directComponent = Fortescue.getCartesianFromPolar(vd, phd);
-        Vector2D homopolarComponent = Fortescue.getCartesianFromPolar(vo, pho);
-        Vector2D inversComponent = Fortescue.getCartesianFromPolar(vi, phi);
+        Vector2D positiveSequence = Fortescue.getCartesianFromPolar(vPositive, phPositive);
+        Vector2D zeroSequence = Fortescue.getCartesianFromPolar(vZero, phZero);
+        Vector2D negativeSequence = Fortescue.getCartesianFromPolar(vNegative, phNegative);
 
-        DenseMatrix mVfortescue = getCartesianMatrix(homopolarComponent.getX(), homopolarComponent.getY(), directComponent.getX(), directComponent.getY(), inversComponent.getX(), inversComponent.getY(), true); // vector build with cartesian values (Vx,Vy) of complex fortescue voltages
+        DenseMatrix mVfortescue = getCartesianMatrix(zeroSequence.getX(), zeroSequence.getY(), positiveSequence.getX(), positiveSequence.getY(), negativeSequence.getX(), negativeSequence.getY(), true); // vector build with cartesian values (Vx,Vy) of complex fortescue voltages
         DenseMatrix mVabc = Fortescue.getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build  1/Vabc square matrix
@@ -136,13 +136,13 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         DenseMatrix mSfortescue = mSquareVFortescue.times(mIfortescueConjugate); //  term T0 = Sfortescue
 
         switch (sequenceType) {
-            case ZERO: // zero
+            case ZERO:
                 return isRealPart ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
 
-            case POSITIVE: // positive
+            case POSITIVE:
                 return isRealPart ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
 
-            case NEGATIVE: // negative
+            case NEGATIVE:
                 return isRealPart ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
 
             default:

@@ -69,16 +69,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    public static LfGeneratorImpl create(Generator generator, LfNetwork network, LfNetworkParameters parameters,
-                                         LfNetworkLoadingReport report) {
-        Objects.requireNonNull(generator);
-        Objects.requireNonNull(network);
-        Objects.requireNonNull(parameters);
-        Objects.requireNonNull(report);
-
-        LfGeneratorImpl lfGeneratorImpl = new LfGeneratorImpl(generator, network, parameters, report);
-
-        // Add extension for dissymmetric
+    private static void createAsymExt(Generator generator, LfGeneratorImpl lfGenerator) {
         var extension = generator.getExtension(GeneratorFortescue.class);
         if (extension != null) {
             double vNom = generator.getTerminal().getVoltageLevel().getNominalV();
@@ -107,8 +98,19 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 throw new PowsyblException("Generator '" + generator.getId() + "' has fortescue negative sequence values that will bring singularity in the equation system");
             }
             AsymGenerator asymGenerator = new AsymGenerator(gZero, bZero, gNegative, bNegative);
-            lfGeneratorImpl.setProperty(AsymGenerator.PROPERTY_ASYMMETRICAL, asymGenerator);
+            lfGenerator.setProperty(AsymGenerator.PROPERTY_ASYMMETRICAL, asymGenerator);
+        }
+    }
 
+    public static LfGeneratorImpl create(Generator generator, LfNetwork network, LfNetworkParameters parameters,
+                                         LfNetworkLoadingReport report) {
+        Objects.requireNonNull(generator);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
+        Objects.requireNonNull(report);
+        LfGeneratorImpl lfGeneratorImpl = new LfGeneratorImpl(generator, network, parameters, report);
+        if (parameters.isAsymmetrical()) {
+            createAsymExt(generator, lfGeneratorImpl);
         }
         return lfGeneratorImpl;
     }

@@ -1,13 +1,10 @@
 package com.powsybl.openloadflow.network.extensions;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Load;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalanced;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.impl.LfBusImpl;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
-import com.powsybl.openloadflow.util.PerUnit;
+
+import java.util.Objects;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
@@ -16,20 +13,20 @@ public class AsymBus {
 
     public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";
 
-    private final LfBus lfBus;
+    private final LfBus bus;
 
-    private double vZero;
-    private double angleZero;
+    private final double totalDeltaPa;
+    private final double totalDeltaQa;
+    private final double totalDeltaPb;
+    private final double totalDeltaQb;
+    private final double totalDeltaPc;
+    private final double totalDeltaQc;
 
-    private double vNegative;
-    private double angleNegative;
+    private double vZero = 0;
+    private double angleZero = 0;
 
-    private double totalDeltaPa = 0.;
-    private double totalDeltaQa = 0.;
-    private double totalDeltaPb = 0.;
-    private double totalDeltaQb = 0.;
-    private double totalDeltaPc = 0.;
-    private double totalDeltaQc = 0.;
+    private double vNegative = 0;
+    private double angleNegative = 0;
 
     private double bZeroEquivalent = 0.; // equivalent shunt in zero and negative sequences induced by all equipment connected to the bus (generating units, loads modelled as shunts etc.)
     private double gZeroEquivalent = 0.;
@@ -42,45 +39,14 @@ public class AsymBus {
     private Evaluable ixNegative = EvaluableConstants.NAN;
     private Evaluable iyNegative = EvaluableConstants.NAN;
 
-    public AsymBus(LfBus lfBus, double vZero, double angleZero, double vNegative, double angleNegative) {
-        this.vZero = vZero;
-        this.angleZero = angleZero;
-        this.vNegative = vNegative;
-        this.angleNegative = angleNegative;
-        this.lfBus = lfBus;
-
-        LfBusImpl lfBusImpl = null;
-        if (lfBus instanceof LfBusImpl) {
-            lfBusImpl = (LfBusImpl) lfBus;
-        }
-        Bus bus = null;
-        if (lfBusImpl != null) {
-            bus = lfBusImpl.getBus();
-        }
-
-        if (bus != null) {
-            for (Load load : bus.getLoads()) {
-                var extension = load.getExtension(LoadUnbalanced.class);
-                if (extension != null) {
-                    double deltaPa = extension.getDeltaPa();
-                    double deltaQa = extension.getDeltaQa();
-                    double deltaPb = extension.getDeltaPb();
-                    double deltaQb = extension.getDeltaQb();
-                    double deltaPc = extension.getDeltaPc();
-                    double deltaQc = extension.getDeltaQc();
-                    totalDeltaPa = totalDeltaPa + deltaPa / PerUnit.SB;
-                    totalDeltaQa = totalDeltaQa + deltaQa / PerUnit.SB;
-                    totalDeltaPb = totalDeltaPb + deltaPb / PerUnit.SB;
-                    totalDeltaQb = totalDeltaQb + deltaQb / PerUnit.SB;
-                    totalDeltaPc = totalDeltaPc + deltaPc / PerUnit.SB;
-                    totalDeltaQc = totalDeltaQc + deltaQc / PerUnit.SB;
-                }
-            }
-        }
-    }
-
-    public AsymBus(LfBus bus) {
-        this(bus, 0., 0., 0., 0.);
+    public AsymBus(LfBus bus, double totalDeltaPa, double totalDeltaQa, double totalDeltaPb, double totalDeltaQb, double totalDeltaPc, double totalDeltaQc) {
+        this.bus = Objects.requireNonNull(bus);
+        this.totalDeltaPa = totalDeltaPa;
+        this.totalDeltaQa = totalDeltaQa;
+        this.totalDeltaPb = totalDeltaPb;
+        this.totalDeltaQb = totalDeltaQb;
+        this.totalDeltaPc = totalDeltaPc;
+        this.totalDeltaQc = totalDeltaQc;
     }
 
     public void setAngleZero(double angleZero) {
@@ -116,27 +82,27 @@ public class AsymBus {
     }
 
     public double getPa() {
-        return lfBus.getLoadTargetP() + totalDeltaPa;
+        return bus.getLoadTargetP() + totalDeltaPa;
     }
 
     public double getPb() {
-        return lfBus.getLoadTargetP() + totalDeltaPb;
+        return bus.getLoadTargetP() + totalDeltaPb;
     }
 
     public double getPc() {
-        return lfBus.getLoadTargetP() + totalDeltaPc;
+        return bus.getLoadTargetP() + totalDeltaPc;
     }
 
     public double getQa() {
-        return lfBus.getLoadTargetQ() + totalDeltaQa;
+        return bus.getLoadTargetQ() + totalDeltaQa;
     }
 
     public double getQb() {
-        return lfBus.getLoadTargetQ() + totalDeltaQb;
+        return bus.getLoadTargetQ() + totalDeltaQb;
     }
 
     public double getQc() {
-        return lfBus.getLoadTargetQ() + totalDeltaQc;
+        return bus.getLoadTargetQ() + totalDeltaQc;
     }
 
     public double getbNegativeEquivalent() {
