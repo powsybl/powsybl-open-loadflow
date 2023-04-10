@@ -357,7 +357,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private Set<String> actionableSwitchesIds = ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE;
 
-    private boolean asymmetrical = false;
+    private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -1121,7 +1121,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
                 .setDebugDir(parametersExt.getDebugDir())
                 .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl())
-                .setCacheEnabled(parametersExt.isNetworkCacheEnabled());
+                .setCacheEnabled(parametersExt.isNetworkCacheEnabled())
+                .setAsymmetrical(parametersExt.isAsymmetrical());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

@@ -8,13 +8,13 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
-import com.powsybl.openloadflow.network.extensions.AsymGenerator;
-import com.powsybl.openloadflow.network.extensions.AsymLine;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.extensions.AsymBus;
+import com.powsybl.openloadflow.network.extensions.AsymGenerator;
+import com.powsybl.openloadflow.network.extensions.AsymLine;
 import com.powsybl.openloadflow.util.Fortescue;
 
 /**
@@ -32,8 +32,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         super.createBusEquation(bus, equationSystem);
 
         // addition of asymmetric equations, supposing that existing v, theta, p and q are linked to the direct sequence
-        AsymBus asymBus = new AsymBus(bus); // bus is used to reach potential bus extensions in iidm that will be used to setup asymbus
-        bus.setProperty(AsymBus.PROPERTY_ASYMMETRICAL, asymBus);
+        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
 
         var ixh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO);
         asymBus.setIxZero(ixh);
