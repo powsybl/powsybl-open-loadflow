@@ -1835,12 +1835,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testLoadContingencyNoImpact() {
         Network network = SecurityAnalysisTestNetworkFactory.createWithFixedCurrentLimits();
         List<Contingency> contingencies = List.of(new Contingency("Load contingency", new LoadContingency("LD1")));
-        // SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
-        // assertEquals(1, result.getPostContingencyResults().size());
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
+        assertEquals(1, result.getPostContingencyResults().size());
         contingencies = List.of(new Contingency("Load contingency", new LoadContingency("LD1")),
                                 new Contingency("Switch contingency", new SwitchContingency("S1VL1_BBS1_GEN_DISCONNECTOR")));
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
-        // FIXME load contingency has no impact when simulated with a switch contingency !
+        result = runSecurityAnalysis(network, contingencies);
         assertEquals(2, result.getPostContingencyResults().size());
     }
 }
