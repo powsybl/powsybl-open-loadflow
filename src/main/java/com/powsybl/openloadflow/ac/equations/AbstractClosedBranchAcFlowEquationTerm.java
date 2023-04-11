@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
+import net.jafama.FastMath;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,13 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
+
+    public enum FlowType {
+        I1x,
+        I1y,
+        I2x,
+        I2y;
+    }
 
     protected final Variable<AcVariableType> v1Var;
 
@@ -144,4 +152,64 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
     public List<Variable<AcVariableType>> getVariables() {
         return variables;
     }
+
+    public static DenseMatrix getCartesianVoltageVector(double v1, double ph1, double v2, double ph2) {
+        DenseMatrix mV = new DenseMatrix(4, 1);
+        mV.add(0, 0, v1 * FastMath.cos(ph1));
+        mV.add(1, 0, v1 * FastMath.sin(ph1));
+        mV.add(2, 0, v2 * FastMath.cos(ph2));
+        mV.add(3, 0, v2 * FastMath.sin(ph2));
+
+        return mV;
+    }
+
+    public static int getIndexline(ClosedBranchTfoNegativeIflowEquationTerm.FlowType flowType) {
+        switch (flowType) {
+            case I1x:
+                return 0;
+
+            case I1y:
+                return 1;
+
+            case I2x:
+                return 2;
+
+            case I2y:
+                return 3;
+
+            default:
+                throw new IllegalStateException("Unknown flow type at branch : ??? ");
+        }
+    }
+
+    public DenseMatrix getdVdx(Variable<AcVariableType> variable) {
+        double dv1x = 0;
+        double dv1y = 0;
+        double dv2x = 0;
+        double dv2y = 0;
+        if (variable.equals(v1Var)) {
+            dv1x = FastMath.cos(ph1());
+            dv1y = FastMath.sin(ph1());
+        } else if (variable.equals(v2Var)) {
+            dv2x = FastMath.cos(ph2());
+            dv2y = FastMath.sin(ph2());
+        } else if (variable.equals(ph1Var)) {
+            dv1x = -v1() * FastMath.sin(ph1());
+            dv1y = v1() * FastMath.cos(ph1());
+        } else if (variable.equals(ph2Var)) {
+            dv2x = -v2() * FastMath.sin(ph2());
+            dv2y = v2() * FastMath.cos(ph2());
+        } else {
+            throw new IllegalStateException("Unknown variable: " + variable);
+        }
+
+        DenseMatrix mdV = new DenseMatrix(4, 1);
+        mdV.add(0, 0, dv1x);
+        mdV.add(1, 0, dv1y);
+        mdV.add(2, 0, dv2x);
+        mdV.add(3, 0, dv2y);
+
+        return mdV;
+    }
+
 }

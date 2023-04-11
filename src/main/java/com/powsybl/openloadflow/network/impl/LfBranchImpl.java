@@ -9,8 +9,12 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LineFortescue;
+import com.powsybl.iidm.network.extensions.TwoWindingsTransformerFortescue;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.AsymLine;
+import com.powsybl.openloadflow.network.extensions.AsymTransfo2W;
+import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
@@ -69,6 +73,40 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return lfBranchImpl;
     }
 
+    private static void createTransfo2AsymExt(TwoWindingsTransformer t2w, double zb, LfBranchImpl lfBranchImpl) {
+        var extension = t2w.getExtension(TwoWindingsTransformerFortescue.class);
+        if (extension != null) {
+            AsymTransfo2W asymTransfo2W;
+            var extensionIidm = t2w.getExtension(TwoWindingsTransformerFortescue.class);
+            if (extensionIidm != null) {
+                double rz = extensionIidm.getRz() / zb;
+                double xz = extensionIidm.getXz() / zb;
+                asymTransfo2W = new AsymTransfo2W(getLegConnectionType(extension.getConnectionType1(), t2w), getLegConnectionType(extension.getConnectionType2(), t2w), rz, xz, extension.isFreeFluxes(),
+                        extension.getGroundingR1() / zb, extension.getGroundingX1() / zb, // TODO : check pu of z1g since it is on the left of rho
+                        extension.getGroundingR2() / zb, extension.getGroundingX2() / zb);
+            } else {
+                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical Pi values input data defined");
+            }
+            lfBranchImpl.setProperty(AsymTransfo2W.PROPERTY_ASYMMETRICAL, asymTransfo2W);
+        }
+    }
+
+    private static LegConnectionType getLegConnectionType(WindingConnectionType windingConnectionType, TwoWindingsTransformer t2w) {
+        switch (windingConnectionType) {
+            case Y_GROUNDED:
+                return LegConnectionType.Y_GROUNDED;
+
+            case Y:
+                return LegConnectionType.Y;
+
+            case DELTA:
+                return LegConnectionType.DELTA;
+
+            default:
+                throw new IllegalStateException("Unknown transformer leg connection type for transformer: " + t2w.getId());
+        }
+    }
+
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
                                                   LfNetworkParameters parameters) {
         PiModel piModel = null;
@@ -114,7 +152,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             piModel = Transformers.createPiModel(tapCharacteristics, zb, baseRatio, parameters.isTwtSplitShuntAdmittance());
         }
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);
+        LfBranchImpl lfBranchImpl = new LfBranchImpl(network, bus1, bus2, piModel, twt, parameters);
+        if (parameters.isAsymmetrical()) {
+            createTransfo2AsymExt(twt, zb, lfBranchImpl);
+        }
+        return lfBranchImpl;
     }
 
     public static LfBranchImpl create(Branch<?> branch, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
