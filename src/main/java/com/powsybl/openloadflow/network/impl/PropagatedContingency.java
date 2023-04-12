@@ -105,8 +105,7 @@ public class PropagatedContingency {
                               load.getQ0() / PerUnit.SB); // ensurePowerFactorConstant is not supported.
     }
 
-    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen, Set<Switch> allSwitchesToClose,
-                                                         boolean contingencyPropagation, boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen, boolean contingencyPropagation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
@@ -115,7 +114,13 @@ public class PropagatedContingency {
             propagatedContingencies.add(propagatedContingency);
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
         }
-        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
+        return propagatedContingencies;
+    }
+
+    public static List<PropagatedContingency> completeList(List<PropagatedContingency> propagatedContingencies, boolean shuntCompensatorVoltageControlOn,
+                                                           boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation, boolean breakers) {
+        // complete definition of contingencies after network loading
+        // in order to have the good busId.
         for (PropagatedContingency propagatedContingency : propagatedContingencies) {
             propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
         }
@@ -142,7 +147,7 @@ public class PropagatedContingency {
     }
 
     private void complete(boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad,
-                                 boolean hvdcAcEmulation, boolean breakers) {
+                         boolean hvdcAcEmulation, boolean breakers) {
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
         }
