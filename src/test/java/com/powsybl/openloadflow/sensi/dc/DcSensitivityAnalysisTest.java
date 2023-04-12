@@ -828,8 +828,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = NodeBreakerNetworkFactory.create();
         List<Contingency> contingencies = List.of(new Contingency("c1", new BranchContingency("L1")));
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies,
-                Collections.emptySet(), Collections.emptySet(), false, false, false, false);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, Collections.emptySet(), false);
         assertEquals(1, propagatedContingencies.size());
     }
 
