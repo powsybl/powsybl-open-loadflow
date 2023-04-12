@@ -15,6 +15,8 @@ import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
  * @author Gaël Macherel <gael.macherel@artelys.com>
  */
 public class PropagatedContingency {
+
+    protected static final Logger LOGGER = LoggerFactory.getLogger(PropagatedContingency.class);
 
     private final Contingency contingency;
 
@@ -126,6 +130,8 @@ public class PropagatedContingency {
             Identifiable<?> identifiable = getIdentifiable(network, element);
             if (contingencyPropagation) {
                 ContingencyTripping.createContingencyTripping(network, identifiable).traverse(switchesToOpen, terminalsToDisconnect);
+            } else if (identifiable instanceof BusbarSection) {
+                ContingencyTripping.createBusbarSectionMinimalTripping(network, (BusbarSection) identifiable).traverse(switchesToOpen, terminalsToDisconnect);
             }
             terminalsToDisconnect.addAll(getTerminals(identifiable));
             if (identifiable instanceof Switch) {
@@ -152,6 +158,8 @@ public class PropagatedContingency {
                     break;
 
                 case GENERATOR:
+                case STATIC_VAR_COMPENSATOR:
+                case BATTERY:
                     generatorIdsToLose.add(connectable.getId());
                     break;
 
@@ -166,9 +174,9 @@ public class PropagatedContingency {
                     if (shuntCompensatorVoltageControlOn && shunt.isVoltageRegulatorOn()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + shunt.getId() + "' with voltage control on: not supported yet");
                     }
-                    double nominalV = shunt.getTerminal().getVoltageLevel().getNominalV();
-                    shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(-shunt.getG() * nominalV * nominalV / PerUnit.SB,
-                            shunt.getB() * nominalV * nominalV / PerUnit.SB));
+                    double zb = PerUnit.zb(shunt.getTerminal().getVoltageLevel().getNominalV());
+                    shuntIdsToShift.put(shunt.getId(), new AdmittanceShift(shunt.getG() * zb,
+                            shunt.getB() * zb));
                     break;
 
                 case HVDC_CONVERTER_STATION:
@@ -177,6 +185,8 @@ public class PropagatedContingency {
                     if (control != null && control.isEnabled() && hvdcAcEmulation) {
                         hvdcIdsToOpen.add(station.getHvdcLine().getId());
                     }
+                    // FIXME
+                    // the other converter station should be considered to if in the same synchronous component (hvdc setpoint mode).
                     if (connectable instanceof VscConverterStation) {
                         generatorIdsToLose.add(connectable.getId());
                     } else {
@@ -248,6 +258,10 @@ public class PropagatedContingency {
                 identifiable = network.getGenerator(element.getId());
                 identifiableType = "Generator";
                 break;
+            case STATIC_VAR_COMPENSATOR:
+                identifiable = network.getStaticVarCompensator(element.getId());
+                identifiableType = "Static var compensator";
+                break;
             case LOAD:
                 identifiable = network.getLoad(element.getId());
                 identifiableType = "Load";
@@ -264,6 +278,10 @@ public class PropagatedContingency {
                 identifiable = network.getThreeWindingsTransformer(element.getId());
                 identifiableType = "Three windings transformer";
                 break;
+            case BUSBAR_SECTION:
+                identifiable = network.getBusbarSection(element.getId());
+                identifiableType = "Busbar section";
+                break;
             default:
                 throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
         }
@@ -277,11 +295,24 @@ public class PropagatedContingency {
         // update connectivity with triggered branches of this network
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
-        branchIdsToOpen.stream()
+
+        List<LfBranch> branchesToOpen = branchIdsToOpen.stream()
                 .map(network::getBranchById)
                 .filter(Objects::nonNull) // could be in another component
-                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .collect(Collectors.toList());
+
+        branchesToOpen.stream()
+                .filter(LfBranch::isConnectedAtBothSides)
                 .forEach(connectivity::removeEdge);
+
+        if (connectivity.getConnectedComponent(network.getSlackBus()).size() == 1) {
+            // FIXME
+            // If a contingency leads to an isolated slack bus, this bus is considered as the main component.
+            // In that case, we have an issue with a different number of variables and equations.
+            LOGGER.error("Contingency '{}' leads to an isolated slack bus: not supported", contingency.getId());
+            connectivity.undoTemporaryChanges();
+            return Optional.empty();
+        }
 
         // add to contingency description buses and branches that won't be part of the main connected
         // component in post contingency state
@@ -289,9 +320,21 @@ public class PropagatedContingency {
         Set<LfBus> buses = connectivity.getVerticesRemovedFromMainComponent();
         Set<LfBranch> branches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
 
-        // we should manage branches open at one side.
+        // we should manage branches open at one side
+        branchesToOpen.stream()
+                .filter(b -> !b.isConnectedAtBothSides())
+                .forEach(branches::add);
         for (LfBus bus : buses) {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(branches::add);
+        }
+
+        for (LfHvdc hvdcLine : network.getHvdcs()) {
+            // FIXME
+            // if we loose a bus with a converter station, the other converter station should be considered to if in the
+            // same synchronous component (hvdc setpoint mode).
+            if (buses.contains(hvdcLine.getBus1()) || buses.contains(hvdcLine.getBus2())) {
+                hvdcIdsToOpen.add(hvdcLine.getId());
+            }
         }
 
         // reset connectivity to discard triggered branches
@@ -336,6 +379,7 @@ public class PropagatedContingency {
                 && busesLoadShift.isEmpty()
                 && generators.isEmpty()
                 && hvdcs.isEmpty()) {
+            LOGGER.debug("Contingency '{}' has no impact", contingency.getId());
             return Optional.empty();
         }
 

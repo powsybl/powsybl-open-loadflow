@@ -10,18 +10,31 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 
+import java.util.List;
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
-    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private final AcEquationSystemCreationParameters parameters;
+
+    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                   AcEquationSystemCreationParameters parameters) {
         super(equationSystem, false);
+        this.parameters = Objects.requireNonNull(parameters);
+    }
+
+    private void updateVoltageControls(LfBus bus) {
+        bus.getGeneratorVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl.getMainVoltageControl(), equationSystem));
+        bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateTransformerVoltageControlEquations(voltageControl.getMainVoltageControl(), equationSystem));
+        bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateShuntVoltageControlEquations(voltageControl.getMainVoltageControl(), equationSystem));
     }
 
     @Override
     public void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
-        controllerBus.getGeneratorVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl, equationSystem));
+        updateVoltageControls(controllerBus.getGeneratorVoltageControl().orElseThrow().getControlledBus());
         controllerBus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
     }
 
@@ -32,12 +45,12 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
 
     @Override
     public void onTransformerVoltageControlChange(LfBranch controllerBranch, boolean newVoltageControllerEnabled) {
-        AcEquationSystemCreator.updateTransformerVoltageControlEquations(controllerBranch.getVoltageControl().orElseThrow(), equationSystem);
+        updateVoltageControls(controllerBranch.getVoltageControl().orElseThrow().getControlledBus());
     }
 
     @Override
     public void onShuntVoltageControlChange(LfShunt controllerShunt, boolean newVoltageControllerEnabled) {
-        AcEquationSystemCreator.updateShuntVoltageControlEquations(controllerShunt.getVoltageControl().orElseThrow(), equationSystem);
+        updateVoltageControls(controllerShunt.getVoltageControl().orElseThrow().getControlledBus());
     }
 
     @Override
@@ -74,9 +87,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
                         .setActive(false);
-                bus.getGeneratorVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateGeneratorVoltageControl(voltageControl, equationSystem));
-                bus.getTransformerVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
-                bus.getShuntVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateShuntVoltageControlEquations(voltageControl, equationSystem));
+                updateVoltageControls(bus);
                 bus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case BRANCH:
@@ -94,6 +105,43 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 break;
             default:
                 throw new IllegalStateException("Unknown element type: " + element.getType());
+        }
+    }
+
+    private void recreateDistributionEquations(LfZeroImpedanceNetwork network) {
+        for (LfBus bus : network.getGraph().vertexSet()) {
+            bus.getGeneratorVoltageControl()
+                    .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateReactivePowerDistributionEquations(voltageControl, equationSystem, parameters));
+            bus.getTransformerVoltageControl()
+                    .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(voltageControl, equationSystem));
+            bus.getShuntVoltageControl()
+                    .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
+                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateShuntSusceptanceDistributionEquations(voltageControl, equationSystem));
+        }
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc) {
+        if (!dc) {
+            // TODO
+            // only recreate distribution equations if controllers buses are redistributed on the different
+            // split networks (should be a rare case) and not only ate the end on only one of the split network
+            for (LfZeroImpedanceNetwork splitNetwork : splitNetworks) {
+                recreateDistributionEquations(splitNetwork);
+            }
+        }
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc) {
+        if (!dc) {
+            // TODO
+            // only recreate distribution equations if controllers buses are merged (should be a rare case)
+            // so we have to check here that controllers were spread over network1 and network2 and were not
+            // already only on network1 or network2
+            recreateDistributionEquations(mergedNetwork);
         }
     }
 }

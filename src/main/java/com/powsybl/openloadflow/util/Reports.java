@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.reporter.Report;
+import com.powsybl.commons.reporter.ReportBuilder;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
@@ -194,5 +195,63 @@ public final class Reports {
     public static Reporter createPostContingencySimulation(Reporter reporter, String contingencyId) {
         return reporter.createSubReporter("postContingencySimulation", "Post-contingency simulation '${contingencyId}'",
                 "contingencyId", contingencyId);
+    }
+
+    public static Reporter createDetailedNewtonRaphsonReporter(Reporter reporter, int networkNumCc, int networkNumSc) {
+        return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || No outer loops calculations",
+                Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED)));
+    }
+
+    public static Reporter createDetailedNewtonRaphsonReporterOuterLoop(Reporter reporter, int networkNumCc, int networkNumSc, int outerLoopIteration, String outerLoopType) {
+        return reporter.createSubReporter("newtonRaphson", "Newton Raphson on Network CC${newtonRaphsonNetworkNumCc} SC${newtonRaphsonNetworkNumSc} || Outer loop iteration ${newtonRaphsonOuterLoopIteration} and type `${newtonRaphsonOuterLoopType}`",
+                Map.of("newtonRaphsonNetworkNumCc", new TypedValue(networkNumCc, TypedValue.UNTYPED),
+                        "newtonRaphsonNetworkNumSc", new TypedValue(networkNumSc, TypedValue.UNTYPED),
+                        "newtonRaphsonOuterLoopIteration", new TypedValue(outerLoopIteration, TypedValue.UNTYPED),
+                        "newtonRaphsonOuterLoopType", new TypedValue(outerLoopType, TypedValue.UNTYPED)));
+    }
+
+    public static Reporter createNewtonRaphsonMismatchReporter(Reporter reporter, int iteration) {
+        if (iteration == -1) {
+            return reporter.createSubReporter("mismatchInitial", "Initial mismatch");
+        } else {
+            return reporter.createSubReporter("mismatchIteration", "Iteration ${iteration} mismatch", ITERATION, iteration);
+        }
+    }
+
+    public static void reportNewtonRaphsonMismatch(Reporter reporter, String acEquationType, double mismatch, String busId, double busV, double busPhi, int iteration) {
+
+        ReportBuilder reportBuilder = Report.builder();
+        String mismatchDetails = " on ${equationType}: ${mismatch}, Bus Id: '${busId}', Bus V: ${busV}, Bus Phi: ${busPhi}";
+        if (iteration == -1) {
+            reportBuilder.withKey("NRInitialMismatch")
+                    .withDefaultMessage("Initial mismatch" + mismatchDetails);
+        } else {
+            reportBuilder.withKey("NRIterationMismatch")
+                    .withDefaultMessage("Iteration ${iteration} mismatch" + mismatchDetails)
+                    .withValue(ITERATION, iteration);
+        }
+
+        reporter.report(reportBuilder.withValue("equationType", acEquationType)
+                .withTypedValue("mismatch", mismatch, OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE)
+                .withValue("busId", busId)
+                .withTypedValue("busV", busV, TypedValue.VOLTAGE)
+                .withTypedValue("busPhi", busPhi, TypedValue.ANGLE)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
+    }
+
+    public static void reportNewtonRaphsonNorm(Reporter reporter, double norm, int iteration) {
+        ReportBuilder reportBuilder = Report.builder();
+        if (iteration == -1) {
+            reportBuilder.withKey("NRInitialNorm")
+                    .withDefaultMessage("Norm |f(x0)|=${norm}");
+        } else {
+            reportBuilder.withKey("NRIterationNorm")
+                    .withDefaultMessage("Norm |f(x)|=${norm}");
+        }
+        reporter.report(reportBuilder.withValue("norm", norm)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build());
     }
 }

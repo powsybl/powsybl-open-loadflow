@@ -10,8 +10,8 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.OuterLoopContext;
 import com.powsybl.openloadflow.ac.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.GeneratorVoltageControl;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -134,7 +134,7 @@ public class ReactiveLimitsOuterLoop implements OuterLoop {
 
         Reports.reportPvToPqBuses(reporter, pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
-        LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV}", pvToPqBuses.size(), modifiedRemainingPvBusCount);
+        LOGGER.info("{} buses switched PV -> PQ ({} bus remains PV)", pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
         return done;
     }

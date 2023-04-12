@@ -20,7 +20,7 @@
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.2.0-SNAPSHOT</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -45,11 +45,10 @@
         <java.version>11</java.version>
 
         <jafama.version>2.3.2</jafama.version>
-        <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
-        <graphviz-builder.version>1.0.12</graphviz-builder.version>
+        <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>5.2.0-SNAPSHOT</powsybl-core.version>
+        <powsybl-core.version>5.3.0-SNAPSHOT</powsybl-core.version>
     </properties>
 
     <build>
@@ -93,6 +92,11 @@
     <dependencies>
         <!-- Compile dependencies -->
         <dependency>
+            <groupId>de.vandermeer</groupId>
+            <artifactId>asciitable</artifactId>
+            <version>${asciitable.version}</version>
+        </dependency>
+        <dependency>
             <groupId>net.jafama</groupId>
             <artifactId>jafama</artifactId>
             <version>${jafama.version}</version>
@@ -109,7 +113,6 @@
         <dependency>
             <groupId>org.anarres.graphviz</groupId>
             <artifactId>graphviz-builder</artifactId>
-            <version>${graphviz-builder.version}</version>
         </dependency>
 
         <dependency>
@@ -161,12 +164,6 @@
         <dependency>
             <groupId>com.google.jimfs</groupId>
             <artifactId>jimfs</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit-jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

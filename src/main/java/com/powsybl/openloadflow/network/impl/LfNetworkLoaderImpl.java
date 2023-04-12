@@ -20,7 +20,6 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -481,105 +480,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void fixAllVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters) {
-        // If min impedance is set, there is no zero-impedance branch
-        if (!parameters.isDc() && !parameters.isMinImpedance()) {
-            // Merge the discrete voltage control in each zero impedance connected set
-            List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(lfNetwork.getZeroImpedanceNetwork(false).getSubGraph()).connectedSets();
-            connectedSets.forEach(connectedSet -> mergeVoltageControls(connectedSet, parameters));
-        }
-    }
-
-    private static void mergeVoltageControls(Set<LfBus> zeroImpedanceConnectedSet, LfNetworkParameters parameters) {
-        // Get the list of voltage controls from controlled buses in the zero impedance connected set
-        // Note that the list order is not deterministic as jgrapht connected set computation is using a basic HashSet
-        List<GeneratorVoltageControl> generatorVoltageControls = zeroImpedanceConnectedSet.stream()
-                .filter(LfBus::isGeneratorVoltageControlled)
-                .flatMap(bus -> bus.getGeneratorVoltageControl().stream())
-                .collect(Collectors.toList());
-
-        // Get the list of discrete voltage controls from controlled buses in the zero impedance connected set
-        // Note that the list order is not deterministic as jgrapht connected set computation is using a basic HashSet
-        List<TransformerVoltageControl> transformerVoltageControls = !parameters.isTransformerVoltageControl() ? Collections.emptyList() :
-            zeroImpedanceConnectedSet.stream()
-                .filter(LfBus::isTransformerVoltageControlled)
-                .flatMap(bus -> bus.getTransformerVoltageControl().stream())
-                .collect(Collectors.toList());
-
-        if (generatorVoltageControls.isEmpty() && transformerVoltageControls.size() <= 1) {
-            return;
-        }
-
-        if (!generatorVoltageControls.isEmpty()) {
-
-            // First, resolve problem of voltage controls (generator, static var compensator, etc.)
-            // We have several controls whose controlled bus are in the same non-impedant connected set
-            // To solve that we keep only one voltage control (and its target value), the other ones are removed
-            // and the corresponding controllers are added to the control kept
-            if (generatorVoltageControls.size() > 1) {
-                LOGGER.info("Zero impedance connected set with several voltage controls: controls are merged");
-
-                // Sort voltage controls to have a merged voltage control with a deterministic controlled bus,
-                // a deterministic target value and controller buses in a deterministic order
-                generatorVoltageControls.sort(Comparator.comparing(GeneratorVoltageControl::getTargetValue).thenComparing(vc -> vc.getControlledBus().getId()));
-                checkVoltageControlUniqueTargetV("generator", generatorVoltageControls);
-
-                // Merge the controllers into the kept voltage control
-                GeneratorVoltageControl keptVoltageControl = generatorVoltageControls.remove(generatorVoltageControls.size() - 1);
-                generatorVoltageControls.forEach(vc -> vc.getControlledBus().removeGeneratorVoltageControl());
-                generatorVoltageControls.stream()
-                    .flatMap(vc -> vc.getControllerElements().stream())
-                    .forEach(controller -> {
-                        keptVoltageControl.addControllerElement(controller);
-                        controller.setGeneratorVoltageControl(keptVoltageControl);
-                    });
-            }
-
-            // Second, we have to remove all the discrete voltage controls if present.
-            if (!transformerVoltageControls.isEmpty()) {
-                LOGGER.info("Zero impedance connected set with several discrete voltage controls and a voltage control: discrete controls deleted");
-                transformerVoltageControls.stream()
-                        .flatMap(dvc -> dvc.getControllerElements().stream())
-                        .forEach(controller -> controller.setVoltageControl(null));
-                transformerVoltageControls.forEach(dvc -> dvc.getControlledBus().setTransformerVoltageControl(null));
-            }
-        } else {
-            // We have at least 2 discrete controls whose controlled bus are in the same non-impedant connected set
-            // To solve that we keep only one discrete voltage control, the other ones are removed
-            // and the corresponding controllers are added to the discrete control kept
-            LOGGER.info("Zero impedance connected set with several discrete voltage controls: discrete controls merged");
-
-            // Sort discrete voltage controls to have a merged discrete voltage control with a deterministic controlled bus,
-            // a deterministic target value and controller branches in a deterministic order
-            transformerVoltageControls.sort(Comparator.comparing(TransformerVoltageControl::getTargetValue).thenComparing(vc -> vc.getControlledBus().getId()));
-            checkVoltageControlUniqueTargetV("transformer", transformerVoltageControls);
-
-            // Merge the controllers into the kept voltage control
-            TransformerVoltageControl keptTransformerVoltageControl = transformerVoltageControls.remove(transformerVoltageControls.size() - 1);
-            transformerVoltageControls.forEach(dvc -> dvc.getControlledBus().setTransformerVoltageControl(null));
-            transformerVoltageControls.stream()
-                .flatMap(tvc -> tvc.getControllerElements().stream())
-                .forEach(controller -> {
-                    keptTransformerVoltageControl.addControllerElement(controller);
-                    controller.setVoltageControl(keptTransformerVoltageControl);
-                });
-        }
-    }
-
-    private static <V extends VoltageControl<?>> void checkVoltageControlUniqueTargetV(String voltageControlType, List<V> voltageControls) {
-        // To check uniqueness we take the target value which will be kept as reference.
-        // The kept target value is the highest, it corresponds to the last voltage control in the ordered list.
-        V vcRef = voltageControls.get(voltageControls.size() - 1);
-        boolean uniqueTargetV = voltageControls.stream().noneMatch(vc -> FastMath.abs(vc.getTargetValue() - vcRef.getTargetValue()) > TARGET_V_EPSILON);
-        if (!uniqueTargetV) {
-            LOGGER.error("Inconsistent {} voltage controls: buses {} are in the same non-impedant connected set and are controlled with different target voltages ({}). Only target voltage {} is kept",
-                    voltageControlType,
-                    voltageControls.stream().map(VoltageControl::getControlledBus).collect(Collectors.toList()),
-                    voltageControls.stream().map(VoltageControl::getTargetValue).collect(Collectors.toList()),
-                    vcRef.getTargetValue());
-        }
-    }
-
     private static void createPhaseControl(LfNetwork lfNetwork, PhaseTapChanger ptc, String controllerBranchId, String legId,
                                            LfNetworkParameters parameters) {
         if (ptc != null && ptc.isRegulating() && ptc.getRegulationMode() != PhaseTapChanger.RegulationMode.FIXED_TAP) {
@@ -650,10 +550,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.warn("Regulating terminal of voltage controller branch '{}' is out of voltage or in a different synchronous component: voltage control discarded", controllerBranch.getId());
             return;
         }
-        if (controlledBus.isGeneratorVoltageControlled()) {
-            LOGGER.warn("Controlled bus '{}' has both generator and transformer voltage control on: only generator control is kept", controlledBus.getId());
-            return;
-        }
 
         double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
         double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
@@ -700,17 +596,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             controllerShunt.setVoltageControlCapability(false);
             return;
         }
-        if (controlledBus.isGeneratorVoltageControlled()) {
-            LOGGER.warn("Controlled bus {} has both generator and shunt voltage control on: only generator control is kept", controlledBus.getId());
-            controllerShunt.setVoltageControlCapability(false);
-            return;
-        }
-        Optional<TransformerVoltageControl> tvc = controlledBus.getTransformerVoltageControl();
-        if (tvc.isPresent()) {
-            LOGGER.error("Controlled bus {} has already a transformer voltage control: only transformer control is kept", controlledBus.getId());
-            controllerShunt.setVoltageControlCapability(false);
-            return;
-        }
         if (controllerShunt.getVoltageControl().isPresent()) {
             // if a controller shunt is already in a shunt voltage control, the number of equations will not equal the
             // number of variables. We have only one B variable for more than one bus target V equations.
@@ -725,7 +610,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         controlledBus.getShuntVoltageControl().ifPresentOrElse(voltageControl -> {
             LOGGER.trace("Controlled bus {} has already a shunt voltage control: a shared control is created", controlledBus.getId());
             if (FastMath.abs(voltageControl.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
-                LOGGER.warn("Controlled bus {} already has a transformer voltage control with a different target voltage: {} and {}",
+                LOGGER.warn("Controlled bus {} already has a shunt voltage control with a different target voltage: {} and {}",
                         controlledBus.getId(), voltageControl.getTargetValue(), targetValue);
             }
             if (!voltageControl.getControllerElements().contains(controllerShunt)) {
@@ -790,9 +675,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (parameters.isBreakers()) {
             createSwitches(switches, lfNetwork, postProcessors, parameters, report);
         }
-
-        // Fixing voltage controls need to be done after creating switches, as the zero-impedance graph is changed with switches
-        fixAllVoltageControls(lfNetwork, parameters);
 
         // secondary voltage controls
         createSecondaryVoltageControls(network, parameters, lfNetwork);

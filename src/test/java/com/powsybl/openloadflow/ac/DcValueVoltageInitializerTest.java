@@ -57,9 +57,9 @@ class DcValueVoltageInitializerTest {
                 matrixFactory);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
-        assertBusVoltage(lfNetwork, initializer, "b2_vl_0", -1.432394);
-        assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -8.594367);
-        assertBusVoltage(lfNetwork, initializer, "b4_vl_0", -1.432394);
+        assertBusVoltage(lfNetwork, initializer, "b2_vl_0", -0.025);
+        assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -0.15);
+        assertBusVoltage(lfNetwork, initializer, "b4_vl_0", -0.025);
     }
 
     @Test
@@ -75,8 +75,8 @@ class DcValueVoltageInitializerTest {
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);
-        assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -8.021409);
-        assertBusVoltage(lfNetwork, initializer, "b4_vl_0", -1.145915);
+        assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -0.14);
+        assertBusVoltage(lfNetwork, initializer, "b4_vl_0", -0.02);
     }
 
     @Test
@@ -92,8 +92,8 @@ class DcValueVoltageInitializerTest {
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);
-        assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -8.021409);
-        assertBusVoltage(lfNetwork, initializer, "b4_vl_0", -1.145915);
+        assertBusVoltage(lfNetwork, initializer, "b3_vl_0", -0.14);
+        assertBusVoltage(lfNetwork, initializer, "b4_vl_0", -0.02);
     }
 
 }

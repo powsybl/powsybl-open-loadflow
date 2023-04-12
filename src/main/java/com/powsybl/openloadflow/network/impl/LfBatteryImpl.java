@@ -30,7 +30,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     private double participationFactor;
 
     private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, battery.getTargetP());
+        super(network, battery.getTargetP() / PerUnit.SB);
         this.batteryRef = Ref.create(battery, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
@@ -46,7 +46,8 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
             }
         }
 
-        if (!checkActivePowerControl(battery.getTargetP(), battery.getMinP(), battery.getMaxP(), parameters, report)) {
+        if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMinP(), battery.getMaxP(),
+                parameters.getPlausibleActivePowerLimit(), report)) {
             participating = false;
         }
     }
@@ -112,7 +113,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     public void updateState() {
         var battery = getBattery();
         battery.getTerminal()
-                .setP(-targetP)
+                .setP(-targetP * PerUnit.SB)
                 .setQ(-battery.getTargetQ());
     }
 }

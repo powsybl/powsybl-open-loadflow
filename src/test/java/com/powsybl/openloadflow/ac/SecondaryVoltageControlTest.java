@@ -59,20 +59,6 @@ class SecondaryVoltageControlTest {
         g8 = network.getGenerator("B8-G");
 
         // adjust reactive limit to avoid generators be to limit
-        var g1 = network.getGenerator("B1-G");
-        g1.newMinMaxReactiveLimits()
-                .setMinQ(-30)
-                .setMaxQ(30)
-                .add();
-        var g2 = network.getGenerator("B2-G");
-        g2.newMinMaxReactiveLimits()
-                .setMinQ(-40)
-                .setMaxQ(35)
-                .add();
-        g6.newMinMaxReactiveLimits()
-                .setMinQ(-61)
-                .setMaxQ(24)
-                .add();
         g8.newMinMaxReactiveLimits()
                 .setMinQ(-6)
                 .setMaxQ(200)
@@ -95,7 +81,7 @@ class SecondaryVoltageControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertVoltageEquals(14.262, b10);
+        assertVoltageEquals(12.611, b10);
         assertVoltageEquals(12.84, b6);
         assertVoltageEquals(21.8, b8);
         double q6 = g6.getTerminal().getQ();
@@ -105,24 +91,24 @@ class SecondaryVoltageControlTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(14.4, b10);
-        assertVoltageEquals(13.018, b6);
-        assertVoltageEquals(22.001, b8);
+        assertVoltageEquals(14.755, b6);
+        assertVoltageEquals(26.611, b8);
         // not so bad... reactive power shift are closed
-        assertEquals(5.047, q6 - g6.getTerminal().getQ(), DELTA_POWER);
-        assertEquals(4.247, q8 - g8.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(56.357, q6 - g6.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(71.988, q8 - g8.getTerminal().getQ(), DELTA_POWER);
 
         pilotPoint.setTargetV(14);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(5, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(14, b10);
-        assertVoltageEquals(12.5, b6);
-        assertVoltageEquals(21.418, b8);
+        assertVoltageEquals(14.326, b6);
+        assertVoltageEquals(25.534, b8);
         // not so bad... reactive power shift are closed
-        assertEquals(-9.085, q6 - g6.getTerminal().getQ(), DELTA_POWER);
-        assertEquals(-7.918, q8 - g8.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(42.369, q6 - g6.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(53.695, q8 - g8.getTerminal().getQ(), DELTA_POWER);
     }
 
     @Test
@@ -136,23 +122,23 @@ class SecondaryVoltageControlTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
-        assertVoltageEquals(14.261, b10);
+        assertVoltageEquals(12.606, b10);
         assertVoltageEquals(12.84, b6);
         assertVoltageEquals(21.8, b8);
-        assertReactivePowerEquals(52.054, g6.getTerminal()); // [-61, 24]
-        assertReactivePowerEquals(-188.795, g8.getTerminal()); // [-6, 200]
+        assertReactivePowerEquals(-12.730, g6.getTerminal()); // [-6, 24]
+        assertReactivePowerEquals(-17.623, g8.getTerminal()); // [-6, 200]
 
         parametersExt.setSecondaryVoltageControl(true);
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(9, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(14, b10);
-        assertVoltageEquals(12.505, b6);
-        assertVoltageEquals(21.418, b8);
-        assertReactivePowerEquals(61.0, g6.getTerminal()); // [-61, 24] => qmin
-        assertReactivePowerEquals(-180.829, g8.getTerminal()); // [-6, 200]
+        assertVoltageEquals(13.92, b6);
+        assertVoltageEquals(26.9, b8);
+        assertReactivePowerEquals(-24, g6.getTerminal()); // [-6, 24] => qmax
+        assertReactivePowerEquals(-109.141, g8.getTerminal()); // [-6, 200]
     }
 
     @Test
@@ -168,8 +154,30 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(10, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(142, b4);
-        assertVoltageEquals(14.537, b10);
+        assertVoltageEquals(14.487, b10);
+    }
+
+    @Test
+    void testOpenBranchIssue() {
+        // open branch L6-13-1 on side 2 so that a neighbor branch of B6-G is disconnected to the other side
+        network.getLine("L6-13-1").getTerminal2().disconnect();
+
+        parameters.setUseReactiveLimits(false);
+        parametersExt.setSecondaryVoltageControl(true);
+
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 14.4);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
+                                                                          new ControlUnit("B8-G"))))
+                .add();
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(14.38, b10);
+        assertVoltageEquals(14.86, b6);
+        assertVoltageEquals(26.74, b8);
     }
 }

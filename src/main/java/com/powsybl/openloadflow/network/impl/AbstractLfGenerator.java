@@ -30,6 +30,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected final LfNetwork network;
 
+    protected double initialTargetP;
+
     protected double targetP;
 
     protected LfBus bus;
@@ -48,9 +50,12 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     protected double remoteTargetQ = Double.NaN;
 
+    private boolean disabled;
+
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
         this.network = Objects.requireNonNull(network);
         this.targetP = targetP;
+        this.initialTargetP = targetP;
     }
 
     @Override
@@ -72,18 +77,23 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     }
 
     @Override
+    public double getInitialTargetP() {
+        return initialTargetP;
+    }
+
+    @Override
     public double getTargetP() {
-        return targetP / PerUnit.SB;
+        return targetP;
     }
 
     @Override
     public void setTargetP(double targetP) {
-        double newTargetP = targetP * PerUnit.SB;
-        if (newTargetP != this.targetP) {
+        if (targetP != this.targetP) {
             double oldTargetP = this.targetP;
-            this.targetP = newTargetP;
+            this.targetP = targetP;
+            bus.invalidateGenerationTargetP();
             for (LfNetworkListener listener : bus.getNetwork().getListeners()) {
-                listener.onGenerationActivePowerTargetChange(this, oldTargetP, newTargetP);
+                listener.onGenerationActivePowerTargetChange(this, oldTargetP, targetP);
             }
         }
     }
@@ -118,14 +128,14 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public double getMinQ() {
         return getReactiveLimits()
-                .map(limits -> limits.getMinQ(targetP) / PerUnit.SB)
+                .map(limits -> limits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB)
                 .orElse(-Double.MAX_VALUE);
     }
 
     @Override
     public double getMaxQ() {
         return getReactiveLimits()
-                .map(limits -> limits.getMaxQ(targetP) / PerUnit.SB)
+                .map(limits -> limits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB)
                 .orElse(Double.MAX_VALUE);
     }
 
@@ -147,7 +157,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
                             }
                         }
                     } else if (rangeMode == ReactiveRangeMode.TARGET_P) {
-                        rangeQ = reactiveLimits.getMaxQ(targetP) - reactiveLimits.getMinQ(targetP);
+                        rangeQ = reactiveLimits.getMaxQ(targetP * PerUnit.SB) - reactiveLimits.getMinQ(targetP * PerUnit.SB);
                     } else {
                         throw new PowsyblException("Unsupported reactive range mode: " + rangeMode);
                     }
@@ -169,12 +179,12 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
 
     @Override
     public double getCalculatedQ() {
-        return calculatedQ / PerUnit.SB;
+        return calculatedQ;
     }
 
     @Override
     public void setCalculatedQ(double calculatedQ) {
-        this.calculatedQ = calculatedQ * PerUnit.SB;
+        this.calculatedQ = calculatedQ;
     }
 
     @Override
@@ -301,37 +311,47 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         // nothing to do
     }
 
-    protected boolean checkActivePowerControl(double targetP, double minP, double maxP, LfNetworkParameters parameters,
-                                              LfNetworkLoadingReport report) {
+    public static boolean checkActivePowerControl(String generatorId, double targetP, double minP, double maxP, double plausibleActivePowerLimit,
+                                                  LfNetworkLoadingReport report) {
         boolean participating = true;
         if (Math.abs(targetP) < POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) equals 0",
-                    getId(), targetP);
-            report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
+                    generatorId, targetP);
+            if (report != null) {
+                report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
+            }
             participating = false;
         }
         if (targetP > maxP) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) > maxP ({})",
-                    getId(), targetP, maxP);
-            report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
+                    generatorId, targetP, maxP);
+            if (report != null) {
+                report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
+            }
             participating = false;
         }
         if (targetP < minP && minP > 0) {
             LOGGER.trace("Discard generator '{}' from active power control because targetP ({}) < minP ({})",
-                    getId(), targetP, minP);
-            report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
+                    generatorId, targetP, minP);
+            if (report != null) {
+                report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
+            }
             participating = false;
         }
-        if (maxP > parameters.getPlausibleActivePowerLimit()) {
+        if (maxP > plausibleActivePowerLimit) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({}) > {}} MW",
-                    getId(), maxP, parameters.getPlausibleActivePowerLimit());
-            report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
+                    generatorId, maxP, plausibleActivePowerLimit);
+            if (report != null) {
+                report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
+            }
             participating = false;
         }
         if ((maxP - minP) < POWER_EPSILON_SI) {
             LOGGER.trace("Discard generator '{}' from active power control because maxP ({} MW) equals minP ({} MW)",
-                    getId(), maxP, minP);
-            report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
+                    generatorId, maxP, minP);
+            if (report != null) {
+                report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
+            }
             participating = false;
         }
         return participating;
@@ -340,5 +360,15 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public String toString() {
         return getId();
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 }

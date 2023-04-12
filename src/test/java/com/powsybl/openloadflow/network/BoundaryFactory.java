@@ -321,22 +321,25 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(true)
                 .add();
 
-        network.newTieLine()
-                .setId("t12")
-                .newHalf1()
-                .setId("h1")
+        DanglingLine dl1 = vl1.newDanglingLine()
                 .setBus("b1")
+                .setId("h1")
                 .setR(0.0)
                 .setX(0.1)
                 .setUcteXnodeCode("xnode")
-                .add()
-                .newHalf2()
-                .setId("h2")
+                .add();
+        DanglingLine dl3 = vl3.newDanglingLine()
                 .setBus("b3")
-                .setR(0)
+                .setId("h2")
+                .setR(0.0)
                 .setX(0.08)
                 .setUcteXnodeCode("xnode")
-                .add()
+                .add();
+
+        network.newTieLine()
+                .setId("t12")
+                .setHalf1(dl1.getId())
+                .setHalf2(dl3.getId())
                 .add();
 
         network.newLine()

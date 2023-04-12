@@ -35,8 +35,7 @@ public class LfDanglingLineBranch extends AbstractImpedantLfBranch {
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(parameters);
-        double nominalV = danglingLine.getTerminal().getVoltageLevel().getNominalV();
-        double zb = nominalV * nominalV / PerUnit.SB;
+        double zb = PerUnit.zb(danglingLine.getTerminal().getVoltageLevel().getNominalV());
         PiModel piModel = new SimplePiModel()
                 .setR(danglingLine.getR() / zb)
                 .setX(danglingLine.getX() / zb)

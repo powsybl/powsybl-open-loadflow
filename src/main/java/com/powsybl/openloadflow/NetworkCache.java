@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.GeneratorVoltageControl;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,18 +37,17 @@ public enum NetworkCache {
 
         private final WeakReference<Network> networkRef;
 
-        private final String variantId;
+        private final String workingVariantId;
+        private String tmpVariantId;
 
         private final LoadFlowParameters parameters;
 
         private List<AcLoadFlowContext> contexts;
 
-        private LfNetworkList.VariantCleaner variantCleaner;
-
         public Entry(Network network, LoadFlowParameters parameters) {
             Objects.requireNonNull(network);
             this.networkRef = new WeakReference<>(network);
-            this.variantId = network.getVariantManager().getWorkingVariantId();
+            this.workingVariantId = network.getVariantManager().getWorkingVariantId();
             this.parameters = Objects.requireNonNull(parameters);
         }
 
@@ -56,8 +55,12 @@ public enum NetworkCache {
             return networkRef;
         }
 
-        public String getVariantId() {
-            return variantId;
+        public String getWorkingVariantId() {
+            return workingVariantId;
+        }
+
+        public void setTmpVariantId(String tmpVariantId) {
+            this.tmpVariantId = tmpVariantId;
         }
 
         public List<AcLoadFlowContext> getContexts() {
@@ -66,10 +69,6 @@ public enum NetworkCache {
 
         public void setContexts(List<AcLoadFlowContext> contexts) {
             this.contexts = contexts;
-        }
-
-        public void setVariantCleaner(LfNetworkList.VariantCleaner variantCleaner) {
-            this.variantCleaner = variantCleaner;
         }
 
         public LoadFlowParameters getParameters() {
@@ -159,6 +158,23 @@ public enum NetworkCache {
             });
         }
 
+        private boolean onSwitchUpdate(String switchId, boolean open) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                LfNetwork lfNetwork = context.getNetwork();
+                LfBranch lfBranch = lfNetwork.getBranchById(switchId);
+                if (lfBranch != null) {
+                    lfBranch.setDisabled(open);
+                    context.setNetworkUpdated(true);
+                    found = true;
+                }
+            }
+            if (!found) {
+                LOGGER.warn("Cannot open switch '{}'", switchId);
+            }
+            return found;
+        }
+
         @Override
         public void onUpdate(Identifiable identifiable, String attribute, String variantId, Object oldValue, Object newValue) {
             if (contexts == null) {
@@ -189,6 +205,11 @@ public enum NetworkCache {
                         ShuntCompensator shunt = (ShuntCompensator) identifiable;
                         if (attribute.equals("sectionCount")
                                 && onShuntUpdate(shunt, attribute)) {
+                            done = true;
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.SWITCH
+                            && attribute.equals("open")) {
+                        if (onSwitchUpdate(identifiable.getId(), (boolean) newValue)) {
                             done = true;
                         }
                     }
@@ -242,9 +263,9 @@ public enum NetworkCache {
 
         public void close() {
             reset();
-            if (variantCleaner != null) {
-                variantCleaner.clean();
-                variantCleaner = null;
+            Network network = networkRef.get();
+            if (network != null && tmpVariantId != null) {
+                network.getVariantManager().removeVariant(tmpVariantId);
             }
         }
     }
@@ -279,7 +300,7 @@ public enum NetworkCache {
     public Optional<Entry> findEntry(Network network) {
         String variantId = network.getVariantManager().getWorkingVariantId();
         return entries.stream()
-                .filter(e -> e.getNetworkRef().get() == network && e.getVariantId().equals(variantId))
+                .filter(e -> e.getNetworkRef().get() == network && e.getWorkingVariantId().equals(variantId))
                 .findFirst();
     }
 
