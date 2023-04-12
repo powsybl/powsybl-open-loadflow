@@ -18,6 +18,7 @@ import com.powsybl.iidm.network.extensions.LoadDetailAdder;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
+import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -1828,5 +1829,17 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         assertTrue(result.getPostContingencyResults().isEmpty());
+    }
+
+    @Test
+    void testLoadContingencyNoImpact() {
+        Network network = SecurityAnalysisTestNetworkFactory.createWithFixedCurrentLimits();
+        List<Contingency> contingencies = List.of(new Contingency("Load contingency", new LoadContingency("LD1")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
+        assertEquals(1, result.getPostContingencyResults().size());
+        contingencies = List.of(new Contingency("Load contingency", new LoadContingency("LD1")),
+                                new Contingency("Switch contingency", new SwitchContingency("S1VL1_BBS1_GEN_DISCONNECTOR")));
+        result = runSecurityAnalysis(network, contingencies);
+        assertEquals(2, result.getPostContingencyResults().size());
     }
 }
