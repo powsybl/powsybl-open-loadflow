@@ -44,7 +44,7 @@
         "minPlausibleTargetVoltage" : 0.8,
         "maxPlausibleTargetVoltage" : 1.2,
         "minRealisticVoltage" : 0.5,
-        "maxRealisticVoltage" : 1.5,
+        "maxRealisticVoltage" : 2.0,
         "lowImpedanceThreshold" : 1.0E-8,
         "reactiveRangeCheckMode" : "MAX",
         "networkCacheEnabled" : false,
