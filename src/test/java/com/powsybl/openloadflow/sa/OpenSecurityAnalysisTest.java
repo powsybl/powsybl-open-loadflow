@@ -290,7 +290,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<Contingency> contingencies = List.of(new Contingency("NGEN_NHV1", new BranchContingency("NGEN_NHV1")));
 
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies);
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters)
+                .setMaxRealisticVoltage(1.5);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, parameters);
 
         assertNotSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
     }
@@ -1575,7 +1578,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         ReporterModel reporter = new ReporterModel("TestSecurityAnalysis", "Test security analysis report");
 
-        runSecurityAnalysis(network, contingencies, Collections.emptyList(), new SecurityAnalysisParameters(), reporter);
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(loadFlowParameters)
+                .setMaxRealisticVoltage(1.5);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(loadFlowParameters);
+        runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, reporter);
 
         assertReportEquals("/saReport.txt", reporter);
     }
