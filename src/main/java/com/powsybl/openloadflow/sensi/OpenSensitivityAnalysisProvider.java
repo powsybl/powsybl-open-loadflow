@@ -24,7 +24,6 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.xml.NetworkXml;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
@@ -156,9 +155,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
             Set<Switch> allSwitchesToOpen = new HashSet<>();
             Set<String> allBusIdsToLose = new HashSet<>();
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, Collections.emptySet(), allBusIdsToLose, false, false,
-                    sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                    sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc());
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, allBusIdsToLose, false);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 

@@ -59,6 +59,10 @@ public class PropagatedContingency {
         return index;
     }
 
+    public Set<String> getBusIdsToLose() {
+        return busIdsToLose;
+    }
+
     public Set<String> getBranchIdsToOpen() {
         return branchIdsToOpen;
     }
@@ -87,10 +91,6 @@ public class PropagatedContingency {
         return originalPowerShiftIds;
     }
 
-    public Set<String> getBusIdsToLose() {
-        return busIdsToLose;
-    }
-
     public PropagatedContingency(Contingency contingency, int index, Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect,
                                  Set<String> busIdsToLose) {
         this.contingency = Objects.requireNonNull(contingency);
@@ -113,9 +113,8 @@ public class PropagatedContingency {
                               load.getQ0() / PerUnit.SB); // ensurePowerFactorConstant is not supported.
     }
 
-    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen, Set<Switch> allSwitchesToClose,
-                                                         Set<String> allBusIdsToLose, boolean contingencyPropagation, boolean shuntCompensatorVoltageControlOn,
-                                                         boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation) {
+    public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, Set<Switch> allSwitchesToOpen,
+                                                         Set<String> allBusIdsToLose, boolean contingencyPropagation) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
@@ -125,7 +124,13 @@ public class PropagatedContingency {
             allSwitchesToOpen.addAll(propagatedContingency.switchesToOpen);
             allBusIdsToLose.addAll(propagatedContingency.busIdsToLose);
         }
-        boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty() && allBusIdsToLose.isEmpty());
+        return propagatedContingencies;
+    }
+
+    public static List<PropagatedContingency> completeList(List<PropagatedContingency> propagatedContingencies, boolean shuntCompensatorVoltageControlOn,
+                                                           boolean slackDistributionOnConformLoad, boolean hvdcAcEmulation, boolean breakers) {
+        // complete definition of contingencies after network loading
+        // in order to have the good busId.
         for (PropagatedContingency propagatedContingency : propagatedContingencies) {
             propagatedContingency.complete(shuntCompensatorVoltageControlOn, slackDistributionOnConformLoad, hvdcAcEmulation, breakers);
         }
@@ -170,7 +175,7 @@ public class PropagatedContingency {
     }
 
     private void complete(boolean shuntCompensatorVoltageControlOn, boolean slackDistributionOnConformLoad,
-                                 boolean hvdcAcEmulation, boolean breakers) {
+                         boolean hvdcAcEmulation, boolean breakers) {
         for (Switch sw : switchesToOpen) {
             branchIdsToOpen.add(sw.getId());
         }

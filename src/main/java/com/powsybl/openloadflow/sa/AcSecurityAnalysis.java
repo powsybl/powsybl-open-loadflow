@@ -86,9 +86,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         Set<String> allBusIdsToLose = new HashSet<>();
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen,
-                allSwitchesToClose, allBusIdsToLose, securityAnalysisParametersExt.isContingencyPropagation(), lfParameters.isShuntCompensatorVoltageControlOn(),
-                lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isHvdcAcEmulation());
+                allBusIdsToLose, securityAnalysisParametersExt.isContingencyPropagation());
 
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty() && allBusIdsToLose.isEmpty());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
@@ -99,6 +97,10 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {
+
+            // complete definition of contingencies after network loading
+            PropagatedContingency.completeList(propagatedContingencies, lfParameters.isShuntCompensatorVoltageControlOn(),
+                    lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, lfParameters.isHvdcAcEmulation(), breakers);
 
             // run simulation on largest network
             SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)

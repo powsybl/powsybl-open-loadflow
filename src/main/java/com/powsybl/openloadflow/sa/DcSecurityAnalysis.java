@@ -236,11 +236,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         // try for find all switches to be operated as actions.
         Set<Switch> allSwitchesToOpen = new HashSet<>();
         Set<Switch> allSwitchesToClose = new HashSet<>();
+        Set<String> allBusIdsToLose = new HashSet<>();
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
 
-        Set<String> allBusIdsToLose = new HashSet<>();
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, allSwitchesToClose, allBusIdsToLose,
-                false, false, context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, allBusIdsToLose, false);
 
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
@@ -253,6 +252,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
+
+            // complete definition of contingencies after network loading
+            PropagatedContingency.completeList(propagatedContingencies, false,
+                    context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false, breakers);
+
             return lfNetworks.getLargest().filter(LfNetwork::isValid)
                     .map(largestNetwork -> runActionSimulations(context, largestNetwork, dcParameters, propagatedContingencies,
                                 operatorStrategies, actionsById, neededActions))
