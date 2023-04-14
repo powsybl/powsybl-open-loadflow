@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.openloadflow.AbstractPhaseControlOuterLoop;
 import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.OuterLoopStatus;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1CurrentMagnitudeEquationTerm;
