@@ -4,9 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+package com.powsybl.openloadflow;
 
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
@@ -24,7 +25,7 @@ public interface OuterLoopContext {
 
     void setData(Object data);
 
-    AcLoadFlowContext getAcLoadFlowContext();
+    LoadFlowContext getLoadFlowContext();
 
-    void setAcLoadFlowContext(AcLoadFlowContext acLoadFlowContext);
+    void setLoadFlowContext(LoadFlowContext loadFlowContext);
 }

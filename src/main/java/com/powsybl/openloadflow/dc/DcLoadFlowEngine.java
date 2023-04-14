@@ -185,7 +185,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 // 2 run outerloop
                 // runPhaseShifterControlOuterLoop();
                 // 3 continue with next outer loop only if previous has succeeded, and we have not reached max number of outer loop iterations
-            } while (true);
+            } while (false); // to do
         }
 
         // set all calculated voltages to NaN

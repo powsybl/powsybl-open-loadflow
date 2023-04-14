@@ -8,8 +8,9 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.IncrementalContextData;
+import com.powsybl.openloadflow.OuterLoopContext;
+import com.powsybl.openloadflow.OuterLoopStatus;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -281,8 +282,8 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
             var sensitivityContext = new SensitivityContext(network,
                                                             controllerBranches,
-                                                            context.getAcLoadFlowContext().getEquationSystem(),
-                                                            context.getAcLoadFlowContext().getJacobianMatrix());
+                                                            context.getLoadFlowContext().getEquationSystem(),
+                                                            context.getLoadFlowContext().getJacobianMatrix());
 
             if (!currentLimiterPhaseControls.isEmpty()
                     && checkCurrentLimiterPhaseControls(sensitivityContext,

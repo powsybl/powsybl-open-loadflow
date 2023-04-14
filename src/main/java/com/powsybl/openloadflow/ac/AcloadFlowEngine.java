@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.ac;
 import com.google.common.collect.Lists;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.TypedValue;
+import com.powsybl.openloadflow.OuterLoop;
+import com.powsybl.openloadflow.OuterLoopStatus;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -60,7 +62,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         private final MutableInt nrTotalIterations = new MutableInt();
     }
 
-    private void runOuterLoop(OuterLoop outerLoop, OuterLoopContextImpl outerLoopContext, NewtonRaphson newtonRaphson, RunningContext runningContext) {
+    private void runOuterLoop(OuterLoop outerLoop, AcOuterLoopContextImpl outerLoopContext, NewtonRaphson newtonRaphson, RunningContext runningContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
 
         // for each outer loop re-run Newton-Raphson until stabilization
@@ -71,7 +73,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration.getValue());
             outerLoopContext.setLastNewtonRaphsonResult(runningContext.lastNrResult);
-            outerLoopContext.setAcLoadFlowContext(context);
+            outerLoopContext.setLoadFlowContext(context);
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
@@ -117,8 +119,8 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                                                         context.getEquationVector());
 
         List<OuterLoop> outerLoops = context.getParameters().getOuterLoops();
-        List<Pair<OuterLoop, OuterLoopContextImpl>> outerLoopsAndContexts = outerLoops.stream()
-                .map(outerLoop -> Pair.of(outerLoop, new OuterLoopContextImpl(context.getNetwork())))
+        List<Pair<OuterLoop, AcOuterLoopContextImpl>> outerLoopsAndContexts = outerLoops.stream()
+                .map(outerLoop -> Pair.of(outerLoop, new AcOuterLoopContextImpl(context.getNetwork())))
                 .collect(Collectors.toList());
 
         // outer loops initialization

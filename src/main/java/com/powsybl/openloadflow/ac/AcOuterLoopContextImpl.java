@@ -6,7 +6,9 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Objects;
@@ -14,7 +16,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OuterLoopContextImpl implements OuterLoopContext {
+public class AcOuterLoopContextImpl implements OuterLoopContext {
 
     private final LfNetwork network;
 
@@ -24,9 +26,9 @@ public class OuterLoopContextImpl implements OuterLoopContext {
 
     private Object data;
 
-    private AcLoadFlowContext acLoadFlowContext;
+    private LoadFlowContext loadFlowContext;
 
-    OuterLoopContextImpl(LfNetwork network) {
+    AcOuterLoopContextImpl(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
     }
 
@@ -64,12 +66,20 @@ public class OuterLoopContextImpl implements OuterLoopContext {
     }
 
     @Override
+    public LoadFlowContext getLoadFlowContext() {
+        return loadFlowContext;
+    }
+
     public AcLoadFlowContext getAcLoadFlowContext() {
-        return acLoadFlowContext;
+        if (loadFlowContext.getClass() == AcLoadFlowContext.class) {
+            return (AcLoadFlowContext) loadFlowContext;
+        } else {
+            throw new ClassCastException("loadFlowContext attribute should be of type AcLoadFlowContext in AcOuterLoopContextImpl");
+        }
     }
 
     @Override
-    public void setAcLoadFlowContext(AcLoadFlowContext acLoadFlowContext) {
-        this.acLoadFlowContext = acLoadFlowContext;
+    public void setLoadFlowContext(LoadFlowContext loadFlowContext) {
+        this.loadFlowContext = loadFlowContext;
     }
 }

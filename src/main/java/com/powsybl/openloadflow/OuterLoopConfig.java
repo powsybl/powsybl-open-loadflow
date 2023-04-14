@@ -8,7 +8,6 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.OuterLoop;
 import org.apache.commons.compress.utils.Lists;
 
 import java.util.List;
