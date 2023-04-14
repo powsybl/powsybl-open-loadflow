@@ -7,19 +7,26 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.AbstractPhaseControlOuterLoop;
 import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.IncrementalContextData;
 import com.powsybl.openloadflow.OuterLoopStatus;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.TransformerPhaseControl;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Hadrien Godard <hadrien.godard at artelys.com>
@@ -50,6 +57,95 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
         }
 
         fixPhaseShifterNecessaryForConnectivity(context.getNetwork(), controllerBranches);
+    }
+
+    public static class SensitivityContext {
+
+        private final List<LfBranch> controllerBranches;
+
+        private final EquationSystem<DcVariableType, DcEquationType> equationSystem;
+
+        private final JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix;
+
+        private final int[] controllerBranchIndex;
+
+        private DenseMatrix sensitivities;
+
+        public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
+                                  EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                  JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix) {
+            this.controllerBranches = Objects.requireNonNull(controllerBranches);
+            this.equationSystem = Objects.requireNonNull(equationSystem);
+            this.jacobianMatrix = Objects.requireNonNull(jacobianMatrix);
+            controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
+        }
+
+        private DenseMatrix getSensitivities() {
+            if (sensitivities == null) {
+                sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, jacobianMatrix);
+            }
+            return sensitivities;
+        }
+
+        private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
+                                                              EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                              JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix) {
+            DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
+            for (LfBranch controllerBranch : controllerBranches) {
+                equationSystem.getEquation(controllerBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1)
+                        .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], Math.toRadians(1d)));
+            }
+            jacobianMatrix.solveTransposed(rhs);
+            return rhs;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<DcVariableType, DcEquationType> getI1(LfBranch controlledBranch) {
+            return (EquationTerm<DcVariableType, DcEquationType>) controlledBranch.getI1();
+        }
+
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<DcVariableType, DcEquationType> getI2(LfBranch controlledBranch) {
+            return (EquationTerm<DcVariableType, DcEquationType>) controlledBranch.getI2();
+        }
+
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<DcVariableType, DcEquationType> getP1(LfBranch controlledBranch) {
+            return (EquationTerm<DcVariableType, DcEquationType>) controlledBranch.getP1();
+        }
+
+        @SuppressWarnings("unchecked")
+        private static EquationTerm<DcVariableType, DcEquationType> getP2(LfBranch controlledBranch) {
+            return (EquationTerm<DcVariableType, DcEquationType>) controlledBranch.getP2();
+        }
+
+        double calculateSensitivityFromA2S(LfBranch controllerBranch, EquationTerm<DcVariableType, DcEquationType> s) {
+            return s.calculateSensi(getSensitivities(), controllerBranchIndex[controllerBranch.getNum()]);
+        }
+
+        public double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
+            var i = controlledSide == ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
+            return calculateSensitivityFromA2S(controllerBranch, i);
+        }
+
+        double calculateSensitivityFromA2P(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
+            var p = controlledSide == ControlledSide.ONE ? getP1(controlledBranch) : getP2(controlledBranch);
+            return calculateSensitivityFromA2S(controllerBranch, p);
+        }
+    }
+
+    // TODO HG
+
+    private static double computeIb(TransformerPhaseControl phaseControl) {
+        LfBus bus = phaseControl.getControlledSide() == ControlledSide.ONE
+                ? phaseControl.getControlledBranch().getBus1() : phaseControl.getControlledBranch().getBus2();
+        return PerUnit.ib(bus.getNominalV());
+    }
+
+    private static double computeI(TransformerPhaseControl phaseControl) {
+        var i = phaseControl.getControlledSide() == ControlledSide.ONE
+                ? phaseControl.getControlledBranch().getI1() : phaseControl.getControlledBranch().getI2();
+        return i.eval();
     }
 
     @Override
