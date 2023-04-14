@@ -47,4 +47,12 @@ public class PowerShift {
         variableActive += other.getVariableActive();
         reactive += other.getReactive();
     }
+
+    @Override
+    public String toString() {
+        return "PowerShift("
+                + active + ", "
+                + variableActive + ", "
+                + reactive + ")";
+    }
 }
