@@ -29,15 +29,6 @@ public class AsymLine {
         admittanceMatrix = new AsymLineAdmittanceMatrix(this);
     }
 
-    public boolean isAdmittanceAsymmetryDetected() {
-        boolean isAsymmetry = false;
-        if (admittanceMatrix != null) {
-            isAsymmetry = AsymLineAdmittanceMatrix.isAdmittanceCoupled(admittanceMatrix.getmY012());
-        }
-
-        return isAsymmetry;
-    }
-
     public AsymLineAdmittanceMatrix getAdmittanceMatrix() {
         return admittanceMatrix;
     }

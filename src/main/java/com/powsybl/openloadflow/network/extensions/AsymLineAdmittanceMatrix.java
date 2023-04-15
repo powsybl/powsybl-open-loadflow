@@ -80,51 +80,43 @@ public class AsymLineAdmittanceMatrix {
     //          [ y_21_do y_21_dd y_21_di y_22_do y_22_dd y_22_di ]
     //          [ y_21_io y_21_id y_21_ii y_22_io y_22_id y_22_ii ]
 
-    private DenseMatrix mYabc;
+    public static final double EPS_VALUE = 0.00000001;
+
     private DenseMatrix mY012;
 
     public AsymLineAdmittanceMatrix(AsymLine asymLine) {
         // input values are given in fortescue component, we build first Y012 and deduce Yabc
+        mY012 = buildAdmittanceMatrix(asymLine);
 
-        this.mY012 = buildYadmittanceMatrix(asymLine);
-        this.mYabc = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.getFortescueMatrix()), mY012,
-                buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()));
         // if one phase or more are disconnected we need to update Yabc and then Y012
-        boolean isOpen = false;
-        if (asymLine.isPhaseOpenA()) {
-            // we cancel all lines and columns that impact Va or Ia
-            cancelComponentMatrix(mYabc, 1);
-            isOpen = true;
-        }
+        if (asymLine.isPhaseOpenA() || asymLine.isPhaseOpenB() || asymLine.isPhaseOpenC()) {
+            var mYabc = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.createMatrix()),
+                                                                mY012,
+                                                                buildTwoBlocsMatrix(Fortescue.createInverseMatrix()));
 
-        if (asymLine.isPhaseOpenB()) {
-            // we cancel all lines and columns that impact Vb or Ib
-            cancelComponentMatrix(mYabc, 2);
-            isOpen = true;
-        }
+            if (asymLine.isPhaseOpenA()) {
+                // we cancel all lines and columns that impact Va or Ia
+                cancelComponentMatrix(mYabc, 1);
+            }
 
-        if (asymLine.isPhaseOpenC()) {
-            // we cancel all lines and columns that impact Vc or Ic
-            cancelComponentMatrix(mYabc, 3);
-            isOpen = true;
-        }
+            if (asymLine.isPhaseOpenB()) {
+                // we cancel all lines and columns that impact Vb or Ib
+                cancelComponentMatrix(mYabc, 2);
+            }
 
-        if (isOpen) {
-            this.mY012 = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.getFortescueInverseMatrix()), mYabc,
-                    buildTwoBlocsMatrix(Fortescue.getFortescueMatrix()));
-        }
-    }
+            if (asymLine.isPhaseOpenC()) {
+                // we cancel all lines and columns that impact Vc or Ic
+                cancelComponentMatrix(mYabc, 3);
+            }
 
-    public DenseMatrix buildYadmittanceMatrix(AsymLine asymLine) {
-        if (asymLine.getPiValues() != null) {
-            AsymLinePiValues piValues = asymLine.getPiValues();
-            return buildYadmittanceMatrix(piValues);
-        } else {
-            throw new IllegalStateException("No Pi Values available, could not build Y of line : ");
+            mY012 = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.createInverseMatrix()),
+                                        mYabc,
+                                        buildTwoBlocsMatrix(Fortescue.createMatrix()));
         }
     }
 
-    public DenseMatrix buildYadmittanceMatrix(AsymLinePiValues piValues) {
+    public DenseMatrix buildAdmittanceMatrix(AsymLine asymLine) {
+        AsymLinePiValues piValues = asymLine.getPiValues();
 
         DenseMatrix mY = new DenseMatrix(12, 12);
 
@@ -193,7 +185,7 @@ public class AsymLineAdmittanceMatrix {
         return mY;
     }
 
-    public static DenseMatrix buildTwoBlocsMatrix(DenseMatrix m66) {
+    private static DenseMatrix buildTwoBlocsMatrix(DenseMatrix m66) {
         // expected 6x6 matrix in input to build a 12x12 matrix
         DenseMatrix mFbloc = new DenseMatrix(12, 12);
         for (int i = 0; i < 6; i++) {
@@ -206,20 +198,19 @@ public class AsymLineAdmittanceMatrix {
         return mFbloc;
     }
 
-    public static void cancelLineMatrix(DenseMatrix m, int iCancel) {
+    private static void cancelLineMatrix(DenseMatrix m, int iCancel) {
         for (int j = 0; j < m.getColumnCount(); j++) {
             m.set(iCancel, j, 0);
         }
     }
 
-    public static void cancelColumnMatrix(DenseMatrix m, int jCancel) {
+    private static void cancelColumnMatrix(DenseMatrix m, int jCancel) {
         for (int i = 0; i < m.getRowCount(); i++) {
             m.set(i, jCancel, 0);
         }
     }
 
-    public static void cancelComponentMatrix(DenseMatrix m, int component) {
-
+    private static void cancelComponentMatrix(DenseMatrix m, int component) {
         cancelLineMatrix(m, 2 * component - 2);
         cancelLineMatrix(m, 2 * component - 1);
         cancelLineMatrix(m, 2 * component + 4);
@@ -231,21 +222,21 @@ public class AsymLineAdmittanceMatrix {
         cancelColumnMatrix(m, 2 * component + 5);
     }
 
-    public static void add22Bloc(double mx, double my, int i, int j, DenseMatrix m) {
+    private static void add22Bloc(double mx, double my, int i, int j, DenseMatrix m) {
         m.add(2 * (i - 1), 2 * (j - 1), mx);
         m.add(2 * (i - 1), 2 * (j - 1) + 1, -my);
         m.add(2 * (i - 1) + 1, 2 * (j - 1), my);
         m.add(2 * (i - 1) + 1, 2 * (j - 1) + 1, mx);
     }
 
-    public static DenseMatrix productMatrixM1M2M3(DenseMatrix m1, DenseMatrix m2, DenseMatrix m3) {
+    private static DenseMatrix productMatrixM1M2M3(DenseMatrix m1, DenseMatrix m2, DenseMatrix m3) {
         DenseMatrix m2M3 = m2.times(m3);
         DenseMatrix mResult = m1.times(m2M3);
 
         // clean matrix in case after fortescue and inverse multiplication
         for (int i = 0; i < mResult.getRowCount(); i++) {
             for (int j = 0; j < mResult.getColumnCount(); j++) {
-                if (Math.abs(mResult.get(i, j)) < 0.00000001) {
+                if (Math.abs(mResult.get(i, j)) < EPS_VALUE) {
                     mResult.set(i, j, 0.);
                 }
             }
@@ -258,12 +249,12 @@ public class AsymLineAdmittanceMatrix {
         return mY012;
     }
 
-    public static boolean isAdmittanceCoupled(DenseMatrix m) {
+    public boolean isAdmittanceCoupled() {
         // checking values of extra diagonal bloc term to see if equations between the three sequences are independant
         boolean isCoupled = false;
         for (int i = 1; i <= 6; i++) {
             for (int j = 1; j <= 6; j++) {
-                if (i != j && isResidualExistsBloc(m, i, j)) {
+                if (i != j && isResidualExistsBloc(mY012, i, j)) {
                     isCoupled = true;
                     break;
                 }
@@ -272,9 +263,8 @@ public class AsymLineAdmittanceMatrix {
         return isCoupled;
     }
 
-    public static boolean isResidualExistsBloc(DenseMatrix m, int i, int j) {
-        double epsilon = 0.00000001;
+    private static boolean isResidualExistsBloc(DenseMatrix m, int i, int j) {
         double residual = Math.abs(m.get(2 * i - 2, 2 * j - 2)) + Math.abs(m.get(2 * i - 1, 2 * j - 2));
-        return residual > epsilon;
+        return residual > EPS_VALUE;
     }
 }

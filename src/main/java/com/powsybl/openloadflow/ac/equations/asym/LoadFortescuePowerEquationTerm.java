@@ -120,7 +120,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         Vector2D negativeSequence = Fortescue.getCartesianFromPolar(vNegative, phNegative);
 
         DenseMatrix mVfortescue = getCartesianMatrix(zeroSequence.getX(), zeroSequence.getY(), positiveSequence.getX(), positiveSequence.getY(), negativeSequence.getX(), negativeSequence.getY(), true); // vector build with cartesian values (Vx,Vy) of complex fortescue voltages
-        DenseMatrix mVabc = Fortescue.getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
+        DenseMatrix mVabc = Fortescue.createMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build  1/Vabc square matrix
         DenseMatrix mInvVabc = getInvVabcSquare(mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0), eqTerm);
@@ -129,7 +129,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         DenseMatrix mSquareVFortescue = getCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
 
         DenseMatrix m0T0 = mInvVabc.times(mSabc3);
-        DenseMatrix mIfortescueConjugate = Fortescue.getFortescueMatrix().times(m0T0);
+        DenseMatrix mIfortescueConjugate = Fortescue.createMatrix().times(m0T0);
         DenseMatrix mSfortescue = mSquareVFortescue.times(mIfortescueConjugate); //  term T0 = Sfortescue
 
         switch (sequenceType) {
@@ -198,7 +198,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         Vector2D negativeComponent = Fortescue.getCartesianFromPolar(vi, phi);
 
         DenseMatrix mVfortescue = getCartesianMatrix(zeroComponent.getX(), zeroComponent.getY(), positiveComponent.getX(), positiveComponent.getY(), negativeComponent.getX(), negativeComponent.getY(), true); // vector build with cartesian values of complex fortescue voltages
-        DenseMatrix mVabc = Fortescue.getFortescueMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
+        DenseMatrix mVabc = Fortescue.createMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build of Sabc vector
         DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
@@ -211,7 +211,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
 
         // computation of vector = term T1:
         DenseMatrix m0T1 = mInvVabc.times(mSabc3);
-        DenseMatrix m1T1 = Fortescue.getFortescueMatrix().times(m0T1);
+        DenseMatrix m1T1 = Fortescue.createMatrix().times(m0T1);
         DenseMatrix mT1 = mdVSquare.times(m1T1);
 
         // build Vfortescue square matrix
@@ -224,11 +224,11 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         DenseMatrix mdV = getCartesianMatrix(dV0x, dV0y, dV1x, dV1y, dV2x, dV2y, true);
 
         // computation of vector = term T2:
-        DenseMatrix m0T2 = Fortescue.getFortescueMatrix().times(mdV);
+        DenseMatrix m0T2 = Fortescue.createMatrix().times(mdV);
         DenseMatrix m1T2 = mInvVabc.times(m0T2);
         DenseMatrix m2T2 = mInvVabc.times(m1T2);
         DenseMatrix m3T2 = mMinusSabc3Square.times(m2T2);
-        DenseMatrix mdIFortescueConjugate = Fortescue.getFortescueMatrix().times(m3T2);
+        DenseMatrix mdIFortescueConjugate = Fortescue.createMatrix().times(m3T2);
         DenseMatrix mT2 = mSquareVFortescue.times(mdIFortescueConjugate);
 
         switch (sequenceType) {
