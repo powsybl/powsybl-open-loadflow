@@ -3,12 +3,11 @@ package com.powsybl.openloadflow.ac.equations.asym;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
@@ -19,9 +18,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
-
-    protected final LfBus bus;
+public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
 
     // positive
     protected final Variable<AcVariableType> vVar;
@@ -44,11 +41,9 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
     private final Fortescue.SequenceType sequenceType; // 0 = zero, 1 = positive, 2 = negative
 
     public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, boolean isRealPart, Fortescue.SequenceType sequenceType) {
-        super(true);
-        Objects.requireNonNull(bus);
+        super(bus);
         Objects.requireNonNull(variableSet);
 
-        this.bus = bus;
         this.isRealPart = isRealPart;
         this.sequenceType = sequenceType;
 
@@ -81,7 +76,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
                 return sv.get(phVarNegative.getRow());
 
             default:
-                throw new IllegalStateException("Unknown Phi variable at bus: " + bus.getId());
+                throw new IllegalStateException("Unknown Phi variable at bus: " + element.getId());
         }
     }
 
@@ -97,11 +92,11 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
                 return sv.get(vVarNegative.getRow());
 
             default:
-                throw new IllegalStateException("Unknown V variable at bus: " + bus.getId());
+                throw new IllegalStateException("Unknown V variable at bus: " + element.getId());
         }
     }
 
-    public static double pq(boolean isRealPart, Fortescue.SequenceType sequenceType, LoadFortescuePowerEquationTerm eqTerm, double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
+    public double pq(boolean isRealPart, Fortescue.SequenceType sequenceType, LoadFortescuePowerEquationTerm eqTerm, double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
         // We use the formula with complex matrices:
         //
         // [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
@@ -112,9 +107,9 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         //         <------------------------------------------->
         //                    term Sfortescue
 
-        AsymBus asymBus = (AsymBus) eqTerm.bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        AsymBus asymBus = (AsymBus) element.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus == null) {
-            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + eqTerm.bus.getId());
+            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + element.getId());
         }
 
         // Build of Sabc/3 vector
@@ -148,11 +143,11 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
                 return isRealPart ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
 
             default:
-                throw new IllegalStateException("Unknown sequence at bus : " + eqTerm.bus.getId());
+                throw new IllegalStateException("Unknown sequence at bus : " + element.getId());
         }
     }
 
-    public static double dpq(boolean isRealPart, Fortescue.SequenceType sequenceType, LoadFortescuePowerEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
+    public double dpq(boolean isRealPart, Fortescue.SequenceType sequenceType, LoadFortescuePowerEquationTerm eqTerm, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
         // We derivate the PQ formula with complex matrices:
         //
         //    [So]              [dVo/dx  0   0]         [1/Va  0  0]   [Sa]        [Vo  0  0]                [Sa  0   0]   [1/Va  0  0]   [1/Va  0  0]         [dV0/dx]
@@ -163,9 +158,9 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
         //                                                                         <----------------------------------------------------------------------------------->
         //                                                                                                          term T2
 
-        AsymBus asymBus = (AsymBus) eqTerm.bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        AsymBus asymBus = (AsymBus) element.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus == null) {
-            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + eqTerm.bus.getId());
+            throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + element.getId());
         }
 
         // computation of dV0/dx , dV1/dx, dV2/dx
@@ -194,7 +189,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
             dV2x = vi * -Math.sin(phi);
             dV2y = vi * Math.cos(phi);
         } else {
-            throw new IllegalStateException("Unknown derivation variable: " + derVariable + " at bus : " + eqTerm.bus.getId());
+            throw new IllegalStateException("Unknown derivation variable: " + derVariable + " at bus : " + element.getId());
         }
 
         // build of voltage vectors
@@ -247,7 +242,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
                 return isRealPart ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
 
             default:
-                throw new IllegalStateException("Unknown sequence at bus : " + eqTerm.bus.getId());
+                throw new IllegalStateException("Unknown sequence at bus : " + element.getId());
         }
     }
 
@@ -273,24 +268,14 @@ public class LoadFortescuePowerEquationTerm extends AbstractNamedEquationTerm<Ac
     }
 
     @Override
-    public ElementType getElementType() {
-        return ElementType.BUS;
-    }
-
-    @Override
     public List<Variable<AcVariableType>> getVariables() {
         return variables;
     }
 
-    @Override
-    public int getElementNum() {
-        return bus.getNum();
-    }
-
-    public static DenseMatrix getInvVabcSquare(double vAx, double vAy, double vBx, double vBy, double vCx, double vCy, LoadFortescuePowerEquationTerm eqTerm) {
+    public DenseMatrix getInvVabcSquare(double vAx, double vAy, double vBx, double vBy, double vCx, double vCy, LoadFortescuePowerEquationTerm eqTerm) {
         double epsilon = 0.00000001;
         double vAcongVa = vAx * vAx + vAy * vAy;
-        String cantBuildLoad = " is null at bus : " + eqTerm.bus.getId() + " : cannot build load model";
+        String cantBuildLoad = " is null at bus : " + element.getId() + " : cannot build load model";
         if (vAcongVa < epsilon) {
             throw new IllegalStateException("Va" + cantBuildLoad);
         }

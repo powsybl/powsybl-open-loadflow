@@ -2,12 +2,11 @@ package com.powsybl.openloadflow.ac.equations.asym;
 
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.AbstractNamedEquationTerm;
+import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.Objects;
@@ -16,9 +15,7 @@ import java.util.Objects;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEquationTerm<AcVariableType, AcEquationType> {
-
-    protected final LfBus bus;
+public abstract class AbstractShuntFortescueEquationTerm extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
 
     protected final Variable<AcVariableType> vVar;
 
@@ -27,9 +24,7 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEq
     protected final Fortescue.SequenceType sequenceType;
 
     protected AbstractShuntFortescueEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
-        super(true);
-        this.bus = bus;
-        Objects.requireNonNull(bus);
+        super(bus);
         Objects.requireNonNull(variableSet);
         AcVariableType vType;
         AcVariableType phType;
@@ -53,16 +48,6 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEq
 
     }
 
-    @Override
-    public ElementType getElementType() {
-        return ElementType.BUS;
-    }
-
-    @Override
-    public int getElementNum() {
-        return bus.getNum();
-    }
-
     protected double v() {
         return sv.get(vVar.getRow());
     }
@@ -72,7 +57,7 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEq
     }
 
     protected double b() {
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        AsymBus asymBus = (AsymBus) element.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (sequenceType == Fortescue.SequenceType.ZERO) {
             return asymBus.getbZeroEquivalent();
         }
@@ -80,7 +65,7 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractNamedEq
     }
 
     protected double g() {
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        AsymBus asymBus = (AsymBus) element.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (sequenceType == Fortescue.SequenceType.ZERO) {
             return asymBus.getgZeroEquivalent();
         }
