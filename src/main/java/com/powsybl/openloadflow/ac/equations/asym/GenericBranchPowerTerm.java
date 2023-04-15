@@ -1,11 +1,12 @@
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.ac.equations.asym;
 
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.ac.equations.GenericBranchCurrentTerm.getSequenceType;
-import static com.powsybl.openloadflow.ac.equations.GenericBranchCurrentTerm.isPhase;
+import static com.powsybl.openloadflow.ac.equations.asym.GenericBranchCurrentTerm.getSequenceType;
+import static com.powsybl.openloadflow.ac.equations.asym.GenericBranchCurrentTerm.isPhase;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
