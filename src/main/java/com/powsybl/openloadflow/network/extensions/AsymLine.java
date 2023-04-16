@@ -1,5 +1,9 @@
 package com.powsybl.openloadflow.network.extensions;
 
+import com.powsybl.openloadflow.network.SimplePiModel;
+
+import java.util.Objects;
+
 /**
  * This is an extension to a LfBranch Line to describe the asymmetry of a line to be used for an
  * unbalanced load flow.
@@ -13,19 +17,19 @@ public class AsymLine {
     private final boolean phaseOpenA;
     private final boolean phaseOpenB;
     private final boolean phaseOpenC;
-    private final AsymLinePiValues piValues;
+    private final SimplePiModel piZeroComponent;
+    private final SimplePiModel piPositiveComponent;
+    private final SimplePiModel piNegativeComponent;
     private final AsymLineAdmittanceMatrix admittanceMatrix;
 
-    public AsymLine(double r1, double x1, double gi1, double bi1, double gj1, double bj1, boolean phaseOpenA,
-                    double r2, double x2, double gi2, double bi2, double gj2, double bj2, boolean phaseOpenB,
-                    double r3, double x3, double gi3, double bi3, double gj3, double bj3, boolean phaseOpenC) {
-
+    public AsymLine(SimplePiModel piZeroComponent, SimplePiModel piPositiveComponent, SimplePiModel piNegativeComponent,
+                    boolean phaseOpenA, boolean phaseOpenB, boolean phaseOpenC) {
+        this.piZeroComponent = Objects.requireNonNull(piZeroComponent);
+        this.piPositiveComponent = Objects.requireNonNull(piPositiveComponent);
+        this.piNegativeComponent = Objects.requireNonNull(piNegativeComponent);
         this.phaseOpenA = phaseOpenA;
         this.phaseOpenB = phaseOpenB;
         this.phaseOpenC = phaseOpenC;
-        piValues = new AsymLinePiValues(r1, x1, gi1, bi1, gj1, bj1,
-                                        r2, x2, gi2, bi2, gj2, bj2,
-                                        r3, x3, gi3, bi3, gj3, bj3);
         admittanceMatrix = new AsymLineAdmittanceMatrix(this);
     }
 
@@ -33,8 +37,16 @@ public class AsymLine {
         return admittanceMatrix;
     }
 
-    public AsymLinePiValues getPiValues() {
-        return piValues;
+    public SimplePiModel getPiZeroComponent() {
+        return piZeroComponent;
+    }
+
+    public SimplePiModel getPiPositiveComponent() {
+        return piPositiveComponent;
+    }
+
+    public SimplePiModel getPiNegativeComponent() {
+        return piNegativeComponent;
     }
 
     public boolean isPhaseOpenA() {

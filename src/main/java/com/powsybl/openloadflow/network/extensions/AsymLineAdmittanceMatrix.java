@@ -1,6 +1,7 @@
 package com.powsybl.openloadflow.network.extensions;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.MatrixUtil;
 
@@ -117,40 +118,41 @@ public class AsymLineAdmittanceMatrix {
     }
 
     public DenseMatrix buildAdmittanceMatrix(AsymLine asymLine) {
-        AsymLinePiValues piValues = asymLine.getPiValues();
-
         DenseMatrix mY = new DenseMatrix(12, 12);
 
-        double r1 = piValues.getPiComponent1().getR();
-        double x1 = piValues.getPiComponent1().getX();
-        double g1i = piValues.getPiComponent1().getG1();
-        double g1j = piValues.getPiComponent1().getG2();
-        double b1i = piValues.getPiComponent1().getB1();
-        double b1j = piValues.getPiComponent1().getB2();
+        SimplePiModel piZeroComponent = asymLine.getPiZeroComponent();
+        double r1 = piZeroComponent.getR();
+        double x1 = piZeroComponent.getX();
+        double g1i = piZeroComponent.getG1();
+        double g1j = piZeroComponent.getG2();
+        double b1i = piZeroComponent.getB1();
+        double b1j = piZeroComponent.getB2();
         double g1ij = r1 / (r1 * r1 + x1 * x1);
         double b1ij = -x1 / (r1 * r1 + x1 * x1);
 
         double g1ji = g1ij;
         double b1ji = b1ij;
 
-        double r2 = piValues.getPiComponent2().getR();
-        double x2 = piValues.getPiComponent2().getX();
-        double g2i = piValues.getPiComponent2().getG1();
-        double g2j = piValues.getPiComponent2().getG2();
-        double b2i = piValues.getPiComponent2().getB1();
-        double b2j = piValues.getPiComponent2().getB2();
+        SimplePiModel piPositiveComponent = asymLine.getPiPositiveComponent();
+        double r2 = piPositiveComponent.getR();
+        double x2 = piPositiveComponent.getX();
+        double g2i = piPositiveComponent.getG1();
+        double g2j = piPositiveComponent.getG2();
+        double b2i = piPositiveComponent.getB1();
+        double b2j = piPositiveComponent.getB2();
         double g2ij = r2 / (r2 * r2 + x2 * x2);
         double b2ij = -x2 / (r2 * r2 + x2 * x2);
 
         double g2ji = g2ij;
         double b2ji = b2ij;
 
-        double r3 = piValues.getPiComponent3().getR();
-        double x3 = piValues.getPiComponent3().getX();
-        double g3i = piValues.getPiComponent3().getG1();
-        double g3j = piValues.getPiComponent3().getG2();
-        double b3i = piValues.getPiComponent3().getB1();
-        double b3j = piValues.getPiComponent3().getB2();
+        SimplePiModel piNegativeComponent = asymLine.getPiNegativeComponent();
+        double r3 = piNegativeComponent.getR();
+        double x3 = piNegativeComponent.getX();
+        double g3i = piNegativeComponent.getG1();
+        double g3j = piNegativeComponent.getG2();
+        double b3i = piNegativeComponent.getB1();
+        double b3j = piNegativeComponent.getB2();
         double g3ij = r3 / (r3 * r3 + x3 * x3);
         double b3ij = -x3 / (r3 * r3 + x3 * x3);
 
