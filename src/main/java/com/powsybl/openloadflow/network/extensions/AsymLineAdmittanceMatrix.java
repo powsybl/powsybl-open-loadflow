@@ -84,108 +84,109 @@ public class AsymLineAdmittanceMatrix {
 
     public static final double EPS_VALUE = 0.00000001;
 
-    private DenseMatrix mY012;
+    private final DenseMatrix mY012;
 
     public AsymLineAdmittanceMatrix(AsymLine asymLine) {
         // input values are given in fortescue component, we build first Y012 and deduce Yabc
-        mY012 = buildAdmittanceMatrix(asymLine);
+        mY012 = update(build(asymLine.getPiZeroComponent(), asymLine.getPiPositiveComponent(), asymLine.getPiNegativeComponent()),
+                       asymLine.isPhaseOpenA(), asymLine.isPhaseOpenB(), asymLine.isPhaseOpenC());
+    }
 
+    private static DenseMatrix build(SimplePiModel piZeroComponent, SimplePiModel piPositiveComponent, SimplePiModel piNegativeComponent) {
+        DenseMatrix mY = new DenseMatrix(12, 12);
+
+        double rz = piZeroComponent.getR();
+        double xz = piZeroComponent.getX();
+        double g1z = piZeroComponent.getG1();
+        double g2z = piZeroComponent.getG2();
+        double b1z = piZeroComponent.getB1();
+        double b2z = piZeroComponent.getB2();
+        double g12z = rz / (rz * rz + xz * xz);
+        double b12z = -xz / (rz * rz + xz * xz);
+
+        double g21z = g12z;
+        double b21z = b12z;
+
+        double rp = piPositiveComponent.getR();
+        double xp = piPositiveComponent.getX();
+        double g1p = piPositiveComponent.getG1();
+        double g2p = piPositiveComponent.getG2();
+        double b1p = piPositiveComponent.getB1();
+        double b2p = piPositiveComponent.getB2();
+        double g12p = rp / (rp * rp + xp * xp);
+        double b12p = -xp / (rp * rp + xp * xp);
+
+        double g21p = g12p;
+        double b21p = b12p;
+
+        double rn = piNegativeComponent.getR();
+        double xn = piNegativeComponent.getX();
+        double g1n = piNegativeComponent.getG1();
+        double g2n = piNegativeComponent.getG2();
+        double b1n = piNegativeComponent.getB1();
+        double b2n = piNegativeComponent.getB2();
+        double g12n = rn / (rn * rn + xn * xn);
+        double b12n = -xn / (rn * rn + xn * xn);
+
+        double g21n = g12n;
+        double b21n = b12n;
+
+        //bloc ya11
+        add22Bloc(g12z + g1z, b12z + b1z, 1, 1, mY);
+        //bloc ya12
+        add22Bloc(-g12z, -b12z, 1, 4, mY);
+        //bloc yb11
+        add22Bloc(g12p + g1p, b12p + b1p, 2, 2, mY);
+        //bloc yb12
+        add22Bloc(-g12p, -b12p, 2, 5, mY);
+        //bloc yc11
+        add22Bloc(g12n + g1n, b12n + b1n, 3, 3, mY);
+        //bloc yc12
+        add22Bloc(-g12n, -b12n, 3, 6, mY);
+
+        //bloc ya22
+        add22Bloc(g21z + g2z, b21z + b2z, 4, 4, mY);
+        //bloc ya21
+        add22Bloc(-g21z, -b21z, 4, 1, mY);
+        //bloc yb22
+        add22Bloc(g21p + g2p, b21p + b2p, 5, 5, mY);
+        //bloc yb21
+        add22Bloc(-g21p, -b21p, 5, 2, mY);
+        //bloc yc22
+        add22Bloc(g21n + g2n, b21n + b2n, 6, 6, mY);
+        //bloc yc21
+        add22Bloc(-g21n, -b21n, 6, 3, mY);
+
+        return mY;
+    }
+
+    private static DenseMatrix update(DenseMatrix mY012, boolean phaseOpenA, boolean phaseOpenB, boolean phaseOpenC) {
         // if one phase or more are disconnected we need to update Yabc and then Y012
-        if (asymLine.isPhaseOpenA() || asymLine.isPhaseOpenB() || asymLine.isPhaseOpenC()) {
+        if (phaseOpenA || phaseOpenB || phaseOpenC) {
             var mYabc = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.createMatrix()),
-                                                                mY012,
-                                                                buildTwoBlocsMatrix(Fortescue.createInverseMatrix()));
+                                            mY012,
+                                            buildTwoBlocsMatrix(Fortescue.createInverseMatrix()));
 
-            if (asymLine.isPhaseOpenA()) {
+            if (phaseOpenA) {
                 // we cancel all lines and columns that impact Va or Ia
                 cancelComponentMatrix(mYabc, 1);
             }
 
-            if (asymLine.isPhaseOpenB()) {
+            if (phaseOpenB) {
                 // we cancel all lines and columns that impact Vb or Ib
                 cancelComponentMatrix(mYabc, 2);
             }
 
-            if (asymLine.isPhaseOpenC()) {
+            if (phaseOpenC) {
                 // we cancel all lines and columns that impact Vc or Ic
                 cancelComponentMatrix(mYabc, 3);
             }
 
-            mY012 = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.createInverseMatrix()),
-                                        mYabc,
-                                        buildTwoBlocsMatrix(Fortescue.createMatrix()));
+            return productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.createInverseMatrix()),
+                                       mYabc,
+                                       buildTwoBlocsMatrix(Fortescue.createMatrix()));
         }
-    }
-
-    public DenseMatrix buildAdmittanceMatrix(AsymLine asymLine) {
-        DenseMatrix mY = new DenseMatrix(12, 12);
-
-        SimplePiModel piZeroComponent = asymLine.getPiZeroComponent();
-        double r1 = piZeroComponent.getR();
-        double x1 = piZeroComponent.getX();
-        double g1i = piZeroComponent.getG1();
-        double g1j = piZeroComponent.getG2();
-        double b1i = piZeroComponent.getB1();
-        double b1j = piZeroComponent.getB2();
-        double g1ij = r1 / (r1 * r1 + x1 * x1);
-        double b1ij = -x1 / (r1 * r1 + x1 * x1);
-
-        double g1ji = g1ij;
-        double b1ji = b1ij;
-
-        SimplePiModel piPositiveComponent = asymLine.getPiPositiveComponent();
-        double r2 = piPositiveComponent.getR();
-        double x2 = piPositiveComponent.getX();
-        double g2i = piPositiveComponent.getG1();
-        double g2j = piPositiveComponent.getG2();
-        double b2i = piPositiveComponent.getB1();
-        double b2j = piPositiveComponent.getB2();
-        double g2ij = r2 / (r2 * r2 + x2 * x2);
-        double b2ij = -x2 / (r2 * r2 + x2 * x2);
-
-        double g2ji = g2ij;
-        double b2ji = b2ij;
-
-        SimplePiModel piNegativeComponent = asymLine.getPiNegativeComponent();
-        double r3 = piNegativeComponent.getR();
-        double x3 = piNegativeComponent.getX();
-        double g3i = piNegativeComponent.getG1();
-        double g3j = piNegativeComponent.getG2();
-        double b3i = piNegativeComponent.getB1();
-        double b3j = piNegativeComponent.getB2();
-        double g3ij = r3 / (r3 * r3 + x3 * x3);
-        double b3ij = -x3 / (r3 * r3 + x3 * x3);
-
-        double g3ji = g3ij;
-        double b3ji = b3ij;
-
-        //bloc ya11
-        add22Bloc(g1ij + g1i, b1ij + b1i, 1, 1, mY);
-        //bloc ya12
-        add22Bloc(-g1ij, -b1ij, 1, 4, mY);
-        //bloc yb11
-        add22Bloc(g2ij + g2i, b2ij + b2i, 2, 2, mY);
-        //bloc yb12
-        add22Bloc(-g2ij, -b2ij, 2, 5, mY);
-        //bloc yc11
-        add22Bloc(g3ij + g3i, b3ij + b3i, 3, 3, mY);
-        //bloc yc12
-        add22Bloc(-g3ij, -b3ij, 3, 6, mY);
-
-        //bloc ya22
-        add22Bloc(g1ji + g1j, b1ji + b1j, 4, 4, mY);
-        //bloc ya21
-        add22Bloc(-g1ji, -b1ji, 4, 1, mY);
-        //bloc yb22
-        add22Bloc(g2ji + g2j, b2ji + b2j, 5, 5, mY);
-        //bloc yb21
-        add22Bloc(-g2ji, -b2ji, 5, 2, mY);
-        //bloc yc22
-        add22Bloc(g3ji + g3j, b3ji + b3j, 6, 6, mY);
-        //bloc yc21
-        add22Bloc(-g3ji, -b3ji, 6, 3, mY);
-
-        return mY;
+        return mY012;
     }
 
     private static DenseMatrix buildTwoBlocsMatrix(DenseMatrix m66) {
