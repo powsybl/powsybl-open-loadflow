@@ -2,6 +2,7 @@ package com.powsybl.openloadflow.network.extensions;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.util.Fortescue;
+import com.powsybl.openloadflow.util.MatrixUtil;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
@@ -198,28 +199,16 @@ public class AsymLineAdmittanceMatrix {
         return mFbloc;
     }
 
-    private static void cancelLineMatrix(DenseMatrix m, int iCancel) {
-        for (int j = 0; j < m.getColumnCount(); j++) {
-            m.set(iCancel, j, 0);
-        }
-    }
-
-    private static void cancelColumnMatrix(DenseMatrix m, int jCancel) {
-        for (int i = 0; i < m.getRowCount(); i++) {
-            m.set(i, jCancel, 0);
-        }
-    }
-
     private static void cancelComponentMatrix(DenseMatrix m, int component) {
-        cancelLineMatrix(m, 2 * component - 2);
-        cancelLineMatrix(m, 2 * component - 1);
-        cancelLineMatrix(m, 2 * component + 4);
-        cancelLineMatrix(m, 2 * component + 5);
+        MatrixUtil.resetRow(m, 2 * component - 2);
+        MatrixUtil.resetRow(m, 2 * component - 1);
+        MatrixUtil.resetRow(m, 2 * component + 4);
+        MatrixUtil.resetRow(m, 2 * component + 5);
 
-        cancelColumnMatrix(m, 2 * component - 2);
-        cancelColumnMatrix(m, 2 * component - 1);
-        cancelColumnMatrix(m, 2 * component + 4);
-        cancelColumnMatrix(m, 2 * component + 5);
+        MatrixUtil.resetColumn(m, 2 * component - 2);
+        MatrixUtil.resetColumn(m, 2 * component - 1);
+        MatrixUtil.resetColumn(m, 2 * component + 4);
+        MatrixUtil.resetColumn(m, 2 * component + 5);
     }
 
     private static void add22Bloc(double mx, double my, int i, int j, DenseMatrix m) {
@@ -233,14 +222,8 @@ public class AsymLineAdmittanceMatrix {
         DenseMatrix m2M3 = m2.times(m3);
         DenseMatrix mResult = m1.times(m2M3);
 
-        // clean matrix in case after fortescue and inverse multiplication
-        for (int i = 0; i < mResult.getRowCount(); i++) {
-            for (int j = 0; j < mResult.getColumnCount(); j++) {
-                if (Math.abs(mResult.get(i, j)) < EPS_VALUE) {
-                    mResult.set(i, j, 0.);
-                }
-            }
-        }
+        // clean matrix (reset to zero very low values) in case after fortescue and inverse multiplication
+        MatrixUtil.clean(mResult, EPS_VALUE);
 
         return mResult;
     }
@@ -249,18 +232,18 @@ public class AsymLineAdmittanceMatrix {
         return mY012;
     }
 
-    public boolean isAdmittanceCoupled() {
+    public boolean isCoupled() {
         // checking values of extra diagonal bloc term to see if equations between the three sequences are independant
-        boolean isCoupled = false;
+        boolean coupled = false;
         for (int i = 1; i <= 6; i++) {
             for (int j = 1; j <= 6; j++) {
                 if (i != j && isResidualExistsBloc(mY012, i, j)) {
-                    isCoupled = true;
+                    coupled = true;
                     break;
                 }
             }
         }
-        return isCoupled;
+        return coupled;
     }
 
     private static boolean isResidualExistsBloc(DenseMatrix m, int i, int j) {
