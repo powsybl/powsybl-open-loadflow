@@ -14,12 +14,12 @@ public class AsymLine {
 
     public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";
 
-    private final boolean phaseOpenA;
-    private final boolean phaseOpenB;
-    private final boolean phaseOpenC;
     private final SimplePiModel piZeroComponent;
     private final SimplePiModel piPositiveComponent;
     private final SimplePiModel piNegativeComponent;
+    private final boolean phaseOpenA;
+    private final boolean phaseOpenB;
+    private final boolean phaseOpenC;
     private final AsymLineAdmittanceMatrix admittanceMatrix;
 
     public AsymLine(SimplePiModel piZeroComponent, SimplePiModel piPositiveComponent, SimplePiModel piNegativeComponent,
