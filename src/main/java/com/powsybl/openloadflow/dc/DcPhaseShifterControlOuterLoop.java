@@ -12,8 +12,6 @@ import com.powsybl.openloadflow.AbstractPhaseControlOuterLoop;
 import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.IncrementalContextData;
 import com.powsybl.openloadflow.OuterLoopStatus;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
