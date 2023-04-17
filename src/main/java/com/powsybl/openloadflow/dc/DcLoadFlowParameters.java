@@ -27,18 +27,25 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private final boolean setVToNan;
 
+    private final int maxOuterLoopIterations;
+
     public DcLoadFlowParameters(LfNetworkParameters networkParameters, DcEquationSystemCreationParameters equationSystemCreationParameters,
                                 MatrixFactory matrixFactory, boolean distributedSlack, LoadFlowParameters.BalanceType balanceType,
-                                boolean setVToNan) {
+                                boolean setVToNan, int maxOuterLoopIterations) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.distributedSlack = distributedSlack;
         this.balanceType = balanceType;
         this.setVToNan = setVToNan;
+        this.maxOuterLoopIterations = maxOuterLoopIterations;
     }
 
     public DcEquationSystemCreationParameters getEquationSystemCreationParameters() {
         return equationSystemCreationParameters;
+    }
+
+    public int getMaxOuterLoopIterations() {
+        return maxOuterLoopIterations;
     }
 
     public boolean isDistributedSlack() {
@@ -62,6 +69,7 @@ public class DcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", distributedSlack=" + distributedSlack +
                 ", balanceType=" + balanceType +
                 ", setVToNan=" + setVToNan +
+                ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ')';
     }
 }

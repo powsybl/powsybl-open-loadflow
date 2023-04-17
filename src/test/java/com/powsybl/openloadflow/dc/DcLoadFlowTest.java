@@ -290,7 +290,8 @@ class DcLoadFlowTest {
                                                                              new DenseMatrixFactory(),
                                                                              true,
                                                                              parameters.getBalanceType(),
-                                                                             false);
+                                                                             false,
+                                                                             1);
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, Collections.emptySet(), Set.of(c1), Reporter.NO_OP)) {
             LfNetwork largestNetwork = lfNetworks.getLargest().orElseThrow();
             largestNetwork.getBranchById("C1").setDisabled(true);

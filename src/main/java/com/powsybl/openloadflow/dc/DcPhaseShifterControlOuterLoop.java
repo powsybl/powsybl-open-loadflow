@@ -19,6 +19,8 @@ import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import org.apache.commons.lang3.Range;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +29,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * @author Hadrien Godard <hadrien.godard at artelys.com>
+ * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoop {
 
@@ -132,8 +134,6 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
         }
     }
 
-    // TODO HG
-
     private static double computeIb(TransformerPhaseControl phaseControl) {
         LfBus bus = phaseControl.getControlledSide() == ControlledSide.ONE
                 ? phaseControl.getControlledBranch().getBus1() : phaseControl.getControlledBranch().getBus2();
@@ -144,6 +144,112 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
         var i = phaseControl.getControlledSide() == ControlledSide.ONE
                 ? phaseControl.getControlledBranch().getI1() : phaseControl.getControlledBranch().getI2();
         return i.eval();
+    }
+
+    private static boolean checkCurrentLimiterPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
+                                                            List<TransformerPhaseControl> currentLimiterPhaseControls) {
+        MutableBoolean updated = new MutableBoolean(false);
+
+        for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
+            LfBranch controllerBranch = phaseControl.getControllerBranch();
+            LfBranch controlledBranch = phaseControl.getControlledBranch();
+            double i = computeI(phaseControl);
+            if (i > phaseControl.getTargetValue()) {
+                var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+                double di = phaseControl.getTargetValue() - i;
+                double a2i = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, controlledBranch, phaseControl.getControlledSide());
+                if (Math.abs(a2i) > SENSI_EPS) {
+                    double da = Math.toRadians(di / a2i);
+                    double ib = computeIb(phaseControl);
+                    LOGGER.trace("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
+                            controlledBranch.getId(), i * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
+                    PiModel piModel = controllerBranch.getPiModel();
+
+                    int oldTapPosition = piModel.getTapPosition();
+                    double oldA1 = piModel.getA1();
+                    Range<Integer> tapPositionRange = piModel.getTapPositionRange();
+                    piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                        controllerContext.updateAllowedDirection(direction);
+                        updated.setValue(true);
+                    });
+
+                    if (piModel.getTapPosition() != oldTapPosition) {
+                        LOGGER.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
+                                oldTapPosition, piModel.getTapPosition(), tapPositionRange);
+
+                        double discreteDa = piModel.getA1() - oldA1;
+                        checkImpactOnOtherPhaseShifters(sensitivityContext, phaseControl, currentLimiterPhaseControls, discreteDa);
+                    }
+                }
+            }
+        }
+
+        return updated.booleanValue();
+    }
+
+    private static void checkImpactOnOtherPhaseShifters(SensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
+                                                        List<TransformerPhaseControl> currentLimiterPhaseControls, double da) {
+        LfBranch controllerBranch = phaseControl.getControllerBranch();
+        for (TransformerPhaseControl otherPhaseControl : currentLimiterPhaseControls) {
+            if (otherPhaseControl != phaseControl) {
+                LfBranch otherControlledBranch = otherPhaseControl.getControlledBranch();
+                double i = computeI(otherPhaseControl);
+                if (i > otherPhaseControl.getTargetValue()) {
+                    // get cross sensitivity of the phase shifter controller branch on the other phase shifter controlled branch
+                    double crossA2i = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, otherControlledBranch,
+                            otherPhaseControl.getControlledSide());
+                    double ib = computeIb(otherPhaseControl);
+                    double di = Math.toDegrees(da) * crossA2i;
+                    if (di > PHASE_SHIFT_CROSS_IMPACT_MARGIN * (i - otherPhaseControl.getTargetValue())) {
+                        LOGGER.warn("Controller branch '{}' tap change significantly impact (≈ {} A) another phase shifter current also above its limit '{}', simulation might not be reliable",
+                                controllerBranch.getId(), di * ib, otherPhaseControl.getControlledBranch().getId());
+                    }
+                }
+            }
+        }
+    }
+
+    private static double getHalfTargetDeadband(TransformerPhaseControl phaseControl) {
+        return Math.max(phaseControl.getTargetDeadband(), MIN_TARGET_DEADBAND) / 2;
+    }
+
+    private static boolean checkActivePowerControlPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
+                                                                List<TransformerPhaseControl> activePowerControlPhaseControls) {
+        MutableBoolean updated = new MutableBoolean(false);
+
+        for (TransformerPhaseControl phaseControl : activePowerControlPhaseControls) {
+            LfBranch controllerBranch = phaseControl.getControllerBranch();
+            LfBranch controlledBranch = phaseControl.getControlledBranch();
+            var p = phaseControl.getControlledSide() == ControlledSide.ONE
+                    ? controlledBranch.getP1() : controlledBranch.getP2();
+            double pValue = p.eval();
+            double halfTargetDeadband = getHalfTargetDeadband(phaseControl);
+            if (Math.abs(pValue - phaseControl.getTargetValue()) > halfTargetDeadband) {
+                var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+                double dp = phaseControl.getTargetValue() - pValue;
+                double a2p = sensitivityContext.calculateSensitivityFromA2P(controllerBranch, controlledBranch, phaseControl.getControlledSide());
+                if (Math.abs(a2p) > SENSI_EPS) {
+                    double da = Math.toRadians(dp / a2p);
+                    LOGGER.trace("Controlled branch '{}' active power is {} MW and out of target value {} MW (half deadband={} MW), a phase shift of {}° is required",
+                            controlledBranch.getId(), pValue * PerUnit.SB, phaseControl.getTargetValue() * PerUnit.SB, halfTargetDeadband * PerUnit.SB, Math.toDegrees(da));
+                    PiModel piModel = controllerBranch.getPiModel();
+
+                    int oldTapPosition = piModel.getTapPosition();
+                    Range<Integer> tapPositionRange = piModel.getTapPositionRange();
+                    piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                        controllerContext.updateAllowedDirection(direction);
+                        updated.setValue(true);
+                    });
+
+                    if (piModel.getTapPosition() != oldTapPosition) {
+                        LOGGER.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),
+                                oldTapPosition, piModel.getTapPosition(), tapPositionRange);
+                    }
+                }
+            }
+        }
+
+        return updated.booleanValue();
     }
 
     @Override
@@ -174,9 +280,8 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
             });
         }
 
-        /*
         if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
-            var sensitivityContext = new IncrementalPhaseControlOuterLoop.SensitivityContext(network,
+            var sensitivityContext = new SensitivityContext(network,
                     controllerBranches,
                     context.getLoadFlowContext().getEquationSystem(),
                     context.getLoadFlowContext().getJacobianMatrix());
@@ -196,7 +301,6 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
             }
         }
 
-        */
         return status;
     }
 }

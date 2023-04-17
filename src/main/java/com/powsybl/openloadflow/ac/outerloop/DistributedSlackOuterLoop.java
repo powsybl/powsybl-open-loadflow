@@ -11,6 +11,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.openloadflow.OuterLoop;
 import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContextImpl;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -45,7 +46,14 @@ public class DistributedSlackOuterLoop implements OuterLoop {
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        double slackBusActivePowerMismatch = context.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
+        AcOuterLoopContextImpl acContext;
+        if (context.getClass() == AcOuterLoopContextImpl.class) {
+            acContext = (AcOuterLoopContextImpl) context;
+        } else {
+            throw new ClassCastException("context attribute should be of type AcOuterLoopContextImpl in DistributedSlackOuterLoop");
+        }
+
+        double slackBusActivePowerMismatch = acContext.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
         if (Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB) {
 
             ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);

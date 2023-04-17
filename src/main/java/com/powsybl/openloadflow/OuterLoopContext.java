@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -18,8 +17,6 @@ public interface OuterLoopContext {
     LfNetwork getNetwork();
 
     int getIteration();
-
-    NewtonRaphsonResult getLastNewtonRaphsonResult();
 
     Object getData();
 

@@ -54,7 +54,8 @@ class DcValueVoltageInitializerTest {
                 false,
                 LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                 true,
-                matrixFactory);
+                matrixFactory,
+                1);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", -0.025);
@@ -71,7 +72,8 @@ class DcValueVoltageInitializerTest {
                 false,
                 LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                 true,
-                matrixFactory);
+                matrixFactory,
+                1);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);
@@ -88,7 +90,8 @@ class DcValueVoltageInitializerTest {
                 false,
                 LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,
                 true,
-                matrixFactory);
+                matrixFactory,
+                1);
         initializer.prepare(lfNetwork);
         assertBusVoltage(lfNetwork, initializer, "b1_vl_0", 0.0);
         assertBusVoltage(lfNetwork, initializer, "b2_vl_0", 0.0);

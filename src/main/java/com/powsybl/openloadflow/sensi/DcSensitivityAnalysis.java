@@ -218,12 +218,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 true,
                 lfParameters.isDcUseTransformerRatio());
 
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(lfParameters);
+
         return new DcLoadFlowParameters(networkParameters,
                 equationSystemCreationParameters,
                 matrixFactory,
                 lfParameters.isDistributedSlack(),
                 lfParameters.getBalanceType(),
-                true);
+                true,
+                parametersExt.getMaxOuterLoopIterations()
+                );
     }
 
     /**

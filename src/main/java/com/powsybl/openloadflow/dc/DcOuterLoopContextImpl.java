@@ -4,10 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac;
+
+package com.powsybl.openloadflow.dc;
 
 import com.powsybl.openloadflow.OuterLoopContext;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -16,19 +16,18 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcOuterLoopContextImpl implements OuterLoopContext {
+
+public class DcOuterLoopContextImpl implements OuterLoopContext {
 
     private final LfNetwork network;
 
     private int iteration;
 
-    private NewtonRaphsonResult lastNewtonRaphsonResult;
-
     private Object data;
 
     private LoadFlowContext loadFlowContext;
 
-    AcOuterLoopContextImpl(LfNetwork network) {
+    DcOuterLoopContextImpl(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
     }
 
@@ -46,14 +45,6 @@ public class AcOuterLoopContextImpl implements OuterLoopContext {
         this.iteration = iteration;
     }
 
-    public NewtonRaphsonResult getLastNewtonRaphsonResult() {
-        return lastNewtonRaphsonResult;
-    }
-
-    public void setLastNewtonRaphsonResult(NewtonRaphsonResult lastNewtonRaphsonResult) {
-        this.lastNewtonRaphsonResult = lastNewtonRaphsonResult;
-    }
-
     @Override
     public Object getData() {
         return data;
@@ -69,11 +60,11 @@ public class AcOuterLoopContextImpl implements OuterLoopContext {
         return loadFlowContext;
     }
 
-    public AcLoadFlowContext getAcLoadFlowContext() {
-        if (loadFlowContext.getClass() == AcLoadFlowContext.class) {
-            return (AcLoadFlowContext) loadFlowContext;
+    public DcLoadFlowContext getDcLoadFlowContext() {
+        if (loadFlowContext.getClass() == DcLoadFlowContext.class) {
+            return (DcLoadFlowContext) loadFlowContext;
         } else {
-            throw new ClassCastException("loadFlowContext attribute should be of type AcLoadFlowContext in AcOuterLoopContextImpl");
+            throw new ClassCastException("loadFlowContext attribute should be of type DcLoadFlowContext in DcOuterLoopContextImpl");
         }
     }
 

@@ -9,6 +9,9 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
+import com.powsybl.openloadflow.OuterLoop;
+import com.powsybl.openloadflow.OuterLoopContext;
+import com.powsybl.openloadflow.OuterLoopStatus;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
@@ -112,6 +115,45 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
+    private void runPhaseShifterOuterLoop(OuterLoop outerLoop, DcOuterLoopContextImpl outerLoopContext) {
+        Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
+
+        DcLoadFlowContext dcLoadFlowContext = outerLoopContext.getDcLoadFlowContext();
+        OuterLoopStatus outerLoopStatus;
+        int outerLoopIteration = 0;
+        boolean succeeded;
+        double[] targetVectorArray;
+
+        // re-run linear system solving until stabilization
+        do {
+            // check outer loop status
+            outerLoopContext.setIteration(outerLoopIteration);
+            outerLoopContext.setLoadFlowContext(context);
+            outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
+
+            succeeded = false;
+            if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
+                LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getType(), outerLoopStatus);
+
+                // if not yet stable, restart linear system solving
+                try {
+                    targetVectorArray = dcLoadFlowContext.getTargetVector().getArray().clone();
+                    dcLoadFlowContext.getJacobianMatrix().solveTransposed(targetVectorArray);
+                    succeeded = true;
+                    dcLoadFlowContext.getEquationSystem().getStateVector().set(targetVectorArray);
+                    updateNetwork(outerLoopContext.getNetwork(), dcLoadFlowContext.getEquationSystem(), targetVectorArray);
+                } catch (MatrixException e) {
+                    Reports.reportDcLfSolverFailure(olReporter, e.getMessage());
+                    LOGGER.error("Failed to solve linear system for DC load flow", e);
+                }
+
+                outerLoopIteration++;
+            }
+        } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
+                && succeeded
+                && outerLoopIteration < context.getParameters().getMaxOuterLoopIterations());
+    }
+
     public static Pair<Boolean, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
                                               EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                               JacobianMatrix<DcVariableType, DcEquationType> j,
@@ -128,6 +170,13 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                                                TargetVector<DcVariableType, DcEquationType> targetVector,
                                                Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                Reporter reporter) {
+        // outer loop initialization
+        if (parameters.getNetworkParameters().isPhaseControl()) {
+            DcPhaseShifterControlOuterLoop dcPhaseShifterControlOuterLoop = new DcPhaseShifterControlOuterLoop();
+            OuterLoopContext outerLoopContext = new DcOuterLoopContextImpl(network);
+            dcPhaseShifterControlOuterLoop.initialize(outerLoopContext);
+        }
+
         initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
 
         Collection<LfBus> remainingBuses = new LinkedHashSet<>(network.getBuses());
