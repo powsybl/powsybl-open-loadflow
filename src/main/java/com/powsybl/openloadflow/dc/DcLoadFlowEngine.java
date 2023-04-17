@@ -172,6 +172,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                                                Reporter reporter) {
         // outer loop initialization
         DcPhaseShifterControlOuterLoop dcPhaseShifterControlOuterLoop = new DcPhaseShifterControlOuterLoop();
+        // TO DO HG set loadflow context in outerLoopContext
         DcOuterLoopContextImpl outerLoopContext = new DcOuterLoopContextImpl(network);
         if (parameters.getNetworkParameters().isPhaseControl()) {
             dcPhaseShifterControlOuterLoop.initialize(outerLoopContext);
