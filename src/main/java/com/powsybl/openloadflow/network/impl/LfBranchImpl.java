@@ -39,13 +39,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         double g = line.getR() / zSquare;
         double b = -line.getX() / zSquare;
         double zb = nominalV1 * nominalV2 / PerUnit.SB;
+        double r = line.getR() / zb;
+        double x = line.getX() / zb;
         double g1 = (line.getG1() * nominalV1 * nominalV1 + g * nominalV1 * (nominalV1 - nominalV2)) / PerUnit.SB;
         double b1 = (line.getB1() * nominalV1 * nominalV1 + b * nominalV1 * (nominalV1 - nominalV2)) / PerUnit.SB;
         double g2 = (line.getG2() * nominalV2 * nominalV2 + g * nominalV2 * (nominalV2 - nominalV1)) / PerUnit.SB;
         double b2 = (line.getB2() * nominalV2 * nominalV2 + b * nominalV2 * (nominalV2 - nominalV1)) / PerUnit.SB;
         PiModel piModel = new SimplePiModel()
-                .setR(line.getR() / zb)
-                .setX(line.getX() / zb)
+                .setR(r)
+                .setX(x)
                 .setG1(g1)
                 .setG2(g2)
                 .setB1(b1)
