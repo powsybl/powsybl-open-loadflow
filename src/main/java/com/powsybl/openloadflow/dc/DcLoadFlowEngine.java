@@ -10,7 +10,6 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.OuterLoop;
-import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.OuterLoopStatus;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
@@ -115,13 +114,13 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
-    private void runPhaseShifterOuterLoop(OuterLoop outerLoop, DcOuterLoopContextImpl outerLoopContext) {
+    private boolean runPhaseShifterOuterLoop(OuterLoop outerLoop, DcOuterLoopContextImpl outerLoopContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
 
         DcLoadFlowContext dcLoadFlowContext = outerLoopContext.getDcLoadFlowContext();
         OuterLoopStatus outerLoopStatus;
         int outerLoopIteration = 0;
-        boolean succeeded;
+        boolean succeeded = true;
         double[] targetVectorArray;
 
         // re-run linear system solving until stabilization
@@ -131,7 +130,6 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             outerLoopContext.setLoadFlowContext(context);
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
 
-            succeeded = false;
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
                 LOGGER.debug("Start outer loop '{}' iteration {}", outerLoop.getType(), outerLoopStatus);
 
@@ -144,6 +142,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                     updateNetwork(outerLoopContext.getNetwork(), dcLoadFlowContext.getEquationSystem(), targetVectorArray);
                 } catch (MatrixException e) {
                     Reports.reportDcLfSolverFailure(olReporter, e.getMessage());
+                    succeeded = false;
                     LOGGER.error("Failed to solve linear system for DC load flow", e);
                 }
 
@@ -152,6 +151,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         } while (outerLoopStatus == OuterLoopStatus.UNSTABLE
                 && succeeded
                 && outerLoopIteration < context.getParameters().getMaxOuterLoopIterations());
+        return succeeded;
     }
 
     public static Pair<Boolean, double[]> run(LfNetwork network, DcLoadFlowParameters parameters,
@@ -171,9 +171,9 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                                                Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                                Reporter reporter) {
         // outer loop initialization
+        DcPhaseShifterControlOuterLoop dcPhaseShifterControlOuterLoop = new DcPhaseShifterControlOuterLoop();
+        DcOuterLoopContextImpl outerLoopContext = new DcOuterLoopContextImpl(network);
         if (parameters.getNetworkParameters().isPhaseControl()) {
-            DcPhaseShifterControlOuterLoop dcPhaseShifterControlOuterLoop = new DcPhaseShifterControlOuterLoop();
-            OuterLoopContext outerLoopContext = new DcOuterLoopContextImpl(network);
             dcPhaseShifterControlOuterLoop.initialize(outerLoopContext);
         }
 
@@ -230,11 +230,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
 
         // continue with PST active power control outer loop only if first linear system solution has succeeded
         if (succeeded && parameters.getNetworkParameters().isPhaseControl()) {
-            do {
-                // 2 run outerloop
-                // runPhaseShifterControlOuterLoop();
-                // 3 continue with next outer loop only if previous has succeeded, and we have not reached max number of outer loop iterations
-            } while (false); // to do
+            try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
+                succeeded = new DcLoadFlowEngine(context)
+                        .runPhaseShifterOuterLoop(dcPhaseShifterControlOuterLoop, outerLoopContext);
+            }
         }
 
         // set all calculated voltages to NaN
