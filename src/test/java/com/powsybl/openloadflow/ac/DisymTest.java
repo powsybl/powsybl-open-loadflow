@@ -8,6 +8,7 @@ import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -17,14 +18,22 @@ import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.extensions.AsymThreePhaseTransfo;
+import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetricalAdder;
 import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalancedAdder;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.util.ComplexMatrix;
+import com.powsybl.openloadflow.util.Fortescue;
+import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.apache.commons.math3.util.Pair;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
@@ -1060,7 +1069,7 @@ public class DisymTest {
                 .add();
 
         t23.newExtension(TwoWindingsTransformerFortescueAdder.class)
-                .withRz(rT23) // TODO : check that
+                .withRz(rT23) // TODO : check that again
                 .withXz(xT23) // TODO : check that
                 .withConnectionType1(WindingConnectionType.Y_GROUNDED)
                 .withConnectionType2(WindingConnectionType.Y_GROUNDED)
@@ -1070,6 +1079,448 @@ public class DisymTest {
                 .add();
 
         return network;
+    }
+
+    @Test
+    void complexMatrixTest() {
+        DenseMatrix fortescueMatrix = Fortescue.createMatrix();
+        ComplexMatrix complexFortescueMatrix = Fortescue.createComplexMatrix(false);
+        System.out.println("Matrix Fortescue = ");
+        fortescueMatrix.print(System.out);
+
+        System.out.println("Matrix Complex Fortescue = ");
+        DenseMatrix computedMatrix = complexFortescueMatrix.getRealCartesianMatrix();
+
+        for (int i = 0; i < fortescueMatrix.getRowCount(); i++) {
+            for (int j = 0; j < fortescueMatrix.getColumnCount(); j++) {
+                assertEquals(computedMatrix.get(i, j), fortescueMatrix.get(i, j));
+            }
+        }
+    }
+
+    @Test
+    void realToComplexMatrixTest() {
+        ComplexMatrix complexFortescueMatrix = Fortescue.createComplexMatrix(false);
+        DenseMatrix realFortescueMatrix = complexFortescueMatrix.getRealCartesianMatrix();
+
+        ComplexMatrix computedComplexFortescueMatrix = ComplexMatrix.getComplexMatrixFromRealCartesian(realFortescueMatrix);
+        DenseMatrix computedMatrix = computedComplexFortescueMatrix.getRealCartesianMatrix();
+
+        for (int i = 0; i < realFortescueMatrix.getRowCount(); i++) {
+            for (int j = 0; j < realFortescueMatrix.getColumnCount(); j++) {
+                assertEquals(computedMatrix.get(i, j), realFortescueMatrix.get(i, j));
+            }
+        }
+    }
+
+    @Test
+    void asym3phaseTransfoTest() {
+        // test of an asymmetric three phase transformer
+        Complex za = new Complex(0.1, 1.);
+        Complex y1a = new Complex(0.001, 0.01);
+        Complex y2a = new Complex(0.002, 0.02);
+
+        Complex zb = new Complex(0.1, 1.);
+        Complex y1b = new Complex(0.001, 0.01);
+        Complex y2b = new Complex(0.002, 0.02);
+
+        Complex zc = new Complex(0.1, 1.);
+        Complex y1c = new Complex(0.001, 0.01);
+        Complex y2c = new Complex(0.002, 0.02);
+
+        Complex rho = new Complex(0.9, 0.);
+
+        LegConnectionType leg1ConnectionType = LegConnectionType.Y;
+        LegConnectionType leg2ConnectionType = LegConnectionType.Y;
+
+        Complex zG1 = new Complex(0.01, 0.01);
+        Complex zG2 = new Complex(0.03, 0.03);
+
+        List<Boolean> connectionList = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            connectionList.add(true);
+        }
+        connectionList.set(2, false);
+
+        ComplexMatrix ya = buildSinglePhaseAdmittanceMatrix(za, y1a, y2a);
+        ComplexMatrix yb = buildSinglePhaseAdmittanceMatrix(zb, y1b, y2b);
+        ComplexMatrix yc = buildSinglePhaseAdmittanceMatrix(zc, y1c, y2c);
+
+        AsymThreePhaseTransfo asym3phaseTfo = new AsymThreePhaseTransfo(leg1ConnectionType, leg2ConnectionType,
+                ya, yb, yc, rho, zG1, zG2, connectionList);
+
+    }
+
+    public static ComplexMatrix buildSinglePhaseAdmittanceMatrix(Complex z, Complex y1, Complex y2) {
+        ComplexMatrix cm = new ComplexMatrix(2, 2);
+        cm.set(1, 1, y1.add(z.reciprocal()));
+        cm.set(1, 2, z.reciprocal().multiply(-1.));
+        cm.set(2, 1, z.reciprocal().multiply(-1.));
+        cm.set(2, 2, y2.add(z.reciprocal()));
+
+        return cm;
+    }
+
+    @Test
+    void asym3phase4busFeederTransfoTest() {
+        // test of an asymmetric three phase transformer
+        double vBase2 = 12.47;
+        double vBase3 = 4.16;
+        double sBase = 2;
+
+        Complex zBase = new Complex(1., 6.).multiply(vBase3 * vBase3 / 100. / 2. / 3); // seem to be the closest solution... which means its more 6 MVA than 2 MVA for Sbase
+        Complex yBase = new Complex(0., 0.);
+        Complex za = zBase;
+        Complex y1a = yBase;
+        Complex y2a = yBase;
+
+        Complex zb = zBase;
+        Complex y1b = yBase;
+        Complex y2b = yBase;
+
+        Complex zc = zBase;
+        Complex y1c = yBase;
+        Complex y2c = yBase;
+
+        Complex rho = new Complex(1., 0.).multiply(vBase3 / vBase2);
+
+        LegConnectionType leg1ConnectionType = LegConnectionType.Y_GROUNDED;
+        LegConnectionType leg2ConnectionType = LegConnectionType.Y_GROUNDED;
+
+        Complex zG1 = new Complex(0., 0.);
+        Complex zG2 = new Complex(0., 0.);
+
+        List<Boolean> connectionList = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            connectionList.add(true);
+        }
+        //connectionList.set(2, false);
+
+        ComplexMatrix ya = buildSinglePhaseAdmittanceMatrix(za, y1a, y2a);
+        ComplexMatrix yb = buildSinglePhaseAdmittanceMatrix(zb, y1b, y2b);
+        ComplexMatrix yc = buildSinglePhaseAdmittanceMatrix(zc, y1c, y2c);
+
+        AsymThreePhaseTransfo asym3phaseTfo = new AsymThreePhaseTransfo(leg1ConnectionType, leg2ConnectionType,
+                ya, yb, yc, rho, zG1, zG2, connectionList);
+
+        DenseMatrix yabc = asym3phaseTfo.getYabc();
+
+        double va2 = 7.107;
+        double tha2 = Math.toRadians(-0.3);
+        double vb2 = 7.140;
+        double thb2 = Math.toRadians(-120.3);
+        double vc2 = 7.121;
+        double thc2 = Math.toRadians(119.6);
+
+        double va3 = 2.2476;
+        double tha3 = Math.toRadians(-3.7);
+        double vb3 = 2.269;
+        double thb3 = Math.toRadians(-123.5);
+        double vc3 = 2.256;
+        double thc3 = Math.toRadians(116.4);
+
+        Vector2D va2Cart = Fortescue.getCartesianFromPolar(va2, tha2);
+        Vector2D vb2Cart = Fortescue.getCartesianFromPolar(vb2, thb2);
+        Vector2D vc2Cart = Fortescue.getCartesianFromPolar(vc2, thc2);
+
+        Vector2D va3Cart = Fortescue.getCartesianFromPolar(va3, tha3);
+        Vector2D vb3Cart = Fortescue.getCartesianFromPolar(vb3, thb3);
+        Vector2D vc3Cart = Fortescue.getCartesianFromPolar(vc3, thc3);
+
+        DenseMatrix vabc2Vabc3 = new DenseMatrix(12, 1);
+        vabc2Vabc3.add(0, 0, va2Cart.getX());
+        vabc2Vabc3.add(1, 0, va2Cart.getY());
+        vabc2Vabc3.add(2, 0, vb2Cart.getX());
+        vabc2Vabc3.add(3, 0, vb2Cart.getY());
+        vabc2Vabc3.add(4, 0, vc2Cart.getX());
+        vabc2Vabc3.add(5, 0, vc2Cart.getY());
+
+        vabc2Vabc3.add(6, 0, va3Cart.getX());
+        vabc2Vabc3.add(7, 0, va3Cart.getY());
+        vabc2Vabc3.add(8, 0, vb3Cart.getX());
+        vabc2Vabc3.add(9, 0, vb3Cart.getY());
+        vabc2Vabc3.add(10, 0, vc3Cart.getX());
+        vabc2Vabc3.add(11, 0, vc3Cart.getY());
+
+        DenseMatrix iabc2Iabc3 = yabc.times(vabc2Vabc3);
+        Pair<Double, Double> ia2Polar = getPolarFromCartesian(iabc2Iabc3.get(0, 0), iabc2Iabc3.get(1, 0));
+        Pair<Double, Double> ib2Polar = getPolarFromCartesian(iabc2Iabc3.get(2, 0), iabc2Iabc3.get(3, 0));
+        Pair<Double, Double> ic2Polar = getPolarFromCartesian(iabc2Iabc3.get(4, 0), iabc2Iabc3.get(5, 0));
+
+        Pair<Double, Double> ia3Polar = getPolarFromCartesian(iabc2Iabc3.get(6, 0), iabc2Iabc3.get(7, 0));
+        Pair<Double, Double> ib3Polar = getPolarFromCartesian(iabc2Iabc3.get(8, 0), iabc2Iabc3.get(9, 0));
+        Pair<Double, Double> ic3Polar = getPolarFromCartesian(iabc2Iabc3.get(10, 0), iabc2Iabc3.get(11, 0));
+
+        System.out.println("Ia2 = " + ia2Polar.getFirst() + " ( " + Math.toDegrees(ia2Polar.getSecond()));
+        System.out.println("Ib2 = " + ib2Polar.getFirst() + " ( " + Math.toDegrees(ib2Polar.getSecond()));
+        System.out.println("Ic2 = " + ic2Polar.getFirst() + " ( " + Math.toDegrees(ic2Polar.getSecond()));
+
+        System.out.println("Ia3 = " + ia3Polar.getFirst() + " ( " + Math.toDegrees(ia3Polar.getSecond()));
+        System.out.println("Ib3 = " + ib3Polar.getFirst() + " ( " + Math.toDegrees(ib3Polar.getSecond()));
+        System.out.println("Ic3 = " + ic3Polar.getFirst() + " ( " + Math.toDegrees(ic3Polar.getSecond()));
+
+    }
+
+    @Test
+    void asym3phase4busFeederYgDeltaTransfoTest() {
+        // test of an asymmetric three phase transformer
+        double vBase2 = 12.47;
+        double vBase3 = 4.16;
+        double sBase = 2.;
+
+        Complex zBase = new Complex(1., 6.).multiply(vBase3 * vBase3 / 100. / 2.); // seem to be the closest solution... which means its more 6 MVA than 2 MVA for Sbase combined with a sqrt3 * sqrt3 for per uniting
+        Complex yBase = new Complex(0., 0.);
+        Complex za = zBase;
+        Complex y1a = yBase;
+        Complex y2a = yBase;
+
+        Complex zb = zBase;
+        Complex y1b = yBase;
+        Complex y2b = yBase;
+
+        Complex zc = zBase;
+        Complex y1c = yBase;
+        Complex y2c = yBase;
+
+        Complex rho = new Complex(1., 0.).multiply(vBase3 / vBase2 * Math.sqrt(3.)); // ratio of I is 3 and V is not 3...
+
+        LegConnectionType leg1ConnectionType = LegConnectionType.Y_GROUNDED;
+        LegConnectionType leg2ConnectionType = LegConnectionType.DELTA;
+
+        Complex zG1 = new Complex(0., 0.);
+        Complex zG2 = new Complex(0., 0.);
+
+        List<Boolean> connectionList = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            connectionList.add(true);
+        }
+        //connectionList.set(2, false);
+
+        ComplexMatrix ya = buildSinglePhaseAdmittanceMatrix(za, y1a, y2a);
+        ComplexMatrix yb = buildSinglePhaseAdmittanceMatrix(zb, y1b, y2b);
+        ComplexMatrix yc = buildSinglePhaseAdmittanceMatrix(zc, y1c, y2c);
+
+        AsymThreePhaseTransfo asym3phaseTfo = new AsymThreePhaseTransfo(leg1ConnectionType, leg2ConnectionType,
+                ya, yb, yc, rho, zG1, zG2, connectionList);
+
+        DenseMatrix yabc = asym3phaseTfo.getYabc();
+
+        double va2 = 7.113;
+        double tha2 = Math.toRadians(-0.3);
+        double vb2 = 7.132;
+        double thb2 = Math.toRadians(-120.3);
+        double vc2 = 7.123;
+        double thc2 = Math.toRadians(119.6);
+
+        double vab3 = 3.906;
+        double thab3 = Math.toRadians(-3.5);
+        double vbc3 = 3.915;
+        double thbc3 = Math.toRadians(-123.6);
+        double vca3 = 3.909;
+        double thca3 = Math.toRadians(116.3);
+
+        Vector2D va2Cart = Fortescue.getCartesianFromPolar(va2, tha2);
+        Vector2D vb2Cart = Fortescue.getCartesianFromPolar(vb2, thb2);
+        Vector2D vc2Cart = Fortescue.getCartesianFromPolar(vc2, thc2);
+
+        Vector2D vab3Cart = Fortescue.getCartesianFromPolar(vab3, thab3);
+        Vector2D vbc3Cart = Fortescue.getCartesianFromPolar(vbc3, thbc3);
+        Vector2D vca3Cart = Fortescue.getCartesianFromPolar(vca3, thca3);
+
+        Complex vab3Complex = new Complex(vab3Cart.getX(), vab3Cart.getY());
+        Complex vca3Complex = new Complex(vca3Cart.getX(), vca3Cart.getY());
+        // we suppose Va3 = 1/sqrt(3).Vab3 (arbitrary)
+        Complex va3 = new Complex(vab3Cart.getX(), vab3Cart.getY()).multiply(1. / Math.sqrt(3.));
+
+        Complex vb3 = va3.add(vab3Complex.multiply(-1.));
+        Complex vc3 = vca3Complex.add(va3);
+
+        Pair<Double, Double> va3Polar = getPolarFromCartesian(va3.getReal(), va3.getImaginary());
+        Pair<Double, Double> vb3Polar = getPolarFromCartesian(vb3.getReal(), vb3.getImaginary());
+        Pair<Double, Double> vc3Polar = getPolarFromCartesian(vc3.getReal(), vc3.getImaginary());
+
+        System.out.println("Va3 = " + va3Polar.getFirst() + " ( " + Math.toDegrees(va3Polar.getSecond()));
+        System.out.println("Vb3 = " + vb3Polar.getFirst() + " ( " + Math.toDegrees(vb3Polar.getSecond()));
+        System.out.println("Vc3 = " + vc3Polar.getFirst() + " ( " + Math.toDegrees(vc3Polar.getSecond()));
+
+        Complex vabCalc = va3.add(vb3.multiply(-1.));
+        Complex vbcCalc = vb3.add(vc3.multiply(-1.));
+        Complex vcaCalc = vc3.add(va3.multiply(-1.));
+
+        Pair<Double, Double> vabPolar = getPolarFromCartesian(vabCalc.getReal(), vabCalc.getImaginary());
+        Pair<Double, Double> vbcPolar = getPolarFromCartesian(vbcCalc.getReal(), vbcCalc.getImaginary());
+        Pair<Double, Double> vcaPolar = getPolarFromCartesian(vcaCalc.getReal(), vcaCalc.getImaginary());
+
+        System.out.println("VabCalc = " + vabPolar.getFirst() + " ( " + Math.toDegrees(vabPolar.getSecond()));
+        System.out.println("VbcCalc = " + vbcPolar.getFirst() + " ( " + Math.toDegrees(vbcPolar.getSecond()));
+        System.out.println("VcaCalc = " + vcaPolar.getFirst() + " ( " + Math.toDegrees(vcaPolar.getSecond()));
+
+        DenseMatrix vabc2Vabc3 = new DenseMatrix(12, 1);
+        vabc2Vabc3.add(0, 0, va2Cart.getX());
+        vabc2Vabc3.add(1, 0, va2Cart.getY());
+        vabc2Vabc3.add(2, 0, vb2Cart.getX());
+        vabc2Vabc3.add(3, 0, vb2Cart.getY());
+        vabc2Vabc3.add(4, 0, vc2Cart.getX());
+        vabc2Vabc3.add(5, 0, vc2Cart.getY());
+
+        vabc2Vabc3.add(6, 0, va3.getReal());
+        vabc2Vabc3.add(7, 0, va3.getImaginary());
+        vabc2Vabc3.add(8, 0, vb3.getReal());
+        vabc2Vabc3.add(9, 0, vb3.getImaginary());
+        vabc2Vabc3.add(10, 0, vc3.getReal());
+        vabc2Vabc3.add(11, 0, vc3.getImaginary());
+
+        DenseMatrix iabc2Iabc3 = yabc.times(vabc2Vabc3);
+        Pair<Double, Double> ia2Polar = getPolarFromCartesian(iabc2Iabc3.get(0, 0), iabc2Iabc3.get(1, 0));
+        Pair<Double, Double> ib2Polar = getPolarFromCartesian(iabc2Iabc3.get(2, 0), iabc2Iabc3.get(3, 0));
+        Pair<Double, Double> ic2Polar = getPolarFromCartesian(iabc2Iabc3.get(4, 0), iabc2Iabc3.get(5, 0));
+
+        Pair<Double, Double> ia3Polar = getPolarFromCartesian(iabc2Iabc3.get(6, 0), iabc2Iabc3.get(7, 0));
+        Pair<Double, Double> ib3Polar = getPolarFromCartesian(iabc2Iabc3.get(8, 0), iabc2Iabc3.get(9, 0));
+        Pair<Double, Double> ic3Polar = getPolarFromCartesian(iabc2Iabc3.get(10, 0), iabc2Iabc3.get(11, 0));
+
+        System.out.println("Ia2 = " + ia2Polar.getFirst() + " ( " + Math.toDegrees(ia2Polar.getSecond()));
+        System.out.println("Ib2 = " + ib2Polar.getFirst() + " ( " + Math.toDegrees(ib2Polar.getSecond()));
+        System.out.println("Ic2 = " + ic2Polar.getFirst() + " ( " + Math.toDegrees(ic2Polar.getSecond()));
+
+        System.out.println("Ia3 = " + ia3Polar.getFirst() + " ( " + Math.toDegrees(ia3Polar.getSecond()));
+        System.out.println("Ib3 = " + ib3Polar.getFirst() + " ( " + Math.toDegrees(ib3Polar.getSecond()));
+        System.out.println("Ic3 = " + ic3Polar.getFirst() + " ( " + Math.toDegrees(ic3Polar.getSecond()));
+
+    }
+
+    public org.apache.commons.math3.util.Pair<Double, Double> getPolarFromCartesian(double xValue, double yValue) {
+        double magnitude = Math.sqrt(xValue * xValue + yValue * yValue);
+        double phase = Math.atan2(yValue, xValue); // TODO : check radians and degrees
+        return new org.apache.commons.math3.util.Pair<>(magnitude, phase);
+    }
+
+    @Test
+    void asym3phase4busFeederOpenYgDeltaTransfoTest() {
+        // test of an asymmetric three phase transformer
+        double vBase2 = 12.47;
+        double vBase3 = 4.16;
+        double sBase = 2.;
+
+        Complex zBase = new Complex(1., 6.).multiply(vBase3 * vBase3 / 100. / 2.); // seem to be the closest solution... which means its more 6 MVA than 2 MVA for Sbase combined with a sqrt3 * sqrt3 for per uniting
+        Complex yBase = new Complex(0., 0.);
+        Complex za = zBase;
+        Complex y1a = yBase;
+        Complex y2a = yBase;
+
+        Complex zb = zBase;
+        Complex y1b = yBase;
+        Complex y2b = yBase;
+
+        Complex zc = zBase;
+        Complex y1c = yBase;
+        Complex y2c = yBase;
+
+        Complex rho = new Complex(1., 0.).multiply(vBase3 / vBase2 * Math.sqrt(3.)); // ratio of I is 3 and V is not 3...
+
+        LegConnectionType leg1ConnectionType = LegConnectionType.Y_GROUNDED;
+        LegConnectionType leg2ConnectionType = LegConnectionType.DELTA;
+
+        Complex zG1 = new Complex(0., 0.);
+        Complex zG2 = new Complex(0., 0.);
+
+        List<Boolean> connectionList = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            connectionList.add(true);
+        }
+        connectionList.set(2, false);
+
+        ComplexMatrix ya = buildSinglePhaseAdmittanceMatrix(za, y1a, y2a);
+        ComplexMatrix yb = buildSinglePhaseAdmittanceMatrix(zb, y1b, y2b);
+        ComplexMatrix yc = buildSinglePhaseAdmittanceMatrix(zc, y1c, y2c);
+
+        AsymThreePhaseTransfo asym3phaseTfo = new AsymThreePhaseTransfo(leg1ConnectionType, leg2ConnectionType,
+                ya, yb, yc, rho, zG1, zG2, connectionList);
+
+        DenseMatrix yabc = asym3phaseTfo.getYabc();
+
+        double va2 = 6.984;
+        double tha2 = Math.toRadians(0.4);
+        double vb2 = 7.167;
+        double thb2 = Math.toRadians(-121.7);
+        double vc2 = 7.293;
+        double thc2 = Math.toRadians(120.5);
+
+        double vab3 = 3.701;
+        double thab3 = Math.toRadians(-0.9);
+        double vbc3 = 4.076;
+        double thbc3 = Math.toRadians(-126.5);
+        double vca3 = 3.572;
+        double thca3 = Math.toRadians(110.9);
+
+        Vector2D va2Cart = Fortescue.getCartesianFromPolar(va2, tha2);
+        Vector2D vb2Cart = Fortescue.getCartesianFromPolar(vb2, thb2);
+        Vector2D vc2Cart = Fortescue.getCartesianFromPolar(vc2, thc2);
+
+        Vector2D vab3Cart = Fortescue.getCartesianFromPolar(vab3, thab3);
+        Vector2D vbc3Cart = Fortescue.getCartesianFromPolar(vbc3, thbc3);
+        Vector2D vca3Cart = Fortescue.getCartesianFromPolar(vca3, thca3);
+
+        Complex vab3Complex = new Complex(vab3Cart.getX(), vab3Cart.getY());
+        Complex vca3Complex = new Complex(vca3Cart.getX(), vca3Cart.getY());
+        // we suppose Va3 = 1/sqrt(3).Vab3 (arbitrary)
+        Complex va3 = new Complex(vab3Cart.getX(), vab3Cart.getY()).multiply(1. / Math.sqrt(3.));
+
+        Complex vb3 = va3.add(vab3Complex.multiply(-1.));
+        Complex vc3 = vca3Complex.add(va3);
+
+        Pair<Double, Double> va3Polar = getPolarFromCartesian(va3.getReal(), va3.getImaginary());
+        Pair<Double, Double> vb3Polar = getPolarFromCartesian(vb3.getReal(), vb3.getImaginary());
+        Pair<Double, Double> vc3Polar = getPolarFromCartesian(vc3.getReal(), vc3.getImaginary());
+
+        System.out.println("Va3 = " + va3Polar.getFirst() + " ( " + Math.toDegrees(va3Polar.getSecond()));
+        System.out.println("Vb3 = " + vb3Polar.getFirst() + " ( " + Math.toDegrees(vb3Polar.getSecond()));
+        System.out.println("Vc3 = " + vc3Polar.getFirst() + " ( " + Math.toDegrees(vc3Polar.getSecond()));
+
+        Complex vabCalc = va3.add(vb3.multiply(-1.));
+        Complex vbcCalc = vb3.add(vc3.multiply(-1.));
+        Complex vcaCalc = vc3.add(va3.multiply(-1.));
+
+        Pair<Double, Double> vabPolar = getPolarFromCartesian(vabCalc.getReal(), vabCalc.getImaginary());
+        Pair<Double, Double> vbcPolar = getPolarFromCartesian(vbcCalc.getReal(), vbcCalc.getImaginary());
+        Pair<Double, Double> vcaPolar = getPolarFromCartesian(vcaCalc.getReal(), vcaCalc.getImaginary());
+
+        System.out.println("VabCalc = " + vabPolar.getFirst() + " ( " + Math.toDegrees(vabPolar.getSecond()));
+        System.out.println("VbcCalc = " + vbcPolar.getFirst() + " ( " + Math.toDegrees(vbcPolar.getSecond()));
+        System.out.println("VcaCalc = " + vcaPolar.getFirst() + " ( " + Math.toDegrees(vcaPolar.getSecond()));
+
+        DenseMatrix vabc2Vabc3 = new DenseMatrix(12, 1);
+        vabc2Vabc3.add(0, 0, va2Cart.getX());
+        vabc2Vabc3.add(1, 0, va2Cart.getY());
+        vabc2Vabc3.add(2, 0, vb2Cart.getX());
+        vabc2Vabc3.add(3, 0, vb2Cart.getY());
+        vabc2Vabc3.add(4, 0, vc2Cart.getX());
+        vabc2Vabc3.add(5, 0, vc2Cart.getY());
+
+        vabc2Vabc3.add(6, 0, va3.getReal());
+        vabc2Vabc3.add(7, 0, va3.getImaginary());
+        vabc2Vabc3.add(8, 0, vb3.getReal());
+        vabc2Vabc3.add(9, 0, vb3.getImaginary());
+        vabc2Vabc3.add(10, 0, vc3.getReal());
+        vabc2Vabc3.add(11, 0, vc3.getImaginary());
+
+        DenseMatrix iabc2Iabc3 = yabc.times(vabc2Vabc3);
+        Pair<Double, Double> ia2Polar = getPolarFromCartesian(iabc2Iabc3.get(0, 0), iabc2Iabc3.get(1, 0));
+        Pair<Double, Double> ib2Polar = getPolarFromCartesian(iabc2Iabc3.get(2, 0), iabc2Iabc3.get(3, 0));
+        Pair<Double, Double> ic2Polar = getPolarFromCartesian(iabc2Iabc3.get(4, 0), iabc2Iabc3.get(5, 0));
+
+        Pair<Double, Double> ia3Polar = getPolarFromCartesian(iabc2Iabc3.get(6, 0), iabc2Iabc3.get(7, 0));
+        Pair<Double, Double> ib3Polar = getPolarFromCartesian(iabc2Iabc3.get(8, 0), iabc2Iabc3.get(9, 0));
+        Pair<Double, Double> ic3Polar = getPolarFromCartesian(iabc2Iabc3.get(10, 0), iabc2Iabc3.get(11, 0));
+
+        System.out.println("Ia2 = " + ia2Polar.getFirst() + " ( " + Math.toDegrees(ia2Polar.getSecond()));
+        System.out.println("Ib2 = " + ib2Polar.getFirst() + " ( " + Math.toDegrees(ib2Polar.getSecond()));
+        System.out.println("Ic2 = " + ic2Polar.getFirst() + " ( " + Math.toDegrees(ic2Polar.getSecond()));
+
+        System.out.println("Ia3 = " + ia3Polar.getFirst() + " ( " + Math.toDegrees(ia3Polar.getSecond()));
+        System.out.println("Ib3 = " + ib3Polar.getFirst() + " ( " + Math.toDegrees(ib3Polar.getSecond()));
+        System.out.println("Ic3 = " + ic3Polar.getFirst() + " ( " + Math.toDegrees(ic3Polar.getSecond()));
+
     }
 
 }

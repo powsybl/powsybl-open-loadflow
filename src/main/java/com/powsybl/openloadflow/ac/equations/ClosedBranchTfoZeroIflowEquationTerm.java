@@ -7,6 +7,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymTransfo2W;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.complex.Complex;
 
@@ -239,16 +240,31 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
     }
 
     public static DenseMatrix getId44() {
-        DenseMatrix mId = new DenseMatrix(4, 4);
+        /*DenseMatrix mId = new DenseMatrix(4, 4);
         mId.add(0, 0, 1);
         mId.add(1, 1, 1);
         mId.add(2, 2, 1);
         mId.add(3, 3, 1);
 
-        return mId;
+        return mId;*/
+
+        ComplexMatrix complexMatrix = new ComplexMatrix(2, 2);
+        Complex one = new Complex(1., 0.);
+        complexMatrix.set(1, 1, one);
+        complexMatrix.set(2, 2, one);
+
+        return complexMatrix.getRealCartesianMatrix();
+
     }
 
     public static DenseMatrix getMatrixFromBloc44(Complex bloc11, Complex bloc22, Complex bloc12) {
+
+        ComplexMatrix complexMatrix = new ComplexMatrix(2, 2);
+        complexMatrix.set(1, 1, bloc11);
+        complexMatrix.set(1, 2, bloc12);
+        complexMatrix.set(2, 1, bloc12);
+        complexMatrix.set(2, 2, bloc22);
+        /*
         DenseMatrix matrix = new DenseMatrix(4, 4);
         matrix.add(0, 0, bloc11.getReal());
         matrix.add(1, 1, bloc11.getReal());
@@ -270,7 +286,9 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         matrix.add(2, 3, -bloc22.getImaginary());
         matrix.add(3, 2, bloc22.getImaginary());
 
-        return matrix;
+        return matrix;*/
+        return complexMatrix.getRealCartesianMatrix();
+
     }
 
 }
