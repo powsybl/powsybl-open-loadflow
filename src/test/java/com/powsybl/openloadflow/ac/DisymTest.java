@@ -1060,7 +1060,7 @@ public class DisymTest {
                 .add();
 
         t23.newExtension(TwoWindingsTransformerFortescueAdder.class)
-                .withRz(rT23) // TODO : check that
+                .withRz(rT23) // TODO : check that again
                 .withXz(xT23) // TODO : check that
                 .withConnectionType1(WindingConnectionType.Y_GROUNDED)
                 .withConnectionType2(WindingConnectionType.Y_GROUNDED)
