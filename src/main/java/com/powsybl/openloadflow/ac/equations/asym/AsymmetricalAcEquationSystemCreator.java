@@ -4,8 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.ac.equations;
+package com.powsybl.openloadflow.ac.equations.asym;
 
+import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -291,7 +292,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         }
         AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
         if (asymLine != null) {
-            asymmetry = asymLine.isAdmittanceAsymmetryDetected();
+            asymmetry = asymLine.getAdmittanceMatrix().isCoupled();
         }
         return asymmetry;
     }

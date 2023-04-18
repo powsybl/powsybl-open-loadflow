@@ -27,7 +27,7 @@ public final class Fortescue {
     private Fortescue() {
     }
 
-    public static DenseMatrix getFortescueInverseMatrix() {
+    public static DenseMatrix createInverseMatrix() {
         DenseMatrix mFinv = new DenseMatrix(6, 6);
 
         double t = 1. / 3.;
@@ -72,7 +72,7 @@ public final class Fortescue {
         return mFinv;
     }
 
-    public static DenseMatrix getFortescueMatrix() {
+    public static DenseMatrix createMatrix() {
         // [G1]   [ 1  1  1 ]   [Gh]
         // [G2] = [ 1  a²  a] * [Gd]
         // [G3]   [ 1  a  a²]   [Gi]

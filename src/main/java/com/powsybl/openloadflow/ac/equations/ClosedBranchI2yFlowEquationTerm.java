@@ -11,6 +11,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
+@SuppressWarnings("squid:S00107")
 public class ClosedBranchI2yFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchI2yFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,

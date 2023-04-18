@@ -64,7 +64,8 @@ class LfActionTest extends AbstractConverterTest {
             String loadId = "LOAD";
             Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
             PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
-                    Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), true, false, false, false).get(0);
+                    Collections.singletonList(contingency), new HashSet<>(), true).get(0);
+            PropagatedContingency.completeList(List.of(propagatedContingency), false, false, false, true);
             propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
                 LfAction.apply(List.of(lfAction), lfNetwork, lfContingency, acParameters.getNetworkParameters());
                 assertTrue(lfNetwork.getBranchById("C").isDisabled());

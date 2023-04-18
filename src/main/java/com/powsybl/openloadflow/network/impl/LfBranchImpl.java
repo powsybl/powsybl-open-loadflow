@@ -36,22 +36,25 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     private static void createLineAsymExt(Line line, double zb, PiModel piModel, LfBranchImpl lfBranchImpl) {
-        var extension = line.getExtension(LineAsymmetrical.class);
-        if (extension != null) {
-            AsymLine asymLine;
-            boolean isOpenA = extension.getOpenPhaseA();
-            boolean isOpenB = extension.getOpenPhaseB();
-            boolean isOpenC = extension.getOpenPhaseC();
-            var extensionIidm = line.getExtension(LineFortescue.class);
-            if (extensionIidm != null) {
-                double rz = extensionIidm.getRz();
-                double xz = extensionIidm.getXz();
-                asymLine = new AsymLine(rz / zb, xz / zb, 0, 0, 0, 0, isOpenA,
-                        piModel.getR(), piModel.getX(), 0, 0, 0, 0, isOpenB,
-                        piModel.getR(), piModel.getX(), 0, 0, 0, 0, isOpenC);
-            } else {
-                throw new PowsyblException("Asymmetrical branch '" + lfBranchImpl.getId() + "' has no assymmetrical Pi values input data defined");
-            }
+        var extension = line.getExtension(LineFortescue.class);
+        var extension2 = line.getExtension(LineAsymmetrical.class); // TODO to remove when upgrading core
+        if (extension != null && extension2 != null) {
+            boolean openPhaseA = extension2.getOpenPhaseA();
+            boolean openPhaseB = extension2.getOpenPhaseB();
+            boolean openPhaseC = extension2.getOpenPhaseC();
+            double rz = extension.getRz();
+            double xz = extension.getXz();
+            SimplePiModel piZeroComponent = new SimplePiModel()
+                    .setR(rz / zb)
+                    .setX(xz / zb);
+            SimplePiModel piPositiveComponent = new SimplePiModel()
+                    .setR(piModel.getR())
+                    .setX(piModel.getX());
+            SimplePiModel piNegativeComponent = new SimplePiModel()
+                    .setR(piModel.getR())
+                    .setX(piModel.getX());
+            AsymLine asymLine = new AsymLine(piZeroComponent, piPositiveComponent, piNegativeComponent,
+                                             openPhaseA, openPhaseB, openPhaseC);
             lfBranchImpl.setProperty(AsymLine.PROPERTY_ASYMMETRICAL, asymLine);
         }
     }
