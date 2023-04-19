@@ -1850,4 +1850,19 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         result = runSecurityAnalysis(network, contingencies);
         assertEquals(2, result.getPostContingencyResults().size());
     }
+
+    @Test
+    void testWithVoltageRemoteControl() {
+        Network network = VoltageControlNetworkFactory.createWithSimpleRemoteControl();
+        network.getGenerator("g4").setRegulatingTerminal(network.getLoad("l1").getTerminal()); // remote control.
+        List<Contingency> contingencies = List.of(new Contingency("contingency",
+                List.of(new BranchContingency("l12"), new BranchContingency("l31"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "b4_vl");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        assertDoesNotThrow(() -> {
+            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        });
+    }
 }
