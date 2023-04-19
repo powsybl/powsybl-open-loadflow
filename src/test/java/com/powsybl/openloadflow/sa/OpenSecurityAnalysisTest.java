@@ -1851,7 +1851,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(2, result.getPostContingencyResults().size());
     }
 
-    @Test
+    @Test()
     void testWithVoltageRemoteControl() {
         Network network = VoltageControlNetworkFactory.createWithSimpleRemoteControl();
         network.getGenerator("g4").setRegulatingTerminal(network.getLoad("l1").getTerminal()); // remote control.
@@ -1861,6 +1861,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         setSlackBusId(lfParameters, "b4_vl");
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        assertDoesNotThrow(() -> {
+            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        });
     }
 }
