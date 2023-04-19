@@ -19,6 +19,7 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.*;
@@ -249,7 +250,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // the A1 variables will be set to 0 for disabledBranches, so we need to restore them at the end
         List<BranchState> branchStates = ElementState.save(disabledBranches, BranchState::save);
 
-        double[] dx = DcLoadFlowEngine.run(network, parameters, equationSystem, j, disabledBuses, disabledBranches, reporter).getRight();
+        double[] dx = new DcLoadFlowEngine(new DcLoadFlowContext(network, parameters)).run(network, parameters, equationSystem, j, disabledBuses, disabledBranches, reporter).getRight();
 
         for (LfSensitivityFactor<DcVariableType, DcEquationType> factor : factors) {
             factor.setFunctionReference(factor.getFunctionEquationTerm().eval());
