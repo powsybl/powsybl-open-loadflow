@@ -37,9 +37,9 @@ public interface LfNetworkListener {
 
     void onShuntSusceptanceChange(LfShunt shunt, double b);
 
-    void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree);
+    void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowType loadFlowType, boolean spanningTree);
 
-    void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc);
+    void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowType loadFlowType);
 
-    void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc);
+    void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowType loadFlowType);
 }

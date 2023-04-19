@@ -139,7 +139,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
-                computeZeroImpedanceFlows(result.getNetwork(), false);
+                computeZeroImpedanceFlows(result.getNetwork(), LoadFlowType.AC);
             }
 
             LoadFlowResult.ComponentResult.Status status = convertStatus(result);
@@ -157,9 +157,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private void computeZeroImpedanceFlows(LfNetwork network, boolean dc) {
-        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(dc)) {
-            new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), dc)
+    private void computeZeroImpedanceFlows(LfNetwork network, LoadFlowType loadFlowType) {
+        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowType)) {
+            new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowType)
                     .compute();
         }
     }
@@ -195,7 +195,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
-            computeZeroImpedanceFlows(result.getNetwork(), true);
+            computeZeroImpedanceFlows(result.getNetwork(), LoadFlowType.DC);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(

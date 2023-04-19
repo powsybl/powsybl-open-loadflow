@@ -52,14 +52,14 @@ public class GraphVizGraphBuilder {
         return builder.toString();
     }
 
-    private static String getEdgeColor(LfBranch branch, boolean dc) {
-        if (branch.isZeroImpedance(dc)) {
-            return branch.isSpanningTreeEdge(dc) ? "red" : "orange";
+    private static String getEdgeColor(LfBranch branch, LoadFlowType loadFlowType) {
+        if (branch.isZeroImpedance(loadFlowType)) {
+            return branch.isSpanningTreeEdge(loadFlowType) ? "red" : "orange";
         }
         return "black";
     }
 
-    public GraphVizGraph build(boolean dc) {
+    public GraphVizGraph build(LoadFlowType loadFlowType) {
         GraphVizGraph graph = new GraphVizGraph().label(network.getId());
         GraphVizScope scope = new GraphVizScope.Impl();
         for (LfBus bus : network.getBuses()) {
@@ -87,7 +87,7 @@ public class GraphVizGraphBuilder {
             if (bus1 != null && bus2 != null) {
                 GraphVizEdge edge = graph.edge(scope, bus1.getNum(), bus2.getNum(), branch.getNum());
                 edge.label().append(getEdgeLabel(branch));
-                edge.attr(GraphVizAttribute.color, getEdgeColor(branch, dc))
+                edge.attr(GraphVizAttribute.color, getEdgeColor(branch, loadFlowType))
                         .attr(GraphVizAttribute.style, branch.isDisabled() ? "dashed" : "")
                         .attr(GraphVizAttribute.dir, "none");
             }

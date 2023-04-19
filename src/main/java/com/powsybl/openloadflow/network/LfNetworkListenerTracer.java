@@ -116,21 +116,21 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, boolean dc, boolean spanningTree) {
-        LOGGER.trace("onZeroImpedanceNetworkSpanningTreeChange(branchId='{}', dc={}, spanningTree={})",
-                branch, dc, spanningTree);
-        delegate.onZeroImpedanceNetworkSpanningTreeChange(branch, dc, spanningTree);
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowType loadFlowType, boolean spanningTree) {
+        LOGGER.trace("onZeroImpedanceNetworkSpanningTreeChange(branchId='{}', loadFlowType={}, spanningTree={})",
+                branch, loadFlowType, spanningTree);
+        delegate.onZeroImpedanceNetworkSpanningTreeChange(branch, loadFlowType, spanningTree);
     }
 
     @Override
-    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, boolean dc) {
-        LOGGER.trace("onZeroImpedanceNetworkSplit(initialNetwork={}, splitNetworks={}, dc={})", initialNetwork, splitNetworks, dc);
-        delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks, dc);
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowType loadFlowType) {
+        LOGGER.trace("onZeroImpedanceNetworkSplit(initialNetwork={}, splitNetworks={}, loadFlowType={})", initialNetwork, splitNetworks, loadFlowType);
+        delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks, loadFlowType);
     }
 
     @Override
-    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, boolean dc) {
-        LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={}, dc={})", network1, network2, mergedNetwork, dc);
-        delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork, dc);
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowType loadFlowType) {
+        LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={}, loadFlowType={})", network1, network2, mergedNetwork, loadFlowType);
+        delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork, loadFlowType);
     }
 }

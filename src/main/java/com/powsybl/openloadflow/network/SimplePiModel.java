@@ -167,8 +167,8 @@ public class SimplePiModel implements PiModel {
     }
 
     @Override
-    public boolean setMinZ(double minZ, boolean dc) {
-        if (dc) {
+    public boolean setMinZ(double minZ, LoadFlowType loadFlowType) {
+        if (loadFlowType == LoadFlowType.DC) {
             if (FastMath.abs(this.x) < minZ) {
                 this.x = minZ;
                 return true;

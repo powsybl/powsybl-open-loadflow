@@ -1098,7 +1098,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTransformerVoltageControl(parameters.isTransformerVoltageControlOn())
                 .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
                 .setReactivePowerRemoteControl(parametersExt.hasReactivePowerRemoteControl())
-                .setDc(parameters.isDc())
+                .setLoadFlowType(parameters.isDc() ? LoadFlowType.DC : LoadFlowType.AC)
                 .setShuntVoltageControl(parameters.isShuntCompensatorVoltageControlOn())
                 .setReactiveLimits(parameters.isUseReactiveLimits())
                 .setHvdcAcEmulation(parameters.isHvdcAcEmulation())
@@ -1207,7 +1207,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setTransformerVoltageControl(false)
                 .setVoltagePerReactivePowerControl(false)
                 .setReactivePowerRemoteControl(false)
-                .setDc(true)
+                .setLoadFlowType(LoadFlowType.DC)
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
                 .setHvdcAcEmulation(false) // FIXME

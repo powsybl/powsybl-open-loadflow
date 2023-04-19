@@ -75,11 +75,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
 
-    private Set<LfZeroImpedanceNetwork> dcLfZeroImpedanceNetworks;
-
-    private Set<LfZeroImpedanceNetwork> acLfZeroImpedanceNetworks;
+    private Map<LoadFlowType, Set<LfZeroImpedanceNetwork>> lfZeroImpedanceNetworks = new EnumMap<>(LoadFlowType.class);
 
     private Reporter reporter;
+
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
@@ -136,8 +135,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private void invalidateZeroImpedanceNetworks() {
-        dcLfZeroImpedanceNetworks = null;
-        acLfZeroImpedanceNetworks = null;
+        lfZeroImpedanceNetworks.clear();
     }
 
     public void addBranch(LfBranch branch) {
@@ -490,8 +488,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    private void validateBuses(boolean dc, Reporter reporter) {
-        if (!dc) {
+    private void validateBuses(LoadFlowType loadFlowType, Reporter reporter) {
+        if (loadFlowType == LoadFlowType.AC) {
             boolean hasAtLeastOneBusVoltageControlled = false;
             for (LfBus bus : busesByIndex) {
                 if (bus.isGeneratorVoltageControlled()) {
@@ -507,9 +505,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    public void validate(boolean dc, Reporter reporter) {
+    public void validate(LoadFlowType loadFlowType, Reporter reporter) {
         valid = true;
-        validateBuses(dc, reporter);
+        validateBuses(loadFlowType, reporter);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
@@ -532,7 +530,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
-            lfNetwork.validate(parameters.isDc(), reporterNetwork);
+            lfNetwork.validate(parameters.getLoadFlowType(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
                 lfNetwork.reportBalance(reporterNetwork);
@@ -543,21 +541,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return lfNetworks;
     }
 
-    public void updateZeroImpedanceCache(boolean dc) {
-        if (dc) {
-            if (dcLfZeroImpedanceNetworks == null) {
-                dcLfZeroImpedanceNetworks = LfZeroImpedanceNetwork.create(this, true);
-            }
-        } else {
-            if (acLfZeroImpedanceNetworks == null) {
-                acLfZeroImpedanceNetworks = LfZeroImpedanceNetwork.create(this, false);
-            }
-        }
+    public void updateZeroImpedanceCache(LoadFlowType loadFlowType) {
+        lfZeroImpedanceNetworks.computeIfAbsent(loadFlowType, k -> LfZeroImpedanceNetwork.create(this, loadFlowType));
     }
 
-    public Set<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(boolean dc) {
-        updateZeroImpedanceCache(dc);
-        return dc ? dcLfZeroImpedanceNetworks : acLfZeroImpedanceNetworks;
+    public Set<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(LoadFlowType loadFlowType) {
+        updateZeroImpedanceCache(loadFlowType);
+        return lfZeroImpedanceNetworks.get(loadFlowType);
     }
 
     public GraphConnectivity<LfBus, LfBranch> getConnectivity() {
@@ -635,17 +625,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    public void writeGraphViz(Path file, boolean dc) {
+    public void writeGraphViz(Path file, LoadFlowType loadFlowType) {
         try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-            writeGraphViz(writer, dc);
+            writeGraphViz(writer, loadFlowType);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    public void writeGraphViz(Writer writer, boolean dc) {
+    public void writeGraphViz(Writer writer, LoadFlowType loadFlowType) {
         try {
-            GraphVizGraph gvGraph = new GraphVizGraphBuilder(this).build(dc);
+            GraphVizGraph gvGraph = new GraphVizGraphBuilder(this).build(loadFlowType);
             gvGraph.writeTo(writer);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
