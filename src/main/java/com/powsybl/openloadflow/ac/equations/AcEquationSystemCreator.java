@@ -224,7 +224,7 @@ public class AcEquationSystemCreator {
                         .setActive(false);
                 equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
                         .orElseThrow()
-                        .setActive(false);
+                        .setActive(!controllerElement.isDisabled());
             }
         } else {
             if (voltageControl.isHidden()) {
