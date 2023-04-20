@@ -61,7 +61,7 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
                 }
                 if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
                     // Retaining the switch is equivalent to stop at the node after if the node after the switch is an end node (e.g. load or generator)
-                    sw.getVoltageLevel().getNodeBreakerView().getOptionalTerminal(nodeAfter).ifPresent(this::terminalTraversed);
+                    nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(this::terminalTraversed);
                     return TraverseResult.TERMINATE_PATH;
                 }
                 switchesToOpen.add(sw);
@@ -81,8 +81,8 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
                 .forEach(nextTerminals::add);
     }
 
-    private static boolean isEquivalentToStopAfterSwitch(Switch sw, int nodeAfter) {
-        Terminal terminal2 = sw.getVoltageLevel().getNodeBreakerView().getTerminal(nodeAfter);
+    private boolean isEquivalentToStopAfterSwitch(Switch sw, int nodeAfter) {
+        Terminal terminal2 = nodeBreakerView.getTerminal(nodeAfter);
         if (terminal2 != null) {
             IdentifiableType connectableAfter = terminal2.getConnectable().getType();
             boolean endNodeAfter = connectableAfter == IdentifiableType.GENERATOR
@@ -92,9 +92,8 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
                 || connectableAfter == IdentifiableType.SHUNT_COMPENSATOR;
 
             if (endNodeAfter) { // check that there isn't another (closed) switch or internal connection at node after
-                VoltageLevel.NodeBreakerView nbv = sw.getVoltageLevel().getNodeBreakerView();
-                return noInternalConnectionAtNode(nodeAfter, nbv)
-                    && nbv.getSwitchStream(nodeAfter).noneMatch(s -> s != sw && !s.isOpen());
+                return noInternalConnectionAtNode(nodeAfter)
+                    && nodeBreakerView.getSwitchStream(nodeAfter).noneMatch(s -> s != sw && !s.isOpen());
             }
         }
         return false;
@@ -103,10 +102,9 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
     private boolean traverserWouldStopAfter(Switch aSwitch, int nodeAfter) {
         // The traverser would stop just after current switch if node after is a junction of switches only,
         // with all other switches either opened or openable
-        VoltageLevel.NodeBreakerView nbv = aSwitch.getVoltageLevel().getNodeBreakerView();
-        if (!nbv.getOptionalTerminal(nodeAfter).isPresent() && noInternalConnectionAtNode(nodeAfter, nbv)) {
+        if (!nodeBreakerView.getOptionalTerminal(nodeAfter).isPresent() && noInternalConnectionAtNode(nodeAfter)) {
             // No terminal nor internal connection at node after, thus there are only switches
-            return allOtherSwitchesOpenOrOpenable(aSwitch, nodeAfter, nbv);
+            return allOtherSwitchesOpenOrOpenable(aSwitch, nodeAfter);
         }
         return false;
     }
@@ -115,17 +113,16 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
         // The traverser stops at other start edges if:
         //  - no internal connection at init node
         //  - and all other switches connected to init node are either open or openable
-        VoltageLevel.NodeBreakerView nbv = aSwitch.getVoltageLevel().getNodeBreakerView();
-        return noInternalConnectionAtNode(initNode, nbv)
-            && allOtherSwitchesOpenOrOpenable(aSwitch, initNode, nbv);
+        return noInternalConnectionAtNode(initNode)
+            && allOtherSwitchesOpenOrOpenable(aSwitch, initNode);
     }
 
-    private static boolean allOtherSwitchesOpenOrOpenable(Switch aSwitch, int node, VoltageLevel.NodeBreakerView nbv) {
-        return nbv.getSwitchStream(node).filter(s -> s != aSwitch).allMatch(NodeBreakerTraverser::isOpenOrOpenable);
+    private boolean allOtherSwitchesOpenOrOpenable(Switch aSwitch, int node) {
+        return nodeBreakerView.getSwitchStream(node).filter(s -> s != aSwitch).allMatch(NodeBreakerTraverser::isOpenOrOpenable);
     }
 
-    private static boolean noInternalConnectionAtNode(int node, VoltageLevel.NodeBreakerView nbv) {
-        return nbv.getNodeInternalConnectedToStream(node).findFirst().isEmpty();
+    private boolean noInternalConnectionAtNode(int node) {
+        return nodeBreakerView.getNodeInternalConnectedToStream(node).findFirst().isEmpty();
     }
 
     private static boolean isOpenable(Switch aSwitch) {
