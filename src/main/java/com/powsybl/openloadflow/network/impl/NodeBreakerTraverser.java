@@ -21,15 +21,13 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
     private final Set<Switch> switchesToOpen;
     private final Set<Terminal> traversedTerminals;
     private final List<Terminal> nextTerminals;
-    private final int initNode;
     private final VoltageLevel.NodeBreakerView nodeBreakerView;
 
     public NodeBreakerTraverser(Set<Switch> switchesToOpen, Set<Terminal> traversedTerminals, List<Terminal> nextTerminals,
-                                int initNode, VoltageLevel.NodeBreakerView nodeBreakerView) {
+                                VoltageLevel.NodeBreakerView nodeBreakerView) {
         this.switchesToOpen = switchesToOpen;
         this.traversedTerminals = traversedTerminals;
         this.nextTerminals = nextTerminals;
-        this.initNode = initNode;
         this.nodeBreakerView = nodeBreakerView;
     }
 
