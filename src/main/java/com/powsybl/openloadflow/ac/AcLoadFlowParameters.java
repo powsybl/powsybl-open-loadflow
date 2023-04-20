@@ -34,18 +34,18 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private VoltageInitializer voltageInitializer;
 
-    private final boolean isAsymmetrical;
+    private final boolean asymmetrical;
 
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
                                 NewtonRaphsonParameters newtonRaphsonParameters, List<OuterLoop> outerLoops, int maxOuterLoopIterations,
-                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean isAsymmetrical) {
+                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean asymmetrical) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.maxOuterLoopIterations = maxOuterLoopIterations;
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
-        this.isAsymmetrical = isAsymmetrical;
+        this.asymmetrical = asymmetrical;
     }
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
@@ -73,7 +73,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
     }
 
     public boolean isAsymmetrical() {
-        return isAsymmetrical;
+        return asymmetrical;
     }
 
     @Override
@@ -86,7 +86,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
                 ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
-                ", isAsymmetrical=" + isAsymmetrical +
+                ", asymmetrical=" + asymmetrical +
                 ')';
     }
 }
