@@ -33,39 +33,37 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
 
     @Override
     public TraverseResult traverse(int nodeBefore, Switch sw, int nodeAfter) {
-        if (sw != null) {
-            if (sw.isOpen()) {
-                return TraverseResult.TERMINATE_PATH;
-            }
+        if (sw != null && sw.isOpen()) {
+            return TraverseResult.TERMINATE_PATH;
+        }
 
-            if (hasAttachedEquipment(nodeBefore) && traverserStopsAtOtherStartEdges(sw, nodeBefore)) {
-                // Switch is just after a traversed terminal which will be disconnected, and traverser stops at other start edges
-                if (isOpenable(sw)) {
-                    // The traverser can stop now and no need to retain current switch
-                    return TraverseResult.TERMINATE_PATH;
-                }
-                if (!hasAttachedEquipment(nodeAfter) && traverserStopsAtOtherStartEdges(sw, nodeAfter)) {
-                    // As the traverser would stop just after, it can stop now (without retaining current switch)
-                    return TraverseResult.TERMINATE_PATH;
-                }
-            }
-
+        if (hasAttachedEquipment(nodeBefore) && traverserStopsAtOtherEdges(sw, nodeBefore, nodeAfter)) {
+            // Switch is just after a traversed terminal which will be disconnected, and traverser stops at other start edges
             if (isOpenable(sw)) {
-                // The current switch is openable: the traverser could stop and the switch could be retained,
-                // but, to avoid unnecessary retained switches, the traverser does not retain it in two cases
-                if (!hasAttachedEquipment(nodeAfter) && traverserStopsAtOtherStartEdges(sw, nodeAfter)) {
-                    // Continuing traversing might lead in some cases to more retained switches, but in practice the
-                    // switches after are often opened and sometimes followed by an end node
-                    return TraverseResult.CONTINUE;
-                }
-                if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
-                    // Retaining the switch is equivalent to stop at the node after if the node after the switch is an end node (e.g. load or generator)
-                    nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(this::terminalTraversed);
-                    return TraverseResult.TERMINATE_PATH;
-                }
-                switchesToOpen.add(sw);
+                // The traverser can stop now and no need to retain current switch
                 return TraverseResult.TERMINATE_PATH;
             }
+            if (!hasAttachedEquipment(nodeAfter) && traverserStopsAtOtherEdges(sw, nodeAfter, nodeBefore)) {
+                // As the traverser would stop just after, it can stop now (without retaining current switch)
+                return TraverseResult.TERMINATE_PATH;
+            }
+        }
+
+        if (isOpenable(sw)) {
+            // The current switch is openable: the traverser could stop and the switch could be retained,
+            // but, to avoid unnecessary retained switches, the traverser does not retain it in two cases
+            if (!hasAttachedEquipment(nodeAfter) && traverserStopsAtOtherEdges(sw, nodeAfter, nodeBefore)) {
+                // Continuing traversing might lead in some cases to more retained switches, but in practice the
+                // switches after are often opened and sometimes followed by an end node
+                return TraverseResult.CONTINUE;
+            }
+            if (isEquivalentToStopAfterSwitch(sw, nodeAfter)) {
+                // Retaining the switch is equivalent to stop at the node after if the node after the switch is an end node (e.g. load or generator)
+                nodeBreakerView.getOptionalTerminal(nodeAfter).ifPresent(this::terminalTraversed);
+                return TraverseResult.TERMINATE_PATH;
+            }
+            switchesToOpen.add(sw);
+            return TraverseResult.TERMINATE_PATH;
         }
 
         // The traverser continues, hence nodeAfter is traversed
@@ -102,12 +100,16 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
         return false;
     }
 
-    private boolean traverserStopsAtOtherStartEdges(Switch aSwitch, int node) {
+    /**
+     * Return if propagation would stop at all edges starting from nodeStart, but different from the edge defined by
+     * nodeStart ---aSwitch--- nodeEnd,
+     */
+    private boolean traverserStopsAtOtherEdges(Switch aSwitch, int nodeStart, int nodeEnd) {
         // The traverser stops at other start edges if node is a direct or indirect junction of switches only, with all
         // other switches either opened or openable.
         // An indirect junction means through internal connections.
-        return internalConnectionsEndOnOpenOrOpenableSwitches(node)
-            && allOtherSwitchesOpenOrOpenable(aSwitch, node);
+        return internalConnectionsEndOnOpenOrOpenableSwitches(nodeStart, nodeEnd)
+            && allOtherSwitchesOpenOrOpenable(aSwitch, nodeStart);
     }
 
     private boolean allOtherSwitchesOpenOrOpenable(Switch aSwitch, int node) {
@@ -118,17 +120,19 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
         return nodeBreakerView.getNodeInternalConnectedToStream(node).findFirst().isEmpty();
     }
 
-    private boolean internalConnectionsEndOnOpenOrOpenableSwitches(int node) {
-        return internalConnectionsEndOnOpenOrOpenableSwitches(node, new HashSet<>());
+    private boolean internalConnectionsEndOnOpenOrOpenableSwitches(int node, int dismissedNode) {
+        Set<Integer> visitedNodes = new HashSet<>();
+        visitedNodes.add(dismissedNode);
+        return internalConnectionsEndOnOpenOrOpenableSwitches(node, visitedNodes);
     }
 
     private boolean internalConnectionsEndOnOpenOrOpenableSwitches(int nStart, Set<Integer> visitedNodes) {
         if (!visitedNodes.contains(nStart)) {
             visitedNodes.add(nStart);
             for (int n : nodeBreakerView.getNodesInternalConnectedTo(nStart)) {
-                if (hasAttachedEquipment(n)
-                        || nodeBreakerView.getSwitchStream(n).anyMatch(s -> !NodeBreakerTraverser.isOpenOrOpenable(s))
-                        || !internalConnectionsEndOnOpenOrOpenableSwitches(n, visitedNodes)) {
+                if (!visitedNodes.contains(n) && (hasAttachedEquipment(n)
+                                || nodeBreakerView.getSwitchStream(n).anyMatch(s -> !NodeBreakerTraverser.isOpenOrOpenable(s))
+                                || !internalConnectionsEndOnOpenOrOpenableSwitches(n, visitedNodes))) {
                     return false;
                 }
             }
@@ -137,7 +141,7 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
     }
 
     private static boolean isOpenable(Switch aSwitch) {
-        return !aSwitch.isFictitious() && aSwitch.getKind() == SwitchKind.BREAKER;
+        return aSwitch != null && !aSwitch.isFictitious() && aSwitch.getKind() == SwitchKind.BREAKER;
     }
 
     private static boolean isOpenOrOpenable(Switch aSwitch) {
