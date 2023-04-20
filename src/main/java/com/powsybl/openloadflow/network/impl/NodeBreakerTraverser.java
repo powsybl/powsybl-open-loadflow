@@ -39,8 +39,8 @@ public class NodeBreakerTraverser implements VoltageLevel.NodeBreakerView.Topolo
                 return TraverseResult.TERMINATE_PATH;
             }
 
-            if (nodeBefore == initNode && traverserStopsAtOtherStartEdges(sw, initNode)) {
-                // Switch is just after contingency and traverser stops at other start edges
+            if (nodeBreakerView.hasAttachedEquipment(nodeBefore) && traverserStopsAtOtherStartEdges(sw, nodeBefore)) {
+                // Switch is just after a traversed terminal which will be disconnected, and traverser stops at other start edges
                 if (isOpenable(sw)) {
                     // The traverser can stop now and no need to retain current switch
                     return TraverseResult.TERMINATE_PATH;
