@@ -7,6 +7,7 @@
 package com.powsybl.openloadflow.network;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -107,6 +108,10 @@ public class VoltageControl<T extends LfElement> extends Control {
             }
             return mergedControllerElements;
         }
+    }
+
+    public List<T> getEnabledMergedControllerElements() {
+        return getMergedControllerElements().stream().filter(e -> !e.isDisabled()).collect(Collectors.toList());
     }
 
     private static void addVoltageControls(List<VoltageControl<?>> voltageControls, LfBus bus) {

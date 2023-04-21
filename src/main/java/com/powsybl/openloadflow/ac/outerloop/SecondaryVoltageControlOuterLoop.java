@@ -49,7 +49,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         return controlledBus.getGeneratorVoltageControl()
                 .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .orElseThrow()
-                .getMergedControllerElements()
+                .getEnabledMergedControllerElements()
                 .stream().filter(SecondaryVoltageControlOuterLoop::isValid)
                 .collect(Collectors.toList());
     }

@@ -81,7 +81,7 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
                 if (!bus.isDisabled() && bus.isGeneratorVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
                     var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
                     if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN) {
-                        voltageControl.getMergedControllerElements().forEach(controllerBus -> {
+                        voltageControl.getEnabledMergedControllerElements().forEach(controllerBus -> {
                             if (controllerBus.isGeneratorVoltageControlEnabled()) {
                                 controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
                                 controllerBus.setGeneratorVoltageControlEnabled(false);
