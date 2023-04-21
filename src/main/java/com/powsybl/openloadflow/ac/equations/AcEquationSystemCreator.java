@@ -228,7 +228,7 @@ public class AcEquationSystemCreator {
             }
         } else {
             if (voltageControl.isHidden()) {
-                for (T controllerElement : controllerElements) {
+                for (T controllerElement : voltageControl.getMergedControllerElements()) {
                     equationSystem.getEquation(controllerElement.getNum(), distrEqType)
                             .orElseThrow()
                             .setActive(false);
@@ -267,6 +267,19 @@ public class AcEquationSystemCreator {
                     equationSystem.getEquation(controllerElement.getNum(), distrEqType)
                             .orElseThrow()
                             .setActive(active);
+                    equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
+                            .orElseThrow()
+                            .setActive(false);
+                }
+
+                List<T> disabled = voltageControl.getMergedControllerElements()
+                        .stream()
+                        .filter(b -> b.isDisabled()) // discard disabled controller elements
+                        .collect(Collectors.toList());
+                for (T controllerElement : disabled) {
+                    equationSystem.getEquation(controllerElement.getNum(), distrEqType)
+                            .orElseThrow()
+                            .setActive(false);
                     equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
                             .orElseThrow()
                             .setActive(false);
