@@ -44,17 +44,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean voltageControlEnabled = false;
 
-    protected boolean dcSpanningTreeEdge = false;
+    static class ZeroImpedanceContext {
 
-    protected boolean acSpanningTreeEdge = false;
+        boolean spanningTreeEdge = false;
+
+        boolean zeroImpedance = false;
+    }
+
+    protected final Map<LoadFlowModel, ZeroImpedanceContext> zeroImpedanceContextByModel = new EnumMap<>(LoadFlowModel.class);
 
     protected Evaluable a1;
 
     private ReactivePowerControl reactivePowerControl;
-
-    protected boolean dcZeroImpedance = false;
-
-    protected boolean acZeroImpedance = false;
 
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network);
@@ -62,9 +63,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
         this.piModel.setBranch(this);
+        for (LoadFlowModel loadFlowModel : LoadFlowModel.values()) {
+            zeroImpedanceContextByModel.put(loadFlowModel, new ZeroImpedanceContext());
+        }
         if (!parameters.isMinImpedance()) {
-            dcZeroImpedance = isZeroImpedanceBranch(piModel, true, parameters.getLowImpedanceThreshold());
-            acZeroImpedance = isZeroImpedanceBranch(piModel, false, parameters.getLowImpedanceThreshold());
+            for (LoadFlowModel loadFlowModel : LoadFlowModel.values()) {
+                zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = isZeroImpedanceBranch(piModel, loadFlowModel, parameters.getLowImpedanceThreshold());
+            }
         }
     }
 
@@ -223,33 +228,25 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public boolean isZeroImpedance(boolean dc) {
-        return dc ? dcZeroImpedance : acZeroImpedance;
+    public boolean isZeroImpedance(LoadFlowModel loadFlowModel) {
+        return zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance;
     }
 
     @Override
-    public void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge) {
-        if (dc) {
-            if (spanningTreeEdge != dcSpanningTreeEdge) {
-                dcSpanningTreeEdge = spanningTreeEdge;
-                for (LfNetworkListener listener : network.getListeners()) {
-                    listener.onZeroImpedanceNetworkSpanningTreeChange(this, dc, spanningTreeEdge);
-                }
-            }
-        } else {
-            if (spanningTreeEdge != acSpanningTreeEdge) {
-                acSpanningTreeEdge = spanningTreeEdge;
-                for (LfNetworkListener listener : network.getListeners()) {
-                    listener.onZeroImpedanceNetworkSpanningTreeChange(this, dc, spanningTreeEdge);
-                }
+    public void setSpanningTreeEdge(LoadFlowModel loadFlowModel, boolean spanningTreeEdge) {
+        ZeroImpedanceContext context = zeroImpedanceContextByModel.get(loadFlowModel);
+        if (spanningTreeEdge != context.spanningTreeEdge) {
+            context.spanningTreeEdge = spanningTreeEdge;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onZeroImpedanceNetworkSpanningTreeChange(this, loadFlowModel, spanningTreeEdge);
             }
         }
     }
 
     @Override
-    public boolean isSpanningTreeEdge(boolean dc) {
-        network.updateZeroImpedanceCache(dc);
-        return dc ? dcSpanningTreeEdge : acSpanningTreeEdge;
+    public boolean isSpanningTreeEdge(LoadFlowModel loadFlowModel) {
+        network.updateZeroImpedanceCache(loadFlowModel);
+        return zeroImpedanceContextByModel.get(loadFlowModel).spanningTreeEdge;
     }
 
     @Override
@@ -278,28 +275,26 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public void setMinZ(double lowImpedanceThreshold) {
-        if (piModel.setMinZ(lowImpedanceThreshold, false)) {
-            LOGGER.trace("Branch {} has a low impedance in AC, set to min {}", getId(), lowImpedanceThreshold);
-            acZeroImpedance = false;
-        }
-        if (piModel.setMinZ(lowImpedanceThreshold, true)) {
-            LOGGER.trace("Branch {} has a low impedance in DC, set to min {}", getId(), lowImpedanceThreshold);
-            dcZeroImpedance = false;
+        for (LoadFlowModel loadFlowModel : List.of(LoadFlowModel.AC, LoadFlowModel.DC)) {
+            if (piModel.setMinZ(lowImpedanceThreshold, loadFlowModel)) {
+                LOGGER.trace("Branch {} has a low impedance in {}, set to min {}", getId(), loadFlowModel, lowImpedanceThreshold);
+                zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = false;
+            }
         }
     }
 
-    private static boolean isZeroImpedanceBranch(PiModel piModel, boolean dc, double lowImpedanceThreshold) {
-        if (dc) {
+    private static boolean isZeroImpedanceBranch(PiModel piModel, LoadFlowModel loadFlowModel, double lowImpedanceThreshold) {
+        if (loadFlowModel == LoadFlowModel.DC) {
             return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
         } else {
             return piModel.getZ() < lowImpedanceThreshold;
         }
     }
 
-    private void updateZeroImpedanceNetworks(boolean disabled, boolean dc) {
-        if (isZeroImpedance(dc)) {
-            LfZeroImpedanceNetwork zn1 = bus1.getZeroImpedanceNetwork(dc);
-            LfZeroImpedanceNetwork zn2 = bus2.getZeroImpedanceNetwork(dc);
+    private void updateZeroImpedanceNetworks(boolean disabled, LoadFlowModel loadFlowModel) {
+        if (isZeroImpedance(loadFlowModel)) {
+            LfZeroImpedanceNetwork zn1 = bus1.getZeroImpedanceNetwork(loadFlowModel);
+            LfZeroImpedanceNetwork zn2 = bus2.getZeroImpedanceNetwork(loadFlowModel);
             if (zn1 != null && zn2 != null) {
                 if (disabled) {
                     if (zn1 == zn2) {
@@ -328,8 +323,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             this.disabled = disabled;
             notifyDisable();
             if (bus1 != null && bus2 != null) {
-                updateZeroImpedanceNetworks(disabled, false);
-                updateZeroImpedanceNetworks(disabled, true);
+                updateZeroImpedanceNetworks(disabled, LoadFlowModel.AC);
+                updateZeroImpedanceNetworks(disabled, LoadFlowModel.DC);
             }
         }
     }
