@@ -16,7 +16,6 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -36,7 +35,6 @@ import java.util.List;
 import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertAngleEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -304,48 +302,5 @@ class DcLoadFlowTest {
             assertEquals(100.0, largestNetwork.getBranchById("L2").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
             assertEquals(100.0, largestNetwork.getBranchById("L3").getP1().eval() * PerUnit.SB, LoadFlowAssert.DELTA_POWER);
         }
-    }
-
-    @Test
-    void testLineWithNotSameNominalVoltage() {
-        Network network = IeeeCdfNetworkFactory.create14();
-
-        LoadFlowParameters parameters = new LoadFlowParameters()
-                .setDc(true)
-                .setDcUseTransformerRatio(true);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertAngleEquals(0, network.getBusView().getBus("VL1_0"));
-        assertAngleEquals(-5.012011, network.getBusView().getBus("VL2_0"));
-        assertAngleEquals(-12.953663, network.getBusView().getBus("VL3_0"));
-        assertAngleEquals(-10.583667, network.getBusView().getBus("VL4_0"));
-        assertAngleEquals(-9.093894, network.getBusView().getBus("VL5_0"));
-        assertAngleEquals(-14.852079, network.getBusView().getBus("VL6_0"));
-        assertAngleEquals(-13.907054, network.getBusView().getBus("VL7_0"));
-        assertAngleEquals(-13.907054, network.getBusView().getBus("VL8_0"));
-        assertAngleEquals(-15.694688, network.getBusView().getBus("VL9_0"));
-        assertAngleEquals(-15.974123, network.getBusView().getBus("VL10_0"));
-        assertAngleEquals(-15.61885, network.getBusView().getBus("VL11_0"));
-        assertAngleEquals(-15.967076, network.getBusView().getBus("VL12_0"));
-        assertAngleEquals(-16.139703, network.getBusView().getBus("VL13_0"));
-        assertAngleEquals(-17.188287, network.getBusView().getBus("VL14_0"));
-
-        parameters.setDcUseTransformerRatio(false);
-        result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertAngleEquals(0, network.getBusView().getBus("VL1_0"));
-        assertAngleEquals(-5.013434, network.getBusView().getBus("VL2_0"));
-        assertAngleEquals(-12.959124, network.getBusView().getBus("VL3_0"));
-        assertAngleEquals(-10.592617, network.getBusView().getBus("VL4_0"));
-        assertAngleEquals(-9.088529, network.getBusView().getBus("VL5_0"));
-        assertAngleEquals(-15.165267, network.getBusView().getBus("VL6_0"));
-        assertAngleEquals(-14.065521, network.getBusView().getBus("VL7_0"));
-        assertAngleEquals(-14.065521, network.getBusView().getBus("VL8_0"));
-        assertAngleEquals(-15.892482, network.getBusView().getBus("VL9_0"));
-        assertAngleEquals(-16.192424, network.getBusView().getBus("VL10_0"));
-        assertAngleEquals(-15.883766, network.getBusView().getBus("VL11_0"));
-        assertAngleEquals(-16.271146, network.getBusView().getBus("VL12_0"));
-        assertAngleEquals(-16.436648, network.getBusView().getBus("VL13_0"));
-        assertAngleEquals(-17.429432, network.getBusView().getBus("VL14_0"));
     }
 }

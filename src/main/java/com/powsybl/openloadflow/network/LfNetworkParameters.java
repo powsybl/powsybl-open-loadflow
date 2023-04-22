@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Country;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Collections;
 import java.util.Objects;
@@ -43,6 +44,9 @@ public class LfNetworkParameters {
     public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
 
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
+
+    public static final PerUnit.PiModelNominalVoltageCorrectionMode PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE
+            = PerUnit.PiModelNominalVoltageCorrectionMode.IMPEDANCE;
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
 
@@ -99,6 +103,9 @@ public class LfNetworkParameters {
     private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
+
+    private PerUnit.PiModelNominalVoltageCorrectionMode piModelPerUnitNominalVoltageCorrectionMode
+            = PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -362,6 +369,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public PerUnit.PiModelNominalVoltageCorrectionMode getPiModelPerUnitNominalVoltageCorrectionMode() {
+        return piModelPerUnitNominalVoltageCorrectionMode;
+    }
+
+    public LfNetworkParameters setPiModelPerUnitNominalVoltageCorrectionMode(PerUnit.PiModelNominalVoltageCorrectionMode piModelPerUnitNominalVoltageCorrectionMode) {
+        this.piModelPerUnitNominalVoltageCorrectionMode = Objects.requireNonNull(piModelPerUnitNominalVoltageCorrectionMode);
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -392,6 +408,7 @@ public class LfNetworkParameters {
                 ", debugDir=" + debugDir +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
+                ", piModelPerUnitNominalVoltageCorrectionMode=" + piModelPerUnitNominalVoltageCorrectionMode +
                 ')';
     }
 }

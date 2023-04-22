@@ -31,6 +31,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.PerUnit;
 import de.vandermeer.asciitable.AsciiTable;
 import de.vandermeer.asciitable.CWC_LongestWord;
 import org.slf4j.Logger;
@@ -183,6 +184,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String ACTIONABLE_SWITCHES_IDS_PARAM_NAME = "actionableSwitchesIds";
 
+    private static final String PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME
+            = "piModelPerUnitNominalVoltageCorrectionMode";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -227,9 +231,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE),
         new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class)),
         new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
-        new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE), new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)),
+        new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE),
+        new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)),
         new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slac bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE)),
-        new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE))
+        new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
+        new Parameter(PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME, ParameterType.STRING, "Correction mode for line PI model with different nominal voltages", LfNetworkParameters.PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PerUnit.PiModelNominalVoltageCorrectionMode.class))
     );
 
     public enum VoltageInitModeOverride {
@@ -356,6 +362,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private Set<Country> slackBusCountryFilter = LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE;
 
     private Set<String> actionableSwitchesIds = ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE;
+
+    private PerUnit.PiModelNominalVoltageCorrectionMode piModelPerUnitNominalVoltageCorrectionMode
+            = LfNetworkParameters.PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -791,6 +800,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public PerUnit.PiModelNominalVoltageCorrectionMode getPiModelPerUnitNominalVoltageCorrectionMode() {
+        return piModelPerUnitNominalVoltageCorrectionMode;
+    }
+
+    public OpenLoadFlowParameters setPiModelPerUnitNominalVoltageCorrectionMode(PerUnit.PiModelNominalVoltageCorrectionMode piModelPerUnitNominalVoltageCorrectionMode) {
+        this.piModelPerUnitNominalVoltageCorrectionMode = Objects.requireNonNull(piModelPerUnitNominalVoltageCorrectionMode);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -845,6 +863,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReportedFeatures(config.getEnumSetProperty(REPORTED_FEATURES_PARAM_NAME, ReportedFeatures.class, REPORTED_FEATURES_DEFAULT_VALUE))
                 .setSlackBusCountryFilter(config.getEnumSetProperty(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, Country.class, LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE))
                 .setActionableSwitchesIds(new HashSet<>(config.getStringListProperty(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE))))
+                .setPiModelPerUnitNominalVoltageCorrectionMode(config.getEnumProperty(PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME, PerUnit.PiModelNominalVoltageCorrectionMode.class, LfNetworkParameters.PI_MODEL_NOMINAL_VOLTAGE_CORRECTION_MODE_DEFAULT_VALUE))
             );
         return parameters;
     }
@@ -947,11 +966,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setSlackBusCountryFilter(parseStringListProp(prop).stream().map(Country::valueOf).collect(Collectors.toSet())));
         Optional.ofNullable(properties.get(ACTIONABLE_SWITCHES_IDS_PARAM_NAME))
                 .ifPresent(prop -> this.setActionableSwitchesIds(new HashSet<>(parseStringListProp(prop))));
+        Optional.ofNullable(properties.get(PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME))
+                .ifPresent(prop -> this.setPiModelPerUnitNominalVoltageCorrectionMode(PerUnit.PiModelNominalVoltageCorrectionMode.valueOf(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(43);
+        Map<String, Object> map = new LinkedHashMap<>(44);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
@@ -995,6 +1016,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REPORTED_FEATURES_PARAM_NAME, reportedFeatures);
         map.put(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, slackBusCountryFilter);
         map.put(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, actionableSwitchesIds);
+        map.put(PI_MODEL_PER_UNIT_NOMINAL_VOLTAGE_CORRECTION_MODE_PARAM_NAME, piModelPerUnitNominalVoltageCorrectionMode);
         return map;
     }
 
@@ -1110,7 +1132,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
                 .setDebugDir(parametersExt.getDebugDir())
                 .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl())
-                .setCacheEnabled(parametersExt.isNetworkCacheEnabled());
+                .setCacheEnabled(parametersExt.isNetworkCacheEnabled())
+                .setPiModelPerUnitNominalVoltageCorrectionMode(parametersExt.getPiModelPerUnitNominalVoltageCorrectionMode());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1216,7 +1239,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveRangeCheckMode(ReactiveRangeCheckMode.MAX) // not useful for DC.
                 .setLowImpedanceThreshold(parametersExt.getLowImpedanceThreshold())
                 .setSvcVoltageMonitoring(false)
-                .setMaxSlackBusCount(1);
+                .setMaxSlackBusCount(1)
+                .setPiModelPerUnitNominalVoltageCorrectionMode(parametersExt.getPiModelPerUnitNominalVoltageCorrectionMode());
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
@@ -1300,7 +1324,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() &&
                 extension1.getReportedFeatures().equals(extension2.getReportedFeatures()) &&
                 extension1.getSlackBusCountryFilter().equals(extension2.getSlackBusCountryFilter()) &&
-                extension1.getActionableSwitchesIds().equals(extension2.getActionableSwitchesIds());
+                extension1.getActionableSwitchesIds().equals(extension2.getActionableSwitchesIds()) &&
+                extension1.getPiModelPerUnitNominalVoltageCorrectionMode().equals(extension2.getPiModelPerUnitNominalVoltageCorrectionMode());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1361,7 +1386,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(extension.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile())
                     .setReportedFeatures(extension.getReportedFeatures())
                     .setSlackBusCountryFilter(new HashSet<>(extension.getSlackBusCountryFilter()))
-                    .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()));
+                    .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()))
+                    .setPiModelPerUnitNominalVoltageCorrectionMode(extension.getPiModelPerUnitNominalVoltageCorrectionMode());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

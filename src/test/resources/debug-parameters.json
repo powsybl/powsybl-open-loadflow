@@ -60,7 +60,8 @@
         "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile" : 95.0,
         "reportedFeatures" : [ ],
         "slackBusCountryFilter" : [ ],
-        "actionableSwitchesIds" : [ ]
+        "actionableSwitchesIds" : [ ],
+        "piModelPerUnitNominalVoltageCorrectionMode" : "IMPEDANCE"
       }
     }
   },
