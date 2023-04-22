@@ -48,24 +48,24 @@ public class LfZeroImpedanceNetwork {
         return subGraph;
     }
 
-    public static Set<LfZeroImpedanceNetwork> create(LfNetwork network, LoadFlowModel type) {
+    public static Set<LfZeroImpedanceNetwork> create(LfNetwork network, LoadFlowModel loadFlowModel) {
         Objects.requireNonNull(network);
         Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = new LinkedHashSet<>();
-        var graph = createZeroImpedanceSubGraph(network, type);
+        var graph = createZeroImpedanceSubGraph(network, loadFlowModel);
         List<Set<LfBus>> connectedSets = new ConnectivityInspector<>(graph).connectedSets();
         for (Set<LfBus> connectedSet : connectedSets) {
             var subGraph = createSubgraph(graph, connectedSet);
-            zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, type, subGraph));
+            zeroImpedanceNetworks.add(new LfZeroImpedanceNetwork(network, loadFlowModel, subGraph));
         }
         return zeroImpedanceNetworks;
     }
 
-    private static Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(LfNetwork network, LoadFlowModel type) {
+    private static Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(LfNetwork network, LoadFlowModel loadFlowModel) {
         Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null && branch.isZeroImpedance(type)) {
+            if (bus1 != null && bus2 != null && branch.isZeroImpedance(loadFlowModel)) {
                 // add to zero impedance graph all buses that could be connected to a zero impedance branch
                 if (!subGraph.containsVertex(bus1)) {
                     subGraph.addVertex(bus1);

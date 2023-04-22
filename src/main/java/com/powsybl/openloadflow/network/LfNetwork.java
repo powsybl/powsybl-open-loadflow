@@ -75,7 +75,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
 
-    private Map<LoadFlowModel, Set<LfZeroImpedanceNetwork>> lfZeroImpedanceNetworks = new EnumMap<>(LoadFlowModel.class);
+    private final Map<LoadFlowModel, Set<LfZeroImpedanceNetwork>> zeroImpedanceNetworksByModel = new EnumMap<>(LoadFlowModel.class);
 
     private Reporter reporter;
 
@@ -135,7 +135,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     private void invalidateZeroImpedanceNetworks() {
-        lfZeroImpedanceNetworks.clear();
+        zeroImpedanceNetworksByModel.clear();
     }
 
     public void addBranch(LfBranch branch) {
@@ -542,12 +542,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
     }
 
     public void updateZeroImpedanceCache(LoadFlowModel loadFlowModel) {
-        lfZeroImpedanceNetworks.computeIfAbsent(loadFlowModel, k -> LfZeroImpedanceNetwork.create(this, loadFlowModel));
+        zeroImpedanceNetworksByModel.computeIfAbsent(loadFlowModel, m -> LfZeroImpedanceNetwork.create(this, loadFlowModel));
     }
 
     public Set<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(LoadFlowModel loadFlowModel) {
         updateZeroImpedanceCache(loadFlowModel);
-        return lfZeroImpedanceNetworks.get(loadFlowModel);
+        return zeroImpedanceNetworksByModel.get(loadFlowModel);
     }
 
     public GraphConnectivity<LfBus, LfBranch> getConnectivity() {
