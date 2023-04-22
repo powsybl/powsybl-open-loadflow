@@ -116,8 +116,8 @@ public class DcEquationSystemCreator {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (branch.isZeroImpedance(LoadFlowType.DC)) {
-                createNonImpedantBranch(equationSystem, branch, bus1, bus2, branch.isSpanningTreeEdge(LoadFlowType.DC));
+            if (branch.isZeroImpedance(LoadFlowModel.DC)) {
+                createNonImpedantBranch(equationSystem, branch, bus1, bus2, branch.isSpanningTreeEdge(LoadFlowModel.DC));
             } else {
                 createImpedantBranch(equationSystem, creationParameters, branch, bus1, bus2);
             }

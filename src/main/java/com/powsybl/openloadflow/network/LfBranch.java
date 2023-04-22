@@ -155,11 +155,11 @@ public interface LfBranch extends LfElement {
 
     double computeApparentPower2();
 
-    boolean isZeroImpedance(LoadFlowType loadFlowType);
+    boolean isZeroImpedance(LoadFlowModel loadFlowModel);
 
-    void setSpanningTreeEdge(LoadFlowType loadFlowType, boolean spanningTreeEdge);
+    void setSpanningTreeEdge(LoadFlowModel loadFlowModel, boolean spanningTreeEdge);
 
-    boolean isSpanningTreeEdge(LoadFlowType loadFlowType);
+    boolean isSpanningTreeEdge(LoadFlowModel loadFlowModel);
 
     Evaluable getA1();
 

@@ -189,7 +189,7 @@ class LfNetworkTest extends AbstractConverterTest {
         LfNetworkParameters parameters = new LfNetworkParameters().setBreakers(breakers);
         LfNetwork lfNetwork = Networks.load(network, parameters).get(0);
         try (StringWriter writer = new StringWriter()) {
-            lfNetwork.writeGraphViz(writer, LoadFlowType.AC);
+            lfNetwork.writeGraphViz(writer, LoadFlowModel.AC);
             writer.flush();
             ComparisonUtils.compareTxt(Objects.requireNonNull(LfNetworkTest.class.getResourceAsStream("/" + ref)), writer.toString());
         }

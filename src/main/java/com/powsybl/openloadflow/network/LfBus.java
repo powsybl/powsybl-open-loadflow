@@ -194,7 +194,7 @@ public interface LfBus extends LfElement {
         return Optional.empty();
     }
 
-    void setZeroImpedanceNetwork(LoadFlowType type, LfZeroImpedanceNetwork zeroImpedanceNetwork);
+    void setZeroImpedanceNetwork(LoadFlowModel type, LfZeroImpedanceNetwork zeroImpedanceNetwork);
 
-    LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowType type);
+    LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel type);
 }

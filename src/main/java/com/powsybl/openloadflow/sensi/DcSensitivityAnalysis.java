@@ -803,7 +803,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setTransformerVoltageControl(false)
                 .setVoltagePerReactivePowerControl(false)
                 .setReactivePowerRemoteControl(false)
-                .setLoadFlowType(LoadFlowType.DC)
+                .setLoadFlowModel(LoadFlowModel.DC)
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
                 .setHvdcAcEmulation(false)

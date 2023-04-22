@@ -11,7 +11,7 @@ import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
-import com.powsybl.openloadflow.network.LoadFlowType;
+import com.powsybl.openloadflow.network.LoadFlowModel;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -19,7 +19,7 @@ import com.powsybl.openloadflow.network.LoadFlowType;
 public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVariableType, DcEquationType> {
 
     public DcEquationSystemUpdater(EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        super(equationSystem, LoadFlowType.DC);
+        super(equationSystem, LoadFlowModel.DC);
     }
 
     @Override

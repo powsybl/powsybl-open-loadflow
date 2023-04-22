@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public enum LoadFlowType {
+public enum LoadFlowModel {
     AC,
     DC
 }

@@ -75,7 +75,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
 
-    private Map<LoadFlowType, Set<LfZeroImpedanceNetwork>> lfZeroImpedanceNetworks = new EnumMap<>(LoadFlowType.class);
+    private Map<LoadFlowModel, Set<LfZeroImpedanceNetwork>> lfZeroImpedanceNetworks = new EnumMap<>(LoadFlowModel.class);
 
     private Reporter reporter;
 
@@ -488,8 +488,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    private void validateBuses(LoadFlowType loadFlowType, Reporter reporter) {
-        if (loadFlowType == LoadFlowType.AC) {
+    private void validateBuses(LoadFlowModel loadFlowModel, Reporter reporter) {
+        if (loadFlowModel == LoadFlowModel.AC) {
             boolean hasAtLeastOneBusVoltageControlled = false;
             for (LfBus bus : busesByIndex) {
                 if (bus.isGeneratorVoltageControlled()) {
@@ -505,9 +505,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    public void validate(LoadFlowType loadFlowType, Reporter reporter) {
+    public void validate(LoadFlowModel loadFlowModel, Reporter reporter) {
         valid = true;
-        validateBuses(loadFlowType, reporter);
+        validateBuses(loadFlowModel, reporter);
     }
 
     public static <T> List<LfNetwork> load(T network, LfNetworkLoader<T> networkLoader, SlackBusSelector slackBusSelector) {
@@ -530,7 +530,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         for (LfNetwork lfNetwork : lfNetworks) {
             Reporter reporterNetwork = Reports.createPostLoadingProcessingReporter(lfNetwork.getReporter());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
-            lfNetwork.validate(parameters.getLoadFlowType(), reporterNetwork);
+            lfNetwork.validate(parameters.getLoadFlowModel(), reporterNetwork);
             if (lfNetwork.isValid()) {
                 lfNetwork.reportSize(reporterNetwork);
                 lfNetwork.reportBalance(reporterNetwork);
@@ -541,13 +541,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return lfNetworks;
     }
 
-    public void updateZeroImpedanceCache(LoadFlowType loadFlowType) {
-        lfZeroImpedanceNetworks.computeIfAbsent(loadFlowType, k -> LfZeroImpedanceNetwork.create(this, loadFlowType));
+    public void updateZeroImpedanceCache(LoadFlowModel loadFlowModel) {
+        lfZeroImpedanceNetworks.computeIfAbsent(loadFlowModel, k -> LfZeroImpedanceNetwork.create(this, loadFlowModel));
     }
 
-    public Set<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(LoadFlowType loadFlowType) {
-        updateZeroImpedanceCache(loadFlowType);
-        return lfZeroImpedanceNetworks.get(loadFlowType);
+    public Set<LfZeroImpedanceNetwork> getZeroImpedanceNetworks(LoadFlowModel loadFlowModel) {
+        updateZeroImpedanceCache(loadFlowModel);
+        return lfZeroImpedanceNetworks.get(loadFlowModel);
     }
 
     public GraphConnectivity<LfBus, LfBranch> getConnectivity() {
@@ -625,17 +625,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         }
     }
 
-    public void writeGraphViz(Path file, LoadFlowType loadFlowType) {
+    public void writeGraphViz(Path file, LoadFlowModel loadFlowModel) {
         try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-            writeGraphViz(writer, loadFlowType);
+            writeGraphViz(writer, loadFlowModel);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    public void writeGraphViz(Writer writer, LoadFlowType loadFlowType) {
+    public void writeGraphViz(Writer writer, LoadFlowModel loadFlowModel) {
         try {
-            GraphVizGraph gvGraph = new GraphVizGraphBuilder(this).build(loadFlowType);
+            GraphVizGraph gvGraph = new GraphVizGraphBuilder(this).build(loadFlowModel);
             gvGraph.writeTo(writer);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

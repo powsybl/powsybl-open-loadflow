@@ -122,7 +122,7 @@ public class VoltageControl<T extends LfElement> extends Control {
 
     public static List<VoltageControl<?>> findVoltageControlsSortedByPriority(LfBus bus) {
         List<VoltageControl<?>> voltageControls = new ArrayList<>();
-        LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(LoadFlowType.AC);
+        LfZeroImpedanceNetwork zn = bus.getZeroImpedanceNetwork(LoadFlowModel.AC);
         if (zn != null) { // bus is part of a zero impedance graph
             for (LfBus zb : zn.getGraph().vertexSet()) { // all enabled by design
                 addVoltageControls(voltageControls, zb);

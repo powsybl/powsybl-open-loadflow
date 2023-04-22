@@ -288,8 +288,8 @@ public class AcEquationSystemCreator {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
-            if (branch.isZeroImpedance(LoadFlowType.AC)) {
-                if (!branch.isSpanningTreeEdge(LoadFlowType.AC)) {
+            if (branch.isZeroImpedance(LoadFlowModel.AC)) {
+                if (!branch.isSpanningTreeEdge(LoadFlowModel.AC)) {
                     continue;
                 }
                 if (branch.getBus1() == controllerBus) {
@@ -694,8 +694,8 @@ public class AcEquationSystemCreator {
     private void createBranchEquations(LfBranch branch,
                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // create zero and non zero impedance branch equations
-        if (branch.isZeroImpedance(LoadFlowType.AC)) {
-            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem, branch.isSpanningTreeEdge(LoadFlowType.AC));
+        if (branch.isZeroImpedance(LoadFlowModel.AC)) {
+            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem, branch.isSpanningTreeEdge(LoadFlowModel.AC));
         } else {
             createImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem);
         }
@@ -711,8 +711,8 @@ public class AcEquationSystemCreator {
                                                                                           VariableSet<AcVariableType> variableSet) {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : bus.getBranches()) {
-            if (branch.isZeroImpedance(LoadFlowType.AC)) {
-                if (branch.isSpanningTreeEdge(LoadFlowType.AC)) {
+            if (branch.isZeroImpedance(LoadFlowModel.AC)) {
+                if (branch.isSpanningTreeEdge(LoadFlowModel.AC)) {
                     EquationTerm<AcVariableType, AcEquationType> p = variableSet.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
                     if (branch.getBus2() == bus) {
                         p = p.minus();

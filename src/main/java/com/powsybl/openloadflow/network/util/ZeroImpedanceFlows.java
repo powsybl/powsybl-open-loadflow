@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.powsybl.openloadflow.network.LoadFlowType;
+import com.powsybl.openloadflow.network.LoadFlowModel;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 
@@ -30,13 +30,13 @@ public class ZeroImpedanceFlows {
 
     private final Graph<LfBus, LfBranch> graph;
     private final SpanningTreeAlgorithm.SpanningTree<LfBranch> tree;
-    private final LoadFlowType loadFlowType;
+    private final LoadFlowModel loadFlowModel;
 
     public ZeroImpedanceFlows(Graph<LfBus, LfBranch> zeroImpedanceSubGraph, SpanningTreeAlgorithm.SpanningTree<LfBranch> spanningTree,
-                              LoadFlowType loadFlowType) {
+                              LoadFlowModel loadFlowModel) {
         this.graph = zeroImpedanceSubGraph;
         this.tree = spanningTree;
-        this.loadFlowType = loadFlowType;
+        this.loadFlowModel = loadFlowModel;
     }
 
     public void compute() {
@@ -47,7 +47,7 @@ public class ZeroImpedanceFlows {
                 return;
             }
             TreeByLevels treeByLevels = new TreeByLevels(graph, tree, lfBus);
-            treeByLevels.updateFlows(loadFlowType);
+            treeByLevels.updateFlows(loadFlowModel);
             processed.addAll(treeByLevels.getProcessedLfBuses());
         });
 
@@ -108,7 +108,7 @@ public class ZeroImpedanceFlows {
             return branch.getBus1().equals(bus) ? branch.getBus2() : branch.getBus1();
         }
 
-        private void updateFlows(LoadFlowType loadFlowType) {
+        private void updateFlows(LoadFlowModel loadFlowModel) {
             Map<LfBus, PQ> descendantZeroImpedanceFlow = new HashMap<>();
 
             // traverse the tree from leaves to root
@@ -116,7 +116,7 @@ public class ZeroImpedanceFlows {
             int level = levels.size() - 1;
             while (level >= 1) {
                 levels.get(level).forEach(bus -> {
-                    PQ balance = balanceWithImpedance(bus, loadFlowType);
+                    PQ balance = balanceWithImpedance(bus, loadFlowModel);
                     PQ z0flow = getDescendantZeroImpedanceFlow(descendantZeroImpedanceFlow, bus);
                     PQ branchFlow = balance.add(z0flow);
 
@@ -128,7 +128,7 @@ public class ZeroImpedanceFlows {
             }
         }
 
-        private PQ balanceWithImpedance(LfBus bus, LoadFlowType loadFlowType) {
+        private PQ balanceWithImpedance(LfBus bus, LoadFlowModel loadFlowModel) {
             // balance considering injections and flow from lines with impedance
 
             // take care of the sign
@@ -136,7 +136,7 @@ public class ZeroImpedanceFlows {
 
             // only lines with impedance
             List<LfBranch> adjacentBranchesWithImpedance = bus.getBranches().stream()
-                .filter(branch -> !branch.isZeroImpedance(loadFlowType)).collect(Collectors.toList());
+                .filter(branch -> !branch.isZeroImpedance(loadFlowModel)).collect(Collectors.toList());
 
             adjacentBranchesWithImpedance.forEach(branch -> {
                 PQ branchFlow = getBranchFlow(branch, bus);

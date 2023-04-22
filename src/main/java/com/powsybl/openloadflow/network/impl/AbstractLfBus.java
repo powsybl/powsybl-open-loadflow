@@ -85,7 +85,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double remoteVoltageControlReactivePercent = Double.NaN;
 
-    protected final Map<LoadFlowType, LfZeroImpedanceNetwork> zeroImpedanceNetwork = new EnumMap<>(LoadFlowType.class);
+    protected final Map<LoadFlowModel, LfZeroImpedanceNetwork> zeroImpedanceNetwork = new EnumMap<>(LoadFlowModel.class);
 
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
@@ -600,13 +600,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void setZeroImpedanceNetwork(LoadFlowType loadFlowType, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
+    public void setZeroImpedanceNetwork(LoadFlowModel loadFlowModel, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
         Objects.requireNonNull(zeroImpedanceNetwork);
-        this.zeroImpedanceNetwork.put(loadFlowType, zeroImpedanceNetwork);
+        this.zeroImpedanceNetwork.put(loadFlowModel, zeroImpedanceNetwork);
     }
 
     @Override
-    public LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowType loadFlowType) {
-        return zeroImpedanceNetwork.get(loadFlowType);
+    public LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel) {
+        return zeroImpedanceNetwork.get(loadFlowModel);
     }
 }

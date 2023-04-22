@@ -63,7 +63,7 @@ public interface PiModel {
 
     Optional<Direction> updateTapPositionToReachNewA1(double deltaA1, int maxTapShift, AllowedDirection allowedDirection);
 
-    boolean setMinZ(double minZ, LoadFlowType loadFlowType);
+    boolean setMinZ(double minZ, LoadFlowModel loadFlowModel);
 
     void setBranch(LfBranch branch);
 

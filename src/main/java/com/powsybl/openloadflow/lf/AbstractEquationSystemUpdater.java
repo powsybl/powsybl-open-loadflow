@@ -21,11 +21,11 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
 
     protected final EquationSystem<V, E> equationSystem;
 
-    protected final LoadFlowType loadFlowType;
+    protected final LoadFlowModel loadFlowModel;
 
-    protected AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem, LoadFlowType loadFlowType) {
+    protected AbstractEquationSystemUpdater(EquationSystem<V, E> equationSystem, LoadFlowModel loadFlowModel) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
-        this.loadFlowType = Objects.requireNonNull(loadFlowType);
+        this.loadFlowModel = Objects.requireNonNull(loadFlowModel);
     }
 
     protected static void checkSlackBus(LfBus bus, boolean disabled) {
@@ -37,15 +37,15 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
     protected abstract void updateNonImpedantBranchEquations(LfBranch branch, boolean enable);
 
     @Override
-    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowType loadFlowType, boolean spanningTree) {
-        if (loadFlowType == this.loadFlowType) {
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowModel loadFlowModel, boolean spanningTree) {
+        if (loadFlowModel == this.loadFlowModel) {
             updateNonImpedantBranchEquations(branch, !branch.isDisabled() && spanningTree);
         }
     }
 
     protected void updateElementEquations(LfElement element, boolean enable) {
-        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedance(loadFlowType)) {
-            updateNonImpedantBranchEquations((LfBranch) element, enable && ((LfBranch) element).isSpanningTreeEdge(loadFlowType));
+        if (element instanceof LfBranch && ((LfBranch) element).isZeroImpedance(loadFlowModel)) {
+            updateNonImpedantBranchEquations((LfBranch) element, enable && ((LfBranch) element).isSpanningTreeEdge(loadFlowModel));
         } else {
             // update all equations related to the element
             for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
