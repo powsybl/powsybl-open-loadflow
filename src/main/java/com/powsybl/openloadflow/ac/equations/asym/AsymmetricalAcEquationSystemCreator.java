@@ -61,10 +61,10 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
                 AsymGenerator asymGenerator = (AsymGenerator) gen.getProperty(AsymGenerator.PROPERTY_ASYMMETRICAL);
                 if (asymGenerator != null) {
-                    asymBus.setbZeroEquivalent(asymBus.getbZeroEquivalent() + asymGenerator.getB0());
-                    asymBus.setgZeroEquivalent(asymBus.getgZeroEquivalent() + asymGenerator.getG0());
-                    asymBus.setbNegativeEquivalent(asymBus.getbNegativeEquivalent() + asymGenerator.getB2());
-                    asymBus.setgNegativeEquivalent(asymBus.getgNegativeEquivalent() + asymGenerator.getG2());
+                    asymBus.setbZeroEquivalent(asymBus.getbZeroEquivalent() + asymGenerator.getBz());
+                    asymBus.setgZeroEquivalent(asymBus.getgZeroEquivalent() + asymGenerator.getGz());
+                    asymBus.setbNegativeEquivalent(asymBus.getbNegativeEquivalent() + asymGenerator.getBn());
+                    asymBus.setgNegativeEquivalent(asymBus.getgNegativeEquivalent() + asymGenerator.getGn());
                 }
             }
         }
