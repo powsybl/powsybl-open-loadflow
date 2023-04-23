@@ -74,7 +74,7 @@ public class LfNetworkParameters {
 
     private boolean reactivePowerRemoteControl = false;
 
-    private boolean dc = false;
+    private LoadFlowModel loadFlowModel = LoadFlowModel.AC;
 
     private boolean shuntVoltageControl = false;
 
@@ -230,12 +230,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isDc() {
-        return dc;
+    public LoadFlowModel getLoadFlowModel() {
+        return loadFlowModel;
     }
 
-    public LfNetworkParameters setDc(boolean dc) {
-        this.dc = dc;
+    public LfNetworkParameters setLoadFlowModel(LoadFlowModel loadFlowModel) {
+        this.loadFlowModel = Objects.requireNonNull(loadFlowModel);
         return this;
     }
 
@@ -392,7 +392,7 @@ public class LfNetworkParameters {
                 ", transformerVoltageControl=" + transformerVoltageControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
-                ", dc=" + dc +
+                ", loadFlowModel=" + loadFlowModel +
                 ", reactiveLimits=" + reactiveLimits +
                 ", hvdcAcEmulation=" + hvdcAcEmulation +
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
