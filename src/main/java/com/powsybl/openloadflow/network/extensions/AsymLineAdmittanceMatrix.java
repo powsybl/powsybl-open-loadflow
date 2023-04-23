@@ -231,10 +231,6 @@ public class AsymLineAdmittanceMatrix {
         return mResult;
     }
 
-    public DenseMatrix getmY012() {
-        return mY012;
-    }
-
     public boolean isCoupled() {
         // checking values of extra diagonal bloc term to see if equations between the three sequences are independant
         boolean coupled = false;
