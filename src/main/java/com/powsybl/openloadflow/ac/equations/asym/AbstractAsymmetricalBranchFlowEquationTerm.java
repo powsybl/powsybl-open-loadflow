@@ -6,12 +6,12 @@
  */
 package com.powsybl.openloadflow.ac.equations.asym;
 
-import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.network.extensions.AsymLine;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.extensions.AsymLineAdmittanceMatrix;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -20,7 +20,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 abstract class AbstractAsymmetricalBranchFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
     // Classical line parameters are replaced by a 12x12 admittance matrix
-    protected final DenseMatrix mY012;
+    protected final AsymLineAdmittanceMatrix y;
 
     protected AbstractAsymmetricalBranchFlowEquationTerm(LfBranch branch) {
         super(branch);
@@ -28,10 +28,10 @@ abstract class AbstractAsymmetricalBranchFlowEquationTerm extends AbstractElemen
         if (asymLine == null) {
             throw new IllegalStateException("Line : " + branch.getId() + " has no dissymmetric extension but is required here ");
         }
-        mY012 = asymLine.getAdmittanceMatrix().getmY012();
+        y = asymLine.getAdmittanceMatrix();
     }
 
-    public DenseMatrix getmY012() {
-        return mY012;
+    public AsymLineAdmittanceMatrix getY() {
+        return y;
     }
 }

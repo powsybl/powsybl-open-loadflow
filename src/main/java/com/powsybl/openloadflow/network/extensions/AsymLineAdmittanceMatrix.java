@@ -253,4 +253,12 @@ public class AsymLineAdmittanceMatrix {
         double residual = Math.abs(m.get(2 * i - 2, 2 * j - 2)) + Math.abs(m.get(2 * i - 1, 2 * j - 2));
         return residual > EPS_VALUE;
     }
+
+    public double getYxijgh(int i, int j, int g, int h) {
+        return mY012.get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+    }
+
+    public double getYyijgh(int i, int j, int g, int h) {
+        return mY012.get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
+    }
 }

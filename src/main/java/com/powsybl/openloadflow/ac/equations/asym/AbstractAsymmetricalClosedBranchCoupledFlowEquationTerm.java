@@ -92,6 +92,36 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         this.sequenceType = sequenceType;
     }
 
+    protected static Fortescue.SequenceType getSequenceType(Variable<AcVariableType> variable) {
+        switch (variable.getType()) {
+            case BUS_V:
+            case BUS_PHI:
+                return Fortescue.SequenceType.POSITIVE;
+
+            case BUS_V_NEGATIVE:
+            case BUS_PHI_NEGATIVE:
+                return Fortescue.SequenceType.NEGATIVE;
+
+            case BUS_V_ZERO:
+            case BUS_PHI_ZERO:
+                return Fortescue.SequenceType.ZERO;
+
+            default:
+                throw new IllegalStateException("Unknown variable: ");
+        }
+    }
+
+    protected static boolean isPhase(Variable<AcVariableType> variable) {
+        switch (variable.getType()) {
+            case BUS_PHI:
+            case BUS_PHI_NEGATIVE:
+            case BUS_PHI_ZERO:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     protected double v(int g, int i) {
         switch (g) {
             case 0: // zero
