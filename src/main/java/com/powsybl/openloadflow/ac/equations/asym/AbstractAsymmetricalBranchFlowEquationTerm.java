@@ -30,8 +30,4 @@ abstract class AbstractAsymmetricalBranchFlowEquationTerm extends AbstractElemen
         }
         y = asymLine.getAdmittanceMatrix();
     }
-
-    public AsymLineAdmittanceMatrix getY() {
-        return y;
-    }
 }
