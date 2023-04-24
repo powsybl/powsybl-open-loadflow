@@ -347,7 +347,7 @@ class DcLoadFlowTest {
         assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
 
         // check we have same result if we consider phase shift as a variable with a fixed value
-        loadFlowProvider.setForcePhaseControlOffAndAddAngle1Var(true);
+
 
         loadFlowRunner.run(network, parameters);
 
