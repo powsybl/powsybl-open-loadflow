@@ -280,7 +280,7 @@ class DcLoadFlowTest {
         assertActivePowerEquals(100.0, network.getLine("L3").getTerminal1());
 
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
-                .setDc(true)
+                .setLoadFlowModel(LoadFlowModel.DC)
                 .setBreakers(true);
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
                                                                              new DcEquationSystemCreationParameters(true, false, true),
