@@ -92,17 +92,8 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
                                                               JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix) {
             DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
             for (LfBranch controllerBranch : controllerBranches) {
-                LfBus controlledSideBus = null;
-                if (controllerBranch.getPhaseControl().isPresent()) {
-                    if (controllerBranch.getPhaseControl().get().getControlledSide() == ControlledSide.ONE) {
-                        controlledSideBus = controllerBranch.getBus1();
-                    } else {
-                        controlledSideBus = controllerBranch.getBus2();
-                    }
-                }
-                assert controlledSideBus != null;
-                equationSystem.getEquation(controlledSideBus.getNum(), DcEquationType.BUS_TARGET_P)
-                        .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], Math.toRadians(1d))); //TODO
+                equationSystem.getEquation(controllerBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1)
+                        .ifPresent(equation -> rhs.set(equation.getColumn(), controllerBranchIndex[controllerBranch.getNum()], Math.toRadians(1d)));
             }
             jacobianMatrix.solveTransposed(rhs);
             return rhs;

@@ -50,7 +50,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
         List<BusDcState> busStates = distributedSlack ? ElementState.save(network.getBuses(), BusDcState::save) : null;
 
         DcLoadFlowParameters parameters = new DcLoadFlowParameters(networkParameters,
-                                                                   new DcEquationSystemCreationParameters(false, false, useTransformerRatio),
+                                                                   new DcEquationSystemCreationParameters(false, false, useTransformerRatio, false),
                                                                    matrixFactory,
                                                                    distributedSlack,
                                                                    balanceType,

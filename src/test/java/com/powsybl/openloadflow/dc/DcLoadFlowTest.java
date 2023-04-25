@@ -283,7 +283,7 @@ class DcLoadFlowTest {
                 .setLoadFlowModel(LoadFlowModel.DC)
                 .setBreakers(true);
         DcLoadFlowParameters dcLoadFlowParameters = new DcLoadFlowParameters(lfNetworkParameters,
-                                                                             new DcEquationSystemCreationParameters(true, false, true),
+                                                                             new DcEquationSystemCreationParameters(true, false, true, false),
                                                                              new DenseMatrixFactory(),
                                                                              true,
                                                                              parameters.getBalanceType(),
@@ -347,7 +347,6 @@ class DcLoadFlowTest {
         assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
 
         // check we have same result if we consider phase shift as a variable with a fixed value
-
 
         loadFlowRunner.run(network, parameters);
 

@@ -1220,7 +1220,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         var equationSystemCreationParameters = new DcEquationSystemCreationParameters(true,
                                                                                       forcePhaseControlOffAndAddAngle1Var,
-                                                                                      parameters.isDcUseTransformerRatio());
+                                                                                      parameters.isDcUseTransformerRatio(),
+                                                                                      parameters.isPhaseShifterRegulationOn());
 
         return new DcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,

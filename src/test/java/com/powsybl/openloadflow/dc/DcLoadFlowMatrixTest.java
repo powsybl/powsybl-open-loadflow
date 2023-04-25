@@ -58,7 +58,7 @@ class DcLoadFlowMatrixTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
-        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, true);
+        DcEquationSystemCreationParameters creationParameters = new DcEquationSystemCreationParameters(true, false, true, false);
         EquationSystem<DcVariableType, DcEquationType> equationSystem = new DcEquationSystemCreator(mainNetwork, creationParameters).create(false);
 
         for (LfBus b : mainNetwork.getBuses()) {
