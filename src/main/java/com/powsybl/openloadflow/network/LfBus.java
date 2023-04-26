@@ -133,7 +133,7 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getSvcShunt();
 
-    LfAggregatedLoads getAggregatedLoads();
+    LfLoad getLoad();
 
     List<LfBranch> getBranches();
 
