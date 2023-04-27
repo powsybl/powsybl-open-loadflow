@@ -245,6 +245,22 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             v2,
                             sinTheta1);
 
+                    branchVector.dq1da1[branchNum] = ClosedBranchSide1ReactiveFlowEquationTerm.dq1da1(
+                            branchVector.y[branchNum],
+                            v1,
+                            r1,
+                            v2,
+                            sinTheta1);
+
+                    branchVector.dq1dr1[branchNum] = ClosedBranchSide1ReactiveFlowEquationTerm.dq1dr1(
+                            branchVector.y[branchNum],
+                            branchVector.cosKsi[branchNum],
+                            branchVector.b1[branchNum],
+                            v1,
+                            r1,
+                            v2,
+                            cosTheta1);
+
                     // i1
 
                     branchVector.i1[branchNum] = FastMath.hypot(branchVector.p1[branchNum], branchVector.q1[branchNum]) / (v1 * SQRT3 / 1000);
@@ -289,6 +305,19 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             v2,
                             cosTheta2);
 
+                    branchVector.dp2da1[branchNum] = ClosedBranchSide2ActiveFlowEquationTerm.dp2da1(
+                            branchVector.y[branchNum],
+                            v1,
+                            r1,
+                            v2,
+                            cosTheta2);
+
+                    branchVector.dp2dr1[branchNum] = ClosedBranchSide2ActiveFlowEquationTerm.dp2dr1(
+                            branchVector.y[branchNum],
+                            v1,
+                            v2,
+                            sinTheta2);
+
                     // q2
 
                     branchVector.q2[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.q2(
@@ -328,6 +357,19 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             r1,
                             v2,
                             sinTheta2);
+
+                    branchVector.dq2da1[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.dq2da1(
+                            branchVector.y[branchNum],
+                            v1,
+                            r1,
+                            v2,
+                            sinTheta2);
+
+                    branchVector.dq2dr1[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dr1(
+                            branchVector.y[branchNum],
+                            v1,
+                            v2,
+                            cosTheta2);
 
                     // i2
 

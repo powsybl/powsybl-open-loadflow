@@ -72,25 +72,24 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
 
     @Override
     public double eval() {
-        return q2(y, FastMath.cos(ksi), b2, v1(), r1(), v2(), FastMath.cos(theta2(ksi, ph1(), a1(), ph2())));
+        return branchVector.q2[num];
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        double theta = theta2(ksi, ph1(), a1(), ph2());
         if (variable.equals(v1Var)) {
-            return dq2dv1(y, r1(), v2(), FastMath.cos(theta));
+            return branchVector.dq2dv1[num];
         } else if (variable.equals(v2Var)) {
-            return dq2dv2(y, FastMath.cos(ksi), b2, v1(), r1(), v2(), FastMath.cos(theta));
+            return branchVector.dq2dv2[num];
         } else if (variable.equals(ph1Var)) {
-            return dq2dph1(y, v1(), r1(), v2(), FastMath.sin(theta));
+            return branchVector.dq2dph1[num];
         } else if (variable.equals(ph2Var)) {
-            return dq2dph2(y, v1(), r1(), v2(), FastMath.sin(theta));
+            return branchVector.dq2dph2[num];
         } else if (variable.equals(a1Var)) {
-            return dq2da1(y, v1(), r1(), v2(), FastMath.sin(theta));
+            return branchVector.dq2da1[num];
         } else if (variable.equals(r1Var)) {
-            return dq2dr1(y, v1(), v2(), FastMath.cos(theta));
+            return branchVector.dq2dr1[num];
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
