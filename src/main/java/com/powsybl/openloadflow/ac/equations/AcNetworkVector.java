@@ -26,8 +26,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcNetworkVector.class);
 
-    private static final double SQRT3 = FastMath.sqrt(3);
-
     private final LfNetwork network;
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
     private final AcBusVector busVector;
@@ -263,7 +261,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
                     // i1
 
-                    branchVector.i1[branchNum] = FastMath.hypot(branchVector.p1[branchNum], branchVector.q1[branchNum]) / (v1 * SQRT3 / 1000);
+                    branchVector.i1[branchNum] = FastMath.hypot(branchVector.p1[branchNum], branchVector.q1[branchNum]) / v1;
 
                     // p2
 
@@ -373,7 +371,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
                     // i2
 
-                    branchVector.i2[branchNum] = FastMath.hypot(branchVector.p2[branchNum], branchVector.q2[branchNum]) / (v2 * SQRT3 / 1000);
+                    branchVector.i2[branchNum] = FastMath.hypot(branchVector.p2[branchNum], branchVector.q2[branchNum]) / v2;
                 } else if (branchVector.bus1Num[branchNum] != -1) {
                     double v1 = state[branchVector.v1Row[branchNum]];
                     double r1 = branchVector.r1Row[branchNum] != -1 ? state[branchVector.r1Row[branchNum]]
@@ -419,7 +417,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             v1,
                             r1);
 
-                    branchVector.i1[branchNum] = FastMath.hypot(branchVector.p1[branchNum], branchVector.q1[branchNum]) / (v1 * SQRT3 / 1000);
+                    branchVector.i1[branchNum] = FastMath.hypot(branchVector.p1[branchNum], branchVector.q1[branchNum]) / v1;
                 } else if (branchVector.bus2Num[branchNum] != -1) {
                     double v2 = state[branchVector.v2Row[branchNum]];
 
@@ -459,7 +457,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             branchVector.b2[branchNum],
                             v2);
 
-                    branchVector.i2[branchNum] = FastMath.hypot(branchVector.p2[branchNum], branchVector.q2[branchNum]) / (v2 * SQRT3 / 1000);
+                    branchVector.i2[branchNum] = FastMath.hypot(branchVector.p2[branchNum], branchVector.q2[branchNum]) / v2;
                 }
             }
         }

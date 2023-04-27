@@ -133,7 +133,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     public double eval() {
-        return i1(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2());
+        return branchVector.i1[num];
     }
 
     @Override

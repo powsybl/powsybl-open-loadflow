@@ -80,7 +80,7 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     @Override
     public double eval() {
-        return i2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v2(), ph2());
+        return branchVector.i2[num];
     }
 
     @Override

@@ -185,7 +185,7 @@ class EquationsTest {
                 eval(new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true), variables, sv));
         assertArrayEquals(new double[] {-3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898, Double.NaN, 162.40477689607334},
                 eval(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, Double.NaN, 126.09926753871542, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {39.13246485286219, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, Double.NaN, 126.09926753871542, Double.NaN, Double.NaN},
                 eval(new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true), variables, sv));
         assertArrayEquals(new double[] {-40.6365773800554, -48.52391742324069, -131.8614376204652, -27.319027760225953, 131.8614376204652, -54.4659275092331, -131.8614376204652, Double.NaN, -262.1703103131649},
                 eval(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true), variables, sv));
@@ -200,7 +200,7 @@ class EquationsTest {
                 eval(new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
         assertArrayEquals(new double[] {-0.36364935827807376, Double.NaN, Double.NaN, -0.6785266162875639, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.37520249405559764, Double.NaN, Double.NaN, 0.3500416993992393, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.3752024940555977, Double.NaN, Double.NaN, 0.3500416993992393, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
 
         branchVector = createBranchVector(bus1, null, false, false, equationSystem, v1Var, v2Var, ph1Var, ph2Var, a1Var, r1Var);
