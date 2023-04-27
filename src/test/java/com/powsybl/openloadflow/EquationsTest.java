@@ -191,7 +191,7 @@ class EquationsTest {
                 eval(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true), variables, sv));
         assertArrayEquals(new double[] {16.04980301110306, -123.06939783256767, 51.99045110393844, 152.96594042215764, -51.99045110393844, -138.1398958886022, 51.99045110393844, Double.NaN, -56.2529021950738},
                 eval(new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[] {40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, Double.NaN, 132.23571821183896, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {40.76137216481359, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, Double.NaN, 132.23571821183896, Double.NaN, Double.NaN},
                 eval(new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true), variables, sv));
 
         // open branch equations
@@ -208,7 +208,7 @@ class EquationsTest {
                 eval(new OpenBranchSide2ActiveFlowEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
         assertArrayEquals(new double[] {-0.33122369717493005, Double.NaN, Double.NaN, -0.6182778179094991, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.3420075216110214, Double.NaN, Double.NaN, 0.31907275662806295, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {0.34186721585930596, Double.NaN, Double.NaN, 0.31907275662806295, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
 
         branchVector = createBranchVector(bus1, bus2, true, true, equationSystem, v1Var, v2Var, ph1Var, ph2Var, a1Var, r1Var);

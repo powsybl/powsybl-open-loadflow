@@ -28,6 +28,10 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
+        double y = branchVector.y[num];
+        double ksi = branchVector.ksi[num];
+        double g1 = branchVector.g1[num];
+        double b1 = branchVector.b1[num];
         double v1 = v1();
         double r1 = r1();
         double v2 = v2();

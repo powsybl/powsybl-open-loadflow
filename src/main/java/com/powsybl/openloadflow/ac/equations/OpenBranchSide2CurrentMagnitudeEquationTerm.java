@@ -87,12 +87,18 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     @Override
     public double eval() {
-        return i1(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v1(), ph1(), r1());
+        return branchVector.i1[num];
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
+        double y = branchVector.y[num];
+        double ksi = branchVector.ksi[num];
+        double g1 = branchVector.g1[num];
+        double b1 = branchVector.b1[num];
+        double b2 = branchVector.b2[num];
+        double g2 = branchVector.g2[num];
         if (variable.equals(v1Var)) {
             return di1dv1(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v1(), ph1(), r1());
         } else if (variable.equals(ph1Var) || variable.equals(r1Var)) {

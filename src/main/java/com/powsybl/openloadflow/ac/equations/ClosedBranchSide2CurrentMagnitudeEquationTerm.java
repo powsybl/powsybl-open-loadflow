@@ -33,6 +33,10 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         if (dr1 != 0) {
             throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
         }
+        double y = branchVector.y[num];
+        double ksi = branchVector.ksi[num];
+        double g2 = branchVector.g2[num];
+        double b2 = branchVector.b2[num];
         double v1 = v1();
         double ph1 = ph1();
         double r1 = r1();
@@ -133,12 +137,16 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
 
     @Override
     public double eval() {
-        return i2(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
+        return branchVector.i2[num];
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
+        double y = branchVector.y[num];
+        double ksi = branchVector.ksi[num];
+        double g2 = branchVector.g2[num];
+        double b2 = branchVector.b2[num];
         if (variable.equals(v1Var)) {
             return di2dv1(y, ksi, g2, b2, v1(), ph1(), r1(), a1(), v2(), ph2());
         } else if (variable.equals(v2Var)) {
