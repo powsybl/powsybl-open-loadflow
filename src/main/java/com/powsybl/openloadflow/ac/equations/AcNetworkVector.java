@@ -86,11 +86,11 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                     break;
 
                 case BRANCH_ALPHA1:
-                    branchVector.a1Row[num] = branchVector.deriveA1[num] ? row  : -1;
+                    branchVector.a1Row[num] = branchVector.deriveA1[num] ? row : -1;
                     break;
 
                 case BRANCH_RHO1:
-                    branchVector.r1Row[num] = branchVector.deriveR1[num] ? row  : -1;
+                    branchVector.r1Row[num] = branchVector.deriveR1[num] ? row : -1;
                     break;
 
                 default:
