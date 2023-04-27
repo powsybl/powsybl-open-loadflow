@@ -760,6 +760,8 @@ public class AcEquationSystemCreator {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
 
+        AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem);
+
         createBusesEquations(equationSystem);
         createMultipleSlackBusesEquations(equationSystem);
         createBranchesEquations(equationSystem);
@@ -773,6 +775,8 @@ public class AcEquationSystemCreator {
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
         network.addListener(LfNetworkListenerTracer.trace(new AcEquationSystemUpdater(equationSystem, creationParameters)));
+
+        networkVector.startListening();
 
         return equationSystem;
     }
