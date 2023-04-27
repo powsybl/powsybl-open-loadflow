@@ -94,6 +94,8 @@ class EquationsTest {
         return values;
     }
 
+    private LfNetwork network;
+
     private LfBranch branch;
 
     private LfBus bus1;
@@ -116,11 +118,20 @@ class EquationsTest {
         Mockito.doReturn(B_2).when(piModel).getB2();
         Mockito.doReturn(KSI).when(piModel).getKsi();
         Mockito.doReturn(R_1).when(piModel).getR1();
+        Mockito.doReturn(A_1).when(piModel).getA1();
 
         bus1 = Mockito.mock(LfBus.class, ANSWER);
         bus2 = Mockito.mock(LfBus.class, ANSWER);
         Mockito.doReturn(0).when(bus1).getNum();
         Mockito.doReturn(1).when(bus2).getNum();
+
+        network = Mockito.mock(LfNetwork.class);
+        Mockito.doReturn(List.of(bus1, bus2)).when(network).getBuses();
+        Mockito.doReturn(List.of(branch)).when(network).getBranches();
+        Mockito.doReturn(bus1).when(branch).getBus1();
+        Mockito.doReturn(bus2).when(branch).getBus2();
+        Mockito.doReturn(true).when(branch).isPhaseController();
+        Mockito.doReturn(true).when(branch).isVoltageController();
     }
 
     @Test
@@ -143,12 +154,21 @@ class EquationsTest {
         a1Var.setRow(5);
         unknownVar.setRow(6);
 
-        var sv = new StateVector(new double[] {V_1, PH_1, V_2, PH_2, R_1, A_1, 0});
-
-        LfNetwork lfNetwork = Mockito.mock(LfNetwork.class);
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
-        AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem);
+        var sv = equationSystem.getStateVector();
+        sv.set(new double[] {V_1, PH_1, V_2, PH_2, R_1, A_1, 0});
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
+        AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
+        AcBusVector busVector = networkVector.getBusVector();
         AcBranchVector branchVector = networkVector.getBranchVector();
+        busVector.vRow[0] = v1Var.getRow();
+        busVector.vRow[1] = v2Var.getRow();
+        busVector.phRow[0] = ph1Var.getRow();
+        busVector.phRow[1] = ph2Var.getRow();
+        branchVector.a1Row[0] = a1Var.getRow();
+        branchVector.r1Row[0] = r1Var.getRow();
+        networkVector.updateBranchVariables();
+        networkVector.updateNetwork();
 
         // closed branch equations
         assertArrayEquals(new double[] {41.78173051479356, 48.66261692116701, 138.21343172859858, 29.31710523088579, -138.21343172859858, 54.62161149356045, 138.21343172859858, Double.NaN, 270.81476537421185},

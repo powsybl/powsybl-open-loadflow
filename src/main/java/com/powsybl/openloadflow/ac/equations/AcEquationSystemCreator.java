@@ -591,12 +591,12 @@ public class AcEquationSystemCreator {
         updateShuntVoltageControlEquations(voltageControl, equationSystem);
     }
 
-    private static boolean isDeriveA1(LfBranch branch, AcEquationSystemCreationParameters creationParameters) {
+    static boolean isDeriveA1(LfBranch branch, AcEquationSystemCreationParameters creationParameters) {
         return branch.isPhaseController()
                 || (creationParameters.isForceA1Var() && branch.hasPhaseControllerCapability() && branch.isConnectedAtBothSides());
     }
 
-    private static boolean isDeriveR1(LfBranch branch) {
+    static boolean isDeriveR1(LfBranch branch) {
         return branch.isVoltageController();
     }
 
@@ -760,7 +760,7 @@ public class AcEquationSystemCreator {
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
 
-        AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem);
+        AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
 
         createBusesEquations(equationSystem);
         createMultipleSlackBusesEquations(networkVector.getBranchVector(), equationSystem);

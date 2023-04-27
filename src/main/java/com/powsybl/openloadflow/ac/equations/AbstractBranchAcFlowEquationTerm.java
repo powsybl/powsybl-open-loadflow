@@ -17,7 +17,8 @@ import java.util.Objects;
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
 
-    protected AcBranchVector branchVector;
+    protected final AcBranchVector branchVector;
+    protected final int num;
 
     protected final double b1;
     protected final double b2;
@@ -29,6 +30,7 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
     protected AbstractBranchAcFlowEquationTerm(LfBranch branch, AcBranchVector branchVector) {
         super(branch);
         this.branchVector = Objects.requireNonNull(branchVector);
+        this.num = branch.getNum();
         PiModel piModel = branch.getPiModel();
         if (piModel.getR() == 0 && piModel.getX() == 0) {
             throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());

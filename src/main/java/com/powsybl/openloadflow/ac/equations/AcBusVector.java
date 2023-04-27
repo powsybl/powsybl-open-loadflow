@@ -15,8 +15,8 @@ import java.util.List;
  */
 public class AcBusVector {
 
-    final int[] vRow;
-    final int[] phRow;
+    public final int[] vRow;
+    public final int[] phRow;
 
     public AcBusVector(List<LfBus> buses) {
         vRow = new int[buses.size()];

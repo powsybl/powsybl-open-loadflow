@@ -34,13 +34,16 @@ public class AcBranchVector {
 
     final int[] status;
 
-    final int[] v1Row;
-    final int[] v2Row;
-    final int[] ph1Row;
-    final int[] ph2Row;
+    final boolean[] deriveA1;
+    final boolean[] deriveR1;
 
-    final int[] a1Row;
-    final int[] r1Row;
+    public final int[] v1Row;
+    public final int[] v2Row;
+    public final int[] ph1Row;
+    public final int[] ph2Row;
+
+    public final int[] a1Row;
+    public final int[] r1Row;
 
     final double[] p1;
     final double[] p2;
@@ -77,7 +80,7 @@ public class AcBranchVector {
     final double[] dq2da1;
     final double[] dq2dr1;
 
-    public AcBranchVector(List<LfBranch> branches) {
+    public AcBranchVector(List<LfBranch> branches, AcEquationSystemCreationParameters creationParameters) {
         int size = branches.size();
         bus1Num = new int[size];
         bus2Num = new int[size];
@@ -92,6 +95,9 @@ public class AcBranchVector {
         r1 = new double[size];
         a1 = new double[size];
         status = new int[size];
+
+        deriveA1 = new boolean[size];
+        deriveR1 = new boolean[size];
 
         v1Row = new int[size];
         v2Row = new int[size];
@@ -156,6 +162,8 @@ public class AcBranchVector {
             r1[i] = piModel.getR1();
             a1[i] = piModel.getA1();
             status[i] = branch.isDisabled() ? 0 : 1;
+            deriveA1[i] = AcEquationSystemCreator.isDeriveA1(branch, creationParameters);
+            deriveR1[i] = AcEquationSystemCreator.isDeriveR1(branch);
         }
     }
 

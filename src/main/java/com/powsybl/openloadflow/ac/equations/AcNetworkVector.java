@@ -33,11 +33,16 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     private final AcBusVector busVector;
     private final AcBranchVector branchVector;
 
-    public AcNetworkVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    public AcNetworkVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                           AcEquationSystemCreationParameters creationParameters) {
         this.network = Objects.requireNonNull(network);
         this.equationSystem = Objects.requireNonNull(equationSystem);
         busVector = new AcBusVector(network.getBuses());
-        branchVector = new AcBranchVector(network.getBranches());
+        branchVector = new AcBranchVector(network.getBranches(), creationParameters);
+    }
+
+    public AcBusVector getBusVector() {
+        return busVector;
     }
 
     public AcBranchVector getBranchVector() {
@@ -56,7 +61,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         equationSystem.getStateVector().addListener(this);
     }
 
-    private void updateVariables() {
+    public void updateVariables() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         Arrays.fill(busVector.vRow, -1);
@@ -69,27 +74,36 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         Arrays.fill(branchVector.ph2Row, -1);
 
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
+            int num = v.getElementNum();
+            int row = v.getRow();
             switch (v.getType()) {
                 case BUS_V:
-                    busVector.vRow[v.getElementNum()] = v.getRow();
+                    busVector.vRow[num] = row;
                     break;
 
                 case BUS_PHI:
-                    busVector.phRow[v.getElementNum()] = v.getRow();
+                    busVector.phRow[num] = row;
                     break;
 
                 case BRANCH_ALPHA1:
-                    branchVector.a1Row[v.getElementNum()] = v.getRow();
+                    branchVector.a1Row[num] = branchVector.deriveA1[num] ? row  : -1;
                     break;
 
                 case BRANCH_RHO1:
-                    branchVector.r1Row[v.getElementNum()] = v.getRow();
+                    branchVector.r1Row[num] = branchVector.deriveR1[num] ? row  : -1;
                     break;
 
                 default:
                     break;
             }
         }
+        updateBranchVariables();
+
+        stopwatch.stop();
+        LOGGER.info("AC variable vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+    }
+
+    public void updateBranchVariables() {
         for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
             if (branchVector.bus1Num[branchNum] != -1) {
                 branchVector.v1Row[branchNum] = busVector.vRow[branchVector.bus1Num[branchNum]];
@@ -100,9 +114,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                 branchVector.ph2Row[branchNum] = busVector.phRow[branchVector.bus2Num[branchNum]];
             }
         }
-
-        stopwatch.stop();
-        LOGGER.info("AC variable vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
     public void updateNetwork() {
@@ -177,6 +188,22 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             r1,
                             v2,
                             cosTheta1);
+
+                    branchVector.dp1da1[branchNum] = ClosedBranchSide1ActiveFlowEquationTerm.dp1da1(
+                            branchVector.y[branchNum],
+                            v1,
+                            r1,
+                            v2,
+                            cosTheta1);
+
+                    branchVector.dp1dr1[branchNum] = ClosedBranchSide1ActiveFlowEquationTerm.dp1dr1(
+                            branchVector.y[branchNum],
+                            branchVector.sinKsi[branchNum],
+                            branchVector.g1[branchNum],
+                            v1,
+                            r1,
+                            v2,
+                            sinTheta1);
 
                     // q1
 
@@ -366,6 +393,13 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         if (element.getType() == ElementType.BRANCH) {
             branchVector.status[element.getNum()] = disabled ? 0 : 1;
         }
+    }
+
+    @Override
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+        PiModel piModel = branch.getPiModel();
+        branchVector.a1[branch.getNum()] = piModel.getA1();
+        branchVector.r1[branch.getNum()] = piModel.getR1();
     }
 
     @Override

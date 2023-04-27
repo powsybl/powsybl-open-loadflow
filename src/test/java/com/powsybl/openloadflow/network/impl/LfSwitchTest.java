@@ -71,7 +71,8 @@ class LfSwitchTest {
         lfSwitch.getPiModel().setX(LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
-        AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem);
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
+        AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem, creationParameters);
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         EquationTerm<AcVariableType, AcEquationType> p1 = new ClosedBranchSide1ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), networkVector.getBranchVector(), variableSet, false, false);
         EquationTerm<AcVariableType, AcEquationType> p2 = new ClosedBranchSide2ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), networkVector.getBranchVector(), variableSet, false, false);
