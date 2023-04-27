@@ -127,7 +127,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         double[] state = equationSystem.getStateVector().get();
         var w = new DoubleWrapper();
         for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
-            if (branchVector.status[branchNum] == 1) {
+            if (!branchVector.disabled[branchNum]) {
                 if (branchVector.bus1Num[branchNum] != -1 && branchVector.bus2Num[branchNum] != -1) {
                     double ph1 = state[branchVector.ph1Row[branchNum]];
                     double ph2 = state[branchVector.ph2Row[branchNum]];
@@ -476,7 +476,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
         if (element.getType() == ElementType.BRANCH) {
-            branchVector.status[element.getNum()] = disabled ? 0 : 1;
+            branchVector.disabled[element.getNum()] = disabled;
         }
     }
 

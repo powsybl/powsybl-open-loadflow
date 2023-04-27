@@ -32,7 +32,7 @@ public class AcBranchVector {
     final double[] r1;
     final double[] a1;
 
-    final int[] status;
+    final boolean[] disabled;
 
     final boolean[] deriveA1;
     final boolean[] deriveR1;
@@ -94,7 +94,7 @@ public class AcBranchVector {
         b2 = new double[size];
         r1 = new double[size];
         a1 = new double[size];
-        status = new int[size];
+        disabled = new boolean[size];
 
         deriveA1 = new boolean[size];
         deriveR1 = new boolean[size];
@@ -161,13 +161,13 @@ public class AcBranchVector {
             g2[i] = piModel.getG2();
             r1[i] = piModel.getR1();
             a1[i] = piModel.getA1();
-            status[i] = branch.isDisabled() ? 0 : 1;
+            disabled[i] = branch.isDisabled();
             deriveA1[i] = AcEquationSystemCreator.isDeriveA1(branch, creationParameters);
             deriveR1[i] = AcEquationSystemCreator.isDeriveR1(branch);
         }
     }
 
     public int getSize() {
-        return status.length;
+        return disabled.length;
     }
 }
