@@ -30,6 +30,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
     private final AcBusVector busVector;
     private final AcBranchVector branchVector;
+    private boolean variablesInvalid = true;
 
     public AcNetworkVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                            AcEquationSystemCreationParameters creationParameters) {
@@ -60,6 +61,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     }
 
     public void updateVariables() {
+        if (!variablesInvalid) {
+            return;
+        }
+
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         Arrays.fill(busVector.vRow, -1);
@@ -99,6 +104,8 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
         stopwatch.stop();
         LOGGER.info("AC variable vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+
+        variablesInvalid = false;
     }
 
     public void updateBranchVariables() {
@@ -482,8 +489,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     @Override
     public void onVariableChange(Variable<AcVariableType> variable, ChangeType changeType) {
-        updateVariables();
-        // TODO also update state?
+        variablesInvalid = true;
     }
 
     @Override
@@ -498,6 +504,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     @Override
     public void onStateUpdate() {
+        updateVariables();
         updateNetwork();
     }
 }
