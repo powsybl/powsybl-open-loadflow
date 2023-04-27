@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.AbstractPhaseControlOuterLoop;
 import com.powsybl.openloadflow.IncrementalContextData;
 import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContextImpl;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -254,11 +255,18 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+        AcOuterLoopContextImpl acContext;
+        if (context.getClass() == AcOuterLoopContextImpl.class) {
+            acContext = (AcOuterLoopContextImpl) context;
+        } else {
+            throw new ClassCastException("context attribute should be of type AcOuterLoopContextImpl in IncrementalPhaseControlOuterLoop");
+        }
+
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        var contextData = (IncrementalContextData) context.getData();
+        var contextData = (IncrementalContextData) acContext.getData();
 
-        LfNetwork network = context.getNetwork();
+        LfNetwork network = acContext.getNetwork();
 
         List<LfBranch> controllerBranches = getControllerBranches(network);
 
@@ -283,8 +291,8 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
             var sensitivityContext = new SensitivityContext(network,
                                                             controllerBranches,
-                                                            context.getLoadFlowContext().getEquationSystem(),
-                                                            context.getLoadFlowContext().getJacobianMatrix());
+                                                            acContext.getAcLoadFlowContext().getEquationSystem(),
+                                                            acContext.getAcLoadFlowContext().getJacobianMatrix());
 
             if (!currentLimiterPhaseControls.isEmpty()
                     && checkCurrentLimiterPhaseControls(sensitivityContext,

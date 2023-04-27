@@ -253,11 +253,17 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+        DcOuterLoopContextImpl dcContext;
+        if (context.getClass() == DcOuterLoopContextImpl.class) {
+            dcContext = (DcOuterLoopContextImpl) context;
+        } else {
+            throw new ClassCastException("context attribute should be of type DcOuterLoopContextImpl in DcPhaseShifterControlOuterLoop");
+        }
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        var contextData = (IncrementalContextData) context.getData();
+        var contextData = (IncrementalContextData) dcContext.getData();
 
-        LfNetwork network = context.getNetwork();
+        LfNetwork network = dcContext.getNetwork();
 
         List<LfBranch> controllerBranches = getControllerBranches(network);
 
@@ -282,8 +288,8 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
         if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
             var sensitivityContext = new SensitivityContext(network,
                     controllerBranches,
-                    context.getLoadFlowContext().getEquationSystem(),
-                    context.getLoadFlowContext().getJacobianMatrix());
+                    dcContext.getDcLoadFlowContext().getEquationSystem(),
+                    dcContext.getDcLoadFlowContext().getJacobianMatrix());
 
             if (!currentLimiterPhaseControls.isEmpty()
                     && checkCurrentLimiterPhaseControls(sensitivityContext,

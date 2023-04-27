@@ -8,7 +8,6 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
-import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Objects;
@@ -26,7 +25,7 @@ public class AcOuterLoopContextImpl implements OuterLoopContext {
 
     private Object data;
 
-    private LoadFlowContext loadFlowContext;
+    private AcLoadFlowContext loadFlowContext;
 
     AcOuterLoopContextImpl(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
@@ -64,21 +63,11 @@ public class AcOuterLoopContextImpl implements OuterLoopContext {
         this.data = data;
     }
 
-    @Override
-    public LoadFlowContext getLoadFlowContext() {
+    public AcLoadFlowContext getAcLoadFlowContext() {
         return loadFlowContext;
     }
 
-    public AcLoadFlowContext getAcLoadFlowContext() {
-        if (loadFlowContext.getClass() == AcLoadFlowContext.class) {
-            return (AcLoadFlowContext) loadFlowContext;
-        } else {
-            throw new ClassCastException("loadFlowContext attribute should be of type AcLoadFlowContext in AcOuterLoopContextImpl");
-        }
-    }
-
-    @Override
-    public void setLoadFlowContext(LoadFlowContext loadFlowContext) {
+    public void setAcLoadFlowContext(AcLoadFlowContext loadFlowContext) {
         this.loadFlowContext = loadFlowContext;
     }
 }

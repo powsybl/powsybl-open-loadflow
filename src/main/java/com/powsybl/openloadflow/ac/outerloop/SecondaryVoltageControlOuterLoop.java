@@ -11,6 +11,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.OuterLoop;
 import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContextImpl;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -279,7 +280,13 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        LfNetwork network = context.getNetwork();
+        AcOuterLoopContextImpl acContext;
+        if (context.getClass() == AcOuterLoopContextImpl.class) {
+            acContext = (AcOuterLoopContextImpl) context;
+        } else {
+            throw new ClassCastException("context attribute should be of type AcOuterLoopContextImpl in SecondaryVoltageControlOuterLoop");
+        }
+        LfNetwork network = acContext.getNetwork();
 
         // find active secondary voltage controls
         //  - pilot bus should be enabled
@@ -294,7 +301,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         List<LfBus> allBusList = new ArrayList<>(allBusSet);
 
-        SensitivityContext sensitivityContext = SensitivityContext.create(allBusList, context.getLoadFlowContext());
+        SensitivityContext sensitivityContext = SensitivityContext.create(allBusList, acContext.getAcLoadFlowContext());
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 

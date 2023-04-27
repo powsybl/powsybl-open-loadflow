@@ -73,7 +73,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration.getValue());
             outerLoopContext.setLastNewtonRaphsonResult(runningContext.lastNrResult);
-            outerLoopContext.setLoadFlowContext(context);
+            outerLoopContext.setAcLoadFlowContext(context);
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {

@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow;
 
-import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
@@ -21,8 +20,4 @@ public interface OuterLoopContext {
     Object getData();
 
     void setData(Object data);
-
-    LoadFlowContext getLoadFlowContext();
-
-    void setLoadFlowContext(LoadFlowContext loadFlowContext);
 }

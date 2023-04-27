@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.openloadflow.OuterLoopContext;
-import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Objects;
@@ -25,7 +24,7 @@ public class DcOuterLoopContextImpl implements OuterLoopContext {
 
     private Object data;
 
-    private LoadFlowContext loadFlowContext;
+    private DcLoadFlowContext loadFlowContext;
 
     DcOuterLoopContextImpl(LfNetwork network) {
         this.network = Objects.requireNonNull(network);
@@ -55,21 +54,11 @@ public class DcOuterLoopContextImpl implements OuterLoopContext {
         this.data = data;
     }
 
-    @Override
-    public LoadFlowContext getLoadFlowContext() {
+    public DcLoadFlowContext getDcLoadFlowContext() {
         return loadFlowContext;
     }
 
-    public DcLoadFlowContext getDcLoadFlowContext() {
-        if (loadFlowContext.getClass() == DcLoadFlowContext.class) {
-            return (DcLoadFlowContext) loadFlowContext;
-        } else {
-            throw new ClassCastException("loadFlowContext attribute should be of type DcLoadFlowContext in DcOuterLoopContextImpl");
-        }
-    }
-
-    @Override
-    public void setLoadFlowContext(LoadFlowContext loadFlowContext) {
+    public void setLoadFlowContext(DcLoadFlowContext loadFlowContext) {
         this.loadFlowContext = loadFlowContext;
     }
 }
