@@ -389,7 +389,27 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             v1,
                             r1);
 
+                    branchVector.dp1dv1[branchNum] = OpenBranchSide2ActiveFlowEquationTerm.dp1dv1(
+                            branchVector.y[branchNum],
+                            branchVector.cosKsi[branchNum],
+                            branchVector.sinKsi[branchNum],
+                            branchVector.g1[branchNum],
+                            branchVector.g2[branchNum],
+                            branchVector.b2[branchNum],
+                            v1,
+                            r1);
+
                     branchVector.q1[branchNum] = OpenBranchSide2ReactiveFlowEquationTerm.q1(
+                            branchVector.y[branchNum],
+                            branchVector.cosKsi[branchNum],
+                            branchVector.sinKsi[branchNum],
+                            branchVector.b1[branchNum],
+                            branchVector.g2[branchNum],
+                            branchVector.b2[branchNum],
+                            v1,
+                            r1);
+
+                    branchVector.dq1dv1[branchNum] = OpenBranchSide2ReactiveFlowEquationTerm.dq1dv1(
                             branchVector.y[branchNum],
                             branchVector.cosKsi[branchNum],
                             branchVector.sinKsi[branchNum],
@@ -412,7 +432,25 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             branchVector.g2[branchNum],
                             v2);
 
+                    branchVector.dp2dv2[branchNum] = OpenBranchSide1ActiveFlowEquationTerm.dp2dv2(
+                            branchVector.y[branchNum],
+                            branchVector.cosKsi[branchNum],
+                            branchVector.sinKsi[branchNum],
+                            branchVector.g1[branchNum],
+                            branchVector.b1[branchNum],
+                            branchVector.g2[branchNum],
+                            v2);
+
                     branchVector.q2[branchNum] = OpenBranchSide1ReactiveFlowEquationTerm.q2(
+                            branchVector.y[branchNum],
+                            branchVector.cosKsi[branchNum],
+                            branchVector.sinKsi[branchNum],
+                            branchVector.g1[branchNum],
+                            branchVector.b1[branchNum],
+                            branchVector.b2[branchNum],
+                            v2);
+
+                    branchVector.dq2dv2[branchNum] = OpenBranchSide1ReactiveFlowEquationTerm.dq2dv2(
                             branchVector.y[branchNum],
                             branchVector.cosKsi[branchNum],
                             branchVector.sinKsi[branchNum],

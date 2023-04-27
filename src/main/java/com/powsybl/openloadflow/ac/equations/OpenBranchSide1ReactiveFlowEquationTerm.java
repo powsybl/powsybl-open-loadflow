@@ -10,7 +10,6 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -29,10 +28,6 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
     }
 
-    private double v2() {
-        return sv.get(v2Var.getRow());
-    }
-
     public static double q2(double y, double cosKsi, double sinKsi, double g1, double b1, double b2, double v2) {
         double shunt = shunt(y, cosKsi, sinKsi, g1, b1);
         return -R2 * R2 * v2 * v2 * (b2 + y * y * b1 / shunt - (b1 * b1 + g1 * g1) * y * cosKsi / shunt);
@@ -45,14 +40,14 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     @Override
     public double eval() {
-        return q2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, b2, v2());
+        return branchVector.q2[num];
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v2Var)) {
-            return dq2dv2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, b2, v2());
+            return branchVector.dq2dv2[num];
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }

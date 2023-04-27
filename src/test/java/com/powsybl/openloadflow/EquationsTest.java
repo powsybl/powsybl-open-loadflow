@@ -128,10 +128,31 @@ class EquationsTest {
         network = Mockito.mock(LfNetwork.class);
         Mockito.doReturn(List.of(bus1, bus2)).when(network).getBuses();
         Mockito.doReturn(List.of(branch)).when(network).getBranches();
+    }
+
+    private AcBranchVector createBranchVector(LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1,
+                                              EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                              Variable<AcVariableType> v1Var, Variable<AcVariableType> v2Var,
+                                              Variable<AcVariableType> ph1Var, Variable<AcVariableType> ph2Var,
+                                              Variable<AcVariableType> a1Var, Variable<AcVariableType> r1Var) {
+        Mockito.doReturn(deriveA1).when(branch).isPhaseController();
+        Mockito.doReturn(deriveR1).when(branch).isVoltageController();
         Mockito.doReturn(bus1).when(branch).getBus1();
         Mockito.doReturn(bus2).when(branch).getBus2();
-        Mockito.doReturn(true).when(branch).isPhaseController();
-        Mockito.doReturn(true).when(branch).isVoltageController();
+
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
+        AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
+        AcBusVector busVector = networkVector.getBusVector();
+        AcBranchVector branchVector = networkVector.getBranchVector();
+        busVector.vRow[0] = v1Var.getRow();
+        busVector.vRow[1] = v2Var.getRow();
+        busVector.phRow[0] = ph1Var.getRow();
+        busVector.phRow[1] = ph2Var.getRow();
+        branchVector.a1Row[0] = a1Var.getRow();
+        branchVector.r1Row[0] = r1Var.getRow();
+        networkVector.updateBranchVariables();
+        networkVector.updateNetwork();
+        return networkVector.getBranchVector();
     }
 
     @Test
@@ -157,20 +178,9 @@ class EquationsTest {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
         var sv = equationSystem.getStateVector();
         sv.set(new double[] {V_1, PH_1, V_2, PH_2, R_1, A_1, 0});
-        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
-        AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
-        AcBusVector busVector = networkVector.getBusVector();
-        AcBranchVector branchVector = networkVector.getBranchVector();
-        busVector.vRow[0] = v1Var.getRow();
-        busVector.vRow[1] = v2Var.getRow();
-        busVector.phRow[0] = ph1Var.getRow();
-        busVector.phRow[1] = ph2Var.getRow();
-        branchVector.a1Row[0] = a1Var.getRow();
-        branchVector.r1Row[0] = r1Var.getRow();
-        networkVector.updateBranchVariables();
-        networkVector.updateNetwork();
 
         // closed branch equations
+        AcBranchVector branchVector = createBranchVector(bus1, bus2, true, true, equationSystem, v1Var, v2Var, ph1Var, ph2Var, a1Var, r1Var);
         assertArrayEquals(new double[] {41.78173051479356, 48.66261692116701, 138.21343172859858, 29.31710523088579, -138.21343172859858, 54.62161149356045, 138.21343172859858, Double.NaN, 270.81476537421185},
                 eval(new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true), variables, sv));
         assertArrayEquals(new double[] {-3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898, Double.NaN, 162.40477689607334},
@@ -185,19 +195,23 @@ class EquationsTest {
                 eval(new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true), variables, sv));
 
         // open branch equations
+        branchVector = createBranchVector(null, bus2, false, false, equationSystem, v1Var, v2Var, ph1Var, ph2Var, a1Var, r1Var);
         assertArrayEquals(new double[] {0.1717595025847833, Double.NaN, Double.NaN, 0.3204828812456483, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
         assertArrayEquals(new double[] {-0.36364935827807376, Double.NaN, Double.NaN, -0.6785266162875639, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
         assertArrayEquals(new double[] {0.37520249405559764, Double.NaN, Double.NaN, 0.3500416993992393, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {0.15652310047954035, Double.NaN, Double.NaN, 0.2920535601715773, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+
+        branchVector = createBranchVector(bus1, null, false, false, equationSystem, v1Var, v2Var, ph1Var, ph2Var, a1Var, r1Var);
+        assertArrayEquals(new double[] {0.15639470221220209, Double.NaN, Double.NaN, 0.2919337476186018, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2ActiveFlowEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
-        assertArrayEquals(new double[] {-0.331495628053771, Double.NaN, Double.NaN, -0.6185315653587614, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[] {-0.33122369717493005, Double.NaN, Double.NaN, -0.6182778179094991, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
         assertArrayEquals(new double[] {0.3420075216110214, Double.NaN, Double.NaN, 0.31907275662806295, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus2, branchVector, variableSet, false, false), variables, sv));
 
+        branchVector = createBranchVector(bus1, bus2, true, true, equationSystem, v1Var, v2Var, ph1Var, ph2Var, a1Var, r1Var);
         // assert current equation is consistent with active and reactive power ones
         var p1Eq = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, branchVector, variableSet, true, true);
         p1Eq.setStateVector(sv);
