@@ -40,6 +40,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         branchVector = new AcBranchVector(network.getBranches());
     }
 
+    public AcBranchVector getBranchVector() {
+        return branchVector;
+    }
+
     public void startListening() {
         // listen for branch disabling status update
         network.addListener(this);

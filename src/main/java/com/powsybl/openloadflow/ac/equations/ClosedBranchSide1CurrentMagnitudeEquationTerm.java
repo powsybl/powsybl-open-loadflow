@@ -23,9 +23,9 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 @SuppressWarnings("squid:S00107")
 public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    public ClosedBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                         boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+    public ClosedBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, AcBranchVector branchVector,
+                                                         VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
+        super(branch, bus1, bus2, branchVector, variableSet, deriveA1, deriveR1);
     }
 
     @Override

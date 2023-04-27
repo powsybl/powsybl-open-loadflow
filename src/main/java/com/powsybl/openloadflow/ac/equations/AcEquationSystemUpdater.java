@@ -18,11 +18,14 @@ import java.util.Objects;
  */
 public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVariableType, AcEquationType> {
 
+    private final AcNetworkVector networkVector;
+
     private final AcEquationSystemCreationParameters parameters;
 
-    public AcEquationSystemUpdater(EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    public AcEquationSystemUpdater(AcNetworkVector networkVector, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                    AcEquationSystemCreationParameters parameters) {
         super(equationSystem, LoadFlowModel.AC);
+        this.networkVector = Objects.requireNonNull(networkVector);
         this.parameters = Objects.requireNonNull(parameters);
     }
 
@@ -112,7 +115,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         for (LfBus bus : network.getGraph().vertexSet()) {
             bus.getGeneratorVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateReactivePowerDistributionEquations(voltageControl, equationSystem, parameters));
+                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateReactivePowerDistributionEquations(networkVector.getBranchVector(), voltageControl, equationSystem, parameters));
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(voltageControl, equationSystem));

@@ -10,10 +10,14 @@ import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
 
+import java.util.Objects;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
+
+    protected AcBranchVector branchVector;
 
     protected final double b1;
     protected final double b2;
@@ -22,8 +26,9 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
     protected final double y;
     protected final double ksi;
 
-    protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
+    protected AbstractBranchAcFlowEquationTerm(LfBranch branch, AcBranchVector branchVector) {
         super(branch);
+        this.branchVector = Objects.requireNonNull(branchVector);
         PiModel piModel = branch.getPiModel();
         if (piModel.getR() == 0 && piModel.getX() == 0) {
             throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());

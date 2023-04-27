@@ -14,6 +14,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -69,16 +70,18 @@ class LfSwitchTest {
     void setterTest() {
         lfSwitch.getPiModel().setX(LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
 
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem);
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
-        EquationTerm<AcVariableType, AcEquationType> p1 = new ClosedBranchSide1ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
-        EquationTerm<AcVariableType, AcEquationType> p2 = new ClosedBranchSide2ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
+        EquationTerm<AcVariableType, AcEquationType> p1 = new ClosedBranchSide1ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), networkVector.getBranchVector(), variableSet, false, false);
+        EquationTerm<AcVariableType, AcEquationType> p2 = new ClosedBranchSide2ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), networkVector.getBranchVector(), variableSet, false, false);
         lfSwitch.setP1(p1);
         assertEquals(Double.NaN, lfSwitch.getP1().eval());
         lfSwitch.setP2(p2);
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
 
-        EquationTerm<AcVariableType, AcEquationType> i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
-        EquationTerm<AcVariableType, AcEquationType> i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
+        EquationTerm<AcVariableType, AcEquationType> i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), networkVector.getBranchVector(), variableSet, false, false);
+        EquationTerm<AcVariableType, AcEquationType> i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), networkVector.getBranchVector(), variableSet, false, false);
         lfSwitch.setI1(i1);
         assertEquals(Double.NaN, lfSwitch.getP1().eval());
         lfSwitch.setI2(i2);
