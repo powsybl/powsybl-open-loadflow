@@ -337,26 +337,5 @@ class DcLoadFlowTest {
         assertEquals(-81.5, l2.getTerminal2().getP(), 0.01);
         assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
         assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
-
-        /*
-        assertEquals(18.5, l1.getTerminal1().getP(), 0.01);
-        assertEquals(-18.5, l1.getTerminal2().getP(), 0.01);
-        assertEquals(81.5, l2.getTerminal1().getP(), 0.01);
-        assertEquals(-81.5, l2.getTerminal2().getP(), 0.01);
-        assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
-        assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
-
-        // check we have same result if we consider phase shift as a variable with a fixed value
-
-        loadFlowRunner.run(network, parameters);
-
-        assertEquals(18.5, l1.getTerminal1().getP(), 0.01);
-        assertEquals(-18.5, l1.getTerminal2().getP(), 0.01);
-        assertEquals(81.5, l2.getTerminal1().getP(), 0.01);
-        assertEquals(-81.5, l2.getTerminal2().getP(), 0.01);
-        assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
-        assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
-         */
-
     }
 }
