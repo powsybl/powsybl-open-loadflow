@@ -143,9 +143,9 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
             int row = variable.getRow();
             if (row != -1) {
                 double value = 0;
+                // create a derivative even if all terms are not active, to allow later reactivation of terms
+                // that won't create a new matrix element and a simple update of the matrix
                 for (EquationTerm<V, E> term : e.getValue()) {
-                    // create a derivative for all terms including de-activated ones because could be reactivated
-                    // at jacobian update stage without any equation or variable index change
                     if (term.isActive()) {
                         value += term.der(variable);
                     }
