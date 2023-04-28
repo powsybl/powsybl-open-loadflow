@@ -11,6 +11,8 @@ import com.powsybl.openloadflow.network.LfBus;
 import java.util.List;
 
 /**
+ * Vectorized view of the buses. Only variables related the buses at the moment.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcBusVector {

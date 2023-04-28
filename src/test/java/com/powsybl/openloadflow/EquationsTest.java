@@ -150,8 +150,8 @@ class EquationsTest {
         busVector.phRow[1] = ph2Var.getRow();
         branchVector.a1Row[0] = a1Var.getRow();
         branchVector.r1Row[0] = r1Var.getRow();
-        networkVector.updateBranchVariables();
-        networkVector.updateNetwork();
+        networkVector.copyVariablesToBranches();
+        networkVector.updatePowerFlows();
         return networkVector.getBranchVector();
     }
 

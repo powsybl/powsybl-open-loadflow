@@ -19,6 +19,8 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * Vectorized view of the network and variables of the equation system.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcNetworkVector extends AbstractLfNetworkListener
@@ -60,6 +62,9 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         equationSystem.getStateVector().addListener(this);
     }
 
+    /**
+     * Update vectorized view of the variables from the equation system.
+     */
     public void updateVariables() {
         if (!variablesInvalid) {
             return;
@@ -100,15 +105,16 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                     break;
             }
         }
-        updateBranchVariables();
+
+        copyVariablesToBranches();
 
         stopwatch.stop();
-        LOGGER.info("AC variable vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        LOGGER.debug("AC variable vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
 
         variablesInvalid = false;
     }
 
-    public void updateBranchVariables() {
+    public void copyVariablesToBranches() {
         for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
             if (branchVector.bus1Num[branchNum] != -1) {
                 branchVector.v1Row[branchNum] = busVector.vRow[branchVector.bus1Num[branchNum]];
@@ -121,7 +127,10 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         }
     }
 
-    public void updateNetwork() {
+    /**
+     * Update all power flows and their derivatives.
+     */
+    public void updatePowerFlows() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         double[] state = equationSystem.getStateVector().get();
@@ -470,7 +479,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         }
 
         stopwatch.stop();
-        LOGGER.info("AC network vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        LOGGER.debug("AC network vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
     @Override
@@ -505,6 +514,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     @Override
     public void onStateUpdate() {
         updateVariables();
-        updateNetwork();
+        updatePowerFlows();
     }
 }

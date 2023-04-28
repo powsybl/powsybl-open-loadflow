@@ -14,6 +14,9 @@ import net.jafama.FastMath;
 import java.util.List;
 
 /**
+ * Vectorized view of the branches and variables related to branches.
+ * Are included all power flows and theirs partial derivatives.
+ *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public class AcBranchVector {
