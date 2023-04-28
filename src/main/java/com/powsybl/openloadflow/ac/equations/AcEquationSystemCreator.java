@@ -11,7 +11,10 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -60,11 +63,11 @@ public class AcEquationSystemCreator {
         createShuntEquations(bus, equationSystem);
     }
 
-    private void createVoltageControlEquations(AcBranchVector branchVector, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createVoltageControlEquations(AcEquationSystemCreationContext creationContext) {
         for (LfBus bus : network.getBuses()) {
-            createGeneratorVoltageControlEquations(bus, branchVector, equationSystem);
-            createTransformerVoltageControlEquations(bus, equationSystem);
-            createShuntVoltageControlEquations(bus, equationSystem);
+            createGeneratorVoltageControlEquations(bus, creationContext);
+            createTransformerVoltageControlEquations(bus, creationContext.getEquationSystem());
+            createShuntVoltageControlEquations(bus, creationContext.getEquationSystem());
         }
     }
 
@@ -74,24 +77,23 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private void createGeneratorVoltageControlEquations(LfBus bus, AcBranchVector branchVector,
-                                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createGeneratorVoltageControlEquations(LfBus bus, AcEquationSystemCreationContext creationContext) {
         bus.getGeneratorVoltageControl()
                 .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .ifPresent(voltageControl -> {
                     if (bus.isGeneratorVoltageControlled()) {
                         if (voltageControl.isLocalControl()) {
-                            createGeneratorLocalVoltageControlEquation(bus, branchVector, equationSystem);
+                            createGeneratorLocalVoltageControlEquation(bus, creationContext);
                         } else {
-                            createGeneratorRemoteVoltageControlEquations(branchVector, voltageControl, equationSystem);
+                            createGeneratorRemoteVoltageControlEquations(voltageControl, creationContext);
                         }
-                        updateGeneratorVoltageControl(voltageControl, equationSystem);
+                        updateGeneratorVoltageControl(voltageControl, creationContext.getEquationSystem());
                     }
                 });
     }
 
-    private void createGeneratorLocalVoltageControlEquation(LfBus bus, AcBranchVector branchVector,
-                                                            EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createGeneratorLocalVoltageControlEquation(LfBus bus, AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
         if (bus.hasGeneratorsWithSlope()) {
             // take first generator with slope: network loading ensures that there's only one generator with slope
             double slope = bus.getGeneratorsControllingVoltageWithSlope().get(0).getSlope();
@@ -100,7 +102,7 @@ public class AcEquationSystemCreator {
             // equation is: V + slope * qSVC = targetV
             // which is modeled here with: V + slope * (sum_branch qBranch) = TargetV - slope * qLoads + slope * qGenerators
             equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V).orElseThrow()
-                    .addTerms(createReactiveTerms(bus, branchVector, equationSystem.getVariableSet(), creationParameters)
+                    .addTerms(createReactiveTerms(bus, creationContext, creationParameters)
                             .stream()
                             .map(term -> term.multiply(slope))
                             .collect(Collectors.toList()));
@@ -151,7 +153,8 @@ public class AcEquationSystemCreator {
         bus.getSvcShunt().ifPresent(shunt -> createShuntEquation(shunt, bus, equationSystem, false));
     }
 
-    private static void createReactivePowerDistributionEquations(AcBranchVector branchVector, GeneratorVoltageControl voltageControl, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    private static void createReactivePowerDistributionEquations(GeneratorVoltageControl voltageControl,
+                                                                 AcEquationSystemCreationContext creationContext,
                                                                  AcEquationSystemCreationParameters creationParameters) {
         List<LfBus> controllerBuses = voltageControl.getMergedControllerElements();
         for (LfBus controllerBus : controllerBuses) {
@@ -160,13 +163,13 @@ public class AcEquationSystemCreator {
             // 0 = qPercent_i * sum_j(q_j) - q_i
             // which can be rewritten in a more simple way
             // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
-            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
-                    .addTerms(createReactiveTerms(controllerBus, branchVector, equationSystem.getVariableSet(), creationParameters).stream()
+            Equation<AcVariableType, AcEquationType> zero = creationContext.getEquationSystem().createEquation(controllerBus, AcEquationType.DISTR_Q)
+                    .addTerms(createReactiveTerms(controllerBus, creationContext, creationParameters).stream()
                             .map(term -> term.multiply(() -> controllerBus.getRemoteVoltageControlReactivePercent() - 1))
                             .collect(Collectors.toList()));
             for (LfBus otherControllerBus : controllerBuses) {
                 if (otherControllerBus != controllerBus) {
-                    zero.addTerms(createReactiveTerms(otherControllerBus, branchVector, equationSystem.getVariableSet(), creationParameters).stream()
+                    zero.addTerms(createReactiveTerms(otherControllerBus, creationContext, creationParameters).stream()
                             .map(term -> term.multiply(controllerBus::getRemoteVoltageControlReactivePercent))
                             .collect(Collectors.toList()));
                 }
@@ -174,26 +177,27 @@ public class AcEquationSystemCreator {
         }
     }
 
-    public static void recreateReactivePowerDistributionEquations(AcBranchVector branchVector, GeneratorVoltageControl voltageControl,
-                                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem,
+    public static void recreateReactivePowerDistributionEquations(GeneratorVoltageControl voltageControl,
+                                                                  AcEquationSystemCreationContext creationContext,
                                                                   AcEquationSystemCreationParameters parameters) {
+        var equationSystem = creationContext.getEquationSystem();
         for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
             equationSystem.removeEquation(controllerBus.getNum(), AcEquationType.DISTR_Q);
         }
         if (!voltageControl.isLocalControl()) {
-            createReactivePowerDistributionEquations(branchVector, voltageControl, equationSystem, parameters);
+            createReactivePowerDistributionEquations(voltageControl, creationContext, parameters);
         }
         updateGeneratorVoltageControl(voltageControl, equationSystem);
     }
 
-    private void createGeneratorRemoteVoltageControlEquations(AcBranchVector branchVector, GeneratorVoltageControl voltageControl,
-                                                              EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createGeneratorRemoteVoltageControlEquations(GeneratorVoltageControl voltageControl,
+                                                              AcEquationSystemCreationContext creationContext) {
         for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
-            equationSystem.createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
+            creationContext.getEquationSystem().createEquation(controllerBus, AcEquationType.BUS_TARGET_Q);
         }
 
         // create reactive power distribution equations at voltage controller buses
-        createReactivePowerDistributionEquations(branchVector, voltageControl, equationSystem, creationParameters);
+        createReactivePowerDistributionEquations(voltageControl, creationContext, creationParameters);
     }
 
     static <T extends LfElement> void updateRemoteVoltageControlEquations(VoltageControl<T> voltageControl,
@@ -282,9 +286,11 @@ public class AcEquationSystemCreator {
         updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
     }
 
-    private static List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus, AcBranchVector branchVector,
-                                                                                          VariableSet<AcVariableType> variableSet,
+    private static List<EquationTerm<AcVariableType, AcEquationType>> createReactiveTerms(LfBus controllerBus,
+                                                                                          AcEquationSystemCreationContext creationContext,
                                                                                           AcEquationSystemCreationParameters creationParameters) {
+        var variableSet = creationContext.getEquationSystem().getVariableSet();
+        var branchVector = creationContext.getNetworkVector().getBranchVector();
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
@@ -600,8 +606,9 @@ public class AcEquationSystemCreator {
         return branch.isVoltageController();
     }
 
-    private void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, AcBranchVector branchVector,
-                                      EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2, AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
+        var branchVector = creationContext.getNetworkVector().getBranchVector();
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> q1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
@@ -691,19 +698,18 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private void createBranchEquations(LfBranch branch, AcBranchVector branchVector,
-                                       EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createBranchEquations(LfBranch branch, AcEquationSystemCreationContext creationContext) {
         // create zero and non zero impedance branch equations
         if (branch.isZeroImpedance(LoadFlowModel.AC)) {
-            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem, branch.isSpanningTreeEdge(LoadFlowModel.AC));
+            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), creationContext.getEquationSystem(), branch.isSpanningTreeEdge(LoadFlowModel.AC));
         } else {
-            createImpedantBranch(branch, branch.getBus1(), branch.getBus2(), branchVector, equationSystem);
+            createImpedantBranch(branch, branch.getBus1(), branch.getBus2(), creationContext);
         }
     }
 
-    private void createBranchesEquations(AcBranchVector branchVector, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createBranchesEquations(AcEquationSystemCreationContext creationContext) {
         for (LfBranch branch : network.getBranches()) {
-            createBranchEquations(branch, branchVector, equationSystem);
+            createBranchEquations(branch, creationContext);
         }
     }
 
@@ -738,7 +744,9 @@ public class AcEquationSystemCreator {
         return terms;
     }
 
-    private void createMultipleSlackBusesEquations(AcBranchVector branchVector, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    private void createMultipleSlackBusesEquations(AcEquationSystemCreationContext creationContext) {
+        var equationSystem = creationContext.getEquationSystem();
+        var branchVector = creationContext.getNetworkVector().getBranchVector();
         List<LfBus> slackBuses = network.getSlackBuses();
         if (slackBuses.size() > 1) {
             LfBus firstSlackBus = slackBuses.get(0);
@@ -757,20 +765,20 @@ public class AcEquationSystemCreator {
     }
 
     public EquationSystem<AcVariableType, AcEquationType> create() {
-
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
 
         AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
+        AcEquationSystemCreationContext creationContext = new AcEquationSystemCreationContext(equationSystem, networkVector);
 
         createBusesEquations(equationSystem);
-        createMultipleSlackBusesEquations(networkVector.getBranchVector(), equationSystem);
-        createBranchesEquations(networkVector.getBranchVector(), equationSystem);
+        createMultipleSlackBusesEquations(creationContext);
+        createBranchesEquations(creationContext);
 
         for (LfHvdc hvdc : network.getHvdcs()) {
             createHvdcAcEmulationEquations(hvdc, equationSystem);
         }
 
-        createVoltageControlEquations(networkVector.getBranchVector(), equationSystem);
+        createVoltageControlEquations(creationContext);
 
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
