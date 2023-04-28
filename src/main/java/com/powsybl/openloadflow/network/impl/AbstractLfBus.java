@@ -61,7 +61,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt svcShunt;
 
-    protected final LfAggregatedLoadsImpl lfAggregatedLoads;
+    protected final LfLoadImpl load;
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -85,13 +85,11 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double remoteVoltageControlReactivePercent = Double.NaN;
 
-    protected LfZeroImpedanceNetwork dcZeroImpedanceNetwork;
-
-    protected LfZeroImpedanceNetwork acZeroImpedanceNetwork;
+    protected final Map<LoadFlowModel, LfZeroImpedanceNetwork> zeroImpedanceNetwork = new EnumMap<>(LoadFlowModel.class);
 
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
-        lfAggregatedLoads = new LfAggregatedLoadsImpl(distributedOnConformLoad);
+        load = new LfLoadImpl(distributedOnConformLoad);
         this.v = v;
         this.angle = angle;
     }
@@ -226,7 +224,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (p0 < 0) {
             ensurePowerFactorConstantByLoad = true;
         }
-        lfAggregatedLoads.add(load, parameters);
+        this.load.add(load, parameters);
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
@@ -430,8 +428,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public LfAggregatedLoads getAggregatedLoads() {
-        return lfAggregatedLoads;
+    public LfLoad getLoad() {
+        return load;
     }
 
     @Override
@@ -499,7 +497,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ, parameters.isReactiveLimits());
 
         // update load power
-        lfAggregatedLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
+        load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
 
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
@@ -602,17 +600,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
+    public void setZeroImpedanceNetwork(LoadFlowModel loadFlowModel, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
         Objects.requireNonNull(zeroImpedanceNetwork);
-        if (dc) {
-            dcZeroImpedanceNetwork = zeroImpedanceNetwork;
-        } else {
-            acZeroImpedanceNetwork = zeroImpedanceNetwork;
-        }
+        this.zeroImpedanceNetwork.put(loadFlowModel, zeroImpedanceNetwork);
     }
 
     @Override
-    public LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc) {
-        return dc ? dcZeroImpedanceNetwork : acZeroImpedanceNetwork;
+    public LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel) {
+        return zeroImpedanceNetwork.get(loadFlowModel);
     }
 }
