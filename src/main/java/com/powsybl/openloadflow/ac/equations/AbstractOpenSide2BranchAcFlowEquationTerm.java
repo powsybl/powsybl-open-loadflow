@@ -8,8 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.List;
 
@@ -20,13 +18,13 @@ abstract class AbstractOpenSide2BranchAcFlowEquationTerm extends AbstractBranchA
 
     protected final List<Variable<AcVariableType>> variables;
 
-    protected AbstractOpenSide2BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
-                                                        LfBus bus, AcBranchVector branchVector,
+    protected AbstractOpenSide2BranchAcFlowEquationTerm(AcBranchVector branchVector, int branchNum,
+                                                        AcVariableType variableType, int bus1Num,
                                                         VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branch, branchVector);
-        variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
+        super(branchVector, branchNum);
+        variables = List.of(variableSet.getVariable(bus1Num, variableType));
         if (deriveA1 || deriveR1) {
-            throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branch.getId());
+            throw new IllegalArgumentException("Variable A1 or R1 on open branch not supported: " + branchNum);
         }
     }
 

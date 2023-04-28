@@ -8,8 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -26,11 +24,11 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private final Variable<AcVariableType> ph2Var;
 
-    public OpenBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus2, AcBranchVector branchVector,
+    public OpenBranchSide1CurrentMagnitudeEquationTerm(AcBranchVector branchVector, int branchNum, int bus2Num,
                                                        VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branch, AcVariableType.BUS_V, bus2, branchVector, variableSet, deriveA1, deriveR1);
-        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
-        ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
+        super(branchVector, branchNum, AcVariableType.BUS_V, bus2Num, variableSet, deriveA1, deriveR1);
+        v2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_V);
+        ph2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_PHI);
     }
 
     private double v2() {

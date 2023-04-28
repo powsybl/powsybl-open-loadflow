@@ -8,8 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -26,13 +24,13 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
 
     private Variable<AcVariableType> r1Var;
 
-    public OpenBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, AcBranchVector branchVector,
+    public OpenBranchSide2CurrentMagnitudeEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num,
                                                        VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branch, AcVariableType.BUS_V, bus1, branchVector, variableSet, deriveA1, deriveR1);
-        v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
-        ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
+        super(branchVector, branchNum, AcVariableType.BUS_V, bus1Num, variableSet, deriveA1, deriveR1);
+        v1Var = variableSet.getVariable(bus1Num, AcVariableType.BUS_V);
+        ph1Var = variableSet.getVariable(bus1Num, AcVariableType.BUS_PHI);
         if (deriveR1) {
-            r1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BRANCH_RHO1);
+            r1Var = variableSet.getVariable(bus1Num, AcVariableType.BRANCH_RHO1);
         }
     }
 
@@ -45,7 +43,7 @@ public class OpenBranchSide2CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     private double r1() {
-        return r1Var != null ? sv.get(r1Var.getRow()) : element.getPiModel().getR1();
+        return r1Var != null ? sv.get(r1Var.getRow()) : branchVector.r1[num];
     }
 
     private static double gres(double y, double sinksi, double g1, double g2, double b2, double shunt) {

@@ -8,8 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.Objects;
 
@@ -22,10 +20,10 @@ public class OpenBranchSide1ReactiveFlowEquationTerm extends AbstractOpenSide1Br
 
     private final Variable<AcVariableType> v2Var;
 
-    public OpenBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus2, AcBranchVector branchVector,
+    public OpenBranchSide1ReactiveFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus2Num,
                                                    VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branch, AcVariableType.BUS_V, bus2, branchVector, variableSet, deriveA1, deriveR1);
-        v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
+        super(branchVector, branchNum, AcVariableType.BUS_V, bus2Num, variableSet, deriveA1, deriveR1);
+        v2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_V);
     }
 
     public static double q2(double y, double cosKsi, double sinKsi, double g1, double b1, double b2, double v2) {

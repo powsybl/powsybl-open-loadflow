@@ -8,8 +8,6 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -22,15 +20,14 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 @SuppressWarnings("squid:S00107")
 public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
-    public ClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, AcBranchVector branchVector,
+    public ClosedBranchSide1ReactiveFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
                                                      VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, branchVector, variableSet, deriveA1, deriveR1);
+        super(branchVector, branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1);
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
         double y = branchVector.y[num];
         double ksi = branchVector.ksi[num];
-        double g1 = branchVector.g1[num];
         double b1 = branchVector.b1[num];
         double v1 = v1();
         double r1 = r1();
