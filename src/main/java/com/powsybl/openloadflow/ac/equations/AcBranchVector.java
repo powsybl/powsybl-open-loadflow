@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.ElementVector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.PiModel;
@@ -19,7 +20,7 @@ import java.util.List;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcBranchVector {
+public class AcBranchVector implements ElementVector {
 
     final int[] bus1Num;
     final int[] bus2Num;
@@ -170,7 +171,13 @@ public class AcBranchVector {
         }
     }
 
+    @Override
     public int getSize() {
         return disabled.length;
+    }
+
+    @Override
+    public boolean isDisabled(int elementNum) {
+        return disabled[elementNum];
     }
 }

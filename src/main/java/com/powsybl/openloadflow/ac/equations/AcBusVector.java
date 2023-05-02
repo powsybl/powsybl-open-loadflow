@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.openloadflow.equations.ElementVector;
 import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.List;
@@ -15,10 +16,12 @@ import java.util.List;
  *
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcBusVector {
+public class AcBusVector implements ElementVector {
 
     public final int[] vRow;
     public final int[] phRow;
+
+    public final boolean[] disabled;
 
     public final double[] p;
     public final double[] q;
@@ -41,6 +44,7 @@ public class AcBusVector {
         int size = buses.size();
         vRow = new int[size];
         phRow = new int[size];
+        disabled = new boolean[size];
         p = new double[size];
         q = new double[size];
         dpdv1 = new double[size];
@@ -55,5 +59,18 @@ public class AcBusVector {
         dqdph2 = new double[size];
         dqda1 = new double[size];
         dqdr1 = new double[size];
+        for (LfBus bus : buses) {
+            disabled[bus.getNum()] = bus.isDisabled();
+        }
+    }
+
+    @Override
+    public int getSize() {
+        return disabled.length;
+    }
+
+    @Override
+    public boolean isDisabled(int elementNum) {
+        return disabled[elementNum];
     }
 }

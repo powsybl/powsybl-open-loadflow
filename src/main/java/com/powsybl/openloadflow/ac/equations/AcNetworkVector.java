@@ -535,6 +535,8 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     public void onDisableChange(LfElement element, boolean disabled) {
         if (element.getType() == ElementType.BRANCH) {
             branchVector.disabled[element.getNum()] = disabled;
+        } else if (element.getType() == ElementType.BUS) {
+            busVector.disabled[element.getNum()] = disabled;
         }
     }
 
