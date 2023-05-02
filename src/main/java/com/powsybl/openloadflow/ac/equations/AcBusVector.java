@@ -20,8 +20,40 @@ public class AcBusVector {
     public final int[] vRow;
     public final int[] phRow;
 
+    public final double[] p;
+    public final double[] q;
+
+    public final double[] dpdv1;
+    public final double[] dpdv2;
+    public final double[] dpdph1;
+    public final double[] dpdph2;
+    public final double[] dpda1;
+    public final double[] dpdr1;
+
+    public final double[] dqdv1;
+    public final double[] dqdv2;
+    public final double[] dqdph1;
+    public final double[] dqdph2;
+    public final double[] dqda1;
+    public final double[] dqdr1;
+
     public AcBusVector(List<LfBus> buses) {
-        vRow = new int[buses.size()];
-        phRow = new int[buses.size()];
+        int size = buses.size();
+        vRow = new int[size];
+        phRow = new int[size];
+        p = new double[size];
+        q = new double[size];
+        dpdv1 = new double[size];
+        dpdv2 = new double[size];
+        dpdph1 = new double[size];
+        dpdph2 = new double[size];
+        dpda1 = new double[size];
+        dpdr1 = new double[size];
+        dqdv1 = new double[size];
+        dqdv2 = new double[size];
+        dqdph1 = new double[size];
+        dqdph2 = new double[size];
+        dqda1 = new double[size];
+        dqdr1 = new double[size];
     }
 }

@@ -479,7 +479,56 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         }
 
         stopwatch.stop();
-        LOGGER.debug("AC network vector update in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        LOGGER.debug("AC network power flows updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+    }
+
+    public void updateInjections() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        Arrays.fill(busVector.p, 0);
+        Arrays.fill(busVector.q, 0);
+        Arrays.fill(busVector.dpdv1, 0);
+        Arrays.fill(busVector.dpdv2, 0);
+        Arrays.fill(busVector.dpdph1, 0);
+        Arrays.fill(busVector.dpdph2, 0);
+        Arrays.fill(busVector.dpda1, 0);
+        Arrays.fill(busVector.dpdr1, 0);
+        Arrays.fill(busVector.dqdv1, 0);
+        Arrays.fill(busVector.dqdv2, 0);
+        Arrays.fill(busVector.dqdph1, 0);
+        Arrays.fill(busVector.dqdph2, 0);
+        Arrays.fill(busVector.dqda1, 0);
+        Arrays.fill(busVector.dqdr1, 0);
+
+        for (int branchNum = 0; branchNum < branchVector.getSize(); branchNum++) {
+            if (!branchVector.disabled[branchNum]) {
+                if (branchVector.bus1Num[branchNum] != -1) {
+                    busVector.p[branchVector.bus1Num[branchNum]] += branchVector.p1[branchNum];
+                    busVector.q[branchVector.bus1Num[branchNum]] += branchVector.q1[branchNum];
+
+                    busVector.dpdv1[branchVector.bus1Num[branchNum]] += branchVector.dp1dv1[branchNum];
+                    busVector.dpdv2[branchVector.bus1Num[branchNum]] += branchVector.dp1dv2[branchNum];
+                    busVector.dpdph1[branchVector.bus1Num[branchNum]] += branchVector.dp1dph1[branchNum];
+                    busVector.dpdph2[branchVector.bus1Num[branchNum]] += branchVector.dp1dph2[branchNum];
+                    busVector.dpda1[branchVector.bus1Num[branchNum]] += branchVector.dp1da1[branchNum];
+                    busVector.dpdr1[branchVector.bus1Num[branchNum]] += branchVector.dp1dr1[branchNum];
+                }
+                if (branchVector.bus2Num[branchNum] != -1) {
+                    busVector.p[branchVector.bus2Num[branchNum]] += branchVector.p2[branchNum];
+                    busVector.q[branchVector.bus2Num[branchNum]] += branchVector.q2[branchNum];
+
+                    busVector.dqdv1[branchVector.bus2Num[branchNum]] += branchVector.dq1dv1[branchNum];
+                    busVector.dqdv2[branchVector.bus2Num[branchNum]] += branchVector.dq1dv2[branchNum];
+                    busVector.dqdph1[branchVector.bus2Num[branchNum]] += branchVector.dq1dph1[branchNum];
+                    busVector.dqdph2[branchVector.bus2Num[branchNum]] += branchVector.dq1dph2[branchNum];
+                    busVector.dqda1[branchVector.bus2Num[branchNum]] += branchVector.dq1da1[branchNum];
+                    busVector.dqdr1[branchVector.bus2Num[branchNum]] += branchVector.dq1dr1[branchNum];
+                }
+            }
+        }
+
+        stopwatch.stop();
+        LOGGER.debug("AC network injections updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
     @Override
@@ -515,5 +564,6 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     public void onStateUpdate() {
         updateVariables();
         updatePowerFlows();
+        updateInjections();
     }
 }
