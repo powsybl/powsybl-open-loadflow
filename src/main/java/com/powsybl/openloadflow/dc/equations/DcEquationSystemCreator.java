@@ -89,15 +89,13 @@ public class DcEquationSystemCreator {
             equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P)
                     .orElseThrow()
                     .addTerm(p2);
-            if (deriveA1) {
-                if (branch.hasPhaseControllerCapability()) {
-                    // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
-                    EquationTerm<DcVariableType, DcEquationType> a1 = equationSystem.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1)
-                            .createTerm();
-                    branch.setA1(a1);
-                    equationSystem.createEquation(branch, DcEquationType.BRANCH_TARGET_ALPHA1)
-                            .addTerm(a1);
-                }
+            if (deriveA1 || branch.hasPhaseControllerCapability()) {
+                // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
+                EquationTerm<DcVariableType, DcEquationType> a1 = equationSystem.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1)
+                        .createTerm();
+                branch.setA1(a1);
+                equationSystem.createEquation(branch, DcEquationType.BRANCH_TARGET_ALPHA1)
+                        .addTerm(a1);
             }
             if (creationParameters.isUpdateFlows()) {
                 branch.setP1(p1);

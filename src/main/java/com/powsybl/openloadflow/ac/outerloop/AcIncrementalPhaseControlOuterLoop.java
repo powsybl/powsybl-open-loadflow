@@ -228,6 +228,18 @@ public class AcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
         return updated.booleanValue();
     }
 
+    private static double computeIb(TransformerPhaseControl phaseControl) {
+        LfBus bus = phaseControl.getControlledSide() == ControlledSide.ONE
+                ? phaseControl.getControlledBranch().getBus1() : phaseControl.getControlledBranch().getBus2();
+        return PerUnit.ib(bus.getNominalV());
+    }
+
+    private static double computeI(TransformerPhaseControl phaseControl) {
+        var i = phaseControl.getControlledSide() == ControlledSide.ONE
+                ? phaseControl.getControlledBranch().getI1() : phaseControl.getControlledBranch().getI2();
+        return i.eval();
+    }
+
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         AcOuterLoopContextImpl acContext;

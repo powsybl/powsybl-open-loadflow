@@ -111,69 +111,6 @@ public class DcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
         }
     }
 
-    private static boolean checkCurrentLimiterPhaseControls(DcSensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                            List<TransformerPhaseControl> currentLimiterPhaseControls) {
-        MutableBoolean updated = new MutableBoolean(false);
-
-        for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
-            LfBranch controllerBranch = phaseControl.getControllerBranch();
-            LfBranch controlledBranch = phaseControl.getControlledBranch();
-            double i = computeI(phaseControl);
-            if (i > phaseControl.getTargetValue()) {
-                var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                double di = phaseControl.getTargetValue() - i;
-                double a2i = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, controlledBranch, phaseControl.getControlledSide());
-                if (Math.abs(a2i) > SENSI_EPS) {
-                    double da = Math.toRadians(di / a2i);
-                    double ib = computeIb(phaseControl);
-                    LOGGER.trace("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
-                            controlledBranch.getId(), i * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
-                    PiModel piModel = controllerBranch.getPiModel();
-
-                    int oldTapPosition = piModel.getTapPosition();
-                    double oldA1 = piModel.getA1();
-                    Range<Integer> tapPositionRange = piModel.getTapPositionRange();
-                    piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                        controllerContext.updateAllowedDirection(direction);
-                        updated.setValue(true);
-                    });
-
-                    if (piModel.getTapPosition() != oldTapPosition) {
-                        LOGGER.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
-                                oldTapPosition, piModel.getTapPosition(), tapPositionRange);
-
-                        double discreteDa = piModel.getA1() - oldA1;
-                        checkImpactOnOtherPhaseShifters(sensitivityContext, phaseControl, currentLimiterPhaseControls, discreteDa);
-                    }
-                }
-            }
-        }
-
-        return updated.booleanValue();
-    }
-
-    private static void checkImpactOnOtherPhaseShifters(DcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
-                                                        List<TransformerPhaseControl> currentLimiterPhaseControls, double da) {
-        LfBranch controllerBranch = phaseControl.getControllerBranch();
-        for (TransformerPhaseControl otherPhaseControl : currentLimiterPhaseControls) {
-            if (otherPhaseControl != phaseControl) {
-                LfBranch otherControlledBranch = otherPhaseControl.getControlledBranch();
-                double i = computeI(otherPhaseControl);
-                if (i > otherPhaseControl.getTargetValue()) {
-                    // get cross sensitivity of the phase shifter controller branch on the other phase shifter controlled branch
-                    double crossA2i = sensitivityContext.calculateSensitivityFromA2I(controllerBranch, otherControlledBranch,
-                            otherPhaseControl.getControlledSide());
-                    double ib = computeIb(otherPhaseControl);
-                    double di = Math.toDegrees(da) * crossA2i;
-                    if (di > PHASE_SHIFT_CROSS_IMPACT_MARGIN * (i - otherPhaseControl.getTargetValue())) {
-                        LOGGER.warn("Controller branch '{}' tap change significantly impact (≈ {} A) another phase shifter current also above its limit '{}', simulation might not be reliable",
-                                controllerBranch.getId(), di * ib, otherPhaseControl.getControlledBranch().getId());
-                    }
-                }
-            }
-        }
-    }
-
     private static boolean checkActivePowerControlPhaseControls(DcSensitivityContext sensitivityContext, IncrementalContextData contextData,
                                                                 List<TransformerPhaseControl> activePowerControlPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
@@ -253,19 +190,14 @@ public class DcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
                     dcContext.getDcLoadFlowContext().getEquationSystem(),
                     dcContext.getDcLoadFlowContext().getJacobianMatrix());
 
-            if (!currentLimiterPhaseControls.isEmpty()
-                    && checkCurrentLimiterPhaseControls(sensitivityContext,
-                    contextData,
-                    currentLimiterPhaseControls)) {
-                status = OuterLoopStatus.UNSTABLE;
-            }
-
             if (!activePowerControlPhaseControls.isEmpty()
                     && checkActivePowerControlPhaseControls(sensitivityContext,
                     contextData,
                     activePowerControlPhaseControls)) {
                 status = OuterLoopStatus.UNSTABLE;
             }
+
+            // Current limiter is currently not implemented
         }
 
         return status;

@@ -35,18 +35,6 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop extends AbstractP
         fixPhaseShifterNecessaryForConnectivity(context.getNetwork(), controllerBranches);
     }
 
-    public static double computeIb(TransformerPhaseControl phaseControl) {
-        LfBus bus = phaseControl.getControlledSide() == ControlledSide.ONE
-                ? phaseControl.getControlledBranch().getBus1() : phaseControl.getControlledBranch().getBus2();
-        return PerUnit.ib(bus.getNominalV());
-    }
-
-    public static double computeI(TransformerPhaseControl phaseControl) {
-        var i = phaseControl.getControlledSide() == ControlledSide.ONE
-                ? phaseControl.getControlledBranch().getI1() : phaseControl.getControlledBranch().getI2();
-        return i.eval();
-    }
-
     public static double getHalfTargetDeadband(TransformerPhaseControl phaseControl) {
         return Math.max(phaseControl.getTargetDeadband(), MIN_TARGET_DEADBAND) / 2;
     }

@@ -337,5 +337,19 @@ class DcLoadFlowTest {
         assertEquals(-81.5, l2.getTerminal2().getP(), 0.01);
         assertEquals(81.5, ps1.getTerminal1().getP(), 0.01);
         assertEquals(-81.5, ps1.getTerminal2().getP(), 0.01);
+
+        ps1.getPhaseTapChanger().setRegulationTerminal(ps1.getTerminal1());
+        ps1.getPhaseTapChanger().setTapPosition(0);
+        ps1.getPhaseTapChanger().setRegulationValue(50);
+
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(1, ps1.getPhaseTapChanger().getTapPosition());
+        assertEquals(50, l1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l1.getTerminal2().getP(), 0.01);
+        assertEquals(50, l2.getTerminal1().getP(), 0.01);
+        assertEquals(-50, l2.getTerminal2().getP(), 0.01);
+        assertEquals(50, ps1.getTerminal1().getP(), 0.01);
+        assertEquals(-50, ps1.getTerminal2().getP(), 0.01);
     }
 }
