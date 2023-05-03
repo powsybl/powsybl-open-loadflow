@@ -47,27 +47,27 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
         return r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
     }
 
-    private static double dp1dv1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
+    public static double dp1dv1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
         return r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
     }
 
-    private static double dp1dv2(double y, double v1, double r1, double sinTheta) {
+    public static double dp1dv2(double y, double v1, double r1, double sinTheta) {
         return -y * r1 * R2 * v1 * sinTheta;
     }
 
-    private static double dp1dph1(double y, double v1, double r1, double v2, double cosTheta) {
+    public static double dp1dph1(double y, double v1, double r1, double v2, double cosTheta) {
         return y * r1 * R2 * v1 * v2 * cosTheta;
     }
 
-    private static double dp1dph2(double y, double v1, double r1, double v2, double cosTheta) {
+    public static double dp1dph2(double y, double v1, double r1, double v2, double cosTheta) {
         return -dp1dph1(y, v1, r1, v2, cosTheta);
     }
 
-    private static double dp1da1(double y, double v1, double r1, double v2, double cosTheta) {
+    public static double dp1da1(double y, double v1, double r1, double v2, double cosTheta) {
         return dp1dph1(y, v1, r1, v2, cosTheta);
     }
 
-    private static double dp1dr1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
+    public static double dp1dr1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
         return v1 * (2 * r1 * v1 * (g1 + y * sinKsi) - y * R2 * v2 * sinTheta);
     }
 
