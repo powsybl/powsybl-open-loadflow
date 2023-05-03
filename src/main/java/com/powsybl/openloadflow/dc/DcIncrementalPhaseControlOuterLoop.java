@@ -77,15 +77,6 @@ public class DcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
             return rhs;
         }
 
-        private static EquationTerm<DcVariableType, DcEquationType> getI1(LfBranch controlledBranch) {
-            return (EquationTerm<DcVariableType, DcEquationType>) controlledBranch.getI1();
-        }
-
-        @SuppressWarnings("unchecked")
-        private static EquationTerm<DcVariableType, DcEquationType> getI2(LfBranch controlledBranch) {
-            return (EquationTerm<DcVariableType, DcEquationType>) controlledBranch.getI2();
-        }
-
         @SuppressWarnings("unchecked")
         private static EquationTerm<DcVariableType, DcEquationType> getP1(LfBranch controlledBranch) {
             return (EquationTerm<DcVariableType, DcEquationType>) controlledBranch.getP1();
@@ -98,11 +89,6 @@ public class DcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
 
         double calculateSensitivityFromA2S(LfBranch controllerBranch, EquationTerm<DcVariableType, DcEquationType> s) {
             return s.calculateSensi(getSensitivities(), controllerBranchIndex[controllerBranch.getNum()]);
-        }
-
-        public double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
-            var i = controlledSide == ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
-            return calculateSensitivityFromA2S(controllerBranch, i);
         }
 
         double calculateSensitivityFromA2P(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
