@@ -281,11 +281,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         AcOuterLoopContextImpl acContext;
-        if (context.getClass() == AcOuterLoopContextImpl.class) {
-            acContext = (AcOuterLoopContextImpl) context;
-        } else {
-            throw new ClassCastException("context attribute should be of type AcOuterLoopContextImpl in SecondaryVoltageControlOuterLoop");
-        }
+        acContext = (AcOuterLoopContextImpl) context;
+
         LfNetwork network = acContext.getNetwork();
 
         // find active secondary voltage controls

@@ -153,11 +153,8 @@ public class DcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         DcOuterLoopContextImpl dcContext;
-        if (context.getClass() == DcOuterLoopContextImpl.class) {
-            dcContext = (DcOuterLoopContextImpl) context;
-        } else {
-            throw new ClassCastException("context attribute should be of type DcOuterLoopContextImpl in DcPhaseShifterControlOuterLoop");
-        }
+        dcContext = (DcOuterLoopContextImpl) context;
+
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         var contextData = (IncrementalContextData) dcContext.getData();

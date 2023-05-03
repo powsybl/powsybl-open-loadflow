@@ -47,11 +47,7 @@ public class DistributedSlackOuterLoop implements OuterLoop {
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         AcOuterLoopContextImpl acContext;
-        if (context.getClass() == AcOuterLoopContextImpl.class) {
-            acContext = (AcOuterLoopContextImpl) context;
-        } else {
-            throw new ClassCastException("context attribute should be of type AcOuterLoopContextImpl in DistributedSlackOuterLoop");
-        }
+        acContext = (AcOuterLoopContextImpl) context;
 
         double slackBusActivePowerMismatch = acContext.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
         if (Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB) {

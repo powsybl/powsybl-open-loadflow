@@ -190,11 +190,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         AcOuterLoopContextImpl acContext;
-        if (context.getClass() == AcOuterLoopContextImpl.class) {
-            acContext = (AcOuterLoopContextImpl) context;
-        } else {
-            throw new ClassCastException("context attribute should be of type AcOuterLoopContextImpl in IncrementalTransformerVoltageControlOuterLoop");
-        }
+        acContext = (AcOuterLoopContextImpl) context;
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = acContext.getNetwork();
