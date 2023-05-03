@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalPhaseControlOuterLoop.SensitivityContext;
+import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -582,7 +582,7 @@ class AcLoadFlowPhaseShifterTest {
             assertEquals(NewtonRaphsonStatus.CONVERGED, lfResult.getNewtonRaphsonStatus());
             LfBranch ps1 = lfNetwork.getBranchById("PS1");
             List<LfBranch> controllerBranches = List.of(ps1);
-            var sensitivityContext = new SensitivityContext(lfNetwork,
+            var sensitivityContext = new AcIncrementalPhaseControlOuterLoop.AcSensitivityContext(lfNetwork,
                                                             controllerBranches,
                                                             lfContext.getEquationSystem(),
                                                             lfContext.getJacobianMatrix());

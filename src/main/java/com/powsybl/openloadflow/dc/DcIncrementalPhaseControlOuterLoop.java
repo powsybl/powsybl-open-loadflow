@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.AbstractPhaseControlOuterLoop;
-import com.powsybl.openloadflow.OuterLoopContext;
-import com.powsybl.openloadflow.IncrementalContextData;
-import com.powsybl.openloadflow.OuterLoopStatus;
+import com.powsybl.openloadflow.*;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -31,35 +28,16 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoop {
+public class DcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhaseControlOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DcPhaseShifterControlOuterLoop.class);
-
-    private static final int MAX_DIRECTION_CHANGE = 2;
-    private static final int MAX_TAP_SHIFT = Integer.MAX_VALUE;
-    private static final double MIN_TARGET_DEADBAND = 1 / PerUnit.SB; // 1 MW
-    private static final double SENSI_EPS = 1e-6;
-    private static final double PHASE_SHIFT_CROSS_IMPACT_MARGIN = 0.75;
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcIncrementalPhaseControlOuterLoop.class);
 
     @Override
     public String getType() {
-        return "DC phase shifter control";
+        return "DC Incremental phase control";
     }
 
-    @Override
-    public void initialize(OuterLoopContext context) {
-        var contextData = new IncrementalContextData();
-        context.setData(contextData);
-
-        List<LfBranch> controllerBranches = getControllerBranches(context.getNetwork());
-        for (LfBranch controllerBranch : controllerBranches) {
-            contextData.getControllersContexts().put(controllerBranch.getId(), new IncrementalContextData.ControllerContext(MAX_DIRECTION_CHANGE));
-        }
-
-        fixPhaseShifterNecessaryForConnectivity(context.getNetwork(), controllerBranches);
-    }
-
-    public static class SensitivityContext {
+    public static class DcSensitivityContext {
 
         private final List<LfBranch> controllerBranches;
 
@@ -71,7 +49,7 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
 
         private DenseMatrix sensitivities;
 
-        public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
+        public DcSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                   JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix) {
             this.controllerBranches = Objects.requireNonNull(controllerBranches);
@@ -133,19 +111,7 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
         }
     }
 
-    private static double computeIb(TransformerPhaseControl phaseControl) {
-        LfBus bus = phaseControl.getControlledSide() == ControlledSide.ONE
-                ? phaseControl.getControlledBranch().getBus1() : phaseControl.getControlledBranch().getBus2();
-        return PerUnit.ib(bus.getNominalV());
-    }
-
-    private static double computeI(TransformerPhaseControl phaseControl) {
-        var i = phaseControl.getControlledSide() == ControlledSide.ONE
-                ? phaseControl.getControlledBranch().getI1() : phaseControl.getControlledBranch().getI2();
-        return i.eval();
-    }
-
-    private static boolean checkCurrentLimiterPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
+    private static boolean checkCurrentLimiterPhaseControls(DcSensitivityContext sensitivityContext, IncrementalContextData contextData,
                                                             List<TransformerPhaseControl> currentLimiterPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
 
@@ -186,7 +152,7 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
         return updated.booleanValue();
     }
 
-    private static void checkImpactOnOtherPhaseShifters(SensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
+    private static void checkImpactOnOtherPhaseShifters(DcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
                                                         List<TransformerPhaseControl> currentLimiterPhaseControls, double da) {
         LfBranch controllerBranch = phaseControl.getControllerBranch();
         for (TransformerPhaseControl otherPhaseControl : currentLimiterPhaseControls) {
@@ -208,11 +174,7 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
         }
     }
 
-    private static double getHalfTargetDeadband(TransformerPhaseControl phaseControl) {
-        return Math.max(phaseControl.getTargetDeadband(), MIN_TARGET_DEADBAND) / 2;
-    }
-
-    private static boolean checkActivePowerControlPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
+    private static boolean checkActivePowerControlPhaseControls(DcSensitivityContext sensitivityContext, IncrementalContextData contextData,
                                                                 List<TransformerPhaseControl> activePowerControlPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
 
@@ -286,7 +248,7 @@ public class DcPhaseShifterControlOuterLoop extends AbstractPhaseControlOuterLoo
         }
 
         if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
-            var sensitivityContext = new SensitivityContext(network,
+            var sensitivityContext = new DcSensitivityContext(network,
                     controllerBranches,
                     dcContext.getDcLoadFlowContext().getEquationSystem(),
                     dcContext.getDcLoadFlowContext().getJacobianMatrix());

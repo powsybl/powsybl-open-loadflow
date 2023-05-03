@@ -90,15 +90,13 @@ public class DcEquationSystemCreator {
                     .orElseThrow()
                     .addTerm(p2);
             if (deriveA1) {
-                if (creationParameters.isForcePhaseControlOffAndAddAngle1Var() || creationParameters.isPhaseShifterRegulationOn()) {
+                if (branch.hasPhaseControllerCapability()) {
                     // use for sensitiviy analysis only: with this equation term, we force the a1 variable to be constant.
                     EquationTerm<DcVariableType, DcEquationType> a1 = equationSystem.getVariable(branch.getNum(), DcVariableType.BRANCH_ALPHA1)
                             .createTerm();
                     branch.setA1(a1);
                     equationSystem.createEquation(branch, DcEquationType.BRANCH_TARGET_ALPHA1)
                             .addTerm(a1);
-                } else {
-                    //TODO
                 }
             }
             if (creationParameters.isUpdateFlows()) {

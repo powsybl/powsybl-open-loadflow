@@ -11,13 +11,13 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.OuterLoop;
 import com.powsybl.openloadflow.OuterLoopContext;
 import com.powsybl.openloadflow.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContextImpl;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -96,7 +96,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
             this.sensitivities = Objects.requireNonNull(sensitivities);
         }
 
-        static SensitivityContext create(List<LfBus> buses, LoadFlowContext context) {
+        static SensitivityContext create(List<LfBus> buses, AcLoadFlowContext context) {
             var busNumToSensiColumn = buildBusIndex(buses);
 
             DenseMatrix sensitivities = calculateSensitivityValues(buses, busNumToSensiColumn, context.getEquationSystem(),

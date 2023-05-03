@@ -8,10 +8,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.AbstractPhaseControlOuterLoop;
-import com.powsybl.openloadflow.IncrementalContextData;
-import com.powsybl.openloadflow.OuterLoopContext;
-import com.powsybl.openloadflow.OuterLoopStatus;
+import com.powsybl.openloadflow.*;
 import com.powsybl.openloadflow.ac.AcOuterLoopContextImpl;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -32,19 +29,13 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
+public class AcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhaseControlOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalPhaseControlOuterLoop.class);
-
-    private static final int MAX_DIRECTION_CHANGE = 2;
-    private static final int MAX_TAP_SHIFT = Integer.MAX_VALUE;
-    private static final double MIN_TARGET_DEADBAND = 1 / PerUnit.SB; // 1 MW
-    private static final double SENSI_EPS = 1e-6;
-    private static final double PHASE_SHIFT_CROSS_IMPACT_MARGIN = 0.75;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class);
 
     @Override
     public String getType() {
-        return "Incremental phase control";
+        return "AC Incremental phase control";
     }
 
     @Override
@@ -60,7 +51,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         fixPhaseShifterNecessaryForConnectivity(context.getNetwork(), controllerBranches);
     }
 
-    public static class SensitivityContext {
+    public static class AcSensitivityContext {
 
         private final List<LfBranch> controllerBranches;
 
@@ -72,7 +63,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
 
         private DenseMatrix sensitivities;
 
-        public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
+        public AcSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                   JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
             this.controllerBranches = Objects.requireNonNull(controllerBranches);
@@ -135,19 +126,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         }
     }
 
-    private static double computeIb(TransformerPhaseControl phaseControl) {
-        LfBus bus = phaseControl.getControlledSide() == ControlledSide.ONE
-                ? phaseControl.getControlledBranch().getBus1() : phaseControl.getControlledBranch().getBus2();
-        return PerUnit.ib(bus.getNominalV());
-    }
-
-    private static double computeI(TransformerPhaseControl phaseControl) {
-        var i = phaseControl.getControlledSide() == ControlledSide.ONE
-                ? phaseControl.getControlledBranch().getI1() : phaseControl.getControlledBranch().getI2();
-        return i.eval();
-    }
-
-    private static boolean checkCurrentLimiterPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
+    private static boolean checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
                                                             List<TransformerPhaseControl> currentLimiterPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
 
@@ -188,7 +167,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         return updated.booleanValue();
     }
 
-    private static void checkImpactOnOtherPhaseShifters(SensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
+    private static void checkImpactOnOtherPhaseShifters(AcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
                                                         List<TransformerPhaseControl> currentLimiterPhaseControls, double da) {
         LfBranch controllerBranch = phaseControl.getControllerBranch();
         for (TransformerPhaseControl otherPhaseControl : currentLimiterPhaseControls) {
@@ -210,11 +189,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         }
     }
 
-    private static double getHalfTargetDeadband(TransformerPhaseControl phaseControl) {
-        return Math.max(phaseControl.getTargetDeadband(), MIN_TARGET_DEADBAND) / 2;
-    }
-
-    private static boolean checkActivePowerControlPhaseControls(SensitivityContext sensitivityContext, IncrementalContextData contextData,
+    private static boolean checkActivePowerControlPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
                                                                 List<TransformerPhaseControl> activePowerControlPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
 
@@ -289,7 +264,7 @@ public class IncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterL
         }
 
         if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
-            var sensitivityContext = new SensitivityContext(network,
+            var sensitivityContext = new AcSensitivityContext(network,
                                                             controllerBranches,
                                                             acContext.getAcLoadFlowContext().getEquationSystem(),
                                                             acContext.getAcLoadFlowContext().getJacobianMatrix());

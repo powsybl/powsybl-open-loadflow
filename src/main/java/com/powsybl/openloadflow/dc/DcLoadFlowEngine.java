@@ -171,7 +171,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                                         Collection<LfBus> disabledBuses, Collection<LfBranch> disabledBranches,
                                         Reporter reporter) {
         // outer loop initialization
-        DcPhaseShifterControlOuterLoop dcPhaseShifterControlOuterLoop = new DcPhaseShifterControlOuterLoop();
+        DcIncrementalPhaseControlOuterLoop dcPhaseShifterControlOuterLoop = new DcIncrementalPhaseControlOuterLoop();
         DcOuterLoopContextImpl outerLoopContext = new DcOuterLoopContextImpl(network);
         if (parameters.getNetworkParameters().isPhaseControl()) {
             dcPhaseShifterControlOuterLoop.initialize(outerLoopContext);
