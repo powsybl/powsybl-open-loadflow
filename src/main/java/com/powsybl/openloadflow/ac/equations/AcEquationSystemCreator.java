@@ -11,7 +11,10 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.TransformerPhaseControl.Mode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -58,6 +61,18 @@ public class AcEquationSystemCreator {
         bus.setCalculatedV(vTerm);
 
         createShuntEquations(bus, equationSystem);
+        createLoadEquations(bus, equationSystem);
+    }
+
+    private void createLoadEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        for (var e : bus.getLoadsByModel().entrySet()) {
+            LfLoadModel loadModel = e.getKey();
+            LfLoad load = e.getValue();
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P)
+                    .addTerm(new LoadModelActiveFlowEquationTerm(bus, loadModel, load, equationSystem.getVariableSet()));
+            equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q)
+                    .addTerm(new LoadModelReactiveFlowEquationTerm(bus, loadModel, load, equationSystem.getVariableSet()));
+        }
     }
 
     private void createVoltageControlEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {

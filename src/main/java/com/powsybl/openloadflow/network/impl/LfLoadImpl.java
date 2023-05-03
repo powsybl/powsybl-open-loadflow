@@ -25,6 +25,10 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
 
     private double[] participationFactors;
 
+    private double targetP;
+
+    private double targetQ;
+
     private double absVariableTargetP;
 
     private final boolean distributedOnConformLoad;
@@ -49,6 +53,18 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     }
 
     @Override
+    public double getTargetP() {
+        init();
+        return targetP;
+    }
+
+    @Override
+    public double getTargetQ() {
+        init();
+        return targetQ;
+    }
+
+    @Override
     public double getAbsVariableTargetP() {
         init();
         return absVariableTargetP;
@@ -65,17 +81,21 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         }
 
         participationFactors = new double[loadsRefs.size()];
+        targetP = 0;
+        targetQ = 0;
         absVariableTargetP = 0;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
-            double value;
+            targetP += load.getP0() / PerUnit.SB;
+            targetQ += load.getQ0() / PerUnit.SB;
+            double absValue;
             if (distributedOnConformLoad) {
-                value = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
+                absValue = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
             } else {
-                value = Math.abs(load.getP0());
+                absValue = Math.abs(load.getP0());
             }
-            absVariableTargetP += value;
-            participationFactors[i] = value;
+            absVariableTargetP += absValue;
+            participationFactors[i] = absValue;
         }
 
         if (absVariableTargetP != 0) {

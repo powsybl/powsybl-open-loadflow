@@ -14,6 +14,10 @@ import java.util.Map;
  */
 public interface LfLoad extends PropertyBag {
 
+    double getTargetP();
+
+    double getTargetQ();
+
     double getAbsVariableTargetP();
 
     void setAbsVariableTargetP(double absVariableTargetP);
