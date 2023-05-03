@@ -197,4 +197,6 @@ public interface LfBus extends LfElement {
     void setZeroImpedanceNetwork(LoadFlowModel loadFlowModel, LfZeroImpedanceNetwork zeroImpedanceNetwork);
 
     LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel);
+
+    Map<LfLoadModel, LfLoad> getLoadsByModel();
 }

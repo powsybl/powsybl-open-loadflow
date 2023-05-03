@@ -87,6 +87,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final Map<LoadFlowModel, LfZeroImpedanceNetwork> zeroImpedanceNetwork = new EnumMap<>(LoadFlowModel.class);
 
+    protected final Map<LfLoadModel, LfLoad> loadsByModel = new LinkedHashMap<>();
+
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
         load = new LfLoadImpl(distributedOnConformLoad);
@@ -216,15 +218,52 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         }
     }
 
-    void addLoad(Load load, LfNetworkParameters parameters) {
-        double p0 = load.getP0();
-        loadTargetP += p0 / PerUnit.SB;
-        initialLoadTargetP += p0 / PerUnit.SB;
-        loadTargetQ += load.getQ0() / PerUnit.SB;
-        if (p0 < 0) {
-            ensurePowerFactorConstantByLoad = true;
+    private static LfLoadModel createLoadModel(LoadModel loadModel) {
+        if (loadModel.getType() == LoadModelType.ZIP) {
+            ZipLoadModel zipLoadModel = (ZipLoadModel) loadModel;
+            return new LfLoadModel(List.of(new LfLoadModel.Term(0, zipLoadModel.getC0p()),
+                                           new LfLoadModel.Term(1, zipLoadModel.getC1p()),
+                                           new LfLoadModel.Term(2, zipLoadModel.getC2p())),
+                                   List.of(new LfLoadModel.Term(0, zipLoadModel.getC0q()),
+                                           new LfLoadModel.Term(1, zipLoadModel.getC1q()),
+                                           new LfLoadModel.Term(2, zipLoadModel.getC2q())));
+        } else if (loadModel.getType() == LoadModelType.EXPONENTIAL) {
+            ExponentialLoadModel expoLoadModel = (ExponentialLoadModel) loadModel;
+            return new LfLoadModel(List.of(new LfLoadModel.Term(expoLoadModel.getNp(), 1)),
+                                   List.of(new LfLoadModel.Term(expoLoadModel.getNq(), 1)));
+        } else {
+            throw new PowsyblException("Unsupported load model: " + loadModel.getType());
         }
-        this.load.add(load, parameters);
+    }
+
+    void addLoad(Load load, LfNetworkParameters parameters) {
+        load.getModel().ifPresentOrElse(loadModel -> {
+            LfLoadModel lfLoadModel = createLoadModel(loadModel);
+
+            ((LfLoadImpl) loadsByModel.computeIfAbsent(lfLoadModel, m -> new LfLoadImpl(false)))
+                    .add(load, parameters);
+
+            // get constant part of the load model
+            lfLoadModel.getTermP(0).ifPresent(term -> {
+                double p0 = load.getP0() / PerUnit.SB * term.getC();
+                loadTargetP += p0;
+                initialLoadTargetP += p0;
+                if (p0 < 0) {
+                    ensurePowerFactorConstantByLoad = true;
+                }
+            });
+
+            lfLoadModel.getTermQ(0).ifPresent(term -> loadTargetQ += load.getQ0() / PerUnit.SB * term.getC());
+        }, () -> {
+                double p0 = load.getP0() / PerUnit.SB;
+                loadTargetP += p0;
+                initialLoadTargetP += p0;
+                loadTargetQ += load.getQ0() / PerUnit.SB;
+                if (p0 < 0) {
+                    ensurePowerFactorConstantByLoad = true;
+                }
+                AbstractLfBus.this.load.add(load, parameters);
+            });
     }
 
     void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
@@ -608,5 +647,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel) {
         return zeroImpedanceNetwork.get(loadFlowModel);
+    }
+
+    @Override
+    public Map<LfLoadModel, LfLoad> getLoadsByModel() {
+        return loadsByModel;
     }
 }
