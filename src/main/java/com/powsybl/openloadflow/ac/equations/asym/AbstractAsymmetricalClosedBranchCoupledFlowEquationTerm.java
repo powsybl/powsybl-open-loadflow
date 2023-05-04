@@ -60,6 +60,9 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
         Objects.requireNonNull(variableSet);
+        this.complexPart = Objects.requireNonNull(complexPart);
+        this.side = Objects.requireNonNull(side);
+        this.sequenceType = Objects.requireNonNull(sequenceType);
 
         v1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_V);
         v2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_V);
@@ -88,10 +91,6 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         variables.add(v2VarZero);
         variables.add(ph1VarZero);
         variables.add(ph2VarZero);
-
-        this.complexPart = complexPart;
-        this.side = side;
-        this.sequenceType = sequenceType;
     }
 
     protected static SequenceType getSequenceType(Variable<AcVariableType> variable) {
@@ -109,7 +108,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
                 return SequenceType.ZERO;
 
             default:
-                throw new IllegalStateException("Unknown variable: ");
+                throw new IllegalStateException("Unknown variable: " + variable);
         }
     }
 
@@ -189,5 +188,4 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
             throw new IllegalStateException("Unknown variable type");
         }
     }
-
 }

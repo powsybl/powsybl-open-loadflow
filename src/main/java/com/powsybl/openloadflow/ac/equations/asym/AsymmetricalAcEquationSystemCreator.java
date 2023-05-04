@@ -83,17 +83,17 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
         if (Math.abs(bus.getLoadTargetP()) > epsilon || Math.abs(bus.getLoadTargetQ()) > epsilon) {
             // load modelled as a constant power load in abc phase representation leading to a model depending on vd, vi, vo in fortescue representation
-            LoadFortescuePowerEquationTerm ixLoadZero = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), true, SequenceType.ZERO);
+            LoadFortescuePowerEquationTerm ixLoadZero = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.ZERO);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO).addTerm(ixLoadZero);
-            LoadFortescuePowerEquationTerm pLoadPositive = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), true, SequenceType.POSITIVE);
+            LoadFortescuePowerEquationTerm pLoadPositive = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.POSITIVE);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(pLoadPositive);
-            LoadFortescuePowerEquationTerm ixLoadNegative = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), true, SequenceType.NEGATIVE);
+            LoadFortescuePowerEquationTerm ixLoadNegative = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.REAL, SequenceType.NEGATIVE);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixLoadNegative);
-            LoadFortescuePowerEquationTerm iyLoadZero = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), false, SequenceType.ZERO);
+            LoadFortescuePowerEquationTerm iyLoadZero = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.ZERO);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO).addTerm(iyLoadZero);
-            LoadFortescuePowerEquationTerm qLoadPositive = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), false, SequenceType.POSITIVE);
+            LoadFortescuePowerEquationTerm qLoadPositive = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.POSITIVE);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q).addTerm(qLoadPositive);
-            LoadFortescuePowerEquationTerm iyLoadNegative = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), false, SequenceType.NEGATIVE);
+            LoadFortescuePowerEquationTerm iyLoadNegative = new LoadFortescuePowerEquationTerm(bus, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, SequenceType.NEGATIVE);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE).addTerm(iyLoadNegative);
         }
     }
