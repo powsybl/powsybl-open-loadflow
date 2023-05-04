@@ -26,9 +26,9 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractElement
     protected AbstractShuntFortescueEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
         super(bus);
         Objects.requireNonNull(variableSet);
+        this.sequenceType = Objects.requireNonNull(sequenceType);
         AcVariableType vType;
         AcVariableType phType;
-        this.sequenceType = sequenceType;
         switch (sequenceType) {
             case ZERO:
                 vType = AcVariableType.BUS_V_ZERO;
@@ -45,7 +45,6 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractElement
         }
         vVar = variableSet.getVariable(bus.getNum(), vType);
         phVar = variableSet.getVariable(bus.getNum(), phType);
-
     }
 
     protected double v() {
