@@ -1,8 +1,10 @@
 package com.powsybl.openloadflow.network.extensions;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.network.Side;
 import com.powsybl.openloadflow.network.SimplePiModel;
 import com.powsybl.openloadflow.util.Fortescue;
+import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 import com.powsybl.openloadflow.util.MatrixUtil;
 
 /**
@@ -250,11 +252,11 @@ public class AsymLineAdmittanceMatrix {
         return residual > EPS_VALUE;
     }
 
-    public double getYxijgh(int i, int j, int g, int h) {
-        return mY012.get(2 * (3 * (i - 1) + g), 2 * (3 * (j - 1) + h));
+    public double getX(Side i, Side j, SequenceType g, SequenceType h) {
+        return mY012.get(2 * (3 * (i.getNum() - 1) + g.getNum()), 2 * (3 * (j.getNum() - 1) + h.getNum()));
     }
 
-    public double getYyijgh(int i, int j, int g, int h) {
-        return mY012.get(2 * (3 * (i - 1) + g) + 1, 2 * (3 * (j - 1) + h));
+    public double getY(Side i, Side j, SequenceType g, SequenceType h) {
+        return mY012.get(2 * (3 * (i.getNum() - 1) + g.getNum()) + 1, 2 * (3 * (j.getNum() - 1) + h.getNum()));
     }
 }

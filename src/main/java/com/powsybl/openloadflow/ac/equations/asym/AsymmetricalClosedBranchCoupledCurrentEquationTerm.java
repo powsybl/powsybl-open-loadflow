@@ -5,7 +5,9 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.util.Fortescue;
+import com.powsybl.openloadflow.network.Side;
+import com.powsybl.openloadflow.util.ComplexPart;
+import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 
 import java.util.Objects;
 
@@ -33,131 +35,145 @@ import java.util.Objects;
 public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm {
 
     public AsymmetricalClosedBranchCoupledCurrentEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                              boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
-        super(branch, bus1, bus2, variableSet, isRealPart, isSide1, sequenceType);
+                                                              ComplexPart complexPart, Side side, SequenceType sequenceType) {
+        super(branch, bus1, bus2, variableSet, complexPart, side, sequenceType);
     }
 
-    public double tx(int i, int j, int g, int h) {
-        return r(i) * r(j) * v(h, j) * (y.getYxijgh(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j))
-                - y.getYyijgh(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)));
+    public double ix(Side i, Side j, SequenceType g, SequenceType h) {
+        return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j))
+                - y.getY(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)));
     }
 
-    public double ty(int i, int j, int g, int h) {
-        return r(i) * r(j) * v(h, j) * (y.getYxijgh(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j))
-                + y.getYyijgh(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)));
+    public double iy(Side i, Side j, SequenceType g, SequenceType h) {
+        return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j))
+                + y.getY(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)));
     }
 
-    public static double idTxdV(int j, int h,
-                                double ri, double rj, double ai, double aj,
-                                double thhj, double yxijgh, double yyijgh,
-                                int derivSide, int derivSequence) {
-        if (j == derivSide && h == derivSequence) {
-            return ri * rj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
+    public double dixdv(Side i, Side j, SequenceType g, SequenceType h,
+                        Side derivationSide, SequenceType derivationSequence) {
+        if (j == derivationSide && h == derivationSequence) {
+            return r(i) * r(j) * (y.getX(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
 
-    public static double idTxdPh(int j, int h,
-                                 double ri, double rj, double ai, double aj,
-                                 double vhj, double thhj, double yxijgh, double yyijgh,
-                                 int derivSide, int derivSequence) {
-        if (j == derivSide && h == derivSequence) {
-            return ri * rj * vhj * (-yxijgh * Math.sin(aj - ai + thhj) - yyijgh * Math.cos(aj - ai + thhj));
+    public double dixdph(Side i, Side j, SequenceType g, SequenceType h,
+                         Side derivationSide, SequenceType derivationSequence) {
+        if (j == derivationSide && h == derivationSequence) {
+            return r(i) * r(j) * v(h, j) * (-y.getX(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
 
-    public double dtx(int i, int j, int g, int h, Variable<AcVariableType> variable, int iDerivative) {
-        Objects.requireNonNull(variable);
-        int derivationSequence = getSequenceType(variable).getNum();
-        if (isPhase(variable)) {
-            return idTxdPh(j, h, r(i), r(j), a(i), a(j), v(h, j), ph(h, j), y.getYxijgh(i, j, g, h), y.getYyijgh(i, j, g, h), iDerivative, derivationSequence);
+    public double dix(Side i, Side j, SequenceType g, SequenceType h,
+                      Side derivationSide, SequenceType derivationSequence, boolean phase) {
+        if (phase) {
+            return dixdph(i, j, g, h, derivationSide, derivationSequence);
         } else {
-            return idTxdV(j, h, r(i), r(j), a(i), a(j), ph(h, j), y.getYxijgh(i, j, g, h), y.getYyijgh(i, j, g, h), iDerivative, derivationSequence);
+            return dixdv(i, j, g, h, derivationSide, derivationSequence);
         }
     }
 
-    public static double idTydv(int j, int h,
-                                double ri, double rj, double ai, double aj,
-                                double thhj, double yxijgh, double yyijgh,
-                                int derivSide, int derivSequence) {
-        if (j == derivSide && h == derivSequence) {
-            return ri * rj * (yxijgh * Math.sin(aj - ai + thhj) + yyijgh * Math.cos(aj - ai + thhj));
+    public double diydv(Side i, Side j, SequenceType g, SequenceType h,
+                        Side derivationSide, SequenceType derivationSequence) {
+        if (j == derivationSide && h == derivationSequence) {
+            return r(i) * r(j) * (y.getX(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)) + y.getY(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
 
-    public static double idTydPh(int j, int h,
-                                 double ri, double rj, double ai, double aj,
-                                 double vhj, double thhj, double yxijgh, double yyijgh,
-                                 int derivSide, int derivSequence) {
-        if (j == derivSide && h == derivSequence) {
-            return ri * rj * vhj * (yxijgh * Math.cos(aj - ai + thhj) - yyijgh * Math.sin(aj - ai + thhj));
+    public double diydph(Side i, Side j, SequenceType g, SequenceType h,
+                         Side derivationSide, SequenceType derivationSequence) {
+        if (j == derivationSide && h == derivationSequence) {
+            return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
 
-    public double dty(int i, int j, int g, int h, Variable<AcVariableType> variable, int iDerivative) {
-        Objects.requireNonNull(variable);
-        int derivationSequence = getSequenceType(variable).getNum();
-        if (isPhase(variable)) {
-            return idTydPh(j, h, r(i), r(j), a(i), a(j), v(h, j), ph(h, j), y.getYxijgh(i, j, g, h), y.getYyijgh(i, j, g, h), iDerivative, derivationSequence);
+    public double diy(Side i, Side j, SequenceType g, SequenceType h, Side derivationSide, SequenceType derivationSequence, boolean phase) {
+        if (phase) {
+            return diydph(i, j, g, h, derivationSide, derivationSequence);
         } else {
-            return idTydv(j, h, r(i), r(j), a(i), a(j), ph(h, j), y.getYxijgh(i, j, g, h), y.getYyijgh(i, j, g, h), iDerivative, derivationSequence);
+            return diydv(i, j, g, h, derivationSide, derivationSequence);
         }
     }
 
-    public double ixIyij(boolean isRealPart, boolean isSide1, int sequenceNum) {
-        int s1 = 1;
-        int s2 = 2;
-        if (!isSide1) {
-            s1 = 2;
-            s2 = 1;
+    public double di(Variable<AcVariableType> variable) {
+        Side i;
+        Side j;
+        if (side == Side.ONE) {
+            i = Side.ONE;
+            j = Side.TWO;
+        } else {
+            i = Side.TWO;
+            j = Side.ONE;
         }
-
-        if (isRealPart) { // Ix
-            return tx(s1, s1, sequenceNum, 0) + tx(s1, s1, sequenceNum, 1) + tx(s1, s1, sequenceNum, 2)
-                    + tx(s1, s2, sequenceNum, 0) + tx(s1, s2, sequenceNum, 1) + tx(s1, s2, sequenceNum, 2);
-        } else { // Iy
-            return ty(s1, s1, sequenceNum, 0) + ty(s1, s1, sequenceNum, 1) + ty(s1, s1, sequenceNum, 2)
-                    + ty(s1, s2, sequenceNum, 0) + ty(s1, s2, sequenceNum, 1) + ty(s1, s2, sequenceNum, 2);
-        }
-    }
-
-    public double dIxIyij(boolean isRealPart, boolean isSide1, int sequenceNum, Variable<AcVariableType> variable, int iDerivative) {
-        int s1 = 1;
-        int s2 = 2;
-        if (!isSide1) {
-            s1 = 2;
-            s2 = 1;
-        }
+        Side derivationSide = getSide(variable);
+        SequenceType derivationSequence = getSequenceType(variable);
+        boolean phase = isPhase(variable);
 
         // iDerivative is the side of "variable" that is used for derivation
-        if (isRealPart) {
+        if (complexPart == ComplexPart.REAL) {
             // dIx
-            return dtx(s1, s1, sequenceNum, 0, variable, iDerivative) + dtx(s1, s1, sequenceNum, 1, variable, iDerivative) + dtx(s1, s1, sequenceNum, 2, variable, iDerivative)
-                    + dtx(s1, s2, sequenceNum, 0, variable, iDerivative) + dtx(s1, s2, sequenceNum, 1, variable, iDerivative) + dtx(s1, s2, sequenceNum, 2, variable, iDerivative);
+            return dix(i, i, sequenceType, SequenceType.ZERO, derivationSide, derivationSequence, phase)
+                    + dix(i, i, sequenceType, SequenceType.POSITIVE, derivationSide, derivationSequence, phase)
+                    + dix(i, i, sequenceType, SequenceType.NEGATIVE, derivationSide, derivationSequence, phase)
+                    + dix(i, j, sequenceType, SequenceType.ZERO, derivationSide, derivationSequence, phase)
+                    + dix(i, j, sequenceType, SequenceType.POSITIVE, derivationSide, derivationSequence, phase)
+                    + dix(i, j, sequenceType, SequenceType.NEGATIVE, derivationSide, derivationSequence, phase);
         } else {
             // dIy
-            return dty(s1, s1, sequenceNum, 0, variable, iDerivative) + dty(s1, s1, sequenceNum, 1, variable, iDerivative) + dty(s1, s1, sequenceNum, 2, variable, iDerivative)
-                    + dty(s1, s2, sequenceNum, 0, variable, iDerivative) + dty(s1, s2, sequenceNum, 1, variable, iDerivative) + dty(s1, s2, sequenceNum, 2, variable, iDerivative);
+            return diy(i, i, sequenceType, SequenceType.ZERO, derivationSide, derivationSequence, phase)
+                    + diy(i, i, sequenceType, SequenceType.POSITIVE, derivationSide, derivationSequence, phase)
+                    + diy(i, i, sequenceType, SequenceType.NEGATIVE, derivationSide, derivationSequence, phase)
+                    + diy(i, j, sequenceType, SequenceType.ZERO, derivationSide, derivationSequence, phase)
+                    + diy(i, j, sequenceType, SequenceType.POSITIVE, derivationSide, derivationSequence, phase)
+                    + diy(i, j, sequenceType, SequenceType.NEGATIVE, derivationSide, derivationSequence, phase);
+        }
+    }
+
+    public double i() {
+        Side i;
+        Side j;
+        if (side == Side.ONE) {
+            i = Side.ONE;
+            j = Side.TWO;
+        } else {
+            i = Side.TWO;
+            j = Side.ONE;
+        }
+
+        if (complexPart == ComplexPart.REAL) { // Ix
+            return ix(i, i, sequenceType, SequenceType.ZERO)
+                    + ix(i, i, sequenceType, SequenceType.POSITIVE)
+                    + ix(i, i, sequenceType, SequenceType.NEGATIVE)
+                    + ix(i, j, sequenceType, SequenceType.ZERO)
+                    + ix(i, j, sequenceType, SequenceType.POSITIVE)
+                    + ix(i, j, sequenceType, SequenceType.NEGATIVE);
+        } else { // Iy
+            return iy(i, i, sequenceType, SequenceType.ZERO)
+                    + iy(i, i, sequenceType, SequenceType.POSITIVE)
+                    + iy(i, i, sequenceType, SequenceType.NEGATIVE)
+                    + iy(i, j, sequenceType, SequenceType.ZERO)
+                    + iy(i, j, sequenceType, SequenceType.POSITIVE)
+                    + iy(i, j, sequenceType, SequenceType.NEGATIVE);
         }
     }
 
     @Override
     public double eval() {
-        return ixIyij(isRealPart, isSide1, sequenceType.getNum());
+        return i();
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        return dIxIyij(isRealPart, isSide1, sequenceType.getNum(), variable, sideOfDerivative(variable));
+        return di(variable);
     }
 
     @Override
     public String getName() {
-        return "ac_ixiy_coupled_closed_1";
+        return "ac_ixiy_coupled_closed";
     }
 
 }

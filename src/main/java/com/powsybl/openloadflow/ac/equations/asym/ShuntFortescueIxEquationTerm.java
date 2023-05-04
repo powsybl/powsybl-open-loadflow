@@ -16,12 +16,14 @@ public class ShuntFortescueIxEquationTerm extends AbstractShuntFortescueCurrentE
     public ShuntFortescueIxEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
         super(bus, variableSet, sequenceType);
     }
-    // By definition :
-    // I is the current flowing out of the node in the shunt equipment
-    // I = y.V with y = g+jb
-    // Therefore Ix + jIy = g.Vx - b.Vy + j(g.Vy + b.Vx)
-    // then Ix = g.Vmagnitude.cos(theta) - b.Vmagnitude.sin(theta)
 
+    /**
+     * By definition:
+     *  I is the current flowing out of the node in the shunt equipment
+     *  I = y.V with y = g+jb
+     *  Therefore Ix + jIy = g.Vx - b.Vy + j(g.Vy + b.Vx)
+     *  then Ix = g.Vmagnitude.cos(theta) - b.Vmagnitude.sin(theta)
+     */
     private static double ix(double v, double phi, double g, double b) {
         return g * v * Math.cos(phi) - b * v * Math.sin(phi);
     }

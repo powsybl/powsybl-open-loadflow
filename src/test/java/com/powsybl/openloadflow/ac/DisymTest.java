@@ -155,7 +155,7 @@ public class DisymTest {
             coupledEquTerm = (AsymmetricalClosedBranchCoupledCurrentEquationTerm) eqTerm9;
         }
         assertEquals(2, coupledEquTerm.getElementNum());
-        assertEquals("ac_ixiy_coupled_closed_1", coupledEquTerm.getName());
+        assertEquals("ac_ixiy_coupled_closed", coupledEquTerm.getName());
 
         AsymmetricalClosedBranchCoupledPowerEquationTerm coupledPowerEquTerm;
         if (eqTerm12 instanceof AsymmetricalClosedBranchCoupledPowerEquationTerm) {
@@ -166,7 +166,7 @@ public class DisymTest {
             coupledPowerEquTerm = (AsymmetricalClosedBranchCoupledPowerEquationTerm) eqTerm14;
         }
         assertEquals(2, coupledPowerEquTerm.getElementNum());
-        assertEquals("ac_pq_coupled_closed_1", coupledPowerEquTerm.getName());
+        assertEquals("ac_pq_coupled_closed", coupledPowerEquTerm.getName());
     }
 
     @Test

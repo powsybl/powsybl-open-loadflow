@@ -5,7 +5,9 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.util.Fortescue;
+import com.powsybl.openloadflow.network.Side;
+import com.powsybl.openloadflow.util.ComplexPart;
+import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,12 +50,12 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    protected final boolean isRealPart; // true if active power asked, false if reactive power asked
-    protected final boolean isSide1; // true if i1x or i1y, false if i2x or i2y
-    protected final Fortescue.SequenceType sequenceType;
+    protected final ComplexPart complexPart;
+    protected final Side side;
+    protected final SequenceType sequenceType;
 
     protected AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
-                                                                      boolean isRealPart, boolean isSide1, Fortescue.SequenceType sequenceType) {
+                                                                      ComplexPart complexPart, Side side, SequenceType sequenceType) {
         super(branch);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(bus2);
@@ -87,24 +89,24 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         variables.add(ph1VarZero);
         variables.add(ph2VarZero);
 
-        this.isRealPart = isRealPart;
-        this.isSide1 = isSide1;
+        this.complexPart = complexPart;
+        this.side = side;
         this.sequenceType = sequenceType;
     }
 
-    protected static Fortescue.SequenceType getSequenceType(Variable<AcVariableType> variable) {
+    protected static SequenceType getSequenceType(Variable<AcVariableType> variable) {
         switch (variable.getType()) {
             case BUS_V:
             case BUS_PHI:
-                return Fortescue.SequenceType.POSITIVE;
+                return SequenceType.POSITIVE;
 
             case BUS_V_NEGATIVE:
             case BUS_PHI_NEGATIVE:
-                return Fortescue.SequenceType.NEGATIVE;
+                return SequenceType.NEGATIVE;
 
             case BUS_V_ZERO:
             case BUS_PHI_ZERO:
-                return Fortescue.SequenceType.ZERO;
+                return SequenceType.ZERO;
 
             default:
                 throw new IllegalStateException("Unknown variable: ");
@@ -122,32 +124,32 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         }
     }
 
-    protected double v(int g, int i) {
+    protected double v(SequenceType g, Side i) {
         switch (g) {
-            case 0: // zero
-                return i == 1 ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
+            case ZERO:
+                return i == Side.ONE ? sv.get(v1VarZero.getRow()) : sv.get(v2VarZero.getRow());
 
-            case 1: // positive
-                return i == 1 ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
+            case POSITIVE:
+                return i == Side.ONE ? sv.get(v1Var.getRow()) : sv.get(v2Var.getRow());
 
-            case 2: // negative
-                return i == 1 ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
+            case NEGATIVE:
+                return i == Side.ONE ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
 
             default:
                 throw new IllegalStateException("Unknown variable: ");
         }
     }
 
-    protected double ph(int g, int i) {
+    protected double ph(SequenceType g, Side i) {
         switch (g) {
-            case 0: // zero
-                return i == 1 ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
+            case ZERO:
+                return i == Side.ONE ? sv.get(ph1VarZero.getRow()) : sv.get(ph2VarZero.getRow());
 
-            case 1: // positive
-                return i == 1 ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
+            case POSITIVE:
+                return i == Side.ONE ? sv.get(ph1Var.getRow()) : sv.get(ph2Var.getRow());
 
-            case 2: // negative
-                return i == 1 ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
+            case NEGATIVE:
+                return i == Side.ONE ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
 
             default:
                 throw new IllegalStateException("Unknown variable: ");
@@ -162,12 +164,12 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         return 0;
     }
 
-    protected double r(int i) {
-        return i == 1 ? r1() : 1.;
+    protected double r(Side i) {
+        return i == Side.ONE ? r1() : 1.;
     }
 
-    protected double a(int i) {
-        return i == 1 ? a1() : A2;
+    protected double a(Side i) {
+        return i == Side.ONE ? a1() : A2;
     }
 
     @Override
@@ -175,14 +177,14 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
         return variables;
     }
 
-    public int sideOfDerivative(Variable<AcVariableType> variable) {
+    public Side getSide(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var) || variable.equals(v1VarZero) || variable.equals(v1VarNegative)
                 || variable.equals(ph1Var) || variable.equals(ph1VarZero) || variable.equals(ph1VarNegative)) {
-            return 1;
+            return Side.ONE;
         } else if (variable.equals(v2Var) || variable.equals(v2VarZero) || variable.equals(v2VarNegative)
                 || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
-            return 2;
+            return Side.TWO;
         } else {
             throw new IllegalStateException("Unknown variable type");
         }

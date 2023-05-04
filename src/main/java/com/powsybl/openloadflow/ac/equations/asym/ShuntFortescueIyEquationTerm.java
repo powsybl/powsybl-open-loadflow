@@ -17,12 +17,13 @@ public class ShuntFortescueIyEquationTerm extends AbstractShuntFortescueCurrentE
         super(bus, variableSet, sequenceType);
     }
 
-    // By definition :
-    // I is the current flowing out of the node in the shunt equipment
-    // I = y.V with y = g+jb
-    // Therefore Ix + jIy = g.Vx - b.Vy + j(g.Vy + b.Vx)
-    // then Iy = g.Vmagnitude.sin(theta) + b.Vmagnitude.cos(theta)
-
+    /**
+     * By definition :
+     *  I is the current flowing out of the node in the shunt equipment
+     *  I = y.V with y = g+jb
+     *  Therefore Ix + jIy = g.Vx - b.Vy + j(g.Vy + b.Vx)
+     *  then Iy = g.Vmagnitude.sin(theta) + b.Vmagnitude.cos(theta)
+     */
     private static double iy(double v, double phi, double g, double b) {
         return g * v * Math.sin(phi) + b * v * Math.cos(phi);
     }
