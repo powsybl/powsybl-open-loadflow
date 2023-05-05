@@ -14,7 +14,7 @@ import java.util.Objects;
 /**
  *  We define T(i,j,g,h) = rho_i * rho_j * exp(j(a_j-a_i)) * y*_ij_gh * V_hj
  *     where i,j are line's ends i,j included in {1,2}
- *     where g,h are fortescue sequences g,h included in {o,d,i} (o = zero = homopolar = 0, d = direct = positive = 1, i = inverse = negative = 2)
+ *     where g,h are fortescue sequences g,h included in {z, p, n} = {0,1,2} (z = zero = 0, p = positive = 1, n = negative = 2)
  *
  *  Expanded formula :
  *  T(i,j,g,h) =     rho_i * rho_j * V_hj * yx_ij_gh * cos(a_j - a_i + th_hj)
@@ -23,12 +23,12 @@ import java.util.Objects;
  *                 + rho_i * rho_j * V_hj * yy_ij_gh * cos(a_j - a_i + th_hj) )
  *
  *  By construction we have :
- *           [ y_11_oo y_11_od y_11_oi y_12_oo y_12_od y_12_oi ]
- *           [ y_11_do y_11_dd y_11_di y_12_do y_12_dd y_12_di ]
- *  [Y012] = [ y_11_io y_11_id y_11_ii y_12_io y_12_id y_12_ii ]
- *           [ y_21_oo y_21_od y_21_oi y_22_oo y_22_od y_22_oi ]
- *           [ y_21_do y_21_dd y_21_di y_22_do y_22_dd y_22_di ]
- *           [ y_21_io y_21_id y_21_ii y_22_io y_22_id y_22_ii ]
+ *           [ y_11_zz y_11_zp y_11_zn y_12_zz y_12_zp y_12_zn ]
+ *           [ y_11_pz y_11_pp y_11_pn y_12_pz y_12_pp y_12_pn ]
+ *  [Y012] = [ y_11_nz y_11_np y_11_nn y_12_nz y_12_np y_12_nn ]
+ *           [ y_21_zz y_21_zp y_21_zn y_22_zz y_22_zp y_22_zn ]
+ *           [ y_21_pz y_21_pp y_21_pn y_22_pz y_22_pp y_22_pn ]
+ *           [ y_21_nz y_21_np y_21_nn y_22_nz y_22_np y_22_nn ]
  *
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */

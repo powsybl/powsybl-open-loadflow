@@ -233,13 +233,13 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         DenseMatrix mT2 = mSquareVFortescue.times(mdIFortescueConjugate);
 
         switch (sequenceType) {
-            case ZERO: // zero
+            case ZERO:
                 return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(0, 0) : -mdIFortescueConjugate.get(1, 0); // dIxZero or dIyZero
 
-            case POSITIVE: // positive
+            case POSITIVE:
                 return complexPart == ComplexPart.REAL ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
 
-            case NEGATIVE: // negative
+            case NEGATIVE:
                 return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
 
             default:
