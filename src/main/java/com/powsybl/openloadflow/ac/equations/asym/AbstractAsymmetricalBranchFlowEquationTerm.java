@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2023, Jean-Baptiste Heyberger <jbheyberger at gmail.com> ,
+ *                     Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,7 +15,7 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.extensions.AsymLineAdmittanceMatrix;
 
 /**
- * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
+ * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
 abstract class AbstractAsymmetricalBranchFlowEquationTerm extends AbstractElementEquationTerm<LfBranch, AcVariableType, AcEquationType> {
