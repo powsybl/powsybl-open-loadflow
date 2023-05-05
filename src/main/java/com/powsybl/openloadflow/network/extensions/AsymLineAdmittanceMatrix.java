@@ -86,11 +86,11 @@ public class AsymLineAdmittanceMatrix {
 
     public static final double EPS_VALUE = 0.00000001;
 
-    private final DenseMatrix mY012;
+    private final DenseMatrix mYzpn;
 
     public AsymLineAdmittanceMatrix(AsymLine asymLine) {
         // input values are given in fortescue component, we build first Yzpn and deduce Yabc
-        mY012 = update(build(asymLine.getPiZeroComponent(), asymLine.getPiPositiveComponent(), asymLine.getPiNegativeComponent()),
+        mYzpn = update(build(asymLine.getPiZeroComponent(), asymLine.getPiPositiveComponent(), asymLine.getPiNegativeComponent()),
                        asymLine.isPhaseOpenA(), asymLine.isPhaseOpenB(), asymLine.isPhaseOpenC());
     }
 
@@ -238,7 +238,7 @@ public class AsymLineAdmittanceMatrix {
         boolean coupled = false;
         for (int i = 1; i <= 6; i++) {
             for (int j = 1; j <= 6; j++) {
-                if (i != j && isResidualExistsBloc(mY012, i, j)) {
+                if (i != j && isResidualExistsBloc(mYzpn, i, j)) {
                     coupled = true;
                     break;
                 }
@@ -253,10 +253,10 @@ public class AsymLineAdmittanceMatrix {
     }
 
     public double getX(Side i, Side j, SequenceType g, SequenceType h) {
-        return mY012.get(2 * (3 * (i.getNum() - 1) + g.getNum()), 2 * (3 * (j.getNum() - 1) + h.getNum()));
+        return mYzpn.get(2 * (3 * (i.getNum() - 1) + g.getNum()), 2 * (3 * (j.getNum() - 1) + h.getNum()));
     }
 
     public double getY(Side i, Side j, SequenceType g, SequenceType h) {
-        return mY012.get(2 * (3 * (i.getNum() - 1) + g.getNum()) + 1, 2 * (3 * (j.getNum() - 1) + h.getNum()));
+        return mYzpn.get(2 * (3 * (i.getNum() - 1) + g.getNum()) + 1, 2 * (3 * (j.getNum() - 1) + h.getNum()));
     }
 }
