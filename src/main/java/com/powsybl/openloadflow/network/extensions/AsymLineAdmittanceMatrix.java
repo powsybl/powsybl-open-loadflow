@@ -79,7 +79,7 @@ public class AsymLineAdmittanceMatrix {
     // By construction we have :
     //          [ y_11_zz y_11_zp y_11_zn y_12_zz y_12_zp y_12_zn ]
     //          [ y_11_pz y_11_pp y_11_pn y_12_pz y_12_pp y_12_pn ]
-    // [Y012] = [ y_11_nz y_11_np y_11_nn y_12_nz y_12_np y_12_nn ]
+    // [Yzpn] = [ y_11_nz y_11_np y_11_nn y_12_nz y_12_np y_12_nn ]
     //          [ y_21_zz y_21_zp y_21_zn y_22_zz y_22_zp y_22_zn ]
     //          [ y_21_pz y_21_pp y_21_pn y_22_pz y_22_pp y_22_pn ]
     //          [ y_21_nz y_21_np y_21_nn y_22_nz y_22_np y_22_nn ]
