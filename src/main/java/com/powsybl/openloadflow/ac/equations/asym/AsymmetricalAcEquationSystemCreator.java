@@ -54,8 +54,11 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         for (LfGenerator gen : bus.getGenerators()) {
             // if there is at least one generating unit that is voltage controlling we model the equivalent in inverse and homopolar
             // with a large admittance yg = g +jb to model a close connection of the bus to the ground (E_homopolar = 0 E_Inverse = 0)
-            if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER
-                    || gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
+            if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) {
+                throw new IllegalStateException("Generating unit with remote reactive power not yet supported in asymmetric load flow for generator: " + gen.getId());
+            }
+
+            if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
 
                 AsymGenerator asymGenerator = (AsymGenerator) gen.getProperty(AsymGenerator.PROPERTY_ASYMMETRICAL);
                 if (asymGenerator != null) {
