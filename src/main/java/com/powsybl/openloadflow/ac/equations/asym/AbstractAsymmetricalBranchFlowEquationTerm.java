@@ -26,7 +26,7 @@ abstract class AbstractAsymmetricalBranchFlowEquationTerm extends AbstractElemen
         super(branch);
         AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
         if (asymLine == null) {
-            throw new IllegalStateException("Line : " + branch.getId() + " has no dissymmetric extension but is required here ");
+            throw new IllegalStateException("Line : " + branch.getId() + " has no asymmetric extension but is required here ");
         }
         y = asymLine.getAdmittanceMatrix();
     }
