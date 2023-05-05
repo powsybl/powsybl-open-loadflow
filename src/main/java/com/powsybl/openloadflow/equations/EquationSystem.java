@@ -30,8 +30,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement;
 
-    private final Map<E, EquationTermArray<V, E>> equationTermArrays;
-
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
 
     private final VariableSet<V> variableSet;
@@ -40,13 +38,12 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final EquationSystemIndex<V, E> index;
 
-    public EquationSystem(Class<E> equationClass) {
-        this(new VariableSet<>(), equationClass);
+    public EquationSystem() {
+        this(new VariableSet<>());
     }
 
-    public EquationSystem(VariableSet<V> variableSet, Class<E> equationClass) {
+    public EquationSystem(VariableSet<V> variableSet) {
         this.variableSet = Objects.requireNonNull(variableSet);
-        equationTermArrays = new EnumMap<>(equationClass);
         index = new EquationSystemIndex<>(this);
     }
 
@@ -64,11 +61,6 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     public EquationSystemIndex<V, E> getIndex() {
         return index;
-    }
-
-    public EquationTermArray<V, E> getEquationTermArray(E equationType) {
-        Objects.requireNonNull(equationType);
-        return equationTermArrays.get(equationType);
     }
 
     public Collection<Equation<V, E>> getEquations() {
