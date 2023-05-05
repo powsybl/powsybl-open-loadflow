@@ -15,32 +15,32 @@ public class AsymLineAdmittanceMatrix {
     // This class is made to build and access the admittance terms that will be used to fill up the Jacobian :
     // The following formulation approach is used :
     //                                        side 1   ________     side 2
-    // [ I0_1 ]             [ V0_1 ]            0-----|        |-------0
-    // [ I1_1 ]             [ V1_1 ]            1-----|  Y012  |-------1
-    // [ I2_1 ]             [ V2_1 ]            2-----|________|-------2
-    // [ I0_2 ] = [Y012] *  [ V0_2 ]
-    // [ I1_2 ]             [ V1_2 ]
-    // [ I2_2 ]             [ V2_2 ]
+    // [ Iz_1 ]             [ Vz_1 ]            z-----|        |-------z
+    // [ Ip_1 ]             [ Vp_1 ]            p-----|  Yzpn  |-------p
+    // [ In_1 ]             [ Vn_1 ]            n-----|________|-------n
+    // [ Iz_2 ] = [Yzpn] *  [ Vz_2 ]
+    // [ Ip_2 ]             [ Vp_2 ]
+    // [ In_2 ]             [ Vn_2 ]
     //
     // Given that at bus 1 where j is one neighbouring bus, the injection at bus 1 is equal to the sum of Powers from neighboring busses:
-    // Sum[j](S_1j) = P_1 + j.Q_1  = Sum[j](V1_1.I1_1j*)
-    //               P0_1 + j.Q0_1 = Sum[j](V0_1.I0_1j*)
-    //               P2_1 + j.Q2_1 = Sum[j](V2_1.I2_1j*)
+    // Sum[j](S_1j) =Pp_1 + j.Qp_1 = Sum[j](Vp_1.Ip_1j*)
+    //               Pz_1 + j.Qz_1 = Sum[j](Vz_1.Iz_1j*)
+    //               Pn_1 + j.Qn_1 = Sum[j](Vn_1.In_1j*)
     //
-    // Substituting [I] by [Y012]*[V] allows to know the equations terms that will fill the jacobian matrix
+    // Substituting [I] by [Yzpn]*[V] allows to know the equations terms that will fill the jacobian matrix
     //
-    // Step 1: Get [Y012]
+    // Step 1: Get [Yzpn]
     // ------------------
-    // First step is to compute [ Y012 ] from a 3-phase description because this is how we can describe unbalances of phases for a line:
+    // First step is to compute [ Yzpn ] from a 3-phase description because this is how we can describe unbalances of phases for a line:
     // For each a,b,c phase we know the following relation (only true for lines with no mutual inductances, otherwise we must handle full [Yabc] matrix):
     // [Ia_1]   [ ya_11 ya_12 ]   [Va_1]
     // [Ia_2] = [ ya_21 ya_22 ] * [Va_2]
     //            with (for a line only)  :  ya_11 = ga1 + j.ba1 + 1/za   , ya_12 = -1/za   ,   ya_21 = -1/za   ,  ya_22 = ga2 + j.ba2 + 1/za
     //
     // From the fortescue transformation we have:
-    // [Ga]         [G0]
-    // [Gb] = [F] * [G1]
-    // [Gc]         [G2]
+    // [Ga]         [Gz]
+    // [Gb] = [F] * [Gp]
+    // [Gc]         [Gn]
     //     where [G] might be [V] or [I]
     //     where [F] is the fortescue transformation matrix
     //
@@ -48,17 +48,17 @@ public class AsymLineAdmittanceMatrix {
     //                           [ya_11  0    0  ya_12  0   0  ]
     //                           [  0  yb_11  0    0  yb_12 0  ]
     //          [inv(F)   O  ]   [  0   0   yc_11  0   0  yc_12]   [ F  0 ]
-    // [Y012] = [  0   inv(F)] * [ya_21  0    0  ya_22  0   0  ] * [ 0  F ]
+    // [Yzpn] = [  0   inv(F)] * [ya_21  0    0  ya_22  0   0  ] * [ 0  F ]
     //                           [  0  yb_21  0    0  yb_22 0  ]
     //                           [  0   0   yc_21  0   0  yc_22]
     //
-    // [Y012] is a complex matrix
+    // [Yzpn] is a complex matrix
     //
-    // Step 2: Define the generic term that will be used to make the link between [Y012] and S[0,1,2] the apparent power
+    // Step 2: Define the generic term that will be used to make the link between [Yzpn] and S[z,p,n] the apparent power
     // -----------------------------------------------------------------------------------------------------------------
     // We define T(i,j,g,h) = rho_i * rho_j * exp(j(a_i-a_j)) * y*_ij_gh * V_gi * V*_hj
     //    where i,j are line's ends included in {1,2}
-    //    where g,h are fortescue sequences included in {o,d,i}={0,1,2}
+    //    where g,h are fortescue sequences included in {z,p,n}={0,1,2}
     //
     //
     // Step 3 : express the expanded value of T(i,j,g,h):
@@ -70,26 +70,26 @@ public class AsymLineAdmittanceMatrix {
     //
     // Step 4 : express the apparent powers with T():
     // ----------------------------------------------
-    // S_0_12 = T(1,1,o,o) + T(1,1,o,d) + T(1,1,o,i) + T(1,2,o,o) + T(1,2,o,d) + T(1,2,o,i)
-    // S_1_12 = T(1,1,d,o) + T(1,1,d,d) + T(1,1,d,i) + T(1,2,d,o) + T(1,2,d,d) + T(1,2,d,i)
-    // S_2_12 = T(1,1,i,o) + T(1,1,i,d) + T(1,1,i,i) + T(1,2,i,o) + T(1,2,i,d) + T(1,2,i,i)
+    // S_z_12 = T(1,1,z,z) + T(1,1,z,p) + T(1,1,z,n) + T(1,2,z,z) + T(1,2,z,p) + T(1,2,z,n)
+    // S_p_12 = T(1,1,p,z) + T(1,1,p,p) + T(1,1,p,n) + T(1,2,p,z) + T(1,2,p,p) + T(1,2,p,n)
+    // S_n_12 = T(1,1,n,z) + T(1,1,n,p) + T(1,1,n,n) + T(1,2,n,z) + T(1,2,n,p) + T(1,2,n,n)
     //
-    // Step 5 : make the link between y_ij_gh in T() and [Y012]:
+    // Step 5 : make the link between y_ij_gh in T() and [Yzpn]:
     // ---------------------------------------------------------
     // By construction we have :
-    //          [ y_11_oo y_11_od y_11_oi y_12_oo y_12_od y_12_oi ]
-    //          [ y_11_do y_11_dd y_11_di y_12_do y_12_dd y_12_di ]
-    // [Y012] = [ y_11_io y_11_id y_11_ii y_12_io y_12_id y_12_ii ]
-    //          [ y_21_oo y_21_od y_21_oi y_22_oo y_22_od y_22_oi ]
-    //          [ y_21_do y_21_dd y_21_di y_22_do y_22_dd y_22_di ]
-    //          [ y_21_io y_21_id y_21_ii y_22_io y_22_id y_22_ii ]
+    //          [ y_11_zz y_11_zp y_11_zn y_12_zz y_12_zp y_12_zn ]
+    //          [ y_11_pz y_11_pp y_11_pn y_12_pz y_12_pp y_12_pn ]
+    // [Y012] = [ y_11_nz y_11_np y_11_nn y_12_nz y_12_np y_12_nn ]
+    //          [ y_21_zz y_21_zp y_21_zn y_22_zz y_22_zp y_22_zn ]
+    //          [ y_21_pz y_21_pp y_21_pn y_22_pz y_22_pp y_22_pn ]
+    //          [ y_21_nz y_21_np y_21_nn y_22_nz y_22_np y_22_nn ]
 
     public static final double EPS_VALUE = 0.00000001;
 
     private final DenseMatrix mY012;
 
     public AsymLineAdmittanceMatrix(AsymLine asymLine) {
-        // input values are given in fortescue component, we build first Y012 and deduce Yabc
+        // input values are given in fortescue component, we build first Yzpn and deduce Yabc
         mY012 = update(build(asymLine.getPiZeroComponent(), asymLine.getPiPositiveComponent(), asymLine.getPiNegativeComponent()),
                        asymLine.isPhaseOpenA(), asymLine.isPhaseOpenB(), asymLine.isPhaseOpenC());
     }
@@ -133,40 +133,40 @@ public class AsymLineAdmittanceMatrix {
         double g21n = g12n;
         double b21n = b12n;
 
-        //bloc ya11
+        //bloc yz11
         add22Bloc(g12z + g1z, b12z + b1z, 1, 1, mY);
-        //bloc ya12
+        //bloc yz12
         add22Bloc(-g12z, -b12z, 1, 4, mY);
-        //bloc yb11
+        //bloc yp11
         add22Bloc(g12p + g1p, b12p + b1p, 2, 2, mY);
-        //bloc yb12
+        //bloc yp12
         add22Bloc(-g12p, -b12p, 2, 5, mY);
-        //bloc yc11
+        //bloc yn11
         add22Bloc(g12n + g1n, b12n + b1n, 3, 3, mY);
-        //bloc yc12
+        //bloc yn12
         add22Bloc(-g12n, -b12n, 3, 6, mY);
 
-        //bloc ya22
+        //bloc yz22
         add22Bloc(g21z + g2z, b21z + b2z, 4, 4, mY);
-        //bloc ya21
+        //bloc yz21
         add22Bloc(-g21z, -b21z, 4, 1, mY);
-        //bloc yb22
+        //bloc yp22
         add22Bloc(g21p + g2p, b21p + b2p, 5, 5, mY);
-        //bloc yb21
+        //bloc yp21
         add22Bloc(-g21p, -b21p, 5, 2, mY);
-        //bloc yc22
+        //bloc yn22
         add22Bloc(g21n + g2n, b21n + b2n, 6, 6, mY);
-        //bloc yc21
+        //bloc yn21
         add22Bloc(-g21n, -b21n, 6, 3, mY);
 
         return mY;
     }
 
-    private static DenseMatrix update(DenseMatrix mY012, boolean phaseOpenA, boolean phaseOpenB, boolean phaseOpenC) {
+    private static DenseMatrix update(DenseMatrix mYzpn, boolean phaseOpenA, boolean phaseOpenB, boolean phaseOpenC) {
         // if one phase or more are disconnected we need to update Yabc and then Y012
         if (phaseOpenA || phaseOpenB || phaseOpenC) {
             var mYabc = productMatrixM1M2M3(buildTwoBlocsMatrix(Fortescue.createMatrix()),
-                                            mY012,
+                                            mYzpn,
                                             buildTwoBlocsMatrix(Fortescue.createInverseMatrix()));
 
             if (phaseOpenA) {
@@ -188,7 +188,7 @@ public class AsymLineAdmittanceMatrix {
                                        mYabc,
                                        buildTwoBlocsMatrix(Fortescue.createMatrix()));
         }
-        return mY012;
+        return mYzpn;
     }
 
     private static DenseMatrix buildTwoBlocsMatrix(DenseMatrix m66) {
