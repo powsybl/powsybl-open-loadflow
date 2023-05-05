@@ -10,7 +10,7 @@ public class LineAsymmetrical extends AbstractExtension<Line> {
     //
     // We suppose that an asymmetrical line is modelled by:
     // - its A,B,C connection status (phase connected / disconnected)
-    // - the values of its physical attributes R0,X0,R2,X2 (R1 and X1 are the values from the balanced Pi-model)
+    // - the values of its physical attributes Rz,Xz,Rn,Xn (Rp and Xp are the values from the balanced Pi-model)
     //
     // From those values we define the Fortescue admittance matrix that will be used in the load-flow equations
 
