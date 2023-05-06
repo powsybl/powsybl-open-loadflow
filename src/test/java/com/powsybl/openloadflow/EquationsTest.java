@@ -175,7 +175,7 @@ class EquationsTest {
         a1Var.setRow(5);
         unknownVar.setRow(6);
 
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, network);
         var sv = equationSystem.getStateVector();
         sv.set(new double[] {V_1, PH_1, V_2, PH_2, R_1, A_1, 0});
 

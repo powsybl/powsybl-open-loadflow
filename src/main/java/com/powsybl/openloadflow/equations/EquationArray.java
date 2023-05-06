@@ -80,10 +80,12 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     }
 
     public EquationArray<V, E> addTermArray(EquationTermArray<V, E> termArray) {
+        // TODO
         return this;
     }
 
     public EquationArray<V, E> addTerm(EquationTerm<V, E> term) {
+        // TODO
         return this;
     }
 

@@ -70,20 +70,20 @@ class DcLoadFlowMatrixTest {
         try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
             ps.println("X=");
             Matrix.createFromColumn(equationSystem.getStateVector().get(), new DenseMatrixFactory())
-                    .print(ps, equationSystem.getColumnNames(mainNetwork), null);
+                    .print(ps, equationSystem.getColumnNames(), null);
         }
 
         try (var j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
             try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
                 ps.println("J=");
-                j.getMatrix().print(ps, equationSystem.getRowNames(mainNetwork), equationSystem.getColumnNames(mainNetwork));
+                j.getMatrix().print(ps, equationSystem.getRowNames(), equationSystem.getColumnNames());
             }
 
             try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {
                 try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
                     ps.println("TGT=");
                     Matrix.createFromColumn(targets.getArray(), matrixFactory)
-                            .print(ps, equationSystem.getRowNames(mainNetwork), null);
+                            .print(ps, equationSystem.getRowNames(), null);
                 }
 
                 double[] dx = Arrays.copyOf(targets.getArray(), targets.getArray().length);

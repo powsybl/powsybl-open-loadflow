@@ -654,6 +654,22 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return secondaryVoltageControls;
     }
 
+    public int getElementCount(ElementType elementType) {
+        Objects.requireNonNull(elementType);
+        switch (elementType) {
+            case BUS:
+                return busesByIndex.size();
+            case BRANCH:
+                return branches.size();
+            case SHUNT_COMPENSATOR:
+                return shuntsByIndex.size();
+            case HVDC:
+                return hvdcs.size();
+            default:
+                throw new IllegalArgumentException("Unknown element type: " + elementType);
+        }
+    }
+
     @Override
     public String toString() {
         return getId();

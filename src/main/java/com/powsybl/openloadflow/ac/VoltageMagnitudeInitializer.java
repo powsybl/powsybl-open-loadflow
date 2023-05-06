@@ -196,7 +196,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
         // so the aim is to find a voltage plan that respect voltage set points and that computes other voltages
         // magnitude by interpolating neighbors bus values proportionally to branch susceptance and voltage ratio
         //
-        EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<InitVmVariableType, InitVmEquationType> equationSystem = new EquationSystem<>(InitVmEquationType.class, network);
         for (LfBus bus : network.getBuses()) {
             EquationTerm<InitVmVariableType, InitVmEquationType> v = equationSystem.getVariable(bus.getNum(), InitVmVariableType.BUS_V)
                     .createTerm();

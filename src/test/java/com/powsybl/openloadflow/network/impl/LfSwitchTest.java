@@ -70,7 +70,7 @@ class LfSwitchTest {
     void setterTest() {
         lfSwitch.getPiModel().setX(LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
 
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, lfNetwork);
         AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
         AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem, creationParameters);
         VariableSet<AcVariableType> variableSet = new VariableSet<>();

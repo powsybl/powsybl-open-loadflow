@@ -765,7 +765,7 @@ public class AcEquationSystemCreator {
     }
 
     public EquationSystem<AcVariableType, AcEquationType> create() {
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, network);
 
         AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
         AcEquationSystemCreationContext creationContext = new AcEquationSystemCreationContext(equationSystem, networkVector);

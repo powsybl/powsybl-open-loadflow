@@ -30,7 +30,11 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private Map<Pair<ElementType, Integer>, List<EquationTerm<V, E>>> equationTermsByElement;
 
+    private final Map<E, EquationArray<V, E>> equationArrays;
+
     private final List<EquationSystemListener<V, E>> listeners = new ArrayList<>();
+
+    private final LfNetwork network;
 
     private final VariableSet<V> variableSet;
 
@@ -38,13 +42,15 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private final EquationSystemIndex<V, E> index;
 
-    public EquationSystem() {
-        this(new VariableSet<>());
+    public EquationSystem(Class<E> equationClass, LfNetwork network) {
+        this(equationClass, network, new VariableSet<>());
     }
 
-    public EquationSystem(VariableSet<V> variableSet) {
+    public EquationSystem(Class<E> equationClass, LfNetwork network, VariableSet<V> variableSet) {
+        this.network = Objects.requireNonNull(network);
         this.variableSet = Objects.requireNonNull(variableSet);
         index = new EquationSystemIndex<>(this);
+        equationArrays = new EnumMap<>(equationClass);
     }
 
     public VariableSet<V> getVariableSet() {
@@ -178,13 +184,23 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         term.setStateVector(stateVector);
     }
 
-    public List<String> getRowNames(LfNetwork network) {
+    public EquationArray<V, E> createEquationArray(E type) {
+        Objects.requireNonNull(type);
+        EquationArray<V, E> equationArray = equationArrays.get(type);
+        if (equationArray == null) {
+            equationArray = new EquationArray<>(type, network.getElementCount(type.getElementType()), this);
+            equationArrays.put(type, equationArray);
+        }
+        return equationArray;
+    }
+
+    public List<String> getRowNames() {
         return index.getSortedVariablesToFind().stream()
                 .map(eq -> network.getBus(eq.getElementNum()).getId() + "/" + eq.getType())
                 .collect(Collectors.toList());
     }
 
-    public List<String> getColumnNames(LfNetwork network) {
+    public List<String> getColumnNames() {
         return index.getSortedEquationsToSolve().stream()
                 .map(v -> network.getBus(v.getElementNum()).getId() + "/" + v.getType())
                 .collect(Collectors.toList());

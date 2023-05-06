@@ -8,8 +8,10 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.openloadflow.equations.EquationSystemIndexListener.ChangeType;
 import com.powsybl.openloadflow.network.ElementType;
+import com.powsybl.openloadflow.network.LfNetwork;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,7 +77,8 @@ class EquationSystemIndexTest {
 
     @Test
     void test() {
-        EquationSystem<TestVariableType, TestEquationType> equationSystem = new EquationSystem<>();
+        LfNetwork network = Mockito.mock(LfNetwork.class);
+        EquationSystem<TestVariableType, TestEquationType> equationSystem = new EquationSystem<>(TestEquationType.class, network);
         equationSystem.getIndex().addListener(new EquationSystemIndexListener<>() {
             @Override
             public void onVariableChange(Variable<TestVariableType> variable, ChangeType changeType) {
