@@ -194,6 +194,10 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return equationArray;
     }
 
+    public Collection<EquationArray<V, E>> getEquationArrays() {
+        return equationArrays.values();
+    }
+
     public List<String> getRowNames() {
         return index.getSortedVariablesToFind().stream()
                 .map(eq -> network.getBus(eq.getElementNum()).getId() + "/" + eq.getType())
