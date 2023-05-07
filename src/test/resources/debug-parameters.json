@@ -60,7 +60,10 @@
         "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile" : 95.0,
         "reportedFeatures" : [ ],
         "slackBusCountryFilter" : [ ],
-        "actionableSwitchesIds" : [ ]
+        "actionableSwitchesIds" : [ ],
+        "lineSearchStateVectorScalingMaxIterations" : 5,
+        "lineSearchStateVectorScalingStepFold" : 4.0,
+        "lineSearchStateVectorScalingNormUpperBoundFunctionType" : "EXPONENTIAL"
       }
     }
   },

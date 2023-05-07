@@ -33,6 +33,13 @@ public class NewtonRaphsonParameters {
 
     private boolean detailedReport = false;
 
+    private int lineSearchStateVectorScalingMaxIterations = LineSearchStateVectorScaling.MAX_ITERATION_DEFAULT_VALUE;
+
+    private double lineSearchStateVectorScalingStepFold = LineSearchStateVectorScaling.STEP_FOLD_DEFAULT_VALUE;
+
+    private LineSearchStateVectorScaling.NormUpperBoundFunctionType lineSearchStateVectorScalingNormUpperBoundFunctionType
+            = LineSearchStateVectorScaling.NORM_UPPER_BOUND_FUNCTION_TYPE_DEFAULT_VALUE;
+
     public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
             throw new IllegalArgumentException("Invalid max iteration value: " + maxIteration);
@@ -103,6 +110,33 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
+    public int getLineSearchStateVectorScalingMaxIterations() {
+        return lineSearchStateVectorScalingMaxIterations;
+    }
+
+    public NewtonRaphsonParameters setLineSearchStateVectorScalingMaxIterations(int lineSearchStateVectorScalingMaxIterations) {
+        this.lineSearchStateVectorScalingMaxIterations = lineSearchStateVectorScalingMaxIterations;
+        return this;
+    }
+
+    public double getLineSearchStateVectorScalingStepFold() {
+        return lineSearchStateVectorScalingStepFold;
+    }
+
+    public NewtonRaphsonParameters setLineSearchStateVectorScalingStepFold(double lineSearchStateVectorScalingStepFold) {
+        this.lineSearchStateVectorScalingStepFold = lineSearchStateVectorScalingStepFold;
+        return this;
+    }
+
+    public LineSearchStateVectorScaling.NormUpperBoundFunctionType getLineSearchStateVectorScalingNormUpperBoundFunctionType() {
+        return lineSearchStateVectorScalingNormUpperBoundFunctionType;
+    }
+
+    public NewtonRaphsonParameters setLineSearchStateVectorScalingNormUpperBoundFunctionType(LineSearchStateVectorScaling.NormUpperBoundFunctionType lineSearchStateVectorScalingNormUpperBoundFunctionType) {
+        this.lineSearchStateVectorScalingNormUpperBoundFunctionType = Objects.requireNonNull(lineSearchStateVectorScalingNormUpperBoundFunctionType);
+        return this;
+    }
+
     @Override
     public String toString() {
         return "NewtonRaphsonParameters(" +
@@ -113,6 +147,9 @@ public class NewtonRaphsonParameters {
                 ", stateVectorScalingMode=" + stateVectorScalingMode +
                 ", alwaysUpdateNetwork=" + alwaysUpdateNetwork +
                 ", detailedNrReport=" + detailedReport +
+                ", lineSearchStateVectorScalingMaxIterations=" + lineSearchStateVectorScalingMaxIterations +
+                ", lineSearchStateVectorScalingStepFold=" + lineSearchStateVectorScalingStepFold +
+                ", lineSearchStateVectorScalingNormUpperBoundFunctionType=" + lineSearchStateVectorScalingNormUpperBoundFunctionType +
                 ')';
     }
 }

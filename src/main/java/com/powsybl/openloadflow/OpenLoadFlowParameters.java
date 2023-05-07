@@ -183,6 +183,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String ACTIONABLE_SWITCHES_IDS_PARAM_NAME = "actionableSwitchesIds";
 
+    private static final String LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME = "lineSearchStateVectorScalingMaxIterations";
+
+    private static final String LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME = "lineSearchStateVectorScalingStepFold";
+
+    private static final String LINE_SEARCH_STATE_VECTOR_SCALING_NORM_UPPER_BOUND_FUNCTION_TYPE_PARAM_NAME = "lineSearchStateVectorScalingNormUpperBoundFunctionType";
+
     private static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -229,7 +235,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
         new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE), new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)),
         new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slac bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE)),
-        new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE))
+        new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
+        new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Maximum number of iterations for the line search state vector scaling ", LineSearchStateVectorScaling.MAX_ITERATION_DEFAULT_VALUE),
+        new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, ParameterType.DOUBLE, "Step size folding per iteration for the line search state vector scaling ", LineSearchStateVectorScaling.STEP_FOLD_DEFAULT_VALUE),
+        new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_NORM_UPPER_BOUND_FUNCTION_TYPE_PARAM_NAME, ParameterType.STRING, "NR norm upper bound function type for the line search state vector scaling ", LineSearchStateVectorScaling.NORM_UPPER_BOUND_FUNCTION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(LineSearchStateVectorScaling.NormUpperBoundFunctionType.class))
     );
 
     public enum VoltageInitModeOverride {
@@ -356,6 +365,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private Set<Country> slackBusCountryFilter = LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE;
 
     private Set<String> actionableSwitchesIds = ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE;
+
+    private int lineSearchStateVectorScalingMaxIterations = LineSearchStateVectorScaling.MAX_ITERATION_DEFAULT_VALUE;
+
+    private double lineSearchStateVectorScalingStepFold = LineSearchStateVectorScaling.STEP_FOLD_DEFAULT_VALUE;
+
+    private LineSearchStateVectorScaling.NormUpperBoundFunctionType lineSearchStateVectorScalingNormUpperBoundFunctionType
+            = LineSearchStateVectorScaling.NORM_UPPER_BOUND_FUNCTION_TYPE_DEFAULT_VALUE;
 
     @Override
     public String getName() {
@@ -791,6 +807,33 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public int getLineSearchStateVectorScalingMaxIterations() {
+        return lineSearchStateVectorScalingMaxIterations;
+    }
+
+    public OpenLoadFlowParameters setLineSearchStateVectorScalingMaxIterations(int lineSearchStateVectorScalingMaxIterations) {
+        this.lineSearchStateVectorScalingMaxIterations = lineSearchStateVectorScalingMaxIterations;
+        return this;
+    }
+
+    public double getLineSearchStateVectorScalingStepFold() {
+        return lineSearchStateVectorScalingStepFold;
+    }
+
+    public OpenLoadFlowParameters setLineSearchStateVectorScalingStepFold(double lineSearchStateVectorScalingStepFold) {
+        this.lineSearchStateVectorScalingStepFold = lineSearchStateVectorScalingStepFold;
+        return this;
+    }
+
+    public LineSearchStateVectorScaling.NormUpperBoundFunctionType getLineSearchStateVectorScalingNormUpperBoundFunctionType() {
+        return lineSearchStateVectorScalingNormUpperBoundFunctionType;
+    }
+
+    public OpenLoadFlowParameters setLineSearchStateVectorScalingNormUpperBoundFunctionType(LineSearchStateVectorScaling.NormUpperBoundFunctionType lineSearchStateVectorScalingNormUpperBoundFunctionType) {
+        this.lineSearchStateVectorScalingNormUpperBoundFunctionType = Objects.requireNonNull(lineSearchStateVectorScalingNormUpperBoundFunctionType);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -845,6 +888,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReportedFeatures(config.getEnumSetProperty(REPORTED_FEATURES_PARAM_NAME, ReportedFeatures.class, REPORTED_FEATURES_DEFAULT_VALUE))
                 .setSlackBusCountryFilter(config.getEnumSetProperty(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, Country.class, LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE))
                 .setActionableSwitchesIds(new HashSet<>(config.getStringListProperty(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE))))
+                .setLineSearchStateVectorScalingMaxIterations(config.getIntProperty(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME, LineSearchStateVectorScaling.MAX_ITERATION_DEFAULT_VALUE))
+                .setLineSearchStateVectorScalingStepFold(config.getDoubleProperty(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, LineSearchStateVectorScaling.STEP_FOLD_DEFAULT_VALUE))
+                .setLineSearchStateVectorScalingNormUpperBoundFunctionType(config.getEnumProperty(LINE_SEARCH_STATE_VECTOR_SCALING_NORM_UPPER_BOUND_FUNCTION_TYPE_PARAM_NAME, LineSearchStateVectorScaling.NormUpperBoundFunctionType.class, LineSearchStateVectorScaling.NORM_UPPER_BOUND_FUNCTION_TYPE_DEFAULT_VALUE))
             );
         return parameters;
     }
@@ -947,11 +993,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setSlackBusCountryFilter(parseStringListProp(prop).stream().map(Country::valueOf).collect(Collectors.toSet())));
         Optional.ofNullable(properties.get(ACTIONABLE_SWITCHES_IDS_PARAM_NAME))
                 .ifPresent(prop -> this.setActionableSwitchesIds(new HashSet<>(parseStringListProp(prop))));
+        Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME))
+                .ifPresent(prop -> this.setLineSearchStateVectorScalingMaxIterations(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME))
+                .ifPresent(prop -> this.setLineSearchStateVectorScalingStepFold(Double.parseDouble(prop)));
+        Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_NORM_UPPER_BOUND_FUNCTION_TYPE_PARAM_NAME))
+                .ifPresent(prop -> this.setLineSearchStateVectorScalingNormUpperBoundFunctionType(LineSearchStateVectorScaling.NormUpperBoundFunctionType.valueOf(prop)));
         return this;
     }
 
     public Map<String, Object> toMap() {
-        Map<String, Object> map = new LinkedHashMap<>(43);
+        Map<String, Object> map = new LinkedHashMap<>(46);
         map.put(SLACK_BUS_SELECTION_MODE_PARAM_NAME, slackBusSelectionMode);
         map.put(SLACK_BUSES_IDS_PARAM_NAME, slackBusesIds);
         map.put(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, throwsExceptionInCaseOfSlackDistributionFailure);
@@ -995,6 +1047,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REPORTED_FEATURES_PARAM_NAME, reportedFeatures);
         map.put(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, slackBusCountryFilter);
         map.put(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, actionableSwitchesIds);
+        map.put(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME, lineSearchStateVectorScalingMaxIterations);
+        map.put(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, lineSearchStateVectorScalingStepFold);
+        map.put(LINE_SEARCH_STATE_VECTOR_SCALING_NORM_UPPER_BOUND_FUNCTION_TYPE_PARAM_NAME, lineSearchStateVectorScalingNormUpperBoundFunctionType);
         return map;
     }
 
@@ -1161,7 +1216,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMinRealisticVoltage(parametersExt.getMinRealisticVoltage())
                 .setMaxRealisticVoltage(parametersExt.getMaxRealisticVoltage())
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
-                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
+                .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork())
+                .setLineSearchStateVectorScalingMaxIterations(parametersExt.getLineSearchStateVectorScalingMaxIterations())
+                .setLineSearchStateVectorScalingStepFold(parametersExt.getLineSearchStateVectorScalingStepFold())
+                .setLineSearchStateVectorScalingNormUpperBoundFunctionType(parametersExt.getLineSearchStateVectorScalingNormUpperBoundFunctionType());
 
         OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
         List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
@@ -1300,7 +1358,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() &&
                 extension1.getReportedFeatures().equals(extension2.getReportedFeatures()) &&
                 extension1.getSlackBusCountryFilter().equals(extension2.getSlackBusCountryFilter()) &&
-                extension1.getActionableSwitchesIds().equals(extension2.getActionableSwitchesIds());
+                extension1.getLineSearchStateVectorScalingMaxIterations() == extension2.getLineSearchStateVectorScalingMaxIterations() &&
+                extension1.getLineSearchStateVectorScalingStepFold() == extension2.getLineSearchStateVectorScalingStepFold() &&
+                extension1.getLineSearchStateVectorScalingNormUpperBoundFunctionType() == extension2.getLineSearchStateVectorScalingNormUpperBoundFunctionType();
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {
@@ -1361,7 +1421,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(extension.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile())
                     .setReportedFeatures(extension.getReportedFeatures())
                     .setSlackBusCountryFilter(new HashSet<>(extension.getSlackBusCountryFilter()))
-                    .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()));
+                    .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()))
+                    .setLineSearchStateVectorScalingMaxIterations(extension.getLineSearchStateVectorScalingMaxIterations())
+                    .setLineSearchStateVectorScalingStepFold(extension.getLineSearchStateVectorScalingStepFold())
+                    .setLineSearchStateVectorScalingNormUpperBoundFunctionType(extension.getLineSearchStateVectorScalingNormUpperBoundFunctionType());
             if (extension2 != null) {
                 parameters2.addExtension(OpenLoadFlowParameters.class, extension2);
             }

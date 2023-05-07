@@ -22,18 +22,21 @@ import java.util.Objects;
  */
 public interface StateVectorScaling {
 
-    static StateVectorScaling fromMode(StateVectorScalingMode mode, NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
-        Objects.requireNonNull(mode);
+    static StateVectorScaling create(NewtonRaphsonParameters parameters, NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
+        Objects.requireNonNull(parameters);
         Objects.requireNonNull(initialTestResult);
-        switch (mode) {
+        switch (parameters.getStateVectorScalingMode()) {
             case NONE:
                 return new NoneStateVectorScaling();
             case LINE_SEARCH:
-                return new LineSearchStateVectorScaling(initialTestResult);
+                return new LineSearchStateVectorScaling(parameters.getLineSearchStateVectorScalingMaxIterations(),
+                                                        parameters.getLineSearchStateVectorScalingStepFold(),
+                                                        parameters.getLineSearchStateVectorScalingNormUpperBoundFunctionType(),
+                                                        initialTestResult);
             case MAX_VOLTAGE_CHANGE:
                 return new MaxVoltageChangeStateVectorScaling();
             default:
-                throw new IllegalStateException("Unknown state vector scaling mode: " + mode);
+                throw new IllegalStateException("Unknown state vector scaling mode: " + parameters.getStateVectorScalingMode());
         }
     }
 

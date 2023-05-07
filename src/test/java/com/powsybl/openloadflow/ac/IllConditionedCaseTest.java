@@ -16,6 +16,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.nr.LineSearchStateVectorScaling;
 import com.powsybl.openloadflow.ac.nr.StateVectorScalingMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
@@ -67,10 +68,11 @@ class IllConditionedCaseTest {
         assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
 
-        parametersExt.setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH);
+        parametersExt.setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH)
+                .setLineSearchStateVectorScalingNormUpperBoundFunctionType(LineSearchStateVectorScaling.NormUpperBoundFunctionType.CONSTANT);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(0.6364204826103471, bus2);
     }
 }
