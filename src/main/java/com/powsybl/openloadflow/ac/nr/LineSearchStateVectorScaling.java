@@ -106,7 +106,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
             NewtonRaphsonStoppingCriteria.TestResult currentTestResult = testResult;
             double[] x = null;
             int iteration = 1;
-            while (currentTestResult.getNorm() >= normDecreaseUpperBoundFunction.getUpperBound(lastTestResult.getNorm(), -stepSize)
+            while (currentTestResult.getNorm() >= normDecreaseUpperBoundFunction.getUpperBound(lastTestResult.getNorm(), stepSize)
                     && iteration <= maxIterations) {
                 if (x == null) {
                     x = stateVector.get();
