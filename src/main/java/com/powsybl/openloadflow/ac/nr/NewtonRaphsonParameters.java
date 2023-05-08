@@ -37,8 +37,8 @@ public class NewtonRaphsonParameters {
 
     private double lineSearchStateVectorScalingStepFold = LineSearchStateVectorScaling.STEP_FOLD_DEFAULT_VALUE;
 
-    private LineSearchStateVectorScaling.NormUpperBoundFunctionType lineSearchStateVectorScalingNormUpperBoundFunctionType
-            = LineSearchStateVectorScaling.NORM_UPPER_BOUND_FUNCTION_TYPE_DEFAULT_VALUE;
+    private LineSearchStateVectorScaling.NormDecreaseUpperBoundFunctionType lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType
+            = LineSearchStateVectorScaling.NORM_DECREASE_UPPER_BOUND_FUNCTION_TYPE_DEFAULT_VALUE;
 
     public static int checkMaxIteration(int maxIteration) {
         if (maxIteration < 1) {
@@ -128,12 +128,12 @@ public class NewtonRaphsonParameters {
         return this;
     }
 
-    public LineSearchStateVectorScaling.NormUpperBoundFunctionType getLineSearchStateVectorScalingNormUpperBoundFunctionType() {
-        return lineSearchStateVectorScalingNormUpperBoundFunctionType;
+    public LineSearchStateVectorScaling.NormDecreaseUpperBoundFunctionType getLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType() {
+        return lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType;
     }
 
-    public NewtonRaphsonParameters setLineSearchStateVectorScalingNormUpperBoundFunctionType(LineSearchStateVectorScaling.NormUpperBoundFunctionType lineSearchStateVectorScalingNormUpperBoundFunctionType) {
-        this.lineSearchStateVectorScalingNormUpperBoundFunctionType = Objects.requireNonNull(lineSearchStateVectorScalingNormUpperBoundFunctionType);
+    public NewtonRaphsonParameters setLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType(LineSearchStateVectorScaling.NormDecreaseUpperBoundFunctionType lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType) {
+        this.lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType = Objects.requireNonNull(lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType);
         return this;
     }
 
@@ -149,7 +149,7 @@ public class NewtonRaphsonParameters {
                 ", detailedNrReport=" + detailedReport +
                 ", lineSearchStateVectorScalingMaxIterations=" + lineSearchStateVectorScalingMaxIterations +
                 ", lineSearchStateVectorScalingStepFold=" + lineSearchStateVectorScalingStepFold +
-                ", lineSearchStateVectorScalingNormUpperBoundFunctionType=" + lineSearchStateVectorScalingNormUpperBoundFunctionType +
+                ", lineSearchStateVectorScalingNormUpperBoundFunctionType=" + lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType +
                 ')';
     }
 }

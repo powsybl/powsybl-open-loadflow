@@ -31,7 +31,7 @@ public interface StateVectorScaling {
             case LINE_SEARCH:
                 return new LineSearchStateVectorScaling(parameters.getLineSearchStateVectorScalingMaxIterations(),
                                                         parameters.getLineSearchStateVectorScalingStepFold(),
-                                                        parameters.getLineSearchStateVectorScalingNormUpperBoundFunctionType(),
+                                                        parameters.getLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType(),
                                                         initialTestResult);
             case MAX_VOLTAGE_CHANGE:
                 return new MaxVoltageChangeStateVectorScaling();

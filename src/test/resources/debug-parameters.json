@@ -63,7 +63,7 @@
         "actionableSwitchesIds" : [ ],
         "lineSearchStateVectorScalingMaxIterations" : 5,
         "lineSearchStateVectorScalingStepFold" : 4.0,
-        "lineSearchStateVectorScalingNormUpperBoundFunctionType" : "EXPONENTIAL"
+        "lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType" : "EXPONENTIAL"
       }
     }
   },

@@ -69,7 +69,7 @@ class IllConditionedCaseTest {
         assertVoltageEquals(0.6364204826103471, bus2);
 
         parametersExt.setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH)
-                .setLineSearchStateVectorScalingNormUpperBoundFunctionType(LineSearchStateVectorScaling.NormUpperBoundFunctionType.CONSTANT);
+                .setLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType(LineSearchStateVectorScaling.NormDecreaseUpperBoundFunctionType.CONSTANT);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertEquals(6, result.getComponentResults().get(0).getIterationCount());
