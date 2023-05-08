@@ -149,7 +149,7 @@ public class NewtonRaphsonParameters {
                 ", detailedNrReport=" + detailedReport +
                 ", lineSearchStateVectorScalingMaxIterations=" + lineSearchStateVectorScalingMaxIterations +
                 ", lineSearchStateVectorScalingStepFold=" + lineSearchStateVectorScalingStepFold +
-                ", lineSearchStateVectorScalingNormUpperBoundFunctionType=" + lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType +
+                ", lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType=" + lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType +
                 ')';
     }
 }
