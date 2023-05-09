@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -426,14 +427,14 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
-            assertTrue(lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
-            assertTrue(lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.DEPENDENT));
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
+            assertEquals(VoltageControl.MergeStatus.DEPENDENT, lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus());
             lfNetwork.getBranchById("l23").setDisabled(true);
-            assertTrue(lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
-            assertTrue(lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus());
             lfNetwork.getBranchById("l23").setDisabled(false);
-            assertTrue(lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
-            assertTrue(lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.DEPENDENT));
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
+            assertEquals(VoltageControl.MergeStatus.DEPENDENT, lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus());
         }
     }
 
@@ -459,14 +460,14 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), Reporter.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
-            assertTrue(lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
-            assertTrue(lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus());
             lfNetwork.getBranchById("l23").setDisabled(true);
-            assertTrue(lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
-            assertTrue(lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus());
             lfNetwork.getBranchById("l23").setDisabled(false);
-            assertTrue(lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
-            assertTrue(lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus().equals(VoltageControl.MergeStatus.MAIN));
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
+            assertEquals(VoltageControl.MergeStatus.MAIN, lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus());
         }
     }
 
