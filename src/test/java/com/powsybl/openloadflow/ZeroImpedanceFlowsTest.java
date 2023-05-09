@@ -405,6 +405,15 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(dl3.getTerminal().getQ()));
     }
 
+    /**
+     *               l14
+     *   ---------------------------
+     *  |                          |
+     *  b1 ----- b2 ===== b3 ----- b4
+     *  |   l12   |  l23      l34  |
+     *  g1       l2                g4
+     * (-> b2)                   (-> b3)
+     */
     @Test
     void testUpdateVoltageControlStatus() {
         Network network = Network.create("updateVoltageControlStatus", "code");
@@ -438,6 +447,15 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         }
     }
 
+    /**
+     *               l14
+     *   ---------------------------
+     *  |                          |
+     *  b1 ----- b2 ===== b3 ----- b4
+     *  |   l12   |  l23  |   l34
+     *  g1       l2       g3
+     * (-> b2)           (-> b4)
+     */
     @Test
     void testUpdateVoltageControlStatus2() {
         Network network = Network.create("updateVoltageControlStatus2", "code");
