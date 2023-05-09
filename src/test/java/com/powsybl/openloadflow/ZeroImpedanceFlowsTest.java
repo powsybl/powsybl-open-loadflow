@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow;
 
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.Line;
@@ -17,11 +18,19 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -396,6 +405,38 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
 
         assertActivePowerEquals(1.5, dl3.getTerminal());
         assertTrue(Double.isNaN(dl3.getTerminal().getQ()));
+    }
+
+    @Test
+    void testUpdateVoltageControlStatus() {
+        Network network = Network.create("updateVoltageControlStatus", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b2, "l2", 2, 1);
+        createGenerator(b4, "g4", 1, 1);
+        createLine(network, b1, b2, "l12", 0.01);
+        createLine(network, b2, b3, "l23", 0.0);
+        createLine(network, b3, b4, "l34", 0.01);
+        createLine(network, b1, b4, "l14", 0.01);
+        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal2()); // remote control g1 -> b2
+        network.getGenerator("g4").setRegulatingTerminal(network.getLine("l34").getTerminal1()); // remote control g4 -> b3
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), Reporter.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            System.out.println(lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
+            System.out.println(lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus());
+            lfNetwork.getBranchById("l23").setDisabled(true);
+            System.out.println(lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
+            System.out.println(lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus());
+            lfNetwork.getBranchById("l23").setDisabled(false);
+            System.out.println(lfNetwork.getBusById("b1").getVoltageControls().get(0).getMergeStatus());
+            System.out.println(lfNetwork.getBusById("b3").getVoltageControls().get(0).getMergeStatus());
+        }
     }
 
     private static void checkFlows(double p1, double q1, Terminal t1, double p2, double q2, Terminal t2) {
