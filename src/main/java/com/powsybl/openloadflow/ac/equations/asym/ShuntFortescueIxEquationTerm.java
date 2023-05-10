@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2023, Jean-Baptiste Heyberger <jbheyberger at gmail.com> ,
+ *                     Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package com.powsybl.openloadflow.ac.equations.asym;
 
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -16,12 +23,14 @@ public class ShuntFortescueIxEquationTerm extends AbstractShuntFortescueCurrentE
     public ShuntFortescueIxEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, Fortescue.SequenceType sequenceType) {
         super(bus, variableSet, sequenceType);
     }
-    // By definition :
-    // I is the current flowing out of the node in the shunt equipment
-    // I = y.V with y = g+jb
-    // Therefore Ix + jIy = g.Vx - b.Vy + j(g.Vy + b.Vx)
-    // then Ix = g.Vmagnitude.cos(theta) - b.Vmagnitude.sin(theta)
 
+    /**
+     * By definition:
+     *  I is the current flowing out of the node in the shunt equipment
+     *  I = y.V with y = g+jb
+     *  Therefore Ix + jIy = g.Vx - b.Vy + j(g.Vy + b.Vx)
+     *  then Ix = g.Vmagnitude.cos(theta) - b.Vmagnitude.sin(theta)
+     */
     private static double ix(double v, double phi, double g, double b) {
         return g * v * Math.cos(phi) - b * v * Math.sin(phi);
     }

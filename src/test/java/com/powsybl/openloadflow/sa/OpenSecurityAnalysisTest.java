@@ -364,6 +364,29 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testSaWithStateMonitorPreContingency() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        // 2 N-1 on the 2 lines
+        List<Contingency> contingencies = List.of(
+                new Contingency("NHV1_NHV2_1", new BranchContingency("NHV1_NHV2_1")),
+                new Contingency("NHV1_NHV2_2", new BranchContingency("NHV1_NHV2_2"))
+        );
+
+        // Monitor on branch and step-up transformer for all states
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.none(), Set.of("NHV1_NHV2_1", "NGEN_NHV1"), Set.of("VLLOAD"), emptySet())
+        );
+
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        parameters.setDc(true);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(2, preContingencyResult.getNetworkResult().getBranchResults().size());
+    }
+
+    @Test
     void testSaWithStateMonitorNotExistingBranchBus() {
         Network network = DistributedSlackNetworkFactory.create();
 
@@ -1849,5 +1872,20 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                                 new Contingency("Switch contingency", new SwitchContingency("S1VL1_BBS1_GEN_DISCONNECTOR")));
         result = runSecurityAnalysis(network, contingencies);
         assertEquals(2, result.getPostContingencyResults().size());
+    }
+
+    @Test
+    void testWithVoltageRemoteControl() {
+        Network network = VoltageControlNetworkFactory.createWithSimpleRemoteControl();
+        network.getGenerator("g4").setRegulatingTerminal(network.getLoad("l1").getTerminal()); // remote control.
+        List<Contingency> contingencies = List.of(new Contingency("contingency",
+                List.of(new BranchContingency("l12"), new BranchContingency("l31"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "b4_vl");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        assertDoesNotThrow(() -> {
+            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        });
     }
 }

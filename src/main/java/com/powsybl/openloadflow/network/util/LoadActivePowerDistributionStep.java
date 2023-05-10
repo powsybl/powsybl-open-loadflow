@@ -37,13 +37,13 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
     @Override
     public List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses) {
         return buses.stream()
-                .filter(bus -> bus.getAggregatedLoads().getLoadCount() > 0 && bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
+                .filter(bus -> bus.getLoad().getOriginalLoadCount() > 0 && bus.isParticipating() && !bus.isDisabled() && !bus.isFictitious())
                 .map(bus -> new ParticipatingElement(bus, getParticipationFactor(bus)))
                 .collect(Collectors.toList());
     }
 
     private double getParticipationFactor(LfBus bus) {
-        return bus.getAggregatedLoads().getAbsVariableLoadTargetP();
+        return bus.getLoad().getAbsVariableTargetP();
     }
 
     @Override
@@ -89,7 +89,7 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         // we have to keep the power factor constant by updating targetQ.
         double newLoadTargetQ;
         if (bus.ensurePowerFactorConstantByLoad()) {
-            newLoadTargetQ = bus.getAggregatedLoads().getLoadTargetQ(newLoadTargetP - bus.getInitialLoadTargetP());
+            newLoadTargetQ = bus.getLoad().getTargetQ(newLoadTargetP - bus.getInitialLoadTargetP());
         } else {
             newLoadTargetQ = newLoadTargetP * bus.getLoadTargetQ() / bus.getLoadTargetP();
         }

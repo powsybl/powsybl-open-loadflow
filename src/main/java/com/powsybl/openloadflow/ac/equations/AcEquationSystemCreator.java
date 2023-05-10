@@ -215,7 +215,7 @@ public class AcEquationSystemCreator {
                 .map(vc -> equationSystem.getEquation(vc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow())
                 .collect(Collectors.toList());
 
-        if (voltageControl.isDisabled()) {
+        if (controlledBus.isDisabled()) {
             // we disable all voltage control equations
             vEq.setActive(false);
             for (T controllerElement : controllerElements) {
@@ -224,7 +224,7 @@ public class AcEquationSystemCreator {
                         .setActive(false);
                 equationSystem.getEquation(controllerElement.getNum(), ctrlEqType)
                         .orElseThrow()
-                        .setActive(false);
+                        .setActive(!controllerElement.isDisabled());
             }
         } else {
             if (voltageControl.isHidden()) {
@@ -288,8 +288,8 @@ public class AcEquationSystemCreator {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : controllerBus.getBranches()) {
             EquationTerm<AcVariableType, AcEquationType> q;
-            if (branch.isZeroImpedance(false)) {
-                if (!branch.isSpanningTreeEdge(false)) {
+            if (branch.isZeroImpedance(LoadFlowModel.AC)) {
+                if (!branch.isSpanningTreeEdge(LoadFlowModel.AC)) {
                     continue;
                 }
                 if (branch.getBus1() == controllerBus) {
@@ -694,8 +694,8 @@ public class AcEquationSystemCreator {
     private void createBranchEquations(LfBranch branch,
                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         // create zero and non zero impedance branch equations
-        if (branch.isZeroImpedance(false)) {
-            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem, branch.isSpanningTreeEdge(false));
+        if (branch.isZeroImpedance(LoadFlowModel.AC)) {
+            createNonImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem, branch.isSpanningTreeEdge(LoadFlowModel.AC));
         } else {
             createImpedantBranch(branch, branch.getBus1(), branch.getBus2(), equationSystem);
         }
@@ -711,8 +711,8 @@ public class AcEquationSystemCreator {
                                                                                           VariableSet<AcVariableType> variableSet) {
         List<EquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
         for (LfBranch branch : bus.getBranches()) {
-            if (branch.isZeroImpedance(false)) {
-                if (branch.isSpanningTreeEdge(false)) {
+            if (branch.isZeroImpedance(LoadFlowModel.AC)) {
+                if (branch.isSpanningTreeEdge(LoadFlowModel.AC)) {
                     EquationTerm<AcVariableType, AcEquationType> p = variableSet.getVariable(branch.getNum(), AcVariableType.DUMMY_P).createTerm();
                     if (branch.getBus2() == bus) {
                         p = p.minus();

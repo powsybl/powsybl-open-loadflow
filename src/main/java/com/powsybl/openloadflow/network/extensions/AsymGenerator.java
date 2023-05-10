@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2023, Jean-Baptiste Heyberger <jbheyberger at gmail.com> ,
+ *                     Geoffroy Jamgotchian <geoffroy.jamgotchian at gmail.com>
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package com.powsybl.openloadflow.network.extensions;
 
 /**
@@ -7,31 +14,31 @@ public class AsymGenerator {
 
     public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";
 
-    private final double b0;
-    private final double g0;
-    private final double g2;
-    private final double b2;
+    private final double bz;
+    private final double gz;
+    private final double gn;
+    private final double bn;
 
-    public AsymGenerator(double g0, double b0, double g2, double b2) {
-        this.g0 = g0;
-        this.b0 = b0;
-        this.g2 = g2;
-        this.b2 = b2;
+    public AsymGenerator(double gz, double bz, double gn, double bn) {
+        this.gz = gz;
+        this.bz = bz;
+        this.gn = gn;
+        this.bn = bn;
     }
 
-    public double getG0() {
-        return g0;
+    public double getGz() {
+        return gz;
     }
 
-    public double getG2() {
-        return g2;
+    public double getGn() {
+        return gn;
     }
 
-    public double getB0() {
-        return b0;
+    public double getBz() {
+        return bz;
     }
 
-    public double getB2() {
-        return b2;
+    public double getBn() {
+        return bn;
     }
 }

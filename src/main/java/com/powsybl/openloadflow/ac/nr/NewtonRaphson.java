@@ -198,8 +198,14 @@ public class NewtonRaphson {
                     x[v.getRow()] = 0;
                     break;
 
-                case BUS_V_ZERO: // when balanced, zero and negative sequence should be zero
+                case BUS_V_ZERO:
                 case BUS_V_NEGATIVE:
+                    // when balanced, zero and negative sequence should be zero
+                    // v_zero and v_negative initially set to zero will bring a singularity to the Jacobian
+                    // We chose to set the initial value to a small one, but different from zero
+                    // By construction if the system does not carry any asymmetry in its structure,
+                    // the resolution of the system on the three sequences will bring a singularity
+                    // Therefore, if the system is balanced by construction, we should run a balanced load flow only
                     x[v.getRow()] = 0.1;
                     break;
 
