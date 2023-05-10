@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.extensions.iidm;
 
 import com.powsybl.commons.extensions.AbstractExtensionAdder;
 import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
@@ -21,6 +22,8 @@ public class LoadUnbalancedAdder extends AbstractExtensionAdder<Load, LoadUnbala
     private double deltaQb = 0.;
     private double deltaPc = 0.;
     private double deltaQc = 0.;
+    private WindingConnectionType connectionType = WindingConnectionType.Y_GROUNDED;
+    private LoadType loadType = LoadType.CONSTANT_POWER;
 
     public LoadUnbalancedAdder(Load load) {
         super(load);
@@ -33,7 +36,7 @@ public class LoadUnbalancedAdder extends AbstractExtensionAdder<Load, LoadUnbala
 
     @Override
     protected LoadUnbalanced createExtension(Load load) {
-        return new LoadUnbalanced(load, deltaPa, deltaQa, deltaPb, deltaQb, deltaPc, deltaQc);
+        return new LoadUnbalanced(load, connectionType, deltaPa, deltaQa, deltaPb, deltaQb, deltaPc, deltaQc, loadType);
     }
 
     public LoadUnbalancedAdder withPa(double deltaPa) {
@@ -65,4 +68,15 @@ public class LoadUnbalancedAdder extends AbstractExtensionAdder<Load, LoadUnbala
         this.deltaQc = deltaQc;
         return this;
     }
+
+    public LoadUnbalancedAdder withConnectionType(WindingConnectionType windingConnectionType) {
+        this.connectionType = windingConnectionType;
+        return this;
+    }
+
+    public LoadUnbalancedAdder withLoadType(LoadType loadType) {
+        this.loadType = loadType;
+        return this;
+    }
+
 }

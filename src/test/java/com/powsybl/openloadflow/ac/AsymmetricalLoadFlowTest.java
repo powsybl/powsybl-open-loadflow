@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class DisymTest {
+public class AsymmetricalLoadFlowTest {
 
     private Network network;
     private Bus bus0;
@@ -404,6 +404,54 @@ public class DisymTest {
     }
 
     @Test
+    void fourNodesDissymUnbalancedDeltaLoadTest() {
+
+        network = fourNodescreate();
+        bus1 = network.getBusBreakerView().getBus("B1");
+        bus2 = network.getBusBreakerView().getBus("B2");
+        bus3 = network.getBusBreakerView().getBus("B3");
+        bus4 = network.getBusBreakerView().getBus("B4");
+        line1 = network.getLine("B1_B2");
+
+        Line line23 = network.getLine("B2_B3");
+        double coeff = 1.;
+        line23.setX(coeff * 1 / 0.2);
+
+        Line line23fault = network.getLine("B2_B3_fault");
+        var extension = line23fault.getExtension(LineAsymmetrical.class);
+        extension.setOpenPhaseA(false);
+
+        Load load4 = network.getLoad("LOAD_4");
+
+        load4.newExtension(LoadUnbalancedAdder.class)
+                .withPa(20.)
+                .withQa(0.)
+                .withPb(40.)
+                .withQb(0.)
+                .withPc(21)
+                .withQc(0.)
+                .withConnectionType(WindingConnectionType.DELTA)
+                .add();
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters()
+                .setUseReactiveLimits(false)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAsymmetrical(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        assertVoltageEquals(100., bus1);
+        assertAngleEquals(0, bus1);
+        assertVoltageEquals(99.78067026758131, bus2); // balanced = 99.79736062173895
+        assertVoltageEquals(99.5142639108648, bus3); // balanced = 99.54462759204546
+        assertVoltageEquals(99.2565397779297, bus4); // balanced = 99.29252809145005
+    }
+
+    @Test
     void fiveNodeTest() {
         network = fiveNodescreate();
         bus0 = network.getBusBreakerView().getBus("B0");
@@ -430,32 +478,6 @@ public class DisymTest {
         assertVoltageEquals(109.29944440302664, bus2); // balanced = 99.79736062173895
         assertVoltageEquals(108.99189289657092, bus3); // balanced = 99.54462759204546
         assertVoltageEquals(108.7617902085402, bus4); // balanced = 99.29252809145005
-    }
-
-    @Test
-    void ieee4noadesFeederTest() {
-        network = ieee4YgYgStepUpBalanced();
-        bus1 = network.getBusBreakerView().getBus("B1");
-        bus2 = network.getBusBreakerView().getBus("B2");
-        bus3 = network.getBusBreakerView().getBus("B3");
-        bus4 = network.getBusBreakerView().getBus("B4");
-        line1 = network.getLine("B1_B2");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAsymmetrical(true);
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isOk());
-
-        assertVoltageEquals(12.47, bus1);
-        assertAngleEquals(0., bus1);
-        assertVoltageEquals(12.438818115032886, bus2); // balanced = 99.79736062173895
-        assertVoltageEquals(24.75916902673125, bus3); // balanced = 99.54462759204546
-        assertVoltageEquals(24.739649041513385, bus4); // balanced = 99.29252809145005
     }
 
     public static Network fourNodescreate() {
@@ -870,210 +892,6 @@ public class DisymTest {
                 .withGroundingX1(0.001)
                 .withGroundingX2(0.002)
                 .withFreeFluxes(false)
-                .add();
-
-        return network;
-    }
-
-    public static Network ieee4YgYgStepUpBalanced() {
-
-        Network network = Network.create("4n", "test");
-        network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
-
-        // step up case, we use Vbase of transformer = Vnom
-        double v1nom = 12.47;
-        double v3nom = 24.9;
-
-        Substation substation1 = network.newSubstation()
-                .setId("S1")
-                .setCountry(Country.FR)
-                .add();
-
-        // Bus 1
-        VoltageLevel vl1 = substation1.newVoltageLevel()
-                .setId("VL_1")
-                .setNominalV(v1nom)
-                .setLowVoltageLimit(0)
-                .setHighVoltageLimit(20)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        Bus bus1 = vl1.getBusBreakerView().newBus()
-                .setId("B1")
-                .add();
-        bus1.setV(v1nom).setAngle(0.);
-
-        // Generator modeling infinite feeder
-        Generator gen1 = vl1.newGenerator()
-                .setId("G1")
-                .setBus(bus1.getId())
-                .setMinP(-100.0)
-                .setMaxP(200)
-                .setTargetP(0)
-                .setTargetV(v1nom)
-                .setVoltageRegulatorOn(true)
-                .add();
-
-        gen1.newExtension(GeneratorFortescueAdder.class)
-                .withRz(0.)
-                .withXz(0.0001)
-                .withRn(0.)
-                .withXn(0.0001)
-                .add();
-
-        // Bus2
-        Substation substation23 = network.newSubstation()
-                .setId("S23")
-                .setCountry(Country.FR)
-                .add();
-
-        VoltageLevel vl2 = substation23.newVoltageLevel()
-                .setId("VL_2")
-                .setNominalV(v1nom)
-                .setLowVoltageLimit(0)
-                .setHighVoltageLimit(20)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        Bus bus2 = vl2.getBusBreakerView().newBus()
-                .setId("B2")
-                .add();
-        bus2.setV(v1nom).setAngle(0.);
-
-        // Bus3
-        VoltageLevel vl3 = substation23.newVoltageLevel()
-                .setId("VL_3")
-                .setNominalV(v3nom)
-                .setLowVoltageLimit(0)
-                .setHighVoltageLimit(40)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        Bus bus3 = vl3.getBusBreakerView().newBus()
-                .setId("B3")
-                .add();
-        bus3.setV(v3nom).setAngle(0.);
-
-        // Bus4
-        Substation substation4 = network.newSubstation()
-                .setId("S4")
-                .setCountry(Country.FR)
-                .add();
-
-        VoltageLevel vl4 = substation4.newVoltageLevel()
-                .setId("VL_4")
-                .setNominalV(v3nom)
-                .setLowVoltageLimit(0)
-                .setHighVoltageLimit(40)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        Bus bus4 = vl4.getBusBreakerView().newBus()
-                .setId("B4")
-                .add();
-        bus4.setV(v3nom).setAngle(0.);
-
-        double p = 1.2;
-        double q = p * 0.9;
-
-        // balanced load
-        vl4.newLoad()
-                .setId("LOAD_4")
-                .setBus(bus4.getId())
-                .setP0(p)
-                .setQ0(q)
-                .add();
-
-        double feetInMile = 5280;
-        double ry = 0.3061;
-        double xy = 0.627;
-        double r0y = 0.7735;
-        double x0y = 1.9373;
-        double length1InFeet = 2000;
-        double length2InFeet = 2500;
-
-        Line line12 = network.newLine()
-                .setId("B1_B2")
-                .setVoltageLevel1(vl1.getId())
-                .setBus1(bus1.getId())
-                .setConnectableBus1(bus1.getId())
-                .setVoltageLevel2(vl2.getId())
-                .setBus2(bus2.getId())
-                .setConnectableBus2(bus2.getId())
-                .setR(ry * length1InFeet / feetInMile)
-                .setX(xy * length1InFeet / feetInMile)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
-                .add();
-
-        // addition of asymmetrical extensions
-        line12.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
-                .add();
-
-        line12.newExtension(LineFortescueAdder.class)
-                .withRz(r0y * length1InFeet / feetInMile)
-                .withXz(x0y * length1InFeet / feetInMile)
-                .add();
-
-        Line line34 = network.newLine()
-                .setId("B3_B4")
-                .setVoltageLevel1(vl3.getId())
-                .setBus1(bus3.getId())
-                .setConnectableBus1(bus3.getId())
-                .setVoltageLevel2(vl4.getId())
-                .setBus2(bus4.getId())
-                .setConnectableBus2(bus4.getId())
-                .setR(ry * length2InFeet / feetInMile)
-                .setX(xy * length2InFeet / feetInMile)
-                .setG1(0.0)
-                .setB1(0.0)
-                .setG2(0.0)
-                .setB2(0.0)
-                .add();
-
-        // addition of asymmetrical extensions
-        line34.newExtension(LineAsymmetricalAdder.class)
-                .withIsOpenA(false)
-                .withIsOpenB(false)
-                .withIsOpenC(false)
-                .add();
-
-        line34.newExtension(LineFortescueAdder.class)
-                .withRz(r0y * length2InFeet / feetInMile)
-                .withXz(x0y * length2InFeet / feetInMile)
-                .add();
-
-        double ratedU2 = v1nom;
-        double ratedU3 = v3nom;
-        double sBase = 6;
-        double rT23 = ratedU2 * ratedU2 / sBase / 100;
-        double xT23 = 6 * ratedU2 * ratedU2 / sBase / 100;
-        var t23 = substation23.newTwoWindingsTransformer()
-                .setId("T2W_B2_B3")
-                .setVoltageLevel1(vl2.getId())
-                .setBus1(bus2.getId())
-                .setConnectableBus1(bus2.getId())
-                .setRatedU1(ratedU2)
-                .setVoltageLevel2(vl3.getId())
-                .setBus2(bus3.getId())
-                .setConnectableBus2(bus3.getId())
-                .setRatedU2(ratedU3)
-                .setR(rT23)
-                .setX(xT23)
-                .setG(0.0D)
-                .setB(0.0D)
-                .setRatedS(sBase)
-                .add();
-
-        t23.newExtension(TwoWindingsTransformerFortescueAdder.class)
-                .withRz(rT23) // TODO : check that again
-                .withXz(xT23) // TODO : check that
-                .withConnectionType1(WindingConnectionType.Y_GROUNDED)
-                .withConnectionType2(WindingConnectionType.Y_GROUNDED)
-                .withGroundingX1(0.000001)
-                .withGroundingX2(0.000001)
-                .withFreeFluxes(true)
                 .add();
 
         return network;

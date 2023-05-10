@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.ac.equations.asym;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
-import com.powsybl.openloadflow.network.extensions.AsymLine;
+import com.powsybl.openloadflow.network.extensions.AsymBranch;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.extensions.AsymLineAdmittanceMatrix;
 
@@ -25,7 +25,7 @@ abstract class AbstractAsymmetricalBranchFlowEquationTerm extends AbstractElemen
 
     protected AbstractAsymmetricalBranchFlowEquationTerm(LfBranch branch) {
         super(branch);
-        AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
+        AsymBranch asymLine = (AsymBranch) branch.getProperty(AsymBranch.PROPERTY_ASYMMETRICAL);
         if (asymLine == null) {
             throw new IllegalStateException("Line : " + branch.getId() + " has no asymmetric extension but is required here ");
         }

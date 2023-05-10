@@ -11,10 +11,17 @@ import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
+import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
+import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetrical;
+import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
+import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
 import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalanced;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
@@ -62,18 +69,91 @@ public class LfBusImpl extends AbstractLfBus {
         double totalDeltaQb = 0;
         double totalDeltaPc = 0;
         double totalDeltaQc = 0;
+        boolean isLoadAtBus = false;
+        boolean isWyeLoad = false;
+        boolean isDeltaLoad = false;
+        AsymBusLoadType loadType = AsymBusLoadType.CONSTANT_POWER;
+        LegConnectionType loadConnectionType;
         for (Load load : bus.getLoads()) {
             var extension = load.getExtension(LoadUnbalanced.class);
             if (extension != null) {
+                if (extension.getConnectionType() == WindingConnectionType.Y) {
+                    throw new IllegalStateException("non-grounded Y load not supported at Bus : " + bus.getId());
+                } else if (extension.getConnectionType() == WindingConnectionType.DELTA) {
+                    isDeltaLoad = true;
+                    isLoadAtBus = true;
+                } else if (extension.getConnectionType() == WindingConnectionType.Y_GROUNDED) {
+                    isWyeLoad = true;
+                    isLoadAtBus = true;
+                } else {
+                    throw new IllegalStateException("unknown load type at Bus : " + bus.getId());
+                }
                 totalDeltaPa += extension.getDeltaPa() / PerUnit.SB;
                 totalDeltaQa += extension.getDeltaQa() / PerUnit.SB;
                 totalDeltaPb += extension.getDeltaPb() / PerUnit.SB;
                 totalDeltaQb += extension.getDeltaQb() / PerUnit.SB;
                 totalDeltaPc += extension.getDeltaPc() / PerUnit.SB;
                 totalDeltaQc += extension.getDeltaQc() / PerUnit.SB;
+                if (extension.getLoadType() == LoadType.CONSTANT_CURRENT) {
+                    loadType = AsymBusLoadType.CONSTANT_CURRENT;
+                } else if (extension.getLoadType() == LoadType.CONSTANT_IMPEDANCE) {
+                    loadType = AsymBusLoadType.CONSTANT_IMPEDANCE;
+                }
             }
         }
-        AsymBus asymBus = new AsymBus(lfBus, totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc);
+        if (isDeltaLoad && isWyeLoad) {
+            throw new IllegalStateException("load type Yg and Delta connected at same Bus : " + bus.getId() + " not supported, choose only one type of load");
+        } else if (isDeltaLoad) {
+            loadConnectionType = LegConnectionType.DELTA;
+        } else if (isWyeLoad) {
+            loadConnectionType = LegConnectionType.Y_GROUNDED;
+        } else {
+            if (isLoadAtBus) {
+                throw new IllegalStateException("unknown load type at Bus : " + bus.getId());
+            }
+            loadConnectionType = LegConnectionType.Y_GROUNDED;
+        }
+
+        boolean hasPhaseA = true;
+        boolean hasPhaseB = true;
+        boolean hasPhaseC = true;
+        boolean isFortescueRep = true;
+        boolean isPositiveSequenceAsCurrent = false;
+
+        // TODO: adapt for better efficiency
+        AsymBusVariableType asymBusVariableType = AsymBusVariableType.WYE;
+        for (Bus busi : bus.getVoltageLevel().getBusBreakerView().getBuses()) {
+            var extensionBus = busi.getExtension(BusAsymmetrical.class);
+            if (extensionBus != null) {
+                isFortescueRep = extensionBus.isFortescueRepresentation();
+                isPositiveSequenceAsCurrent = extensionBus.isPositiveSequenceAsCurrent();
+                if (extensionBus.getBusVariableType() == BusVariableType.DELTA) {
+                    asymBusVariableType = AsymBusVariableType.DELTA;
+                    if (!extensionBus.isHasPhaseA() || !extensionBus.isHasPhaseB() || !extensionBus.isHasPhaseC()) {
+                        throw new IllegalStateException("Bus with both missing phases and delta variables not yet handled for Bus : " + bus.getId());
+                    }
+                    if (!isFortescueRep) {
+                        throw new IllegalStateException("Bus with both missing phases and 3 phase representation not yet handled for Bus : " + bus.getId());
+                    }
+                } else {
+                    if (!extensionBus.isHasPhaseA()) {
+                        hasPhaseA = false;
+                        isFortescueRep = false;
+                    }
+                    if (!extensionBus.isHasPhaseB()) {
+                        hasPhaseB = false;
+                        isFortescueRep = false;
+                    }
+                    if (!extensionBus.isHasPhaseC()) {
+                        hasPhaseC = false;
+                        isFortescueRep = false;
+                    }
+                }
+            }
+            break;
+        }
+
+        AsymBus asymBus = new AsymBus(lfBus, asymBusVariableType, hasPhaseA, hasPhaseB, hasPhaseC, loadConnectionType, totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc, isFortescueRep, isPositiveSequenceAsCurrent, loadType);
         lfBus.setProperty(AsymBus.PROPERTY_ASYMMETRICAL, asymBus);
     }
 

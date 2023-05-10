@@ -7,7 +7,7 @@ import java.util.Objects;
  */
 public class AsymTransfo2W {
 
-    public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";
+    public static final String PROPERTY_ASYMMETRICAL = "AsymmetricalT2w";
 
     private final LegConnectionType leg1ConnectionType;
     private final LegConnectionType leg2ConnectionType;

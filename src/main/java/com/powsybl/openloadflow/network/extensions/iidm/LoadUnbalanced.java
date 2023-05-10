@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.extensions.iidm;
 
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
@@ -16,13 +17,15 @@ import com.powsybl.iidm.network.Load;
 public class LoadUnbalanced extends AbstractExtension<Load> {
 
     // This class is used as an extension of a "classical" balanced direct load
-    // we store here the deltas of power that will build the unblalanced loads. The reference is the positive sequence load stored in "Load"
+    // we store here the deltas of power that will build the unbalanced loads. The reference is the positive sequence load stored in "Load"
     private final double deltaPa;
     private final double deltaQa;
     private final double deltaPb;
     private final double deltaQb;
     private final double deltaPc;
     private final double deltaQc;
+    private final WindingConnectionType connectionType;
+    private final LoadType loadType;
 
     public static final String NAME = "loadUnbalanced";
 
@@ -31,7 +34,7 @@ public class LoadUnbalanced extends AbstractExtension<Load> {
         return NAME;
     }
 
-    public LoadUnbalanced(Load load, double deltaPa, double deltaQa, double deltaPb, double deltaQb, double deltaPc, double deltaQc) {
+    public LoadUnbalanced(Load load, WindingConnectionType loadConnectionType, double deltaPa, double deltaQa, double deltaPb, double deltaQb, double deltaPc, double deltaQc, LoadType loadType) {
         super(load);
         this.deltaPa = deltaPa;
         this.deltaPb = deltaPb;
@@ -39,6 +42,8 @@ public class LoadUnbalanced extends AbstractExtension<Load> {
         this.deltaQa = deltaQa;
         this.deltaQb = deltaQb;
         this.deltaQc = deltaQc;
+        this.connectionType = loadConnectionType;
+        this.loadType = loadType;
     }
 
     public double getDeltaPa() {
@@ -63,5 +68,13 @@ public class LoadUnbalanced extends AbstractExtension<Load> {
 
     public double getDeltaQc() {
         return deltaQc;
+    }
+
+    public WindingConnectionType getConnectionType() {
+        return connectionType;
+    }
+
+    public LoadType getLoadType() {
+        return loadType;
     }
 }

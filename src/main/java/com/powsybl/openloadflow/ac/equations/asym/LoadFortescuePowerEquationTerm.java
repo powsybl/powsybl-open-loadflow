@@ -8,104 +8,33 @@
 package com.powsybl.openloadflow.ac.equations.asym;
 
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.extensions.AsymBus;
+import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
+import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.openloadflow.network.extensions.StepType;
+import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
+import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<LfBus, AcVariableType, AcEquationType> {
-
-    // positive
-    protected final Variable<AcVariableType> vVar;
-
-    protected final Variable<AcVariableType> phVar;
-
-    // negative
-    protected final Variable<AcVariableType> vVarNegative;
-
-    protected final Variable<AcVariableType> phVarNegative;
-
-    // zero
-    protected final Variable<AcVariableType> vVarZero;
-
-    protected final Variable<AcVariableType> phVarZero;
-
-    protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
-
-    private final ComplexPart complexPart;
-
-    private final Fortescue.SequenceType sequenceType;
-
+public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
     public LoadFortescuePowerEquationTerm(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType) {
-        super(bus);
-        Objects.requireNonNull(variableSet);
-        this.complexPart = Objects.requireNonNull(complexPart);
-        this.sequenceType = Objects.requireNonNull(sequenceType);
-
-        vVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
-        phVar = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI);
-
-        vVarNegative = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_NEGATIVE);
-        phVarNegative = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_NEGATIVE);
-
-        vVarZero = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V_ZERO);
-        phVarZero = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_PHI_ZERO);
-
-        variables.add(vVar);
-        variables.add(phVar);
-        variables.add(vVarNegative);
-        variables.add(phVarNegative);
-        variables.add(vVarZero);
-        variables.add(phVarZero);
+        super(bus, variableSet, complexPart, sequenceType);
     }
 
-    public double ph(Fortescue.SequenceType g) {
-        switch (g) {
-            case ZERO:
-                return sv.get(phVarZero.getRow());
-
-            case POSITIVE:
-                return sv.get(phVar.getRow());
-
-            case NEGATIVE:
-                return sv.get(phVarNegative.getRow());
-
-            default:
-                throw new IllegalStateException("Unknown Phi variable at bus: " + element.getId());
-        }
-    }
-
-    public double v(Fortescue.SequenceType g) {
-        switch (g) {
-            case ZERO:
-                return sv.get(vVarZero.getRow());
-
-            case POSITIVE:
-                return sv.get(vVar.getRow());
-
-            case NEGATIVE:
-                return sv.get(vVarNegative.getRow());
-
-            default:
-                throw new IllegalStateException("Unknown V variable at bus: " + element.getId());
-        }
-    }
-
-    public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
+    public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType,
+                            double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
         // We use the formula with complex matrices:
+        //
+        // Case of a Wye load connected to a Wye bus :
         //
         // [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
         // [Sd] =  [0  Vd   0]. 1/3 . [F] . [0  1/Vb  0] . [Sb]
@@ -115,10 +44,39 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         //         <------------------------------------------->
         //                    term Sfortescue
 
+        // Case of a Delta load connected to a Delta Bus
+        //
+        // [So]    [Vo  0   0]                    [1/Vab  0  0]   [Sab]
+        // [Sd] =  [0  Vd   0]. 1/3 . [F] . [P] . [0  1/Vbc  0] . [Sbc]
+        // [Si]    [0   0  Vi]                    [0   0 1/Vca]   [Sca]
+        //                      <------------------------------------->
+        //                                 term (Ifortescue)*
+        //         <-------------------------------------------------->
+        //                    term Sfortescue
+
+        // Case of a Delta load connected to a Wye Bus
+        // We suppose that provided input data is Sab, Sbc, Sca and carried respectively through attributes (Pa,Qa), (Pb,Qb), (Pc,Qc)
+        //
+        // [So]    [Vo  0   0]                    [1/(Va-Vb)  0       0   ]   [Sab]
+        // [Sd] =  [0  Vd   0]. 1/3 . [F] . [P] . [   0   1/(Vb-Vc)   0   ] . [Sbc]
+        // [Si]    [0   0  Vi]                    [   0       0  1/(Vc-Va)]   [Sca]
+        //                      <-------------------------------------------------->
+        //                                 term (Ifortescue)*
+        //         <--------------------------------------------------------------->
+        //                    term Sfortescue
+
+        // We name [P] as complex matrix :
+        //       [ 1  0 -1]
+        // [P] = [-1  1  0]
+        //       [ 0 -1  1]
+
         AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
+
+        LegConnectionType loadConnectionType = asymBus.getLoadConnectionType();
+        AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
 
         // Build of Sabc/3 vector
         DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
@@ -131,13 +89,24 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         DenseMatrix mVabc = Fortescue.createMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build  1/Vabc square matrix
-        DenseMatrix mInvVabc = getInvVabcSquare(bus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
+        DenseMatrix mInvVabc = getInvVabcSquare(bus, asymBus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
+
+        if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.WYE) {
+            if (asymBus.getNbExistingPhases() > 0) {
+                throw new IllegalStateException("Delta load with phase disconnection not yet handled at bus : " + bus.getId());
+            }
+            mInvVabc = getInvVabcSquare(bus, asymBus, mVabc.get(0, 0) - mVabc.get(2, 0), mVabc.get(1, 0) - mVabc.get(3, 0), mVabc.get(2, 0) - mVabc.get(4, 0), mVabc.get(3, 0) - mVabc.get(5, 0), mVabc.get(4, 0) - mVabc.get(0, 0), mVabc.get(5, 0) - mVabc.get(1, 0));
+        }
 
         // build Vfortescue square matrix
         DenseMatrix mSquareVFortescue = getCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
 
         DenseMatrix m0T0 = mInvVabc.times(mSabc3);
-        DenseMatrix mIfortescueConjugate = Fortescue.createMatrix().times(m0T0);
+        DenseMatrix m1T0 = m0T0;
+        if (loadConnectionType == LegConnectionType.DELTA) {
+            m1T0 = complexMatrixP(StepType.STEP_DOWN).getRealCartesianMatrix().times(m0T0);
+        }
+        DenseMatrix mIfortescueConjugate = Fortescue.createMatrix().times(m1T0);
         DenseMatrix mSfortescue = mSquareVFortescue.times(mIfortescueConjugate); //  term T0 = Sfortescue
 
         switch (sequenceType) {
@@ -145,7 +114,12 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
                 return complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(0, 0) : -mIfortescueConjugate.get(1, 0); // IxZero or IyZero
 
             case POSITIVE:
-                return complexPart == ComplexPart.REAL ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
+                // check if positive sequence is modelled as P,Q or Ix,Iy
+                if (asymBus.isPositiveSequenceAsCurrent()) {
+                    return complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(2, 0) : -mIfortescueConjugate.get(3, 0); // IxZero or IyZero
+                } else {
+                    return complexPart == ComplexPart.REAL ? mSfortescue.get(2, 0) : mSfortescue.get(3, 0); // Ppositive or Qpositive
+                }
 
             case NEGATIVE:
                 return complexPart == ComplexPart.REAL ? mIfortescueConjugate.get(4, 0) : -mIfortescueConjugate.get(5, 0); // IxNegative or IyNegative
@@ -157,6 +131,8 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
 
     public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
         // We derivate the PQ formula with complex matrices:
+
+        // Wye Load with Wye variables at bus
         //
         //    [So]              [dVo/dx  0   0]         [1/Va  0  0]   [Sa]        [Vo  0  0]                [Sa  0   0]   [1/Va  0  0]   [1/Va  0  0]         [dV0/dx]
         // d( [Sd] )/dx = 1/3 . [0  dVd/dx   0] . [F] . [0  1/Vb  0] . [Sb]    +   [0  Vd  0] . [F] .(-1/3). [0   Sb  0] . [0  1/Vb  0] . [0  1/Vb  0] . [F] . [dVd/dx]
@@ -166,39 +142,38 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         //                                                                         <----------------------------------------------------------------------------------->
         //                                                                                                          term T2
 
+        // Delta Load with Wye variables at bus
+        //    [So]              [dVo/dx  0   0]               [1/(Va-Vb)  0       0   ]   [Sab]        [Vo  0  0]                      [Sab  0   0]   [1/(Va-Vb)  0       0   ]   [1/(Va-Vb)  0       0   ]               [dV0/dx]
+        // d( [Sd] )/dx = 1/3 . [0  dVd/dx   0] . [F] . [P] . [   0   1/(Vb-Vc)   0   ] . [Sbc]    +   [0  Vd  0] . [F] . [P] .(-1/3). [0   Sbc  0] . [   0   1/(Vb-Vc)   0   ] . [   0   1/(Vb-Vc)   0   ] . t[P]. [F] . [dVd/dx]
+        //    [Si]              [0   0  dVi/dx]               [   0       0  1/(Vc-Va)]   [Sca]        [0   0 Vi]                      [0   0  Sca]   [   0       0  1/(Vc-Va)]   [   0       0  1/(Vc-Va)]               [dVi/dx]
+        //                  <----------------------------------------------------------------->                    <-------------------------------------------------------------------------------------------------------->
+        //                                      term T1                                                                            term (dIfortescue)*
+        //                                                                                             <-------------------------------------------------------------------------------------------------------------------->
+        //                                                                                                                                 term T2
+
+        //
+        // Delta Load with Delta variables at bus
+        //    [So]              [dVo/dx  0   0]         [ 1  0 -1 ]   [1/Vab  0  0]   [Sab]        [Vo  0  0]                [ 1  0 -1 ]   [Sab  0   0]   [1/Vab  0  0]   [1/Va  0  0]         [dV0/dx]
+        // d( [Sd] )/dx = 1/3 . [0  dVd/dx   0] . [F] . [-1  1  0 ] . [0  1/Vbc  0] . [Sbc]    +   [0  Vd  0] . [F] .(-1/3). [-1  1  0 ] . [0   Sbc  0] . [0  1/Vbc  0] . [0  1/Vb  0] . [F] . [dVd/dx]
+        //    [Si]              [0   0  dVi/dx]         [ 0 -1  1 ]   [0   0 1/Vca]   [Sca]        [0   0 Vi]                [ 0 -1  1 ]   [0   0  Sca]   [0   0 1/Vca]   [0   0 1/Vc]         [dVi/dx]
+        //                  <------------------------------------------------------------->                     <------------------------------------------------------------------------------------->
+        //                                      term T1                                                                                             term (dIfortescue)*
+        //                                                                                         <-------------------------------------------------------------------------------------------------->
+        //                                                                                                                               term T2
+
         AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
 
+        LegConnectionType loadConnectionType = asymBus.getLoadConnectionType();
+        AsymBusVariableType busVariableType = asymBus.getAsymBusVariableType();
+
+        ComplexMatrix v0V1V2 = AbstractAsymmetricalLoad.getdVvector(bus, busVariableType, derVariable, vo, pho, vd, phd, vi, phi);
         // computation of dV0/dx , dV1/dx, dV2/dx
-        double dV0x = 0;
-        double dV0y = 0;
-        double dV1x = 0;
-        double dV1y = 0;
-        double dV2x = 0;
-        double dV2y = 0;
-        if (derVariable.getType() == AcVariableType.BUS_V) {
-            dV1x = Math.cos(phd);
-            dV1y = Math.sin(phd);
-        } else if (derVariable.getType() == AcVariableType.BUS_V_ZERO) {
-            dV0x = Math.cos(pho);
-            dV0y = Math.sin(pho);
-        } else if (derVariable.getType() == AcVariableType.BUS_V_NEGATIVE) {
-            dV2x = Math.cos(phi);
-            dV2y = Math.sin(phi);
-        } else if (derVariable.getType() == AcVariableType.BUS_PHI) {
-            dV1x = vd * -Math.sin(phd);
-            dV1y = vd * Math.cos(phd);
-        } else if (derVariable.getType() == AcVariableType.BUS_PHI_ZERO) {
-            dV0x = vo * -Math.sin(pho);
-            dV0y = vo * Math.cos(pho);
-        } else if (derVariable.getType() == AcVariableType.BUS_PHI_NEGATIVE) {
-            dV2x = vi * -Math.sin(phi);
-            dV2y = vi * Math.cos(phi);
-        } else {
-            throw new IllegalStateException("Unknown derivation variable: " + derVariable + " at bus : " + bus.getId());
-        }
+        Complex dV0 = v0V1V2.getTerm(1, 1);
+        Complex dV1 = v0V1V2.getTerm(2, 1);
+        Complex dV2 = v0V1V2.getTerm(3, 1);
 
         // build of voltage vectors
         Vector2D positiveComponent = Fortescue.getCartesianFromPolar(vd, phd);
@@ -212,15 +187,26 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
 
         // build of 1/Vabc square matrix
-        DenseMatrix mInvVabc = getInvVabcSquare(bus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
+        DenseMatrix mInvVabc = getInvVabcSquare(bus, asymBus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
+        if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.WYE) {
+            if (asymBus.getNbExistingPhases() > 0) {
+                throw new IllegalStateException("Delta load with phase disconnection not yet handled at bus : " + bus.getId());
+            }
+            mInvVabc = getInvVabcSquare(bus, asymBus, mVabc.get(0, 0) - mVabc.get(2, 0), mVabc.get(1, 0) - mVabc.get(3, 0), mVabc.get(2, 0) - mVabc.get(4, 0), mVabc.get(3, 0) - mVabc.get(5, 0), mVabc.get(4, 0) - mVabc.get(0, 0), mVabc.get(5, 0) - mVabc.get(1, 0));
+        }
 
         // build of derivative fortescue voltage square matrix
-        DenseMatrix mdVSquare = getCartesianMatrix(dV0x, dV0y, dV1x, dV1y, dV2x, dV2y, false);
+        DenseMatrix mdVSquare = getCartesianMatrix(dV0.getReal(), dV0.getImaginary(), dV1.getReal(), dV1.getImaginary(), dV2.getReal(), dV2.getImaginary(), false);
 
         // computation of vector = term T1:
         DenseMatrix m0T1 = mInvVabc.times(mSabc3);
-        DenseMatrix m1T1 = Fortescue.createMatrix().times(m0T1);
-        DenseMatrix mT1 = mdVSquare.times(m1T1);
+
+        DenseMatrix m1T1 = m0T1;
+        if (loadConnectionType == LegConnectionType.DELTA) {
+            m1T1 = complexMatrixP(StepType.STEP_DOWN).getRealCartesianMatrix().times(m0T1);
+        }
+        DenseMatrix m2T1 = Fortescue.createMatrix().times(m1T1);
+        DenseMatrix mT1 = mdVSquare.times(m2T1);
 
         // build Vfortescue square matrix
         DenseMatrix mSquareVFortescue = getCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
@@ -229,14 +215,18 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         DenseMatrix mMinusSabc3Square = getCartesianMatrix(-asymBus.getPa() / 3, -asymBus.getQa() / 3, -asymBus.getPb() / 3, -asymBus.getQb() / 3, -asymBus.getPc() / 3, -asymBus.getQc() / 3, false);
 
         // buils of fortescue derivative vector
-        DenseMatrix mdV = getCartesianMatrix(dV0x, dV0y, dV1x, dV1y, dV2x, dV2y, true);
+        DenseMatrix mdV = getCartesianMatrix(dV0.getReal(), dV0.getImaginary(), dV1.getReal(), dV1.getImaginary(), dV2.getReal(), dV2.getImaginary(), true);
 
         // computation of vector = term T2:
         DenseMatrix m0T2 = Fortescue.createMatrix().times(mdV);
         DenseMatrix m1T2 = mInvVabc.times(m0T2);
         DenseMatrix m2T2 = mInvVabc.times(m1T2);
         DenseMatrix m3T2 = mMinusSabc3Square.times(m2T2);
-        DenseMatrix mdIFortescueConjugate = Fortescue.createMatrix().times(m3T2);
+        DenseMatrix m4T2 = m3T2;
+        if (loadConnectionType == LegConnectionType.DELTA && busVariableType == AsymBusVariableType.DELTA) {
+            m4T2 = complexMatrixP(StepType.STEP_DOWN).getRealCartesianMatrix().times(m3T2);
+        }
+        DenseMatrix mdIFortescueConjugate = Fortescue.createMatrix().times(m4T2);
         DenseMatrix mT2 = mSquareVFortescue.times(mdIFortescueConjugate);
 
         switch (sequenceType) {
@@ -244,7 +234,11 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
                 return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(0, 0) : -mdIFortescueConjugate.get(1, 0); // dIxZero or dIyZero
 
             case POSITIVE:
-                return complexPart == ComplexPart.REAL ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
+                if (asymBus.isPositiveSequenceAsCurrent()) {
+                    return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(2, 0) : -mdIFortescueConjugate.get(3, 0); // dIxPositive or dIyPositive
+                } else {
+                    return complexPart == ComplexPart.REAL ? mT1.get(2, 0) + mT2.get(2, 0) : mT1.get(3, 0) + mT2.get(3, 0); // dPpositive or dQpositive
+                }
 
             case NEGATIVE:
                 return complexPart == ComplexPart.REAL ? mdIFortescueConjugate.get(4, 0) : -mdIFortescueConjugate.get(5, 0); // dIxNegative or dIyNegative
@@ -256,18 +250,23 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
 
     @Override
     public double eval() {
-        return pq(element, complexPart, sequenceType,
+
+        double pq;
+        pq = pq(element, complexPart, sequenceType,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
                 v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
+        return pq;
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
-        return dpq(element, complexPart, sequenceType, variable,
+
+        double deriv = dpq(element, complexPart, sequenceType, variable,
                 v(Fortescue.SequenceType.ZERO), ph(Fortescue.SequenceType.ZERO),
                 v(Fortescue.SequenceType.POSITIVE), ph(Fortescue.SequenceType.POSITIVE),
                 v(Fortescue.SequenceType.NEGATIVE), ph(Fortescue.SequenceType.NEGATIVE));
+        return deriv;
     }
 
     @Override
@@ -275,34 +274,48 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         return "ac_pq_fortescue_load";
     }
 
-    @Override
-    public List<Variable<AcVariableType>> getVariables() {
-        return variables;
-    }
-
-    public static DenseMatrix getInvVabcSquare(LfBus bus, double vAx, double vAy, double vBx, double vBy, double vCx, double vCy) {
+    public static DenseMatrix getInvVabcSquare(LfBus bus, AsymBus asymBus, double vAx, double vAy, double vBx, double vBy, double vCx, double vCy) {
         double epsilon = 0.00000001;
-        double vAcongVa = vAx * vAx + vAy * vAy;
-        String cantBuildLoad = " is null at bus : " + bus.getId() + " : cannot build load model";
-        if (vAcongVa < epsilon) {
-            throw new IllegalStateException("Va" + cantBuildLoad);
-        }
-        double vBcongVb = vBx * vBx + vBy * vBy;
-        if (vBcongVb < epsilon) {
-            throw new IllegalStateException("Vb" + cantBuildLoad);
-        }
-        double vCcongVc = vCx * vCx + vCy * vCy;
-        if (vCcongVc < epsilon) {
-            throw new IllegalStateException("Vc" + cantBuildLoad);
-        }
-        double invVax = vAx / vAcongVa;
-        double invVay = -vAy / vAcongVa;
-        double invVbx = vBx / vBcongVb;
-        double invVby = -vBy / vBcongVb;
-        double invVcx = vCx / vCcongVc;
-        double invVcy = -vCy / vCcongVc;
 
-        return getCartesianMatrix(invVax, invVay, invVbx, invVby, invVcx, invVcy, false);
+        if (asymBus.getNbExistingPhases() > 0 && asymBus.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
+            throw new IllegalStateException("Load with delta variables and missing phases not yet handled at bus : " + bus.getId());
+        }
+
+        Complex vA = new Complex(vAx, vAy);
+        Complex vB = new Complex(vBx, vBy);
+        Complex vC = new Complex(vCx, vCy);
+
+        String cantBuildLoad = " is null at bus : " + bus.getId() + " : cannot build load model";
+
+        Complex invVa = new Complex(0., 0.);
+        Complex invVb = new Complex(0., 0.);
+        Complex invVc = new Complex(0., 0.);
+
+        if (asymBus.isHasPhaseA()) {
+            if (vA.abs() < epsilon) {
+                throw new IllegalStateException("Va" + cantBuildLoad);
+            } else {
+                invVa = vA.reciprocal();
+            }
+        }
+
+        if (asymBus.isHasPhaseB()) {
+            if (vB.abs() < epsilon) {
+                throw new IllegalStateException("Vb" + cantBuildLoad);
+            } else {
+                invVb = vB.reciprocal();
+            }
+        }
+
+        if (asymBus.isHasPhaseC()) {
+            if (vC.abs() < epsilon) {
+                throw new IllegalStateException("Vc" + cantBuildLoad);
+            } else {
+                invVc = vC.reciprocal();
+            }
+        }
+
+        return getCartesianMatrix(invVa.getReal(), invVa.getImaginary(), invVb.getReal(), invVb.getImaginary(), invVc.getReal(), invVc.getImaginary(), false);
     }
 
     public static DenseMatrix getCartesianMatrix(double m1x, double m1y, double m2x, double m2y, double m3x, double m3y, boolean isVector) {
@@ -343,6 +356,36 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
             mCartesian.add(5, 4, m3y);
         }
         return mCartesian;
+    }
+
+    // Test
+    public static ComplexMatrix complexMatrixP(StepType stepLegConnectionType) {
+        ComplexMatrix complexMatrix = ComplexMatrix.complexMatrixIdentity(3);
+
+        // Test artificial invertability with epsilon
+        //complexMatrix.set(1, 1, new Complex(1. + EPSILON_LEAK, 0.));
+        //complexMatrix.set(3, 3, new Complex(1. - EPSILON_LEAK, 0.));
+
+        Complex mOne = new Complex(-1., 0.);
+        if (stepLegConnectionType == StepType.STEP_DOWN) {
+            // Step-down configuration
+            //       [ 1  0 -1]
+            // [P] = [-1  1  0]
+            //       [ 0 -1  1]
+            complexMatrix.set(1, 3, new Complex(-1., 0.));
+            complexMatrix.set(2, 1, mOne);
+            complexMatrix.set(3, 2, new Complex(-1., 0.));
+        } else {
+            // Step-up configuration
+            //       [ 1 -1  0 ]
+            // [P] = [ 0  1 -1 ]
+            //       [-1  0  1 ]
+            complexMatrix.set(1, 2, new Complex(-1., 0.));
+            complexMatrix.set(2, 3, mOne);
+            complexMatrix.set(3, 1, new Complex(-1., 0.));
+        }
+
+        return complexMatrix;
     }
 
 }

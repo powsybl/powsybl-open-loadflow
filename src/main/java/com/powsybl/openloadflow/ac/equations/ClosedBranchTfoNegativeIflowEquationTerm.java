@@ -43,8 +43,6 @@ public class ClosedBranchTfoNegativeIflowEquationTerm extends AbstractClosedBran
         // [I2y]   [    0           0           0       R2   ] [  -b21    -g21    b2+b21   g2+g21 ] [    0           0           0       R2   ]  [V2y]
 
         DenseMatrix mRho = getRhoMatrix(r1, a1, r2);
-        /*System.out.println("---------- matrix rho = ");
-        mRho.print(System.out);*/
         DenseMatrix mRhoConjugate = getRhoMatrix(r1, -a1, r2);
         DenseMatrix mY = getFixedYmatrix(g1, b1, g2, b2, g12, b12); // TODO : inlcude g2 and b2
 

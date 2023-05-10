@@ -64,6 +64,10 @@ public class ComplexMatrix {
         return complexMatrixScaled;
     }
 
+    public static ComplexMatrix getMatrixScaled(ComplexMatrix cm, double factor) {
+        return getMatrixScaled(cm, new Complex(factor, 0.));
+    }
+
     // utils to switch between complex and real cartesian representation of a complex matrix
     public DenseMatrix getRealCartesianMatrix() {
         DenseMatrix realMatrix = new DenseMatrix(matrix.length * 2, matrix[0].length * 2);

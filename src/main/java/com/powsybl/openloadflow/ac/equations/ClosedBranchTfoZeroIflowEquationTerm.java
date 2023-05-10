@@ -13,8 +13,6 @@ import org.apache.commons.math3.complex.Complex;
 
 import java.util.Objects;
 
-//import static com.powsybl.openloadflow.network.PiModel.R2;
-
 public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAcFlowEquationTerm {
 
     public ClosedBranchTfoZeroIflowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
@@ -25,7 +23,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
 
         AsymTransfo2W asymTransfo2W = (AsymTransfo2W) branch.getProperty(AsymTransfo2W.PROPERTY_ASYMMETRICAL);
         if (asymTransfo2W == null) { // TODO : handle zero sequence without data
-            throw new IllegalStateException("Line : " + branch.getId() + " has no dissymmetric extension but is required here ");
+            throw new IllegalStateException("Branch : " + branch.getId() + " has no asymmetric extension but is required here ");
         }
 
         this.leg1ConnectionType = asymTransfo2W.getLeg1ConnectionType();
@@ -84,7 +82,9 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         DenseMatrix mZ = getMatrixFromBloc44(z11, z22, z12);
 
         if (getInverse) {
-            mZ.decomposeLU().solve(getId44());
+            DenseMatrix b44 = getId44();
+            mZ.decomposeLU().solve(b44);
+            return b44;
         }
         return mZ;
     }
@@ -149,9 +149,10 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
                 return getYgYgForcedFluxesImpedanceMatrix(z0T1, z0T2, y0m, zG1, zG2, r1, true);
             }
         } else {
-            Complex y11 = new Complex(0, 0);
-            Complex y22 = new Complex(0, 0);
-            Complex y12 = new Complex(0, 0);
+            double epsilon = 0.00000001;
+            Complex y11 = new Complex(epsilon, epsilon);
+            Complex y22 = new Complex(epsilon, epsilon);
+            Complex y12 = new Complex(epsilon, epsilon);
             if (leg1Type == LegConnectionType.DELTA && leg2Type == LegConnectionType.Y_GROUNDED) {
                 Complex tmp1 = z0T2.add(y0m.add(z0T1.reciprocal()).reciprocal());
                 y22 = (zG2.multiply(3).add(tmp1)).reciprocal();
@@ -181,7 +182,8 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
             }
         } else {
             Complex dy11;
-            Complex zeroComplex = new Complex(0, 0);
+            double epsilon = 0.000001;
+            Complex zeroComplex = new Complex(epsilon, 0);
             // F(x) = 1 / (a + b/x²) = y11
             // F'(x) = 2.b.x^-3.(a+b/x²)^-2 = dY11
             Complex b;
@@ -240,13 +242,6 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
     }
 
     public static DenseMatrix getId44() {
-        /*DenseMatrix mId = new DenseMatrix(4, 4);
-        mId.add(0, 0, 1);
-        mId.add(1, 1, 1);
-        mId.add(2, 2, 1);
-        mId.add(3, 3, 1);
-
-        return mId;*/
 
         ComplexMatrix complexMatrix = new ComplexMatrix(2, 2);
         Complex one = new Complex(1., 0.);
@@ -264,29 +259,7 @@ public class ClosedBranchTfoZeroIflowEquationTerm extends AbstractClosedBranchAc
         complexMatrix.set(1, 2, bloc12);
         complexMatrix.set(2, 1, bloc12);
         complexMatrix.set(2, 2, bloc22);
-        /*
-        DenseMatrix matrix = new DenseMatrix(4, 4);
-        matrix.add(0, 0, bloc11.getReal());
-        matrix.add(1, 1, bloc11.getReal());
-        matrix.add(0, 1, -bloc11.getImaginary());
-        matrix.add(1, 0, bloc11.getImaginary());
 
-        matrix.add(2, 0, bloc12.getReal());
-        matrix.add(3, 1, bloc12.getReal());
-        matrix.add(2, 1, -bloc12.getImaginary());
-        matrix.add(3, 0, bloc12.getImaginary());
-
-        matrix.add(0, 2, bloc12.getReal());
-        matrix.add(1, 3, bloc12.getReal());
-        matrix.add(0, 3, -bloc12.getImaginary());
-        matrix.add(1, 2, bloc12.getImaginary());
-
-        matrix.add(2, 2, bloc22.getReal());
-        matrix.add(3, 3, bloc22.getReal());
-        matrix.add(2, 3, -bloc22.getImaginary());
-        matrix.add(3, 2, bloc22.getImaginary());
-
-        return matrix;*/
         return complexMatrix.getRealCartesianMatrix();
 
     }
