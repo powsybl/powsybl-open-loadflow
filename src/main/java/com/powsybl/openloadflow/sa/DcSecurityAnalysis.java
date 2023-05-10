@@ -266,6 +266,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
     private boolean isBranchMonitored(String branchId, Contingency contingency) {
         boolean allMonitored = monitorIndex.getAllStateMonitor().getBranchIds().contains(branchId);
+        boolean noneMonitored = monitorIndex.getNoneStateMonitor().getBranchIds().contains(branchId);
         boolean specificMonitored = false;
         StateMonitor specificMonitor = null;
         if (contingency != null) {
@@ -274,7 +275,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         if (specificMonitor != null) {
             specificMonitored = specificMonitor.getBranchIds().contains(branchId);
         }
-        return allMonitored || specificMonitored;
+        return (contingency == null && noneMonitored) || allMonitored || specificMonitored;
     }
 
     private static double currentActivePower(double activePower, double voltage, double cosPhi) {

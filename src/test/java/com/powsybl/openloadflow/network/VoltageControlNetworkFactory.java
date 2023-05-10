@@ -981,4 +981,22 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .add();
         return network;
     }
+
+    public static Network createWithSimpleRemoteControl() {
+        Network network = Network.create("remoteControl", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        Bus b4 = createBus(network, "b4");
+        createGenerator(b2, "g2", 2, 1);
+        createGenerator(b3, "g3", 2, 1);
+        createGenerator(b4, "g4", 2, 1);
+        createLoad(b3, "l3", 5, 1);
+        createLoad(b1, "l1", 1, 1);
+        createLine(network, b1, b2, "l12", 0.0);
+        createLine(network, b2, b4, "l24", 0.01);
+        createLine(network, b4, b3, "l43", 0.01);
+        createLine(network, b3, b1, "l31", 0.0);
+        return network;
+    }
 }

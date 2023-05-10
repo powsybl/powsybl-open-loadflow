@@ -15,9 +15,6 @@ import com.powsybl.math.matrix.MatrixFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -31,40 +28,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JacobianMatrix.class);
 
-    static final class PartialDerivative<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> {
-
-        private final EquationTerm<V, E> equationTerm;
-
-        private final int elementIndex;
-
-        private final Variable<V> variable;
-
-        PartialDerivative(EquationTerm<V, E> equationTerm, int elementIndex, Variable<V> variable) {
-            this.equationTerm = Objects.requireNonNull(equationTerm);
-            this.elementIndex = elementIndex;
-            this.variable = Objects.requireNonNull(variable);
-        }
-
-        EquationTerm<V, E> getEquationTerm() {
-            return equationTerm;
-        }
-
-        public int getElementIndex() {
-            return elementIndex;
-        }
-
-        Variable<V> getVariable() {
-            return variable;
-        }
-    }
-
     private final EquationSystem<V, E> equationSystem;
 
     private final MatrixFactory matrixFactory;
 
     private Matrix matrix;
-
-    private List<PartialDerivative<V, E>> partialDerivatives;
 
     private LUDecomposition lu;
 
@@ -122,23 +90,13 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
-        partialDerivatives = new ArrayList<>(estimatedNonZeroValueCount);
 
         for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
             int column = eq.getColumn();
-            for (Map.Entry<Variable<V>, List<EquationTerm<V, E>>> e : eq.getTermsByVariable().entrySet()) {
-                Variable<V> v = e.getKey();
-                int row = v.getRow();
-                if (row != -1) {
-                    for (EquationTerm<V, E> term : e.getValue()) {
-                        // create a derivative for all terms including de-activated ones because could be reactivated
-                        // at jacobian update stage without any equation or variable index change
-                        double value = term.isActive() ? term.der(v) : 0;
-                        int elementIndex = matrix.addAndGetIndex(row, column, value);
-                        partialDerivatives.add(new PartialDerivative<>(term, elementIndex, v));
-                    }
-                }
-            }
+            eq.der((variable, value, matrixElementIndex) -> {
+                int row = variable.getRow();
+                return matrix.addAndGetIndex(row, column, value);
+            });
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -160,14 +118,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
-        for (PartialDerivative<V, E> partialDerivative : partialDerivatives) {
-            EquationTerm<V, E> term = partialDerivative.getEquationTerm();
-            if (term.isActive()) {
-                int elementIndex = partialDerivative.getElementIndex();
-                Variable<V> v = partialDerivative.getVariable();
-                double value = term.der(v);
-                matrix.addAtIndex(elementIndex, value);
-            }
+        for (Equation<V, E> eq : equationSystem.getIndex().getSortedEquationsToSolve()) {
+            eq.der((variable, value, matrixElementIndex) -> {
+                matrix.addAtIndex(matrixElementIndex, value);
+                return matrixElementIndex; // don't change element index
+            });
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -244,7 +199,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         equationSystem.getIndex().removeListener(this);
         equationSystem.getStateVector().removeListener(this);
         matrix = null;
-        partialDerivatives = null;
         clearLu();
     }
 }

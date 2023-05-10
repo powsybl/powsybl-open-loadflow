@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.dc.equations;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.network.LfNetworkListenerTracer;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.util.Objects;
@@ -119,8 +116,8 @@ public class DcEquationSystemCreator {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (branch.isZeroImpedance(true)) {
-                createNonImpedantBranch(equationSystem, branch, bus1, bus2, branch.isSpanningTreeEdge(true));
+            if (branch.isZeroImpedance(LoadFlowModel.DC)) {
+                createNonImpedantBranch(equationSystem, branch, bus1, bus2, branch.isSpanningTreeEdge(LoadFlowModel.DC));
             } else {
                 createImpedantBranch(equationSystem, creationParameters, branch, bus1, bus2);
             }

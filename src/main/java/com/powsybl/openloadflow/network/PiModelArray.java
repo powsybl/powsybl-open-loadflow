@@ -344,10 +344,10 @@ public class PiModelArray implements PiModel {
     }
 
     @Override
-    public boolean setMinZ(double minZ, boolean dc) {
+    public boolean setMinZ(double minZ, LoadFlowModel loadFlowModel) {
         boolean done = false;
         for (PiModel model : models) {
-            done |= model.setMinZ(minZ, dc);
+            done |= model.setMinZ(minZ, loadFlowModel);
         }
         return done;
     }
