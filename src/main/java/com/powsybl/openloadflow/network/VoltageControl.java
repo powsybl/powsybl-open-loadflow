@@ -143,10 +143,18 @@ public class VoltageControl<T extends LfElement> extends Control {
         List<VoltageControl<?>> voltageControls = findVoltageControlsSortedByPriority(controlledBus);
         if (voltageControls.isEmpty()) {
             return true; // means all disabled
-        }
-        // we should normally have max 3 voltage controls (one of each type) because already merged
-        if (voltageControls.size() > 1) {
+        } else {
+            // we should normally have max 3 voltage controls (one of each type) because already merged
             return voltageControls.get(0) != this;
+        }
+    }
+
+    public boolean allDisabled() {
+        // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
+        // from merged ones
+        List<VoltageControl<?>> voltageControls = findVoltageControlsSortedByPriority(controlledBus);
+        if (voltageControls.isEmpty()) {
+            return true; // means all disabled
         }
         return false;
     }

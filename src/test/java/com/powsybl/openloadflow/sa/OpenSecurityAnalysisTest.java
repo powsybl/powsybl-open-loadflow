@@ -1877,7 +1877,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testWithVoltageRemoteControl() {
         Network network = VoltageControlNetworkFactory.createWithSimpleRemoteControl();
-        network.getGenerator("g4").setRegulatingTerminal(network.getLoad("l1").getTerminal()); // remote control.
         List<Contingency> contingencies = List.of(new Contingency("contingency",
                 List.of(new BranchContingency("l12"), new BranchContingency("l31"))));
         LoadFlowParameters lfParameters = new LoadFlowParameters();
@@ -1887,5 +1886,33 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertDoesNotThrow(() -> {
             runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
         });
+    }
+
+    @Test
+    void testWithTwoVoltageControls() {
+        Network network = VoltageControlNetworkFactory.createWithTwoVoltageControls();
+        List<Contingency> contingencies = List.of(new Contingency("contingency",
+                List.of(new BranchContingency("l12"), new BranchContingency("l13"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "b5_vl");
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        assertDoesNotThrow(() -> {
+            runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        });
+    }
+
+    @Test
+    void testWithShuntAndGeneratorVoltageControls() {
+        Network network = VoltageControlNetworkFactory.createWithShuntAndGeneratorVoltageControl();
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("l12"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "b1_vl");
+        lfParameters.setShuntCompensatorVoltageControlOn(true);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Collections.emptySet(), Collections.singleton("b1_vl"), Collections.emptySet()));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        assertEquals(0.99044, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b1").getV(), LoadFlowAssert.DELTA_V);
     }
 }
