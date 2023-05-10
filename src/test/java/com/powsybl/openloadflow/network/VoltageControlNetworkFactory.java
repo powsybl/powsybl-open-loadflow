@@ -1036,12 +1036,19 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         return network;
     }
 
+    /**
+     *     b2 - g2          l4
+     *     |                 |
+     *     b1 ------------- b4
+     *     |
+     *     shunt1
+     */
     public static Network createWithShuntAndGeneratorVoltageControl() {
         Network network = Network.create("shuntAndGeneratorVoltageControl", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
         Bus b3 = createBus(network, "b3");
-        createLine(network, b1, b2, "l12", 0.01); // zero impedance line
+        createLine(network, b1, b2, "l12", 0.01);
         createLine(network, b1, b3, "l13", 0.01);
         createGenerator(b2, "g1", 2, 1);
         createLoad(b1, "l1", 2.5, 1);
