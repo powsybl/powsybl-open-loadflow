@@ -215,7 +215,7 @@ public class AcEquationSystemCreator {
                 .map(vc -> equationSystem.getEquation(vc.getControlledBus().getNum(), AcEquationType.BUS_TARGET_V).orElseThrow())
                 .collect(Collectors.toList());
 
-        if (controlledBus.isDisabled() || voltageControl.allDisabled()) {
+        if (controlledBus.isDisabled() || voltageControl.isDisabledAndAlsoAllItsDependentVoltageControls()) {
             // we disable all voltage control equations
             vEq.setActive(false);
             for (T controllerElement : controllerElements) {
@@ -328,7 +328,8 @@ public class AcEquationSystemCreator {
         checkNotDependentVoltageControl(voltageControl);
         LfBus controlledBus = voltageControl.getControlledBus();
         if (voltageControl.isLocalControl()) {
-            if (voltageControl.isHidden()) { // FIXME
+            if (voltageControl.isHidden()) {
+                // FIXME: a hidden generator voltage control means a disabled controller(/ed) bus for the moment.
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
                         .setActive(false);
