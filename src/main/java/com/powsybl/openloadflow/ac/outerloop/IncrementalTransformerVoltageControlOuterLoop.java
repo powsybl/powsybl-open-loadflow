@@ -214,7 +214,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 if (Math.abs(diffV) > halfTargetDeadband) {
                     controlledBusesOutsideOfDeadband.add(controlledBus.getId());
                     List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
-                            .filter(b -> !b.isDisabled() && b.isVoltageController())
+                            .filter(b -> !b.isDisabled())
                             .collect(Collectors.toList());
                     LOGGER.trace("Controlled bus '{}' ({} controllers) is outside of its deadband (half is {} kV) and could need a voltage adjustment of {} kV",
                             controlledBus.getId(), controllers.size(), halfTargetDeadband * controlledBus.getNominalV(), diffV * controlledBus.getNominalV());
