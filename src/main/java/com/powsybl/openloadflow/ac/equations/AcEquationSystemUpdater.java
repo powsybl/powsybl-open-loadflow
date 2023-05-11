@@ -92,13 +92,13 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 break;
             case BRANCH:
                 LfBranch branch = (LfBranch) element;
-                branch.getVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateTransformerVoltageControlEquations(voltageControl, equationSystem));
+                branch.getVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateTransformerVoltageControlEquations(voltageControl.getMainVoltageControl(), equationSystem));
                 branch.getPhaseControl().ifPresent(phaseControl -> AcEquationSystemCreator.updateTransformerPhaseControlEquations(phaseControl, equationSystem));
                 branch.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case SHUNT_COMPENSATOR:
                 LfShunt shunt = (LfShunt) element;
-                shunt.getVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateShuntVoltageControlEquations(voltageControl, equationSystem));
+                shunt.getVoltageControl().ifPresent(voltageControl -> AcEquationSystemCreator.updateShuntVoltageControlEquations(voltageControl.getMainVoltageControl(), equationSystem));
                 break;
             case HVDC:
                 // nothing to do
