@@ -497,8 +497,8 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
     /**
      * A very small network to test with two T2wt.
      *
-     *     G1        LD2         LD3
-     *     |    L12   |  T2WT2    |
+     *     G1        LD2        LD3
+     *     |    L12   |  T2WT2   |
      *     |  ------- | /     \  |
      *     B1         B2       B3
      *                 \      /
@@ -1037,9 +1037,9 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
     }
 
     /**
-     *     b2 - g2          l4
+     *     b2 - g1          l1 + g3
      *     |                 |
-     *     b1 ------------- b4
+     *     b1 ------------- b3
      *     |
      *     shunt1
      */
@@ -1053,10 +1053,10 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         createGenerator(b2, "g1", 2, 1);
         createLoad(b1, "l1", 2.5, 1);
         createGenerator(b3, "g3", 1, 1);
-        b1.getVoltageLevel().newShuntCompensator() // hidden voltage control
+        b3.getVoltageLevel().newShuntCompensator() // hidden voltage control
                 .setId("SHUNT")
-                .setBus("b1")
-                .setConnectableBus("b1")
+                .setBus("b3")
+                .setConnectableBus("b3")
                 .setSectionCount(0)
                 .setVoltageRegulatorOn(true)
                 .setTargetV(1)

@@ -87,7 +87,9 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)
                         .orElseThrow()
                         .setActive(false);
-                updateVoltageControls(bus);
+                bus.getGeneratorVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
+                bus.getTransformerVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
+                bus.getShuntVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 bus.getReactivePowerControl().ifPresent(reactivePowerControl -> AcEquationSystemCreator.updateReactivePowerControlBranchEquations(reactivePowerControl, equationSystem));
                 break;
             case BRANCH:

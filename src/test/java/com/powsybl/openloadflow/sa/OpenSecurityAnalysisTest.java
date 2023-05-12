@@ -1931,4 +1931,45 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
         assertEquals(0.99044, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("b1").getV(), LoadFlowAssert.DELTA_V);
     }
+
+    @Test
+    void testWithShuntAndGeneratorVoltageControls2() {
+        Network network = VoltageControlNetworkFactory.createNetworkWith2T2wt();
+        network.getTwoWindingsTransformer("T2wT1").getRatioTapChanger()
+                .setTargetDeadband(6.0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(network.getTwoWindingsTransformer("T2wT1").getTerminal1())
+                .setTargetV(130.0);
+        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger()
+                .setTargetDeadband(6.0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(network.getTwoWindingsTransformer("T2wT2").getTerminal1())
+                .setTargetV(130.0);
+        network.getGenerator("GEN_1").setRegulatingTerminal(network.getLine("LINE_12").getTerminal2());
+        network.getVoltageLevel("VL_3").newGenerator()
+                .setId("GEN_3")
+                .setBus("BUS_3")
+                .setMinP(0.0)
+                .setMaxP(140)
+                .setTargetP(0)
+                .setTargetV(33)
+                .setVoltageRegulatorOn(true)
+                .add();
+        List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("LINE_12"))));
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        setSlackBusId(lfParameters, "VL_3");
+        lfParameters.setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        openLoadFlowParameters.setMinRealisticVoltage(0.0);
+        openLoadFlowParameters.setMaxRealisticVoltage(3.0);
+        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Collections.emptySet(), Collections.singleton("VL_2"), Collections.emptySet()));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        assertEquals(133.557, result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("BUS_2").getV(), LoadFlowAssert.DELTA_V);
+    }
 }
