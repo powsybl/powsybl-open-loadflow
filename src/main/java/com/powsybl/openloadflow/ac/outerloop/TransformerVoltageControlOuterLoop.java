@@ -16,6 +16,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -77,19 +78,23 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
         // the set controlledNominalVoltages are disabled.
         // The transformer voltage controls are enabled.
         if (context.getIteration() == 0) {
-            for (LfBus bus : context.getNetwork().getBuses()) {
-                if (!bus.isDisabled() && bus.isGeneratorVoltageControlled() && bus.getNominalV() <= maxControlledNominalVoltage) {
-                    var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
-                    if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN) {
-                        voltageControl.getMergedControllerElements().forEach(controllerBus -> {
-                            if (controllerBus.isGeneratorVoltageControlEnabled()) {
-                                controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
-                                controllerBus.setGeneratorVoltageControlEnabled(false);
-                                contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
-                            }
-                        });
-                        status.setValue(OuterLoopStatus.UNSTABLE);
-                    }
+            List<LfBus> controlledBuses = context.getNetwork().getBuses().stream()
+                    .filter(bus -> !bus.isDisabled()
+                            && bus.isGeneratorVoltageControlled()
+                            && !bus.getGeneratorVoltageControl().orElseThrow().isHidden()
+                            && bus.getNominalV() <= maxControlledNominalVoltage)
+                    .collect(Collectors.toList());
+            for (LfBus bus : controlledBuses) {
+                var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
+                if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN) {
+                    voltageControl.getMergedControllerElements().forEach(controllerBus -> {
+                        if (controllerBus.isGeneratorVoltageControlEnabled()) {
+                            controllerBus.setGenerationTargetQ(controllerBus.getQ().eval());
+                            controllerBus.setGeneratorVoltageControlEnabled(false);
+                            contextData.getBusesWithVoltageControlDisabled().add(controllerBus);
+                        }
+                    });
+                    status.setValue(OuterLoopStatus.UNSTABLE);
                 }
             }
             for (LfBranch branch : getControllerBranches(context.getNetwork())) {

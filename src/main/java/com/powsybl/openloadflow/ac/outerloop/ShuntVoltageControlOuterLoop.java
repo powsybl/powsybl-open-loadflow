@@ -33,7 +33,9 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
     private static List<LfShunt> getControllerShunts(LfNetwork network) {
         return network.getBuses().stream()
                 .flatMap(bus -> bus.getControllerShunt().stream())
-                .filter(controllerShunt -> !controllerShunt.isDisabled() && controllerShunt.hasVoltageControlCapability())
+                .filter(controllerShunt -> !controllerShunt.isDisabled()
+                        && controllerShunt.hasVoltageControlCapability()
+                        && !controllerShunt.getVoltageControl().orElseThrow().isHidden())
                 .collect(Collectors.toList());
     }
 

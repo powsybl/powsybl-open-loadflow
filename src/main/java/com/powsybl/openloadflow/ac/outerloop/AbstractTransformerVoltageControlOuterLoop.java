@@ -29,8 +29,10 @@ public abstract class AbstractTransformerVoltageControlOuterLoop implements Oute
     private static final double MIN_TARGET_DEADBAND_KV = 0.1; // kV
 
     protected static List<LfBranch> getControllerBranches(LfNetwork network) {
-        return network.getBranches()
-                .stream().filter(branch -> !branch.isDisabled() && branch.isVoltageController())
+        return network.getBranches().stream()
+                .filter(branch -> !branch.isDisabled()
+                        && branch.isVoltageController()
+                        && !branch.getVoltageControl().orElseThrow().isHidden())
                 .collect(Collectors.toList());
     }
 

@@ -107,7 +107,9 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
     private static List<LfShunt> getControllerShunts(LfNetwork network) {
         return network.getBuses().stream()
                 .flatMap(bus -> bus.getControllerShunt().stream())
-                .filter(controllerShunt -> !controllerShunt.isDisabled() && controllerShunt.hasVoltageControlCapability())
+                .filter(controllerShunt -> !controllerShunt.isDisabled()
+                        && controllerShunt.hasVoltageControlCapability()
+                        && !controllerShunt.getVoltageControl().orElseThrow().isHidden())
                 .collect(Collectors.toList());
     }
 
@@ -158,7 +160,8 @@ public class IncrementalShuntVoltageControlOuterLoop implements OuterLoop {
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         network.getBuses().stream()
-                .filter(LfBus::isShuntVoltageControlled)
+                .filter(bus -> bus.isShuntVoltageControlled()
+                        && !bus.getShuntVoltageControl().orElseThrow().isHidden())
                 .forEach(controlledBus -> {
                     ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
                     if (voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN) {

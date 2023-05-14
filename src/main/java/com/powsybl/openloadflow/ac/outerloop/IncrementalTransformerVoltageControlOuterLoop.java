@@ -203,7 +203,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
         List<LfBus> controlledBuses = network.getBuses().stream()
-                .filter(LfBus::isTransformerVoltageControlled)
+                .filter(bus -> bus.isTransformerVoltageControlled()
+                        && !bus.getTransformerVoltageControl().orElseThrow().isHidden())
                 .collect(Collectors.toList());
 
         controlledBuses.forEach(controlledBus -> {

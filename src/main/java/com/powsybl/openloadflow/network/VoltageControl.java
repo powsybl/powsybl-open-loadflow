@@ -162,6 +162,10 @@ public class VoltageControl<T extends LfElement> extends Control {
         return false;
     }
 
+    public boolean hasAtLeastOneControllerEnabled() {
+        return getMergedControllerElements().stream().anyMatch(this::isControllerEnabled);
+    }
+
     @Override
     public String toString() {
         return "VoltageControl(type=" + type

@@ -429,10 +429,10 @@ class AcLoadFlowTransformerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(134.279, bus2);
-        assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertVoltageEquals(134.229, bus2);
+        assertVoltageEquals(32.228, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt2.getRatioTapChanger().getTapPosition());
     }
 
     @Test
@@ -455,10 +455,10 @@ class AcLoadFlowTransformerControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
-        assertVoltageEquals(134.279, bus2);
-        assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
-        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+        assertVoltageEquals(134.229, bus2);
+        assertVoltageEquals(32.228, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt2.getRatioTapChanger().getTapPosition());
     }
 
     @Test
