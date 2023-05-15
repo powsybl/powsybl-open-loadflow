@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.AbstractPropertyBag;
-import com.powsybl.openloadflow.network.LfAggregatedLoads;
+import com.powsybl.openloadflow.network.LfLoad;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -19,21 +19,21 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedLoads {
+class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
 
     private final List<Ref<Load>> loadsRefs = new ArrayList<>();
 
     private double[] participationFactors;
 
-    private double absVariableLoadTargetP;
+    private double absVariableTargetP;
 
     private final boolean distributedOnConformLoad;
 
     private boolean initialized;
 
-    private Map<String, Boolean> loadsStatus = new LinkedHashMap<>();
+    private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
-    LfAggregatedLoadsImpl(boolean distributedOnConformLoad) {
+    LfLoadImpl(boolean distributedOnConformLoad) {
         this.distributedOnConformLoad = distributedOnConformLoad;
     }
 
@@ -44,19 +44,19 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
 
     void add(Load load, LfNetworkParameters parameters) {
         loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
-        loadsStatus.put(load.getId(), false);
+        loadsDisablingStatus.put(load.getId(), false);
         initialized = false;
     }
 
     @Override
-    public double getAbsVariableLoadTargetP() {
+    public double getAbsVariableTargetP() {
         init();
-        return absVariableLoadTargetP;
+        return absVariableTargetP;
     }
 
     @Override
-    public void setAbsVariableLoadTargetP(double absVariableLoadTargetP) {
-        this.absVariableLoadTargetP = absVariableLoadTargetP;
+    public void setAbsVariableTargetP(double absVariableTargetP) {
+        this.absVariableTargetP = absVariableTargetP;
     }
 
     private void init() {
@@ -65,7 +65,7 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
         }
 
         participationFactors = new double[loadsRefs.size()];
-        absVariableLoadTargetP = 0;
+        absVariableTargetP = 0;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
             double value;
@@ -74,21 +74,21 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
             } else {
                 value = Math.abs(load.getP0());
             }
-            absVariableLoadTargetP += value;
+            absVariableTargetP += value;
             participationFactors[i] = value;
         }
 
-        if (absVariableLoadTargetP != 0) {
+        if (absVariableTargetP != 0) {
             for (int i = 0; i < participationFactors.length; i++) {
-                participationFactors[i] /= absVariableLoadTargetP;
+                participationFactors[i] /= absVariableTargetP;
             }
         }
-
+        absVariableTargetP = absVariableTargetP / PerUnit.SB;
         initialized = true;
     }
 
     @Override
-    public double getLoadCount() {
+    public double getOriginalLoadCount() {
         return loadsRefs.size();
     }
 
@@ -104,35 +104,35 @@ class LfAggregatedLoadsImpl extends AbstractPropertyBag implements LfAggregatedL
     }
 
     @Override
-    public double getLoadTargetQ(double diffLoadTargetP) {
+    public double getTargetQ(double diffTargetP) {
         init();
         double newLoadTargetQ = 0;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
-            double updatedP0 = load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i];
+            double updatedP0 = load.getP0() / PerUnit.SB + diffTargetP * participationFactors[i];
             newLoadTargetQ += getPowerFactor(load) * updatedP0;
         }
         return newLoadTargetQ;
     }
 
     @Override
-    public boolean isDisabled(String originalId) {
-        return loadsStatus.get(originalId);
+    public boolean isOriginalLoadDisabled(String originalId) {
+        return loadsDisablingStatus.get(originalId);
     }
 
     @Override
-    public void setDisabled(String originalId, boolean disabled) {
-        loadsStatus.put(originalId, disabled);
+    public void setOriginalLoadDisabled(String originalId, boolean disabled) {
+        loadsDisablingStatus.put(originalId, disabled);
     }
 
     @Override
-    public Map<String, Boolean> getLoadsDisablingStatus() {
-        return loadsStatus;
+    public Map<String, Boolean> getOriginalLoadsDisablingStatus() {
+        return loadsDisablingStatus;
     }
 
     @Override
-    public void setLoadsDisablingStatus(Map<String, Boolean> loadsStatus) {
-        this.loadsStatus = loadsStatus;
+    public void setOriginalLoadsDisablingStatus(Map<String, Boolean> originalLoadsDisablingStatus) {
+        this.loadsDisablingStatus = Objects.requireNonNull(originalLoadsDisablingStatus);
     }
 
     private static double getPowerFactor(Load load) {

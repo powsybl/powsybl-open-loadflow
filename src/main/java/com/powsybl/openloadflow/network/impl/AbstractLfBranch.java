@@ -6,7 +6,10 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -41,17 +44,18 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected boolean voltageControlEnabled = false;
 
-    protected boolean dcSpanningTreeEdge = false;
+    static class ZeroImpedanceContext {
 
-    protected boolean acSpanningTreeEdge = false;
+        boolean spanningTreeEdge = false;
+
+        boolean zeroImpedance = false;
+    }
+
+    protected final Map<LoadFlowModel, ZeroImpedanceContext> zeroImpedanceContextByModel = new EnumMap<>(LoadFlowModel.class);
 
     protected Evaluable a1;
 
     private ReactivePowerControl reactivePowerControl;
-
-    protected boolean dcZeroImpedance = false;
-
-    protected boolean acZeroImpedance = false;
 
     protected final List<LfCurrentLimitAutomaton> currentLimitAutomata = new ArrayList<>();
 
@@ -61,9 +65,13 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.bus2 = bus2;
         this.piModel = Objects.requireNonNull(piModel);
         this.piModel.setBranch(this);
+        for (LoadFlowModel loadFlowModel : LoadFlowModel.values()) {
+            zeroImpedanceContextByModel.put(loadFlowModel, new ZeroImpedanceContext());
+        }
         if (!parameters.isMinImpedance()) {
-            dcZeroImpedance = isZeroImpedanceBranch(piModel, true, parameters.getLowImpedanceThreshold());
-            acZeroImpedance = isZeroImpedanceBranch(piModel, false, parameters.getLowImpedanceThreshold());
+            for (LoadFlowModel loadFlowModel : LoadFlowModel.values()) {
+                zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = isZeroImpedanceBranch(piModel, loadFlowModel, parameters.getLowImpedanceThreshold());
+            }
         }
     }
 
@@ -163,8 +171,7 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     protected void updateTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
-        int tapPosition = Transformers.findTapPosition(rtc, ptcRho, rho);
-        rtc.setTapPosition(tapPosition);
+        Transformers.findTapPosition(rtc, ptcRho, rho).ifPresent(rtc::setTapPosition);
     }
 
     protected static double getScaleForLimitType(LimitType type, LfBus bus) {
@@ -223,23 +230,25 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     }
 
     @Override
-    public boolean isZeroImpedance(boolean dc) {
-        return dc ? dcZeroImpedance : acZeroImpedance;
+    public boolean isZeroImpedance(LoadFlowModel loadFlowModel) {
+        return zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance;
     }
 
     @Override
-    public void setSpanningTreeEdge(boolean dc, boolean spanningTreeEdge) {
-        if (dc) {
-            dcSpanningTreeEdge = spanningTreeEdge;
-        } else {
-            acSpanningTreeEdge = spanningTreeEdge;
+    public void setSpanningTreeEdge(LoadFlowModel loadFlowModel, boolean spanningTreeEdge) {
+        ZeroImpedanceContext context = zeroImpedanceContextByModel.get(loadFlowModel);
+        if (spanningTreeEdge != context.spanningTreeEdge) {
+            context.spanningTreeEdge = spanningTreeEdge;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onZeroImpedanceNetworkSpanningTreeChange(this, loadFlowModel, spanningTreeEdge);
+            }
         }
     }
 
     @Override
-    public boolean isSpanningTreeEdge(boolean dc) {
-        network.updateZeroImpedanceCache(dc);
-        return dc ? dcSpanningTreeEdge : acSpanningTreeEdge;
+    public boolean isSpanningTreeEdge(LoadFlowModel loadFlowModel) {
+        network.updateZeroImpedanceCache(loadFlowModel);
+        return zeroImpedanceContextByModel.get(loadFlowModel).spanningTreeEdge;
     }
 
     @Override
@@ -268,21 +277,57 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     @Override
     public void setMinZ(double lowImpedanceThreshold) {
-        if (piModel.setMinZ(lowImpedanceThreshold, false)) {
-            LOGGER.trace("Branch {} has a low impedance in AC, set to min {}", getId(), lowImpedanceThreshold);
-            acZeroImpedance = false;
-        }
-        if (piModel.setMinZ(lowImpedanceThreshold, true)) {
-            LOGGER.trace("Branch {} has a low impedance in DC, set to min {}", getId(), lowImpedanceThreshold);
-            dcZeroImpedance = false;
+        for (LoadFlowModel loadFlowModel : List.of(LoadFlowModel.AC, LoadFlowModel.DC)) {
+            if (piModel.setMinZ(lowImpedanceThreshold, loadFlowModel)) {
+                LOGGER.trace("Branch {} has a low impedance in {}, set to min {}", getId(), loadFlowModel, lowImpedanceThreshold);
+                zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = false;
+            }
         }
     }
 
-    private static boolean isZeroImpedanceBranch(PiModel piModel, boolean dc, double lowImpedanceThreshold) {
-        if (dc) {
+    private static boolean isZeroImpedanceBranch(PiModel piModel, LoadFlowModel loadFlowModel, double lowImpedanceThreshold) {
+        if (loadFlowModel == LoadFlowModel.DC) {
             return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
         } else {
             return piModel.getZ() < lowImpedanceThreshold;
+        }
+    }
+
+    private void updateZeroImpedanceNetworks(boolean disabled, LoadFlowModel loadFlowModel) {
+        if (isZeroImpedance(loadFlowModel)) {
+            LfZeroImpedanceNetwork zn1 = bus1.getZeroImpedanceNetwork(loadFlowModel);
+            LfZeroImpedanceNetwork zn2 = bus2.getZeroImpedanceNetwork(loadFlowModel);
+            if (zn1 != null && zn2 != null) {
+                if (disabled) {
+                    if (zn1 == zn2) {
+                        // zero impedance network split (maybe)
+                        zn1.removeBranchAndTryToSplit(this);
+                    } else {
+                        throw new IllegalStateException("Should not happen");
+                    }
+                } else {
+                    if (zn1 != zn2) {
+                        // zero impedance network merge
+                        LfZeroImpedanceNetwork.addBranchAndMerge(zn1, zn2, this);
+                    } else {
+                        // we need to add the branch again to zero impedance graph and update spanning tree as
+                        // this branch might become part of spanning tree (and was not before because disabled)
+                        zn1.addBranch(this);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        if (disabled != this.disabled) {
+            this.disabled = disabled;
+            notifyDisable();
+            if (bus1 != null && bus2 != null) {
+                updateZeroImpedanceNetworks(disabled, LoadFlowModel.AC);
+                updateZeroImpedanceNetworks(disabled, LoadFlowModel.DC);
+            }
         }
     }
 

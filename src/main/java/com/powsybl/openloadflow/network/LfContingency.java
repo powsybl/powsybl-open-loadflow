@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.util.PerUnit;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -71,7 +70,7 @@ public class LfContingency {
             disconnectedLoadActivePower += bus.getLoadTargetP();
             disconnectedGenerationActivePower += bus.getGenerationTargetP();
             disconnectedElementIds.addAll(bus.getGenerators().stream().map(LfGenerator::getId).collect(Collectors.toList()));
-            disconnectedElementIds.addAll(bus.getAggregatedLoads().getOriginalIds());
+            disconnectedElementIds.addAll(bus.getLoad().getOriginalIds());
             bus.getControllerShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
             bus.getShunt().ifPresent(shunt -> disconnectedElementIds.addAll(shunt.getOriginalIds()));
         }
@@ -157,11 +156,11 @@ public class LfContingency {
             bus.setLoadTargetQ(bus.getLoadTargetQ() - shift.getReactive());
             Set<String> loadsIdsInContingency = originalPowerShiftIds.stream()
                     .distinct()
-                    .filter(bus.getAggregatedLoads().getOriginalIds()::contains) // maybe not optimized.
+                    .filter(bus.getLoad().getOriginalIds()::contains) // maybe not optimized.
                     .collect(Collectors.toSet());
             if (!loadsIdsInContingency.isEmpty()) { // it could be a LCC in contingency.
-                bus.getAggregatedLoads().setAbsVariableLoadTargetP(bus.getAggregatedLoads().getAbsVariableLoadTargetP() - Math.abs(shift.getVariableActive()) * PerUnit.SB);
-                loadsIdsInContingency.stream().forEach(loadId -> bus.getAggregatedLoads().setDisabled(loadId, true));
+                bus.getLoad().setAbsVariableTargetP(bus.getLoad().getAbsVariableTargetP() - Math.abs(shift.getVariableActive()));
+                loadsIdsInContingency.stream().forEach(loadId -> bus.getLoad().setOriginalLoadDisabled(loadId, true));
             }
         }
         Set<LfBus> generatorBuses = new HashSet<>();
@@ -176,6 +175,13 @@ public class LfContingency {
             } else {
                 bus.setGenerationTargetQ(bus.getGenerationTargetQ() - generator.getTargetQ());
             }
+            if (generator instanceof LfStaticVarCompensator) {
+                ((LfStaticVarCompensator) generator).getStandByAutomatonShunt().ifPresent(svcShunt -> {
+                    // it means that the generator in contingency is a static var compensator with an active stand by automaton shunt
+                    shuntsShift.put(svcShunt, new AdmittanceShift(0, svcShunt.getB()));
+                    svcShunt.setB(0);
+                });
+            }
         }
         for (LfBus bus : generatorBuses) {
             if (bus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
@@ -186,11 +192,11 @@ public class LfContingency {
 
     private static double getUpdatedLoadP0(LfBus bus, LoadFlowParameters.BalanceType balanceType, double initialP0, double initialVariableActivePower) {
         double factor = 0.0;
-        if (bus.getAggregatedLoads().getLoadCount() > 0) {
+        if (bus.getLoad().getOriginalLoadCount() > 0) {
             if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD) {
-                factor = Math.abs(initialP0) / (bus.getAggregatedLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+                factor = Math.abs(initialP0) / bus.getLoad().getAbsVariableTargetP();
             } else if (balanceType == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) {
-                factor = initialVariableActivePower / (bus.getAggregatedLoads().getAbsVariableLoadTargetP() / PerUnit.SB);
+                factor = initialVariableActivePower / bus.getLoad().getAbsVariableTargetP();
             }
         }
         return initialP0 + (bus.getLoadTargetP() - bus.getInitialLoadTargetP()) * factor;

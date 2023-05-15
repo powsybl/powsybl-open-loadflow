@@ -129,7 +129,8 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
         List<SensitivityVariableSet> variableSets = Collections.emptyList();
         SensitivityAnalysisParameters sensitivityAnalysisParameters = new SensitivityAnalysisParameters();
-        sensitivityAnalysisParameters.setLoadFlowParameters(securityAnalysisParameters.getLoadFlowParameters());
+        LoadFlowParameters loadFlowParameters = securityAnalysisParameters.getLoadFlowParameters();
+        sensitivityAnalysisParameters.setLoadFlowParameters(loadFlowParameters);
 
         ContingencyContext contingencyContext = new ContingencyContext(null, ContingencyContextType.ALL);
         String variableId = network.getLoads().iterator().next().getId();
@@ -137,8 +138,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         DefaultLimitViolationDetector detector = new DefaultLimitViolationDetector(1.0f, EnumSet.allOf(LoadingLimitType.class));
 
         // CosPhi for DC power to current conversion
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(securityAnalysisParameters.getLoadFlowParameters());
-        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, parametersExt.getDcPowerFactor());
+        DcSecurityAnalysisContext context = new DcSecurityAnalysisContext(securityAnalysisParameters, contingencies, detector, loadFlowParameters.getDcPowerFactor());
         SensitivityFactorReader factorReader = handler -> {
             for (Branch<?> b : network.getBranches()) {
                 SensitivityFactor f = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, b.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
@@ -238,8 +238,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         Set<Switch> allSwitchesToClose = new HashSet<>();
         findAllSwitchesToOperate(network, actions, allSwitchesToClose, allSwitchesToOpen);
 
-        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, allSwitchesToClose, false,
-                false, context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false);
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, context.getContingencies(), allSwitchesToOpen, false);
 
         Map<String, Action> actionsById = indexActionsById(actions);
         Set<Action> neededActions = new HashSet<>(actionsById.size());
@@ -252,6 +251,11 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
 
         try (LfNetworkList lfNetworks = Networks.load(network, dcParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, Reporter.NO_OP)) {
+
+            // complete definition of contingencies after network loading
+            PropagatedContingency.completeList(propagatedContingencies, false,
+                    context.getParameters().getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, false, breakers);
+
             return lfNetworks.getLargest().filter(LfNetwork::isValid)
                     .map(largestNetwork -> runActionSimulations(context, largestNetwork, dcParameters, propagatedContingencies,
                                 operatorStrategies, actionsById, neededActions))
@@ -261,6 +265,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
     private boolean isBranchMonitored(String branchId, Contingency contingency) {
         boolean allMonitored = monitorIndex.getAllStateMonitor().getBranchIds().contains(branchId);
+        boolean noneMonitored = monitorIndex.getNoneStateMonitor().getBranchIds().contains(branchId);
         boolean specificMonitored = false;
         StateMonitor specificMonitor = null;
         if (contingency != null) {
@@ -269,7 +274,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         if (specificMonitor != null) {
             specificMonitored = specificMonitor.getBranchIds().contains(branchId);
         }
-        return allMonitored || specificMonitored;
+        return (contingency == null && noneMonitored) || allMonitored || specificMonitored;
     }
 
     private static double currentActivePower(double activePower, double voltage, double cosPhi) {

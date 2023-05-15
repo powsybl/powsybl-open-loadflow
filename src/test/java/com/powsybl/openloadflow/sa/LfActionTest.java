@@ -12,6 +12,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -63,7 +64,8 @@ class LfActionTest extends AbstractConverterTest {
             String loadId = "LOAD";
             Contingency contingency = new Contingency(loadId, new LoadContingency("LD"));
             PropagatedContingency propagatedContingency = PropagatedContingency.createList(network,
-                    Collections.singletonList(contingency), new HashSet<>(), new HashSet<>(), true, false, false, false).get(0);
+                    Collections.singletonList(contingency), new HashSet<>(), true).get(0);
+            PropagatedContingency.completeList(List.of(propagatedContingency), false, false, false, true);
             propagatedContingency.toLfContingency(lfNetwork).ifPresent(lfContingency -> {
                 LfAction.apply(List.of(lfAction), lfNetwork, lfContingency, acParameters.getNetworkParameters());
                 assertTrue(lfNetwork.getBranchById("C").isDisabled());
@@ -122,6 +124,52 @@ class LfActionTest extends AbstractConverterTest {
             assertEquals(newTargetP / PerUnit.SB, lfNetwork.getGeneratorById(genId).getTargetP());
             assertEquals(genId, generatorAction.getGeneratorId());
             assertEquals(oldTargetP, network.getGenerator(genId).getTargetP());
+        }
+    }
+
+    @Test
+    void testHvdcAction() {
+        // the hvc line is operated in AC emulation before applying the action. A change in P0 and droop is not supported yet.
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        HvdcAction hvdcAction = new HvdcActionBuilder()
+                .withId("action")
+                .withHvdcId("hvdc34")
+                .withAcEmulationEnabled(true)
+                .withP0(200.0)
+                .withDroop(90.0)
+                .build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), Reporter.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            UnsupportedOperationException e = assertThrows(UnsupportedOperationException.class, () -> LfAction.create(hvdcAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()));
+            assertEquals("Hvdc action: line is already in AC emulation, not supported yet.", e.getMessage());
+        }
+    }
+
+    @Test
+    void testHvdcAction2() {
+        // the hvc line is in active power setpoint mode before applying the action. Not supported yet.
+        Network network = HvdcNetworkFactory.createVsc();
+        HvdcAction hvdcAction = new HvdcActionBuilder()
+                .withId("action")
+                .withHvdcId("hvdc23")
+                .withAcEmulationEnabled(true)
+                .withP0(200.0)
+                .withDroop(90.0)
+                .build();
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), Collections.emptySet(), Collections.emptySet(), Reporter.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            assertTrue(LfAction.create(hvdcAction, lfNetwork, network, acParameters.getNetworkParameters().isBreakers()).isEmpty());
         }
     }
 }

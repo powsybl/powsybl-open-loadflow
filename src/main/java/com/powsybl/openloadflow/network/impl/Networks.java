@@ -160,11 +160,21 @@ public final class Networks {
 
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
                                      Set<Switch> switchesToOpen, Set<Switch> switchesToClose, Reporter reporter) {
-        Set<Switch> allSwitchesToOpen = new HashSet<>(switchesToOpen);
-        Set<Switch> allSwitchesToClose = new HashSet<>(switchesToClose);
-        addSwitchesOperatedByAutomata(network, networkParameters, allSwitchesToOpen, allSwitchesToClose);
-        networkParameters.setBreakers(!allSwitchesToOpen.isEmpty() || !allSwitchesToClose.isEmpty());
-        if (networkParameters.isBreakers()) {
+        return load(network, networkParameters, switchesToOpen, switchesToClose, LfNetworkList.DefaultVariantCleaner::new, reporter);
+    }
+
+    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
+                                     Set<Switch> switchesToOpen, Set<Switch> switchesToClose,
+                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
+        if (switchesToOpen.isEmpty() && switchesToClose.isEmpty()) {
+            return new LfNetworkList(load(network, networkParameters, reporter));
+        } else {
+            if (!networkParameters.isBreakers()) {
+                throw new PowsyblException("LF networks have to be built from bus/breaker view");
+            }
+
+            addSwitchesOperatedByAutomata(network, networkParameters, allSwitchesToOpen, allSwitchesToClose);
+
             // create a temporary working variant to build LF networks
             String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
             String workingVariantId = network.getVariantManager().getWorkingVariantId();
@@ -184,9 +194,7 @@ public final class Networks {
                 }
             }
 
-            return new LfNetworkList(lfNetworks, new LfNetworkList.VariantCleaner(network, workingVariantId, tmpVariantId));
-        } else {
-            return new LfNetworkList(load(network, networkParameters, reporter));
+            return new LfNetworkList(lfNetworks, variantCleanerFactory.create(network, workingVariantId, tmpVariantId));
         }
     }
 

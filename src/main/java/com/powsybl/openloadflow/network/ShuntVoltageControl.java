@@ -12,7 +12,14 @@ package com.powsybl.openloadflow.network;
  */
 public class ShuntVoltageControl extends DiscreteVoltageControl<LfShunt> {
 
+    private static final int PRIORITY = 2;
+
     public ShuntVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
-        super(controlledBus, targetValue, targetDeadband);
+        super(controlledBus, Type.SHUNT, PRIORITY, targetValue, targetDeadband);
+    }
+
+    @Override
+    public boolean isControllerEnabled(LfShunt controllerElement) {
+        return controllerElement.isVoltageControlEnabled();
     }
 }

@@ -7,6 +7,8 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Country;
+import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -15,6 +17,7 @@ import com.powsybl.security.results.BusResult;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +37,8 @@ public class LfBusImpl extends AbstractLfBus {
 
     private final boolean breakers;
 
+    private final Country country;
+
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
         super(network, v, angle, parameters.isDistributedOnConformLoad());
@@ -43,6 +48,7 @@ public class LfBusImpl extends AbstractLfBus {
         highVoltageLimit = bus.getVoltageLevel().getHighVoltageLimit();
         this.participating = participating;
         this.breakers = parameters.isBreakers();
+        country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
     }
 
     public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {
@@ -88,7 +94,7 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         var bus = getBus();
-        bus.setV(v).setAngle(Math.toDegrees(angle));
+        bus.setV(Math.max(v, 0.0)).setAngle(Math.toDegrees(angle));
 
         // update slack bus
         if (slack && parameters.isWriteSlackBus()) {
@@ -112,5 +118,10 @@ public class LfBusImpl extends AbstractLfBus {
             return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
                     .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, Math.toDegrees(angle))).collect(Collectors.toList());
         }
+    }
+
+    @Override
+    public Optional<Country> getCountry() {
+        return Optional.ofNullable(country);
     }
 }

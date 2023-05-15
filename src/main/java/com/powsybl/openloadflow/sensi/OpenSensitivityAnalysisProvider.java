@@ -24,11 +24,9 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.xml.NetworkXml;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -61,9 +59,9 @@ import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 @AutoService(SensitivityAnalysisProvider.class)
 public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvider {
 
-    private final DcSensitivityAnalysis dcSensitivityAnalysis;
+    private final MatrixFactory matrixFactory;
 
-    private final AcSensitivityAnalysis acSensitivityAnalysis;
+    private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     public OpenSensitivityAnalysisProvider() {
         this(new SparseMatrixFactory());
@@ -74,8 +72,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        dcSensitivityAnalysis = new DcSensitivityAnalysis(matrixFactory, connectivityFactory);
-        acSensitivityAnalysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory);
+        this.matrixFactory = matrixFactory;
+        this.connectivityFactory = connectivityFactory;
     }
 
     @Override
@@ -150,17 +148,13 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             network.getVariantManager().setWorkingVariant(workingVariantId);
             Reporter sensiReporter = Reports.createSensitivityAnalysis(reporter, network.getId());
 
-            LoadFlowParameters lfParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
-            OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
             OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt = getSensitivityAnalysisParametersExtension(sensitivityAnalysisParameters);
 
             // We only support switch contingency for the moment. Contingency propagation is not supported yet.
             // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
             // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
             Set<Switch> allSwitchesToOpen = new HashSet<>();
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, Collections.emptySet(), false, false,
-                    sensitivityAnalysisParameters.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                    sensitivityAnalysisParameters.getLoadFlowParameters().isHvdcAcEmulation() && !sensitivityAnalysisParameters.getLoadFlowParameters().isDc());
+            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen, false);
 
             SensitivityFactorReader decoratedFactorReader = factorReader;
 
@@ -193,11 +187,13 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                 decoratedFactorReader = new SensitivityFactoryJsonRecorder(factorReader, debugDir.resolve("factors-" + dateStr + ".json"));
             }
 
-            if (lfParameters.isDc()) {
-                dcSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+            AbstractSensitivityAnalysis<?, ?> analysis;
+            if (sensitivityAnalysisParameters.getLoadFlowParameters().isDc()) {
+                analysis = new DcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             } else {
-                acSensitivityAnalysis.analyse(network, propagatedContingencies, variableSets, lfParameters, lfParametersExt, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
+                analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
             }
+            analysis.analyse(network, propagatedContingencies, variableSets, decoratedFactorReader, resultWriter, sensiReporter, allSwitchesToOpen);
         }, computationManager.getExecutor());
     }
 

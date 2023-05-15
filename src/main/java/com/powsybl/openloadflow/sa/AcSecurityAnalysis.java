@@ -85,17 +85,21 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         List<Contingency> contingencies = contingenciesProvider.getContingencies(network);
         // try to find all switches impacted by at least one contingency and for each contingency the branches impacted
         List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, allSwitchesToOpen,
-                allSwitchesToClose, securityAnalysisParametersExt.isContingencyPropagation(), lfParameters.isShuntCompensatorVoltageControlOn(),
-                lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD,
-                lfParameters.isHvdcAcEmulation());
+                securityAnalysisParametersExt.isContingencyPropagation());
 
         boolean breakers = !(allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty());
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
         acParameters.getNetworkParameters()
                 .setCacheEnabled(false); // force not caching as not supported in secu analysis
+        acParameters.getNewtonRaphsonParameters()
+                .setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
 
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, acParameters.getNetworkParameters(), allSwitchesToOpen, allSwitchesToClose, saReporter)) {
+
+            // complete definition of contingencies after network loading
+            PropagatedContingency.completeList(propagatedContingencies, lfParameters.isShuntCompensatorVoltageControlOn(),
+                    lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, lfParameters.isHvdcAcEmulation(), breakers);
 
             // run simulation on largest network
             SecurityAnalysisResult result = lfNetworks.getLargest().filter(LfNetwork::isValid)
