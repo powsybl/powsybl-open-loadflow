@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
@@ -173,6 +174,8 @@ public final class Networks {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");
             }
 
+            Set<Switch> allSwitchesToOpen = new LinkedHashSet<>(switchesToOpen);
+            Set<Switch> allSwitchesToClose = new LinkedHashSet<>(switchesToClose);
             addSwitchesOperatedByAutomata(network, networkParameters, allSwitchesToOpen, allSwitchesToClose);
 
             // create a temporary working variant to build LF networks
