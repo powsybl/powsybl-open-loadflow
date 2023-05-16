@@ -27,8 +27,8 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
 
     protected LfTieLineBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, TieLine tieLine, LfNetworkParameters parameters) {
         super(network, bus1, bus2, piModel, parameters);
-        this.danglingLine1Ref = Ref.create(tieLine.getHalf1(), parameters.isCacheEnabled());
-        this.danglingLine2Ref = Ref.create(tieLine.getHalf2(), parameters.isCacheEnabled());
+        this.danglingLine1Ref = Ref.create(tieLine.getDanglingLine1(), parameters.isCacheEnabled());
+        this.danglingLine2Ref = Ref.create(tieLine.getDanglingLine2(), parameters.isCacheEnabled());
         this.id = tieLine.getId();
     }
 
@@ -49,7 +49,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         Objects.requireNonNull(line);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
-        double nominalV2 = line.getHalf2().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV();
         double zb = PerUnit.zb(nominalV2);
         return createLine(line, network, bus1, bus2, zb, parameters);
     }

@@ -210,8 +210,8 @@ public final class Transformers {
     }
 
     public static double getRatioPerUnitBase(TieLine line) {
-        double nominalV1 = line.getHalf1().getTerminal().getVoltageLevel().getNominalV();
-        double nominalV2 = line.getHalf2().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV1 = line.getDanglingLine1().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV();
         return nominalV2 / nominalV1;
     }
 }

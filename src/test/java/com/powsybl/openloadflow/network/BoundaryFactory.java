@@ -338,8 +338,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newTieLine()
                 .setId("t12")
-                .setHalf1(dl1.getId())
-                .setHalf2(dl3.getId())
+                .setDanglingLine1(dl1.getId())
+                .setDanglingLine2(dl3.getId())
                 .add();
 
         network.newLine()

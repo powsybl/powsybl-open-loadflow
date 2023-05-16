@@ -342,7 +342,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.trace("Discard branch '{}' because connected to same bus at both ends", lfBranch.getId());
             report.branchesDiscardedBecauseConnectedToSameBusAtBothEnds++;
         } else {
-            if (lfBranch.isZeroImpedance(true) || lfBranch.isZeroImpedance(false)) {
+            if (Arrays.stream(LoadFlowModel.values()).anyMatch(lfBranch::isZeroImpedance)) {
                 LOGGER.trace("Branch {} is non impedant", lfBranch.getId());
                 report.nonImpedantBranches++;
             }
@@ -365,13 +365,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (danglingLine.getTieLine().isPresent()) {
                 if (!mergedDanglingLines.contains(danglingLine)) {
                     TieLine line = danglingLine.getTieLine().get();
-                    LfBus lfBus1 = getLfBus(line.getHalf1().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBus lfBus2 = getLfBus(line.getHalf2().getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBus lfBus1 = getLfBus(line.getDanglingLine1().getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBus lfBus2 = getLfBus(line.getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBranch lfBranch = LfTieLineBranch.create(line, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
                     postProcessors.forEach(pp -> pp.onBranchAdded(line, lfBranch));
-                    mergedDanglingLines.add(line.getHalf2());
-                    mergedDanglingLines.add(line.getHalf1());
+                    mergedDanglingLines.add(line.getDanglingLine1());
+                    mergedDanglingLines.add(line.getDanglingLine2());
                 }
             } else {
                 LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
@@ -656,7 +656,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createBuses(buses, parameters, lfNetwork, lfBuses, loadingContext, report, postProcessors);
         createBranches(lfBuses, lfNetwork, loadingContext, report, parameters, postProcessors);
 
-        if (!parameters.isDc()) {
+        if (parameters.getLoadFlowModel() == LoadFlowModel.AC) {
             createVoltageControls(lfBuses, parameters);
             if (parameters.isReactivePowerRemoteControl()) {
                 createReactivePowerControls(lfBuses);
@@ -726,7 +726,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             Path debugDir = DebugUtil.getDebugDir(parameters.getDebugDir());
             String dateStr = DateTime.now().toString(DATE_TIME_FORMAT);
             lfNetwork.writeJson(debugDir.resolve("lfnetwork-" + dateStr + ".json"));
-            lfNetwork.writeGraphViz(debugDir.resolve("lfnetwork-" + dateStr + ".dot"), parameters.isDc());
+            lfNetwork.writeGraphViz(debugDir.resolve("lfnetwork-" + dateStr + ".dot"), parameters.getLoadFlowModel());
         }
 
         return lfNetwork;
