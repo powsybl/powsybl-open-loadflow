@@ -135,7 +135,10 @@ public class VoltageControl<T extends LfElement> extends Control {
     }
 
     /**
-     * FIXME: take into account controllers status
+     * FIXME: take into account controllers status to have a proper definition
+     * For generator voltage control, isGeneratorVoltageControlEnabled() should be called.
+     * For transformer voltage control, isVoltageControlEnabled() should be called.
+     * For shunt voltage control, isVoltageControlEnabled() should be called.
      */
     public boolean isHidden() {
         // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
@@ -143,10 +146,18 @@ public class VoltageControl<T extends LfElement> extends Control {
         List<VoltageControl<?>> voltageControls = findVoltageControlsSortedByPriority(controlledBus);
         if (voltageControls.isEmpty()) {
             return true; // means all disabled
-        }
-        // we should normally have max 3 voltage controls (one of each type) because already merged
-        if (voltageControls.size() > 1) {
+        } else {
+            // we should normally have max 3 voltage controls (one of each type) because already merged
             return voltageControls.get(0) != this;
+        }
+    }
+
+    public boolean isDisabledAndAlsoAllItsDependentVoltageControls() {
+        // collect all voltage controls with the same controlled bus as this one and also all voltage controls coming
+        // from merged ones
+        List<VoltageControl<?>> voltageControls = findVoltageControlsSortedByPriority(controlledBus);
+        if (voltageControls.isEmpty()) {
+            return true; // means all disabled
         }
         return false;
     }

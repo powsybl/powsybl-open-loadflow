@@ -9,13 +9,13 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.openloadflow.ac.AcTargetVector;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphson;
-import com.powsybl.openloadflow.ac.AcTargetVector;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreator;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreator;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.network.*;
@@ -262,5 +262,21 @@ class EquationSystemTest {
         Variable<AcVariableType> ph2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_PHI);
         assertEquals(0.55917, i2.der(v2var), 10E-6);
         assertThrows(IllegalArgumentException.class, () -> i2.der(ph2var));
+    }
+
+    @Test
+    void removeEquationTest() {
+        Network network = EurostagTutorialExample1Factory.create();
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork)
+                .create();
+        assertEquals(13, equationSystem.getEquations().size());
+        assertEquals(3, equationSystem.getEquations(ElementType.BUS, 1).size());
+
+        equationSystem.removeEquation(1, AcEquationType.BUS_TARGET_P);
+        assertEquals(12, equationSystem.getEquations().size());
+        assertEquals(2, equationSystem.getEquations(ElementType.BUS, 1).size());
     }
 }
