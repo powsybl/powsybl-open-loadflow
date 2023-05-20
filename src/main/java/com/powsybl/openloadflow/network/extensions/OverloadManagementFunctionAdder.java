@@ -11,13 +11,13 @@ package com.powsybl.openloadflow.network.extensions;
  */
 public interface OverloadManagementFunctionAdder<T> {
 
-    OverloadManagementFunctionAdder withLineId(String lineId);
+    OverloadManagementFunctionAdder<T> withLineId(String lineId);
 
-    OverloadManagementFunctionAdder withThreshold(double threshold);
+    OverloadManagementFunctionAdder<T> withThreshold(double threshold);
 
-    OverloadManagementFunctionAdder withSwitchId(String switchId);
+    OverloadManagementFunctionAdder<T> withSwitchId(String switchId);
 
-    OverloadManagementFunctionAdder withSwitchOpen(boolean open);
+    OverloadManagementFunctionAdder<T> withSwitchOpen(boolean open);
 
     T add();
 }
