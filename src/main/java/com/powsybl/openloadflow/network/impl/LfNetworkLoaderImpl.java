@@ -668,7 +668,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createSecondaryVoltageControls(network, parameters, lfNetwork);
 
         if (parameters.isSimulateAutomatons()) {
-            createAutomationFunctions(network, lfNetwork);
+            createAutomationSystems(network, lfNetwork);
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
@@ -774,17 +774,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return Optional.empty();
     }
 
-    private void createAutomationFunctions(Network network, LfNetwork lfNetwork) {
+    private void createAutomationSystems(Network network, LfNetwork lfNetwork) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationSystems functions = substation.getExtension(SubstationAutomationSystems.class);
-            if (functions != null) {
-                for (OverloadManagementSystem function : functions.getOverloadManagementSystems()) {
-                    LfBranch lfLine = lfNetwork.getBranchById(function.getLineIdToMonitor());
-                    if (lfLine != null) {
-                        LfSwitch lfSwitch = (LfSwitch) lfNetwork.getBranchById(function.getSwitchIdToOperate());
-                        if (lfSwitch != null) {
-                            lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLine, lfSwitch, function.isSwitchOpen()));
-                        }
+            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
+            if (systems != null) {
+                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
+                    LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getLineIdToMonitor());
+                    LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
+                    if (lfLineToMonitor != null && lfSwitchToOperate != null) {
+                        lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, lfSwitchToOperate, system.isSwitchOpen()));
+                    } else {
+                        LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
+                                system.getLineIdToMonitor(), system.getSwitchIdToOperate());
                     }
                 }
             }
