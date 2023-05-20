@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.OverloadManagementFunction;
+import com.powsybl.openloadflow.network.extensions.SubstationAutomationFunctions;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -667,7 +668,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createSecondaryVoltageControls(network, parameters, lfNetwork);
 
         if (parameters.isSimulateAutomatons()) {
-            createAutomata(network, lfNetwork);
+            createAutomationFunctions(network, lfNetwork);
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
@@ -773,15 +774,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return Optional.empty();
     }
 
-    private void createAutomata(Network network, LfNetwork lfNetwork) {
-        for (Line line : network.getLines()) {
-            LfBranch lfLine = lfNetwork.getBranchById(line.getId());
-            if (lfLine != null) {
-                OverloadManagementFunction cla = line.getExtension(OverloadManagementFunction.class);
-                if (cla != null) {
-                    LfSwitch lfSwitch = (LfSwitch) lfNetwork.getBranchById(cla.getSwitchId());
-                    if (lfSwitch != null) {
-                        lfNetwork.addOverloadManagementFunction(new LfOverloadManagementFunction(lfLine, lfSwitch, cla.isSwitchOpen()));
+    private void createAutomationFunctions(Network network, LfNetwork lfNetwork) {
+        for (Substation substation : network.getSubstations()) {
+            SubstationAutomationFunctions functions = substation.getExtension(SubstationAutomationFunctions.class);
+            if (functions != null) {
+                for (OverloadManagementFunction function : functions.getOverloadManagementFunctions()) {
+                    LfBranch lfLine = lfNetwork.getBranchById(function.getLineId());
+                    if (lfLine != null) {
+                        LfSwitch lfSwitch = (LfSwitch) lfNetwork.getBranchById(function.getSwitchId());
+                        if (lfSwitch != null) {
+                            lfNetwork.addOverloadManagementFunction(new LfOverloadManagementFunction(lfLine, lfSwitch, function.isSwitchOpen()));
+                        }
                     }
                 }
             }
