@@ -57,8 +57,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private ReactivePowerControl reactivePowerControl;
 
-    protected final List<LfCurrentLimitAutomaton> currentLimitAutomata = new ArrayList<>();
-
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network);
         this.bus1 = bus1;
@@ -329,10 +327,5 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 updateZeroImpedanceNetworks(disabled, LoadFlowModel.DC);
             }
         }
-    }
-
-    @Override
-    public List<LfCurrentLimitAutomaton> getCurrentLimitAutomata() {
-        return currentLimitAutomata;
     }
 }

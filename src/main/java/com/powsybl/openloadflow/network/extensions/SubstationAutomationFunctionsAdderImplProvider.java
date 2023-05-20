@@ -9,14 +9,14 @@ package com.powsybl.openloadflow.network.extensions;
 
 import com.google.auto.service.AutoService;
 import com.powsybl.commons.extensions.ExtensionAdderProvider;
-import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.Substation;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 @AutoService(ExtensionAdderProvider.class)
-public class CurrentLimitAutomatonAdderImplProvider implements
-        ExtensionAdderProvider<Line, CurrentLimitAutomaton, CurrentLimitAutomatonAdder> {
+public class SubstationAutomationFunctionsAdderImplProvider implements
+        ExtensionAdderProvider<Substation, SubstationAutomationFunctions, SubstationAutomationFunctionsAdder> {
 
     @Override
     public String getImplementationName() {
@@ -25,16 +25,16 @@ public class CurrentLimitAutomatonAdderImplProvider implements
 
     @Override
     public String getExtensionName() {
-        return CurrentLimitAutomaton.NAME;
+        return SubstationAutomationFunctions.NAME;
     }
 
     @Override
-    public Class<CurrentLimitAutomatonAdder> getAdderClass() {
-        return CurrentLimitAutomatonAdder.class;
+    public Class<SubstationAutomationFunctionsAdder> getAdderClass() {
+        return SubstationAutomationFunctionsAdder.class;
     }
 
     @Override
-    public CurrentLimitAutomatonAdder newAdder(Line line) {
-        return new CurrentLimitAutomatonAdderImpl(line);
+    public SubstationAutomationFunctionsAdder newAdder(Substation substation) {
+        return new SubstationAutomationFunctionsAdderImpl(substation);
     }
 }

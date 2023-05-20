@@ -13,15 +13,22 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfCurrentLimitAutomaton {
+public class LfOverloadManagementFunction {
+
+    private final LfBranch branchToMonitor;
 
     private final LfSwitch switchToOperate;
 
     private final boolean switchOpen;
 
-    public LfCurrentLimitAutomaton(LfSwitch switchToOperate, boolean switchOpen) {
+    public LfOverloadManagementFunction(LfBranch branchToMonitor, LfSwitch switchToOperate, boolean switchOpen) {
+        this.branchToMonitor = Objects.requireNonNull(branchToMonitor);
         this.switchToOperate = Objects.requireNonNull(switchToOperate);
         this.switchOpen = switchOpen;
+    }
+
+    public LfBranch getBranchToMonitor() {
+        return branchToMonitor;
     }
 
     public LfSwitch getSwitchToOperate() {

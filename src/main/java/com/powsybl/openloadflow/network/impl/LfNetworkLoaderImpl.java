@@ -15,7 +15,7 @@ import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.extensions.CurrentLimitAutomaton;
+import com.powsybl.openloadflow.network.extensions.OverloadManagementFunction;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -777,11 +777,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         for (Line line : network.getLines()) {
             LfBranch lfLine = lfNetwork.getBranchById(line.getId());
             if (lfLine != null) {
-                CurrentLimitAutomaton cla = line.getExtension(CurrentLimitAutomaton.class);
+                OverloadManagementFunction cla = line.getExtension(OverloadManagementFunction.class);
                 if (cla != null) {
                     LfSwitch lfSwitch = (LfSwitch) lfNetwork.getBranchById(cla.getSwitchId());
                     if (lfSwitch != null) {
-                        lfLine.getCurrentLimitAutomata().add(new LfCurrentLimitAutomaton(lfSwitch, cla.isSwitchOpen()));
+                        lfNetwork.addOverloadManagementFunction(new LfOverloadManagementFunction(lfLine, lfSwitch, cla.isSwitchOpen()));
                     }
                 }
             }

@@ -6,15 +6,14 @@
  */
 package com.powsybl.openloadflow.network.extensions;
 
-import com.powsybl.commons.extensions.AbstractExtension;
-import com.powsybl.iidm.network.Line;
-
 import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class CurrentLimitAutomatonImpl extends AbstractExtension<Line> implements CurrentLimitAutomaton {
+public class OverloadManagementFunctionImpl implements OverloadManagementFunction {
+
+    private final String lineId;
 
     private final double threshold;
 
@@ -22,11 +21,16 @@ public class CurrentLimitAutomatonImpl extends AbstractExtension<Line> implement
 
     private final boolean switchOpen;
 
-    public CurrentLimitAutomatonImpl(Line line, double threshold, String switchId, boolean switchOpen) {
-        super(line);
+    public OverloadManagementFunctionImpl(String lineId, double threshold, String switchId, boolean switchOpen) {
+        this.lineId = Objects.requireNonNull(lineId);
         this.threshold = threshold;
         this.switchId = Objects.requireNonNull(switchId);
         this.switchOpen = switchOpen;
+    }
+
+    @Override
+    public String getLineId() {
+        return lineId;
     }
 
     @Override

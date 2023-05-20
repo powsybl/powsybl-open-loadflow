@@ -7,23 +7,23 @@
 package com.powsybl.openloadflow.network.extensions;
 
 import com.powsybl.commons.extensions.Extension;
-import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.Substation;
+
+import java.util.List;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface CurrentLimitAutomaton extends Extension<Line> {
+public interface SubstationAutomationFunctions extends Extension<Substation> {
 
-    String NAME = "CurrentLimitAutomaton";
+    String NAME = "SubstationAutomationFunctions";
 
     @Override
     default String getName() {
         return NAME;
     }
 
-    double getThreshold();
+    List<OverloadManagementFunction> getOverloadManagementFunctions();
 
-    String getSwitchId();
-
-    boolean isSwitchOpen();
+    OverloadManagementFunctionAdder<SubstationAutomationFunctions> newOverloadManagementFunction();
 }

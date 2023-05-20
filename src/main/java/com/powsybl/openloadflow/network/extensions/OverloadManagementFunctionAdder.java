@@ -6,16 +6,18 @@
  */
 package com.powsybl.openloadflow.network.extensions;
 
-import com.powsybl.commons.extensions.ExtensionAdder;
-import com.powsybl.iidm.network.Line;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface CurrentLimitAutomatonAdder extends ExtensionAdder<Line, CurrentLimitAutomaton> {
-    CurrentLimitAutomatonAdderImpl withThreshold(double threshold);
+public interface OverloadManagementFunctionAdder<T> {
 
-    CurrentLimitAutomatonAdderImpl withSwitchId(String switchId);
+    OverloadManagementFunctionAdder withLineId(String lineId);
 
-    CurrentLimitAutomatonAdderImpl withSwitchOpen(boolean open);
+    OverloadManagementFunctionAdder withThreshold(double threshold);
+
+    OverloadManagementFunctionAdder withSwitchId(String switchId);
+
+    OverloadManagementFunctionAdder withSwitchOpen(boolean open);
+
+    T add();
 }
