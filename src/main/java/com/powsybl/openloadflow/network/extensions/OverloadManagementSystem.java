@@ -11,11 +11,11 @@ package com.powsybl.openloadflow.network.extensions;
  */
 public interface OverloadManagementSystem {
 
-    String getLineId();
+    String getLineIdToMonitor();
 
     double getThreshold();
 
-    String getSwitchId();
+    String getSwitchIdToOperate();
 
     boolean isSwitchOpen();
 }

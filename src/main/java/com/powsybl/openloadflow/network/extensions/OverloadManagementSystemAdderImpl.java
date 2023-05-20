@@ -25,17 +25,17 @@ public class OverloadManagementSystemAdderImpl<T> implements OverloadManagementS
         this.parentAdder = Objects.requireNonNull(parentAdder);
     }
 
-    private String lineId;
+    private String lineIdToMonitor;
 
     private double threshold = Double.NaN;
 
-    private String switchId;
+    private String switchIdToOperate;
 
     private boolean switchOpen = true;
 
     @Override
-    public OverloadManagementSystemAdderImpl<T> withLineId(String lineId) {
-        this.lineId = Objects.requireNonNull(lineId);
+    public OverloadManagementSystemAdderImpl<T> withLineIdToMonitor(String lineIdToMonitor) {
+        this.lineIdToMonitor = Objects.requireNonNull(lineIdToMonitor);
         return this;
     }
 
@@ -46,8 +46,8 @@ public class OverloadManagementSystemAdderImpl<T> implements OverloadManagementS
     }
 
     @Override
-    public OverloadManagementSystemAdderImpl<T> withSwitchId(String switchId) {
-        this.switchId = Objects.requireNonNull(switchId);
+    public OverloadManagementSystemAdderImpl<T> withSwitchIdToOperate(String switchIdToOperate) {
+        this.switchIdToOperate = Objects.requireNonNull(switchIdToOperate);
         return this;
     }
 
@@ -59,16 +59,16 @@ public class OverloadManagementSystemAdderImpl<T> implements OverloadManagementS
 
     @Override
     public T add() {
-        if (lineId == null) {
-            throw new PowsyblException("Line ID is not set");
+        if (lineIdToMonitor == null) {
+            throw new PowsyblException("Line ID to monitor is not set");
         }
         if (Double.isNaN(threshold)) {
             throw new PowsyblException("Threshold is not set");
         }
-        if (switchId == null) {
-            throw new PowsyblException("Switch ID is not set");
+        if (switchIdToOperate == null) {
+            throw new PowsyblException("Switch ID to operate is not set");
         }
-        OverloadManagementSystemImpl system = new OverloadManagementSystemImpl(lineId, threshold, switchId, switchOpen);
+        OverloadManagementSystemImpl system = new OverloadManagementSystemImpl(lineIdToMonitor, threshold, switchIdToOperate, switchOpen);
         parentAdder.accept(system);
         return parent;
     }

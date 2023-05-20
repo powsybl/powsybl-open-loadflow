@@ -779,9 +779,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             SubstationAutomationSystems functions = substation.getExtension(SubstationAutomationSystems.class);
             if (functions != null) {
                 for (OverloadManagementSystem function : functions.getOverloadManagementSystems()) {
-                    LfBranch lfLine = lfNetwork.getBranchById(function.getLineId());
+                    LfBranch lfLine = lfNetwork.getBranchById(function.getLineIdToMonitor());
                     if (lfLine != null) {
-                        LfSwitch lfSwitch = (LfSwitch) lfNetwork.getBranchById(function.getSwitchId());
+                        LfSwitch lfSwitch = (LfSwitch) lfNetwork.getBranchById(function.getSwitchIdToOperate());
                         if (lfSwitch != null) {
                             lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLine, lfSwitch, function.isSwitchOpen()));
                         }

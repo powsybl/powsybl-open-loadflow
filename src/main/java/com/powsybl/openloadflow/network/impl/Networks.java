@@ -146,7 +146,7 @@ public final class Networks {
             for (Line line : network.getLines()) {
                 OverloadManagementSystem cla = line.getExtension(OverloadManagementSystem.class);
                 if (cla != null) {
-                    Switch aSwitch = network.getSwitch(cla.getSwitchId());
+                    Switch aSwitch = network.getSwitch(cla.getSwitchIdToOperate());
                     if (aSwitch != null) {
                         if (cla.isSwitchOpen()) {
                             allSwitchesToOpen.add(aSwitch);

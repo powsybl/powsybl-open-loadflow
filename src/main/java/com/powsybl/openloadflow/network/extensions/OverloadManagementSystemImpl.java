@@ -13,24 +13,24 @@ import java.util.Objects;
  */
 public class OverloadManagementSystemImpl implements OverloadManagementSystem {
 
-    private final String lineId;
+    private final String lineIdToMonitor;
 
     private final double threshold;
 
-    private final String switchId;
+    private final String switchIdToOperate;
 
     private final boolean switchOpen;
 
-    public OverloadManagementSystemImpl(String lineId, double threshold, String switchId, boolean switchOpen) {
-        this.lineId = Objects.requireNonNull(lineId);
+    public OverloadManagementSystemImpl(String lineIdToMonitor, double threshold, String switchIdToOperate, boolean switchOpen) {
+        this.lineIdToMonitor = Objects.requireNonNull(lineIdToMonitor);
         this.threshold = threshold;
-        this.switchId = Objects.requireNonNull(switchId);
+        this.switchIdToOperate = Objects.requireNonNull(switchIdToOperate);
         this.switchOpen = switchOpen;
     }
 
     @Override
-    public String getLineId() {
-        return lineId;
+    public String getLineIdToMonitor() {
+        return lineIdToMonitor;
     }
 
     @Override
@@ -39,8 +39,8 @@ public class OverloadManagementSystemImpl implements OverloadManagementSystem {
     }
 
     @Override
-    public String getSwitchId() {
-        return switchId;
+    public String getSwitchIdToOperate() {
+        return switchIdToOperate;
     }
 
     @Override

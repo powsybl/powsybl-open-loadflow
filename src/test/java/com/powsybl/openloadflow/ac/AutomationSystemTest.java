@@ -32,9 +32,9 @@ class AutomationSystemTest {
         Substation s1 = network.getSubstation("S1");
         s1.newExtension(SubstationAutomationSystemsAdder.class)
                 .newOverloadManagementSystem()
-                    .withLineId("")
+                    .withLineIdToMonitor("")
                     .withThreshold(100)
-                    .withSwitchId("")
+                    .withSwitchIdToOperate("")
                     .withSwitchOpen(true)
                 .add()
             .add();
