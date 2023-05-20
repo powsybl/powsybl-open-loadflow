@@ -10,7 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.extensions.OverloadManagementFunction;
+import com.powsybl.openloadflow.network.extensions.OverloadManagementSystem;
 
 import java.util.*;
 
@@ -144,7 +144,7 @@ public final class Networks {
                                                       Set<Switch> allSwitchesToOpen, Set<Switch> allSwitchesToClose) {
         if (networkParameters.isSimulateAutomatons()) {
             for (Line line : network.getLines()) {
-                OverloadManagementFunction cla = line.getExtension(OverloadManagementFunction.class);
+                OverloadManagementSystem cla = line.getExtension(OverloadManagementSystem.class);
                 if (cla != null) {
                     Switch aSwitch = network.getSwitch(cla.getSwitchId());
                     if (aSwitch != null) {

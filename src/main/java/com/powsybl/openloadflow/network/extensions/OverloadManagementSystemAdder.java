@@ -6,13 +6,18 @@
  */
 package com.powsybl.openloadflow.network.extensions;
 
-import com.powsybl.commons.extensions.ExtensionAdder;
-import com.powsybl.iidm.network.Substation;
-
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface SubstationAutomationFunctionsAdder extends ExtensionAdder<Substation, SubstationAutomationFunctions> {
+public interface OverloadManagementSystemAdder<T> {
 
-    OverloadManagementFunctionAdder<SubstationAutomationFunctionsAdder> newOverloadManagementFunction();
+    OverloadManagementSystemAdder<T> withLineId(String lineId);
+
+    OverloadManagementSystemAdder<T> withThreshold(double threshold);
+
+    OverloadManagementSystemAdder<T> withSwitchId(String switchId);
+
+    OverloadManagementSystemAdder<T> withSwitchOpen(boolean open);
+
+    T add();
 }

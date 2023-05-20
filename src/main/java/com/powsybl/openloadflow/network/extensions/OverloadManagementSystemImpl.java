@@ -11,7 +11,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OverloadManagementFunctionImpl implements OverloadManagementFunction {
+public class OverloadManagementSystemImpl implements OverloadManagementSystem {
 
     private final String lineId;
 
@@ -21,7 +21,7 @@ public class OverloadManagementFunctionImpl implements OverloadManagementFunctio
 
     private final boolean switchOpen;
 
-    public OverloadManagementFunctionImpl(String lineId, double threshold, String switchId, boolean switchOpen) {
+    public OverloadManagementSystemImpl(String lineId, double threshold, String switchId, boolean switchOpen) {
         this.lineId = Objects.requireNonNull(lineId);
         this.threshold = threshold;
         this.switchId = Objects.requireNonNull(switchId);

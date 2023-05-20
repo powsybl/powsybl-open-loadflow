@@ -87,7 +87,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
         // automation functions
         if (parametersExt.isSimulateAutomatons()) {
-            outerLoops.add(new AutomationFunctionOuterLoop());
+            outerLoops.add(new AutomationSystemOuterLoop());
         }
         // secondary voltage control
         if (parametersExt.isSecondaryVoltageControl()) {

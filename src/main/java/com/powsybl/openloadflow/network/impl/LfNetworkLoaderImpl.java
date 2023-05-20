@@ -15,8 +15,8 @@ import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.ControlZone;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl.PilotPoint;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.extensions.OverloadManagementFunction;
-import com.powsybl.openloadflow.network.extensions.SubstationAutomationFunctions;
+import com.powsybl.openloadflow.network.extensions.OverloadManagementSystem;
+import com.powsybl.openloadflow.network.extensions.SubstationAutomationSystems;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -776,14 +776,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private void createAutomationFunctions(Network network, LfNetwork lfNetwork) {
         for (Substation substation : network.getSubstations()) {
-            SubstationAutomationFunctions functions = substation.getExtension(SubstationAutomationFunctions.class);
+            SubstationAutomationSystems functions = substation.getExtension(SubstationAutomationSystems.class);
             if (functions != null) {
-                for (OverloadManagementFunction function : functions.getOverloadManagementFunctions()) {
+                for (OverloadManagementSystem function : functions.getOverloadManagementSystems()) {
                     LfBranch lfLine = lfNetwork.getBranchById(function.getLineId());
                     if (lfLine != null) {
                         LfSwitch lfSwitch = (LfSwitch) lfNetwork.getBranchById(function.getSwitchId());
                         if (lfSwitch != null) {
-                            lfNetwork.addOverloadManagementFunction(new LfOverloadManagementFunction(lfLine, lfSwitch, function.isSwitchOpen()));
+                            lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLine, lfSwitch, function.isSwitchOpen()));
                         }
                     }
                 }

@@ -12,7 +12,7 @@ import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.OuterLoopContext;
 import com.powsybl.openloadflow.ac.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfOverloadManagementFunction;
+import com.powsybl.openloadflow.network.LfOverloadManagementSystem;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,9 +20,9 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AutomationFunctionOuterLoop implements OuterLoop {
+public class AutomationSystemOuterLoop implements OuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AutomationFunctionOuterLoop.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AutomationSystemOuterLoop.class);
 
     @Override
     public String getType() {
@@ -32,7 +32,7 @@ public class AutomationFunctionOuterLoop implements OuterLoop {
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
-        for (LfOverloadManagementFunction function : context.getNetwork().getOverloadManagementFunctions()) {
+        for (LfOverloadManagementSystem function : context.getNetwork().getOverloadManagementSystems()) {
             LfBranch branch = function.getBranchToMonitor();
             if (branch.isConnectedAtBothSides()) {
                 double i1 = branch.getI1().eval();

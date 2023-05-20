@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class LfOverloadManagementFunction {
+public class LfOverloadManagementSystem {
 
     private final LfBranch branchToMonitor;
 
@@ -21,7 +21,7 @@ public class LfOverloadManagementFunction {
 
     private final boolean switchOpen;
 
-    public LfOverloadManagementFunction(LfBranch branchToMonitor, LfSwitch switchToOperate, boolean switchOpen) {
+    public LfOverloadManagementSystem(LfBranch branchToMonitor, LfSwitch switchToOperate, boolean switchOpen) {
         this.branchToMonitor = Objects.requireNonNull(branchToMonitor);
         this.switchToOperate = Objects.requireNonNull(switchToOperate);
         this.switchOpen = switchOpen;

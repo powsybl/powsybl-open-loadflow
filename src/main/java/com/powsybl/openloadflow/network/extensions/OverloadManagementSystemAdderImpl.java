@@ -14,13 +14,13 @@ import java.util.function.Consumer;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OverloadManagementFunctionAdderImpl<T> implements OverloadManagementFunctionAdder<T> {
+public class OverloadManagementSystemAdderImpl<T> implements OverloadManagementSystemAdder<T> {
 
     private final T parent;
 
-    private final Consumer<OverloadManagementFunctionImpl> parentAdder;
+    private final Consumer<OverloadManagementSystemImpl> parentAdder;
 
-    public OverloadManagementFunctionAdderImpl(T parent, Consumer<OverloadManagementFunctionImpl> parentAdder) {
+    public OverloadManagementSystemAdderImpl(T parent, Consumer<OverloadManagementSystemImpl> parentAdder) {
         this.parent = Objects.requireNonNull(parent);
         this.parentAdder = Objects.requireNonNull(parentAdder);
     }
@@ -34,25 +34,25 @@ public class OverloadManagementFunctionAdderImpl<T> implements OverloadManagemen
     private boolean switchOpen = true;
 
     @Override
-    public OverloadManagementFunctionAdderImpl<T> withLineId(String lineId) {
+    public OverloadManagementSystemAdderImpl<T> withLineId(String lineId) {
         this.lineId = Objects.requireNonNull(lineId);
         return this;
     }
 
     @Override
-    public OverloadManagementFunctionAdderImpl<T> withThreshold(double threshold) {
+    public OverloadManagementSystemAdderImpl<T> withThreshold(double threshold) {
         this.threshold = threshold;
         return this;
     }
 
     @Override
-    public OverloadManagementFunctionAdderImpl<T> withSwitchId(String switchId) {
+    public OverloadManagementSystemAdderImpl<T> withSwitchId(String switchId) {
         this.switchId = Objects.requireNonNull(switchId);
         return this;
     }
 
     @Override
-    public OverloadManagementFunctionAdderImpl<T> withSwitchOpen(boolean open) {
+    public OverloadManagementSystemAdderImpl<T> withSwitchOpen(boolean open) {
         this.switchOpen = open;
         return this;
     }
@@ -68,8 +68,8 @@ public class OverloadManagementFunctionAdderImpl<T> implements OverloadManagemen
         if (switchId == null) {
             throw new PowsyblException("Switch ID is not set");
         }
-        OverloadManagementFunctionImpl function = new OverloadManagementFunctionImpl(lineId, threshold, switchId, switchOpen);
-        parentAdder.accept(function);
+        OverloadManagementSystemImpl system = new OverloadManagementSystemImpl(lineId, threshold, switchId, switchOpen);
+        parentAdder.accept(system);
         return parent;
     }
 }

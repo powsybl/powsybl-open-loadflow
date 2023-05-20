@@ -14,16 +14,16 @@ import java.util.List;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface SubstationAutomationFunctions extends Extension<Substation> {
+public interface SubstationAutomationSystems extends Extension<Substation> {
 
-    String NAME = "SubstationAutomationFunctions";
+    String NAME = "SubstationAutomationSystems";
 
     @Override
     default String getName() {
         return NAME;
     }
 
-    List<OverloadManagementFunction> getOverloadManagementFunctions();
+    List<OverloadManagementSystem> getOverloadManagementSystems();
 
-    OverloadManagementFunctionAdder<SubstationAutomationFunctions> newOverloadManagementFunction();
+    OverloadManagementSystemAdder<SubstationAutomationSystems> newOverloadManagementSystem();
 }

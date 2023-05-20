@@ -15,8 +15,8 @@ import com.powsybl.iidm.network.Substation;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 @AutoService(ExtensionAdderProvider.class)
-public class SubstationAutomationFunctionsAdderImplProvider implements
-        ExtensionAdderProvider<Substation, SubstationAutomationFunctions, SubstationAutomationFunctionsAdder> {
+public class SubstationAutomationSystemsAdderImplProvider implements
+        ExtensionAdderProvider<Substation, SubstationAutomationSystems, SubstationAutomationSystemsAdder> {
 
     @Override
     public String getImplementationName() {
@@ -25,16 +25,16 @@ public class SubstationAutomationFunctionsAdderImplProvider implements
 
     @Override
     public String getExtensionName() {
-        return SubstationAutomationFunctions.NAME;
+        return SubstationAutomationSystems.NAME;
     }
 
     @Override
-    public Class<SubstationAutomationFunctionsAdder> getAdderClass() {
-        return SubstationAutomationFunctionsAdder.class;
+    public Class<SubstationAutomationSystemsAdder> getAdderClass() {
+        return SubstationAutomationSystemsAdder.class;
     }
 
     @Override
-    public SubstationAutomationFunctionsAdder newAdder(Substation substation) {
-        return new SubstationAutomationFunctionsAdderImpl(substation);
+    public SubstationAutomationSystemsAdder newAdder(Substation substation) {
+        return new SubstationAutomationSystemsAdderImpl(substation);
     }
 }

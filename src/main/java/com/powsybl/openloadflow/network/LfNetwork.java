@@ -81,7 +81,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
 
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
 
-    protected final List<LfOverloadManagementFunction> overloadManagementFunctions = new ArrayList<>();
+    protected final List<LfOverloadManagementSystem> overloadManagementSystems = new ArrayList<>();
 
     public LfNetwork(int numCC, int numSC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, Reporter reporter) {
@@ -656,12 +656,12 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag {
         return secondaryVoltageControls;
     }
 
-    public void addOverloadManagementFunction(LfOverloadManagementFunction overloadManagementFunction) {
-        overloadManagementFunctions.add(Objects.requireNonNull(overloadManagementFunction));
+    public void addOverloadManagementSystem(LfOverloadManagementSystem overloadManagementSystem) {
+        overloadManagementSystems.add(Objects.requireNonNull(overloadManagementSystem));
     }
 
-    public List<LfOverloadManagementFunction> getOverloadManagementFunctions() {
-        return overloadManagementFunctions;
+    public List<LfOverloadManagementSystem> getOverloadManagementSystems() {
+        return overloadManagementSystems;
     }
 
     @Override
