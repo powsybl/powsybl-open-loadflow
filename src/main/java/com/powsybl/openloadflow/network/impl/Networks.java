@@ -11,6 +11,7 @@ import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.OverloadManagementSystem;
+import com.powsybl.openloadflow.network.extensions.SubstationAutomationSystems;
 
 import java.util.*;
 
@@ -142,13 +143,13 @@ public final class Networks {
 
     private static void addSwitchesOperatedByAutomata(Network network, LfNetworkParameters networkParameters,
                                                       Set<Switch> allSwitchesToOpen, Set<Switch> allSwitchesToClose) {
-        if (networkParameters.isSimulateAutomatons()) {
-            for (Line line : network.getLines()) {
-                OverloadManagementSystem cla = line.getExtension(OverloadManagementSystem.class);
-                if (cla != null) {
-                    Switch aSwitch = network.getSwitch(cla.getSwitchIdToOperate());
+        for (Substation substation : network.getSubstations()) {
+            SubstationAutomationSystems systems = substation.getExtension(SubstationAutomationSystems.class);
+            if (systems != null) {
+                for (OverloadManagementSystem system : systems.getOverloadManagementSystems()) {
+                    Switch aSwitch = network.getSwitch(system.getSwitchIdToOperate());
                     if (aSwitch != null) {
-                        if (cla.isSwitchOpen()) {
+                        if (system.isSwitchOpen()) {
                             allSwitchesToOpen.add(aSwitch);
                         } else {
                             allSwitchesToClose.add(aSwitch);
@@ -167,16 +168,25 @@ public final class Networks {
     public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
                                      Set<Switch> switchesToOpen, Set<Switch> switchesToClose,
                                      LfNetworkList.VariantCleanerFactory variantCleanerFactory, Reporter reporter) {
-        if (switchesToOpen.isEmpty() && switchesToClose.isEmpty()) {
+        Set<Switch> allSwitchesToOpen;
+        Set<Switch> allSwitchesToClose;
+        if (networkParameters.isSimulateAutomatons()) {
+            allSwitchesToOpen = new LinkedHashSet<>(switchesToOpen);
+            allSwitchesToClose = new LinkedHashSet<>(switchesToClose);
+            addSwitchesOperatedByAutomata(network, networkParameters, allSwitchesToOpen, allSwitchesToClose);
+            if (allSwitchesToOpen.size() + allSwitchesToClose.size() > 0) {
+                networkParameters.setBreakers(true);
+            }
+        } else {
+            allSwitchesToOpen = switchesToOpen;
+            allSwitchesToClose = switchesToClose;
+        }
+        if (allSwitchesToOpen.isEmpty() && allSwitchesToClose.isEmpty()) {
             return new LfNetworkList(load(network, networkParameters, reporter));
         } else {
             if (!networkParameters.isBreakers()) {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");
             }
-
-            Set<Switch> allSwitchesToOpen = new LinkedHashSet<>(switchesToOpen);
-            Set<Switch> allSwitchesToClose = new LinkedHashSet<>(switchesToClose);
-            addSwitchesOperatedByAutomata(network, networkParameters, allSwitchesToOpen, allSwitchesToClose);
 
             // create a temporary working variant to build LF networks
             String tmpVariantId = "olf-tmp-" + UUID.randomUUID();

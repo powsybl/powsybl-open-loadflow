@@ -7,7 +7,6 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.iidm.network.LimitType;
 import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.OuterLoopContext;
 import com.powsybl.openloadflow.ac.OuterLoopStatus;
@@ -32,20 +31,17 @@ public class AutomationSystemOuterLoop implements OuterLoop {
     @Override
     public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
-        for (LfOverloadManagementSystem function : context.getNetwork().getOverloadManagementSystems()) {
-            LfBranch branch = function.getBranchToMonitor();
+        for (LfOverloadManagementSystem system : context.getNetwork().getOverloadManagementSystems()) {
+            LfBranch branch = system.getBranchToMonitor();
             if (branch.isConnectedAtBothSides()) {
                 double i1 = branch.getI1().eval();
-                double limit = branch.getLimits1(LimitType.CURRENT).stream()
-                        .map(LfBranch.LfLimit::getValue)
-                        .min(Double::compare)
-                        .orElse(Double.MAX_VALUE);
-                if (i1 > limit) {
+                double threshold = system.getThreshold();
+                if (i1 > threshold) {
                     double ib = PerUnit.ib(branch.getBus1().getNominalV());
-                    LOGGER.debug("Line '{}' is overloaded ({} > {}), {} switch '{}'",
-                            branch.getId(), i1 * ib, limit * ib, function.isSwitchOpen() ? "open" : "close",
-                            function.getSwitchToOperate().getId());
-                    function.getSwitchToOperate().setDisabled(function.isSwitchOpen());
+                    LOGGER.debug("Line '{}' is overloaded ({} A > {} A), {} switch '{}'",
+                            branch.getId(), i1 * ib, threshold * ib, system.isSwitchOpen() ? "open" : "close",
+                            system.getSwitchToOperate().getId());
+                    system.getSwitchToOperate().setDisabled(system.isSwitchOpen());
                     status = OuterLoopStatus.UNSTABLE;
                 }
             }

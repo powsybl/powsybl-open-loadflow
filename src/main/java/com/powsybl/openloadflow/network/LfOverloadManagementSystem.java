@@ -17,18 +17,25 @@ public class LfOverloadManagementSystem {
 
     private final LfBranch branchToMonitor;
 
+    private final double threshold;
+
     private final LfSwitch switchToOperate;
 
     private final boolean switchOpen;
 
-    public LfOverloadManagementSystem(LfBranch branchToMonitor, LfSwitch switchToOperate, boolean switchOpen) {
+    public LfOverloadManagementSystem(LfBranch branchToMonitor, double threshold, LfSwitch switchToOperate, boolean switchOpen) {
         this.branchToMonitor = Objects.requireNonNull(branchToMonitor);
+        this.threshold = threshold;
         this.switchToOperate = Objects.requireNonNull(switchToOperate);
         this.switchOpen = switchOpen;
     }
 
     public LfBranch getBranchToMonitor() {
         return branchToMonitor;
+    }
+
+    public double getThreshold() {
+        return threshold;
     }
 
     public LfSwitch getSwitchToOperate() {

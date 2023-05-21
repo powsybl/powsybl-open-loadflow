@@ -782,7 +782,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     LfBranch lfLineToMonitor = lfNetwork.getBranchById(system.getLineIdToMonitor());
                     LfSwitch lfSwitchToOperate = (LfSwitch) lfNetwork.getBranchById(system.getSwitchIdToOperate());
                     if (lfLineToMonitor != null && lfSwitchToOperate != null) {
-                        lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, lfSwitchToOperate, system.isSwitchOpen()));
+                        LfBus bus = lfLineToMonitor.getBus1() != null ? lfLineToMonitor.getBus1() : lfLineToMonitor.getBus2(); // FIXME
+                        double threshold = system.getThreshold() / PerUnit.ib(bus.getNominalV());
+                        lfNetwork.addOverloadManagementSystem(new LfOverloadManagementSystem(lfLineToMonitor, threshold, lfSwitchToOperate, system.isSwitchOpen()));
                     } else {
                         LOGGER.warn("Invalid overload management system: line to monitor is '{}', switch to operate is '{}'",
                                 system.getLineIdToMonitor(), system.getSwitchIdToOperate());
