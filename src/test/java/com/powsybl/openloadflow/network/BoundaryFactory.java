@@ -352,4 +352,32 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
         return network;
     }
+
+    public static Network createWithTwoTieLines() {
+
+        Network network = createWithTieLine();
+
+        DanglingLine dl1 = network.getVoltageLevel("vl1").newDanglingLine()
+                .setBus("b1")
+                .setId("h1bis")
+                .setR(0.0)
+                .setX(0.1)
+                .setUcteXnodeCode("xnode2")
+                .add();
+        DanglingLine dl3 = network.getVoltageLevel("vl3").newDanglingLine()
+                .setBus("b3")
+                .setId("h2bis")
+                .setR(0.0)
+                .setX(0.08)
+                .setUcteXnodeCode("xnode2")
+                .add();
+
+        network.newTieLine()
+                .setId("t12bis")
+                .setDanglingLine1(dl1.getId())
+                .setDanglingLine2(dl3.getId())
+                .add();
+
+        return network;
+    }
 }
