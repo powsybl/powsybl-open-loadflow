@@ -59,6 +59,23 @@ public class ContingencyTripping {
         }
     }
 
+    public static ContingencyTripping createTieLineTripping(Network network, TieLine line, String voltageLevelId) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(line);
+
+        if (voltageLevelId != null) {
+            if (voltageLevelId.equals(line.getDanglingLine1().getTerminal().getVoltageLevel().getId())) {
+                return new ContingencyTripping(line.getDanglingLine1().getTerminal(), NodeBreakerTraverser::new);
+            } else if (voltageLevelId.equals(line.getDanglingLine2().getTerminal().getVoltageLevel().getId())) {
+                return new ContingencyTripping(line.getDanglingLine2().getTerminal(), NodeBreakerTraverser::new);
+            } else {
+                throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to tie line '" + line.getId() + "'");
+            }
+        } else {
+            return new ContingencyTripping(List.of(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal()), NodeBreakerTraverser::new);
+        }
+    }
+
     public static ContingencyTripping createInjectionTripping(Network network, Injection<?> injection) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(injection);
@@ -102,6 +119,8 @@ public class ContingencyTripping {
             case LINE:
             case TWO_WINDINGS_TRANSFORMER:
                 return ContingencyTripping.createBranchTripping(network, (Branch<?>) identifiable);
+            case TIE_LINE:
+                return ContingencyTripping.createTieLineTripping(network, (TieLine) identifiable, null);
             case DANGLING_LINE:
             case GENERATOR:
             case LOAD:

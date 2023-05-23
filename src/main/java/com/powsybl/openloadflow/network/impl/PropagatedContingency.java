@@ -158,8 +158,15 @@ public class PropagatedContingency {
             switch (connectable.getType()) {
                 case LINE:
                 case TWO_WINDINGS_TRANSFORMER:
-                case DANGLING_LINE:
                     branchIdsToOpen.add(connectable.getId());
+                    break;
+                case DANGLING_LINE:
+                    DanglingLine dl = (DanglingLine) connectable;
+                    if (dl.isPaired()) {
+                        branchIdsToOpen.add(dl.getTieLine().get().getId());
+                    } else {
+                        branchIdsToOpen.add(dl.getId());
+                    }
                     break;
 
                 case GENERATOR:
@@ -235,6 +242,10 @@ public class PropagatedContingency {
             HvdcLine hvdcLine = (HvdcLine) identifiable;
             return Arrays.asList(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
         }
+        if (identifiable instanceof TieLine) {
+            TieLine line = (TieLine) identifiable;
+            return Arrays.asList(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal());
+        }
         if (identifiable instanceof Switch) {
             return Collections.emptyList();
         }
@@ -286,6 +297,10 @@ public class PropagatedContingency {
             case BUSBAR_SECTION:
                 identifiable = network.getBusbarSection(element.getId());
                 identifiableType = "Busbar section";
+                break;
+            case TIE_LINE:
+                identifiable = network.getTieLine(element.getId());
+                identifiableType = "Tie line";
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported contingency element type: " + element.getType());
