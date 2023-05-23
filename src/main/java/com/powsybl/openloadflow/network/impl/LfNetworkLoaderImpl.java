@@ -753,7 +753,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                             .flatMap(regulatingTerminal -> Optional.ofNullable(getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers())).stream())
                             .collect(Collectors.toCollection((Supplier<Set<LfBus>>) LinkedHashSet::new));
                     if (controlledBuses.size() != controlZone.getControlUnits().size()) {
-                        LOGGER.debug("{}/{} control units have been mapped to a LF bus", controlledBuses.size(), controlZone.getControlUnits().size());
+                        LOGGER.debug("{}/{} control units of control zone '{}' have been mapped to a LF bus",
+                                controlledBuses.size(), controlZone.getControlUnits().size(), controlZone.getName());
                     }
                     if (!controlledBuses.isEmpty()) {
                         var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV, controlledBuses);
