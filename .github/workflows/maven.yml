@@ -25,10 +25,10 @@ jobs:
           java-version: 11
 
       - name: Checkout powsybl-core sources
-          uses: actions/checkout@v1
-          with:
-            repository: powsybl/powsybl-core
-            ref: refs/heads/main
+        uses: actions/checkout@v1
+        with:
+          repository: powsybl/powsybl-core
+          ref: refs/heads/main
 
       - name: Build and install powsybl-core with Maven
         run: mvn --batch-mode -DskipTests=true --file ../powsybl-core/pom.xml install
