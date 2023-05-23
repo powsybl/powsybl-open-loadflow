@@ -360,18 +360,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
-        List<DanglingLine> mergedDanglingLines = new ArrayList<>();
+        List<DanglingLine> visitedDanglingLines = new ArrayList<>();
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
             if (danglingLine.getTieLine().isPresent()) {
-                if (!mergedDanglingLines.contains(danglingLine)) {
-                    TieLine line = danglingLine.getTieLine().get();
+                TieLine line = danglingLine.getTieLine().get();
+                if (!visitedDanglingLines.contains(danglingLine)) {
                     LfBus lfBus1 = getLfBus(line.getDanglingLine1().getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBus lfBus2 = getLfBus(line.getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
                     LfBranch lfBranch = LfTieLineBranch.create(line, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
                     postProcessors.forEach(pp -> pp.onBranchAdded(line, lfBranch));
-                    mergedDanglingLines.add(line.getDanglingLine1());
-                    mergedDanglingLines.add(line.getDanglingLine2());
+                    visitedDanglingLines.add(line.getDanglingLine1());
+                    visitedDanglingLines.add(line.getDanglingLine2());
                 }
             } else {
                 LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
