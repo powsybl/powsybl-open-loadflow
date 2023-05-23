@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.util.HvdcUtils;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -56,11 +57,12 @@ public final class HvdcConverterStations {
         // VSC injection follow here a load sign convention as LCC injection.
         // As a first approximation, we don't take into account the losses due to HVDC line itself.
         boolean isConverterStationRectifier = isRectifier(station);
-        if (station.getOtherConverterStation().isPresent()) {
+        Optional<? extends HvdcConverterStation<?>> otherStation = station.getOtherConverterStation();
+        if (otherStation.isPresent()) {
             if (isConverterStationRectifier) {
                 return -1;
-            } else if (station.getOtherConverterStation().isPresent()) {
-                return 1 - (station.getLossFactor() + station.getOtherConverterStation().get().getLossFactor()) / 100;
+            } else {
+                return 1 - (station.getLossFactor() + otherStation.get().getLossFactor()) / 100;
             }
         }
         return 0.0;
