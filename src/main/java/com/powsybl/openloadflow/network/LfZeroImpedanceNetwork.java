@@ -114,11 +114,13 @@ public class LfZeroImpedanceNetwork {
     private void updateVoltageControlMergeStatus() {
         Map<VoltageControl.Type, List<VoltageControl<?>>> voltageControlsByType = new EnumMap<>(VoltageControl.Type.class);
         for (LfBus zb : graph.vertexSet()) { // all enabled by design
-            for (VoltageControl<?> vc : zb.getVoltageControls()) {
-                voltageControlsByType.computeIfAbsent(vc.getType(), k -> new ArrayList<>())
-                        .add(vc);
-                vc.getMergedDependentVoltageControls().clear();
-                vc.mainMergedVoltageControl = null;
+            if (zb.isVoltageControlled()) {
+                for (VoltageControl<?> vc : zb.getVoltageControls()) {
+                    voltageControlsByType.computeIfAbsent(vc.getType(), k -> new ArrayList<>())
+                            .add(vc);
+                    vc.getMergedDependentVoltageControls().clear();
+                    vc.mainMergedVoltageControl = null;
+                }
             }
         }
         for (List<VoltageControl<?>> voltageControls : voltageControlsByType.values()) {
