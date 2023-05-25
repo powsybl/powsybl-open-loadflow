@@ -851,7 +851,11 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (twt != null) {
             return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(fType)));
         }
-        throw new PowsyblException("Branch, dangling line or leg of '" + branchId + "' not found");
+        TieLine line = network.getTieLine(branchId);
+        if (line != null) {
+            return lfNetwork.getBranchById(branchId);
+        }
+        throw new PowsyblException("Branch, tie line, dangling line or leg of '" + branchId + "' not found");
     }
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {
