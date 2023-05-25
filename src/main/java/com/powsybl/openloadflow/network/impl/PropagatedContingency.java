@@ -163,7 +163,7 @@ public class PropagatedContingency {
                 case DANGLING_LINE:
                     DanglingLine dl = (DanglingLine) connectable;
                     if (dl.isPaired()) {
-                        branchIdsToOpen.add(dl.getTieLine().get().getId());
+                        branchIdsToOpen.add(dl.getTieLine().orElseThrow().getId());
                     } else {
                         branchIdsToOpen.add(dl.getId());
                     }
