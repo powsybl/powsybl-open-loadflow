@@ -227,8 +227,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 lfParameters.isDistributedSlack(),
                 lfParameters.getBalanceType(),
                 true,
-                parametersExt.getMaxOuterLoopIterations()
-                );
+                parametersExt.getMaxOuterLoopIterations());
     }
 
     /**

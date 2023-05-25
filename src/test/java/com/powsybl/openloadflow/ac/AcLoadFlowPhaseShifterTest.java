@@ -583,9 +583,9 @@ class AcLoadFlowPhaseShifterTest {
             LfBranch ps1 = lfNetwork.getBranchById("PS1");
             List<LfBranch> controllerBranches = List.of(ps1);
             var sensitivityContext = new AcIncrementalPhaseControlOuterLoop.AcSensitivityContext(lfNetwork,
-                                                            controllerBranches,
-                                                            lfContext.getEquationSystem(),
-                                                            lfContext.getJacobianMatrix());
+                                                                                                 controllerBranches,
+                                                                                                 lfContext.getEquationSystem(),
+                                                                                                 lfContext.getJacobianMatrix());
             double da10 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(0).getAlpha();
             double da12 = t2wt.getPhaseTapChanger().getStep(1).getAlpha() - t2wt.getPhaseTapChanger().getStep(2).getAlpha();
             double ib = PerUnit.ib(ps1.getBus1().getNominalV());

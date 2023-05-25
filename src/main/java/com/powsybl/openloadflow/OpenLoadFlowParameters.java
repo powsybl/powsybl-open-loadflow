@@ -1074,7 +1074,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                       parameters.getBalanceType(),
                                                       parameters.isDcUseTransformerRatio(),
                                                       matrixFactory,
-                                                      OpenLoadFlowParameters.get(parameters).getMaxOuterLoopIterations()));
+                                                      parametersExt.getMaxOuterLoopIterations()));
 
             default:
                 throw new PowsyblException("Unknown voltage init mode override: " + parametersExt.getVoltageInitModeOverride());

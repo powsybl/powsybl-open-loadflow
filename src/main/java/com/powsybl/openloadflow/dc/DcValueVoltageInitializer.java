@@ -55,8 +55,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
                                                                    distributedSlack,
                                                                    balanceType,
                                                                    false,
-                                                                   maxOuterLoopIterations
-                                                 );
+                                                                   maxOuterLoopIterations);
 
         try (DcLoadFlowContext context = new DcLoadFlowContext(network, parameters)) {
             DcLoadFlowEngine engine = new DcLoadFlowEngine(context);
