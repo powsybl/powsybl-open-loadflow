@@ -8,7 +8,6 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 
 import java.util.ArrayList;
@@ -17,9 +16,9 @@ import java.util.List;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DefaultOuterLoopConfig implements OuterLoopConfig {
+public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
 
-    private static OuterLoop createTransformerVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+    private static AcOuterLoop createTransformerVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
         switch (parametersExt.getTransformerVoltageControlMode()) {
             case WITH_GENERATOR_VOLTAGE_CONTROL:
                 return new SimpleTransformerVoltageControlOuterLoop();
@@ -32,7 +31,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
     }
 
-    private static OuterLoop createShuntVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+    private static AcOuterLoop createShuntVoltageControlOuterLoop(OpenLoadFlowParameters parametersExt) {
         switch (parametersExt.getShuntVoltageControlMode()) {
             case WITH_GENERATOR_VOLTAGE_CONTROL:
                 return new ShuntVoltageControlOuterLoop();
@@ -43,7 +42,7 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
     }
 
-    private static OuterLoop createPhaseShifterControlOuterLoop(OpenLoadFlowParameters parametersExt) {
+    private static AcOuterLoop createPhaseShifterControlOuterLoop(OpenLoadFlowParameters parametersExt) {
         switch (parametersExt.getPhaseShifterControlMode()) {
             case CONTINUOUS_WITH_DISCRETISATION:
                 return new PhaseControlOuterLoop();
@@ -54,14 +53,14 @@ public class DefaultOuterLoopConfig implements OuterLoopConfig {
         }
     }
 
-    private static OuterLoop createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+    private static AcOuterLoop createDistributedSlackOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
         ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(parameters.getBalanceType(), parametersExt.isLoadPowerFactorConstant());
         return new DistributedSlackOuterLoop(activePowerDistribution, parametersExt.isThrowsExceptionInCaseOfSlackDistributionFailure(), parametersExt.getSlackBusPMaxMismatch());
     }
 
     @Override
-    public List<OuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        List<OuterLoop> outerLoops = new ArrayList<>(5);
+    public List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
+        List<AcOuterLoop> outerLoops = new ArrayList<>(5);
         // primary frequency control
         if (parameters.isDistributedSlack()) {
             outerLoops.add(createDistributedSlackOuterLoop(parameters, parametersExt));

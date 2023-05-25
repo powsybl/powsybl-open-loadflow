@@ -7,6 +7,9 @@
 package com.powsybl.openloadflow.lf.outerloop;
 
 import com.powsybl.openloadflow.IncrementalContextData;
+import com.powsybl.openloadflow.equations.Quantity;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -15,7 +18,12 @@ import java.util.List;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractIncrementalPhaseControlOuterLoop extends AbstractPhaseControlOuterLoop {
+public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V> & Quantity,
+                                                               E extends Enum<E> & Quantity,
+                                                               P extends AbstractLoadFlowParameters,
+                                                               C extends LoadFlowContext<V, E, P>,
+                                                               O extends OuterLoopContext<V, E, P, C>>
+        extends AbstractPhaseControlOuterLoop<V, E, P, C, O> {
 
     public static final int MAX_DIRECTION_CHANGE = 2;
     public static final int MAX_TAP_SHIFT = Integer.MAX_VALUE;
@@ -24,7 +32,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop extends AbstractP
     public static final double PHASE_SHIFT_CROSS_IMPACT_MARGIN = 0.75;
 
     @Override
-    public void initialize(OuterLoopContext context) {
+    public void initialize(O context) {
         var contextData = new IncrementalContextData();
         context.setData(contextData);
 

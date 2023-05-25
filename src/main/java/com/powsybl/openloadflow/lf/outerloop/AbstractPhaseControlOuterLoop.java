@@ -6,6 +6,9 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
+import com.powsybl.openloadflow.equations.Quantity;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -18,7 +21,11 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public abstract class AbstractPhaseControlOuterLoop implements OuterLoop {
+public abstract class AbstractPhaseControlOuterLoop<V extends Enum<V> & Quantity,
+                                                    E extends Enum<E> & Quantity,
+                                                    P extends AbstractLoadFlowParameters,
+                                                    C extends LoadFlowContext<V, E, P>,
+                                                    O extends OuterLoopContext<V, E, P, C>> implements OuterLoop<V, E, P, C, O> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPhaseControlOuterLoop.class);
 

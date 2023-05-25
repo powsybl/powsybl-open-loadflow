@@ -8,14 +8,13 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.*;
+import com.powsybl.openloadflow.IncrementalContextData;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -31,7 +30,8 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhaseControlOuterLoop {
+public class DcIncrementalPhaseControlOuterLoop
+        extends AbstractIncrementalPhaseControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcIncrementalPhaseControlOuterLoop.class);
 
@@ -140,15 +140,12 @@ public class DcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        DcOuterLoopContextImpl dcContext;
-        dcContext = (DcOuterLoopContextImpl) context;
-
+    public OuterLoopStatus check(DcOuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        var contextData = (IncrementalContextData) dcContext.getData();
+        var contextData = (IncrementalContextData) context.getData();
 
-        LfNetwork network = dcContext.getNetwork();
+        LfNetwork network = context.getNetwork();
 
         List<LfBranch> controllerBranches = getControllerBranches(network);
 
@@ -173,8 +170,8 @@ public class DcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
         if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
             var sensitivityContext = new DcSensitivityContext(network,
                     controllerBranches,
-                    dcContext.getDcLoadFlowContext().getEquationSystem(),
-                    dcContext.getDcLoadFlowContext().getJacobianMatrix());
+                    context.getLoadFlowContext().getEquationSystem(),
+                    context.getLoadFlowContext().getJacobianMatrix());
 
             if (!activePowerControlPhaseControls.isEmpty()
                     && checkActivePowerControlPhaseControls(sensitivityContext,

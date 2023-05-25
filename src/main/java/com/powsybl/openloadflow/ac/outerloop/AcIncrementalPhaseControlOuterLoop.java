@@ -8,15 +8,16 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.*;
-import com.powsybl.openloadflow.ac.AcOuterLoopContextImpl;
+import com.powsybl.openloadflow.IncrementalContextData;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -32,7 +33,9 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class AcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhaseControlOuterLoop {
+public class AcIncrementalPhaseControlOuterLoop
+        extends AbstractIncrementalPhaseControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
+        implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class);
 
@@ -42,7 +45,7 @@ public class AcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
     }
 
     @Override
-    public void initialize(OuterLoopContext context) {
+    public void initialize(AcOuterLoopContext context) {
         var contextData = new IncrementalContextData();
         context.setData(contextData);
 
@@ -244,15 +247,12 @@ public class AcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        AcOuterLoopContextImpl acContext;
-        acContext = (AcOuterLoopContextImpl) context;
-
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
-        var contextData = (IncrementalContextData) acContext.getData();
+        var contextData = (IncrementalContextData) context.getData();
 
-        LfNetwork network = acContext.getNetwork();
+        LfNetwork network = context.getNetwork();
 
         List<LfBranch> controllerBranches = getControllerBranches(network);
 
@@ -277,8 +277,8 @@ public class AcIncrementalPhaseControlOuterLoop extends AbstractIncrementalPhase
         if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
             var sensitivityContext = new AcSensitivityContext(network,
                                                             controllerBranches,
-                                                            acContext.getAcLoadFlowContext().getEquationSystem(),
-                                                            acContext.getAcLoadFlowContext().getJacobianMatrix());
+                                                            context.getLoadFlowContext().getEquationSystem(),
+                                                            context.getLoadFlowContext().getJacobianMatrix());
 
             if (!currentLimiterPhaseControls.isEmpty()
                     && checkCurrentLimiterPhaseControls(sensitivityContext,

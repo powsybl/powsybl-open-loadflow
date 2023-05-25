@@ -6,12 +6,18 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
+import com.powsybl.openloadflow.equations.Quantity;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface OuterLoopContext {
+public interface OuterLoopContext<V extends Enum<V> & Quantity,
+                                  E extends Enum<E> & Quantity,
+                                  P extends AbstractLoadFlowParameters,
+                                  C extends LoadFlowContext<V, E, P>> {
 
     LfNetwork getNetwork();
 
@@ -20,4 +26,8 @@ public interface OuterLoopContext {
     Object getData();
 
     void setData(Object data);
+
+    C getLoadFlowContext();
+
+    void setLoadFlowContext(C loadFlowContext);
 }

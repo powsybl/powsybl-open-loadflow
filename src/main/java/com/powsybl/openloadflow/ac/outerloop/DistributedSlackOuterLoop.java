@@ -8,10 +8,8 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopContext;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
-import com.powsybl.openloadflow.ac.AcOuterLoopContextImpl;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -23,7 +21,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class DistributedSlackOuterLoop implements OuterLoop {
+public class DistributedSlackOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DistributedSlackOuterLoop.class);
 
@@ -45,11 +43,8 @@ public class DistributedSlackOuterLoop implements OuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        AcOuterLoopContextImpl acContext;
-        acContext = (AcOuterLoopContextImpl) context;
-
-        double slackBusActivePowerMismatch = acContext.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
+        double slackBusActivePowerMismatch = context.getLastNewtonRaphsonResult().getSlackBusActivePowerMismatch();
         if (Math.abs(slackBusActivePowerMismatch) > slackBusPMaxMismatch / PerUnit.SB) {
 
             ActivePowerDistribution.Result result = activePowerDistribution.run(context.getNetwork(), slackBusActivePowerMismatch);

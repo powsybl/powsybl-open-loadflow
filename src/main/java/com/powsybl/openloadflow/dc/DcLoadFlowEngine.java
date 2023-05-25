@@ -9,12 +9,11 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -114,7 +113,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
     }
 
-    private boolean runPhaseShifterOuterLoop(OuterLoop outerLoop, DcOuterLoopContextImpl outerLoopContext) {
+    private boolean runPhaseShifterOuterLoop(DcIncrementalPhaseControlOuterLoop outerLoop, DcOuterLoopContext outerLoopContext) {
         Reporter olReporter = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReporter(), outerLoop.getType());
         DcLoadFlowContext dcLoadFlowContext;
         OuterLoopStatus outerLoopStatus;
@@ -127,7 +126,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             // check outer loop status
             outerLoopContext.setIteration(outerLoopIteration);
             outerLoopContext.setLoadFlowContext(context);
-            dcLoadFlowContext = outerLoopContext.getDcLoadFlowContext();
+            dcLoadFlowContext = outerLoopContext.getLoadFlowContext();
             outerLoopStatus = outerLoop.check(outerLoopContext, olReporter);
 
             if (outerLoopStatus == OuterLoopStatus.UNSTABLE) {
@@ -172,7 +171,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                                         Reporter reporter) {
         // outer loop initialization
         DcIncrementalPhaseControlOuterLoop dcPhaseShifterControlOuterLoop = new DcIncrementalPhaseControlOuterLoop();
-        DcOuterLoopContextImpl outerLoopContext = new DcOuterLoopContextImpl(network);
+        DcOuterLoopContext outerLoopContext = new DcOuterLoopContext(network);
         if (parameters.getNetworkParameters().isPhaseControl()) {
             dcPhaseShifterControlOuterLoop.initialize(outerLoopContext);
         }

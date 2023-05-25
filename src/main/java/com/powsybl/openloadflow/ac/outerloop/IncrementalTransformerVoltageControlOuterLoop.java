@@ -9,15 +9,14 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.IncrementalContextData;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopContext;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.AcOuterLoopContextImpl;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -56,7 +55,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     @Override
-    public void initialize(OuterLoopContext context) {
+    public void initialize(AcOuterLoopContext context) {
         var contextData = new IncrementalContextData();
         context.setData(contextData);
 
@@ -188,14 +187,12 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
-        AcOuterLoopContextImpl acContext;
-        acContext = (AcOuterLoopContextImpl) context;
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
-        LfNetwork network = acContext.getNetwork();
-        AcLoadFlowContext loadFlowContext = acContext.getAcLoadFlowContext();
-        var contextData = (IncrementalContextData) acContext.getData();
+        LfNetwork network = context.getNetwork();
+        AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
+        var contextData = (IncrementalContextData) context.getData();
 
         List<LfBranch> controllerBranches = getControllerBranches(network);
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerBranches,
