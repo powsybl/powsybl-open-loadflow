@@ -7,7 +7,7 @@
 
 package com.powsybl.openloadflow.dc;
 
-import com.powsybl.openloadflow.OuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Objects;

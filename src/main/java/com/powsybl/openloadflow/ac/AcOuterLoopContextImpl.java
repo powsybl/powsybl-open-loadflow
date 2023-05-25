@@ -6,7 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.openloadflow.OuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopContext;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
 import com.powsybl.openloadflow.network.LfNetwork;
 
