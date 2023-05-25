@@ -1045,14 +1045,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         }
     }
 
-    static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
+    static VoltageInitializer getVoltageInitializer(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
         switch (parameters.getVoltageInitMode()) {
             case UNIFORM_VALUES:
                 return new UniformValueVoltageInitializer();
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, OpenLoadFlowParameters.get(parameters).getMaxOuterLoopIterations());
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
@@ -1062,7 +1062,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                             LfNetworkParameters networkParameters, MatrixFactory matrixFactory) {
         switch (parametersExt.getVoltageInitModeOverride()) {
             case NONE:
-                return getVoltageInitializer(parameters, networkParameters, matrixFactory);
+                return getVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
 
             case VOLTAGE_MAGNITUDE:
                 return new VoltageMagnitudeInitializer(parameters.isTransformerVoltageControlOn(), matrixFactory, networkParameters.getLowImpedanceThreshold());
