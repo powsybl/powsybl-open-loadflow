@@ -7,7 +7,7 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.lf.outerloop.OuterLoopContext;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 
@@ -22,7 +22,7 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
     }
 
     @Override
-    public void initialize(OuterLoopContext context) {
+    public void initialize(AcOuterLoopContext context) {
         for (LfBranch controllerBranch : getControllerBranches(context.getNetwork())) {
             controllerBranch.setVoltageControlEnabled(true);
         }
@@ -30,7 +30,7 @@ public class SimpleTransformerVoltageControlOuterLoop extends AbstractTransforme
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         if (context.getIteration() == 0) {
             status = roundVoltageRatios(context);

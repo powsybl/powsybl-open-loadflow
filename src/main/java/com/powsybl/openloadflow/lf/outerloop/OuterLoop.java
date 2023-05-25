@@ -7,19 +7,26 @@
 package com.powsybl.openloadflow.lf.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.openloadflow.equations.Quantity;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface OuterLoop {
+public interface OuterLoop<V extends Enum<V> & Quantity,
+                           E extends Enum<E> & Quantity,
+                           P extends AbstractLoadFlowParameters,
+                           C extends LoadFlowContext<V, E, P>,
+                           O extends OuterLoopContext<V, E, P, C>> {
 
     String getType();
 
-    default void initialize(OuterLoopContext context) {
+    default void initialize(O context) {
     }
 
-    OuterLoopStatus check(OuterLoopContext context, Reporter reporter);
+    OuterLoopStatus check(O context, Reporter reporter);
 
-    default void cleanup(OuterLoopContext context) {
+    default void cleanup(O context) {
     }
 }

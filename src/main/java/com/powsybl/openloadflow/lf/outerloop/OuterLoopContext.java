@@ -6,26 +6,28 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
-import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
+import com.powsybl.openloadflow.equations.Quantity;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface OuterLoopContext {
+public interface OuterLoopContext<V extends Enum<V> & Quantity,
+                                  E extends Enum<E> & Quantity,
+                                  P extends AbstractLoadFlowParameters,
+                                  C extends LoadFlowContext<V, E, P>> {
 
     LfNetwork getNetwork();
 
     int getIteration();
 
-    NewtonRaphsonResult getLastNewtonRaphsonResult();
-
     Object getData();
 
     void setData(Object data);
 
-    AcLoadFlowContext getAcLoadFlowContext();
+    C getLoadFlowContext();
 
-    void setAcLoadFlowContext(AcLoadFlowContext acLoadFlowContext);
+    void setLoadFlowContext(C loadFlowContext);
 }
