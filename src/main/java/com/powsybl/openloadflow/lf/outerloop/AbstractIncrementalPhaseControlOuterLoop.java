@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
-import com.powsybl.openloadflow.IncrementalContextData;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
