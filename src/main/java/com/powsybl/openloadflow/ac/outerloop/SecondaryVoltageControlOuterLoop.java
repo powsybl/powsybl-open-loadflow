@@ -262,19 +262,24 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
         // supposing we want all controllers to shift to same amount of reactive power
         double dq = pilotDv / Arrays.stream(sensiVq.si).sum();
 
-        LOGGER.trace("Control units of zone '{}' need to be adjusted of {} MW", zoneName, dq * PerUnit.SB);
+        LOGGER.trace("Control units of zone '{}' need to be adjusted of {} MVar", zoneName, dq * PerUnit.SB);
 
         for (LfBus controlledBus : controlledBuses) {
             double pvcDv = 0;
             for (LfBus controllerBus : getControllerBuses(controlledBus)) {
-                pvcDv += dq / sensiVq.getSqi(controllerBus);
+                double sqi = sensiVq.getSqi(controllerBus);
+                if (sqi != 0) {
+                    pvcDv += dq / sqi;
+                }
             }
-            var pvc = controlledBus.getGeneratorVoltageControl().orElseThrow();
-            double newPvcTargetV = pvc.getTargetValue() + pvcDv;
-            LOGGER.trace("Adjust primary voltage control target of bus '{}': {} -> {}",
-                    controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
-                    newPvcTargetV * controlledBus.getNominalV());
-            pvc.setTargetValue(newPvcTargetV);
+            if (pvcDv != 0) {
+                var pvc = controlledBus.getGeneratorVoltageControl().orElseThrow();
+                double newPvcTargetV = pvc.getTargetValue() + pvcDv;
+                LOGGER.trace("Adjust primary voltage control target of bus '{}': {} -> {}",
+                        controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
+                        newPvcTargetV * controlledBus.getNominalV());
+                pvc.setTargetValue(newPvcTargetV);
+            }
         }
     }
 
