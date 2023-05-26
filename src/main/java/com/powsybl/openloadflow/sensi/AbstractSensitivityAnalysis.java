@@ -847,7 +847,7 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         if (branch != null) {
             return lfNetwork.getBranchById(branchId);
         }
-        DanglingLine danglingLine = network.getDanglingLine(branchId); // add unit test.
+        DanglingLine danglingLine = network.getDanglingLine(branchId);
         if (danglingLine != null && !danglingLine.isPaired()) {
             return lfNetwork.getBranchById(branchId);
         }
