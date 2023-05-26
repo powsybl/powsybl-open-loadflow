@@ -10,12 +10,12 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Substation;
+import com.powsybl.iidm.network.extensions.LoadAsymmetrical;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalanced;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 
@@ -63,7 +63,7 @@ public class LfBusImpl extends AbstractLfBus {
         double totalDeltaPc = 0;
         double totalDeltaQc = 0;
         for (Load load : bus.getLoads()) {
-            var extension = load.getExtension(LoadUnbalanced.class);
+            var extension = load.getExtension(LoadAsymmetrical.class);
             if (extension != null) {
                 totalDeltaPa += extension.getDeltaPa() / PerUnit.SB;
                 totalDeltaQa += extension.getDeltaQa() / PerUnit.SB;

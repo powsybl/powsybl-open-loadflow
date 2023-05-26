@@ -11,7 +11,6 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.extensions.AsymLine;
-import com.powsybl.openloadflow.network.extensions.iidm.LineAsymmetrical;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
@@ -33,11 +32,10 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     private static void createLineAsymExt(Line line, double zb, PiModel piModel, LfBranchImpl lfBranchImpl) {
         var extension = line.getExtension(LineFortescue.class);
-        var extension2 = line.getExtension(LineAsymmetrical.class); // TODO to remove when upgrading core
-        if (extension != null && extension2 != null) {
-            boolean openPhaseA = extension2.getOpenPhaseA();
-            boolean openPhaseB = extension2.getOpenPhaseB();
-            boolean openPhaseC = extension2.getOpenPhaseC();
+        if (extension != null) {
+            boolean openPhaseA = extension.isOpenPhaseA();
+            boolean openPhaseB = extension.isOpenPhaseB();
+            boolean openPhaseC = extension.isOpenPhaseC();
             double rz = extension.getRz();
             double xz = extension.getXz();
             SimplePiModel piZeroComponent = new SimplePiModel()
