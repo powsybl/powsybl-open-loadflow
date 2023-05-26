@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class DisymTest {
+public class AsymmetricalLoadFlowTest {
 
     private Network network;
     private Bus bus1;
