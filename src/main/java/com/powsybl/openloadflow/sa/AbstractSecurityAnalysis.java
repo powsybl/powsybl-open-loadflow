@@ -132,10 +132,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
                 case LineConnectionAction.NAME: {
                     LineConnectionAction lineConnectionAction = (LineConnectionAction) action;
-                    if (network.getBranch(lineConnectionAction.getLineId()) == null) {
-                        if (network.getTieLine(lineConnectionAction.getLineId()) == null) {
-                            throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + "' not found");
-                        }
+                    if (network.getBranch(lineConnectionAction.getLineId()) == null && network.getTieLine(lineConnectionAction.getLineId()) == null) {
+                        throw new PowsyblException("Branch '" + lineConnectionAction.getLineId() + "' not found");
                     }
                     break;
                 }
