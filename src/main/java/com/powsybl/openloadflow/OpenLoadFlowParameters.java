@@ -17,10 +17,10 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.*;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -1163,8 +1163,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setStateVectorScalingMode(parametersExt.getStateVectorScalingMode())
                 .setAlwaysUpdateNetwork(parametersExt.isAlwaysUpdateNetwork());
 
-        OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
-        List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
+        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig(new DefaultAcOuterLoopConfig());
+        List<AcOuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
 
         return new AcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,
