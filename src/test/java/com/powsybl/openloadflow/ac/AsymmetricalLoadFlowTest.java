@@ -27,6 +27,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.joda.time.DateTime;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -46,15 +47,32 @@ public class AsymmetricalLoadFlowTest {
     private Bus bus3;
     private Bus bus4;
     private Line line1;
+    private Line line23;
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
+
+    @BeforeEach
+    void setUp() {
+        network = fourNodescreate();
+        bus1 = network.getBusBreakerView().getBus("B1");
+        bus2 = network.getBusBreakerView().getBus("B2");
+        bus3 = network.getBusBreakerView().getBus("B3");
+        bus4 = network.getBusBreakerView().getBus("B4");
+        line1 = network.getLine("B1_B2");
+        line23 = network.getLine("B2_B3");
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters()
+                .setUseReactiveLimits(false)
+                .setDistributedSlack(false);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+    }
 
     @Test
     void asymmetricEquationSystemTest() {
-
-        network = fourNodescreate();
-
         LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
                 .setAsymmetrical(true);
         List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters);
@@ -177,17 +195,10 @@ public class AsymmetricalLoadFlowTest {
 
     @Test
     void baseCaseTest() {
-
-        network = TwoBusNetworkFactory.create();
-        bus1 = network.getBusBreakerView().getBus("b1");
-        bus2 = network.getBusBreakerView().getBus("b2");
-        line1 = network.getLine("l12");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        Network network = TwoBusNetworkFactory.create();
+        Bus bus1 = network.getBusBreakerView().getBus("b1");
+        Bus bus2 = network.getBusBreakerView().getBus("b2");
+        Line line1 = network.getLine("l12");
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -204,21 +215,6 @@ public class AsymmetricalLoadFlowTest {
 
     @Test
     void fourNodesBalancedTest() {
-
-        network = fourNodescreate();
-        bus1 = network.getBusBreakerView().getBus("B1");
-        bus2 = network.getBusBreakerView().getBus("B2");
-        bus3 = network.getBusBreakerView().getBus("B3");
-        bus4 = network.getBusBreakerView().getBus("B4");
-        line1 = network.getLine("B1_B2");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAsymmetrical(false);
-
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
 
@@ -237,21 +233,8 @@ public class AsymmetricalLoadFlowTest {
     }
 
     @Test
-    void fourNodesDissymTest() {
-
-        network = fourNodescreate();
-        bus1 = network.getBusBreakerView().getBus("B1");
-        bus2 = network.getBusBreakerView().getBus("B2");
-        bus3 = network.getBusBreakerView().getBus("B3");
-        bus4 = network.getBusBreakerView().getBus("B4");
-        line1 = network.getLine("B1_B2");
-
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAsymmetrical(true);
+    void fourNodesAsymTest() {
+        parametersExt.setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -311,16 +294,7 @@ public class AsymmetricalLoadFlowTest {
     }
 
     @Test
-    void fourNodesDissymUnbalancedLoadLineTest() {
-
-        network = fourNodescreate();
-        bus1 = network.getBusBreakerView().getBus("B1");
-        bus2 = network.getBusBreakerView().getBus("B2");
-        bus3 = network.getBusBreakerView().getBus("B3");
-        bus4 = network.getBusBreakerView().getBus("B4");
-        line1 = network.getLine("B1_B2");
-
-        Line line23 = network.getLine("B2_B3");
+    void fourNodesAsymLoadLineTest() {
         double coeff = 1.;
         line23.setX(coeff * 1 / 0.2);
 
@@ -335,12 +309,7 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaQc(0.)
                 .add();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAsymmetrical(true);
+        parametersExt.setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -353,16 +322,7 @@ public class AsymmetricalLoadFlowTest {
     }
 
     @Test
-    void fourNodesDissymUnbalancedLoadTest() {
-
-        network = fourNodescreate();
-        bus1 = network.getBusBreakerView().getBus("B1");
-        bus2 = network.getBusBreakerView().getBus("B2");
-        bus3 = network.getBusBreakerView().getBus("B3");
-        bus4 = network.getBusBreakerView().getBus("B4");
-        line1 = network.getLine("B1_B2");
-
-        Line line23 = network.getLine("B2_B3");
+    void fourNodesAsymLoadTest() {
         double coeff = 1.;
         line23.setX(coeff * 1 / 0.2);
 
@@ -381,13 +341,7 @@ public class AsymmetricalLoadFlowTest {
                 .withDeltaQc(0.)
                 .add();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters()
-                .setUseReactiveLimits(false)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters.create(parameters)
-                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
-                .setAsymmetrical(true);
+        parametersExt.setAsymmetrical(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
@@ -581,5 +535,4 @@ public class AsymmetricalLoadFlowTest {
 
         return network;
     }
-
 }
