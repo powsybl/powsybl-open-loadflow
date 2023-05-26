@@ -28,7 +28,8 @@ public interface LfBranch extends LfElement {
         TRANSFO_3_LEG_2,
         TRANSFO_3_LEG_3,
         DANGLING_LINE,
-        SWITCH
+        SWITCH,
+        TIE_LINE
     }
 
     class LfLimit {

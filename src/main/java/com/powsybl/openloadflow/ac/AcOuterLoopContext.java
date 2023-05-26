@@ -6,33 +6,23 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonResult;
+import com.powsybl.openloadflow.lf.outerloop.AbstractOuterLoopContext;
 import com.powsybl.openloadflow.network.LfNetwork;
-
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class OuterLoopContextImpl implements OuterLoopContext {
-
-    private final LfNetwork network;
+public class AcOuterLoopContext extends AbstractOuterLoopContext<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext> {
 
     private int iteration;
 
     private NewtonRaphsonResult lastNewtonRaphsonResult;
 
-    private Object data;
-
-    private AcLoadFlowContext acLoadFlowContext;
-
-    OuterLoopContextImpl(LfNetwork network) {
-        this.network = Objects.requireNonNull(network);
-    }
-
-    @Override
-    public LfNetwork getNetwork() {
-        return network;
+    AcOuterLoopContext(LfNetwork network) {
+        super(network);
     }
 
     @Override
@@ -44,32 +34,11 @@ public class OuterLoopContextImpl implements OuterLoopContext {
         this.iteration = iteration;
     }
 
-    @Override
     public NewtonRaphsonResult getLastNewtonRaphsonResult() {
         return lastNewtonRaphsonResult;
     }
 
     public void setLastNewtonRaphsonResult(NewtonRaphsonResult lastNewtonRaphsonResult) {
         this.lastNewtonRaphsonResult = lastNewtonRaphsonResult;
-    }
-
-    @Override
-    public Object getData() {
-        return data;
-    }
-
-    @Override
-    public void setData(Object data) {
-        this.data = data;
-    }
-
-    @Override
-    public AcLoadFlowContext getAcLoadFlowContext() {
-        return acLoadFlowContext;
-    }
-
-    @Override
-    public void setAcLoadFlowContext(AcLoadFlowContext acLoadFlowContext) {
-        this.acLoadFlowContext = acLoadFlowContext;
     }
 }

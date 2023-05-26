@@ -151,7 +151,7 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Equation<V, E> equation = equations.remove(p);
         if (equation != null) {
             Pair<ElementType, Integer> element = Pair.of(type.getElementType(), num);
-            equationsByElement.remove(element);
+            equationsByElement.get(element).remove(equation);
             notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;

@@ -780,6 +780,10 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
         }
         if (injection == null) {
             injection = network.getDanglingLine(injectionId);
+            if (injection != null && network.getDanglingLine(injectionId).isPaired()) {
+                throw new PowsyblException("The dangling line " + injectionId + " is paired: it cannot be a sensitivity variable");
+            }
+            injection = network.getDanglingLine(injectionId);
         }
         if (injection == null) {
             injection = network.getLccConverterStation(injectionId);
@@ -844,14 +848,18 @@ public abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, 
             return lfNetwork.getBranchById(branchId);
         }
         DanglingLine danglingLine = network.getDanglingLine(branchId);
-        if (danglingLine != null) {
+        if (danglingLine != null && !danglingLine.isPaired()) {
             return lfNetwork.getBranchById(branchId);
         }
         ThreeWindingsTransformer twt = network.getThreeWindingsTransformer(branchId);
         if (twt != null) {
             return lfNetwork.getBranchById(LfLegBranch.getId(branchId, getLegNumber(fType)));
         }
-        throw new PowsyblException("Branch, dangling line or leg of '" + branchId + "' not found");
+        TieLine line = network.getTieLine(branchId);
+        if (line != null) {
+            return lfNetwork.getBranchById(branchId);
+        }
+        throw new PowsyblException("Branch, tie line, dangling line or leg of '" + branchId + "' not found");
     }
 
     private static void checkBus(Network network, String busId, Map<String, Bus> busCache, boolean breakers) {

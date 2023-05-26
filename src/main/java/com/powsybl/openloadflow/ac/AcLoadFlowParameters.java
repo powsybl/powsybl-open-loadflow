@@ -7,9 +7,10 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
@@ -28,7 +29,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private final NewtonRaphsonParameters newtonRaphsonParameters;
 
-    private final List<OuterLoop> outerLoops;
+    private final List<AcOuterLoop> outerLoops;
 
     private final int maxOuterLoopIterations;
 
@@ -37,7 +38,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
     private final boolean asymmetrical;
 
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
-                                NewtonRaphsonParameters newtonRaphsonParameters, List<OuterLoop> outerLoops, int maxOuterLoopIterations,
+                                NewtonRaphsonParameters newtonRaphsonParameters, List<AcOuterLoop> outerLoops, int maxOuterLoopIterations,
                                 MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean asymmetrical) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
@@ -56,7 +57,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         return newtonRaphsonParameters;
     }
 
-    public List<OuterLoop> getOuterLoops() {
+    public List<AcOuterLoop> getOuterLoops() {
         return outerLoops;
     }
 

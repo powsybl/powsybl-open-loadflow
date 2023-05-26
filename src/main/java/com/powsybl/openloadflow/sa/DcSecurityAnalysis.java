@@ -12,6 +12,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.iidm.network.TieLine;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -146,6 +147,12 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 context.getFactors().add(f);
                 handler.onFactor(f.getFunctionType(), f.getFunctionId(), f.getVariableType(), f.getVariableId(), f.isVariableSet(), f.getContingencyContext());
             }
+            for (TieLine line : network.getTieLines()) {
+                SensitivityFactor f = new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, line.getId(), SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                        variableId, false, contingencyContext);
+                context.getFactors().add(f);
+                handler.onFactor(f.getFunctionType(), f.getFunctionId(), f.getVariableType(), f.getVariableId(), f.isVariableSet(), f.getContingencyContext());
+            }
         };
 
         Map<String, List<LimitViolation>> violationsPerContingency = new HashMap<>();
@@ -158,13 +165,22 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                 if (contingencyIndex == -1) {
                     String branchId = factor.getFunctionId();
                     Branch<?> branch = network.getBranch(branchId);
-                    double i1 = currentActivePower(Math.abs(functionReference), branch.getTerminal1().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
-                    double i2 = currentActivePower(Math.abs(functionReference), branch.getTerminal2().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
-                    BranchResult branchResult = new BranchResult(branchId, functionReference, Double.NaN, i1, -functionReference, Double.NaN, i2, Double.NaN);
-                    context.getPreContingencyAllBranchResults().put(branchId, branchResult);
-                    context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(functionReference), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                    context.getDetector().checkCurrent(branch, Branch.Side.ONE, i1, violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
-                    context.getDetector().checkCurrent(branch, Branch.Side.TWO, i2, violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                    if (branch != null) {
+                        BranchResult branchResult = computeBranchResult(branchId, functionReference, branch.getTerminal1().getVoltageLevel().getNominalV(),
+                                branch.getTerminal2().getVoltageLevel().getNominalV(), context.getDcPowerFactor(), null, Double.NaN);
+                        context.getPreContingencyAllBranchResults().put(branchId, branchResult);
+                        context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(functionReference), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                        context.getDetector().checkCurrent(branch, Branch.Side.ONE, branchResult.getI1(), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                        context.getDetector().checkCurrent(branch, Branch.Side.TWO, branchResult.getI2(), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                    } else {
+                        TieLine line = network.getTieLine(branchId);
+                        BranchResult branchResult = computeBranchResult(branchId, functionReference, line.getDanglingLine1().getTerminal().getVoltageLevel().getNominalV(),
+                                line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV(), context.getDcPowerFactor(), null, Double.NaN);
+                        context.getPreContingencyAllBranchResults().put(branchId, branchResult);
+                        context.getDetector().checkActivePower(line, Branch.Side.ONE, Math.abs(functionReference), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                        context.getDetector().checkCurrent(line, Branch.Side.ONE, branchResult.getI1(), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                        context.getDetector().checkCurrent(line, Branch.Side.TWO, branchResult.getI2(), violation -> context.getPreContingencyLimitViolationsMap().put(Pair.of(violation.getSubjectId(), violation.getSide()), violation));
+                    }
                 } else {
                     Contingency contingency = context.getContingencies().get(contingencyIndex);
                     List<BranchResult> branchResultList = context.getBranchResultsPerContingencyId().computeIfAbsent(contingency.getId(), k -> new ArrayList<>());
@@ -175,17 +191,32 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
                     }
                     String branchId = factor.getFunctionId();
                     Branch<?> branch = network.getBranch(branchId);
-                    double i1 = currentActivePower(Math.abs(functionReference), branch.getTerminal1().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
-                    double i2 = currentActivePower(Math.abs(functionReference), branch.getTerminal2().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
-                    if (isBranchMonitored(branchId, contingency)) {
-                        BranchResult preContingencyBranchResult = context.getPreContingencyAllBranchResults().get(branchId);
-                        double flowTransfer = Double.isNaN(branchInContingencyP1) ? Double.NaN : (functionReference - preContingencyBranchResult.getP1()) / branchInContingencyP1;
-                        branchResultList.add(new BranchResult(branchId, functionReference, Double.NaN, i1,
-                                -functionReference, Double.NaN, i2, flowTransfer));
+                    if (branch != null) {
+                        BranchResult branchResult = computeBranchResult(branchId, functionReference, branch.getTerminal1().getVoltageLevel().getNominalV(),
+                                branch.getTerminal2().getVoltageLevel().getNominalV(), context.getDcPowerFactor(), null, Double.NaN);
+                        if (isBranchMonitored(branchId, contingency)) {
+                            BranchResult preContingencyBranchResult = context.getPreContingencyAllBranchResults().get(branchId);
+                            BranchResult newBranchResult = computeBranchResult(branchId, functionReference, branch.getTerminal1().getVoltageLevel().getNominalV(),
+                                    branch.getTerminal2().getVoltageLevel().getNominalV(), context.getDcPowerFactor(), preContingencyBranchResult, branchInContingencyP1);
+                            branchResultList.add(newBranchResult);
+                        }
+                        context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(functionReference), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                        context.getDetector().checkCurrent(branch, Branch.Side.ONE, branchResult.getI1(), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                        context.getDetector().checkCurrent(branch, Branch.Side.TWO, branchResult.getI2(), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                    } else {
+                        TieLine line = network.getTieLine(branchId);
+                        double i1 = currentActivePower(Math.abs(functionReference), line.getDanglingLine1().getTerminal().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
+                        double i2 = currentActivePower(Math.abs(functionReference), line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV(), context.getDcPowerFactor());
+                        if (isBranchMonitored(branchId, contingency)) {
+                            BranchResult preContingencyBranchResult = context.getPreContingencyAllBranchResults().get(branchId);
+                            double flowTransfer = Double.isNaN(branchInContingencyP1) ? Double.NaN : (functionReference - preContingencyBranchResult.getP1()) / branchInContingencyP1;
+                            branchResultList.add(new BranchResult(branchId, functionReference, Double.NaN, i1,
+                                    -functionReference, Double.NaN, i2, flowTransfer));
+                        }
+                        context.getDetector().checkActivePower(line, Branch.Side.ONE, Math.abs(functionReference), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                        context.getDetector().checkCurrent(line, Branch.Side.ONE, i1, violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
+                        context.getDetector().checkCurrent(line, Branch.Side.TWO, i2, violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
                     }
-                    context.getDetector().checkActivePower(branch, Branch.Side.ONE, Math.abs(functionReference), violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
-                    context.getDetector().checkCurrent(branch, Branch.Side.ONE, i1, violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
-                    context.getDetector().checkCurrent(branch, Branch.Side.TWO, i2, violation -> checkViolationWeakenedOrEquivalentAndAdd(context, violation, violations));
                 }
             }
 
@@ -279,6 +310,18 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
     private static double currentActivePower(double activePower, double voltage, double cosPhi) {
         return 1000 * activePower / (Math.sqrt(3) * cosPhi * voltage);
+    }
+
+    private static BranchResult computeBranchResult(String branchId, double functionReference, double nominalV1,
+                                                    double nominalV2, double dcPowerFactor, BranchResult preContingencyBranchResult,
+                                                    double branchInContingencyP1) {
+        double i1 = currentActivePower(Math.abs(functionReference), nominalV1, dcPowerFactor);
+        double i2 = currentActivePower(Math.abs(functionReference), nominalV2, dcPowerFactor);
+        double flowTransfer = Double.NaN;
+        if (preContingencyBranchResult != null) {
+            flowTransfer = Double.isNaN(branchInContingencyP1) ? Double.NaN : (functionReference - preContingencyBranchResult.getP1()) / branchInContingencyP1;
+        }
+        return new BranchResult(branchId, functionReference, Double.NaN, i1, -functionReference, Double.NaN, i2, flowTransfer);
     }
 
     private List<OperatorStrategyResult> runActionSimulations(DcSecurityAnalysisContext context, LfNetwork lfNetwork, DcLoadFlowParameters parameters,
