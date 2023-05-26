@@ -9,14 +9,13 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.OuterLoop;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -29,7 +28,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class SecondaryVoltageControlOuterLoop implements OuterLoop {
+public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
@@ -283,7 +282,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         LfNetwork network = context.getNetwork();
 
         // find active secondary voltage controls
@@ -299,7 +298,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         List<LfBus> allBusList = new ArrayList<>(allBusSet);
 
-        SensitivityContext sensitivityContext = SensitivityContext.create(allBusList, context.getAcLoadFlowContext());
+        SensitivityContext sensitivityContext = SensitivityContext.create(allBusList, context.getLoadFlowContext());
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
