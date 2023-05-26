@@ -32,7 +32,12 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         this.id = tieLine.getId();
     }
 
-    private static LfTieLineBranch createLine(TieLine line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, LfNetworkParameters parameters) {
+    public static LfTieLineBranch create(TieLine line, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
+        Objects.requireNonNull(line);
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
+        double nominalV2 = line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV();
+        double zb = PerUnit.zb(nominalV2);
         PiModel piModel = new SimplePiModel()
                 .setR1(1 / Transformers.getRatioPerUnitBase(line))
                 .setR(line.getR() / zb)
@@ -41,17 +46,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
                 .setG2(line.getG2() * zb)
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
-
         return new LfTieLineBranch(network, bus1, bus2, piModel, line, parameters);
-    }
-
-    public static LfTieLineBranch create(TieLine line, LfNetwork network, LfBus bus1, LfBus bus2, LfNetworkParameters parameters) {
-        Objects.requireNonNull(line);
-        Objects.requireNonNull(network);
-        Objects.requireNonNull(parameters);
-        double nominalV2 = line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV();
-        double zb = PerUnit.zb(nominalV2);
-        return createLine(line, network, bus1, bus2, zb, parameters);
     }
 
     @Override

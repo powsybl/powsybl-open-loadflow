@@ -360,31 +360,30 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             postProcessors.forEach(pp -> pp.onBranchAdded(branch, lfBranch));
         }
 
-        List<DanglingLine> visitedDanglingLines = new ArrayList<>();
+        Set<String> visitedDanglingLinesIds = new HashSet<>();
         for (DanglingLine danglingLine : loadingContext.danglingLines) {
-            Optional<TieLine> line = danglingLine.getTieLine();
-            if (line.isPresent()) {
-                if (!visitedDanglingLines.contains(danglingLine)) {
-                    LfBus lfBus1 = getLfBus(line.get().getDanglingLine1().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBus lfBus2 = getLfBus(line.get().getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
-                    LfBranch lfBranch = LfTieLineBranch.create(line.get(), lfNetwork, lfBus1, lfBus2, parameters);
+            danglingLine.getTieLine().ifPresentOrElse(tieLine -> {
+                if (!visitedDanglingLinesIds.contains(danglingLine.getId())) {
+                    LfBus lfBus1 = getLfBus(tieLine.getDanglingLine1().getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBus lfBus2 = getLfBus(tieLine.getDanglingLine2().getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBranch lfBranch = LfTieLineBranch.create(tieLine, lfNetwork, lfBus1, lfBus2, parameters);
                     addBranch(lfNetwork, lfBranch, report);
-                    postProcessors.forEach(pp -> pp.onBranchAdded(line.get(), lfBranch));
-                    visitedDanglingLines.add(line.get().getDanglingLine1());
-                    visitedDanglingLines.add(line.get().getDanglingLine2());
+                    postProcessors.forEach(pp -> pp.onBranchAdded(tieLine, lfBranch));
+                    visitedDanglingLinesIds.add(tieLine.getDanglingLine1().getId());
+                    visitedDanglingLinesIds.add(tieLine.getDanglingLine2().getId());
                 }
-            } else {
-                LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
-                lfNetwork.addBus(lfBus2);
-                lfBuses.add(lfBus2);
-                LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
-                LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
-                addBranch(lfNetwork, lfBranch, report);
-                postProcessors.forEach(pp -> {
-                    pp.onBusAdded(danglingLine, lfBus2);
-                    pp.onBranchAdded(danglingLine, lfBranch);
+            }, () -> {
+                    LfDanglingLineBus lfBus2 = new LfDanglingLineBus(lfNetwork, danglingLine, parameters, report);
+                    lfNetwork.addBus(lfBus2);
+                    lfBuses.add(lfBus2);
+                    LfBus lfBus1 = getLfBus(danglingLine.getTerminal(), lfNetwork, parameters.isBreakers());
+                    LfBranch lfBranch = LfDanglingLineBranch.create(danglingLine, lfNetwork, lfBus1, lfBus2, parameters);
+                    addBranch(lfNetwork, lfBranch, report);
+                    postProcessors.forEach(pp -> {
+                        pp.onBusAdded(danglingLine, lfBus2);
+                        pp.onBranchAdded(danglingLine, lfBranch);
+                    });
                 });
-            }
         }
 
         for (ThreeWindingsTransformer t3wt : loadingContext.t3wtSet) {

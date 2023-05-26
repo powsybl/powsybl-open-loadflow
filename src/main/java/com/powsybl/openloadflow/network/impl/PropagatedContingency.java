@@ -240,11 +240,11 @@ public class PropagatedContingency {
         }
         if (identifiable instanceof HvdcLine) {
             HvdcLine hvdcLine = (HvdcLine) identifiable;
-            return Arrays.asList(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
+            return List.of(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
         }
         if (identifiable instanceof TieLine) {
             TieLine line = (TieLine) identifiable;
-            return Arrays.asList(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal());
+            return List.of(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal());
         }
         if (identifiable instanceof Switch) {
             return Collections.emptyList();
