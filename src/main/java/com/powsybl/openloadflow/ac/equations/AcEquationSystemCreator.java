@@ -628,6 +628,17 @@ public class AcEquationSystemCreator {
             i2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
         }
 
+        createBranchEquations(branch, bus1, bus2, equationSystem, p1, q1, p2, q2, i1, i2);
+
+        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+
+        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+    }
+
+    protected static void createBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                EquationTerm<AcVariableType, AcEquationType> p1, EquationTerm<AcVariableType, AcEquationType> q1,
+                                                EquationTerm<AcVariableType, AcEquationType> p2, EquationTerm<AcVariableType, AcEquationType> q2,
+                                                EquationTerm<AcVariableType, AcEquationType> i1, EquationTerm<AcVariableType, AcEquationType> i2) {
         if (p1 != null) {
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
                     .orElseThrow()
@@ -662,10 +673,6 @@ public class AcEquationSystemCreator {
             equationSystem.attach(i2);
             branch.setI2(i2);
         }
-
-        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
-
-        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
     }
 
     private static void createHvdcAcEmulationEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {

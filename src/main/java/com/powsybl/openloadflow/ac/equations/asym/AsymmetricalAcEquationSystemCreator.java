@@ -121,9 +121,8 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         boolean deriveR1 = isDeriveR1(branch);
 
         if (bus1 != null && bus2 != null) {
-
             if (!branch.isAsymmetric()) {
-                // no assymmetry is detected with this line, we handle the equations as decoupled
+                // no asymmetry is detected with this line, we handle the equations as decoupled
                 // positive
                 p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
                 q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
@@ -163,7 +162,6 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
                 ixn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.REAL, Side.TWO, SequenceType.NEGATIVE);
                 iyn2 = new AsymmetricalClosedBranchCoupledCurrentEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), ComplexPart.IMAGINARY, Side.TWO, SequenceType.NEGATIVE);
             }
-
         } else if (bus1 != null) {
             throw new IllegalStateException("Line open at one side not yet supported in asymmetric load flow at bus: " + bus1.getId());
         } else if (bus2 != null) {
@@ -171,40 +169,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         }
 
         // positive
-        if (p1 != null) {
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
-                    .orElseThrow()
-                    .addTerm(p1);
-            branch.setP1(p1);
-        }
-        if (q1 != null) {
-            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
-                    .orElseThrow()
-                    .addTerm(q1);
-            branch.setQ1(q1);
-        }
-        if (p2 != null) {
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
-                    .orElseThrow()
-                    .addTerm(p2);
-            branch.setP2(p2);
-        }
-        if (q2 != null) {
-            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
-                    .orElseThrow()
-                    .addTerm(q2);
-            branch.setQ2(q2);
-        }
-
-        if (i1 != null) {
-            equationSystem.attach(i1);
-            branch.setI1(i1);
-        }
-
-        if (i2 != null) {
-            equationSystem.attach(i2);
-            branch.setI2(i2);
-        }
+        createBranchEquations(branch, bus1, bus2, equationSystem, p1, q1, p2, q2, i1, i2);
 
         // zero
         if (ixz1 != null) {
