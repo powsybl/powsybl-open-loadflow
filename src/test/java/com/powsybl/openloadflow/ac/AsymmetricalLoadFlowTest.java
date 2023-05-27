@@ -354,18 +354,18 @@ public class AsymmetricalLoadFlowTest {
         assertVoltageEquals(99.2565397779297, bus4); // balanced = 99.29252809145005
     }
 
+    /**
+     * Proposed network to be tested
+     *  The grid is balanced except l23_fault which has phase C disconnected in parallel to line l23 which stays connected
+     *  We use a parallel line because in this use case we would like to avoid issues linked to the loss of connexity
+     *
+     *        1         2        3        4
+     *        |---------|========|--------|
+     *   (~)--|---------|========|--------|--[X]
+     *        |---------|==----==|--------|
+     *                     \  /
+     */
     public static Network fourNodescreate() {
-        // Proposed network to be tested
-        // The grid is balanced except l23_fault which has phase C disconnected in parallel to line l23 which stays connected
-        // We use a parallel line because in this use case we would like to avoid issues linked to the loss of connexity
-        //
-        //       1         2        3        4
-        //       |---------|========|--------|
-        //  (~)--|---------|========|--------|--[X]
-        //       |---------|==----==|--------|
-        //                    \  /
-        //
-
         Network network = Network.create("4n", "test");
         network.setCaseDate(DateTime.parse("2018-03-05T13:30:30.486+01:00"));
 
