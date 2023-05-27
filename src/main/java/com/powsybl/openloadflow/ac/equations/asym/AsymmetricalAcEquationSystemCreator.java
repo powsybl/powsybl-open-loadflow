@@ -43,21 +43,17 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE);
         asymBus.setIyN(iyi);
 
-        ixi.setActive(true);
-        iyi.setActive(true);
-        ixh.setActive(true);
-        iyh.setActive(true);
-
         // Handle generators at bus for homopolar and inverse
         for (LfGenerator gen : bus.getGenerators()) {
             // if there is at least one generating unit that is voltage controlling we model the equivalent in inverse and homopolar
             // with a large admittance yg = g +jb to model a close connection of the bus to the ground (E_homopolar = 0 E_Inverse = 0)
-            if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER) {
-                throw new IllegalStateException("Generating unit with remote reactive power not yet supported in asymmetric load flow for generator: " + gen.getId());
+            if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER
+                    || gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE) {
+                throw new IllegalStateException("Generator with control type " + gen.getGeneratorControlType()
+                        + " not yet supported in asymmetric load flow: " + gen.getId());
             }
 
             if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
-
                 LfAsymGenerator asymGen = gen.getAsym();
                 if (asymGen != null) {
                     asymBus.setBzEquiv(asymBus.getBzEquiv() + asymGen.getBz());
