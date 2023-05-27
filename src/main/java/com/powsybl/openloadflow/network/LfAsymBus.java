@@ -56,38 +56,6 @@ public class LfAsymBus {
         this.bus = Objects.requireNonNull(bus);
     }
 
-    public void setAngleZ(double angleZ) {
-        this.angleZ = angleZ;
-    }
-
-    public void setAngleN(double angleN) {
-        this.angleN = angleN;
-    }
-
-    public void setVz(double vz) {
-        this.vz = vz;
-    }
-
-    public void setVn(double vn) {
-        this.vn = vn;
-    }
-
-    public void setIxZ(Evaluable ixZ) {
-        this.ixZ = ixZ;
-    }
-
-    public void setIxN(Evaluable ixN) {
-        this.ixN = ixN;
-    }
-
-    public void setIyZ(Evaluable iyZ) {
-        this.iyZ = iyZ;
-    }
-
-    public void setIyN(Evaluable iyN) {
-        this.iyN = iyN;
-    }
-
     public double getPa() {
         return bus.getLoadTargetP() + totalDeltaPa;
     }
@@ -112,35 +80,99 @@ public class LfAsymBus {
         return bus.getLoadTargetQ() + totalDeltaQc;
     }
 
+    public double getAngleZ() {
+        return angleZ;
+    }
+
+    public void setAngleZ(double angleZ) {
+        this.angleZ = angleZ;
+    }
+
+    public double getAngleN() {
+        return angleN;
+    }
+
+    public void setAngleN(double angleN) {
+        this.angleN = angleN;
+    }
+
+    public double getVz() {
+        return vz;
+    }
+
+    public void setVz(double vz) {
+        this.vz = vz;
+    }
+
+    public double getVn() {
+        return vn;
+    }
+
+    public void setVn(double vn) {
+        this.vn = vn;
+    }
+
+    public Evaluable getIxZ() {
+        return ixZ;
+    }
+
+    public void setIxZ(Evaluable ixZ) {
+        this.ixZ = ixZ;
+    }
+
+    public Evaluable getIxN() {
+        return ixN;
+    }
+
+    public void setIxN(Evaluable ixN) {
+        this.ixN = ixN;
+    }
+
+    public Evaluable getIyZ() {
+        return iyZ;
+    }
+
+    public void setIyZ(Evaluable iyZ) {
+        this.iyZ = iyZ;
+    }
+
+    public Evaluable getIyN() {
+        return iyN;
+    }
+
+    public void setIyN(Evaluable iyN) {
+        this.iyN = iyN;
+    }
+
     public double getBnEquiv() {
         return bnEquiv;
-    }
-
-    public double getBzEquiv() {
-        return bzEquiv;
-    }
-
-    public double getGzEquiv() {
-        return gzEquiv;
-    }
-
-    public double getGnEquiv() {
-        return gnEquiv;
     }
 
     public void setBnEquiv(double bnEquiv) {
         this.bnEquiv = bnEquiv;
     }
 
+    public double getBzEquiv() {
+        return bzEquiv;
+    }
+
     public void setBzEquiv(double bzEquiv) {
         this.bzEquiv = bzEquiv;
     }
 
-    public void setGnEquiv(double gnEquiv) {
-        this.gnEquiv = gnEquiv;
+    public double getGzEquiv() {
+        return gzEquiv;
     }
 
     public void setGzEquiv(double gzEquiv) {
         this.gzEquiv = gzEquiv;
+    }
+
+    public double getGnEquiv() {
+        return gnEquiv;
+    }
+
+    public void setGnEquiv(double gnEquiv) {
+        this.gnEquiv = gnEquiv;
     }
 }

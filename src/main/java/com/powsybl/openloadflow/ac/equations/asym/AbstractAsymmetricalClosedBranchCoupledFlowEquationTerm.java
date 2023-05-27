@@ -142,7 +142,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
                 return i == Side.ONE ? sv.get(v1VarNegative.getRow()) : sv.get(v2VarNegative.getRow());
 
             default:
-                throw new IllegalStateException("Unknown variable: ");
+                throw new IllegalStateException("Unknown sequence type: " + g);
         }
     }
 
@@ -158,7 +158,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
                 return i == Side.ONE ? sv.get(ph1VarNegative.getRow()) : sv.get(ph2VarNegative.getRow());
 
             default:
-                throw new IllegalStateException("Unknown variable: ");
+                throw new IllegalStateException("Unknown sequence type: " + g);
         }
     }
 
@@ -192,7 +192,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
                 || variable.equals(ph2Var) || variable.equals(ph2VarZero) || variable.equals(ph2VarNegative)) {
             return Side.TWO;
         } else {
-            throw new IllegalStateException("Unknown variable type");
+            throw new IllegalStateException("Unknown variable: " + variable);
         }
     }
 }
