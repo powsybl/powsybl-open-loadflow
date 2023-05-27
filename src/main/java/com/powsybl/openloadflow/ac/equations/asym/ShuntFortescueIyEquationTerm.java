@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
+import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -32,15 +33,15 @@ public class ShuntFortescueIyEquationTerm extends AbstractShuntFortescueCurrentE
      *  then Iy = g.Vmagnitude.sin(theta) + b.Vmagnitude.cos(theta)
      */
     private static double iy(double v, double phi, double g, double b) {
-        return g * v * Math.sin(phi) + b * v * Math.cos(phi);
+        return g * v * FastMath.sin(phi) + b * v * FastMath.cos(phi);
     }
 
     private static double diydv(double phi, double g, double b) {
-        return g * Math.sin(phi) + b * Math.cos(phi);
+        return g * FastMath.sin(phi) + b * FastMath.cos(phi);
     }
 
     private static double diydph(double v, double phi, double g, double b) {
-        return g * v * Math.cos(phi) - b * v * Math.sin(phi);
+        return g * v * FastMath.cos(phi) - b * v * FastMath.sin(phi);
     }
 
     @Override

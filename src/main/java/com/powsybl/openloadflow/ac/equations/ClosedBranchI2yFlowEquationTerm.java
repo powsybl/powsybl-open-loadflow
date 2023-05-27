@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
+import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -35,35 +36,34 @@ public class ClosedBranchI2yFlowEquationTerm extends AbstractClosedBranchAcFlowE
     // [I1y]   [ b1+b12   g1+g12   -b12    -g12   ]   [V1y]
     // [I2x] = [  -g21     b21    g2+g21  -b2-b21 ] * [V2x]
     // [I2y]   [  -b21    -g21    b2+b21   g2+g21 ]   [V2y]
-
     public static double i2y(double g2, double b2, double v1, double ph1, double v2, double ph2, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
-        return -b21 * v1 * Math.cos(ph1) - g21 * v1 * Math.sin(ph1) + (b2 + b21) * v2 * Math.cos(ph2) + (g2 + g21) * v2 * Math.sin(ph2);
+        return -b21 * v1 * FastMath.cos(ph1) - g21 * v1 * FastMath.sin(ph1) + (b2 + b21) * v2 * FastMath.cos(ph2) + (g2 + g21) * v2 * FastMath.sin(ph2);
     }
 
     private static double di2ydv1(double ph1, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
-        return -b21 * Math.cos(ph1) - g21 * Math.sin(ph1);
+        return -b21 * FastMath.cos(ph1) - g21 * FastMath.sin(ph1);
     }
 
     private static double di2ydv2(double g2, double b2, double ph2, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
-        return (b2 + b21) * Math.cos(ph2) + (g2 + g21) * Math.sin(ph2);
+        return (b2 + b21) * FastMath.cos(ph2) + (g2 + g21) * FastMath.sin(ph2);
     }
 
     private static double di2ydph1(double v1, double ph1, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
-        return b21 * v1 * Math.sin(ph1) - g21 * v1 * Math.cos(ph1);
+        return b21 * v1 * FastMath.sin(ph1) - g21 * v1 * FastMath.cos(ph1);
     }
 
     private static double di2ydph2(double g2, double b2, double v2, double ph2, double g12, double b12) {
         double g21 = g12;
         double b21 = b12;
-        return -(b2 + b21) * v2 * Math.sin(ph2) + (g2 + g21) * v2 * Math.cos(ph2);
+        return -(b2 + b21) * v2 * FastMath.sin(ph2) + (g2 + g21) * v2 * FastMath.cos(ph2);
     }
 
     @Override

@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.Side;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
+import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -47,19 +48,19 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
     }
 
     public double ix(Side i, Side j, SequenceType g, SequenceType h) {
-        return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j))
-                - y.getY(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)));
+        return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j))
+                - y.getY(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)));
     }
 
     public double iy(Side i, Side j, SequenceType g, SequenceType h) {
-        return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j))
-                + y.getY(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)));
+        return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j))
+                + y.getY(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)));
     }
 
     public double dixdv(Side i, Side j, SequenceType g, SequenceType h,
                         Side derivationSide, SequenceType derivationSequence) {
         if (j == derivationSide && h == derivationSequence) {
-            return r(i) * r(j) * (y.getX(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)));
+            return r(i) * r(j) * (y.getX(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
@@ -67,7 +68,7 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
     public double dixdph(Side i, Side j, SequenceType g, SequenceType h,
                          Side derivationSide, SequenceType derivationSequence) {
         if (j == derivationSide && h == derivationSequence) {
-            return r(i) * r(j) * v(h, j) * (-y.getX(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)));
+            return r(i) * r(j) * v(h, j) * (-y.getX(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
@@ -84,7 +85,7 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
     public double diydv(Side i, Side j, SequenceType g, SequenceType h,
                         Side derivationSide, SequenceType derivationSequence) {
         if (j == derivationSide && h == derivationSequence) {
-            return r(i) * r(j) * (y.getX(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)) + y.getY(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)));
+            return r(i) * r(j) * (y.getX(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)) + y.getY(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }
@@ -92,7 +93,7 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
     public double diydph(Side i, Side j, SequenceType g, SequenceType h,
                          Side derivationSide, SequenceType derivationSequence) {
         if (j == derivationSide && h == derivationSequence) {
-            return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * Math.cos(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * Math.sin(a(j) - a(i) + ph(h, j)));
+            return r(i) * r(j) * v(h, j) * (y.getX(i, j, g, h) * FastMath.cos(a(j) - a(i) + ph(h, j)) - y.getY(i, j, g, h) * FastMath.sin(a(j) - a(i) + ph(h, j)));
         }
         return 0;
     }

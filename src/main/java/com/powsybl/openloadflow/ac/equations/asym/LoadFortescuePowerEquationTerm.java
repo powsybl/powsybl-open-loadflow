@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
+import net.jafama.FastMath;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 import java.util.ArrayList;
@@ -179,23 +180,23 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         double dV2x = 0;
         double dV2y = 0;
         if (derVariable.getType() == AcVariableType.BUS_V) {
-            dV1x = Math.cos(phd);
-            dV1y = Math.sin(phd);
+            dV1x = FastMath.cos(phd);
+            dV1y = FastMath.sin(phd);
         } else if (derVariable.getType() == AcVariableType.BUS_V_ZERO) {
-            dV0x = Math.cos(pho);
-            dV0y = Math.sin(pho);
+            dV0x = FastMath.cos(pho);
+            dV0y = FastMath.sin(pho);
         } else if (derVariable.getType() == AcVariableType.BUS_V_NEGATIVE) {
-            dV2x = Math.cos(phi);
-            dV2y = Math.sin(phi);
+            dV2x = FastMath.cos(phi);
+            dV2y = FastMath.sin(phi);
         } else if (derVariable.getType() == AcVariableType.BUS_PHI) {
-            dV1x = vd * -Math.sin(phd);
-            dV1y = vd * Math.cos(phd);
+            dV1x = vd * -FastMath.sin(phd);
+            dV1y = vd * FastMath.cos(phd);
         } else if (derVariable.getType() == AcVariableType.BUS_PHI_ZERO) {
-            dV0x = vo * -Math.sin(pho);
-            dV0y = vo * Math.cos(pho);
+            dV0x = vo * -FastMath.sin(pho);
+            dV0y = vo * FastMath.cos(pho);
         } else if (derVariable.getType() == AcVariableType.BUS_PHI_NEGATIVE) {
-            dV2x = vi * -Math.sin(phi);
-            dV2y = vi * Math.cos(phi);
+            dV2x = vi * -FastMath.sin(phi);
+            dV2y = vi * FastMath.cos(phi);
         } else {
             throw new IllegalStateException("Unknown derivation variable: " + derVariable + " at bus : " + bus.getId());
         }

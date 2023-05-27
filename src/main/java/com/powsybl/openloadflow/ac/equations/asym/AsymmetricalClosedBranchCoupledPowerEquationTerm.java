@@ -15,6 +15,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.Side;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
+import net.jafama.FastMath;
 
 import java.util.Objects;
 
@@ -49,7 +50,7 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
 
     public double dpdv(Side i, Side j, SequenceType g, SequenceType h,
                        Side derivationSide, SequenceType derivationSequence) {
-        double tmpVal = y.getX(i, j, g, h) * Math.cos(a(i) - a(j) + ph(g, i) - ph(h, j)) + y.getY(i, j, g, h) * Math.sin(a(i) - a(j) + ph(g, i) - ph(h, j));
+        double tmpVal = y.getX(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j)) + y.getY(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j));
         if (i == derivationSide && g == derivationSequence && j == derivationSide && h == derivationSequence) {
             return 2 * r(i) * r(j) * v(g, i) * tmpVal;
         } else if (i == derivationSide && g == derivationSequence) {
@@ -65,16 +66,16 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
         if (i == derivationSide && g == derivationSequence && j == derivationSide && h == derivationSequence) {
             return 0;
         } else if (i == derivationSide && g == derivationSequence) {
-            return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * -Math.sin(a(i) - a(j) + ph(g, i) - ph(h, j)) + y.getY(i, j, g, h) * Math.cos(a(i) - a(j) + ph(g, i) - ph(h, j)));
+            return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * -FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j)) + y.getY(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j)));
         } else if (j == derivationSide && h == derivationSequence) {
-            return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * -Math.sin(a(i) - a(j) + ph(g, i) - ph(h, j)) - y.getY(i, j, g, h) * Math.cos(a(i) - a(j) + ph(g, i) - ph(h, j)));
+            return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * -FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j)) - y.getY(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j)));
         }
         return 0;
     }
 
     public double dqdv(Side i, Side j, SequenceType g, SequenceType h,
                        Side derivationSide, SequenceType derivationSequence) {
-        double tmpVal = y.getX(i, j, g, h) * Math.sin(a(i) - a(j) + ph(g, i) - ph(h, j)) - y.getY(i, j, g, h) * Math.cos(a(i) - a(j) + ph(g, i) - ph(h, j));
+        double tmpVal = y.getX(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j)) - y.getY(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j));
         if (i == derivationSide && g == derivationSequence && j == derivationSide && h == derivationSequence) {
             return 2 * r(i) * r(j) * v(g, i) * tmpVal;
         } else if (i == derivationSide && g == derivationSequence) {
@@ -90,21 +91,21 @@ public class AsymmetricalClosedBranchCoupledPowerEquationTerm extends AbstractAs
         if (i == derivationSide && g == derivationSequence && j == derivationSide && h == derivationSequence) {
             return 0;
         } else if (i == derivationSide && g == derivationSequence) {
-            return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * Math.cos(a(i) - a(j) + ph(g, i) - ph(h, j)) + y.getY(i, j, g, h) * Math.sin(a(i) - a(j) + ph(g, i) - ph(h, j)));
+            return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j)) + y.getY(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j)));
         } else if (j == derivationSide && h == derivationSequence) {
-            return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * -Math.cos(a(i) - a(j) + ph(g, i) - ph(h, j)) + y.getY(i, j, g, h) * Math.sin(a(i) - a(j) + ph(g, i) - ph(h, j)));
+            return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * -FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j)) + y.getY(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j)));
         }
         return 0;
     }
 
     public double p(Side i, Side j, SequenceType g, SequenceType h) {
-        return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * Math.cos(a(i) - a(j) + ph(g, i) - ph(h, j))
-                + y.getY(i, j, g, h) * Math.sin(a(i) - a(j) + ph(g, i) - ph(h, j)));
+        return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j))
+                + y.getY(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j)));
     }
 
     public double q(Side i, Side j, SequenceType g, SequenceType h) {
-        return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * Math.sin(a(i) - a(j) + ph(g, i) - ph(h, j))
-                - y.getY(i, j, g, h) * Math.cos(a(i) - a(j) + ph(g, i) - ph(h, j)));
+        return r(i) * r(j) * v(g, i) * v(h, j) * (y.getX(i, j, g, h) * FastMath.sin(a(i) - a(j) + ph(g, i) - ph(h, j))
+                - y.getY(i, j, g, h) * FastMath.cos(a(i) - a(j) + ph(g, i) - ph(h, j)));
     }
 
     public double dp(Side i, Side j, SequenceType g, SequenceType h,
