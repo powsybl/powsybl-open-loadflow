@@ -11,9 +11,6 @@ import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
-import com.powsybl.openloadflow.network.extensions.AsymGenerator;
-import com.powsybl.openloadflow.network.extensions.AsymLine;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 
@@ -32,7 +29,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         super.createBusEquation(bus, equationSystem);
 
         // addition of asymmetric equations, supposing that existing v, theta, p and q are linked to the direct sequence
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = bus.getAsym();
 
         var ixh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO);
         asymBus.setIxZero(ixh);
@@ -61,12 +58,12 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
             if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
 
-                AsymGenerator asymGenerator = (AsymGenerator) gen.getProperty(AsymGenerator.PROPERTY_ASYMMETRICAL);
-                if (asymGenerator != null) {
-                    asymBus.setbZeroEquivalent(asymBus.getbZeroEquivalent() + asymGenerator.getBz());
-                    asymBus.setgZeroEquivalent(asymBus.getgZeroEquivalent() + asymGenerator.getGz());
-                    asymBus.setbNegativeEquivalent(asymBus.getbNegativeEquivalent() + asymGenerator.getBn());
-                    asymBus.setgNegativeEquivalent(asymBus.getgNegativeEquivalent() + asymGenerator.getGn());
+                LfAsymGenerator asymGen = gen.getAsym();
+                if (asymGen != null) {
+                    asymBus.setbZeroEquivalent(asymBus.getbZeroEquivalent() + asymGen.getBz());
+                    asymBus.setgZeroEquivalent(asymBus.getgZeroEquivalent() + asymGen.getGz());
+                    asymBus.setbNegativeEquivalent(asymBus.getbNegativeEquivalent() + asymGen.getBn());
+                    asymBus.setgNegativeEquivalent(asymBus.getgNegativeEquivalent() + asymGen.getGn());
                 }
             }
         }
@@ -129,7 +126,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
         if (bus1 != null && bus2 != null) {
 
-            if (!hasBranchAsymmetry(branch)) {
+            if (!branch.isAsymmetric()) {
                 // no assymmetry is detected with this line, we handle the equations as decoupled
                 // positive
                 p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1, SequenceType.POSITIVE);
@@ -260,16 +257,5 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
 
         createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
-
-    }
-
-    public boolean hasBranchAsymmetry(LfBranch branch) {
-        boolean asymmetry = false;
-        // check the existence of an extension
-        AsymLine asymLine = (AsymLine) branch.getProperty(AsymLine.PROPERTY_ASYMMETRICAL);
-        if (asymLine != null) {
-            asymmetry = asymLine.getAdmittanceMatrix().isCoupled();
-        }
-        return asymmetry;
     }
 }

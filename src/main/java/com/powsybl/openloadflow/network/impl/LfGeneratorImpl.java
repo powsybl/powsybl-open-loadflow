@@ -13,7 +13,7 @@ import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
 import com.powsybl.iidm.network.extensions.GeneratorFortescue;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
-import com.powsybl.openloadflow.network.extensions.AsymGenerator;
+import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -97,8 +97,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             } else {
                 throw new PowsyblException("Generator '" + generator.getId() + "' has fortescue negative sequence values that will bring singularity in the equation system");
             }
-            AsymGenerator asymGenerator = new AsymGenerator(gZero, bZero, gNegative, bNegative);
-            lfGenerator.setProperty(AsymGenerator.PROPERTY_ASYMMETRICAL, asymGenerator);
+            lfGenerator.setAsym(new LfAsymGenerator(gZero, bZero, gNegative, bNegative));
         }
     }
 

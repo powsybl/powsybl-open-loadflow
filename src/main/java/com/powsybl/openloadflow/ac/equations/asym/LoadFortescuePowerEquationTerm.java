@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
@@ -115,7 +115,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         //         <------------------------------------------->
         //                    term Sfortescue
 
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = bus.getAsym();
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
@@ -166,7 +166,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         //                                                                         <----------------------------------------------------------------------------------->
         //                                                                                                          term T2
 
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = bus.getAsym();
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }

@@ -5,9 +5,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.network.extensions;
+package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
@@ -16,11 +15,9 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class AsymBus {
+public class LfAsymBus {
 
-    public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";
-
-    private final LfBus bus;
+    private LfBus bus;
 
     private final double totalDeltaPa;
     private final double totalDeltaQa;
@@ -46,14 +43,17 @@ public class AsymBus {
     private Evaluable ixNegative = EvaluableConstants.NAN;
     private Evaluable iyNegative = EvaluableConstants.NAN;
 
-    public AsymBus(LfBus bus, double totalDeltaPa, double totalDeltaQa, double totalDeltaPb, double totalDeltaQb, double totalDeltaPc, double totalDeltaQc) {
-        this.bus = Objects.requireNonNull(bus);
+    public LfAsymBus(double totalDeltaPa, double totalDeltaQa, double totalDeltaPb, double totalDeltaQb, double totalDeltaPc, double totalDeltaQc) {
         this.totalDeltaPa = totalDeltaPa;
         this.totalDeltaQa = totalDeltaQa;
         this.totalDeltaPb = totalDeltaPb;
         this.totalDeltaQb = totalDeltaQb;
         this.totalDeltaPc = totalDeltaPc;
         this.totalDeltaQc = totalDeltaQc;
+    }
+
+    public void setBus(LfBus bus) {
+        this.bus = Objects.requireNonNull(bus);
     }
 
     public void setAngleZero(double angleZero) {

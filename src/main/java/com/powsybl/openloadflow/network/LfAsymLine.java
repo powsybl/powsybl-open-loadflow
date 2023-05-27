@@ -5,9 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.network.extensions;
-
-import com.powsybl.openloadflow.network.SimplePiModel;
+package com.powsybl.openloadflow.network;
 
 import java.util.Objects;
 
@@ -17,9 +15,7 @@ import java.util.Objects;
  *
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class AsymLine {
-
-    public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";
+public class LfAsymLine {
 
     private final SimplePiModel piZeroComponent;
     private final SimplePiModel piPositiveComponent;
@@ -27,20 +23,20 @@ public class AsymLine {
     private final boolean phaseOpenA;
     private final boolean phaseOpenB;
     private final boolean phaseOpenC;
-    private final AsymLineAdmittanceMatrix admittanceMatrix;
+    private final LfAsymLineAdmittanceMatrix admittanceMatrix;
 
-    public AsymLine(SimplePiModel piZeroComponent, SimplePiModel piPositiveComponent, SimplePiModel piNegativeComponent,
-                    boolean phaseOpenA, boolean phaseOpenB, boolean phaseOpenC) {
+    public LfAsymLine(SimplePiModel piZeroComponent, SimplePiModel piPositiveComponent, SimplePiModel piNegativeComponent,
+                      boolean phaseOpenA, boolean phaseOpenB, boolean phaseOpenC) {
         this.piZeroComponent = Objects.requireNonNull(piZeroComponent);
         this.piPositiveComponent = Objects.requireNonNull(piPositiveComponent);
         this.piNegativeComponent = Objects.requireNonNull(piNegativeComponent);
         this.phaseOpenA = phaseOpenA;
         this.phaseOpenB = phaseOpenB;
         this.phaseOpenC = phaseOpenC;
-        admittanceMatrix = new AsymLineAdmittanceMatrix(this);
+        admittanceMatrix = new LfAsymLineAdmittanceMatrix(this);
     }
 
-    public AsymLineAdmittanceMatrix getAdmittanceMatrix() {
+    public LfAsymLineAdmittanceMatrix getAdmittanceMatrix() {
         return admittanceMatrix;
     }
 

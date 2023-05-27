@@ -5,21 +5,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.openloadflow.network.extensions;
+package com.powsybl.openloadflow.network;
 
 /**
  * @author Jean-Baptiste Heyberger <jbheyberger at gmail.com>
  */
-public class AsymGenerator {
-
-    public static final String PROPERTY_ASYMMETRICAL = "Asymmetrical";
+public class LfAsymGenerator {
 
     private final double bz;
     private final double gz;
     private final double gn;
     private final double bn;
 
-    public AsymGenerator(double gz, double bz, double gn, double bn) {
+    public LfAsymGenerator(double gz, double bz, double gn, double bn) {
         this.gz = gz;
         this.bz = bz;
         this.gn = gn;
