@@ -30,7 +30,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
     protected void createBusEquation(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         super.createBusEquation(bus, equationSystem);
 
-        // addition of asymmetric equations, supposing that existing v, theta, p and q are linked to the direct sequence
+        // addition of asymmetric equations, supposing that existing v, theta, p and q are linked to the positive sequence
         LfAsymBus asymBus = bus.getAsym();
 
         var ixh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO);
@@ -43,7 +43,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE);
         asymBus.setIyN(iyi);
 
-        // Handle generators at bus for homopolar and inverse
+        // handle generators at bus for zero and negative
         for (LfGenerator gen : bus.getGenerators()) {
             // if there is at least one generating unit that is voltage controlling we model the equivalent in inverse and homopolar
             // with a large admittance yg = g +jb to model a close connection of the bus to the ground (E_homopolar = 0 E_Inverse = 0)

@@ -105,37 +105,38 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         }
     }
 
+    /**
+     * We use the formula with complex matrices:
+     *
+     *  [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
+     *  [Sd] =  [0  Vd   0]. 1/3 . [F] . [0  1/Vb  0] . [Sb]
+     *  [Si]    [0   0  Vi]              [0   0 1/Vc]   [Sc]
+     *                       <------------------------------>
+     *                                  term (Ifortescue)*
+     *          <------------------------------------------->
+     *                     term Sfortescue
+     */
     public static double pq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, double vZero, double phZero, double vPositive, double phPositive, double vNegative, double phNegative) {
-        // We use the formula with complex matrices:
-        //
-        // [So]    [Vo  0   0]              [1/Va  0  0]   [Sa]
-        // [Sd] =  [0  Vd   0]. 1/3 . [F] . [0  1/Vb  0] . [Sb]
-        // [Si]    [0   0  Vi]              [0   0 1/Vc]   [Sc]
-        //                      <------------------------------>
-        //                                 term (Ifortescue)*
-        //         <------------------------------------------->
-        //                    term Sfortescue
-
         LfAsymBus asymBus = bus.getAsym();
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
 
         // Build of Sabc/3 vector
-        DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
+        DenseMatrix mSabc3 = createCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
 
         Vector2D positiveSequence = Fortescue.getCartesianFromPolar(vPositive, phPositive);
         Vector2D zeroSequence = Fortescue.getCartesianFromPolar(vZero, phZero);
         Vector2D negativeSequence = Fortescue.getCartesianFromPolar(vNegative, phNegative);
 
-        DenseMatrix mVfortescue = getCartesianMatrix(zeroSequence.getX(), zeroSequence.getY(), positiveSequence.getX(), positiveSequence.getY(), negativeSequence.getX(), negativeSequence.getY(), true); // vector build with cartesian values (Vx,Vy) of complex fortescue voltages
+        DenseMatrix mVfortescue = createCartesianMatrix(zeroSequence.getX(), zeroSequence.getY(), positiveSequence.getX(), positiveSequence.getY(), negativeSequence.getX(), negativeSequence.getY(), true); // vector build with cartesian values (Vx,Vy) of complex fortescue voltages
         DenseMatrix mVabc = Fortescue.createMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build  1/Vabc square matrix
-        DenseMatrix mInvVabc = getInvVabcSquare(bus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
+        DenseMatrix mInvVabc = createInvVabcSquare(bus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
 
         // build Vfortescue square matrix
-        DenseMatrix mSquareVFortescue = getCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
+        DenseMatrix mSquareVFortescue = createCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
 
         DenseMatrix m0T0 = mInvVabc.times(mSabc3);
         DenseMatrix mIfortescueConjugate = Fortescue.createMatrix().times(m0T0);
@@ -156,17 +157,18 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         }
     }
 
+    /**
+     * We derivate the PQ formula with complex matrices:
+     *
+     *     [So]              [dVo/dx  0   0]         [1/Va  0  0]   [Sa]        [Vo  0  0]                [Sa  0   0]   [1/Va  0  0]   [1/Va  0  0]         [dV0/dx]
+     *  d( [Sd] )/dx = 1/3 . [0  dVd/dx   0] . [F] . [0  1/Vb  0] . [Sb]    +   [0  Vd  0] . [F] .(-1/3). [0   Sb  0] . [0  1/Vb  0] . [0  1/Vb  0] . [F] . [dVd/dx]
+     *     [Si]              [0   0  dVi/dx]         [0   0 1/Vc]   [Sc]        [0   0 Vi]                [0   0  Sc]   [0   0 1/Vc]   [0   0 1/Vc]         [dVi/dx]
+     *                   <-------------------------------------------->                     <----------------------------------------------------------------------->
+     *                                       term T1                                                           term (dIfortescue)*
+     *                                                                          <----------------------------------------------------------------------------------->
+     *                                                                                                           term T2
+     */
     public static double dpq(LfBus bus, ComplexPart complexPart, Fortescue.SequenceType sequenceType, Variable<AcVariableType> derVariable, double vo, double pho, double vd, double phd, double vi, double phi) {
-        // We derivate the PQ formula with complex matrices:
-        //
-        //    [So]              [dVo/dx  0   0]         [1/Va  0  0]   [Sa]        [Vo  0  0]                [Sa  0   0]   [1/Va  0  0]   [1/Va  0  0]         [dV0/dx]
-        // d( [Sd] )/dx = 1/3 . [0  dVd/dx   0] . [F] . [0  1/Vb  0] . [Sb]    +   [0  Vd  0] . [F] .(-1/3). [0   Sb  0] . [0  1/Vb  0] . [0  1/Vb  0] . [F] . [dVd/dx]
-        //    [Si]              [0   0  dVi/dx]         [0   0 1/Vc]   [Sc]        [0   0 Vi]                [0   0  Sc]   [0   0 1/Vc]   [0   0 1/Vc]         [dVi/dx]
-        //                  <-------------------------------------------->                     <----------------------------------------------------------------------->
-        //                                      term T1                                                           term (dIfortescue)*
-        //                                                                         <----------------------------------------------------------------------------------->
-        //                                                                                                          term T2
-
         LfAsymBus asymBus = bus.getAsym();
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
@@ -206,17 +208,17 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         Vector2D zeroComponent = Fortescue.getCartesianFromPolar(vo, pho);
         Vector2D negativeComponent = Fortescue.getCartesianFromPolar(vi, phi);
 
-        DenseMatrix mVfortescue = getCartesianMatrix(zeroComponent.getX(), zeroComponent.getY(), positiveComponent.getX(), positiveComponent.getY(), negativeComponent.getX(), negativeComponent.getY(), true); // vector build with cartesian values of complex fortescue voltages
+        DenseMatrix mVfortescue = createCartesianMatrix(zeroComponent.getX(), zeroComponent.getY(), positiveComponent.getX(), positiveComponent.getY(), negativeComponent.getX(), negativeComponent.getY(), true); // vector build with cartesian values of complex fortescue voltages
         DenseMatrix mVabc = Fortescue.createMatrix().times(mVfortescue).toDense(); // vector build with cartesian values of complex abc voltages
 
         // build of Sabc vector
-        DenseMatrix mSabc3 = getCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
+        DenseMatrix mSabc3 = createCartesianMatrix(asymBus.getPa() / 3, asymBus.getQa() / 3, asymBus.getPb() / 3, asymBus.getQb() / 3, asymBus.getPc() / 3, asymBus.getQc() / 3, true);
 
         // build of 1/Vabc square matrix
-        DenseMatrix mInvVabc = getInvVabcSquare(bus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
+        DenseMatrix mInvVabc = createInvVabcSquare(bus, mVabc.get(0, 0), mVabc.get(1, 0), mVabc.get(2, 0), mVabc.get(3, 0), mVabc.get(4, 0), mVabc.get(5, 0));
 
         // build of derivative fortescue voltage square matrix
-        DenseMatrix mdVSquare = getCartesianMatrix(dV0x, dV0y, dV1x, dV1y, dV2x, dV2y, false);
+        DenseMatrix mdVSquare = createCartesianMatrix(dV0x, dV0y, dV1x, dV1y, dV2x, dV2y, false);
 
         // computation of vector = term T1:
         DenseMatrix m0T1 = mInvVabc.times(mSabc3);
@@ -224,13 +226,13 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         DenseMatrix mT1 = mdVSquare.times(m1T1);
 
         // build Vfortescue square matrix
-        DenseMatrix mSquareVFortescue = getCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
+        DenseMatrix mSquareVFortescue = createCartesianMatrix(mVfortescue.get(0, 0), mVfortescue.get(1, 0), mVfortescue.get(2, 0), mVfortescue.get(3, 0), mVfortescue.get(4, 0), mVfortescue.get(5, 0), false);
 
         // build of -1/3.Sabc square matrix
-        DenseMatrix mMinusSabc3Square = getCartesianMatrix(-asymBus.getPa() / 3, -asymBus.getQa() / 3, -asymBus.getPb() / 3, -asymBus.getQb() / 3, -asymBus.getPc() / 3, -asymBus.getQc() / 3, false);
+        DenseMatrix mMinusSabc3Square = createCartesianMatrix(-asymBus.getPa() / 3, -asymBus.getQa() / 3, -asymBus.getPb() / 3, -asymBus.getQb() / 3, -asymBus.getPc() / 3, -asymBus.getQc() / 3, false);
 
         // buils of fortescue derivative vector
-        DenseMatrix mdV = getCartesianMatrix(dV0x, dV0y, dV1x, dV1y, dV2x, dV2y, true);
+        DenseMatrix mdV = createCartesianMatrix(dV0x, dV0y, dV1x, dV1y, dV2x, dV2y, true);
 
         // computation of vector = term T2:
         DenseMatrix m0T2 = Fortescue.createMatrix().times(mdV);
@@ -281,7 +283,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         return variables;
     }
 
-    public static DenseMatrix getInvVabcSquare(LfBus bus, double vAx, double vAy, double vBx, double vBy, double vCx, double vCy) {
+    public static DenseMatrix createInvVabcSquare(LfBus bus, double vAx, double vAy, double vBx, double vBy, double vCx, double vCy) {
         double epsilon = 0.00000001;
         double vAcongVa = vAx * vAx + vAy * vAy;
         String cantBuildLoad = " is null at bus : " + bus.getId() + " : cannot build load model";
@@ -303,20 +305,21 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         double invVcx = vCx / vCcongVc;
         double invVcy = -vCy / vCcongVc;
 
-        return getCartesianMatrix(invVax, invVay, invVbx, invVby, invVcx, invVcy, false);
+        return createCartesianMatrix(invVax, invVay, invVbx, invVby, invVcx, invVcy, false);
     }
 
-    public static DenseMatrix getCartesianMatrix(double m1x, double m1y, double m2x, double m2y, double m3x, double m3y, boolean isVector) {
-        // if this is a vector we build: m = [m1x;m1y;m2x;m2y;m3x;m3y] equivalent in complex to [m1;m2;m3]
-        // if not, this is a 6x6 square matrix expected:
-        //
-        //      [m1x -m1y  0    0    0    0 ]
-        //      [m1y  m1x  0    0    0    0 ]
-        //      [ 0    0  m2x -m2y   0    0 ]                           [m1  0   0]
-        //  m = [ 0    0  m2y  m2x   0    0 ]  equivalent in complex to [ 0  m2  0]
-        //      [ 0    0   0    0   m3x -m3y]                           [ 0  0  m3]
-        //      [ 0    0   0    0   m3y  m3x]
-        //
+    /**
+     * if this is a vector we build: m = [m1x;m1y;m2x;m2y;m3x;m3y] equivalent in complex to [m1;m2;m3]
+     *  if not, this is a 6x6 square matrix expected:
+     *
+     *       [m1x -m1y  0    0    0    0 ]
+     *       [m1y  m1x  0    0    0    0 ]
+     *       [ 0    0  m2x -m2y   0    0 ]                           [m1  0   0]
+     *   m = [ 0    0  m2y  m2x   0    0 ]  equivalent in complex to [ 0  m2  0]
+     *       [ 0    0   0    0   m3x -m3y]                           [ 0  0  m3]
+     *       [ 0    0   0    0   m3y  m3x]
+     */
+    public static DenseMatrix createCartesianMatrix(double m1x, double m1y, double m2x, double m2y, double m3x, double m3y, boolean isVector) {
         DenseMatrix mCartesian;
         if (isVector) {
             mCartesian = new DenseMatrix(6, 1);
@@ -345,5 +348,4 @@ public class LoadFortescuePowerEquationTerm extends AbstractElementEquationTerm<
         }
         return mCartesian;
     }
-
 }

@@ -31,11 +31,13 @@ public class ClosedBranchI1yFlowEquationTerm extends AbstractClosedBranchAcFlowE
         return 0;
     }
 
-    // ignoring for now rho, We have:
-    // [I1x]   [ g1+g12  -b1-b12   -g12     b12   ]   [V1x]
-    // [I1y]   [ b1+b12   g1+g12   -b12    -g12   ]   [V1y]
-    // [I2x] = [  -g21     b21    g2+g21  -b2-b21 ] * [V2x]
-    // [I2y]   [  -b21    -g21    b2+b21   g2+g21 ]   [V2y]
+    /**
+     * ignoring for now rho, We have:
+     *  [I1x]   [ g1+g12  -b1-b12   -g12     b12   ]   [V1x]
+     *  [I1y]   [ b1+b12   g1+g12   -b12    -g12   ]   [V1y]
+     *  [I2x] = [  -g21     b21    g2+g21  -b2-b21 ] * [V2x]
+     *  [I2y]   [  -b21    -g21    b2+b21   g2+g21 ]   [V2y]
+     */
     public static double i1y(double g1, double b1, double v1, double ph1, double v2, double ph2, double g12, double b12) {
         return (b1 + b12) * v1 * FastMath.cos(ph1) + (g1 + g12) * v1 * FastMath.sin(ph1) - b12 * v2 * FastMath.cos(ph2) - g12 * v2 * FastMath.sin(ph2);
     }
