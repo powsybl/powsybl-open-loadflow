@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected double remoteTargetQ = Double.NaN;
 
     private boolean disabled;
+
+    protected LfAsymGenerator asym;
 
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
         this.network = Objects.requireNonNull(network);
@@ -370,5 +373,15 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
+    }
+
+    @Override
+    public LfAsymGenerator getAsym() {
+        return asym;
+    }
+
+    @Override
+    public void setAsym(LfAsymGenerator asym) {
+        this.asym = asym;
     }
 }

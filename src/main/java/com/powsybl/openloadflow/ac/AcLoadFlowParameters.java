@@ -7,9 +7,10 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 
@@ -28,21 +29,24 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private final NewtonRaphsonParameters newtonRaphsonParameters;
 
-    private final List<OuterLoop> outerLoops;
+    private final List<AcOuterLoop> outerLoops;
 
     private final int maxOuterLoopIterations;
 
     private VoltageInitializer voltageInitializer;
 
+    private final boolean asymmetrical;
+
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
-                                NewtonRaphsonParameters newtonRaphsonParameters, List<OuterLoop> outerLoops, int maxOuterLoopIterations,
-                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer) {
+                                NewtonRaphsonParameters newtonRaphsonParameters, List<AcOuterLoop> outerLoops, int maxOuterLoopIterations,
+                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean asymmetrical) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.maxOuterLoopIterations = maxOuterLoopIterations;
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
+        this.asymmetrical = asymmetrical;
     }
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
@@ -53,7 +57,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         return newtonRaphsonParameters;
     }
 
-    public List<OuterLoop> getOuterLoops() {
+    public List<AcOuterLoop> getOuterLoops() {
         return outerLoops;
     }
 
@@ -69,6 +73,10 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
     }
 
+    public boolean isAsymmetrical() {
+        return asymmetrical;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -79,6 +87,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
                 ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
+                ", asymmetrical=" + asymmetrical +
                 ')';
     }
 }

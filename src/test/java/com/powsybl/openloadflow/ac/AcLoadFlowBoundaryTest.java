@@ -127,6 +127,14 @@ class AcLoadFlowBoundaryTest {
         assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b1"));
         assertVoltageEquals(399.999, network.getBusBreakerView().getBus("b3"));
         assertVoltageEquals(400.000, network.getBusBreakerView().getBus("b4"));
+        assertReactivePowerEquals(0.0044, network.getLine("l34").getTerminal2());
+
+        TieLine line = network.getTieLine("t12");
+        line.getDanglingLine1().getTerminal().disconnect();
+        line.getDanglingLine1().getTerminal().disconnect();
+        loadFlowRunner.run(network, parameters);
+        assertVoltageEquals(400.0, network.getBusBreakerView().getBus("b3"));
+        assertReactivePowerEquals(-0.00125, network.getLine("l34").getTerminal2());
     }
 
     @Test
