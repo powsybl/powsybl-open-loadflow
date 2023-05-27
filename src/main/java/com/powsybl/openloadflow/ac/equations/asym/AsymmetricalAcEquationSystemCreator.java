@@ -45,8 +45,8 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
         // handle generators at bus for zero and negative
         for (LfGenerator gen : bus.getGenerators()) {
-            // if there is at least one generating unit that is voltage controlling we model the equivalent in inverse and homopolar
-            // with a large admittance yg = g +jb to model a close connection of the bus to the ground (E_homopolar = 0 E_Inverse = 0)
+            // if there is at least one generating unit that is voltage controlling we model the equivalent in negative and zero
+            // with a large admittance yg = g +jb to model a close connection of the bus to the ground (E_zero = 0 E_negative = 0)
             if (gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.REMOTE_REACTIVE_POWER
                     || gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.MONITORING_VOLTAGE) {
                 throw new IllegalStateException("Generator with control type " + gen.getGeneratorControlType()
