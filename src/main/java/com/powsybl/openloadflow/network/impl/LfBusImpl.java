@@ -55,7 +55,7 @@ public class LfBusImpl extends AbstractLfBus {
         country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
     }
 
-    private static void createAsymExt(Bus bus, LfBusImpl lfBus) {
+    private static void createAsym(Bus bus, LfBusImpl lfBus) {
         double totalDeltaPa = 0;
         double totalDeltaQa = 0;
         double totalDeltaPb = 0;
@@ -81,7 +81,7 @@ public class LfBusImpl extends AbstractLfBus {
         Objects.requireNonNull(parameters);
         var lfBus = new LfBusImpl(bus, network, bus.getV(), Math.toRadians(bus.getAngle()), parameters, participating);
         if (parameters.isAsymmetrical()) {
-            createAsymExt(bus, lfBus);
+            createAsym(bus, lfBus);
         }
         return lfBus;
     }
@@ -161,7 +161,7 @@ public class LfBusImpl extends AbstractLfBus {
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
             // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
-        return getGenerationTargetP() - getLoadTargetP();
+        return super.getTargetP();
     }
 
     @Override
@@ -171,6 +171,6 @@ public class LfBusImpl extends AbstractLfBus {
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
             // in this case, load target is set to zero and the constant power load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
-        return getGenerationTargetQ() - getLoadTargetQ();
+        return super.getTargetQ();
     }
 }

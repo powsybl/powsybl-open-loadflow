@@ -33,7 +33,7 @@ public class ClosedBranchI2xFlowEquationTerm extends AbstractClosedBranchAcFlowE
     }
 
     /**
-     * ignoring for now rho, We have:
+     * ignoring for now rho, we have:
      *  [I1x]   [ g1+g12  -b1-b12   -g12     b12   ]   [V1x]
      *  [I1y]   [ b1+b12   g1+g12   -b12    -g12   ]   [V1y]
      *  [I2x] = [  -g21     b21    g2+g21  -b2-b21 ] * [V2x]

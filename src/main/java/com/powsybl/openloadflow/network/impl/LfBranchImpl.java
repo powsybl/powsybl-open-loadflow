@@ -30,7 +30,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         this.branchRef = Ref.create(branch, parameters.isCacheEnabled());
     }
 
-    private static void createLineAsymExt(Line line, double zb, PiModel piModel, LfBranchImpl lfBranch) {
+    private static void createLineAsym(Line line, double zb, PiModel piModel, LfBranchImpl lfBranch) {
         var extension = line.getExtension(LineFortescue.class);
         if (extension != null) {
             boolean openPhaseA = extension.isOpenPhaseA();
@@ -64,7 +64,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
         LfBranchImpl lfBranch = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
         if (parameters.isAsymmetrical()) {
-            createLineAsymExt(line, zb, piModel, lfBranch);
+            createLineAsym(line, zb, piModel, lfBranch);
         }
         return lfBranch;
     }

@@ -69,7 +69,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    private static void createAsymExt(Generator generator, LfGeneratorImpl lfGenerator) {
+    private static void createAsym(Generator generator, LfGeneratorImpl lfGenerator) {
         var extension = generator.getExtension(GeneratorFortescue.class);
         if (extension != null) {
             double vNom = generator.getTerminal().getVoltageLevel().getNominalV();
@@ -107,11 +107,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        LfGeneratorImpl lfGeneratorImpl = new LfGeneratorImpl(generator, network, parameters, report);
+        LfGeneratorImpl lfGenerator = new LfGeneratorImpl(generator, network, parameters, report);
         if (parameters.isAsymmetrical()) {
-            createAsymExt(generator, lfGeneratorImpl);
+            createAsym(generator, lfGenerator);
         }
-        return lfGeneratorImpl;
+        return lfGenerator;
     }
 
     private Generator getGenerator() {
