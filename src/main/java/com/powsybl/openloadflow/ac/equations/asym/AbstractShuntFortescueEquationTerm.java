@@ -62,10 +62,10 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractElement
     }
 
     protected double b() {
-        return sequenceType == Fortescue.SequenceType.ZERO ? element.getAsym().getbZeroEquivalent() : element.getAsym().getbNegativeEquivalent();
+        return sequenceType == Fortescue.SequenceType.ZERO ? element.getAsym().getBzEquiv() : element.getAsym().getBnEquiv();
     }
 
     protected double g() {
-        return sequenceType == Fortescue.SequenceType.ZERO ? element.getAsym().getgZeroEquivalent() : element.getAsym().getgNegativeEquivalent();
+        return sequenceType == Fortescue.SequenceType.ZERO ? element.getAsym().getGzEquiv() : element.getAsym().getGnEquiv();
     }
 }

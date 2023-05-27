@@ -26,22 +26,22 @@ public class LfAsymBus {
     private final double totalDeltaPc;
     private final double totalDeltaQc;
 
-    private double vZero = 0;
-    private double angleZero = 0;
+    private double vz = 0;
+    private double angleZ = 0;
 
-    private double vNegative = 0;
-    private double angleNegative = 0;
+    private double vn = 0;
+    private double angleN = 0;
 
-    private double bZeroEquivalent = 0.; // equivalent shunt in zero and negative sequences induced by all equipment connected to the bus (generating units, loads modelled as shunts etc.)
-    private double gZeroEquivalent = 0.;
-    private double bNegativeEquivalent = 0.;
-    private double gNegativeEquivalent = 0.;
+    private double bzEquiv = 0.; // equivalent shunt in zero and negative sequences induced by all equipment connected to the bus (generating units, loads modelled as shunts etc.)
+    private double gzEquiv = 0.;
+    private double bnEquiv = 0.;
+    private double gnEquiv = 0.;
 
-    private Evaluable ixZero = EvaluableConstants.NAN;
-    private Evaluable iyZero = EvaluableConstants.NAN;
+    private Evaluable ixZ = EvaluableConstants.NAN;
+    private Evaluable iyZ = EvaluableConstants.NAN;
 
-    private Evaluable ixNegative = EvaluableConstants.NAN;
-    private Evaluable iyNegative = EvaluableConstants.NAN;
+    private Evaluable ixN = EvaluableConstants.NAN;
+    private Evaluable iyN = EvaluableConstants.NAN;
 
     public LfAsymBus(double totalDeltaPa, double totalDeltaQa, double totalDeltaPb, double totalDeltaQb, double totalDeltaPc, double totalDeltaQc) {
         this.totalDeltaPa = totalDeltaPa;
@@ -56,36 +56,36 @@ public class LfAsymBus {
         this.bus = Objects.requireNonNull(bus);
     }
 
-    public void setAngleZero(double angleZero) {
-        this.angleZero = angleZero;
+    public void setAngleZ(double angleZ) {
+        this.angleZ = angleZ;
     }
 
-    public void setAngleNegative(double angleNegative) {
-        this.angleNegative = angleNegative;
+    public void setAngleN(double angleN) {
+        this.angleN = angleN;
     }
 
-    public void setvZero(double vZero) {
-        this.vZero = vZero;
+    public void setVz(double vz) {
+        this.vz = vz;
     }
 
-    public void setvNegative(double vNegative) {
-        this.vNegative = vNegative;
+    public void setVn(double vn) {
+        this.vn = vn;
     }
 
-    public void setIxZero(Evaluable ixZero) {
-        this.ixZero = ixZero;
+    public void setIxZ(Evaluable ixZ) {
+        this.ixZ = ixZ;
     }
 
-    public void setIxNegative(Evaluable ixNegative) {
-        this.ixNegative = ixNegative;
+    public void setIxN(Evaluable ixN) {
+        this.ixN = ixN;
     }
 
-    public void setIyZero(Evaluable iyZero) {
-        this.iyZero = iyZero;
+    public void setIyZ(Evaluable iyZ) {
+        this.iyZ = iyZ;
     }
 
-    public void setIyNegative(Evaluable iyNegative) {
-        this.iyNegative = iyNegative;
+    public void setIyN(Evaluable iyN) {
+        this.iyN = iyN;
     }
 
     public double getPa() {
@@ -112,35 +112,35 @@ public class LfAsymBus {
         return bus.getLoadTargetQ() + totalDeltaQc;
     }
 
-    public double getbNegativeEquivalent() {
-        return bNegativeEquivalent;
+    public double getBnEquiv() {
+        return bnEquiv;
     }
 
-    public double getbZeroEquivalent() {
-        return bZeroEquivalent;
+    public double getBzEquiv() {
+        return bzEquiv;
     }
 
-    public double getgZeroEquivalent() {
-        return gZeroEquivalent;
+    public double getGzEquiv() {
+        return gzEquiv;
     }
 
-    public double getgNegativeEquivalent() {
-        return gNegativeEquivalent;
+    public double getGnEquiv() {
+        return gnEquiv;
     }
 
-    public void setbNegativeEquivalent(double bNegativeEquivalent) {
-        this.bNegativeEquivalent = bNegativeEquivalent;
+    public void setBnEquiv(double bnEquiv) {
+        this.bnEquiv = bnEquiv;
     }
 
-    public void setbZeroEquivalent(double bZeroEquivalent) {
-        this.bZeroEquivalent = bZeroEquivalent;
+    public void setBzEquiv(double bzEquiv) {
+        this.bzEquiv = bzEquiv;
     }
 
-    public void setgNegativeEquivalent(double gNegativeEquivalent) {
-        this.gNegativeEquivalent = gNegativeEquivalent;
+    public void setGnEquiv(double gnEquiv) {
+        this.gnEquiv = gnEquiv;
     }
 
-    public void setgZeroEquivalent(double gZeroEquivalent) {
-        this.gZeroEquivalent = gZeroEquivalent;
+    public void setGzEquiv(double gzEquiv) {
+        this.gzEquiv = gzEquiv;
     }
 }

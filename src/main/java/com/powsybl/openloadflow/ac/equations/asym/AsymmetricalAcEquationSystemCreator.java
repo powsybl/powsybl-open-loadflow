@@ -32,14 +32,14 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         LfAsymBus asymBus = bus.getAsym();
 
         var ixh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO);
-        asymBus.setIxZero(ixh);
+        asymBus.setIxZ(ixh);
         var iyh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO);
-        asymBus.setIyZero(iyh);
+        asymBus.setIyZ(iyh);
 
         var ixi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE);
-        asymBus.setIxNegative(ixi);
+        asymBus.setIxN(ixi);
         var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE);
-        asymBus.setIyNegative(iyi);
+        asymBus.setIyN(iyi);
 
         ixi.setActive(true);
         iyi.setActive(true);
@@ -60,22 +60,22 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
                 LfAsymGenerator asymGen = gen.getAsym();
                 if (asymGen != null) {
-                    asymBus.setbZeroEquivalent(asymBus.getbZeroEquivalent() + asymGen.getBz());
-                    asymBus.setgZeroEquivalent(asymBus.getgZeroEquivalent() + asymGen.getGz());
-                    asymBus.setbNegativeEquivalent(asymBus.getbNegativeEquivalent() + asymGen.getBn());
-                    asymBus.setgNegativeEquivalent(asymBus.getgNegativeEquivalent() + asymGen.getGn());
+                    asymBus.setBzEquiv(asymBus.getBzEquiv() + asymGen.getBz());
+                    asymBus.setGzEquiv(asymBus.getGzEquiv() + asymGen.getGz());
+                    asymBus.setBnEquiv(asymBus.getBnEquiv() + asymGen.getBn());
+                    asymBus.setGnEquiv(asymBus.getGnEquiv() + asymGen.getGn());
                 }
             }
         }
 
-        if (Math.abs(asymBus.getbZeroEquivalent()) > epsilon || Math.abs(asymBus.getgZeroEquivalent()) > epsilon) {
+        if (Math.abs(asymBus.getBzEquiv()) > epsilon || Math.abs(asymBus.getGzEquiv()) > epsilon) {
             ShuntFortescueIxEquationTerm ixShuntZero = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.ZERO);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO).addTerm(ixShuntZero);
             ShuntFortescueIyEquationTerm iyShuntZero = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.ZERO);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO).addTerm(iyShuntZero);
         }
 
-        if (Math.abs(asymBus.getgNegativeEquivalent()) > epsilon || Math.abs(asymBus.getbNegativeEquivalent()) > epsilon) {
+        if (Math.abs(asymBus.getGnEquiv()) > epsilon || Math.abs(asymBus.getBnEquiv()) > epsilon) {
             ShuntFortescueIxEquationTerm ixShuntNegative = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.NEGATIVE);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixShuntNegative);
             ShuntFortescueIyEquationTerm iyShuntNegative = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.NEGATIVE);
