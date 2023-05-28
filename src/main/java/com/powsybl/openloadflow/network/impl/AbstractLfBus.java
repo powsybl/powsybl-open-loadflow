@@ -667,4 +667,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public Map<LfLoadModel, LfLoad> getLoadsByModel() {
         return loadsByModel;
     }
+
+    @Override
+    public List<LfLoad> getLoads() {
+        if (loadsByModel.isEmpty()) {
+            return Collections.singletonList(load);
+        }
+        List<LfLoad> loads = new ArrayList<>(loadsByModel.size());
+        loads.add(load);
+        loads.addAll(loadsByModel.values());
+        return loads;
+    }
 }

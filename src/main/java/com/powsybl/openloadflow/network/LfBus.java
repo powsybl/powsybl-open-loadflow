@@ -203,4 +203,6 @@ public interface LfBus extends LfElement {
     void setAsym(LfAsymBus asym);
 
     Map<LfLoadModel, LfLoad> getLoadsByModel();
+
+    List<LfLoad> getLoads();
 }
