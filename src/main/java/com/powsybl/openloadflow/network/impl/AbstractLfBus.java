@@ -94,7 +94,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
-        load = new LfLoadImpl(distributedOnConformLoad);
+        load = new LfLoadImpl(distributedOnConformLoad, null);
         this.v = v;
         this.angle = angle;
     }
@@ -243,7 +243,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         load.getModel().ifPresentOrElse(loadModel -> {
             LfLoadModel lfLoadModel = createLoadModel(loadModel);
 
-            ((LfLoadImpl) loadsByModel.computeIfAbsent(lfLoadModel, m -> new LfLoadImpl(false)))
+            ((LfLoadImpl) loadsByModel.computeIfAbsent(lfLoadModel, m -> new LfLoadImpl(this.load.isDistributedOnConformLoad(), m)))
                     .add(load, parameters);
 
             // get constant part of the load model

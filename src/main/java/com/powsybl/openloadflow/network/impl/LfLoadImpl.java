@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.AbstractPropertyBag;
 import com.powsybl.openloadflow.network.LfLoad;
+import com.powsybl.openloadflow.network.LfLoadModel;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -35,8 +36,16 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
 
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
-    LfLoadImpl(boolean distributedOnConformLoad) {
+    private final LfLoadModel model;
+
+    LfLoadImpl(boolean distributedOnConformLoad, LfLoadModel model) {
         this.distributedOnConformLoad = distributedOnConformLoad;
+        this.model = model;
+    }
+
+    @Override
+    public boolean isDistributedOnConformLoad() {
+        return distributedOnConformLoad;
     }
 
     @Override
@@ -136,5 +145,10 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
 
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
+    }
+
+    @Override
+    public Optional<LfLoadModel> getModel() {
+        return Optional.ofNullable(model);
     }
 }

@@ -8,11 +8,14 @@ package com.powsybl.openloadflow.network;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
 public interface LfLoad extends PropertyBag {
+
+    boolean isDistributedOnConformLoad();
 
     double getTargetP();
 
@@ -35,4 +38,6 @@ public interface LfLoad extends PropertyBag {
     Map<String, Boolean> getOriginalLoadsDisablingStatus();
 
     void setOriginalLoadsDisablingStatus(Map<String, Boolean> originalLoadsDisablingStatus);
+
+    Optional<LfLoadModel> getModel();
 }
