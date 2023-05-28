@@ -23,17 +23,15 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
 
     private final List<Ref<Load>> loadsRefs = new ArrayList<>();
 
-    private double[] participationFactors;
+    private final List<Double> loadsAbsVariableTargetP = new ArrayList<>();
 
-    private double targetP;
+    private double targetP = 0;
 
-    private double targetQ;
+    private double targetQ = 0;
 
-    private double absVariableTargetP;
+    private double absVariableTargetP = 0;
 
     private final boolean distributedOnConformLoad;
-
-    private boolean initialized;
 
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
@@ -49,24 +47,25 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     void add(Load load, LfNetworkParameters parameters) {
         loadsRefs.add(Ref.create(load, parameters.isCacheEnabled()));
         loadsDisablingStatus.put(load.getId(), false);
-        initialized = false;
+        targetP += load.getP0() / PerUnit.SB;
+        targetQ += load.getQ0() / PerUnit.SB;
+        double absTargetP = getAbsVariableTargetP(load);
+        loadsAbsVariableTargetP.add(absTargetP);
+        absVariableTargetP += absTargetP;
     }
 
     @Override
     public double getTargetP() {
-        init();
         return targetP;
     }
 
     @Override
-    public double getTargetQ() {
-        init();
+    public double calculateNewTargetQ() {
         return targetQ;
     }
 
     @Override
     public double getAbsVariableTargetP() {
-        init();
         return absVariableTargetP;
     }
 
@@ -75,36 +74,14 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         this.absVariableTargetP = absVariableTargetP;
     }
 
-    private void init() {
-        if (initialized) {
-            return;
+    private double getAbsVariableTargetP(Load load) {
+        double varP;
+        if (distributedOnConformLoad) {
+            varP = load.getExtension(LoadDetail.class) == null ? 0 : load.getExtension(LoadDetail.class).getVariableActivePower();
+        } else {
+            varP = load.getP0();
         }
-
-        participationFactors = new double[loadsRefs.size()];
-        targetP = 0;
-        targetQ = 0;
-        absVariableTargetP = 0;
-        for (int i = 0; i < loadsRefs.size(); i++) {
-            Load load = loadsRefs.get(i).get();
-            targetP += load.getP0() / PerUnit.SB;
-            targetQ += load.getQ0() / PerUnit.SB;
-            double absValue;
-            if (distributedOnConformLoad) {
-                absValue = load.getExtension(LoadDetail.class) == null ? 0. : Math.abs(load.getExtension(LoadDetail.class).getVariableActivePower());
-            } else {
-                absValue = Math.abs(load.getP0());
-            }
-            absVariableTargetP += absValue;
-            participationFactors[i] = absValue;
-        }
-
-        if (absVariableTargetP != 0) {
-            for (int i = 0; i < participationFactors.length; i++) {
-                participationFactors[i] /= absVariableTargetP;
-            }
-        }
-        absVariableTargetP = absVariableTargetP / PerUnit.SB;
-        initialized = true;
+        return Math.abs(varP) / PerUnit.SB;
     }
 
     @Override
@@ -112,11 +89,14 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         return loadsRefs.size();
     }
 
+    private double getParticipationFactor(int i) {
+        return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(i) / absVariableTargetP : 0;
+    }
+
     void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
-        init();
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
-            double updatedP0 = (load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i]) * PerUnit.SB;
+            double updatedP0 = load.getP0() + diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB; // diff is in PU
             double updatedQ0 = loadPowerFactorConstant ? getPowerFactor(load) * updatedP0 : load.getQ0();
             load.getTerminal().setP(updatedP0);
             load.getTerminal().setQ(updatedQ0);
@@ -124,12 +104,11 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     }
 
     @Override
-    public double getTargetQ(double diffTargetP) {
-        init();
+    public double calculateNewTargetQ(double diffTargetP) {
         double newLoadTargetQ = 0;
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
-            double updatedP0 = load.getP0() / PerUnit.SB + diffTargetP * participationFactors[i];
+            double updatedP0 = load.getP0() / PerUnit.SB + diffTargetP * getParticipationFactor(i);
             newLoadTargetQ += getPowerFactor(load) * updatedP0;
         }
         return newLoadTargetQ;
@@ -158,5 +137,4 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     private static double getPowerFactor(Load load) {
         return load.getP0() != 0 ? load.getQ0() / load.getP0() : 1;
     }
-
 }

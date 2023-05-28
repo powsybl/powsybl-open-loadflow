@@ -16,13 +16,13 @@ public interface LfLoad extends PropertyBag {
 
     double getTargetP();
 
-    double getTargetQ();
+    double calculateNewTargetQ();
 
     double getAbsVariableTargetP();
 
     void setAbsVariableTargetP(double absVariableTargetP);
 
-    double getTargetQ(double diffTargetP);
+    double calculateNewTargetQ(double diffTargetP);
 
     List<String> getOriginalIds();
 

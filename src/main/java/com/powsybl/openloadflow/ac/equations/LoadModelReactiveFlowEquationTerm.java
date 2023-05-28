@@ -29,7 +29,7 @@ public class LoadModelReactiveFlowEquationTerm extends AbstractLoadModelEquation
 
     @Override
     protected double getTarget() {
-        return load.getTargetQ();
+        return load.calculateNewTargetQ();
     }
 
     @Override
