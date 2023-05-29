@@ -483,7 +483,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .add();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-//        assertActivePowerEquals(50, zipLoad.getTerminal());
-//        assertReactivePowerEquals(30, zipLoad.getTerminal());
+        assertActivePowerEquals(50, zipLoad.getTerminal());
+        assertReactivePowerEquals(30, zipLoad.getTerminal());
     }
 }

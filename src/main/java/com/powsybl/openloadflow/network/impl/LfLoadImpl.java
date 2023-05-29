@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.network.AbstractPropertyBag;
 import com.powsybl.openloadflow.network.LfLoad;
 import com.powsybl.openloadflow.network.LfLoadModel;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.EvaluableConstants;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
@@ -37,6 +39,10 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     private Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>();
 
     private final LfLoadModel model;
+
+    private Evaluable p = EvaluableConstants.NAN;
+
+    private Evaluable q = EvaluableConstants.NAN;
 
     LfLoadImpl(boolean distributedOnConformLoad, LfLoadModel model) {
         this.distributedOnConformLoad = distributedOnConformLoad;
@@ -102,13 +108,28 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         return absVariableTargetP != 0 ? loadsAbsVariableTargetP.get(i) / absVariableTargetP : 0;
     }
 
-    void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
+    private double getLoadTargetP(Load load) {
+        if (model != null) {
+            return p.eval() * PerUnit.SB / loadsRefs.size();
+        }
+        return load.getP0();
+    }
+
+    private double getLoadTargetQ(Load load) {
+        if (model != null) {
+            return q.eval() * PerUnit.SB / loadsRefs.size();
+        }
+        return load.getQ0();
+    }
+
+    @Override
+    public void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
-            double updatedP0 = load.getP0() + diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB; // diff is in PU
-            double updatedQ0 = loadPowerFactorConstant ? getPowerFactor(load) * updatedP0 : load.getQ0();
-            load.getTerminal().setP(updatedP0);
-            load.getTerminal().setQ(updatedQ0);
+            double updatedP = getLoadTargetP(load) + diffLoadTargetP * getParticipationFactor(i) * PerUnit.SB; // diff is in PU
+            double updatedQ = loadPowerFactorConstant ? getPowerFactor(load) * updatedP : getLoadTargetQ(load);
+            load.getTerminal().setP(updatedP);
+            load.getTerminal().setQ(updatedQ);
         }
     }
 
@@ -150,5 +171,25 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
     @Override
     public Optional<LfLoadModel> getModel() {
         return Optional.ofNullable(model);
+    }
+
+    @Override
+    public Evaluable getP() {
+        return p;
+    }
+
+    @Override
+    public void setP(Evaluable p) {
+        this.p = p;
+    }
+
+    @Override
+    public Evaluable getQ() {
+        return q;
+    }
+
+    @Override
+    public void setQ(Evaluable q) {
+        this.q = q;
     }
 }

@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -539,7 +538,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ, parameters.isReactiveLimits());
 
         // update load power
-        load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
+        getLoads().forEach(l -> l.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant()));
 
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {

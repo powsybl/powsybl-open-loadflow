@@ -68,10 +68,14 @@ public class AcEquationSystemCreator {
         for (var e : bus.getLoadsByModel().entrySet()) {
             LfLoadModel loadModel = e.getKey();
             LfLoad load = e.getValue();
+            var p = new LoadModelActiveFlowEquationTerm(bus, loadModel, load, equationSystem.getVariableSet());
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P)
-                    .addTerm(new LoadModelActiveFlowEquationTerm(bus, loadModel, load, equationSystem.getVariableSet()));
+                    .addTerm(p);
+            load.setP(p);
+            var q = new LoadModelReactiveFlowEquationTerm(bus, loadModel, load, equationSystem.getVariableSet());
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q)
-                    .addTerm(new LoadModelReactiveFlowEquationTerm(bus, loadModel, load, equationSystem.getVariableSet()));
+                    .addTerm(q);
+            load.setQ(q);
         }
     }
 

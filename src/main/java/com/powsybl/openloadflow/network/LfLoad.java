@@ -6,6 +6,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.openloadflow.util.Evaluable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,4 +42,14 @@ public interface LfLoad extends PropertyBag {
     void setOriginalLoadsDisablingStatus(Map<String, Boolean> originalLoadsDisablingStatus);
 
     Optional<LfLoadModel> getModel();
+
+    Evaluable getP();
+
+    void setP(Evaluable p);
+
+    Evaluable getQ();
+
+    void setQ(Evaluable q);
+
+    void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant);
 }
