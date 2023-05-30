@@ -42,6 +42,8 @@ public class LfNetworkParameters {
 
     public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
 
+    public static final boolean ASYMMETRICAL_DEFAULT_VALUE = false;
+
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
@@ -99,6 +101,8 @@ public class LfNetworkParameters {
     private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
+
+    private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -362,6 +366,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isAsymmetrical() {
+        return asymmetrical;
+    }
+
+    public LfNetworkParameters setAsymmetrical(boolean asymmetrical) {
+        this.asymmetrical = asymmetrical;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -392,6 +405,7 @@ public class LfNetworkParameters {
                 ", debugDir=" + debugDir +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
+                ", asymmetrical=" + asymmetrical +
                 ')';
     }
 }

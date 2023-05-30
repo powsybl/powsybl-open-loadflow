@@ -100,4 +100,8 @@ public interface LfGenerator extends PropertyBag {
     }
 
     void setDisabled(boolean disabled);
+
+    LfAsymGenerator getAsym();
+
+    void setAsym(LfAsymGenerator asym);
 }

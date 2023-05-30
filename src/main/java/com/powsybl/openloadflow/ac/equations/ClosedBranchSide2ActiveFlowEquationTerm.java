@@ -8,6 +8,9 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -22,7 +25,13 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
 
     public ClosedBranchSide2ActiveFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
                                                    VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
-        super(branchVector, branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1);
+        super(branchVector, branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+    }
+
+    public ClosedBranchSide2ActiveFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
+                                                   VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1,
+                                                   Fortescue.SequenceType sequenceType) {
+        super(branchVector, branchNum, bus1Num, bus2Num, variableSet, deriveA1, deriveR1, sequenceType);
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {

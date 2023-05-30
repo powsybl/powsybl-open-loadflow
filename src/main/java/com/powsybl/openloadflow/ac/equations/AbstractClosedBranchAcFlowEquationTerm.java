@@ -9,6 +9,9 @@ package com.powsybl.openloadflow.ac.equations;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,14 +38,43 @@ public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBra
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
+    private static AcVariableType getVoltageMagnitudeType(Fortescue.SequenceType sequenceType) {
+        switch (sequenceType) {
+            case POSITIVE:
+                return AcVariableType.BUS_V;
+            case NEGATIVE:
+                return AcVariableType.BUS_V_NEGATIVE;
+            case ZERO:
+                return AcVariableType.BUS_V_ZERO;
+            default:
+                throw new IllegalStateException("Unknown sequence type " + sequenceType);
+        }
+    }
+
+    private static AcVariableType getVoltageAngleType(Fortescue.SequenceType sequenceType) {
+        switch (sequenceType) {
+            case POSITIVE:
+                return AcVariableType.BUS_PHI;
+            case NEGATIVE:
+                return AcVariableType.BUS_PHI_NEGATIVE;
+            case ZERO:
+                return AcVariableType.BUS_PHI_ZERO;
+            default:
+                throw new IllegalStateException("Unknown sequence type " + sequenceType);
+        }
+    }
+
     protected AbstractClosedBranchAcFlowEquationTerm(AcBranchVector branchVector, int branchNum, int bus1Num, int bus2Num,
-                                                     VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1) {
+                                                     VariableSet<AcVariableType> variableSet, boolean deriveA1, boolean deriveR1,
+                                                     Fortescue.SequenceType sequenceType) {
         super(branchVector, branchNum);
         Objects.requireNonNull(variableSet);
-        v1Var = variableSet.getVariable(bus1Num, AcVariableType.BUS_V);
-        v2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_V);
-        ph1Var = variableSet.getVariable(bus1Num, AcVariableType.BUS_PHI);
-        ph2Var = variableSet.getVariable(bus2Num, AcVariableType.BUS_PHI);
+        AcVariableType vType = getVoltageMagnitudeType(sequenceType);
+        AcVariableType angleType = getVoltageAngleType(sequenceType);
+        v1Var = variableSet.getVariable(bus1Num, vType);
+        v2Var = variableSet.getVariable(bus2Num, vType);
+        ph1Var = variableSet.getVariable(bus1Num, angleType);
+        ph2Var = variableSet.getVariable(bus2Num, angleType);
         a1Var = deriveA1 ? variableSet.getVariable(branchNum, AcVariableType.BRANCH_ALPHA1) : null;
         r1Var = deriveR1 ? variableSet.getVariable(branchNum, AcVariableType.BRANCH_RHO1) : null;
         variables.add(v1Var);

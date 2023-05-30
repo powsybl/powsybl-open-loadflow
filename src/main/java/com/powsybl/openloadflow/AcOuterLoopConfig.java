@@ -8,7 +8,7 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.OuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import org.apache.commons.compress.utils.Lists;
 
 import java.util.List;
@@ -18,14 +18,14 @@ import java.util.ServiceLoader;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public interface OuterLoopConfig {
+public interface AcOuterLoopConfig {
 
-    List<OuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt);
+    List<AcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt);
 
-    static OuterLoopConfig findOuterLoopConfig(OuterLoopConfig defaultOuterLoopConfig) {
+    static AcOuterLoopConfig findOuterLoopConfig(AcOuterLoopConfig defaultOuterLoopConfig) {
         Objects.requireNonNull(defaultOuterLoopConfig);
-        OuterLoopConfig outerLoopConfig;
-        List<OuterLoopConfig> outerLoopConfigs = Lists.newArrayList(ServiceLoader.load(OuterLoopConfig.class, OuterLoopConfig.class.getClassLoader()).iterator());
+        AcOuterLoopConfig outerLoopConfig;
+        List<AcOuterLoopConfig> outerLoopConfigs = Lists.newArrayList(ServiceLoader.load(AcOuterLoopConfig.class, AcOuterLoopConfig.class.getClassLoader()).iterator());
         if (outerLoopConfigs.isEmpty()) {
             outerLoopConfig = defaultOuterLoopConfig;
         } else {
