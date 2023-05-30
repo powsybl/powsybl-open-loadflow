@@ -17,10 +17,10 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.OuterLoop;
 import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.*;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
@@ -183,6 +183,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private static final String ACTIONABLE_SWITCHES_IDS_PARAM_NAME = "actionableSwitchesIds";
 
+    private static final String ASYMMETRICAL_PARAM_NAME = "asymmetrical";
+
     private static final String LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME = "lineSearchStateVectorScalingMaxIterations";
 
     private static final String LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME = "lineSearchStateVectorScalingStepFold";
@@ -195,7 +197,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final List<Parameter> SPECIFIC_PARAMETERS = List.of(
         new Parameter(SLACK_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Slack bus selection mode", SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackBusSelectionMode.class)),
-        new Parameter(SLACK_BUSES_IDS_PARAM_NAME, ParameterType.STRING, "Slack bus IDs", null),
+        new Parameter(SLACK_BUSES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus IDs", null),
         new Parameter(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, ParameterType.STRING, "Low impedance branch mode", LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(LowImpedanceBranchMode.class)),
         new Parameter(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Generator voltage remote control", VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE),
         new Parameter(THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_PARAM_NAME, ParameterType.BOOLEAN, "Throws an exception in case of slack distribution failure", THROWS_EXCEPTION_IN_CASE_OF_SLACK_DISTRIBUTION_FAILURE_DEFAULT_VALUE),
@@ -235,6 +237,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE),
         new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE), new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class)),
         new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slac bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE)),
+        new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
+        new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE),
         new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE)),
         new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Maximum number of iterations for the line search state vector scaling ", LineSearchStateVectorScaling.MAX_ITERATION_DEFAULT_VALUE),
         new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, ParameterType.DOUBLE, "Step size folding per iteration for the line search state vector scaling ", LineSearchStateVectorScaling.STEP_FOLD_DEFAULT_VALUE),
@@ -365,6 +369,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private Set<Country> slackBusCountryFilter = LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE;
 
     private Set<String> actionableSwitchesIds = ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE;
+
+    private boolean asymmetrical = LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE;
 
     private int lineSearchStateVectorScalingMaxIterations = LineSearchStateVectorScaling.MAX_ITERATION_DEFAULT_VALUE;
 
@@ -807,6 +813,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public boolean isAsymmetrical() {
+        return asymmetrical;
+    }
+
+    public OpenLoadFlowParameters setAsymmetrical(boolean asymmetrical) {
+        this.asymmetrical = asymmetrical;
+        return this;
+    }
+
     public int getLineSearchStateVectorScalingMaxIterations() {
         return lineSearchStateVectorScalingMaxIterations;
     }
@@ -888,6 +903,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReportedFeatures(config.getEnumSetProperty(REPORTED_FEATURES_PARAM_NAME, ReportedFeatures.class, REPORTED_FEATURES_DEFAULT_VALUE))
                 .setSlackBusCountryFilter(config.getEnumSetProperty(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, Country.class, LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE))
                 .setActionableSwitchesIds(new HashSet<>(config.getStringListProperty(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE))))
+                .setAsymmetrical(config.getBooleanProperty(ASYMMETRICAL_PARAM_NAME, LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE))
                 .setLineSearchStateVectorScalingMaxIterations(config.getIntProperty(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME, LineSearchStateVectorScaling.MAX_ITERATION_DEFAULT_VALUE))
                 .setLineSearchStateVectorScalingStepFold(config.getDoubleProperty(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, LineSearchStateVectorScaling.STEP_FOLD_DEFAULT_VALUE))
                 .setLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType(config.getEnumProperty(LINE_SEARCH_STATE_VECTOR_SCALING_NORM_DECREASE_UPPER_BOUND_FUNCTION_TYPE_PARAM_NAME, LineSearchStateVectorScaling.NormDecreaseUpperBoundFunctionType.class, LineSearchStateVectorScaling.NORM_DECREASE_UPPER_BOUND_FUNCTION_TYPE_DEFAULT_VALUE))
@@ -993,6 +1009,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setSlackBusCountryFilter(parseStringListProp(prop).stream().map(Country::valueOf).collect(Collectors.toSet())));
         Optional.ofNullable(properties.get(ACTIONABLE_SWITCHES_IDS_PARAM_NAME))
                 .ifPresent(prop -> this.setActionableSwitchesIds(new HashSet<>(parseStringListProp(prop))));
+        Optional.ofNullable(properties.get(ASYMMETRICAL_PARAM_NAME))
+                .ifPresent(prop -> this.setAsymmetrical(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME))
                 .ifPresent(prop -> this.setLineSearchStateVectorScalingMaxIterations(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME))
@@ -1047,6 +1065,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REPORTED_FEATURES_PARAM_NAME, reportedFeatures);
         map.put(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, slackBusCountryFilter);
         map.put(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, actionableSwitchesIds);
+        map.put(ASYMMETRICAL_PARAM_NAME, asymmetrical);
         map.put(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATIONS_PARAM_NAME, lineSearchStateVectorScalingMaxIterations);
         map.put(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, lineSearchStateVectorScalingStepFold);
         map.put(LINE_SEARCH_STATE_VECTOR_SCALING_NORM_DECREASE_UPPER_BOUND_FUNCTION_TYPE_PARAM_NAME, lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType);
@@ -1165,7 +1184,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setMaxSlackBusCount(parametersExt.getMaxSlackBusCount())
                 .setDebugDir(parametersExt.getDebugDir())
                 .setSecondaryVoltageControl(parametersExt.isSecondaryVoltageControl())
-                .setCacheEnabled(parametersExt.isNetworkCacheEnabled());
+                .setCacheEnabled(parametersExt.isNetworkCacheEnabled())
+                .setAsymmetrical(parametersExt.isAsymmetrical());
     }
 
     public static AcLoadFlowParameters createAcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1221,8 +1241,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setLineSearchStateVectorScalingStepFold(parametersExt.getLineSearchStateVectorScalingStepFold())
                 .setLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType(parametersExt.getLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType());
 
-        OuterLoopConfig outerLoopConfig = OuterLoopConfig.findOuterLoopConfig(new DefaultOuterLoopConfig());
-        List<OuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
+        AcOuterLoopConfig outerLoopConfig = AcOuterLoopConfig.findOuterLoopConfig(new DefaultAcOuterLoopConfig());
+        List<AcOuterLoop> outerLoops = outerLoopConfig.configure(parameters, parametersExt);
 
         return new AcLoadFlowParameters(networkParameters,
                                         equationSystemCreationParameters,
@@ -1230,7 +1250,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                         outerLoops,
                                         parametersExt.getMaxOuterLoopIterations(),
                                         matrixFactory,
-                                        voltageInitializer);
+                                        voltageInitializer,
+                                        parametersExt.isAsymmetrical());
     }
 
     public static DcLoadFlowParameters createDcParameters(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
@@ -1358,6 +1379,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() &&
                 extension1.getReportedFeatures().equals(extension2.getReportedFeatures()) &&
                 extension1.getSlackBusCountryFilter().equals(extension2.getSlackBusCountryFilter()) &&
+                extension1.getActionableSwitchesIds().equals(extension2.getActionableSwitchesIds()) &&
+                extension1.isAsymmetrical() == extension2.isAsymmetrical() &&
                 extension1.getLineSearchStateVectorScalingMaxIterations() == extension2.getLineSearchStateVectorScalingMaxIterations() &&
                 extension1.getLineSearchStateVectorScalingStepFold() == extension2.getLineSearchStateVectorScalingStepFold() &&
                 extension1.getLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType() == extension2.getLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType();
@@ -1422,6 +1445,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setReportedFeatures(extension.getReportedFeatures())
                     .setSlackBusCountryFilter(new HashSet<>(extension.getSlackBusCountryFilter()))
                     .setActionableSwitchesIds(new HashSet<>(extension.getActionableSwitchesIds()))
+                    .setAsymmetrical(extension.isAsymmetrical())
                     .setLineSearchStateVectorScalingMaxIterations(extension.getLineSearchStateVectorScalingMaxIterations())
                     .setLineSearchStateVectorScalingStepFold(extension.getLineSearchStateVectorScalingStepFold())
                     .setLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType(extension.getLineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType());

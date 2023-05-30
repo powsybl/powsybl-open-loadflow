@@ -15,8 +15,8 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import org.apache.commons.lang3.mutable.MutableInt;
 import com.powsybl.openloadflow.util.Reports;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -192,7 +192,20 @@ public class NewtonRaphson {
 
                 case DUMMY_P:
                 case DUMMY_Q:
+                case BUS_PHI_ZERO:
+                case BUS_PHI_NEGATIVE:
                     x[v.getRow()] = 0;
+                    break;
+
+                case BUS_V_ZERO:
+                case BUS_V_NEGATIVE:
+                    // when balanced, zero and negative sequence should be zero
+                    // v_zero and v_negative initially set to zero will bring a singularity to the Jacobian
+                    // We chose to set the initial value to a small one, but different from zero
+                    // By construction if the system does not carry any asymmetry in its structure,
+                    // the resolution of the system on the three sequences will bring a singularity
+                    // Therefore, if the system is balanced by construction, we should run a balanced load flow only
+                    x[v.getRow()] = 0.1;
                     break;
 
                 default:
@@ -213,6 +226,22 @@ public class NewtonRaphson {
 
                 case BUS_PHI:
                     network.getBus(v.getElementNum()).setAngle(stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_V_ZERO:
+                    network.getBus(v.getElementNum()).getAsym().setVz(stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_PHI_ZERO:
+                    network.getBus(v.getElementNum()).getAsym().setAngleZ(stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_V_NEGATIVE:
+                    network.getBus(v.getElementNum()).getAsym().setVn(stateVector.get(v.getRow()));
+                    break;
+
+                case BUS_PHI_NEGATIVE:
+                    network.getBus(v.getElementNum()).getAsym().setAngleN(stateVector.get(v.getRow()));
                     break;
 
                 case SHUNT_B:

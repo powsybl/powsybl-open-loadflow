@@ -61,6 +61,7 @@
         "reportedFeatures" : [ ],
         "slackBusCountryFilter" : [ ],
         "actionableSwitchesIds" : [ ],
+        "asymmetrical" : false,
         "lineSearchStateVectorScalingMaxIterations" : 5,
         "lineSearchStateVectorScalingStepFold" : 4.0,
         "lineSearchStateVectorScalingNormDecreaseUpperBoundFunctionType" : "EXPONENTIAL"

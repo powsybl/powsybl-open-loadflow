@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -86,6 +87,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected double remoteVoltageControlReactivePercent = Double.NaN;
 
     protected final Map<LoadFlowModel, LfZeroImpedanceNetwork> zeroImpedanceNetwork = new EnumMap<>(LoadFlowModel.class);
+
+    protected LfAsymBus asym;
 
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
@@ -608,5 +611,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel) {
         return zeroImpedanceNetwork.get(loadFlowModel);
+    }
+
+    @Override
+    public LfAsymBus getAsym() {
+        return asym;
+    }
+
+    @Override
+    public void setAsym(LfAsymBus asym) {
+        this.asym = asym;
+        asym.setBus(this);
     }
 }
