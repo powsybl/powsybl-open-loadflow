@@ -22,14 +22,60 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LineSearchStateVectorScaling.class);
 
-    private static final int MAX_ITERATION = 10;
-    private static final double STEP_FOLD = 4d / 3;
+    public enum NormDecreaseUpperBoundFunctionType {
+        CONSTANT,
+        EXPONENTIAL
+    }
+
+    interface NormDecreaseUpperBoundFunction {
+
+        double getUpperBound(double previousNorm, double stepSize);
+
+        static NormDecreaseUpperBoundFunction find(NormDecreaseUpperBoundFunctionType type) {
+            switch (type) {
+                case CONSTANT:
+                    return new ConstantNormDecreaseUpperBound();
+                case EXPONENTIAL:
+                    return new ExpNormDecreaseUpperBound();
+                default:
+                    throw new IllegalStateException("Unknown norm upper bound function type: " + type);
+            }
+        }
+    }
+
+    static class ConstantNormDecreaseUpperBound implements NormDecreaseUpperBoundFunction {
+
+        @Override
+        public double getUpperBound(double previousNorm, double stepSize) {
+            return previousNorm;
+        }
+    }
+
+    static class ExpNormDecreaseUpperBound implements NormDecreaseUpperBoundFunction {
+
+        @Override
+        public double getUpperBound(double previousNorm, double stepSize) {
+            return previousNorm * Math.exp(-stepSize);
+        }
+    }
+
+    public static final int MAX_ITERATION_DEFAULT_VALUE = 5;
+    public static final double STEP_FOLD_DEFAULT_VALUE = 4d;
+    public static final NormDecreaseUpperBoundFunctionType NORM_DECREASE_UPPER_BOUND_FUNCTION_TYPE_DEFAULT_VALUE = NormDecreaseUpperBoundFunctionType.EXPONENTIAL;
+
+    private final int maxIterations;
+    private final double stepFold;
+    private final NormDecreaseUpperBoundFunction normDecreaseUpperBoundFunction;
 
     private double[] lastDx;
 
     private NewtonRaphsonStoppingCriteria.TestResult lastTestResult;
 
-    public LineSearchStateVectorScaling(NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
+    public LineSearchStateVectorScaling(int maxIterations, double stepFold, NormDecreaseUpperBoundFunctionType normDecreaseUpperBoundFunctionType,
+                                        NewtonRaphsonStoppingCriteria.TestResult initialTestResult) {
+        this.maxIterations = maxIterations;
+        this.stepFold = stepFold;
+        this.normDecreaseUpperBoundFunction = NormDecreaseUpperBoundFunction.find(normDecreaseUpperBoundFunctionType);
         this.lastTestResult = Objects.requireNonNull(initialTestResult);
     }
 
@@ -60,7 +106,8 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
             NewtonRaphsonStoppingCriteria.TestResult currentTestResult = testResult;
             double[] x = null;
             int iteration = 1;
-            while (currentTestResult.getNorm() >= lastTestResult.getNorm() && iteration <= MAX_ITERATION) {
+            while (currentTestResult.getNorm() >= normDecreaseUpperBoundFunction.getUpperBound(lastTestResult.getNorm(), stepSize)
+                    && iteration <= maxIterations) {
                 if (x == null) {
                     x = stateVector.get();
                 }
@@ -70,7 +117,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
                 // x(i+1)' = x(i) - dx * mu
                 // x(i+1)' = x(i+1) + dx (1 - mu)
                 double[] newX = x.clone();
-                stepSize = 1 / Math.pow(STEP_FOLD, iteration);
+                stepSize = 1 / Math.pow(stepFold, iteration);
                 Vectors.plus(newX, lastDx, 1 - stepSize);
                 stateVector.set(newX);
                 // equation vector has been updated
@@ -84,7 +131,11 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
                 iteration++;
             }
             lastTestResult = currentTestResult;
-            LOGGER.debug("Step size: {}", stepSize);
+            if (iteration > maxIterations) {
+                LOGGER.warn("Minimal step size have been reached with max number of iterations: {}", stepSize);
+            } else {
+                LOGGER.debug("Step size: {}", stepSize);
+            }
         }
         return lastTestResult;
     }
