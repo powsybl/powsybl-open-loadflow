@@ -637,9 +637,9 @@ public class AcEquationSystemCreator {
 
         createBranchEquations(branch, bus1, bus2, equationSystem, p1, q1, p2, q2, i1, i2);
 
-        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+        createReactivePowerControlBranchEquation(branch, bus1, bus2, branchVector, equationSystem, deriveA1, deriveR1);
 
-        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+        createTransformerPhaseControlEquations(branch, bus1, bus2, branchVector, equationSystem, deriveA1, deriveR1);
     }
 
     protected static void createBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
