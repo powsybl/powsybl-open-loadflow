@@ -57,6 +57,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     private ReactivePowerControl reactivePowerControl;
 
+    protected LfAsymLine asymLine;
+
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
         super(network);
         this.bus1 = bus1;
@@ -327,5 +329,23 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
                 updateZeroImpedanceNetworks(disabled, LoadFlowModel.DC);
             }
         }
+    }
+
+    @Override
+    public LfAsymLine getAsymLine() {
+        return asymLine;
+    }
+
+    @Override
+    public void setAsymLine(LfAsymLine asymLine) {
+        this.asymLine = asymLine;
+    }
+
+    @Override
+    public boolean isAsymmetric() {
+        if (asymLine != null) {
+            return asymLine.getAdmittanceMatrix().isCoupled();
+        }
+        return false;
     }
 }

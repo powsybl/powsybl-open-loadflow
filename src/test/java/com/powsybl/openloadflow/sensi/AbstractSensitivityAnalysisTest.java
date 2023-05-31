@@ -336,7 +336,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Branch, dangling line or leg of 'b' not found", e.getCause().getMessage());
+        assertEquals("Branch, tie line, dangling line or leg of 'b' not found", e.getCause().getMessage());
     }
 
     protected void testEmptyFactors(boolean dc) {

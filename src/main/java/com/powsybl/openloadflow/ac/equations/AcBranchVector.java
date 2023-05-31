@@ -26,6 +26,8 @@ public class AcBranchVector implements ElementVector {
     final int[] bus2Num;
 
     final double[] y;
+    final double[] g12;
+    final double[] b12;
     final double[] ksi;
     final double[] cosKsi;
     final double[] sinKsi;
@@ -89,6 +91,8 @@ public class AcBranchVector implements ElementVector {
         bus1Num = new int[size];
         bus2Num = new int[size];
         y = new double[size];
+        g12 = new double[size];
+        b12 = new double[size];
         ksi = new double[size];
         cosKsi = new double[size];
         sinKsi = new double[size];
@@ -156,6 +160,9 @@ public class AcBranchVector implements ElementVector {
 //                throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
 //            }
             y[i] = piModel.getY();
+            // y12 = g12+j.b12 = 1/(r+j.x)
+            g12[i] = piModel.getR() * y[i] * y[i];
+            b12[i] = -piModel.getX() * y[i] * y[i];
             ksi[i] = piModel.getKsi();
             cosKsi[i] = FastMath.cos(ksi[i]);
             sinKsi[i] = FastMath.sin(ksi[i]);
