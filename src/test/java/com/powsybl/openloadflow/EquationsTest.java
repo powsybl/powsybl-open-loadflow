@@ -124,6 +124,8 @@ class EquationsTest {
         bus2 = Mockito.mock(LfBus.class, ANSWER);
         Mockito.doReturn(0).when(bus1).getNum();
         Mockito.doReturn(1).when(bus2).getNum();
+        Mockito.doReturn(false).when(bus1).isDisabled();
+        Mockito.doReturn(false).when(bus2).isDisabled();
 
         network = Mockito.mock(LfNetwork.class);
         Mockito.doReturn(List.of(bus1, bus2)).when(network).getBuses();

@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements Evaluable, Comparable<Equation<V, E>> {
+public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> implements ElementEquation<V, E>, Evaluable, Comparable<Equation<V, E>> {
 
     private final int elementNum;
 
@@ -50,18 +50,22 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         this.equationSystem = Objects.requireNonNull(equationSystem);
     }
 
+    @Override
     public int getElementNum() {
         return elementNum;
     }
 
+    @Override
     public E getType() {
         return type;
     }
 
+    @Override
     public EquationSystem<V, E> getEquationSystem() {
         return equationSystem;
     }
 
+    @Override
     public int getColumn() {
         return column;
     }
@@ -70,6 +74,7 @@ public class Equation<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity
         this.column = column;
     }
 
+    @Override
     public boolean isActive() {
         return active;
     }
