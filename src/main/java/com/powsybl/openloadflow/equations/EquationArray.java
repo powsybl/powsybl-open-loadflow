@@ -25,8 +25,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private int length;
 
-    private final List<EquationTermArray<V, E>> termArrays = new ArrayList<>();
-
     private final List<List<EquationTerm<V, E>>> termsByElementNum;
 
     public EquationArray(E type, int elementCount, EquationSystem<V, E> equationSystem) {
@@ -79,11 +77,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    public EquationArray<V, E> addTermArray(EquationTermArray<V, E> termArray) {
-        // TODO
-        return this;
-    }
-
     public EquationArray<V, E> addTerm(EquationTerm<V, E> term) {
         // TODO
         return this;
@@ -91,9 +84,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     public void eval(double[] values) {
         // term arrays
-        for (var termArray : termArrays) {
-            termArray.eval(values, firstColumn, elementActive);
-        }
+        // TODO
+
         // individual terms
         int column = firstColumn;
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
