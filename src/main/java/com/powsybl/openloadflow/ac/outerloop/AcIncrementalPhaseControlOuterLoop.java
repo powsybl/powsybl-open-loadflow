@@ -36,7 +36,7 @@ public class AcIncrementalPhaseControlOuterLoop
         implements AcOuterLoop {
 
     public AcIncrementalPhaseControlOuterLoop() {
-        LOGGER = LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class);
+        logger = LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class);
     }
 
     @Override
@@ -104,7 +104,7 @@ public class AcIncrementalPhaseControlOuterLoop
                 if (Math.abs(a2i) > SENSI_EPS) {
                     double da = Math.toRadians(di / a2i);
                     double ib = computeIb(phaseControl);
-                    LOGGER.trace("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
+                    logger.trace("Controlled branch '{}' current is {} A and above target value {} A, a phase shift of {}° is required",
                             controlledBranch.getId(), i * ib, phaseControl.getTargetValue() * ib, Math.toDegrees(da));
                     PiModel piModel = controllerBranch.getPiModel();
 
@@ -117,7 +117,7 @@ public class AcIncrementalPhaseControlOuterLoop
                     });
 
                     if (piModel.getTapPosition() != oldTapPosition) {
-                        LOGGER.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
+                        logger.debug("Controller branch '{}' change tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
 
                         double discreteDa = piModel.getA1() - oldA1;
@@ -144,7 +144,7 @@ public class AcIncrementalPhaseControlOuterLoop
                     double ib = computeIb(otherPhaseControl);
                     double di = Math.toDegrees(da) * crossA2i;
                     if (di > PHASE_SHIFT_CROSS_IMPACT_MARGIN * (i - otherPhaseControl.getTargetValue())) {
-                        LOGGER.warn("Controller branch '{}' tap change significantly impact (≈ {} A) another phase shifter current also above its limit '{}', simulation might not be reliable",
+                        logger.warn("Controller branch '{}' tap change significantly impact (≈ {} A) another phase shifter current also above its limit '{}', simulation might not be reliable",
                                 controllerBranch.getId(), di * ib, otherPhaseControl.getControlledBranch().getId());
                     }
                 }

@@ -28,7 +28,7 @@ public class DcIncrementalPhaseControlOuterLoop
         extends AbstractIncrementalPhaseControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> {
 
     public DcIncrementalPhaseControlOuterLoop() {
-        LOGGER = LoggerFactory.getLogger(DcIncrementalPhaseControlOuterLoop.class);
+        logger = LoggerFactory.getLogger(DcIncrementalPhaseControlOuterLoop.class);
     }
 
     @Override
@@ -68,12 +68,8 @@ public class DcIncrementalPhaseControlOuterLoop
         List<TransformerPhaseControl> activePowerControlPhaseControls = new ArrayList<>();
         for (LfBranch controllerBranch : controllerBranches) {
             controllerBranch.getPhaseControl().ifPresent(phaseControl -> {
-                switch (phaseControl.getMode()) {
-                    case CONTROLLER:
-                        activePowerControlPhaseControls.add(phaseControl);
-                        break;
-                    default:
-                        break;
+                if (phaseControl.getMode() == TransformerPhaseControl.Mode.CONTROLLER) {
+                    activePowerControlPhaseControls.add(phaseControl);
                 }
             });
         }

@@ -37,7 +37,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
     public static final double MIN_TARGET_DEADBAND = 1 / PerUnit.SB; // 1 MW
     public static final double SENSI_EPS = 1e-6;
     public static final double PHASE_SHIFT_CROSS_IMPACT_MARGIN = 0.75;
-    public static Logger LOGGER;
+    protected static Logger logger;
 
     @Override
     public void initialize(O context) {
@@ -64,7 +64,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
         private final int[] controllerBranchIndex;
         private DenseMatrix sensitivities;
 
-        public AbstractSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
+        protected AbstractSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<V, E> equationSystem,
                                   JacobianMatrix<V, E> jacobianMatrix) {
             this.controllerBranches = Objects.requireNonNull(controllerBranches);
@@ -102,7 +102,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
         }
     }
 
-    protected static boolean checkActivePowerControlPhaseControls(AbstractSensitivityContext sensitivityContext, IncrementalContextData contextData,
+    protected boolean checkActivePowerControlPhaseControls(AbstractSensitivityContext<V, E> sensitivityContext, IncrementalContextData contextData,
                                                                   List<TransformerPhaseControl> activePowerControlPhaseControls) {
         MutableBoolean updated = new MutableBoolean(false);
 
@@ -119,7 +119,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                 double a2p = sensitivityContext.calculateSensitivityFromA2P(controllerBranch, controlledBranch, phaseControl.getControlledSide());
                 if (Math.abs(a2p) > SENSI_EPS) {
                     double da = Math.toRadians(dp / a2p);
-                    LOGGER.trace("Controlled branch '{}' active power is {} MW and out of target value {} MW (half deadband={} MW), a phase shift of {}° is required",
+                    logger.trace("Controlled branch '{}' active power is {} MW and out of target value {} MW (half deadband={} MW), a phase shift of {}° is required",
                             controlledBranch.getId(), pValue * PerUnit.SB, phaseControl.getTargetValue() * PerUnit.SB, halfTargetDeadband * PerUnit.SB, Math.toDegrees(da));
                     PiModel piModel = controllerBranch.getPiModel();
 
@@ -131,7 +131,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                     });
 
                     if (piModel.getTapPosition() != oldTapPosition) {
-                        LOGGER.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),
+                        logger.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
                     }
                 }
