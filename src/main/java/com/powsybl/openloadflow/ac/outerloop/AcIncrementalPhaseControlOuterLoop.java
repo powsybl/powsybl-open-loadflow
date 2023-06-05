@@ -23,12 +23,10 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -37,7 +35,9 @@ public class AcIncrementalPhaseControlOuterLoop
         extends AbstractIncrementalPhaseControlOuterLoop<AcVariableType, AcEquationType, AcLoadFlowParameters, AcLoadFlowContext, AcOuterLoopContext>
         implements AcOuterLoop {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class);
+    public AcIncrementalPhaseControlOuterLoop() {
+        LOGGER = LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class);
+    }
 
     @Override
     public String getType() {
@@ -57,37 +57,14 @@ public class AcIncrementalPhaseControlOuterLoop
         fixPhaseShifterNecessaryForConnectivity(context.getNetwork(), controllerBranches);
     }
 
-    public static class AcSensitivityContext {
-
-        private final List<LfBranch> controllerBranches;
-
-        private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
-
-        private final JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix;
-
-        private final int[] controllerBranchIndex;
-
-        private DenseMatrix sensitivities;
-
-        public AcSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
-                                  EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                  JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
-            this.controllerBranches = Objects.requireNonNull(controllerBranches);
-            this.equationSystem = Objects.requireNonNull(equationSystem);
-            this.jacobianMatrix = Objects.requireNonNull(jacobianMatrix);
-            controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
+    public static class AcSensitivityContext extends AbstractSensitivityContext<AcVariableType, AcEquationType> {
+        public AcSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
+            super(network, controllerBranches, equationSystem, jacobianMatrix);
         }
 
-        private DenseMatrix getSensitivities() {
-            if (sensitivities == null) {
-                sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, jacobianMatrix);
-            }
-            return sensitivities;
-        }
-
-        private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
-                                                              EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                              JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
+        public DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
+                                                      EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                      JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
             DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getSortedEquationsToSolve().size(), controllerBranches.size());
             for (LfBranch controllerBranch : controllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)
@@ -97,38 +74,18 @@ public class AcIncrementalPhaseControlOuterLoop
             return rhs;
         }
 
-        @SuppressWarnings("unchecked")
-        private static EquationTerm<AcVariableType, AcEquationType> getI1(LfBranch controlledBranch) {
+        private EquationTerm<AcVariableType, AcEquationType> getI1(LfBranch controlledBranch) {
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getI1();
         }
 
         @SuppressWarnings("unchecked")
-        private static EquationTerm<AcVariableType, AcEquationType> getI2(LfBranch controlledBranch) {
+        private EquationTerm<AcVariableType, AcEquationType> getI2(LfBranch controlledBranch) {
             return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getI2();
-        }
-
-        @SuppressWarnings("unchecked")
-        private static EquationTerm<AcVariableType, AcEquationType> getP1(LfBranch controlledBranch) {
-            return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getP1();
-        }
-
-        @SuppressWarnings("unchecked")
-        private static EquationTerm<AcVariableType, AcEquationType> getP2(LfBranch controlledBranch) {
-            return (EquationTerm<AcVariableType, AcEquationType>) controlledBranch.getP2();
-        }
-
-        double calculateSensitivityFromA2S(LfBranch controllerBranch, EquationTerm<AcVariableType, AcEquationType> s) {
-            return s.calculateSensi(getSensitivities(), controllerBranchIndex[controllerBranch.getNum()]);
         }
 
         public double calculateSensitivityFromA2I(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
             var i = controlledSide == ControlledSide.ONE ? getI1(controlledBranch) : getI2(controlledBranch);
             return calculateSensitivityFromA2S(controllerBranch, i);
-        }
-
-        double calculateSensitivityFromA2P(LfBranch controllerBranch, LfBranch controlledBranch, ControlledSide controlledSide) {
-            var p = controlledSide == ControlledSide.ONE ? getP1(controlledBranch) : getP2(controlledBranch);
-            return calculateSensitivityFromA2S(controllerBranch, p);
         }
     }
 
@@ -193,45 +150,6 @@ public class AcIncrementalPhaseControlOuterLoop
                 }
             }
         }
-    }
-
-    private static boolean checkActivePowerControlPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                                List<TransformerPhaseControl> activePowerControlPhaseControls) {
-        MutableBoolean updated = new MutableBoolean(false);
-
-        for (TransformerPhaseControl phaseControl : activePowerControlPhaseControls) {
-            LfBranch controllerBranch = phaseControl.getControllerBranch();
-            LfBranch controlledBranch = phaseControl.getControlledBranch();
-            var p = phaseControl.getControlledSide() == ControlledSide.ONE
-                    ? controlledBranch.getP1() : controlledBranch.getP2();
-            double pValue = p.eval();
-            double halfTargetDeadband = getHalfTargetDeadband(phaseControl);
-            if (Math.abs(pValue - phaseControl.getTargetValue()) > halfTargetDeadband) {
-                var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                double dp = phaseControl.getTargetValue() - pValue;
-                double a2p = sensitivityContext.calculateSensitivityFromA2P(controllerBranch, controlledBranch, phaseControl.getControlledSide());
-                if (Math.abs(a2p) > SENSI_EPS) {
-                    double da = Math.toRadians(dp / a2p);
-                    LOGGER.trace("Controlled branch '{}' active power is {} MW and out of target value {} MW (half deadband={} MW), a phase shift of {}° is required",
-                            controlledBranch.getId(), pValue * PerUnit.SB, phaseControl.getTargetValue() * PerUnit.SB, halfTargetDeadband * PerUnit.SB, Math.toDegrees(da));
-                    PiModel piModel = controllerBranch.getPiModel();
-
-                    int oldTapPosition = piModel.getTapPosition();
-                    Range<Integer> tapPositionRange = piModel.getTapPositionRange();
-                    piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                        controllerContext.updateAllowedDirection(direction);
-                        updated.setValue(true);
-                    });
-
-                    if (piModel.getTapPosition() != oldTapPosition) {
-                        LOGGER.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),
-                                oldTapPosition, piModel.getTapPosition(), tapPositionRange);
-                    }
-                }
-            }
-        }
-
-        return updated.booleanValue();
     }
 
     private static double computeIb(TransformerPhaseControl phaseControl) {
