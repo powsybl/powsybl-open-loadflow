@@ -66,15 +66,11 @@ public class DcIncrementalPhaseControlOuterLoop
 
         // find list of phase controls that are in current limiter and active power control
         List<TransformerPhaseControl> activePowerControlPhaseControls = new ArrayList<>();
-        List<TransformerPhaseControl> currentLimiterPhaseControls = new ArrayList<>();
         for (LfBranch controllerBranch : controllerBranches) {
             controllerBranch.getPhaseControl().ifPresent(phaseControl -> {
                 switch (phaseControl.getMode()) {
                     case CONTROLLER:
                         activePowerControlPhaseControls.add(phaseControl);
-                        break;
-                    case LIMITER:
-                        currentLimiterPhaseControls.add(phaseControl);
                         break;
                     default:
                         break;
@@ -82,21 +78,19 @@ public class DcIncrementalPhaseControlOuterLoop
             });
         }
 
-        if (!currentLimiterPhaseControls.isEmpty() || !activePowerControlPhaseControls.isEmpty()) {
+        if (!activePowerControlPhaseControls.isEmpty()) {
             var sensitivityContext = new DcSensitivityContext(network,
                     controllerBranches,
                     context.getLoadFlowContext().getEquationSystem(),
                     context.getLoadFlowContext().getJacobianMatrix());
 
-            if (!activePowerControlPhaseControls.isEmpty()
-                    && checkActivePowerControlPhaseControls(sensitivityContext,
+            if (checkActivePowerControlPhaseControls(sensitivityContext,
                     contextData,
                     activePowerControlPhaseControls)) {
                 status = OuterLoopStatus.UNSTABLE;
             }
-
-            // Current limiter is currently not implemented
         }
+        // Current limiter is currently not implemented
 
         return status;
     }
