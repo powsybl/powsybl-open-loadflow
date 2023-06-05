@@ -28,7 +28,8 @@ public interface LfBranch extends LfElement {
         TRANSFO_3_LEG_2,
         TRANSFO_3_LEG_3,
         DANGLING_LINE,
-        SWITCH
+        SWITCH,
+        TIE_LINE
     }
 
     class LfLimit {
@@ -191,4 +192,10 @@ public interface LfBranch extends LfElement {
     boolean isConnectedAtBothSides();
 
     void setMinZ(double lowImpedanceThreshold);
+
+    LfAsymLine getAsymLine();
+
+    void setAsymLine(LfAsymLine asymLine);
+
+    boolean isAsymmetric();
 }
