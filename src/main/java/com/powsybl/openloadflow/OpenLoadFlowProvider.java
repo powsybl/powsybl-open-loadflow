@@ -28,6 +28,8 @@ import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -139,7 +141,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
                 result.getNetwork().updateState(updateParameters);
 
                 // zero or low impedance branch flows computation
-                computeZeroImpedanceFlows(result.getNetwork(), false);
+                computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.AC);
             }
 
             LoadFlowResult.ComponentResult.Status status = convertStatus(result);
@@ -157,9 +159,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private void computeZeroImpedanceFlows(LfNetwork network, boolean dc) {
-        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(dc)) {
-            new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), dc)
+    private void computeZeroImpedanceFlows(LfNetwork network, LoadFlowModel loadFlowModel) {
+        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowModel)) {
+            new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowModel)
                     .compute();
         }
     }
@@ -195,7 +197,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             result.getNetwork().updateState(updateParameters);
 
             // zero or low impedance branch flows computation
-            computeZeroImpedanceFlows(result.getNetwork(), true);
+            computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.DC);
         }
 
         return new LoadFlowResultImpl.ComponentResultImpl(

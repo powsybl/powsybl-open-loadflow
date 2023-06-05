@@ -55,7 +55,7 @@ public class ContingencyTripping {
                 throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to branch '" + branch.getId() + "'");
             }
         } else {
-            return new ContingencyTripping(branch.getTerminals(), NodeBreakerTraverser::new);
+            return new ContingencyTripping(List.of(branch.getTerminal1(), branch.getTerminal2()), NodeBreakerTraverser::new);
         }
     }
 
@@ -101,6 +101,7 @@ public class ContingencyTripping {
         switch (identifiable.getType()) {
             case LINE:
             case TWO_WINDINGS_TRANSFORMER:
+            case TIE_LINE:
                 return ContingencyTripping.createBranchTripping(network, (Branch<?>) identifiable);
             case DANGLING_LINE:
             case GENERATOR:

@@ -42,6 +42,8 @@ public class LfNetworkParameters {
 
     public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
 
+    public static final boolean ASYMMETRICAL_DEFAULT_VALUE = false;
+
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
 
     private SlackBusSelector slackBusSelector = new FirstSlackBusSelector(SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE);
@@ -72,7 +74,7 @@ public class LfNetworkParameters {
 
     private boolean reactivePowerRemoteControl = false;
 
-    private boolean dc = false;
+    private LoadFlowModel loadFlowModel = LoadFlowModel.AC;
 
     private boolean shuntVoltageControl = false;
 
@@ -99,6 +101,8 @@ public class LfNetworkParameters {
     private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
+
+    private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -226,12 +230,12 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isDc() {
-        return dc;
+    public LoadFlowModel getLoadFlowModel() {
+        return loadFlowModel;
     }
 
-    public LfNetworkParameters setDc(boolean dc) {
-        this.dc = dc;
+    public LfNetworkParameters setLoadFlowModel(LoadFlowModel loadFlowModel) {
+        this.loadFlowModel = Objects.requireNonNull(loadFlowModel);
         return this;
     }
 
@@ -362,6 +366,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isAsymmetrical() {
+        return asymmetrical;
+    }
+
+    public LfNetworkParameters setAsymmetrical(boolean asymmetrical) {
+        this.asymmetrical = asymmetrical;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -379,7 +392,7 @@ public class LfNetworkParameters {
                 ", transformerVoltageControl=" + transformerVoltageControl +
                 ", voltagePerReactivePowerControl=" + voltagePerReactivePowerControl +
                 ", reactivePowerRemoteControl=" + reactivePowerRemoteControl +
-                ", dc=" + dc +
+                ", loadFlowModel=" + loadFlowModel +
                 ", reactiveLimits=" + reactiveLimits +
                 ", hvdcAcEmulation=" + hvdcAcEmulation +
                 ", minPlausibleTargetVoltage=" + minPlausibleTargetVoltage +
@@ -392,6 +405,7 @@ public class LfNetworkParameters {
                 ", debugDir=" + debugDir +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
+                ", asymmetrical=" + asymmetrical +
                 ')';
     }
 }

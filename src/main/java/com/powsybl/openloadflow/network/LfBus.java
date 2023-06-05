@@ -133,7 +133,7 @@ public interface LfBus extends LfElement {
 
     Optional<LfShunt> getSvcShunt();
 
-    LfAggregatedLoads getAggregatedLoads();
+    LfLoad getLoad();
 
     List<LfBranch> getBranches();
 
@@ -194,7 +194,11 @@ public interface LfBus extends LfElement {
         return Optional.empty();
     }
 
-    void setZeroImpedanceNetwork(boolean dc, LfZeroImpedanceNetwork zeroImpedanceNetwork);
+    void setZeroImpedanceNetwork(LoadFlowModel loadFlowModel, LfZeroImpedanceNetwork zeroImpedanceNetwork);
 
-    LfZeroImpedanceNetwork getZeroImpedanceNetwork(boolean dc);
+    LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel);
+
+    LfAsymBus getAsym();
+
+    void setAsym(LfAsymBus asym);
 }
