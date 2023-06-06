@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.google.common.collect.ImmutableList;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
@@ -2024,5 +2025,84 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(-50.0, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("t12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(50.0, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("t12").getP2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testAcceptableDurations() {
+        Network network = EurostagTutorialExample1Factory.createWithTieLine();
+        network.getGenerator("GEN").setMaxP(4000).setMinP(-4000);
+
+        TieLine line = network.getTieLine("NHV1_NHV2_1");
+        line.newCurrentLimits2()
+                .setPermanentLimit(900.0)
+                .beginTemporaryLimit()
+                    .setName("10'")
+                    .setAcceptableDuration(600)
+                    .setValue(1000.0)
+                .endTemporaryLimit()
+                .beginTemporaryLimit()
+                    .setName("1'")
+                    .setAcceptableDuration(60)
+                    .setValue(1100.0)
+                .endTemporaryLimit()
+                .add();
+        TieLine line2 = network.getTieLine("NHV1_NHV2_2");
+        line2.newCurrentLimits2()
+                .setPermanentLimit(900.0)
+                .beginTemporaryLimit()
+                    .setName("20'")
+                    .setAcceptableDuration(1200)
+                    .setValue(1000.0)
+                .endTemporaryLimit()
+                .beginTemporaryLimit()
+                    .setName("N/A")
+                    .setAcceptableDuration(60)
+                    .setValue(1.7976931348623157E308D)
+                .endTemporaryLimit()
+                .add();
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        ContingenciesProvider contingencies = n -> ImmutableList.of(
+                new Contingency("contingency1", new BranchContingency("NHV1_NHV2_1")),
+                new Contingency("contingency2", new TieLineContingency("NHV1_NHV2_2")),
+                new Contingency("contingency3", new DanglingLineContingency("NHV1_XNODE1")),
+                new Contingency("contingency4", new DanglingLineContingency("XNODE2_NHV2")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies.getContingencies(network), Collections.emptyList(), securityAnalysisParameters);
+
+        LimitViolation violation0 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "20'",
+                60, 1000.0, 1.0F, 1047.8257691455556, Branch.Side.TWO);
+        int compare0 = LimitViolations.comparator().compare(violation0, result.getPostContingencyResults().get(0)
+                .getLimitViolationsResult().getLimitViolations().get(0));
+        assertEquals(0, compare0);
+
+        LimitViolation violation1 = new LimitViolation("NHV1_NHV2_1", null, LimitViolationType.CURRENT, "10'",
+                60, 1000.0, 1.0F, 1047.8257691455556, Branch.Side.TWO);
+        int compare1 = LimitViolations.comparator().compare(violation1, result.getPostContingencyResults().get(1)
+                .getLimitViolationsResult().getLimitViolations().get(0));
+        assertEquals(0, compare1);
+
+        int compare2 = LimitViolations.comparator().compare(violation0, result.getPostContingencyResults().get(2)
+                .getLimitViolationsResult().getLimitViolations().get(0));
+        assertEquals(0, compare2); // FIXME line open at one side
+
+        int compare3 = LimitViolations.comparator().compare(violation1, result.getPostContingencyResults().get(3)
+                .getLimitViolationsResult().getLimitViolations().get(0));
+        assertEquals(0, compare3); // FIXME line open at one side
+
+        line.newCurrentLimits1().setPermanentLimit(900.0).add();
+        line2.newCurrentLimits1().setPermanentLimit(900.0).add();
+        securityAnalysisParameters.getLoadFlowParameters().setDc(true);
+        SecurityAnalysisResult result2 = runSecurityAnalysis(network, contingencies.getContingencies(network), Collections.emptyList(), securityAnalysisParameters);
+
+        LimitViolation violation4 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "permanent",
+                2147483647, 900.0, 1.0F, 911.605688194146412890625, Branch.Side.ONE);
+        int compare4 = LimitViolations.comparator().compare(violation4, result2.getPostContingencyResults().get(0)
+                .getLimitViolationsResult().getLimitViolations().get(0));
+        assertEquals(0, compare4);
+        LimitViolation violation5 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "permanent",
+                1200, 900.0, 1.0F, 911.605688194146412890625, Branch.Side.TWO);
+        int compare5 = LimitViolations.comparator().compare(violation5, result2.getPostContingencyResults().get(0)
+                .getLimitViolationsResult().getLimitViolations().get(1));
+        assertEquals(0, compare5);
     }
 }
