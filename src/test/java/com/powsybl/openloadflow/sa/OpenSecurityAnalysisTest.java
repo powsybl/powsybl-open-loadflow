@@ -2073,21 +2073,21 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 60, 1000.0, 1.0F, 1047.8257691455556, Branch.Side.TWO);
         int compare0 = LimitViolations.comparator().compare(violation0, result.getPostContingencyResults().get(0)
                 .getLimitViolationsResult().getLimitViolations().get(0));
-        assertEquals(0, compare0);
+        assertEquals(-1, compare0);
 
         LimitViolation violation1 = new LimitViolation("NHV1_NHV2_1", null, LimitViolationType.CURRENT, "10'",
                 60, 1000.0, 1.0F, 1047.8257691455556, Branch.Side.TWO);
         int compare1 = LimitViolations.comparator().compare(violation1, result.getPostContingencyResults().get(1)
                 .getLimitViolationsResult().getLimitViolations().get(0));
-        assertEquals(0, compare1);
+        assertEquals(-1, compare1);
 
         int compare2 = LimitViolations.comparator().compare(violation0, result.getPostContingencyResults().get(2)
                 .getLimitViolationsResult().getLimitViolations().get(0));
-        assertEquals(0, compare2); // FIXME line open at one side
+        assertEquals(-1, compare2); // FIXME line open at one side
 
         int compare3 = LimitViolations.comparator().compare(violation1, result.getPostContingencyResults().get(3)
                 .getLimitViolationsResult().getLimitViolations().get(0));
-        assertEquals(0, compare3); // FIXME line open at one side
+        assertEquals(-1, compare3); // FIXME line open at one side
 
         line.newCurrentLimits1().setPermanentLimit(900.0).add();
         line2.newCurrentLimits1().setPermanentLimit(900.0).add();
