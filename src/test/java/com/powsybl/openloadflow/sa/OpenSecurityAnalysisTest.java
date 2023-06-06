@@ -2033,9 +2033,33 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getGenerator("GEN").setMaxP(4000).setMinP(-4000);
 
         TieLine line = network.getTieLine("NHV1_NHV2_1");
-        ((CurrentLimitsAdder) ((CurrentLimitsAdder) ((CurrentLimitsAdder) line.newCurrentLimits2().setPermanentLimit(900.0)).beginTemporaryLimit().setName("10'").setAcceptableDuration(600).setValue(1000.0).endTemporaryLimit()).beginTemporaryLimit().setName("1'").setAcceptableDuration(60).setValue(1100.0).endTemporaryLimit()).add();
+        line.newCurrentLimits2()
+                .setPermanentLimit(900.0)
+                .beginTemporaryLimit()
+                    .setName("10'")
+                    .setAcceptableDuration(600)
+                    .setValue(1000.0)
+                .endTemporaryLimit()
+                .beginTemporaryLimit()
+                    .setName("1'")
+                    .setAcceptableDuration(60)
+                    .setValue(1100.0)
+                .endTemporaryLimit()
+                .add();
         TieLine line2 = network.getTieLine("NHV1_NHV2_2");
-        ((CurrentLimitsAdder) ((CurrentLimitsAdder) ((CurrentLimitsAdder) line2.newCurrentLimits2().setPermanentLimit(900.0)).beginTemporaryLimit().setName("20'").setAcceptableDuration(1200).setValue(1000.0).endTemporaryLimit()).beginTemporaryLimit().setName("N/A").setAcceptableDuration(60).setValue(1.7976931348623157E308D).endTemporaryLimit()).add();
+        line2.newCurrentLimits2()
+                .setPermanentLimit(900.0)
+                .beginTemporaryLimit()
+                    .setName("20'")
+                    .setAcceptableDuration(1200)
+                    .setValue(1000.0)
+                .endTemporaryLimit()
+                .beginTemporaryLimit()
+                    .setName("N/A")
+                    .setAcceptableDuration(60)
+                    .setValue(1.7976931348623157E308D)
+                .endTemporaryLimit()
+                .add();
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         ContingenciesProvider contingencies = n -> ImmutableList.of(
