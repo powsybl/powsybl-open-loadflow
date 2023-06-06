@@ -16,10 +16,6 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.outerloop.AcloadFlowEngine;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -57,13 +53,15 @@ class LfBranchDisableModeTest {
                                                                      new AcEquationSystemCreationParameters(),
                                                                      new NewtonRaphsonParameters(),
                                                                      Collections.emptyList(),
+                                                                     AcLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS,
                                                                      new DenseMatrixFactory(),
-                                                                     new UniformValueVoltageInitializer());
+                                                                     new UniformValueVoltageInitializer(),
+                                                                     false);
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult result = new AcloadFlowEngine(context)
                     .run();
             assertEquals(NewtonRaphsonStatus.CONVERGED, result.getNewtonRaphsonStatus());
-            lfNetwork.updateState(new LfNetworkStateUpdateParameters(true, false, false, false, true, false));
+            lfNetwork.updateState(new LfNetworkStateUpdateParameters(true, false, false, false, true, false, false));
 
             var l1 = network.getLine("NHV1_NHV2_1");
             assertActivePowerEquals(302.444, l1.getTerminal1());
@@ -79,7 +77,7 @@ class LfBranchDisableModeTest {
             AcLoadFlowResult result = new AcloadFlowEngine(context)
                     .run();
             assertEquals(NewtonRaphsonStatus.CONVERGED, result.getNewtonRaphsonStatus());
-            lfNetwork.updateState(new LfNetworkStateUpdateParameters(true, false, false, false, true, false));
+            lfNetwork.updateState(new LfNetworkStateUpdateParameters(true, false, false, false, true, false, false));
 
             var l1 = network.getLine("NHV1_NHV2_1");
         }

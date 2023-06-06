@@ -195,7 +195,6 @@ public interface LfBranch extends LfElement {
     void setAsymLine(LfAsymLine asymLine);
 
     boolean isAsymmetric();
-    void setMinZ(boolean dc, double lowImpedanceThreshold);
 
     Set<LfBranchDisableMode> getSupportedDisableModes();
 

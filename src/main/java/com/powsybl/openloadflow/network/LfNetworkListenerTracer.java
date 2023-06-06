@@ -133,4 +133,10 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
         LOGGER.trace("onZeroImpedanceNetworkMerge(network1={}, network2={}, mergedNetwork={}, loadFlowModel={})", network1, network2, mergedNetwork, loadFlowModel);
         delegate.onZeroImpedanceNetworkMerge(network1, network2, mergedNetwork, loadFlowModel);
     }
+
+    @Override
+    public void onBranchDisableModeChange(LfBranch branch, LfBranchDisableMode disableMode) {
+        LOGGER.trace("onBranchDisableModeChange(branchId='{}', disableMode={})", branch, disableMode);
+        delegate.onBranchDisableModeChange(branch, disableMode);
+    }
 }

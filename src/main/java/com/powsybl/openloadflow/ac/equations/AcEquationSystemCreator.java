@@ -612,10 +612,21 @@ public class AcEquationSystemCreator {
         boolean deriveA1 = isDeriveA1(branch, creationParameters);
         boolean deriveR1 = isDeriveR1(branch);
         if (bus1 != null && bus2 != null) {
-            var ps1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow();
-            var qs1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow();
-            var ps2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow();
-            var qs2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow();
+            p1 = new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+        } else if (bus1 != null) {
+            p1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            i1 = new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
+        } else if (bus2 != null) {
+            p2 = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            q2 = new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+            i2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+        }
 
         createBranchEquations(branch, bus1, bus2, equationSystem, p1, q1, p2, q2, i1, i2);
 
@@ -633,80 +644,32 @@ public class AcEquationSystemCreator {
                     .orElseThrow()
                     .addTerm(p1);
             branch.setP1(p1);
-
-            var q1 = new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            qs1.addTerm(q1);
+        }
+        if (q1 != null) {
+            equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q)
+                    .orElseThrow()
+                    .addTerm(q1);
             branch.setQ1(q1);
+        }
+        if (p2 != null) {
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P)
+                    .orElseThrow()
+                    .addTerm(p2);
+            branch.setP2(p2);
+        }
+        if (q2 != null) {
+            equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q)
+                    .orElseThrow()
+                    .addTerm(q2);
+            branch.setQ2(q2);
+        }
 
-            var i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+        if (i1 != null) {
             equationSystem.attach(i1);
             branch.setI1(i1);
+        }
 
-            if (branch.getSupportedDisableModes().contains(LfBranchDisableMode.SIDE_2)) {
-                var op1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1)
-                        .setActive(false);
-                ps1.addTerm(op1);
-
-                var oq1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1)
-                        .setActive(false);
-                qs1.addTerm(oq1);
-
-                var oi1 = new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
-                equationSystem.attach(oi1);
-            }
-
-            var p2 = new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            ps2.addTerm(p2);
-            branch.setP2(p2);
-
-            var q2 = new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            qs2.addTerm(q2);
-            branch.setQ2(q2);
-
-            var i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            equationSystem.attach(i2);
-            branch.setI2(i2);
-
-            if (branch.getSupportedDisableModes().contains(LfBranchDisableMode.SIDE_1)) {
-                var op2 = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
-                        .setActive(false);
-                ps2.addTerm(op2);
-
-                var oq2 = new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
-                        .setActive(false);
-                qs2.addTerm(oq2);
-
-                var oi2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-                equationSystem.attach(oi2);
-            }
-        } else if (bus1 != null) {
-            var ps1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow();
-            var qs1 = equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow();
-
-            var p1 = new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            ps1.addTerm(p1);
-            branch.setP1(p1);
-
-            var q1 = new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            qs1.addTerm(q1);
-            branch.setQ1(q1);
-
-            var i1 = new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            equationSystem.attach(i1);
-            branch.setI1(i1);
-        } else if (bus2 != null) {
-            var ps2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow();
-            var qs2 = equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_Q).orElseThrow();
-
-            var p2 = new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            ps2.addTerm(p2);
-            branch.setP2(p2);
-
-            var q2 = new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-            qs2.addTerm(q2);
-            branch.setQ2(q2);
-
-            var i2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
+        if (i2 != null) {
             equationSystem.attach(i2);
             branch.setI2(i2);
         }
