@@ -20,7 +20,7 @@
     </parent>
 
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.3.0-SNAPSHOT</version>
 
     <name>powsybl open loadflow</name>
     <description>An open source loadflow based on PowSyBl</description>
@@ -45,10 +45,10 @@
         <java.version>11</java.version>
 
         <jafama.version>2.3.2</jafama.version>
-        <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
+        <asciitable.version>0.3.2</asciitable.version>
 
-        <powsybl-core.version>5.0.0</powsybl-core.version>
+        <powsybl-core.version>5.3.0</powsybl-core.version>
     </properties>
 
     <build>
@@ -92,6 +92,11 @@
     <dependencies>
         <!-- Compile dependencies -->
         <dependency>
+            <groupId>de.vandermeer</groupId>
+            <artifactId>asciitable</artifactId>
+            <version>${asciitable.version}</version>
+        </dependency>
+        <dependency>
             <groupId>net.jafama</groupId>
             <artifactId>jafama</artifactId>
             <version>${jafama.version}</version>
@@ -104,6 +109,10 @@
             <groupId>org.usefultoys</groupId>
             <artifactId>slf4j-toys</artifactId>
             <version>${slf4jtoys.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.anarres.graphviz</groupId>
+            <artifactId>graphviz-builder</artifactId>
         </dependency>
 
         <dependency>
@@ -158,12 +167,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit-jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
@@ -176,8 +179,7 @@
 
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-commons</artifactId>
-            <type>test-jar</type>
+            <artifactId>powsybl-commons-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

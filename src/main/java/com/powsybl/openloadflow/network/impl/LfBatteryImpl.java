@@ -27,21 +27,27 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     private double droop;
 
+    private double participationFactor;
+
     private LfBatteryImpl(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, battery.getTargetP());
-        this.batteryRef = new Ref<>(battery);
+        super(network, battery.getTargetP() / PerUnit.SB);
+        this.batteryRef = Ref.create(battery, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
         // get participation factor from extension
         ActivePowerControl<Battery> activePowerControl = battery.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
-            if (activePowerControl.getDroop() != 0) {
+            participating = activePowerControl.isParticipate();
+            if (!Double.isNaN(activePowerControl.getDroop())) {
                 droop = activePowerControl.getDroop();
+            }
+            if (activePowerControl.getParticipationFactor() > 0) {
+                participationFactor = activePowerControl.getParticipationFactor();
             }
         }
 
-        if (!checkActivePowerControl(battery.getTargetP(), battery.getMinP(), battery.getMaxP(), parameters, report)) {
+        if (!checkActivePowerControl(getId(), battery.getTargetP(), battery.getMinP(), battery.getMaxP(),
+                parameters.getPlausibleActivePowerLimit(), report)) {
             participating = false;
         }
     }
@@ -99,10 +105,15 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public double getParticipationFactor() {
+        return participationFactor;
+    }
+
+    @Override
     public void updateState() {
         var battery = getBattery();
         battery.getTerminal()
-                .setP(-targetP)
+                .setP(-targetP * PerUnit.SB)
                 .setQ(-battery.getTargetQ());
     }
 }

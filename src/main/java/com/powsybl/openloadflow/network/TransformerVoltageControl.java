@@ -6,28 +6,20 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  * @author Florian Dupuy <florian.dupuy at rte-france.com>
  */
-public class TransformerVoltageControl extends AbstractDiscreteVoltageControl {
+public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> {
 
-    protected final List<LfBranch> controllers = new ArrayList<>();
+    private static final int PRIORITY = 1;
 
-    public TransformerVoltageControl(LfBus controlled, double targetValue) {
-        super(controlled, targetValue);
+    public TransformerVoltageControl(LfBus controlledBus, double targetValue, Double targetDeadband) {
+        super(controlledBus, Type.TRANSFORMER, PRIORITY, targetValue, targetDeadband);
     }
 
-    public List<LfBranch> getControllers() {
-        return controllers;
-    }
-
-    public void addController(LfBranch controllerBranch) {
-        Objects.requireNonNull(controllerBranch);
-        controllers.add(controllerBranch);
+    @Override
+    public boolean isControllerEnabled(LfBranch controllerElement) {
+        return controllerElement.isVoltageControlEnabled();
     }
 }

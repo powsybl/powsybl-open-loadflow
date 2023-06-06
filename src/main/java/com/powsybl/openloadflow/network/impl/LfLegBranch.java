@@ -26,8 +26,8 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     private LfLegBranch(LfNetwork network, LfBus bus1, LfBus bus0, PiModel piModel, ThreeWindingsTransformer twt, ThreeWindingsTransformer.Leg leg,
                         LfNetworkParameters parameters) {
         super(network, bus1, bus0, piModel, parameters);
-        this.twtRef = new Ref<>(twt);
-        this.legRef = new Ref<>(leg);
+        this.twtRef = Ref.create(twt, parameters.isCacheEnabled());
+        this.legRef = Ref.create(leg, parameters.isCacheEnabled());
     }
 
     private ThreeWindingsTransformer getTwt() {
@@ -47,8 +47,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
         PiModel piModel = null;
 
-        double nominalV2 = twt.getRatedU0();
-        double zb = nominalV2 * nominalV2 / PerUnit.SB;
+        double zb = PerUnit.zb(twt.getRatedU0());
         double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
         PhaseTapChanger ptc = leg.getPhaseTapChanger();
         if (ptc != null
@@ -132,7 +131,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public boolean hasPhaseControlCapability() {
+    public boolean hasPhaseControllerCapability() {
         return getLeg().getPhaseTapChanger() != null;
     }
 
@@ -169,18 +168,12 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
             updateTapPosition(leg.getPhaseTapChanger());
         }
 
-        if (parameters.isPhaseShifterRegulationOn() && isPhaseControlled() && discretePhaseControl.getControlledSide() == DiscretePhaseControl.ControlledSide.ONE) {
-            // check if the target value deadband is respected
-            checkTargetDeadband(p1.eval());
-        }
-
         if (parameters.isTransformerVoltageControlOn() && isVoltageController()) { // it means there is a regulating ratio tap changer
             RatioTapChanger rtc = leg.getRatioTapChanger();
             double baseRatio = Transformers.getRatioPerUnitBase(leg, twt);
             double rho = getPiModel().getR1() * leg.getRatedU() / twt.getRatedU0() * baseRatio;
             double ptcRho = leg.getPhaseTapChanger() != null ? leg.getPhaseTapChanger().getCurrentStep().getRho() : 1;
             updateTapPosition(rtc, ptcRho, rho);
-            checkTargetDeadband(rtc);
         }
     }
 

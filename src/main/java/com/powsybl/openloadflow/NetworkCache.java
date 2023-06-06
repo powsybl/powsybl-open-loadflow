@@ -9,12 +9,12 @@ package com.powsybl.openloadflow;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.outerloop.AcLoadFlowResult;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.VoltageControl;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.network.GeneratorVoltageControl;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +23,7 @@ import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiPredicate;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -36,18 +37,17 @@ public enum NetworkCache {
 
         private final WeakReference<Network> networkRef;
 
-        private final String variantId;
+        private final String workingVariantId;
+        private String tmpVariantId;
 
         private final LoadFlowParameters parameters;
 
         private List<AcLoadFlowContext> contexts;
 
-        private LfNetworkList.VariantCleaner variantCleaner;
-
         public Entry(Network network, LoadFlowParameters parameters) {
             Objects.requireNonNull(network);
             this.networkRef = new WeakReference<>(network);
-            this.variantId = network.getVariantManager().getWorkingVariantId();
+            this.workingVariantId = network.getVariantManager().getWorkingVariantId();
             this.parameters = Objects.requireNonNull(parameters);
         }
 
@@ -55,8 +55,12 @@ public enum NetworkCache {
             return networkRef;
         }
 
-        public String getVariantId() {
-            return variantId;
+        public String getWorkingVariantId() {
+            return workingVariantId;
+        }
+
+        public void setTmpVariantId(String tmpVariantId) {
+            this.tmpVariantId = tmpVariantId;
         }
 
         public List<AcLoadFlowContext> getContexts() {
@@ -65,10 +69,6 @@ public enum NetworkCache {
 
         public void setContexts(List<AcLoadFlowContext> contexts) {
             this.contexts = contexts;
-        }
-
-        public void setVariantCleaner(LfNetworkList.VariantCleaner variantCleaner) {
-            this.variantCleaner = variantCleaner;
         }
 
         public LoadFlowParameters getParameters() {
@@ -99,36 +99,78 @@ public enum NetworkCache {
             onStructureChange();
         }
 
-        private static Bus getBus(Injection<?> injection, AcLoadFlowContext context) {
-            return context.getParameters().getNetworkParameters().isBreakers()
+        private static Optional<Bus> getBus(Injection<?> injection, AcLoadFlowContext context) {
+            return Optional.ofNullable(context.getParameters().getNetworkParameters().isBreakers()
                     ? injection.getTerminal().getBusBreakerView().getBus()
-                    : injection.getTerminal().getBusView().getBus();
+                    : injection.getTerminal().getBusView().getBus());
+        }
+
+        private static Optional<LfBus> getLfBus(Injection<?> injection, AcLoadFlowContext context) {
+            return getBus(injection, context)
+                    .map(bus -> context.getNetwork().getBusById(bus.getId()));
+        }
+
+        private boolean onInjectionUpdate(Injection<?> injection, String attribute, BiPredicate<AcLoadFlowContext, LfBus> handler) {
+            boolean found = false;
+            for (AcLoadFlowContext context : contexts) {
+                found |= getLfBus(injection, context)
+                        .map(lfBus -> {
+                            boolean done = handler.test(context, lfBus);
+                            if (done) {
+                                context.setNetworkUpdated(true);
+                            }
+                            return done;
+                        })
+                        .orElse(Boolean.FALSE);
+            }
+            if (!found) {
+                LOGGER.warn("Cannot update attribute {} of injection '{}'", attribute, injection.getId());
+            }
+            return found;
         }
 
         private boolean onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
+            return onInjectionUpdate(generator, attribute, (context, lfBus) -> {
+                if (attribute.equals("targetV")) {
+                    double valueShift = (double) newValue - (double) oldValue;
+                    GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
+                    double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
+                    voltageControl.setTargetValue(newTargetV);
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        private boolean onShuntUpdate(ShuntCompensator shunt, String attribute) {
+            return onInjectionUpdate(shunt, attribute, (context, lfBus) -> {
+                if (attribute.equals("sectionCount")) {
+                    if (!lfBus.getControllerShunt().isPresent()) {
+                        LfShunt lfShunt = lfBus.getShunt().orElseThrow();
+                        lfShunt.reInit();
+                        return true;
+                    } else {
+                        LOGGER.info("Shunt compensator {} is controlling voltage or connected to a bus containing a shunt compensator" +
+                                "with an active voltage control: not supported", shunt.getId());
+                    }
+                }
+                return false;
+            });
+        }
+
+        private boolean onSwitchUpdate(String switchId, boolean open) {
             boolean found = false;
             for (AcLoadFlowContext context : contexts) {
-                Bus bus = getBus(generator, context);
-                if (bus != null) {
-                    LfNetwork lfNetwork = context.getNetwork();
-                    LfBus lfBus = lfNetwork.getBusById(bus.getId());
-                    if (lfBus != null) {
-                        if (attribute.equals("targetV")) {
-                            double valueShift = (double) newValue - (double) oldValue;
-                            VoltageControl voltageControl = lfBus.getVoltageControl().orElseThrow();
-                            double newTargetV = voltageControl.getTargetValue() + valueShift / lfBus.getNominalV();
-                            voltageControl.setTargetValue(newTargetV);
-                            context.setNetworkUpdated(true);
-                            found = true;
-                            break;
-                        } else {
-                            throw new IllegalStateException("Unsupported generator attribute: " + attribute);
-                        }
-                    }
+                LfNetwork lfNetwork = context.getNetwork();
+                LfBranch lfBranch = lfNetwork.getBranchById(switchId);
+                if (lfBranch != null) {
+                    lfBranch.setDisabled(open);
+                    context.setNetworkUpdated(true);
+                    found = true;
                 }
             }
             if (!found) {
-                LOGGER.warn("Cannot update {} of generator '{}'", attribute, generator.getId());
+                LOGGER.warn("Cannot open switch '{}'", switchId);
             }
             return found;
         }
@@ -157,6 +199,17 @@ public enum NetworkCache {
                         Generator generator = (Generator) identifiable;
                         if (attribute.equals("targetV")
                                 && onGeneratorUpdate(generator, attribute, oldValue, newValue)) {
+                            done = true;
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
+                        ShuntCompensator shunt = (ShuntCompensator) identifiable;
+                        if (attribute.equals("sectionCount")
+                                && onShuntUpdate(shunt, attribute)) {
+                            done = true;
+                        }
+                    } else if (identifiable.getType() == IdentifiableType.SWITCH
+                            && attribute.equals("open")) {
+                        if (onSwitchUpdate(identifiable.getId(), (boolean) newValue)) {
                             done = true;
                         }
                     }
@@ -210,9 +263,9 @@ public enum NetworkCache {
 
         public void close() {
             reset();
-            if (variantCleaner != null) {
-                variantCleaner.clean();
-                variantCleaner = null;
+            Network network = networkRef.get();
+            if (network != null && tmpVariantId != null) {
+                network.getVariantManager().removeVariant(tmpVariantId);
             }
         }
     }
@@ -247,7 +300,7 @@ public enum NetworkCache {
     public Optional<Entry> findEntry(Network network) {
         String variantId = network.getVariantManager().getWorkingVariantId();
         return entries.stream()
-                .filter(e -> e.getNetworkRef().get() == network && e.getVariantId().equals(variantId))
+                .filter(e -> e.getNetworkRef().get() == network && e.getWorkingVariantId().equals(variantId))
                 .findFirst();
     }
 

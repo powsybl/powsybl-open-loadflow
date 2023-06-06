@@ -82,6 +82,7 @@ public final class NodeBreakerNetworkFactory {
                 .setId("C")
                 .setNode1(6)
                 .setNode2(1)
+                .setRetained(true)
                 .add();
         vl1.getNodeBreakerView().newBreaker()
                 .setId("B1")
@@ -99,8 +100,8 @@ public final class NodeBreakerNetworkFactory {
         vl1.newGenerator()
                 .setId("G")
                 .setNode(4)
-                .setMinP(-9999.99)
-                .setMaxP(9999.99)
+                .setMinP(0.0)
+                .setMaxP(1000.0)
                 .setVoltageRegulatorOn(true)
                 .setTargetV(398)
                 .setTargetP(603.77)
@@ -148,9 +149,7 @@ public final class NodeBreakerNetworkFactory {
                 .setNode2(1)
                 .setR(3.0)
                 .setX(33.0)
-                .setG1(0.0)
                 .setB1(386E-6 / 2)
-                .setG2(0.0)
                 .setB2(386E-6 / 2)
                 .add();
 
@@ -162,9 +161,7 @@ public final class NodeBreakerNetworkFactory {
                 .setNode2(2)
                 .setR(3.0)
                 .setX(33.0)
-                .setG1(0.0)
                 .setB1(386E-6 / 2)
-                .setG2(0.0)
                 .setB2(386E-6 / 2)
                 .add();
 
@@ -210,9 +207,7 @@ public final class NodeBreakerNetworkFactory {
             .setNode2(node2)
             .setR(3.0)
             .setX(33.0)
-            .setG1(0.0)
             .setB1(386E-6 / 2)
-            .setG2(0.0)
             .setB2(386E-6 / 2)
             .add();
         network.getLine(id).newCurrentLimits1().setPermanentLimit(940.0).add();

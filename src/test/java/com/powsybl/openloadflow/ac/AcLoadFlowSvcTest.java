@@ -16,6 +16,7 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -46,67 +47,11 @@ class AcLoadFlowSvcTest {
     private LoadFlowParameters parameters;
 
     private Network createNetwork() {
-        Network network = Network.create("svc", "test");
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        bus1 = vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(101.3664)
-                .setTargetV(390)
-                .setMinP(0)
-                .setMaxP(150)
-                .setVoltageRegulatorOn(true)
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        bus2 = vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld1")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(101)
-                .setQ0(150)
-                .add();
-        svc1 = vl2.newStaticVarCompensator()
-                .setId("svc1")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
-                .setBmin(-0.008)
-                .setBmax(0.008)
-                .add();
-        l1 = network.newLine()
-                .setId("l1")
-                .setVoltageLevel1("vl1")
-                .setBus1("b1")
-                .setVoltageLevel2("vl2")
-                .setBus2("b2")
-                .setR(1)
-                .setX(3)
-                .setG1(0)
-                .setG2(0)
-                .setB1(0)
-                .setB2(0)
-                .add();
+        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        bus1 = network.getBusBreakerView().getBus("b1");
+        bus2 = network.getBusBreakerView().getBus("b2");
+        svc1 = network.getStaticVarCompensator("svc1");
+        l1 = network.getLine("l1");
         return network;
     }
 
@@ -114,7 +59,7 @@ class AcLoadFlowSvcTest {
     void setUp() {
         network = createNetwork();
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(false)
+        parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
@@ -352,7 +297,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void testStandByAutomaton3() {
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         network.getGenerator("g1").setTargetV(405);
 
@@ -375,7 +320,7 @@ class AcLoadFlowSvcTest {
     void testStandByAutomaton4() {
         // Test a voltage controller and a voltage monitor connected to the same bus.
         // Voltage monitor is discarded.
-        svc1.setVoltageSetPoint(385)
+        svc1.setVoltageSetpoint(385)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(397)

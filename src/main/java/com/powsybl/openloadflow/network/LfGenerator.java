@@ -43,6 +43,8 @@ public interface LfGenerator extends PropertyBag {
 
     double getTargetQ();
 
+    double getInitialTargetP();
+
     double getTargetP();
 
     void setTargetP(double targetP);
@@ -67,6 +69,10 @@ public interface LfGenerator extends PropertyBag {
         return 0;
     }
 
+    default double getParticipationFactor() {
+        return 0;
+    }
+
     double getCalculatedQ();
 
     void setCalculatedQ(double calculatedQ);
@@ -85,7 +91,17 @@ public interface LfGenerator extends PropertyBag {
 
     LfBranch getControlledBranch();
 
-    ReactivePowerControl.ControlledSide getControlledBranchSide();
+    ControlledSide getControlledBranchSide();
 
     double getRemoteTargetQ();
+
+    default boolean isDisabled() {
+        return false;
+    }
+
+    void setDisabled(boolean disabled);
+
+    LfAsymGenerator getAsym();
+
+    void setAsym(LfAsymGenerator asym);
 }

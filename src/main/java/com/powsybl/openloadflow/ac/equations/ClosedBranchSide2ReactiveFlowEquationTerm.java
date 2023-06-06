@@ -10,6 +10,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.util.Fortescue;
 import net.jafama.FastMath;
 
 import java.util.Objects;
@@ -24,7 +25,12 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
 
     public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
                                                      boolean deriveA1, boolean deriveR1) {
-        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1);
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, Fortescue.SequenceType.POSITIVE);
+    }
+
+    public ClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet,
+                                                     boolean deriveA1, boolean deriveR1, Fortescue.SequenceType sequenceType) {
+        super(branch, bus1, bus2, variableSet, deriveA1, deriveR1, sequenceType);
     }
 
     protected double calculateSensi(double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
@@ -37,34 +43,36 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
         return dq2dph1(y, v1, r1, v2, sinTheta) * dph1
                 + dq2dph2(y, v1, r1, v2, sinTheta) * dph2
                 + dq2dv1(y, r1, v2, cosTheta) * dv1
-                + dq2dv2(y, FastMath.cos(ksi), b2, v1, r1, v2, cosTheta) * dv2;
+                + dq2dv2(y, FastMath.cos(ksi), b2, v1, r1, v2, cosTheta) * dv2
+                + dq2da1(y, v1, r1, v2, sinTheta) * da1
+                + dq2dr1(y, v1, v2, cosTheta) * dr1;
     }
 
     public static double q2(double y, double cosKsi, double b2, double v1, double r1, double v2, double cosTheta) {
         return R2 * v2 * (-b2 * R2 * v2 - y * r1 * v1 * cosTheta + y * R2 * v2 * cosKsi);
     }
 
-    private static double dq2dv1(double y, double r1, double v2, double cosTheta) {
+    public static double dq2dv1(double y, double r1, double v2, double cosTheta) {
         return -y * r1 * R2 * v2 * cosTheta;
     }
 
-    private static double dq2dv2(double y, double cosKsi, double b2, double v1, double r1, double v2, double cosTheta) {
+    public static double dq2dv2(double y, double cosKsi, double b2, double v1, double r1, double v2, double cosTheta) {
         return R2 * (-2 * b2 * R2 * v2 - y * r1 * v1 * cosTheta + 2 * y * R2 * v2 * cosKsi);
     }
 
-    private static double dq2dph1(double y, double v1, double r1, double v2, double sinTheta) {
+    public static double dq2dph1(double y, double v1, double r1, double v2, double sinTheta) {
         return y * r1 * R2 * v1 * v2 * sinTheta;
     }
 
-    private static double dq2dph2(double y, double v1, double r1, double v2, double sinTheta) {
+    public static double dq2dph2(double y, double v1, double r1, double v2, double sinTheta) {
         return -dq2dph1(y, v1, r1, v2, sinTheta);
     }
 
-    private static double dq2da1(double y, double v1, double r1, double v2, double sinTheta) {
+    public static double dq2da1(double y, double v1, double r1, double v2, double sinTheta) {
         return dq2dph1(y, v1, r1, v2, sinTheta);
     }
 
-    private static double dq2dr1(double y, double v1, double v2, double cosTheta) {
+    public static double dq2dr1(double y, double v1, double v2, double cosTheta) {
         return -y * R2 * v1 * v2 * cosTheta;
     }
 

@@ -17,14 +17,18 @@ public class BusDcState extends ElementState<LfBus> {
     private final double loadTargetP;
     private final Map<String, Double> generatorsTargetP;
     private final Map<String, Boolean> participatingGenerators;
+    private final Map<String, Boolean> disablingStatusGenerators;
     private final double absVariableLoadTargetP;
+    private final Map<String, Boolean> loadsDisablingStatus;
 
     public BusDcState(LfBus bus) {
         super(bus);
         this.loadTargetP = bus.getLoadTargetP();
         this.generatorsTargetP = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getTargetP));
         this.participatingGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isParticipating));
-        this.absVariableLoadTargetP = bus.getAggregatedLoads().getAbsVariableLoadTargetP();
+        this.disablingStatusGenerators = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::isDisabled));
+        this.absVariableLoadTargetP = bus.getLoad().getAbsVariableTargetP();
+        this.loadsDisablingStatus = bus.getLoad().getOriginalLoadsDisablingStatus();
     }
 
     @Override
@@ -33,7 +37,9 @@ public class BusDcState extends ElementState<LfBus> {
         element.setLoadTargetP(loadTargetP);
         element.getGenerators().forEach(g -> g.setTargetP(generatorsTargetP.get(g.getId())));
         element.getGenerators().forEach(g -> g.setParticipating(participatingGenerators.get(g.getId())));
-        element.getAggregatedLoads().setAbsVariableLoadTargetP(absVariableLoadTargetP);
+        element.getGenerators().forEach(g -> g.setDisabled(disablingStatusGenerators.get(g.getId())));
+        element.getLoad().setAbsVariableTargetP(absVariableLoadTargetP);
+        element.getLoad().setOriginalLoadsDisablingStatus(loadsDisablingStatus);
     }
 
     public static BusDcState save(LfBus bus) {

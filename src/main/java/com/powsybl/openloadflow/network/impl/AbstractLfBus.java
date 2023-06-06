@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -31,6 +32,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean slack = false;
 
+    protected boolean reference = false;
+
     protected double v;
 
     protected Evaluable calculatedV = NAN;
@@ -39,13 +42,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private boolean hasGeneratorsWithSlope;
 
-    protected boolean voltageControlEnabled = false;
+    protected boolean generatorVoltageControlEnabled = false;
 
     protected double loadTargetP = 0;
 
     protected double initialLoadTargetP = 0;
 
     protected double loadTargetQ = 0;
+
+    protected Double generationTargetP;
 
     protected double generationTargetQ = 0;
 
@@ -57,7 +62,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected LfShunt svcShunt;
 
-    protected final LfAggregatedLoadsImpl lfAggregatedLoads;
+    protected final LfLoadImpl load;
 
     protected boolean ensurePowerFactorConstantByLoad = false;
 
@@ -67,7 +72,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected final List<LfHvdc> hvdcs = new ArrayList<>();
 
-    private VoltageControl voltageControl;
+    private GeneratorVoltageControl generatorVoltageControl;
 
     private ReactivePowerControl reactivePowerControl;
 
@@ -81,9 +86,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected double remoteVoltageControlReactivePercent = Double.NaN;
 
+    protected final Map<LoadFlowModel, LfZeroImpedanceNetwork> zeroImpedanceNetwork = new EnumMap<>(LoadFlowModel.class);
+
+    protected LfAsymBus asym;
+
     protected AbstractLfBus(LfNetwork network, double v, double angle, boolean distributedOnConformLoad) {
         super(network);
-        lfAggregatedLoads = new LfAggregatedLoadsImpl(distributedOnConformLoad);
+        load = new LfLoadImpl(distributedOnConformLoad);
         this.v = v;
         this.angle = angle;
     }
@@ -95,13 +104,24 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isSlack() {
-        network.updateSlack();
+        network.updateSlackBuses();
         return slack;
     }
 
     @Override
     public void setSlack(boolean slack) {
         this.slack = slack;
+    }
+
+    @Override
+    public boolean isReference() {
+        network.updateSlackBuses();
+        return reference;
+    }
+
+    @Override
+    public void setReference(boolean reference) {
+        this.reference = reference;
     }
 
     @Override
@@ -115,25 +135,40 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean hasVoltageControllerCapability() {
-        return voltageControl != null && voltageControl.getControllerBuses().contains(this);
+    public List<VoltageControl<?>> getVoltageControls() {
+        List<VoltageControl<?>> voltageControls = new ArrayList<>(3);
+        getGeneratorVoltageControl().ifPresent(voltageControls::add);
+        getTransformerVoltageControl().ifPresent(voltageControls::add);
+        getShuntVoltageControl().ifPresent(voltageControls::add);
+        return voltageControls;
     }
 
     @Override
-    public Optional<VoltageControl> getVoltageControl() {
-        return Optional.ofNullable(voltageControl);
-    }
-
-    public void removeVoltageControl() {
-        this.voltageControl = null;
+    public boolean isVoltageControlled() {
+        return isGeneratorVoltageControlled() || isShuntVoltageControlled() || isTransformerVoltageControlled();
     }
 
     @Override
-    public void setVoltageControl(VoltageControl voltageControl) {
-        this.voltageControl = Objects.requireNonNull(voltageControl);
-        if (hasVoltageControllerCapability()) {
-            this.voltageControlEnabled = true;
-        } else if (!isVoltageControlled()) {
+    public Optional<VoltageControl<?>> getHighestPriorityVoltageControl() {
+        return VoltageControl.findVoltageControlsSortedByPriority(this).stream().findFirst();
+    }
+
+    @Override
+    public boolean hasGeneratorVoltageControllerCapability() {
+        return generatorVoltageControl != null && generatorVoltageControl.getControllerElements().contains(this);
+    }
+
+    @Override
+    public Optional<GeneratorVoltageControl> getGeneratorVoltageControl() {
+        return Optional.ofNullable(generatorVoltageControl);
+    }
+
+    @Override
+    public void setGeneratorVoltageControl(GeneratorVoltageControl generatorVoltageControl) {
+        this.generatorVoltageControl = Objects.requireNonNull(generatorVoltageControl);
+        if (hasGeneratorVoltageControllerCapability()) {
+            this.generatorVoltageControlEnabled = true;
+        } else if (!isGeneratorVoltageControlled()) {
             throw new PowsyblException("Setting inconsistent voltage control to bus " + getId());
         }
     }
@@ -149,8 +184,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean isVoltageControlled() {
-        return voltageControl != null && voltageControl.getControlledBus() == this;
+    public boolean isGeneratorVoltageControlled() {
+        return generatorVoltageControl != null && generatorVoltageControl.getControlledBus() == this;
     }
 
     @Override
@@ -170,45 +205,45 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public boolean isVoltageControlEnabled() {
-        return voltageControlEnabled;
+    public boolean isGeneratorVoltageControlEnabled() {
+        return generatorVoltageControlEnabled;
     }
 
     @Override
-    public void setVoltageControlEnabled(boolean voltageControlEnabled) {
-        if (this.voltageControlEnabled != voltageControlEnabled) {
-            this.voltageControlEnabled = voltageControlEnabled;
+    public void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled) {
+        if (this.generatorVoltageControlEnabled != generatorVoltageControlEnabled) {
+            this.generatorVoltageControlEnabled = generatorVoltageControlEnabled;
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onVoltageControlChange(this, voltageControlEnabled);
+                listener.onGeneratorVoltageControlChange(this, generatorVoltageControlEnabled);
             }
         }
     }
 
-    void addLoad(Load load) {
+    void addLoad(Load load, LfNetworkParameters parameters) {
         double p0 = load.getP0();
-        loadTargetP += p0;
-        initialLoadTargetP += p0;
-        loadTargetQ += load.getQ0();
+        loadTargetP += p0 / PerUnit.SB;
+        initialLoadTargetP += p0 / PerUnit.SB;
+        loadTargetQ += load.getQ0() / PerUnit.SB;
         if (p0 < 0) {
             ensurePowerFactorConstantByLoad = true;
         }
-        lfAggregatedLoads.add(load);
+        this.load.add(load, parameters);
     }
 
-    void addLccConverterStation(LccConverterStation lccCs) {
+    void addLccConverterStation(LccConverterStation lccCs, LfNetworkParameters parameters) {
         // note that LCC converter station are out of the slack distribution.
-        lccCsRefs.add(new Ref<>(lccCs));
-        double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs);
-        loadTargetP += targetP;
-        initialLoadTargetP += targetP;
-        loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs);
+        lccCsRefs.add(Ref.create(lccCs, parameters.isCacheEnabled()));
+        double targetP = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers());
+        loadTargetP += targetP / PerUnit.SB;
+        initialLoadTargetP += targetP / PerUnit.SB;
+        loadTargetQ += HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()) / PerUnit.SB;
     }
 
     protected void add(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
         if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.VOLTAGE && !Double.isNaN(generator.getTargetQ())) {
-            generationTargetQ += generator.getTargetQ() * PerUnit.SB;
+            generationTargetQ += generator.getTargetQ();
         }
     }
 
@@ -226,6 +261,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
             }
             if (lfSvc.getB0() != 0) {
                 svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
+                lfSvc.setStandByAutomatonShunt(svcShunt);
             }
         }
     }
@@ -240,80 +276,85 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     void setShuntCompensators(List<ShuntCompensator> shuntCompensators, LfNetworkParameters parameters) {
         if (!parameters.isShuntVoltageControl() && !shuntCompensators.isEmpty()) {
-            shunt = new LfShuntImpl(shuntCompensators, network, this, false);
+            shunt = new LfShuntImpl(shuntCompensators, network, this, false, parameters);
         } else {
             List<ShuntCompensator> controllerShuntCompensators = shuntCompensators.stream()
                     .filter(ShuntCompensator::isVoltageRegulatorOn)
                     .collect(Collectors.toList());
             if (!controllerShuntCompensators.isEmpty()) {
-                controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true);
+                controllerShunt = new LfShuntImpl(controllerShuntCompensators, network, this, true, parameters);
             }
             List<ShuntCompensator> fixedShuntCompensators = shuntCompensators.stream()
                     .filter(sc -> !sc.isVoltageRegulatorOn())
                     .collect(Collectors.toList());
             if (!fixedShuntCompensators.isEmpty()) {
-                shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false);
+                shunt = new LfShuntImpl(fixedShuntCompensators, network, this, false, parameters);
             }
         }
     }
 
     @Override
+    public void invalidateGenerationTargetP() {
+        generationTargetP = null;
+    }
+
+    @Override
     public double getGenerationTargetP() {
-        return generators.stream().mapToDouble(LfGenerator::getTargetP).sum();
+        if (generationTargetP == null) {
+            generationTargetP = generators.stream().mapToDouble(LfGenerator::getTargetP).sum();
+        }
+        return generationTargetP;
     }
 
     @Override
     public double getGenerationTargetQ() {
-        return generationTargetQ / PerUnit.SB;
+        return generationTargetQ;
     }
 
     @Override
     public void setGenerationTargetQ(double generationTargetQ) {
-        double newGenerationTargetQ = generationTargetQ * PerUnit.SB;
-        if (newGenerationTargetQ != this.generationTargetQ) {
+        if (generationTargetQ != this.generationTargetQ) {
             double oldGenerationTargetQ = this.generationTargetQ;
-            this.generationTargetQ = newGenerationTargetQ;
+            this.generationTargetQ = generationTargetQ;
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, newGenerationTargetQ);
+                listener.onGenerationReactivePowerTargetChange(this, oldGenerationTargetQ, generationTargetQ);
             }
         }
     }
 
     @Override
     public double getLoadTargetP() {
-        return loadTargetP / PerUnit.SB;
+        return loadTargetP;
     }
 
     @Override
     public double getInitialLoadTargetP() {
-        return initialLoadTargetP / PerUnit.SB;
+        return initialLoadTargetP;
     }
 
     @Override
     public void setLoadTargetP(double loadTargetP) {
-        double newLoadTargetP = loadTargetP * PerUnit.SB;
-        if (newLoadTargetP != this.loadTargetP) {
+        if (loadTargetP != this.loadTargetP) {
             double oldLoadTargetP = this.loadTargetP;
-            this.loadTargetP = newLoadTargetP;
+            this.loadTargetP = loadTargetP;
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, newLoadTargetP);
+                listener.onLoadActivePowerTargetChange(this, oldLoadTargetP, loadTargetP);
             }
         }
     }
 
     @Override
     public double getLoadTargetQ() {
-        return loadTargetQ / PerUnit.SB;
+        return loadTargetQ;
     }
 
     @Override
     public void setLoadTargetQ(double loadTargetQ) {
-        double newLoadTargetQ = loadTargetQ * PerUnit.SB;
-        if (newLoadTargetQ != this.loadTargetQ) {
+        if (loadTargetQ != this.loadTargetQ) {
             double oldLoadTargetQ = this.loadTargetQ;
-            this.loadTargetQ = newLoadTargetQ;
+            this.loadTargetQ = loadTargetQ;
             for (LfNetworkListener listener : network.getListeners()) {
-                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, newLoadTargetQ);
+                listener.onLoadReactivePowerTargetChange(this, oldLoadTargetQ, loadTargetQ);
             }
         }
     }
@@ -390,8 +431,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     @Override
-    public LfAggregatedLoads getAggregatedLoads() {
-        return lfAggregatedLoads;
+    public LfLoad getLoad() {
+        return load;
     }
 
     @Override
@@ -435,7 +476,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     void updateGeneratorsState(double generationQ, boolean reactiveLimits) {
-        double qToDispatch = generationQ / PerUnit.SB;
+        double qToDispatch = generationQ;
         List<LfGenerator> generatorsThatControlVoltage = new LinkedList<>();
         for (LfGenerator generator : generators) {
             if (generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
@@ -456,16 +497,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         // update generator reactive power
-        updateGeneratorsState(voltageControlEnabled ? q.eval() * PerUnit.SB + loadTargetQ : generationTargetQ, parameters.isReactiveLimits());
+        updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ, parameters.isReactiveLimits());
 
         // update load power
-        lfAggregatedLoads.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
+        load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
 
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {
             LccConverterStation lccCs = lccCsRef.get();
-            double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs); // A LCC station has active losses.
-            double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs); // A LCC station always consumes reactive power.
+            double pCs = HvdcConverterStations.getConverterStationTargetP(lccCs, parameters.isBreakers()); // A LCC station has active losses.
+            double qCs = HvdcConverterStations.getLccConverterStationLoadTargetQ(lccCs, parameters.isBreakers()); // A LCC station always consumes reactive power.
             lccCs.getTerminal()
                     .setP(pCs)
                     .setQ(qCs);
@@ -479,7 +520,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isTransformerVoltageControlled() {
-        return transformerVoltageControl != null && transformerVoltageControl.getControlled() == this;
+        return transformerVoltageControl != null && transformerVoltageControl.getControlledBus() == this;
     }
 
     @Override
@@ -494,7 +535,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     @Override
     public boolean isShuntVoltageControlled() {
-        return shuntVoltageControl != null && shuntVoltageControl.getControlled() == this;
+        return shuntVoltageControl != null && shuntVoltageControl.getControlledBus() == this;
     }
 
     @Override
@@ -559,5 +600,27 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getMismatchP() {
         return p.eval() - getTargetP(); // slack bus can also have real injection connected
+    }
+
+    @Override
+    public void setZeroImpedanceNetwork(LoadFlowModel loadFlowModel, LfZeroImpedanceNetwork zeroImpedanceNetwork) {
+        Objects.requireNonNull(zeroImpedanceNetwork);
+        this.zeroImpedanceNetwork.put(loadFlowModel, zeroImpedanceNetwork);
+    }
+
+    @Override
+    public LfZeroImpedanceNetwork getZeroImpedanceNetwork(LoadFlowModel loadFlowModel) {
+        return zeroImpedanceNetwork.get(loadFlowModel);
+    }
+
+    @Override
+    public LfAsymBus getAsym() {
+        return asym;
+    }
+
+    @Override
+    public void setAsym(LfAsymBus asym) {
+        this.asym = asym;
+        asym.setBus(this);
     }
 }

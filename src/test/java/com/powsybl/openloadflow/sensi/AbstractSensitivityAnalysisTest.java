@@ -6,17 +6,14 @@
  */
 package com.powsybl.openloadflow.sensi;
 
-import com.powsybl.commons.AbstractConverterTest;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.test.AbstractConverterTest;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Injection;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -151,12 +148,33 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         return createBranchFlowPerPSTAngle(functionId, variableId, null, side);
     }
 
+    protected static SensitivityFactor createBranchFlowPerTransformerLegPSTAngle(String functionId, String variableId, ThreeWindingsTransformer.Side side) {
+        SensitivityVariableType fVariable = side.equals(ThreeWindingsTransformer.Side.ONE) ? SensitivityVariableType.TRANSFORMER_PHASE_1
+                : side.equals(ThreeWindingsTransformer.Side.TWO) ? SensitivityVariableType.TRANSFORMER_PHASE_2
+                : SensitivityVariableType.TRANSFORMER_PHASE_3;
+        return new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, functionId, fVariable, variableId, false, ContingencyContext.all());
+    }
+
+    protected static SensitivityFactor createTransformerLegFlowPerInjectionIncrease(String functionId, String variableId, ThreeWindingsTransformer.Side side) {
+        SensitivityFunctionType ftype = side.equals(ThreeWindingsTransformer.Side.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                : side.equals(ThreeWindingsTransformer.Side.TWO) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+                : SensitivityFunctionType.BRANCH_ACTIVE_POWER_3;
+        return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
+    }
+
     protected static SensitivityFactor createBranchFlowPerPSTAngle(String functionId, String variableId) {
         return createBranchFlowPerPSTAngle(functionId, variableId, null, Branch.Side.ONE);
     }
 
     protected static SensitivityFactor createBranchIntensityPerInjectionIncrease(String functionId, String variableId, Branch.Side side) {
         SensitivityFunctionType ftype = side.equals(Branch.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+        return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
+    }
+
+    protected static SensitivityFactor createTransformerLegIntensityPerInjectionIncrease(String functionId, String variableId, ThreeWindingsTransformer.Side side) {
+        SensitivityFunctionType ftype = side.equals(ThreeWindingsTransformer.Side.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1
+                : side.equals(ThreeWindingsTransformer.Side.TWO) ? SensitivityFunctionType.BRANCH_CURRENT_2
+                : SensitivityFunctionType.BRANCH_CURRENT_3;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.INJECTION_ACTIVE_POWER, variableId, false, ContingencyContext.all());
     }
 
@@ -318,7 +336,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
 
         CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, contingencies, variableSets, sensiParameters));
         assertTrue(e.getCause() instanceof PowsyblException);
-        assertEquals("Branch 'b' not found", e.getCause().getMessage());
+        assertEquals("Branch, tie line, dangling line or leg of 'b' not found", e.getCause().getMessage());
     }
 
     protected void testEmptyFactors(boolean dc) {
@@ -357,7 +375,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(0f, result.getBranchFlow1SensitivityValue("g3", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0f, result.getBranchFlow1SensitivityValue("g3", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     protected void testPhaseShifterOutsideMainComponent(boolean dc) {
@@ -370,7 +388,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(0d, result.getBranchFlow1SensitivityValue("l45", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("l45", "l12", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
         if (dc) {
             assertEquals(100.00, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
@@ -391,7 +409,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(0, result.getBranchFlow1SensitivityValue("glsk", "l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("glsk", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         if (dc) {
             assertEquals(100.000, result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
         } else {
@@ -412,7 +430,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractConverterT
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), variableSets, sensiParameters);
 
         assertEquals(1, result.getValues().size());
-        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("glsk", "l56"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1SensitivityValue("glsk", "l56", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l56"), LoadFlowAssert.DELTA_POWER);
     }
 

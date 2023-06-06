@@ -6,23 +6,25 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
-    public void onVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
+    public void onGeneratorVoltageControlChange(LfBus controllerBus, boolean newVoltageControllerEnabled) {
         // empty
     }
 
     @Override
-    public void onVoltageControlTargetChange(VoltageControl control, double newTargetVoltage) {
+    public void onGeneratorVoltageControlTargetChange(GeneratorVoltageControl control, double newTargetVoltage) {
         // empty
     }
 
     @Override
-    public void onTransformerPhaseControlChange(LfBranch branch, boolean phaseControlEnabled) {
+    public void onTransformerPhaseControlChange(LfBranch controllerBranch, boolean newPhaseControlEnabled) {
         // empty
     }
 
@@ -63,6 +65,26 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+        // empty
+    }
+
+    @Override
+    public void onShuntSusceptanceChange(LfShunt shunt, double b) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowModel loadFlowModel, boolean spanningTree) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowModel loadFlowModel) {
+        // empty
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkMerge(LfZeroImpedanceNetwork network1, LfZeroImpedanceNetwork network2, LfZeroImpedanceNetwork mergedNetwork, LoadFlowModel loadFlowModel) {
         // empty
     }
 

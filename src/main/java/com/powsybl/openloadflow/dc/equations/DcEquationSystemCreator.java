@@ -9,9 +9,7 @@ package com.powsybl.openloadflow.dc.equations;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemPostProcessor;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
 import java.util.Objects;
@@ -43,35 +41,38 @@ public class DcEquationSystemCreator {
     }
 
     public static void createNonImpedantBranch(EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                               LfBranch branch, LfBus bus1, LfBus bus2) {
-        boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), DcEquationType.BUS_TARGET_PHI);
-        boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), DcEquationType.BUS_TARGET_PHI);
-        if (!(hasPhi1 && hasPhi2)) {
-            // create voltage angle coupling equation
-            // alpha = phi1 - phi2
-            equationSystem.createEquation(branch, DcEquationType.ZERO_PHI)
-                    .addTerm(equationSystem.getVariable(bus1.getNum(), DcVariableType.BUS_PHI).createTerm())
-                    .addTerm(equationSystem.getVariable(bus2.getNum(), DcVariableType.BUS_PHI).<DcEquationType>createTerm()
-                                         .minus());
+                                               LfBranch branch, LfBus bus1, LfBus bus2, boolean spanningTree) {
+        if (bus1 != null && bus2 != null) {
+            boolean hasPhi1 = equationSystem.hasEquation(bus1.getNum(), DcEquationType.BUS_TARGET_PHI);
+            boolean hasPhi2 = equationSystem.hasEquation(bus2.getNum(), DcEquationType.BUS_TARGET_PHI);
+            if (!(hasPhi1 && hasPhi2)) {
+                // create voltage angle coupling equation
+                // alpha = phi1 - phi2
+                equationSystem.createEquation(branch, DcEquationType.ZERO_PHI)
+                        .addTerm(equationSystem.getVariable(bus1.getNum(), DcVariableType.BUS_PHI).createTerm())
+                        .addTerm(equationSystem.getVariable(bus2.getNum(), DcVariableType.BUS_PHI).<DcEquationType>createTerm()
+                                .minus())
+                        .setActive(!branch.isDisabled() && spanningTree);
 
-            // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
-            // to ensure we have the same number of equation and variables
-            var dummyP = equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P);
-            equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
-                    .orElseThrow()
-                    .addTerm(dummyP.createTerm());
+                // add a dummy active power variable to both sides of the non impedant branch and with an opposite sign
+                // to ensure we have the same number of equation and variables
+                var dummyP = equationSystem.getVariable(branch.getNum(), DcVariableType.DUMMY_P);
+                equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(dummyP.createTerm());
 
-            equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P)
-                    .orElseThrow()
-                    .addTerm(dummyP.<DcEquationType>createTerm().minus());
+                equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P)
+                        .orElseThrow()
+                        .addTerm(dummyP.<DcEquationType>createTerm().minus());
 
-            // create an inactive dummy active power target equation set to zero that could be activated
-            // on case of switch opening
-            equationSystem.createEquation(branch, DcEquationType.DUMMY_TARGET_P)
-                    .addTerm(dummyP.createTerm())
-                    .setActive(branch.isDisabled()); // inverted logic
-        } else {
-            throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
+                // create an inactive dummy active power target equation set to zero that could be activated
+                // on case of switch opening
+                equationSystem.createEquation(branch, DcEquationType.DUMMY_TARGET_P)
+                        .addTerm(dummyP.createTerm())
+                        .setActive(branch.isDisabled() || !spanningTree); // inverted logic
+            } else {
+                throw new IllegalStateException("Cannot happen because only there is one slack bus per model");
+            }
         }
     }
 
@@ -79,7 +80,7 @@ public class DcEquationSystemCreator {
                                              DcEquationSystemCreationParameters creationParameters, LfBranch branch,
                                              LfBus bus1, LfBus bus2) {
         if (bus1 != null && bus2 != null) {
-            boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControlCapability(); //TODO: phase control outer loop
+            boolean deriveA1 = creationParameters.isForcePhaseControlOffAndAddAngle1Var() && branch.hasPhaseControllerCapability(); //TODO: phase control outer loop
             ClosedBranchSide1DcFlowEquationTerm p1 = ClosedBranchSide1DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
             ClosedBranchSide2DcFlowEquationTerm p2 = ClosedBranchSide2DcFlowEquationTerm.create(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, creationParameters.isUseTransformerRatio());
             equationSystem.getEquation(bus1.getNum(), DcEquationType.BUS_TARGET_P)
@@ -115,10 +116,8 @@ public class DcEquationSystemCreator {
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
-            if (branch.isZeroImpedance()) {
-                if (branch.isSpanningTreeEdge()) {
-                    createNonImpedantBranch(equationSystem, branch, bus1, bus2);
-                }
+            if (branch.isZeroImpedance(LoadFlowModel.DC)) {
+                createNonImpedantBranch(equationSystem, branch, bus1, bus2, branch.isSpanningTreeEdge(LoadFlowModel.DC));
             } else {
                 createImpedantBranch(equationSystem, creationParameters, branch, bus1, bus2);
             }
@@ -134,7 +133,7 @@ public class DcEquationSystemCreator {
         EquationSystemPostProcessor.findAll().forEach(pp -> pp.onCreate(equationSystem));
 
         if (withListener) {
-            network.addListener(new DcEquationSystemUpdater(equationSystem));
+            network.addListener(LfNetworkListenerTracer.trace(new DcEquationSystemUpdater(equationSystem)));
         }
 
         return equationSystem;

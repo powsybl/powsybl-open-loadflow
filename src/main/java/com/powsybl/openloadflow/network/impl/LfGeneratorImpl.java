@@ -6,11 +6,14 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.CoordinatedReactiveControl;
+import com.powsybl.iidm.network.extensions.GeneratorFortescue;
 import com.powsybl.iidm.network.extensions.RemoteReactivePowerControl;
+import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -30,21 +33,28 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private double droop;
 
+    private double participationFactor;
+
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, generator.getTargetP());
-        this.generatorRef = new Ref<>(generator);
+        super(network, generator.getTargetP() / PerUnit.SB);
+        this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         participating = true;
         droop = DEFAULT_DROOP;
-        // get participation factor from extension
+
+        // get participation factor and droop from extension
         ActivePowerControl<Generator> activePowerControl = generator.getExtension(ActivePowerControl.class);
         if (activePowerControl != null) {
-            participating = activePowerControl.isParticipate() && activePowerControl.getDroop() != 0;
-            if (activePowerControl.getDroop() != 0) {
+            participating = activePowerControl.isParticipate();
+            if (!Double.isNaN(activePowerControl.getDroop())) {
                 droop = activePowerControl.getDroop();
+            }
+            if (activePowerControl.getParticipationFactor() > 0) {
+                participationFactor = activePowerControl.getParticipationFactor();
             }
         }
 
-        if (!checkActivePowerControl(generator.getTargetP(), generator.getMinP(), generator.getMaxP(), parameters, report)) {
+        if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMinP(), generator.getMaxP(),
+                parameters.getPlausibleActivePowerLimit(), report)) {
             participating = false;
         }
 
@@ -59,13 +69,49 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
+    private static void createAsym(Generator generator, LfGeneratorImpl lfGenerator) {
+        var extension = generator.getExtension(GeneratorFortescue.class);
+        if (extension != null) {
+            double vNom = generator.getTerminal().getVoltageLevel().getNominalV();
+            double zb = vNom * vNom / PerUnit.SB;
+            double r0 = extension.getRz() / zb;
+            double x0 = extension.getXz() / zb;
+            double r2 = extension.getRn() / zb;
+            double x2 = extension.getXn() / zb;
+            double z0Square = r0 * r0 + x0 * x0;
+            double z2Square = r2 * r2 + x2 * x2;
+            double epsilon = 0.0000000001;
+            double bZero;
+            double gZero;
+            double bNegative;
+            double gNegative;
+            if (z0Square > epsilon) {
+                bZero = -x0 / z0Square;
+                gZero = r0 / z0Square;
+            } else {
+                throw new PowsyblException("Generator '" + generator.getId() + "' has fortescue zero sequence values that will bring singularity in the equation system");
+            }
+            if (z2Square > epsilon) {
+                bNegative = -x2 / z2Square;
+                gNegative = r2 / z2Square;
+            } else {
+                throw new PowsyblException("Generator '" + generator.getId() + "' has fortescue negative sequence values that will bring singularity in the equation system");
+            }
+            lfGenerator.setAsym(new LfAsymGenerator(gZero, bZero, gNegative, bNegative));
+        }
+    }
+
     public static LfGeneratorImpl create(Generator generator, LfNetwork network, LfNetworkParameters parameters,
                                          LfNetworkLoadingReport report) {
         Objects.requireNonNull(generator);
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        return new LfGeneratorImpl(generator, network, parameters, report);
+        LfGeneratorImpl lfGenerator = new LfGeneratorImpl(generator, network, parameters, report);
+        if (parameters.isAsymmetrical()) {
+            createAsym(generator, lfGenerator);
+        }
+        return lfGenerator;
     }
 
     private Generator getGenerator() {
@@ -127,10 +173,15 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public double getParticipationFactor() {
+        return participationFactor;
+    }
+
+    @Override
     public void updateState() {
         var generator = getGenerator();
         generator.getTerminal()
-                .setP(-targetP)
-                .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ);
+                .setP(-targetP * PerUnit.SB)
+                .setQ(Double.isNaN(calculatedQ) ? -generator.getTargetQ() : -calculatedQ * PerUnit.SB);
     }
 }

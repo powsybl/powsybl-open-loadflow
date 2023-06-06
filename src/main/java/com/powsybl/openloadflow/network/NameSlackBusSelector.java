@@ -6,54 +6,64 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.Country;
+
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class NameSlackBusSelector implements SlackBusSelector {
+public class NameSlackBusSelector extends AbstractSlackBusSelector {
 
     private static final String SELECTION_METHOD = "Parameter bus";
 
     private final List<String> busesOrVoltageLevelsIds;
 
-    private final SlackBusSelector secondLevelSelector = new MostMeshedSlackBusSelector();
+    private final SlackBusSelector secondLevelSelector;
 
-    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds) {
+    public NameSlackBusSelector(List<String> busesOrVoltageLevelsIds, Set<Country> countries,
+                                SlackBusSelector secondLevelSelector) {
+        super(countries);
         if (busesOrVoltageLevelsIds.isEmpty()) {
             throw new IllegalArgumentException("Empty bus or voltage level ID list");
         }
         this.busesOrVoltageLevelsIds = Objects.requireNonNull(busesOrVoltageLevelsIds);
+        this.secondLevelSelector = Objects.requireNonNull(secondLevelSelector);
     }
 
     public NameSlackBusSelector(String... busesOrVoltageLevelsIds) {
-        this(List.of(busesOrVoltageLevelsIds));
+        this(List.of(busesOrVoltageLevelsIds), Collections.emptySet(), new MostMeshedSlackBusSelector());
     }
 
     @Override
-    public SelectedSlackBus select(List<LfBus> buses) {
+    public SelectedSlackBus select(List<LfBus> buses, int limit) {
         Map<String, LfBus> busesById = buses.stream().collect(Collectors.toMap(LfBus::getId, Function.identity()));
         Map<String, List<LfBus>> busesByVoltageLevelId = buses.stream().collect(Collectors.groupingBy(LfBus::getVoltageLevelId));
-        for (String busOrVoltageLevelId : busesOrVoltageLevelsIds) {
+
+        List<LfBus> slackBuses = busesOrVoltageLevelsIds.stream().flatMap(id -> {
             // first try to search as a bus ID
-            LfBus slackBus = busesById.get(busOrVoltageLevelId);
+            LfBus slackBus = busesById.get(id);
             if (slackBus != null) {
-                return new SelectedSlackBus(slackBus, SELECTION_METHOD);
+                return Stream.of(slackBus);
             }
-            // then as a voltage level ID
-            var slackBusCandidates = busesByVoltageLevelId.get(busOrVoltageLevelId);
+            var slackBusCandidates = busesByVoltageLevelId.get(id);
             if (slackBusCandidates != null) {
-                if (slackBusCandidates.size() == 1) {
-                    return new SelectedSlackBus(slackBusCandidates.get(0), SELECTION_METHOD);
-                } else {
-                    var selectedSlackBus = secondLevelSelector.select(slackBusCandidates);
-                    return new SelectedSlackBus(selectedSlackBus.getBus(), SELECTION_METHOD + " + " + selectedSlackBus.getSelectionMethod());
-                }
+                return slackBusCandidates.stream();
             }
+            return Stream.empty();
+        }).filter(this::filterByCountry).collect(Collectors.toList());
+
+        if (slackBuses.isEmpty()) {
+            // fallback to automatic selection among all buses
+            return secondLevelSelector.select(buses, limit);
+        } else if (slackBuses.size() <= limit) {
+            return new SelectedSlackBus(slackBuses, SELECTION_METHOD);
+        } else {
+            var selectedSlackBus = secondLevelSelector.select(slackBuses, limit);
+            return new SelectedSlackBus(selectedSlackBus.getBuses(), SELECTION_METHOD + " + " + selectedSlackBus.getSelectionMethod());
         }
-        // fallback to automatic selection among all buses
-        return secondLevelSelector.select(buses);
     }
 }
