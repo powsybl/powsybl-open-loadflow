@@ -2070,13 +2070,13 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies.getContingencies(network), Collections.emptyList(), securityAnalysisParameters);
 
         LimitViolation violation0 = new LimitViolation("NHV1_NHV2_2", null, LimitViolationType.CURRENT, "20'",
-                60, 1000.0, 1.0F, 1047.8257691455556, Branch.Side.TWO);
+                60, 1000.0, 1.0F, 1047.8598237521767, Branch.Side.TWO);
         int compare0 = LimitViolations.comparator().compare(violation0, result.getPostContingencyResults().get(0)
                 .getLimitViolationsResult().getLimitViolations().get(0));
         assertEquals(0, compare0);
 
         LimitViolation violation1 = new LimitViolation("NHV1_NHV2_1", null, LimitViolationType.CURRENT, "10'",
-                60, 1000.0, 1.0F, 1047.8257691455556, Branch.Side.TWO);
+                60, 1000.0, 1.0F, 1047.8598237521767, Branch.Side.TWO);
         int compare1 = LimitViolations.comparator().compare(violation1, result.getPostContingencyResults().get(1)
                 .getLimitViolationsResult().getLimitViolations().get(0));
         assertEquals(0, compare1);
