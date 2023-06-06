@@ -18,17 +18,14 @@ import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 class EquationArrayTest {
 
-    @Test
-    void test() {
-        Network network = EurostagTutorialExample1Factory.create();
-        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+    private EquationSystem<AcVariableType, AcEquationType> createEquationSystem(LfNetwork lfNetwork) {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, lfNetwork);
         AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
         AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem, creationParameters);
@@ -46,24 +43,43 @@ class EquationArrayTest {
         }
         networkVector.startListening();
         NewtonRaphson.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
+        return equationSystem;
+    }
+
+    private EquationSystem<AcVariableType, AcEquationType> createEquationSystemUsingArrayEquations(LfNetwork lfNetwork) {
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>(AcEquationType.class, lfNetwork);
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
+        AcNetworkVector networkVector = new AcNetworkVector(lfNetwork, equationSystem, creationParameters);
+        AcBranchVector branchVector = networkVector.getBranchVector();
+        EquationArray<AcVariableType, AcEquationType> p = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
+        for (LfBranch branch : lfNetwork.getBranches()) {
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            p.addTerm(bus1.getNum(), new ClosedBranchSide1ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), false, false))
+                    .addTerm(bus2.getNum(), new ClosedBranchSide2ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), false, false));
+        }
+        networkVector.startListening();
+        NewtonRaphson.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
+        return equationSystem;
+    }
+
+    @Test
+    void test() {
+        Network network = EurostagTutorialExample1Factory.create();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = createEquationSystem(lfNetwork);
         double[] values = new double[lfNetwork.getBuses().size()];
         for (var equation : equationSystem.getIndex().getSortedEquationsToSolve()) {
             values[equation.getColumn()] += equation.eval();
         }
-        System.out.println(Arrays.toString(values));
 
-        EquationSystem<AcVariableType, AcEquationType> equationSystem2 = new EquationSystem<>(AcEquationType.class, lfNetwork);
-        EquationArray<AcVariableType, AcEquationType> equationArray = equationSystem2.createEquationArray(AcEquationType.BUS_TARGET_P);
-        for (LfBranch branch : lfNetwork.getBranches()) {
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            equationArray.addTerm(bus1.getNum(), new ClosedBranchSide1ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), false, false));
-            equationArray.addTerm(bus2.getNum(), new ClosedBranchSide2ActiveFlowEquationTerm(branchVector, branch.getNum(), bus1.getNum(), bus2.getNum(), equationSystem.getVariableSet(), false, false));
-        }
-        NewtonRaphson.initStateVector(lfNetwork, equationSystem2, new UniformValueVoltageInitializer());
-
+        EquationSystem<AcVariableType, AcEquationType> equationSystem2 = createEquationSystemUsingArrayEquations(lfNetwork);
         double[] values2 = new double[lfNetwork.getBuses().size()];
-        equationArray.eval(values2);
-        System.out.println(Arrays.toString(values2));
+        for (var equationArray : equationSystem2.getEquationArrays()) {
+            equationArray.eval(values2);
+        }
+
+        assertArrayEquals(values, values2);
     }
 }
