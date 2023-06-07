@@ -419,7 +419,7 @@ public class LfNetworkParameters {
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
                 ", asymmetrical=" + asymmetrical +
-                ", minNominalVoltageTargetVoltageCheck" + minNominalVoltageTargetVoltageCheck +
+                ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
                 ')';
     }
 }
