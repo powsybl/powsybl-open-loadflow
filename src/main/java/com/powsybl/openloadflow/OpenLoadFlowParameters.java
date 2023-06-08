@@ -23,6 +23,7 @@ import com.powsybl.openloadflow.ac.nr.*;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.SecondaryVoltageControlOuterLoop;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
@@ -171,6 +172,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String SECONDARY_VOLTAGE_CONTROL_PARAM_NAME = "secondaryVoltageControl";
 
+    public static final String SECONDARY_VOLTAGE_CONTROL_PILOT_POINT_VOLTAGE_SENSI_EPSILON_PARAM_NAME = "secondaryVoltageControlPilotPointVoltageSensiEpsilon";
+
     public static final String REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME = "reactiveLimitsMaxPqPvSwitch";
 
     public static final String PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME = "phaseShifterControlMode";
@@ -221,6 +224,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, Collections.emptyList(), ParameterScope.TECHNICAL),
         new Parameter(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer voltage control maximum tap shift per outer loop", IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT),
         new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE),
+        new Parameter(SECONDARY_VOLTAGE_CONTROL_PILOT_POINT_VOLTAGE_SENSI_EPSILON_PARAM_NAME, ParameterType.DOUBLE, "Secondary voltage control, control unit voltage to pilot point voltage minimal sensitivity", SecondaryVoltageControlOuterLoop.SENSI_V_V_EPS_DEFAULT_VALUE),
         new Parameter(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ParameterType.INTEGER, "Reactive limits maximum Pq Pv switch", ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV),
         new Parameter(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, ParameterType.STRING, "Newton raphson stopping criteria type", NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(NewtonRaphsonStoppingCriteriaType.class)),
         new Parameter(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum active power for per equation stopping criteria", MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE),
@@ -350,6 +354,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int incrementalTransformerVoltageControlOuterLoopMaxTapShift = IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT;
 
     private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
+
+    private double secondaryVoltageControlPilotPointVoltageSensiEpsilon = SecondaryVoltageControlOuterLoop.SENSI_V_V_EPS_DEFAULT_VALUE;
 
     private int reactiveLimitsMaxPqPvSwitch = ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV;
 
@@ -716,6 +722,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getSecondaryVoltageControlPilotPointVoltageSensiEpsilon() {
+        return secondaryVoltageControlPilotPointVoltageSensiEpsilon;
+    }
+
+    public OpenLoadFlowParameters setSecondaryVoltageControlPilotPointVoltageSensiEpsilon(double secondaryVoltageControlPilotPointVoltageSensiEpsilon) {
+        this.secondaryVoltageControlPilotPointVoltageSensiEpsilon = secondaryVoltageControlPilotPointVoltageSensiEpsilon;
+        return this;
+    }
+
     public String getDebugDir() {
         return debugDir;
     }
@@ -866,6 +881,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE))
                 .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(config.getIntProperty(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, IncrementalTransformerVoltageControlOuterLoop.DEFAULT_MAX_TAP_SHIFT))
                 .setSecondaryVoltageControl(config.getBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE))
+                .setSecondaryVoltageControlPilotPointVoltageSensiEpsilon(config.getDoubleProperty(SECONDARY_VOLTAGE_CONTROL_PILOT_POINT_VOLTAGE_SENSI_EPSILON_PARAM_NAME, SecondaryVoltageControlOuterLoop.SENSI_V_V_EPS_DEFAULT_VALUE))
                 .setReactiveLimitsMaxPqPvSwitch(config.getIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV))
                 .setPhaseShifterControlMode(config.getEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class, PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE))
                 .setAlwaysUpdateNetwork(config.getBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME, NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE))
@@ -960,6 +976,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setSecondaryVoltageControl(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(SECONDARY_VOLTAGE_CONTROL_PILOT_POINT_VOLTAGE_SENSI_EPSILON_PARAM_NAME))
+                .ifPresent(prop -> this.setSecondaryVoltageControlPilotPointVoltageSensiEpsilon(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME))
                 .ifPresent(prop -> this.setReactiveLimitsMaxPqPvSwitch(Integer.parseInt(prop)));
         Optional.ofNullable(properties.get(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME))
@@ -1022,6 +1040,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(DEBUG_DIR_PARAM_NAME, debugDir);
         map.put(INCREMENTAL_TRANSFORMER_VOLTAGE_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, incrementalTransformerVoltageControlOuterLoopMaxTapShift);
         map.put(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, secondaryVoltageControl);
+        map.put(SECONDARY_VOLTAGE_CONTROL_PILOT_POINT_VOLTAGE_SENSI_EPSILON_PARAM_NAME, secondaryVoltageControlPilotPointVoltageSensiEpsilon);
         map.put(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, reactiveLimitsMaxPqPvSwitch);
         map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
         map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME, alwaysUpdateNetwork);
@@ -1330,6 +1349,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 Objects.equals(extension1.getDebugDir(), extension2.getDebugDir()) &&
                 extension1.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift() &&
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
+                extension1.getSecondaryVoltageControlPilotPointVoltageSensiEpsilon() == extension2.getSecondaryVoltageControlPilotPointVoltageSensiEpsilon() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
                 extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
                 extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
@@ -1393,6 +1413,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     .setDebugDir(extension.getDebugDir())
                     .setIncrementalTransformerVoltageControlOuterLoopMaxTapShift(extension.getIncrementalTransformerVoltageControlOuterLoopMaxTapShift())
                     .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
+                    .setSecondaryVoltageControlPilotPointVoltageSensiEpsilon(extension.getSecondaryVoltageControlPilotPointVoltageSensiEpsilon())
                     .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
                     .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
                     .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
