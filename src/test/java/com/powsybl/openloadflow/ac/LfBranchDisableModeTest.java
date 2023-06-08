@@ -6,17 +6,12 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonParameters;
 import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -24,8 +19,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -33,14 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class LfBranchDisableModeTest {
 
-    private static Network calculateLine1OpenSide1Ref() {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
-        new OpenLoadFlowProvider(new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>())
-                .run(network, LocalComputationManager.getDefault(), VariantManagerConstants.INITIAL_VARIANT_ID, new LoadFlowParameters())
-                .join();
-        return network;
-    }
+    private static final double DELTA = 1E-5;
 
     @Test
     void test() {
@@ -61,25 +47,21 @@ class LfBranchDisableModeTest {
             AcLoadFlowResult result = new AcloadFlowEngine(context)
                     .run();
             assertEquals(NewtonRaphsonStatus.CONVERGED, result.getNewtonRaphsonStatus());
-            lfNetwork.updateState(new LfNetworkStateUpdateParameters(true, false, false, false, true, false, false));
-
-            var l1 = network.getLine("NHV1_NHV2_1");
-            assertActivePowerEquals(302.444, l1.getTerminal1());
-            assertReactivePowerEquals(98.739, l1.getTerminal1());
-            assertActivePowerEquals(-300.434, l1.getTerminal2());
-            assertReactivePowerEquals(-137.187, l1.getTerminal2());
+            assertEquals(3.02444, lfl1.getP1().eval(), DELTA);
+            assertEquals(0.98739, lfl1.getQ1().eval(), DELTA);
+            assertEquals(-3.00434, lfl1.getP2().eval(), DELTA);
+            assertEquals(-1.37187, lfl1.getQ2().eval(), DELTA);
         }
-
-        Network networkRef = calculateLine1OpenSide1Ref();
 
         lfl1.setDisableMode(LfBranchDisableMode.SIDE_1);
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult result = new AcloadFlowEngine(context)
                     .run();
             assertEquals(NewtonRaphsonStatus.CONVERGED, result.getNewtonRaphsonStatus());
-            lfNetwork.updateState(new LfNetworkStateUpdateParameters(true, false, false, false, true, false, false));
-
-            var l1 = network.getLine("NHV1_NHV2_1");
+            assertEquals(3.02444, lfl1.getP1().eval(), DELTA);
+            assertEquals(0.98739, lfl1.getQ1().eval(), DELTA);
+            assertEquals(-3.00434, lfl1.getP2().eval(), DELTA);
+            assertEquals(-1.37187, lfl1.getQ2().eval(), DELTA);
         }
     }
 }

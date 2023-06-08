@@ -146,4 +146,9 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             recreateDistributionEquations(mergedNetwork);
         }
     }
+
+    @Override
+    public void onBranchDisableModeChange(LfBranch branch, LfBranchDisableMode disableMode) {
+        // TODO
+    }
 }
