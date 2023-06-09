@@ -199,5 +199,13 @@ class SecondaryVoltageControlTest {
         assertVoltageEquals(13.786, b10);
         assertVoltageEquals(b6.getVoltageLevel().getNominalV() * parametersExt.getMaxPlausibleTargetVoltage(), b6); // cut to maxPlausibleTargetVoltage
         assertVoltageEquals(b8.getVoltageLevel().getNominalV() * parametersExt.getMaxPlausibleTargetVoltage(), b8); // cut to maxPlausibleTargetVoltage
+
+        pilotPoint.setTargetV(9);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(9.935, b10);
+        assertVoltageEquals(b6.getVoltageLevel().getNominalV() * parametersExt.getMinPlausibleTargetVoltage(), b6); // cut to minPlausibleTargetVoltage
+        assertVoltageEquals(b8.getVoltageLevel().getNominalV() * parametersExt.getMinPlausibleTargetVoltage(), b8); // cut to minPlausibleTargetVoltage
     }
 }
