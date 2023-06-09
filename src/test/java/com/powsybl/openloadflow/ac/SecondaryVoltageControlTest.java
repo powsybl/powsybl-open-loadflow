@@ -181,4 +181,23 @@ class SecondaryVoltageControlTest {
         assertVoltageEquals(14.86, b6);
         assertVoltageEquals(26.74, b8);
     }
+
+    @Test
+    void test() {
+        parameters.setUseReactiveLimits(false);
+        parametersExt.setSecondaryVoltageControl(true)
+                .setMaxPlausibleTargetVoltage(1.2);
+        PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 14.4);
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
+                        new ControlUnit("B8-G"))))
+                .add();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(13.786, b10);
+        assertVoltageEquals(b6.getVoltageLevel().getNominalV() * parametersExt.getMaxPlausibleTargetVoltage(), b6); // cut to maxPlausibleTargetVoltage
+        assertVoltageEquals(b8.getVoltageLevel().getNominalV() * parametersExt.getMaxPlausibleTargetVoltage(), b8); // cut to maxPlausibleTargetVoltage
+    }
 }
