@@ -32,15 +32,21 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
-    public static final double SENSI_V_V_EPS_DEFAULT_VALUE = 1e-1;
+    public static final double SENSI_V_V_EPS_DEFAULT_VALUE = 1e-2;
 
     private static final double TARGET_V_DIFF_EPS = 1e-1; // in Kv
     private static final double DQ_PU_EPS = 1d / PerUnit.SB; // in PU
 
     private final double sensiVvEps;
 
-    public SecondaryVoltageControlOuterLoop(double sensiVvEps) {
+    private final double minPlausibleTargetVoltage;
+
+    private final double maxPlausibleTargetVoltage;
+
+    public SecondaryVoltageControlOuterLoop(double sensiVvEps, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         this.sensiVvEps = sensiVvEps;
+        this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
+        this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
     }
 
     @Override
@@ -61,14 +67,18 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                 .collect(Collectors.toList());
     }
 
-    private static void findActiveSecondaryVoltageControls(LfNetwork network, Map<LfSecondaryVoltageControl, List<LfBus>> activeSecondaryVoltageControls,
-                                                           Set<LfBus> allBusSet) {
+    private void findActiveSecondaryVoltageControls(LfNetwork network, Map<LfSecondaryVoltageControl, List<LfBus>> activeSecondaryVoltageControls,
+                                                    Set<LfBus> allBusSet) {
         List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls().stream()
                 .filter(control -> !control.getPilotBus().isDisabled())
                 .collect(Collectors.toList());
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
             List<LfBus> activeControlledBuses = secondaryVoltageControl.getControlledBuses().stream()
                     .filter(SecondaryVoltageControlOuterLoop::isValid)
+                    .filter(controlledBus -> {
+                        double targetV = controlledBus.getGeneratorVoltageControl().orElseThrow().getTargetValue();
+                        return targetV > minPlausibleTargetVoltage && targetV < maxPlausibleTargetVoltage;
+                    })
                     .collect(Collectors.toList());
             if (!activeControlledBuses.isEmpty()) {
                 activeSecondaryVoltageControls.put(secondaryVoltageControl, activeControlledBuses);
@@ -293,9 +303,18 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
                     if (pvcDv != 0) {
                         var pvc = controlledBus.getGeneratorVoltageControl().orElseThrow();
                         double newPvcTargetV = pvc.getTargetValue() + pvcDv;
-                        LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
+                        String plausibleTargetInfos = "";
+                        if (newPvcTargetV > maxPlausibleTargetVoltage) {
+                            newPvcTargetV = maxPlausibleTargetVoltage;
+                            plausibleTargetInfos = " (cut to max plausible target voltage)";
+                        }
+                        if (newPvcTargetV < minPlausibleTargetVoltage) {
+                            newPvcTargetV = minPlausibleTargetVoltage;
+                            plausibleTargetInfos = " (cut to min plausible target voltage)";
+                        }
+                        LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}{}",
                                 controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
-                                newPvcTargetV * controlledBus.getNominalV());
+                                newPvcTargetV * controlledBus.getNominalV(), plausibleTargetInfos);
                         pvc.setTargetValue(newPvcTargetV);
                         adjusted = true;
                     }

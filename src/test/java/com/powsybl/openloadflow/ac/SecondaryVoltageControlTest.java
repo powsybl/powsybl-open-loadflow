@@ -66,7 +66,8 @@ class SecondaryVoltageControlTest {
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
-        parametersExt = OpenLoadFlowParameters.create(parameters);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setMaxPlausibleTargetVoltage(1.4);
     }
 
     @Test
