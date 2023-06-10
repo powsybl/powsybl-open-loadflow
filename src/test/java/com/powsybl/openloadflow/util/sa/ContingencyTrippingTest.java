@@ -193,6 +193,39 @@ class ContingencyTrippingTest {
     }
 
     @Test
+    void testInternalConnectionEndingAtSwitches() {
+        Network network = FictitiousSwitchFactory.create();
+
+        network.getSwitch("L").setFictitious(false);
+        network.getSwitch("BB").setFictitious(false);
+
+        VoltageLevel.NodeBreakerView c = network.getVoltageLevel("C").getNodeBreakerView();
+        c.newInternalConnection().setNode1(4).setNode2(5).add();
+        c.newInternalConnection().setNode1(5).setNode2(6).add();
+        c.newBreaker().setId("ZZ").setNode1(6).setNode2(0).add();
+
+        Set<Switch> switchesToOpen = new HashSet<>();
+        Set<Terminal> terminalsToDisconnect = new HashSet<>();
+        ContingencyTripping.createBranchTripping(network, network.getBranch("CJ")).traverse(switchesToOpen, terminalsToDisconnect);
+        assertTrue(switchesToOpen.isEmpty());
+        checkTerminalIds(terminalsToDisconnect, "CJ");
+
+        c.newInternalConnection().setNode1(5).setNode2(7).add();
+        Switch b = c.newBreaker().setId("ZY").setNode1(7).setNode2(0).add();
+
+        terminalsToDisconnect.clear();
+        ContingencyTripping.createBranchTripping(network, network.getBranch("CJ")).traverse(switchesToOpen, terminalsToDisconnect);
+        assertTrue(switchesToOpen.isEmpty());
+        checkTerminalIds(terminalsToDisconnect, "CJ");
+
+        b.setFictitious(true);
+        terminalsToDisconnect.clear();
+        ContingencyTripping.createBranchTripping(network, network.getBranch("CJ")).traverse(switchesToOpen, terminalsToDisconnect);
+        checkSwitches(switchesToOpen, "L", "ZZ");
+        checkTerminalIds(terminalsToDisconnect, "D", "CI", "CJ");
+    }
+
+    @Test
     void testStopAtStartEdges() {
         Network network = FictitiousSwitchFactory.create();
 

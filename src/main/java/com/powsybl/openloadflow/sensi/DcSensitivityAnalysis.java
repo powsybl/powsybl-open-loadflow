@@ -807,8 +807,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setShuntVoltageControl(false)
                 .setReactiveLimits(false)
                 .setHvdcAcEmulation(false)
-                .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
-                .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
                 .setCacheEnabled(false); // force not caching as not supported in sensi analysis
         // create networks including all necessary switches
         try (LfNetworkList lfNetworks = Networks.load(network, lfNetworkParameters, allSwitchesToOpen, Collections.emptySet(), reporter)) {
