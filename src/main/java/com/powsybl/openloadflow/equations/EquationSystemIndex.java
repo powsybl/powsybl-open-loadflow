@@ -21,6 +21,8 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EquationSystemIndex.class);
 
+    private final EquationSystem<V, E> equationSystem;
+
     private final Set<Equation<V, E>> equationsToSolve = new HashSet<>();
 
     // variable reference counting in equation terms
@@ -37,7 +39,8 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     private final List<EquationSystemIndexListener<V, E>> listeners = new ArrayList<>();
 
     public EquationSystemIndex(EquationSystem<V, E> equationSystem) {
-        Objects.requireNonNull(equationSystem).addListener(this);
+        this.equationSystem = Objects.requireNonNull(equationSystem);
+        equationSystem.addListener(this);
     }
 
     public void addListener(EquationSystemIndexListener<V, E> listener) {
@@ -66,6 +69,11 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
             int columnCount = 0;
             for (Equation<V, E> equation : sortedEquationsToSolve) {
                 equation.setColumn(columnCount++);
+            }
+            for (EquationArray<V, E> equationArray : equationSystem.getEquationArrays()) {
+                for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
+                    equationArray.setElementColumn(elementNum, columnCount++);
+                }
             }
             equationsIndexValid = true;
             LOGGER.debug("Equations index updated ({} columns)", columnCount);
