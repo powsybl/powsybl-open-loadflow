@@ -6,9 +6,7 @@
  */
 package com.powsybl.openloadflow.ac;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -152,5 +150,38 @@ class AcLoadFlowTwoBusNetworkTest {
         assertActivePowerEquals(-2.600, line1.getTerminal2());
         assertReactivePowerEquals(-1.0999, line1.getTerminal2());
         assertActivePowerEquals(0.600, network.getBattery("bt2").getTerminal());
+    }
+
+    @Test
+    void modifiedLoadCaseTest() {
+        // previous value : l1 (P0, Q0) = (2, 1)
+        // new values :     l1 (P0, Q0) = (0, 1) and
+        //                  l2 (P0, Q0) = (2, 0)
+        network.getLoad("l1").setP0(0);
+        Load l2 = bus2.getVoltageLevel().newLoad()
+                .setId("l2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setP0(2)
+                .setQ0(0)
+                .add();
+        l2.getTerminal().setP(2).setQ(0);
+
+        parameters = new LoadFlowParameters()
+                .setReadSlackBus(false)
+                .setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
+                .setLoadPowerFactorConstant(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        Double bus2BalanceQ = bus2.getConnectedTerminalStream().map(Terminal::getQ)
+                .filter(d -> !Double.isNaN(d))
+                .reduce(0.0, Double::sum);
+
+        assertEquals(0.0, bus2BalanceQ, DELTA_POWER);
     }
 }
