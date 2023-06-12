@@ -131,11 +131,15 @@ public class ZeroImpedanceFlows {
         private PQ balanceWithImpedance(LfBus bus, LoadFlowModel loadFlowModel) {
             // balance considering injections and flow from lines with impedance
 
+            double pShunt = bus.getShunt().map(shunt -> shunt.getP().eval()).orElse(0.0);
+            pShunt += bus.getControllerShunt().map(shunt -> shunt.getP().eval()).orElse(0.0);
+            pShunt += bus.getSvcShunt().map(shunt -> shunt.getP().eval()).orElse(0.0);
+
             double qShunt = bus.getShunt().map(shunt -> shunt.getQ().eval()).orElse(0.0);
             qShunt += bus.getControllerShunt().map(shunt -> shunt.getQ().eval()).orElse(0.0);
             qShunt += bus.getSvcShunt().map(shunt -> shunt.getQ().eval()).orElse(0.0);
             // take care of the sign
-            PQ balancePQ = new PQ(-bus.getP().eval(), -bus.getQ().eval() + qShunt);
+            PQ balancePQ = new PQ(-bus.getP().eval() + pShunt, -bus.getQ().eval() + qShunt);
 
             // only lines with impedance
             List<LfBranch> adjacentBranchesWithImpedance = bus.getBranches().stream()
