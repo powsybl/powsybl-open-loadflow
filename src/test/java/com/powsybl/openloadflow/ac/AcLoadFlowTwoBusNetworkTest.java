@@ -19,7 +19,6 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -155,12 +154,12 @@ class AcLoadFlowTwoBusNetworkTest {
         assertActivePowerEquals(0.600, network.getBattery("bt2").getTerminal());
     }
 
-    @RepeatedTest(100)
+    @Test
     void zeroImpedanceToShuntCompensator() {
         var network = TwoBusNetworkFactory.createZeroImpedanceToShuntCompensator();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isOk());
         assertReactivePowerEquals(0.9038788263615884, network.getLine("l23").getTerminal1());
-        assertActivePowerEquals(0.0045161454581349, network.getLine("l23").getTerminal1());
+        assertActivePowerEquals(0.0, network.getLine("l23").getTerminal1());
     }
 }

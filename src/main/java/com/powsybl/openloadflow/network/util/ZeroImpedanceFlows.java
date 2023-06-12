@@ -132,6 +132,7 @@ public class ZeroImpedanceFlows {
             double qShunt = bus.getShunt().map(shunt -> shunt.getQ().eval()).filter(val -> !Double.isNaN(val)).orElse(0.0);
             qShunt += bus.getControllerShunt().map(shunt -> shunt.getQ().eval()).filter(val -> !Double.isNaN(val)).orElse(0.0);
             qShunt += bus.getSvcShunt().map(shunt -> shunt.getQ().eval()).filter(val -> !Double.isNaN(val)).orElse(0.0);
+
             // take care of the sign
             PQ balancePQ = new PQ(-bus.getP().eval() + pShunt, -bus.getQ().eval() + qShunt);
 

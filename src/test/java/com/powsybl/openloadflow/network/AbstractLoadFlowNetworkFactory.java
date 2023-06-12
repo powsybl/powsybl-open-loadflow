@@ -230,7 +230,7 @@ public abstract class AbstractLoadFlowNetworkFactory {
     }
 
     protected static ShuntCompensator createShuntCompensator(Bus bus, String id, double g, double b, double v,
-        boolean isControllingV) {
+        boolean voltageControl) {
         ShuntCompensator sh = bus.getVoltageLevel()
             .newShuntCompensator()
             .setId(id)
@@ -247,7 +247,7 @@ public abstract class AbstractLoadFlowNetworkFactory {
         sh.setTargetV(v)
             .setRegulatingTerminal(sh.getTerminal())
             .setTargetDeadband(0.0)
-            .setVoltageRegulatorOn(isControllingV);
+            .setVoltageRegulatorOn(voltageControl);
         return sh;
     }
 

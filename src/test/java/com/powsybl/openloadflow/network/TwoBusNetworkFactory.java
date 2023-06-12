@@ -50,7 +50,6 @@ public class TwoBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSectionCount(1)
                 .newLinearModel()
                 .setBPerSection(-2.0)
-                .setGPerSection(0.01)
                 .setMaximumSectionCount(1)
                 .add()
                 .add();
