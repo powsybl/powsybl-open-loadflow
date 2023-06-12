@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.DanglingLine;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.StaticVarCompensator.RegulationMode;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
@@ -71,6 +72,94 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(result.isOk());
 
         checkFlows(1.99, 1, l23.getTerminal1(), -1.99, -1, l23.getTerminal2());
+    }
+
+    @Test
+    void threeBusesZeroImpedanceLineWithFixedShuntTest() {
+        Network network = Network.create("ThreeBusesWithZeroImpedanceLineFixedShunt", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.00, 0.5);
+        createLoad(b3, "l2", 0.99, 0.5);
+        createFixedShuntCompensator(b3, "sh1", 0.2, 0.3);
+        Line l12 = createLine(network, b1, b2, "l12", 0.1);
+        Line l23 = createLine(network, b2, b3, "l23", 0.0);
+
+        parametersExt.setSlackBusId("b1_vl_0")
+            .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+            .setNewtonRaphsonConvEpsPerEq(0.000001);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
+    }
+
+    @Test
+    void threeBusesZeroImpedanceLineWithShuntCompensatorTest() {
+        Network network = Network.create("ThreeBusesWithZeroImpedanceLineShuntCompensator", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.00, 0.5);
+        createLoad(b3, "l2", 0.99, 0.5);
+        createShuntCompensator(b3, "sh1", 0.2, 0.3, 1.0, false);
+        Line l12 = createLine(network, b1, b2, "l12", 0.1);
+        Line l23 = createLine(network, b2, b3, "l23", 0.0);
+
+        parametersExt.setSlackBusId("b1_vl_0")
+            .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+            .setNewtonRaphsonConvEpsPerEq(0.000001);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
+    }
+
+    @Test
+    void threeBusesZeroImpedanceLineWithStaticVarCompensatorControllingReactivePowerTest() {
+        Network network = Network.create("ThreeBusesWithZeroImpedanceLineStaticVarCompensatorControllingReactivePower", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.00, 0.5);
+        createLoad(b3, "l2", 0.99, 0.5);
+        createStaticVarCompensator(b3, "svc1", 0.3, 1.0, RegulationMode.REACTIVE_POWER);
+        Line l12 = createLine(network, b1, b2, "l12", 0.1);
+        Line l23 = createLine(network, b2, b3, "l23", 0.0);
+
+        parametersExt.setSlackBusId("b1_vl_0")
+            .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+            .setNewtonRaphsonConvEpsPerEq(0.000001);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
+    }
+
+    @Test
+    void threeBusesZeroImpedanceLineWithStaticVarCompensatorControllingVoltageTest() {
+        Network network = Network.create("ThreeBusesWithZeroImpedanceLineStaticVarCompensatorControllingVoltage", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.00, 0.5);
+        createLoad(b3, "l2", 0.99, 0.5);
+        createStaticVarCompensator(b3, "svc1", 0.3, 0.97, RegulationMode.VOLTAGE);
+        Line l12 = createLine(network, b1, b2, "l12", 0.1);
+        Line l23 = createLine(network, b2, b3, "l23", 0.0);
+
+        parametersExt.setSlackBusId("b1_vl_0")
+            .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+            .setNewtonRaphsonConvEpsPerEq(0.000001);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
     }
 
     @Test
@@ -403,6 +492,29 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
 
         assertActivePowerEquals(1.5, dl3.getTerminal());
         assertTrue(Double.isNaN(dl3.getTerminal().getQ()));
+    }
+
+    @Test
+    void threeBusesZeroImpedanceLineWithFixedShuntDcTest() {
+        Network network = Network.create("ThreeBusesWithZeroImpedanceLineWithFixedShuntDc", "code");
+        Bus b1 = createBus(network, "b1");
+        Bus b2 = createBus(network, "b2");
+        Bus b3 = createBus(network, "b3");
+        createGenerator(b1, "g1", 2, 1);
+        createLoad(b3, "l1", 1.9, 1);
+        createLoad(b3, "l2", 1.0, 0.5);
+        createFixedShuntCompensator(b3, "sh1", 0.2, 0.3);
+        Line l12 = createLine(network, b1, b2, "l12", 0.01);
+        Line l23 = createLine(network, b2, b3, "l23", 0.0);
+
+        parametersExt.setSlackBusId("b1_vl_0")
+            .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+            .setNewtonRaphsonConvEpsPerEq(0.000001);
+        parameters.setDc(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
     }
 
     /**
