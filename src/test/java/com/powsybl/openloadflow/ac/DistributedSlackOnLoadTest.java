@@ -174,4 +174,14 @@ class DistributedSlackOnLoadTest {
         assertActivePowerEquals(611.405, network3.getLoad("LOAD").getTerminal());
         assertActivePowerEquals(-9.809, network3.getLoad("LOAD1").getTerminal());
     }
+
+    @Test
+    void testNetworkWithoutConformingLoad() {
+        parameters
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .getExtension(OpenLoadFlowParameters.class)
+                .setThrowsExceptionInCaseOfSlackDistributionFailure(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+    }
 }
