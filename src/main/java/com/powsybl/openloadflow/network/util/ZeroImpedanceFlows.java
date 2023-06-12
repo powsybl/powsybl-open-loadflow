@@ -6,21 +6,15 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LoadFlowModel;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Luma Zamarreño <zamarrenolm at aia.es>
@@ -42,7 +36,7 @@ public class ZeroImpedanceFlows {
     public void compute() {
         Set<LfBus> processed = new HashSet<>();
 
-        graph.vertexSet().forEach(lfBus -> {
+        graph.vertexSet().stream().sorted(Comparator.comparingInt(LfElement::getNum)).forEach(lfBus -> {
             if (processed.contains(lfBus)) {
                 return;
             }
