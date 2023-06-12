@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -494,7 +495,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(Double.isNaN(dl3.getTerminal().getQ()));
     }
 
-    @Test
+    @RepeatedTest(100)
     void threeBusesZeroImpedanceLineWithFixedShuntDcTest() {
         Network network = Network.create("ThreeBusesWithZeroImpedanceLineWithFixedShuntDc", "code");
         Bus b1 = createBus(network, "b1");
