@@ -39,7 +39,7 @@ public class ParticipatingElement {
                 .sum();
     }
 
-    public static void normalizeParticipationFactors(List<ParticipatingElement> participatingElements, String elementType) {
+    public static void normalizeParticipationFactors(List<ParticipatingElement> participatingElements) {
         double factorSum = participationFactorNorm(participatingElements);
         for (ParticipatingElement participatingElement : participatingElements) {
             participatingElement.factor /= factorSum;
