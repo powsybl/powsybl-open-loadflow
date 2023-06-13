@@ -224,10 +224,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         loadTargetP += p0 / PerUnit.SB;
         initialLoadTargetP += p0 / PerUnit.SB;
         loadTargetQ += load.getQ0() / PerUnit.SB;
-//        if (p0 < 0) {
-//            ensurePowerFactorConstantByLoad = true;
-//        }
-        ensurePowerFactorConstantByLoad = true;
+        if (p0 < 0) {
+            ensurePowerFactorConstantByLoad = true;
+        }
+//        ensurePowerFactorConstantByLoad = true;
         this.load.add(load, parameters);
     }
 
@@ -501,7 +501,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         updateGeneratorsState(generatorVoltageControlEnabled ? (q.eval() + loadTargetQ) : generationTargetQ, parameters.isReactiveLimits());
 
         // update load power
-        load.updateState(getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
+        load.updateState(this, getLoadTargetP() - getInitialLoadTargetP(), parameters.isLoadPowerFactorConstant());
 
         // update lcc converter station power
         for (Ref<LccConverterStation> lccCsRef : lccCsRefs) {

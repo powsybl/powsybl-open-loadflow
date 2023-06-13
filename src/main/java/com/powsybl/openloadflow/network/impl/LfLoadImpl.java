@@ -92,12 +92,18 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         return loadsRefs.size();
     }
 
-    void updateState(double diffLoadTargetP, boolean loadPowerFactorConstant) {
+    void updateState(AbstractLfBus bus, double diffLoadTargetP, boolean loadPowerFactorConstant) {
         init();
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
             double updatedP0 = (load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i]) * PerUnit.SB;
-            double updatedQ0 = loadPowerFactorConstant ? (load.getQ0() / PerUnit.SB + diffLoadTargetP * getPowerFactor(load) * participationFactors[i]) * PerUnit.SB : load.getQ0();
+            double powerFactor = 0;
+            if (bus.ensurePowerFactorConstantByLoad) {
+                powerFactor = getPowerFactor(load);
+            } else {
+                powerFactor = bus.getLoadTargetQ() / bus.getLoadTargetP();
+            }
+            double updatedQ0 = loadPowerFactorConstant ? (load.getQ0() / PerUnit.SB + diffLoadTargetP * powerFactor * participationFactors[i]) * PerUnit.SB : load.getQ0();
             load.getTerminal().setP(updatedP0);
             load.getTerminal().setQ(updatedQ0);
         }
