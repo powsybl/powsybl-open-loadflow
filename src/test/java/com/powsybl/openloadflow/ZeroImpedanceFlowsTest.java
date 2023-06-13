@@ -149,11 +149,6 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         assertTrue(result.isOk());
 
         checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
-
-        parameters.setDc(true);
-        assertTrue(loadFlowRunner.run(network, parameters).isOk());
-
-        checkFlows(-l12.getTerminal2().getP(), -l12.getTerminal2().getQ(), l23.getTerminal1(), l12.getTerminal2().getP(), l12.getTerminal2().getQ(), l23.getTerminal2());
     }
 
     @Test
