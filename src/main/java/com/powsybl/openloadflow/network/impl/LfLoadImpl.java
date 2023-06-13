@@ -97,20 +97,27 @@ class LfLoadImpl extends AbstractPropertyBag implements LfLoad {
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
             double updatedP0 = (load.getP0() / PerUnit.SB + diffLoadTargetP * participationFactors[i]) * PerUnit.SB;
-            double updatedQ0 = loadPowerFactorConstant && updatedP0 != 0.0 ? getPowerFactor(load) * updatedP0 : load.getQ0();
+            double updatedQ0 = loadPowerFactorConstant ? (load.getQ0() / PerUnit.SB + diffLoadTargetP * getPowerFactor(load) * participationFactors[i]) * PerUnit.SB : load.getQ0();
             load.getTerminal().setP(updatedP0);
             load.getTerminal().setQ(updatedQ0);
         }
     }
 
     @Override
-    public double getTargetQ(double diffTargetP) {
+    public double getTargetQ(double newTargetP) {
         init();
         double newLoadTargetQ = 0;
+        double loadP0 = 0;
+        for (int i = 0; i < loadsRefs.size(); i++) {
+            loadP0 += loadsRefs.get(i).get().getP0() / PerUnit.SB;
+        }
+        double distributedTargetP = newTargetP - loadP0;
+
         for (int i = 0; i < loadsRefs.size(); i++) {
             Load load = loadsRefs.get(i).get();
-            double updatedP0 = load.getP0() / PerUnit.SB + diffTargetP * participationFactors[i];
-            newLoadTargetQ += getPowerFactor(load) * updatedP0;
+            double diffTargetP = distributedTargetP * participationFactors[i];
+            double newQ = load.getQ0() / PerUnit.SB + diffTargetP * getPowerFactor(load);
+            newLoadTargetQ += newQ;
         }
         return newLoadTargetQ;
     }

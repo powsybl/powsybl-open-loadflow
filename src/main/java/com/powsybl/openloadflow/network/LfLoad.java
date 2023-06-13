@@ -18,7 +18,7 @@ public interface LfLoad extends PropertyBag {
 
     void setAbsVariableTargetP(double absVariableTargetP);
 
-    double getTargetQ(double diffTargetP);
+    double getTargetQ(double newTargetP);
 
     List<String> getOriginalIds();
 

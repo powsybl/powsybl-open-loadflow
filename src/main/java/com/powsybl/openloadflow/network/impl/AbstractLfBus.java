@@ -224,9 +224,10 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         loadTargetP += p0 / PerUnit.SB;
         initialLoadTargetP += p0 / PerUnit.SB;
         loadTargetQ += load.getQ0() / PerUnit.SB;
-        if (p0 < 0) {
-            ensurePowerFactorConstantByLoad = true;
-        }
+//        if (p0 < 0) {
+//            ensurePowerFactorConstantByLoad = true;
+//        }
+        ensurePowerFactorConstantByLoad = true;
         this.load.add(load, parameters);
     }
 

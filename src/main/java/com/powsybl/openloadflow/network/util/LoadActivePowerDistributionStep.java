@@ -6,6 +6,7 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -62,18 +63,19 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
             double factor = participatingBus.getFactor();
 
             double loadTargetP = bus.getLoadTargetP();
-            double newLoadTargetP = loadTargetP - remainingMismatch * factor;
+            double diffTargetP = -remainingMismatch * factor;
+            double newLoadTargetP = loadTargetP + diffTargetP;
 
-            if (newLoadTargetP != loadTargetP) {
+            if (diffTargetP != 0.0) {
                 LOGGER.trace("Rescale '{}' active power target: {} -> {}",
                         bus.getId(), loadTargetP * PerUnit.SB, newLoadTargetP * PerUnit.SB);
 
                 if (loadPowerFactorConstant) {
-                    ensurePowerFactorConstant(bus, newLoadTargetP);
+                    ensurePowerFactorConstant(bus, loadTargetP, diffTargetP);
                 }
 
                 bus.setLoadTargetP(newLoadTargetP);
-                done += loadTargetP - newLoadTargetP;
+                done -= diffTargetP;
                 modifiedBuses++;
             }
         }
@@ -84,14 +86,20 @@ public class LoadActivePowerDistributionStep implements ActivePowerDistribution.
         return done;
     }
 
-    private static void ensurePowerFactorConstant(LfBus bus, double newLoadTargetP) {
+    private static void ensurePowerFactorConstant(LfBus bus, double loadTargetP, double diffTargetP) {
         // if loadPowerFactorConstant is true, when updating targetP on loads,
         // we have to keep the power factor constant by updating targetQ.
         double newLoadTargetQ;
         if (bus.ensurePowerFactorConstantByLoad()) {
-            newLoadTargetQ = bus.getLoad().getTargetQ(newLoadTargetP - bus.getInitialLoadTargetP());
+            newLoadTargetQ = bus.getLoad().getTargetQ(loadTargetP + diffTargetP);
         } else {
-            newLoadTargetQ = newLoadTargetP * bus.getLoadTargetQ() / bus.getLoadTargetP();
+            if (loadTargetP != 0) {
+                double powerFactor = bus.getLoadTargetQ() / loadTargetP;
+                newLoadTargetQ = bus.getLoadTargetQ() + powerFactor * diffTargetP;
+            } else {
+                // TODO: find a better implementation, maybe with powerfactor attached to lfBus
+                throw new PowsyblException("Load target P equals 0 in ensurePowerFactorConstant - Division by zero");
+            }
         }
         if (newLoadTargetQ != bus.getLoadTargetQ()) {
             LOGGER.trace("Rescale '{}' reactive power target on load: {} -> {}",
