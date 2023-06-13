@@ -35,15 +35,18 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
 
     private VoltageInitializer voltageInitializer;
 
+    private final boolean asymmetrical;
+
     public AcLoadFlowParameters(LfNetworkParameters networkParameters, AcEquationSystemCreationParameters equationSystemCreationParameters,
                                 NewtonRaphsonParameters newtonRaphsonParameters, List<AcOuterLoop> outerLoops, int maxOuterLoopIterations,
-                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer) {
+                                MatrixFactory matrixFactory, VoltageInitializer voltageInitializer, boolean asymmetrical) {
         super(networkParameters, matrixFactory);
         this.equationSystemCreationParameters = Objects.requireNonNull(equationSystemCreationParameters);
         this.newtonRaphsonParameters = Objects.requireNonNull(newtonRaphsonParameters);
         this.outerLoops = Objects.requireNonNull(outerLoops);
         this.maxOuterLoopIterations = maxOuterLoopIterations;
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
+        this.asymmetrical = asymmetrical;
     }
 
     public AcEquationSystemCreationParameters getEquationSystemCreationParameters() {
@@ -70,6 +73,10 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
         this.voltageInitializer = Objects.requireNonNull(voltageInitializer);
     }
 
+    public boolean isAsymmetrical() {
+        return asymmetrical;
+    }
+
     @Override
     public String toString() {
         return "AcLoadFlowParameters(" +
@@ -80,6 +87,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters {
                 ", maxOuterLoopIterations=" + maxOuterLoopIterations +
                 ", matrixFactory=" + matrixFactory.getClass().getSimpleName() +
                 ", voltageInitializer=" + voltageInitializer.getClass().getSimpleName() +
+                ", asymmetrical=" + asymmetrical +
                 ')';
     }
 }

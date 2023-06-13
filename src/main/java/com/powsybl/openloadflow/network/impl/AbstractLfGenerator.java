@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,8 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     protected double remoteTargetQ = Double.NaN;
 
     private boolean disabled;
+
+    protected LfAsymGenerator asym;
 
     protected AbstractLfGenerator(LfNetwork network, double targetP) {
         this.network = Objects.requireNonNull(network);
@@ -209,7 +212,7 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
             LOGGER.warn("Regulating terminal of LfGenerator {} is not in the same synchronous component: voltage control discarded", getId());
             return;
         }
-        if (!checkTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), parameters, report)) {
+        if (!checkTargetV(targetV / regulatingTerminal.getVoltageLevel().getNominalV(), regulatingTerminal.getVoltageLevel().getNominalV(), parameters, report)) {
             return;
         }
         this.controlledBusId = controlledBus.getId();
@@ -259,9 +262,10 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
         return consistency;
     }
 
-    protected boolean checkTargetV(double targetV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+    protected boolean checkTargetV(double targetV, double nominalV, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         // check that targetV has a plausible value (wrong nominal voltage issue)
-        if (targetV < parameters.getMinPlausibleTargetVoltage() || targetV > parameters.getMaxPlausibleTargetVoltage()) {
+        if (nominalV > parameters.getMinNominalVoltageTargetVoltageCheck() &&
+                (targetV < parameters.getMinPlausibleTargetVoltage() || targetV > parameters.getMaxPlausibleTargetVoltage())) {
             LOGGER.trace("Generator '{}' has an inconsistent target voltage: {} pu: generator voltage control discarded",
                 getId(), targetV);
             report.generatorsWithInconsistentTargetVoltage++;
@@ -370,5 +374,15 @@ public abstract class AbstractLfGenerator extends AbstractPropertyBag implements
     @Override
     public void setDisabled(boolean disabled) {
         this.disabled = disabled;
+    }
+
+    @Override
+    public LfAsymGenerator getAsym() {
+        return asym;
+    }
+
+    @Override
+    public void setAsym(LfAsymGenerator asym) {
+        this.asym = asym;
     }
 }

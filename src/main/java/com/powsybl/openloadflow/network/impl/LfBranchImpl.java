@@ -8,7 +8,9 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfAsymLine;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
@@ -28,6 +30,28 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         this.branchRef = Ref.create(branch, parameters.isCacheEnabled());
     }
 
+    private static void createLineAsym(Line line, double zb, PiModel piModel, LfBranchImpl lfBranch) {
+        var extension = line.getExtension(LineFortescue.class);
+        if (extension != null) {
+            boolean openPhaseA = extension.isOpenPhaseA();
+            boolean openPhaseB = extension.isOpenPhaseB();
+            boolean openPhaseC = extension.isOpenPhaseC();
+            double rz = extension.getRz();
+            double xz = extension.getXz();
+            SimplePiModel piZeroComponent = new SimplePiModel()
+                    .setR(rz / zb)
+                    .setX(xz / zb);
+            SimplePiModel piPositiveComponent = new SimplePiModel()
+                    .setR(piModel.getR())
+                    .setX(piModel.getX());
+            SimplePiModel piNegativeComponent = new SimplePiModel()
+                    .setR(piModel.getR())
+                    .setX(piModel.getX());
+            lfBranch.setAsymLine(new LfAsymLine(piZeroComponent, piPositiveComponent, piNegativeComponent,
+                                                openPhaseA, openPhaseB, openPhaseC));
+        }
+    }
+
     private static LfBranchImpl createLine(Line line, LfNetwork network, LfBus bus1, LfBus bus2, double zb, LfNetworkParameters parameters) {
         PiModel piModel = new SimplePiModel()
                 .setR1(1 / Transformers.getRatioPerUnitBase(line))
@@ -38,7 +62,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 .setB1(line.getB1() * zb)
                 .setB2(line.getB2() * zb);
 
-        return new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
+        LfBranchImpl lfBranch = new LfBranchImpl(network, bus1, bus2, piModel, line, parameters);
+        if (parameters.isAsymmetrical()) {
+            createLineAsym(line, zb, piModel, lfBranch);
+        }
+        return lfBranch;
     }
 
     private static LfBranchImpl createTransformer(TwoWindingsTransformer twt, LfNetwork network, LfBus bus1, LfBus bus2, double zb,
