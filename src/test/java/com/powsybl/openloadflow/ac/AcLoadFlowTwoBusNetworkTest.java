@@ -153,4 +153,13 @@ class AcLoadFlowTwoBusNetworkTest {
         assertReactivePowerEquals(-1.0999, line1.getTerminal2());
         assertActivePowerEquals(0.600, network.getBattery("bt2").getTerminal());
     }
+
+    @Test
+    void zeroImpedanceToShuntCompensator() {
+        var network = TwoBusNetworkFactory.createZeroImpedanceToShuntCompensator();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        assertReactivePowerEquals(0.9038788263615884, network.getLine("l23").getTerminal1());
+        assertActivePowerEquals(0.0, network.getLine("l23").getTerminal1());
+    }
 }
