@@ -16,6 +16,8 @@ public abstract class AbstractLfShunt extends AbstractElement implements LfShunt
 
     private Evaluable q = EvaluableConstants.NAN;
 
+    private Evaluable p = EvaluableConstants.NAN;
+
     protected AbstractLfShunt(LfNetwork network) {
         super(network);
     }
@@ -28,5 +30,15 @@ public abstract class AbstractLfShunt extends AbstractElement implements LfShunt
     @Override
     public void setQ(Evaluable q) {
         this.q = q;
+    }
+
+    @Override
+    public Evaluable getP() {
+        return p;
+    }
+
+    @Override
+    public void setP(Evaluable p) {
+        this.p = p;
     }
 }
