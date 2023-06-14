@@ -22,10 +22,11 @@ import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.CompletionException;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertLoadFlowResultsEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
@@ -173,5 +174,19 @@ class DistributedSlackOnLoadTest {
         assertLoadFlowResultsEquals(loadFlowResultExpected3, loadFlowResult3);
         assertActivePowerEquals(611.405, network3.getLoad("LOAD").getTerminal());
         assertActivePowerEquals(-9.809, network3.getLoad("LOAD1").getTerminal());
+    }
+
+    @Test
+    void testNetworkWithoutConformingLoad() {
+        parameters
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .getExtension(OpenLoadFlowParameters.class)
+                .setThrowsExceptionInCaseOfSlackDistributionFailure(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+
+        parameters.getExtension(OpenLoadFlowParameters.class)
+                .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
+        assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
     }
 }

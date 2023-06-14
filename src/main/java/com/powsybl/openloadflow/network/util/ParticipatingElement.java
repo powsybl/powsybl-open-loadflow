@@ -6,7 +6,6 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 
@@ -34,13 +33,14 @@ public class ParticipatingElement {
         return factor;
     }
 
-    public static void normalizeParticipationFactors(List<ParticipatingElement> participatingElements, String elementType) {
-        double factorSum = participatingElements.stream()
+    public static double participationFactorNorm(List<ParticipatingElement> participatingElements) {
+        return participatingElements.stream()
                 .mapToDouble(participatingGenerator -> participatingGenerator.factor)
                 .sum();
-        if (factorSum == 0) {
-            throw new PowsyblException("No more " + elementType + " participating to slack distribution");
-        }
+    }
+
+    public static void normalizeParticipationFactors(List<ParticipatingElement> participatingElements) {
+        double factorSum = participationFactorNorm(participatingElements);
         for (ParticipatingElement participatingElement : participatingElements) {
             participatingElement.factor /= factorSum;
         }
