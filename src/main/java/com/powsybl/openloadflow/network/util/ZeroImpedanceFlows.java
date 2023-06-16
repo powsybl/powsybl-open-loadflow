@@ -6,21 +6,12 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import com.powsybl.openloadflow.network.LoadFlowModel;
+import com.powsybl.openloadflow.network.*;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Luma Zamarreño <zamarrenolm at aia.es>
@@ -42,7 +33,7 @@ public class ZeroImpedanceFlows {
     public void compute() {
         Set<LfBus> processed = new HashSet<>();
 
-        graph.vertexSet().forEach(lfBus -> {
+        graph.vertexSet().stream().sorted(Comparator.comparingInt(LfElement::getNum)).forEach(lfBus -> {
             if (processed.contains(lfBus)) {
                 return;
             }
@@ -131,8 +122,11 @@ public class ZeroImpedanceFlows {
         private PQ balanceWithImpedance(LfBus bus, LoadFlowModel loadFlowModel) {
             // balance considering injections and flow from lines with impedance
 
+            double pShunt = getPShunt(bus.getShunt()) + getPShunt(bus.getControllerShunt()) + getPShunt(bus.getSvcShunt());
+            double qShunt = getQShunt(bus.getShunt()) + getQShunt(bus.getControllerShunt()) + getQShunt(bus.getSvcShunt());
+
             // take care of the sign
-            PQ balancePQ = new PQ(-bus.getP().eval(), -bus.getQ().eval());
+            PQ balancePQ = new PQ(-bus.getP().eval() + pShunt, -bus.getQ().eval() + qShunt);
 
             // only lines with impedance
             List<LfBranch> adjacentBranchesWithImpedance = bus.getBranches().stream()
@@ -145,6 +139,14 @@ public class ZeroImpedanceFlows {
             });
 
             return balancePQ;
+        }
+
+        private static double getPShunt(Optional<LfShunt> optionalLfShunt) {
+            return optionalLfShunt.map(shunt -> shunt.getP().eval()).filter(val -> !Double.isNaN(val)).orElse(0.0);
+        }
+
+        private static double getQShunt(Optional<LfShunt> optionalLfShunt) {
+            return optionalLfShunt.map(shunt -> shunt.getQ().eval()).filter(val -> !Double.isNaN(val)).orElse(0.0);
         }
 
         private PQ getDescendantZeroImpedanceFlow(Map<LfBus, PQ> descendantZeroImpedanceFlow, LfBus bus) {
