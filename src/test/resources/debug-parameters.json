@@ -55,7 +55,7 @@
         "debugDir" : null,
         "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
         "secondaryVoltageControl" : false,
-        "secondaryVoltageControlPilotPointVoltageSensiEpsilon" : 0.01,
+        "controllerToPilotPointVoltageSensiEpsilon" : 0.01,
         "reactiveLimitsMaxPqPvSwitch" : 3,
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
         "alwaysUpdateNetwork" : false,

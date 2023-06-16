@@ -86,7 +86,7 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
         }
         // secondary voltage control
         if (parametersExt.isSecondaryVoltageControl()) {
-            outerLoops.add(new SecondaryVoltageControlOuterLoop(parametersExt.getSecondaryVoltageControlPilotPointVoltageSensiEpsilon(),
+            outerLoops.add(new SecondaryVoltageControlOuterLoop(parametersExt.getControllerToPilotPointVoltageSensiEpsilon(),
                                                                 parametersExt.getMinPlausibleTargetVoltage(),
                                                                 parametersExt.getMaxPlausibleTargetVoltage()));
         }

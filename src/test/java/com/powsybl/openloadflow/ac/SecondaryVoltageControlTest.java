@@ -213,7 +213,7 @@ class SecondaryVoltageControlTest {
     void tooSmallSensiTest() {
         parameters.setUseReactiveLimits(false);
         parametersExt.setSecondaryVoltageControl(true)
-                .setSecondaryVoltageControlPilotPointVoltageSensiEpsilon(0.5);
+                .setControllerToPilotPointVoltageSensiEpsilon(0.5);
         PilotPoint pilotPoint = new PilotPoint(List.of("B10"), 14.4);
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .addControlZone(new ControlZone("z1", pilotPoint, List.of(new ControlUnit("B6-G"),
