@@ -189,4 +189,29 @@ class DistributedSlackOnLoadTest {
                 .setThrowsExceptionInCaseOfSlackDistributionFailure(true);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
     }
+
+    @Test
+    void testPowerFactorConstant2() {
+        Network network = DistributedSlackNetworkFactory.createNetworkWithLoads2();
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        parametersExt.setLoadPowerFactorConstant(true);
+        network.getLoad("l4").newExtension(LoadDetailAdder.class)
+                .withVariableActivePower(100)
+                .withFixedActivePower(0)
+                .add();
+        network.getLoad("l5").newExtension(LoadDetailAdder.class)
+                .withVariableActivePower(200)
+                .withFixedActivePower(100)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isOk());
+        double sumBus = 0.0;
+        sumBus += network.getLine("l14").getTerminal2().getQ();
+        sumBus += network.getLine("l24").getTerminal2().getQ();
+        sumBus += network.getLine("l34").getTerminal2().getQ();
+        sumBus += network.getLoad("l4").getTerminal().getQ();
+        sumBus += network.getLoad("l5").getTerminal().getQ();
+        assertEquals(0.0, sumBus, 10E-6);
+        assertPowerFactor(network);
+    }
 }

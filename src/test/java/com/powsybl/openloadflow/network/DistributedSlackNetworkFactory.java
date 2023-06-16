@@ -135,6 +135,44 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
         return network;
     }
 
+    public static Network createNetworkWithLoads2() {
+        Network network = Network.create("distributed-load-slack-bus-2", "code");
+        Bus b1 = createBus(network, "b1", 400);
+        Bus b2 = createBus(network, "b2", 400);
+        Bus b3 = createBus(network, "b3", 400);
+        Bus b4 = createBus(network, "b4", 400);
+        Generator g1 = b1.getVoltageLevel()
+                .newGenerator()
+                .setId("g1")
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(400)
+                .setTargetP(100)
+                .setTargetV(400)
+                .setVoltageRegulatorOn(true)
+                .add();
+        Generator g2 = b2.getVoltageLevel()
+                .newGenerator()
+                .setId("g2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(400)
+                .setTargetP(200)
+                .setTargetQ(300)
+                .setVoltageRegulatorOn(false)
+                .add();
+        createLoad(b4, "l4", 100, 50);
+        createLoad(b4, "l5", 300, 30);
+        createLine(network, b1, b4, "l14", 10);
+        createLine(network, b2, b4, "l24", 10);
+        createLine(network, b3, b4, "l34", 10);
+        return network;
+    }
+
     public static Network createWithBattery() {
         Network network = create();
         Battery bat1 = network.getBusBreakerView().getBus("b1")
