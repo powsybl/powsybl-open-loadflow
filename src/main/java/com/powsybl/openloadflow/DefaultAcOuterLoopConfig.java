@@ -69,20 +69,20 @@ public class DefaultAcOuterLoopConfig implements AcOuterLoopConfig {
         if (parametersExt.isSvcVoltageMonitoring()) {
             outerLoops.add(new MonitoringVoltageOuterLoop());
         }
+        // shunt compensator voltage control
+        if (parameters.isShuntCompensatorVoltageControlOn()) {
+            outerLoops.add(createShuntVoltageControlOuterLoop(parametersExt));
+        }
+        // transformer voltage control
+        if (parameters.isTransformerVoltageControlOn()) {
+            outerLoops.add(createTransformerVoltageControlOuterLoop(parametersExt));
+        }
         if (parameters.isUseReactiveLimits()) {
             outerLoops.add(new ReactiveLimitsOuterLoop(parametersExt.getReactiveLimitsMaxPqPvSwitch()));
         }
         // phase shifter control
         if (parameters.isPhaseShifterRegulationOn()) {
             outerLoops.add(createPhaseShifterControlOuterLoop(parametersExt));
-        }
-        // transformer voltage control
-        if (parameters.isTransformerVoltageControlOn()) {
-            outerLoops.add(createTransformerVoltageControlOuterLoop(parametersExt));
-        }
-        // shunt compensator voltage control
-        if (parameters.isShuntCompensatorVoltageControlOn()) {
-            outerLoops.add(createShuntVoltageControlOuterLoop(parametersExt));
         }
         // secondary voltage control
         if (parametersExt.isSecondaryVoltageControl()) {
