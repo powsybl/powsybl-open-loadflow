@@ -8,12 +8,9 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.GeneratorVoltageControl;
+import com.powsybl.openloadflow.ac.nr.NewtonRaphsonStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.slf4j.Logger;
@@ -164,7 +161,29 @@ public enum NetworkCache {
                 LfNetwork lfNetwork = context.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
-                    lfBranch.setDisabled(open);
+                    var connectivity = lfNetwork.getConnectivity();
+                    connectivity.startTemporaryChanges();
+                    try {
+                        if (open) {
+                            connectivity.removeEdge(lfBranch);
+                        } else {
+                            connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
+                        }
+                        for (var b : connectivity.getVerticesAddedToMainComponent()) {
+                            b.setDisabled(false);
+                        }
+                        for (var b : connectivity.getVerticesRemovedFromMainComponent()) {
+                            b.setDisabled(true);
+                        }
+                        for (var b : connectivity.getEdgesAddedToMainComponent()) {
+                            b.setDisabled(false);
+                        }
+                        for (var b : connectivity.getEdgesRemovedFromMainComponent()) {
+                            b.setDisabled(true);
+                        }
+                    } finally {
+                        connectivity.undoTemporaryChanges();
+                    }
                     context.setNetworkUpdated(true);
                     found = true;
                 }
@@ -347,7 +366,7 @@ public enum NetworkCache {
             for (AcLoadFlowContext context : entry.getContexts()) {
                 AcLoadFlowResult result = context.getResult();
                 if (result != null && result.getNewtonRaphsonStatus() == NewtonRaphsonStatus.CONVERGED) {
-                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer());
+                    context.getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
                 }
             }
         } else {
