@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -224,7 +225,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         loadTargetP += p0 / PerUnit.SB;
         initialLoadTargetP += p0 / PerUnit.SB;
         loadTargetQ += load.getQ0() / PerUnit.SB;
-        if (p0 < 0) {
+        boolean hasVariableActivePower = false;
+        if (parameters.isDistributedOnConformLoad()) {
+            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+            if (loadDetail != null) {
+                hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
+            }
+        }
+        if (p0 < 0 || hasVariableActivePower) {
             ensurePowerFactorConstantByLoad = true;
         }
         this.load.add(load, parameters);

@@ -75,8 +75,11 @@ public final class ActivePowerDistribution {
         while (!participatingElements.isEmpty()
                 && Math.abs(remainingMismatch) > P_RESIDUE_EPS) {
 
-            remainingMismatch -= step.run(participatingElements, iteration, remainingMismatch);
-
+            if (ParticipatingElement.participationFactorNorm(participatingElements) > 0.0) {
+                remainingMismatch -= step.run(participatingElements, iteration, remainingMismatch);
+            } else {
+                break;
+            }
             iteration++;
         }
 
