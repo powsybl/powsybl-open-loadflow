@@ -332,4 +332,13 @@ class AcLoadFlowWithCachingTest {
         assertActivePowerEquals(301.884, l1.getTerminal1());
         assertActivePowerEquals(301.884, l2.getTerminal1());
     }
+
+    @Test
+    void testInvalidNetwork() {
+        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        var gen = network.getGenerator("GEN");
+        gen.setTargetV(1000);
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+    }
 }
