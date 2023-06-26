@@ -74,8 +74,7 @@ class AcLoadFlowWithCachingTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(1, NetworkCache.INSTANCE.getEntryCount());
-        // FIXME NO_CALCULATION should be added to API
-        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(0, result.getComponentResults().get(0).getIterationCount());
     }
 
