@@ -161,29 +161,7 @@ public enum NetworkCache {
                 LfNetwork lfNetwork = context.getNetwork();
                 LfBranch lfBranch = lfNetwork.getBranchById(switchId);
                 if (lfBranch != null) {
-                    var connectivity = lfNetwork.getConnectivity();
-                    connectivity.startTemporaryChanges();
-                    try {
-                        if (open) {
-                            connectivity.removeEdge(lfBranch);
-                        } else {
-                            connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
-                        }
-                        for (var b : connectivity.getVerticesAddedToMainComponent()) {
-                            b.setDisabled(false);
-                        }
-                        for (var b : connectivity.getVerticesRemovedFromMainComponent()) {
-                            b.setDisabled(true);
-                        }
-                        for (var b : connectivity.getEdgesAddedToMainComponent()) {
-                            b.setDisabled(false);
-                        }
-                        for (var b : connectivity.getEdgesRemovedFromMainComponent()) {
-                            b.setDisabled(true);
-                        }
-                    } finally {
-                        connectivity.undoTemporaryChanges();
-                    }
+                    updateSwitch(open, lfNetwork, lfBranch);
                     context.setNetworkUpdated(true);
                     found = true;
                 }
@@ -192,6 +170,32 @@ public enum NetworkCache {
                 LOGGER.warn("Cannot open switch '{}'", switchId);
             }
             return found;
+        }
+
+        private static void updateSwitch(boolean open, LfNetwork lfNetwork, LfBranch lfBranch) {
+            var connectivity = lfNetwork.getConnectivity();
+            connectivity.startTemporaryChanges();
+            try {
+                if (open) {
+                    connectivity.removeEdge(lfBranch);
+                } else {
+                    connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
+                }
+                for (var b : connectivity.getVerticesAddedToMainComponent()) {
+                    b.setDisabled(false);
+                }
+                for (var b : connectivity.getVerticesRemovedFromMainComponent()) {
+                    b.setDisabled(true);
+                }
+                for (var b : connectivity.getEdgesAddedToMainComponent()) {
+                    b.setDisabled(false);
+                }
+                for (var b : connectivity.getEdgesRemovedFromMainComponent()) {
+                    b.setDisabled(true);
+                }
+            } finally {
+                connectivity.undoTemporaryChanges();
+            }
         }
 
         @Override

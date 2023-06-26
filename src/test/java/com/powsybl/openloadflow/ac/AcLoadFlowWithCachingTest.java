@@ -365,5 +365,10 @@ class AcLoadFlowWithCachingTest {
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+
+        br.setOpen(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
     }
 }

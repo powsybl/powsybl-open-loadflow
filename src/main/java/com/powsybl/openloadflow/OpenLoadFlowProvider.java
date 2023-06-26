@@ -103,10 +103,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         }
     }
 
-    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
-        GraphConnectivityFactory<LfBus, LfBranch> theConnectivityFactory = parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
+    private GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory(OpenLoadFlowParameters parametersExt) {
+        return parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
                 ? new NaiveGraphConnectivityFactory<>(LfBus::getNum)
                 : connectivityFactory;
+    }
+
+    private LoadFlowResult runAc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, Reporter reporter) {
+        GraphConnectivityFactory<LfBus, LfBranch> theConnectivityFactory = getConnectivityFactory(parametersExt);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, theConnectivityFactory);
         acParameters.getNewtonRaphsonParameters()
                 .setDetailedReport(parametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
