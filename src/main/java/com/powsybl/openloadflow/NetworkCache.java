@@ -137,14 +137,14 @@ public enum NetworkCache {
                     GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
                     double nominalV = voltageControl.getControlledBus().getNominalV();
                     double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
-                    if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, new LfNetworkParameters(), null)) { // FIXME
+                    LfNetworkParameters networkParameters = context.getParameters().getNetworkParameters();
+                    if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
                         voltageControl.setTargetValue(newTargetV);
                     } else {
                         context.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
                         if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
                             lfBus.setGeneratorVoltageControlEnabled(false);
                         }
-
                     }
                     context.getNetwork().validate(LoadFlowModel.AC, null);
                     return true;
