@@ -9,13 +9,13 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -54,7 +54,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     @Override
-    public void initialize(OuterLoopContext context) {
+    public void initialize(AcOuterLoopContext context) {
         var contextData = new IncrementalContextData();
         context.setData(contextData);
 
@@ -186,11 +186,11 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
 
         LfNetwork network = context.getNetwork();
-        AcLoadFlowContext loadFlowContext = context.getAcLoadFlowContext();
+        AcLoadFlowContext loadFlowContext = context.getLoadFlowContext();
         var contextData = (IncrementalContextData) context.getData();
 
         List<LfBranch> controllerBranches = getControllerBranches(network);

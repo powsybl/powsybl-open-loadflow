@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
  */
 public class AcEquationSystemCreator {
 
-    private final LfNetwork network;
+    protected final LfNetwork network;
 
-    private final AcEquationSystemCreationParameters creationParameters;
+    protected final AcEquationSystemCreationParameters creationParameters;
 
     public AcEquationSystemCreator(LfNetwork network) {
         this(network, new AcEquationSystemCreationParameters());
@@ -33,7 +33,7 @@ public class AcEquationSystemCreator {
         this.creationParameters = Objects.requireNonNull(creationParameters);
     }
 
-    private void createBusEquation(LfBus bus,
+    protected void createBusEquation(LfBus bus,
                                    EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         var p = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
         bus.setP(p);
@@ -109,8 +109,8 @@ public class AcEquationSystemCreator {
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
     }
 
-    private static void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                                 boolean deriveA1, boolean deriveR1) {
+    protected static void createReactivePowerControlBranchEquation(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                    boolean deriveA1, boolean deriveR1) {
         if (bus1 != null && bus2 != null) {
             branch.getReactivePowerControl().ifPresent(rpc -> {
                 EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == ControlledSide.ONE
@@ -143,6 +143,7 @@ public class AcEquationSystemCreator {
         shunt.setQ(q);
         ShuntCompensatorActiveFlowEquationTerm p = new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, equationSystem.getVariableSet());
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P).addTerm(p);
+        shunt.setP(p);
     }
 
     private static void createShuntEquations(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
@@ -434,8 +435,8 @@ public class AcEquationSystemCreator {
         }
     }
 
-    private static void createTransformerPhaseControlEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                               boolean deriveA1, boolean deriveR1) {
+    protected static void createTransformerPhaseControlEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                 boolean deriveA1, boolean deriveR1) {
         if (deriveA1) {
             EquationTerm<AcVariableType, AcEquationType> a1 = equationSystem.getVariable(branch.getNum(), AcVariableType.BRANCH_ALPHA1)
                     .createTerm();
@@ -592,17 +593,17 @@ public class AcEquationSystemCreator {
         updateShuntVoltageControlEquations(voltageControl, equationSystem);
     }
 
-    private static boolean isDeriveA1(LfBranch branch, AcEquationSystemCreationParameters creationParameters) {
+    protected static boolean isDeriveA1(LfBranch branch, AcEquationSystemCreationParameters creationParameters) {
         return branch.isPhaseController()
                 || (creationParameters.isForceA1Var() && branch.hasPhaseControllerCapability() && branch.isConnectedAtBothSides());
     }
 
-    private static boolean isDeriveR1(LfBranch branch) {
+    protected static boolean isDeriveR1(LfBranch branch) {
         return branch.isVoltageController();
     }
 
-    private void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
-                                      EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected void createImpedantBranch(LfBranch branch, LfBus bus1, LfBus bus2,
+                                        EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         EquationTerm<AcVariableType, AcEquationType> p1 = null;
         EquationTerm<AcVariableType, AcEquationType> q1 = null;
         EquationTerm<AcVariableType, AcEquationType> p2 = null;
@@ -628,6 +629,17 @@ public class AcEquationSystemCreator {
             i2 = new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
         }
 
+        createBranchEquations(branch, bus1, bus2, equationSystem, p1, q1, p2, q2, i1, i2);
+
+        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+
+        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
+    }
+
+    protected static void createBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                EquationTerm<AcVariableType, AcEquationType> p1, EquationTerm<AcVariableType, AcEquationType> q1,
+                                                EquationTerm<AcVariableType, AcEquationType> p2, EquationTerm<AcVariableType, AcEquationType> q2,
+                                                EquationTerm<AcVariableType, AcEquationType> i1, EquationTerm<AcVariableType, AcEquationType> i2) {
         if (p1 != null) {
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P)
                     .orElseThrow()
@@ -662,10 +674,6 @@ public class AcEquationSystemCreator {
             equationSystem.attach(i2);
             branch.setI2(i2);
         }
-
-        createReactivePowerControlBranchEquation(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
-
-        createTransformerPhaseControlEquations(branch, bus1, bus2, equationSystem, deriveA1, deriveR1);
     }
 
     private static void createHvdcAcEmulationEquations(LfHvdc hvdc, EquationSystem<AcVariableType, AcEquationType> equationSystem) {

@@ -58,7 +58,7 @@ public class GenerationActivePowerDistributionStep implements ActivePowerDistrib
     public double run(List<ParticipatingElement> participatingElements, int iteration, double remainingMismatch) {
         // normalize participation factors at each iteration start as some
         // generators might have reach a limit and have been discarded
-        ParticipatingElement.normalizeParticipationFactors(participatingElements, "generator");
+        ParticipatingElement.normalizeParticipationFactors(participatingElements);
 
         double done = 0d;
         int modifiedBuses = 0;

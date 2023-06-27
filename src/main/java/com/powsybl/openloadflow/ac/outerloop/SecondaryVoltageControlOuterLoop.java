@@ -9,14 +9,13 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.OuterLoop;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -29,12 +28,26 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class SecondaryVoltageControlOuterLoop implements OuterLoop {
+public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecondaryVoltageControlOuterLoop.class);
 
+    public static final double SENSI_V_V_EPS_DEFAULT_VALUE = 1e-2;
+
     private static final double TARGET_V_DIFF_EPS = 1e-1; // in Kv
-    private static final double SENSI_V_EPS = 1e-3;
+    private static final double DQ_PU_EPS = 1d / PerUnit.SB; // in PU
+
+    private final double sensiVvEps;
+
+    private final double minPlausibleTargetVoltage;
+
+    private final double maxPlausibleTargetVoltage;
+
+    public SecondaryVoltageControlOuterLoop(double sensiVvEps, double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
+        this.sensiVvEps = sensiVvEps;
+        this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
+        this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
+    }
 
     @Override
     public String getType() {
@@ -54,8 +67,8 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                 .collect(Collectors.toList());
     }
 
-    private static void findActiveSecondaryVoltageControls(LfNetwork network, Map<LfSecondaryVoltageControl, List<LfBus>> activeSecondaryVoltageControls,
-                                                           Set<LfBus> allControlledBusSet) {
+    private void findActiveSecondaryVoltageControls(LfNetwork network, Map<LfSecondaryVoltageControl, List<LfBus>> activeSecondaryVoltageControls,
+                                                    Set<LfBus> allControlledBusSet) {
         List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls().stream()
                 .filter(control -> !control.getPilotBus().isDisabled())
                 .collect(Collectors.toList());
@@ -64,6 +77,10 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                     .filter(controlledBus -> !controlledBus.isDisabled()
                             && controlledBus.isGeneratorVoltageControlled()
                             && controlledBus.getGeneratorVoltageControl().filter(voltageControl -> !voltageControl.isHidden() && voltageControl.hasAtLeastOneControllerEnabled()).isPresent())
+                    .filter(controlledBus -> {
+                        double targetV = controlledBus.getGeneratorVoltageControl().orElseThrow().getTargetValue();
+                        return targetV > minPlausibleTargetVoltage && targetV < maxPlausibleTargetVoltage;
+                    })
                     .collect(Collectors.toList());
             if (!activeControlledBuses.isEmpty()) {
                 activeSecondaryVoltageControls.put(secondaryVoltageControl, activeControlledBuses);
@@ -199,7 +216,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
      *  - controlled bus voltage to controller bus reactive power injection sensitivity.
      *  - pilot bus voltage to controller bus reactive power injection sensitivity.
      */
-    private static SensiVq calculateSensiVq(SensitivityContext sensitivityContext, List<LfBus> controlledBuses, double[] svi) {
+    private SensiVq calculateSensiVq(String zoneName, SensitivityContext sensitivityContext, List<LfBus> controlledBuses, double[] svi) {
         // get list of all controllers of the zone
         List<LfBus> allControllerBuses = controlledBuses.stream()
                 .flatMap(controlledBus -> getControllerBuses(controlledBus).stream())
@@ -208,10 +225,11 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         double[] si = new double[allControllerBuses.size()];
         double[] sqi = new double[allControllerBuses.size()];
+        List<String> filteredControlledBusIds = new ArrayList<>();
         for (int i = 0; i < controlledBuses.size(); i++) {
             LfBus controlledBus = controlledBuses.get(i);
             // we need to filter very small sensitivity to avoid large target v shift
-            if (Math.abs(svi[i]) > SENSI_V_EPS) {
+            if (Math.abs(svi[i]) > sensiVvEps) {
                 for (LfBus controllerBus : getControllerBuses(controlledBus)) {
                     double sq = sensitivityContext.calculateSensiVq(controllerBus);
                     int j = controllerBusIndex.get(controllerBus.getNum());
@@ -220,7 +238,14 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                         si[j] = svi[i] / sq;
                     }
                 }
+            } else {
+                filteredControlledBusIds.add(controlledBus.getId());
             }
+        }
+
+        if (!filteredControlledBusIds.isEmpty()) {
+            LOGGER.trace("Target voltage of controlled buses {} of zone '{}' won't be adjusted because sensitivity on pilot point voltage is too small",
+                    filteredControlledBusIds, zoneName);
         }
 
         return new SensiVq(sqi, si, controllerBusIndex);
@@ -250,36 +275,59 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
      * dvi = dq / sqi
      * </pre>
      */
-    private static void adjustPrimaryVoltageControlTargets(String zoneName, SensitivityContext sensitivityContext,
-                                                           List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
+    private boolean adjustPrimaryVoltageControlTargets(String zoneName, SensitivityContext sensitivityContext,
+                                                       List<LfBus> controlledBuses, LfBus pilotBus, double pilotDv) {
+        boolean adjusted = false;
+
         // calculate sensitivity of controlled buses voltage to pilot bus voltage
         double[] svi = sensitivityContext.calculateSensiVv(controlledBuses, pilotBus);
 
         // calculate sensitivity of controlled buses voltage to controller buses reactive power injection
         // and sensitivity of controller bus reactive power injection to pilot bus voltage
-        var sensiVq = calculateSensiVq(sensitivityContext, controlledBuses, svi);
+        var sensiVq = calculateSensiVq(zoneName, sensitivityContext, controlledBuses, svi);
 
-        // supposing we want all controllers to shift to same amount of reactive power
-        double dq = pilotDv / Arrays.stream(sensiVq.si).sum();
+        double siSum = Arrays.stream(sensiVq.si).sum();
+        if (siSum != 0) {
+            // supposing we want all controllers to shift to same amount of reactive power
+            double dq = pilotDv / siSum;
+            if (Math.abs(dq) > DQ_PU_EPS) {
+                LOGGER.trace("Each of the controller buses of zone '{}' need to be adjusted of {} MVar", zoneName, dq * PerUnit.SB);
 
-        LOGGER.trace("Control units of zone '{}' need to be adjusted of {} MW", zoneName, dq * PerUnit.SB);
-
-        for (LfBus controlledBus : controlledBuses) {
-            double pvcDv = 0;
-            for (LfBus controllerBus : getControllerBuses(controlledBus)) {
-                pvcDv += dq / sensiVq.getSqi(controllerBus);
+                for (LfBus controlledBus : controlledBuses) {
+                    double pvcDv = 0;
+                    for (LfBus controllerBus : getControllerBuses(controlledBus)) {
+                        double sqi = sensiVq.getSqi(controllerBus);
+                        if (sqi != 0) {
+                            pvcDv += dq / sqi;
+                        }
+                    }
+                    if (pvcDv != 0) {
+                        var pvc = controlledBus.getGeneratorVoltageControl().orElseThrow();
+                        double newPvcTargetV = pvc.getTargetValue() + pvcDv;
+                        String plausibleTargetInfos = "";
+                        if (newPvcTargetV > maxPlausibleTargetVoltage) {
+                            newPvcTargetV = maxPlausibleTargetVoltage;
+                            plausibleTargetInfos = " (cut to max plausible target voltage)";
+                        }
+                        if (newPvcTargetV < minPlausibleTargetVoltage) {
+                            newPvcTargetV = minPlausibleTargetVoltage;
+                            plausibleTargetInfos = " (cut to min plausible target voltage)";
+                        }
+                        LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}{}",
+                                controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
+                                newPvcTargetV * controlledBus.getNominalV(), plausibleTargetInfos);
+                        pvc.setTargetValue(newPvcTargetV);
+                        adjusted = true;
+                    }
+                }
             }
-            var pvc = controlledBus.getGeneratorVoltageControl().orElseThrow();
-            double newPvcTargetV = pvc.getTargetValue() + pvcDv;
-            LOGGER.trace("Adjust primary voltage control target of bus '{}': {} -> {}",
-                    controlledBus.getId(), pvc.getTargetValue() * controlledBus.getNominalV(),
-                    newPvcTargetV * controlledBus.getNominalV());
-            pvc.setTargetValue(newPvcTargetV);
         }
+
+        return adjusted;
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         LfNetwork network = context.getNetwork();
 
         // find active secondary voltage controls
@@ -295,7 +343,7 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
 
         List<LfBus> allControlledBusList = new ArrayList<>(allControlledBusSet);
 
-        SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBusList, context.getAcLoadFlowContext());
+        SensitivityContext sensitivityContext = SensitivityContext.create(allControlledBusList, context.getLoadFlowContext());
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
@@ -309,10 +357,12 @@ public class SecondaryVoltageControlOuterLoop implements OuterLoop {
                 LOGGER.debug("Secondary voltage control of zone '{}' needs a pilot point voltage adjustment: {} -> {}",
                         secondaryVoltageControl.getZoneName(), pilotBus.getV() * pilotBus.getNominalV(),
                         secondaryVoltageControl.getTargetValue() * pilotBus.getNominalV());
-                adjustPrimaryVoltageControlTargets(secondaryVoltageControl.getZoneName(), sensitivityContext, controlledBuses,
-                                                   pilotBus, svcTargetDv);
-                adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
-                status = OuterLoopStatus.UNSTABLE;
+                boolean adjusted = adjustPrimaryVoltageControlTargets(secondaryVoltageControl.getZoneName(), sensitivityContext, controlledBuses,
+                                                                      pilotBus, svcTargetDv);
+                if (adjusted) {
+                    adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
+                    status = OuterLoopStatus.UNSTABLE;
+                }
             }
         }
         if (!adjustedZoneNames.isEmpty()) {

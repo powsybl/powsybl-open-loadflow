@@ -7,9 +7,8 @@
 package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.openloadflow.ac.OuterLoop;
-import com.powsybl.openloadflow.ac.OuterLoopContext;
-import com.powsybl.openloadflow.ac.OuterLoopStatus;
+import com.powsybl.openloadflow.ac.AcOuterLoopContext;
+import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 import org.slf4j.Logger;
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
 /**
  * @author Anne Tilloy <anne.tilloy at rte-france.com>
  */
-public class ShuntVoltageControlOuterLoop implements OuterLoop {
+public class ShuntVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShuntVoltageControlOuterLoop.class);
 
@@ -40,12 +39,12 @@ public class ShuntVoltageControlOuterLoop implements OuterLoop {
     }
 
     @Override
-    public void initialize(OuterLoopContext context) {
+    public void initialize(AcOuterLoopContext context) {
         getControllerShunts(context.getNetwork()).forEach(controllerShunt -> controllerShunt.setVoltageControlEnabled(true));
     }
 
     @Override
-    public OuterLoopStatus check(OuterLoopContext context, Reporter reporter) {
+    public OuterLoopStatus check(AcOuterLoopContext context, Reporter reporter) {
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         if (context.getIteration() == 0) {

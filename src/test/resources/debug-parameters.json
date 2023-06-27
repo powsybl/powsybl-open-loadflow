@@ -43,6 +43,7 @@
         "shuntVoltageControlMode" : "WITH_GENERATOR_VOLTAGE_CONTROL",
         "minPlausibleTargetVoltage" : 0.8,
         "maxPlausibleTargetVoltage" : 1.2,
+        "minNominalVoltageTargetVoltageCheck" : 20.0,
         "minRealisticVoltage" : 0.5,
         "maxRealisticVoltage" : 2.0,
         "lowImpedanceThreshold" : 1.0E-8,
@@ -54,13 +55,15 @@
         "debugDir" : null,
         "incrementalTransformerVoltageControlOuterLoopMaxTapShift" : 3,
         "secondaryVoltageControl" : false,
+        "controllerToPilotPointVoltageSensiEpsilon" : 0.01,
         "reactiveLimitsMaxPqPvSwitch" : 3,
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
         "alwaysUpdateNetwork" : false,
         "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile" : 95.0,
         "reportedFeatures" : [ ],
         "slackBusCountryFilter" : [ ],
-        "actionableSwitchesIds" : [ ]
+        "actionableSwitchesIds" : [ ],
+        "asymmetrical" : false
       }
     }
   },

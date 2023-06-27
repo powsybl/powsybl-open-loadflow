@@ -30,6 +30,8 @@ public class LfNetworkParameters {
 
     public static final double MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE = 1.2;
 
+    public static final double MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE = 20;
+
     public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
 
     public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX;
@@ -41,6 +43,8 @@ public class LfNetworkParameters {
     public static final boolean SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE = false;
 
     public static final boolean CACHE_ENABLED_DEFAULT_VALUE = false;
+
+    public static final boolean ASYMMETRICAL_DEFAULT_VALUE = false;
 
     public static final Set<Country> SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE = Collections.emptySet();
 
@@ -84,6 +88,8 @@ public class LfNetworkParameters {
 
     private double maxPlausibleTargetVoltage = MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE;
 
+    private double minNominalVoltageTargetVoltageCheck = MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE;
+
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
 
     private OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
@@ -99,6 +105,8 @@ public class LfNetworkParameters {
     private boolean secondaryVoltageControl = SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     private boolean cacheEnabled = CACHE_ENABLED_DEFAULT_VALUE;
+
+    private boolean asymmetrical = ASYMMETRICAL_DEFAULT_VALUE;
 
     public SlackBusSelector getSlackBusSelector() {
         return slackBusSelector;
@@ -280,6 +288,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public double getMinNominalVoltageTargetVoltageCheck() {
+        return minNominalVoltageTargetVoltageCheck;
+    }
+
+    public LfNetworkParameters setMinNominalVoltageTargetVoltageCheck(double minNominalVoltageTargetVoltageCheck) {
+        this.minNominalVoltageTargetVoltageCheck = minNominalVoltageTargetVoltageCheck;
+        return this;
+    }
+
     public double getLowImpedanceThreshold() {
         return lowImpedanceThreshold;
     }
@@ -362,6 +379,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isAsymmetrical() {
+        return asymmetrical;
+    }
+
+    public LfNetworkParameters setAsymmetrical(boolean asymmetrical) {
+        this.asymmetrical = asymmetrical;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -392,6 +418,8 @@ public class LfNetworkParameters {
                 ", debugDir=" + debugDir +
                 ", secondaryVoltageControl=" + secondaryVoltageControl +
                 ", cacheEnabled=" + cacheEnabled +
+                ", asymmetrical=" + asymmetrical +
+                ", minNominalVoltageTargetVoltageCheck=" + minNominalVoltageTargetVoltageCheck +
                 ')';
     }
 }
