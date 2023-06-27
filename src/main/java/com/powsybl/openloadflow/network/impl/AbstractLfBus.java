@@ -8,6 +8,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.LoadDetail;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -250,7 +251,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 double p0 = load.getP0() / PerUnit.SB * term.getC();
                 loadTargetP += p0;
                 initialLoadTargetP += p0;
-                if (p0 < 0) {
+                if (parameters.isDistributedOnConformLoad()) {
+                    LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+                    if (loadDetail != null) {
+                        hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
+                    }
+                }
+                if (p0 < 0 || hasVariableActivePower) {
                     ensurePowerFactorConstantByLoad = true;
                 }
             });
@@ -261,9 +268,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 loadTargetP += p0;
                 initialLoadTargetP += p0;
                 loadTargetQ += load.getQ0() / PerUnit.SB;
-                if (p0 < 0) {
-                    ensurePowerFactorConstantByLoad = true;
+            if (parameters.isDistributedOnConformLoad()) {
+                LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+                if (loadDetail != null) {
+                    hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
                 }
+            }
+            if (p0 < 0 || hasVariableActivePower) {
+                ensurePowerFactorConstantByLoad = true;
+            }
                 AbstractLfBus.this.load.add(load, parameters);
             });
     }

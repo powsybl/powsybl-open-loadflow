@@ -17,13 +17,13 @@ import java.util.*;
  */
 public class ContingencyTripping {
 
-    private static final ContingencyTripping NO_OP_TRIPPING = new ContingencyTripping(Collections.emptyList(), (s, tt, nt, n, nbv) -> null);
+    private static final ContingencyTripping NO_OP_TRIPPING = new ContingencyTripping(Collections.emptyList(), (s, tt, nt, nbv) -> null);
 
     @FunctionalInterface
     private interface NodeBreakerTraverserFactory {
         VoltageLevel.NodeBreakerView.TopologyTraverser create(
                 Set<Switch> stoppingSwitches, Set<Terminal> traversedTerminals, List<Terminal> neighbourTerminals,
-                int initNode, VoltageLevel.NodeBreakerView nodeBreakerView);
+                VoltageLevel.NodeBreakerView nodeBreakerView);
     }
 
     private final List<? extends Terminal> terminals;
@@ -55,14 +55,8 @@ public class ContingencyTripping {
                 throw new PowsyblException("VoltageLevel '" + voltageLevelId + "' not connected to branch '" + branch.getId() + "'");
             }
         } else {
-            return new ContingencyTripping(branch.getTerminals(), NodeBreakerTraverser::new);
+            return new ContingencyTripping(List.of(branch.getTerminal1(), branch.getTerminal2()), NodeBreakerTraverser::new);
         }
-    }
-
-    public static ContingencyTripping createTieLineTripping(Network network, TieLine line) {
-        Objects.requireNonNull(network);
-        Objects.requireNonNull(line);
-        return new ContingencyTripping(List.of(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal()), NodeBreakerTraverser::new);
     }
 
     public static ContingencyTripping createInjectionTripping(Network network, Injection<?> injection) {
@@ -83,7 +77,7 @@ public class ContingencyTripping {
         Objects.requireNonNull(network);
         Objects.requireNonNull(bbs);
 
-        NodeBreakerTraverserFactory minimalTraverserFactory = (stoppingSwitches, neighbourTerminals, traversedTerminals, n, nbv) ->
+        NodeBreakerTraverserFactory minimalTraverserFactory = (stoppingSwitches, neighbourTerminals, traversedTerminals, nbv) ->
             // To have the minimal tripping ("no propagation") with a busbar section we still need to traverse the
             // voltage level starting from that busbar section, stopping at first switch encountered (which will be
             // marked as retained afterwards), in order to have the smallest lost bus in breaker view
@@ -107,9 +101,8 @@ public class ContingencyTripping {
         switch (identifiable.getType()) {
             case LINE:
             case TWO_WINDINGS_TRANSFORMER:
-                return ContingencyTripping.createBranchTripping(network, (Branch<?>) identifiable);
             case TIE_LINE:
-                return ContingencyTripping.createTieLineTripping(network, (TieLine) identifiable);
+                return ContingencyTripping.createBranchTripping(network, (Branch<?>) identifiable);
             case DANGLING_LINE:
             case GENERATOR:
             case LOAD:
@@ -170,7 +163,7 @@ public class ContingencyTripping {
 
         List<Terminal> neighbourTerminals = new ArrayList<>();
         VoltageLevel.NodeBreakerView.TopologyTraverser traverser = nodeBreakerTraverserFactory.create(
-                switchesToOpen, traversedTerminals, neighbourTerminals, initNode, nodeBreakerView);
+                switchesToOpen, traversedTerminals, neighbourTerminals, nodeBreakerView);
         nodeBreakerView.traverse(initNode, traverser);
 
         return neighbourTerminals;
