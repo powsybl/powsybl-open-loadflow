@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.LfAsymGenerator;
+import com.powsybl.openloadflow.network.extensions.AsymGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -104,7 +104,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    private static void createAsym(Generator generator, LfGeneratorImpl lfGenerator) {
+    private static void createAsymExt(Generator generator, LfGeneratorImpl lfGenerator) {
         var extension = generator.getExtension(GeneratorFortescue.class);
         if (extension != null) {
             double vNom = generator.getTerminal().getVoltageLevel().getNominalV();
@@ -132,7 +132,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             } else {
                 throw new PowsyblException("Generator '" + generator.getId() + "' has fortescue negative sequence values that will bring singularity in the equation system");
             }
-            lfGenerator.setAsym(new LfAsymGenerator(gZero, bZero, gNegative, bNegative));
+            AsymGenerator asymGenerator = new AsymGenerator(gZero, bZero, gNegative, bNegative);
+            lfGenerator.setProperty(AsymGenerator.PROPERTY_ASYMMETRICAL, asymGenerator);
         }
     }
 
@@ -142,11 +143,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        LfGeneratorImpl lfGenerator = new LfGeneratorImpl(generator, network, parameters, report);
+        LfGeneratorImpl lfGeneratorImpl = new LfGeneratorImpl(generator, network, parameters, report);
         if (parameters.isAsymmetrical()) {
-            createAsym(generator, lfGenerator);
+            createAsymExt(generator, lfGeneratorImpl);
         }
-        return lfGenerator;
+        return lfGeneratorImpl;
     }
 
     private Generator getGenerator() {

@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.Objects;
@@ -63,10 +64,19 @@ public abstract class AbstractShuntFortescueEquationTerm extends AbstractElement
     }
 
     protected double b() {
-        return sequenceType == Fortescue.SequenceType.ZERO ? element.getAsym().getBzEquiv() : element.getAsym().getBnEquiv();
+        AsymBus asymBus = (AsymBus) element.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        if (sequenceType == Fortescue.SequenceType.ZERO) {
+            return asymBus.getbZeroEquivalent();
+        }
+        return asymBus.getbNegativeEquivalent();
     }
 
     protected double g() {
-        return sequenceType == Fortescue.SequenceType.ZERO ? element.getAsym().getGzEquiv() : element.getAsym().getGnEquiv();
+        AsymBus asymBus = (AsymBus) element.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        if (sequenceType == Fortescue.SequenceType.ZERO) {
+            return asymBus.getgZeroEquivalent();
+        }
+        return asymBus.getgNegativeEquivalent();
     }
+
 }

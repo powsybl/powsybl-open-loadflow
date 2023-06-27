@@ -9,6 +9,8 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.math.matrix.DenseMatrix;
+import net.jafama.FastMath;
+import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 
 /**
@@ -36,7 +38,7 @@ public final class Fortescue {
     }
 
     public static DenseMatrix createInverseMatrix() {
-        DenseMatrix mFinv = new DenseMatrix(6, 6);
+        /*DenseMatrix mFinv = new DenseMatrix(6, 6);
 
         double t = 1. / 3.;
         //column 1
@@ -77,7 +79,9 @@ public final class Fortescue {
         mFinv.add(5, 4, t * Math.sqrt(3.) / 2.);
         mFinv.add(5, 5, -t / 2.);
 
-        return mFinv;
+        return mFinv;*/
+
+        return createComplexMatrix(true).getRealCartesianMatrix();
     }
 
     public static DenseMatrix createMatrix() {
@@ -85,7 +89,7 @@ public final class Fortescue {
         // [G2] = [ 1  a²  a] * [Gd]
         // [G3]   [ 1  a  a²]   [Gi]
 
-        DenseMatrix mFortescue = new DenseMatrix(6, 6);
+        /*DenseMatrix mFortescue = new DenseMatrix(6, 6);
         //column 1
         mFortescue.add(0, 0, 1.);
         mFortescue.add(1, 1, 1.);
@@ -122,9 +126,43 @@ public final class Fortescue {
         mFortescue.add(4, 4, -1. / 2.);
         mFortescue.add(4, 5, Math.sqrt(3.) / 2.);
         mFortescue.add(5, 4, -Math.sqrt(3.) / 2.);
-        mFortescue.add(5, 5, -1. / 2.);
+        mFortescue.add(5, 5, -1. / 2.);*/
 
-        return mFortescue;
+        return createComplexMatrix(false).getRealCartesianMatrix();
+    }
+
+    public static ComplexMatrix createComplexMatrix(boolean isInverse) {
+        // [G1]   [ 1  1  1 ]   [Gh]
+        // [G2] = [ 1  a²  a] * [Gd]
+        // [G3]   [ 1  a  a²]   [Gi]
+
+        Complex a = new Complex(-0.5, FastMath.sqrt(3.) / 2);
+        Complex a2 = a.multiply(a);
+
+        double t = 1.;
+        Complex c1 = a;
+        Complex c2 = a2;
+        if (isInverse) {
+            t = 1. / 3.;
+            c1 = a2.multiply(t);
+            c2 = a.multiply(t);
+        }
+        Complex unit = new Complex(t, 0);
+
+        ComplexMatrix complexMatrix = new ComplexMatrix(3, 3);
+        complexMatrix.set(1, 1, unit);
+        complexMatrix.set(1, 2, unit);
+        complexMatrix.set(1, 3, unit);
+
+        complexMatrix.set(2, 1, unit);
+        complexMatrix.set(2, 2, c2);
+        complexMatrix.set(2, 3, c1);
+
+        complexMatrix.set(3, 1, unit);
+        complexMatrix.set(3, 2, c1);
+        complexMatrix.set(3, 3, c2);
+
+        return complexMatrix;
     }
 
     public static Vector2D getCartesianFromPolar(double magnitude, double angle) {

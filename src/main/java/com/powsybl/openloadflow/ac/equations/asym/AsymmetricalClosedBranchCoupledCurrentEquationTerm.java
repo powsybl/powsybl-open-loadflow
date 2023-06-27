@@ -14,6 +14,8 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.Side;
+import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
 import net.jafama.FastMath;
@@ -108,6 +110,11 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
     }
 
     public double di(Variable<AcVariableType> variable) {
+
+        if ((variableTypeBus1 == AsymBusVariableType.DELTA || variableTypeBus2 == AsymBusVariableType.DELTA) && getNbPhases() < 3) {
+            throw new IllegalStateException("missing phases with delta variables not yet handled");
+        }
+
         TwoSides i;
         TwoSides j;
         if (side == TwoSides.ONE) {
@@ -142,6 +149,12 @@ public class AsymmetricalClosedBranchCoupledCurrentEquationTerm extends Abstract
     }
 
     public double i() {
+
+        if ((variableTypeBus1 == AsymBusVariableType.DELTA || variableTypeBus2 == AsymBusVariableType.DELTA) && getNbPhases() < 3) {
+            throw new IllegalStateException("missing phases with delta variables not yet handled");
+        }
+
+
         TwoSides i;
         TwoSides j;
         if (side == TwoSides.ONE) {
