@@ -524,6 +524,11 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     }
 
     @Override
+    public void onShuntSusceptanceChange(LfShunt shunt, double b) {
+        shuntVector.b[shunt.getNum()] = b;
+    }
+
+    @Override
     public void onVariableChange(Variable<AcVariableType> variable, ChangeType changeType) {
         variablesInvalid = true;
     }
