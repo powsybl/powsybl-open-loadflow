@@ -76,7 +76,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     }
 
-    private static void createAsymExt(Bus bus, LfBusImpl lfBus) {
+    private static void createAsym(Bus bus, LfBusImpl lfBus) {
         double totalDeltaPa = 0;
         double totalDeltaQa = 0;
         double totalDeltaPb = 0;
@@ -176,7 +176,7 @@ public class LfBusImpl extends AbstractLfBus {
         Objects.requireNonNull(parameters);
         var lfBus = new LfBusImpl(bus, network, bus.getV(), Math.toRadians(bus.getAngle()), parameters, participating);
         if (parameters.isAsymmetrical()) {
-            createAsymExt(bus, lfBus);
+            createAsym(bus, lfBus);
         }
         return lfBus;
     }

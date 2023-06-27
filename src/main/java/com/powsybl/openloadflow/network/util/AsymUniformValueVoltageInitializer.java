@@ -1,7 +1,7 @@
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.util.Fortescue;
 
 import java.util.Objects;
@@ -15,7 +15,7 @@ public final class AsymUniformValueVoltageInitializer {
 
     }
 
-    public static double getMagnitude(LfBus bus, AsymBus asymBus, Fortescue.SequenceType sequenceType) {
+    public static double getMagnitude(LfBus bus, LfAsymBus asymBus, Fortescue.SequenceType sequenceType) {
         Objects.requireNonNull(bus);
         Objects.requireNonNull(asymBus);
         Objects.requireNonNull(sequenceType);
@@ -31,7 +31,7 @@ public final class AsymUniformValueVoltageInitializer {
         return 1;
     }
 
-    public static double getAngle(LfBus bus, AsymBus asymBus, Fortescue.SequenceType sequenceType) {
+    public static double getAngle(LfBus bus, LfAsymBus asymBus, Fortescue.SequenceType sequenceType) {
         Objects.requireNonNull(bus);
         Objects.requireNonNull(asymBus);
         Objects.requireNonNull(sequenceType);

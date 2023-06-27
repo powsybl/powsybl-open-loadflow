@@ -14,8 +14,8 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.network.extensions.StepType;
@@ -77,7 +77,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
         // [P] = [-1  1  0]
         //       [ 0 -1  1]
 
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = bus.getAsym();
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
@@ -168,7 +168,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
         //                                                                                         <-------------------------------------------------------------------------------------------------->
         //                                                                                                                               term T2
 
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = bus.getAsym();
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
@@ -281,7 +281,7 @@ public class LoadFortescuePowerEquationTerm extends AbstractAsymmetricalLoad {
         return "ac_pq_fortescue_load";
     }
 
-    public static DenseMatrix getInvVabcSquare(LfBus bus, AsymBus asymBus, double vAx, double vAy, double vBx, double vBy, double vCx, double vCy) {
+    public static DenseMatrix getInvVabcSquare(LfBus bus, LfAsymBus asymBus, double vAx, double vAy, double vBx, double vBy, double vCx, double vCy) {
         double epsilon = 0.00000001;
 
         if (asymBus.getNbExistingPhases() > 0 && asymBus.getAsymBusVariableType() == AsymBusVariableType.DELTA) {

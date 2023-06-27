@@ -3,8 +3,8 @@ package com.powsybl.openloadflow.ac.equations.asym;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
@@ -47,7 +47,7 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
         // Not yet handled
         //
 
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = bus.getAsym();
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
@@ -164,7 +164,7 @@ public class LoadAbcPowerEquationTerm extends AbstractAsymmetricalLoad {
         // Not yet handled
         //                                                                                                                        term T2
 
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = bus.getAsym();
         if (asymBus == null) {
             throw new IllegalStateException("unexpected null pointer for an asymmetric bus " + bus.getId());
         }
