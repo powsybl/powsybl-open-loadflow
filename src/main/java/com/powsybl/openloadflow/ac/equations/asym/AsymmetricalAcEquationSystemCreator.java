@@ -30,15 +30,15 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
     protected void createBusEquation(LfBus bus, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         super.createBusEquation(bus, equationSystem);
 
-        // addition of asymmetric equations, supposing that existing v, theta, p and q are linked to the direct sequence
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        // addition of asymmetric equations, supposing that existing v, theta, p and q are linked to the positive sequence
+        LfAsymBus asymBus = bus.getAsym();
 
         if (asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE) {
             if (asymBus.getNbExistingPhases() == 0) {
                 var ixi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE);
-                asymBus.setIxNegative(ixi);
+                asymBus.setIxN(ixi);
                 var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE);
-                asymBus.setIyNegative(iyi);
+                asymBus.setIyN(iyi);
 
                 ixi.setActive(true);
                 iyi.setActive(true);
@@ -46,9 +46,9 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
             if (asymBus.getNbExistingPhases() <= 1) {
                 var ixh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO);
-                asymBus.setIxZero(ixh);
+                asymBus.setIxZ(ixh);
                 var iyh = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO);
-                asymBus.setIyZero(iyh);
+                asymBus.setIyZ(iyh);
                 ixh.setActive(true);
                 iyh.setActive(true);
             }
@@ -60,9 +60,9 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
             // delta connection
             var ixi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE);
-            asymBus.setIxNegative(ixi);
+            asymBus.setIxN(ixi);
             var iyi = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_NEGATIVE);
-            asymBus.setIyNegative(iyi);
+            asymBus.setIyN(iyi);
 
             ixi.setActive(true);
             iyi.setActive(true);
@@ -83,17 +83,17 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
                 AsymGenerator asymGenerator = (AsymGenerator) gen.getProperty(AsymGenerator.PROPERTY_ASYMMETRICAL);
                 if (asymGenerator != null) {
-                    asymBus.setbZeroEquivalent(asymBus.getbZeroEquivalent() + asymGenerator.getBz());
-                    asymBus.setgZeroEquivalent(asymBus.getgZeroEquivalent() + asymGenerator.getGz());
-                    asymBus.setbNegativeEquivalent(asymBus.getbNegativeEquivalent() + asymGenerator.getBn());
-                    asymBus.setgNegativeEquivalent(asymBus.getgNegativeEquivalent() + asymGenerator.getGn());
+                    asymBus.setBzEquiv(asymBus.getBzEquiv() + asymGenerator.getBz());
+                    asymBus.setGzEquiv(asymBus.getGzEquiv() + asymGenerator.getGz());
+                    asymBus.setBnEquiv(asymBus.getBnEquiv() + asymGenerator.getBn());
+                    asymBus.setGnEquiv(asymBus.getGnEquiv() + asymGenerator.getGn());
                     // TODO : try to add perfect asym generator
                 }
             }
         }
 
         if (asymBus.getAsymBusVariableType() == AsymBusVariableType.WYE) {
-            if (Math.abs(asymBus.getbZeroEquivalent()) > epsilon || Math.abs(asymBus.getgZeroEquivalent()) > epsilon) {
+            if (Math.abs(asymBus.getBzEquiv()) > epsilon || Math.abs(asymBus.getGzEquiv()) > epsilon) {
                 ShuntFortescueIxEquationTerm ixShuntZero = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.ZERO);
                 equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_ZERO).addTerm(ixShuntZero);
                 ShuntFortescueIyEquationTerm iyShuntZero = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.ZERO);
@@ -107,7 +107,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IY_ZERO).addTerm(iyShuntZero);
         }*/
 
-        if (Math.abs(asymBus.getgNegativeEquivalent()) > epsilon || Math.abs(asymBus.getbNegativeEquivalent()) > epsilon) {
+        if (Math.abs(asymBus.getGnEquiv()) > epsilon || Math.abs(asymBus.getBnEquiv()) > epsilon) {
             ShuntFortescueIxEquationTerm ixShuntNegative = new ShuntFortescueIxEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.NEGATIVE);
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_IX_NEGATIVE).addTerm(ixShuntNegative);
             ShuntFortescueIyEquationTerm iyShuntNegative = new ShuntFortescueIyEquationTerm(bus, equationSystem.getVariableSet(), SequenceType.NEGATIVE);
@@ -212,11 +212,11 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
 
         boolean isBus1Wye = true;
         boolean isBus2Wye = true;
-        AsymBus asymBus1 = (AsymBus) bus1.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus1 = bus1.getAsym();
         if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
             isBus1Wye = false;
         }
-        AsymBus asymBus2 = (AsymBus) bus2.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus2 = bus2.getAsym();
         if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
             isBus2Wye = false;
         }

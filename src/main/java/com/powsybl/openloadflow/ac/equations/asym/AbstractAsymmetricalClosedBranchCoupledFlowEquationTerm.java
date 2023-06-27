@@ -11,10 +11,10 @@ package com.powsybl.openloadflow.ac.equations.asym;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.Side;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.util.ComplexPart;
 import com.powsybl.openloadflow.util.Fortescue.SequenceType;
@@ -94,8 +94,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
         // fetching the type of variables connecting bus1
         AsymBusVariableType tmpVariableTypeBus1 = AsymBusVariableType.WYE;
-        AsymBus asymBus1 = (AsymBus) bus1.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-
+        LfAsymBus asymBus1 = bus1.getAsym();
         if (asymBus1.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
             tmpVariableTypeBus1 = AsymBusVariableType.DELTA;
             if (asymBus1.getNbExistingPhases() > 0) {
@@ -106,7 +105,7 @@ public abstract class AbstractAsymmetricalClosedBranchCoupledFlowEquationTerm ex
 
         // fetching the type of variables connecting bus2
         AsymBusVariableType tmpVariableTypeBus2 = AsymBusVariableType.WYE;
-        AsymBus asymBus2 = (AsymBus) bus2.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus2 = bus2.getAsym();
         if (asymBus2.getAsymBusVariableType() == AsymBusVariableType.DELTA) {
             tmpVariableTypeBus2 = AsymBusVariableType.DELTA;
             if (asymBus2.getNbExistingPhases() > 0) {

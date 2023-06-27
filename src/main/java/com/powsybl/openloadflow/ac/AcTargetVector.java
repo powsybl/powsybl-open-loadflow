@@ -13,7 +13,6 @@ import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
 
 import java.util.Objects;
 
@@ -65,7 +64,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 // in the case the bus is modeled with ABC variables, the load is of constant current type,
                 // and supposing the nodal balances are modeled using current for the positive sequence,
                 // then the targed is a current fixed value
-                AsymBus asymBusP = (AsymBus) busP.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                LfAsymBus asymBusP = busP.getAsym();
                 if (asymBusP != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
@@ -79,7 +78,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 targets[equation.getColumn()] = busQ.getTargetQ();
                 // see the comment for BUS_TARGET_P
                 // TODO : handle here those asym specific cases
-                AsymBus asymBusQ = (AsymBus) busQ.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                LfAsymBus asymBusQ = busQ.getAsym();
                 if (asymBusQ != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
@@ -132,7 +131,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 LfBus busIxZero = network.getBus(equation.getElementNum());
                 targets[equation.getColumn()] = 0.;
                 // see the comment for BUS_TARGET_P
-                AsymBus asymBusIxzero = (AsymBus) busIxZero.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                LfAsymBus asymBusIxzero = busIxZero.getAsym();
                 if (asymBusIxzero != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
@@ -144,7 +143,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 LfBus busIyZero = network.getBus(equation.getElementNum());
                 targets[equation.getColumn()] = 0.;
                 // see the comment for BUS_TARGET_P
-                AsymBus asymBusIyzero = (AsymBus) busIyZero.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                LfAsymBus asymBusIyzero = busIyZero.getAsym();
                 if (asymBusIyzero != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
@@ -156,7 +155,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 LfBus busIxNegative = network.getBus(equation.getElementNum());
                 targets[equation.getColumn()] = 0.;
                 // see the comment for BUS_TARGET_P
-                AsymBus asymBusIxNegative = (AsymBus) busIxNegative.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                LfAsymBus asymBusIxNegative = busIxNegative.getAsym();
                 if (asymBusIxNegative != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
@@ -169,7 +168,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                 LfBus busIyNegative = network.getBus(equation.getElementNum());
                 targets[equation.getColumn()] = 0.;
                 // see the comment for BUS_TARGET_P
-                AsymBus asymBusIyNegative = (AsymBus) busIyNegative.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                LfAsymBus asymBusIyNegative = busIyNegative.getAsym();
                 if (asymBusIyNegative != null) {
                     // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
                     // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)

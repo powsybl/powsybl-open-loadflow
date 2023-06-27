@@ -62,8 +62,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 boolean hasPhaseB2 = true;
                 boolean hasPhaseC2 = true;
 
-                AsymBus asymBus1 = (AsymBus) lfBranchImpl.getBus1().getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                AsymBus asymBus2 = (AsymBus) lfBranchImpl.getBus2().getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                LfAsymBus asymBus1 = lfBranchImpl.getBus1().getAsym();
+                LfAsymBus asymBus2 = lfBranchImpl.getBus2().getAsym();
+
                 if (asymBus1 != null) {
                     isBus1FortescueRepresented = asymBus1.isFortescueRepresentation();
                     hasPhaseA1 = asymBus1.isHasPhaseA();
@@ -166,8 +167,8 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 AsymBusVariableType side1VariableType = AsymBusVariableType.WYE;
                 AsymBusVariableType side2VariableType = AsymBusVariableType.WYE;
 
-                AsymBus asymBus1 = (AsymBus) lfBranchImpl.getBus1().getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                AsymBus asymBus2 = (AsymBus) lfBranchImpl.getBus2().getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                LfAsymBus asymBus1 = lfBranchImpl.getBus1().getAsym();
+                LfAsymBus asymBus2 = lfBranchImpl.getBus2().getAsym();
 
                 if (asymBus1 != null) {
                     side1VariableType = asymBus1.getAsymBusVariableType();

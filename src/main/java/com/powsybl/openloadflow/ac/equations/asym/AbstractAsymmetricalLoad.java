@@ -5,8 +5,8 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
 import com.powsybl.openloadflow.network.extensions.LegConnectionType;
 import com.powsybl.openloadflow.util.ComplexMatrix;
@@ -45,14 +45,14 @@ abstract class AbstractAsymmetricalLoad extends AbstractElementEquationTerm<LfBu
 
     private final AsymBusVariableType busVariableType; // variables available at bus (Wye variables, Va, Vb, Vc or Delta variables : Vab, Vbc and Vca = -Vab - Vbc)
 
-    private final AsymBus asymBus;
+    private final LfAsymBus asymBus;
 
     public AbstractAsymmetricalLoad(LfBus bus, VariableSet<AcVariableType> variableSet, ComplexPart complexPart, Fortescue.SequenceType sequenceType) {
         super(bus);
         Objects.requireNonNull(variableSet);
         this.complexPart = Objects.requireNonNull(complexPart);
         this.sequenceType = Objects.requireNonNull(sequenceType);
-        this.asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        this.asymBus = bus.getAsym();
         this.loadConnectionType = Objects.requireNonNull(asymBus.getLoadConnectionType());
         this.busVariableType = Objects.requireNonNull(asymBus.getAsymBusVariableType());
 

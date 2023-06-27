@@ -11,7 +11,7 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -172,7 +172,8 @@ public class NewtonRaphson {
     public static boolean isElementAsymBus(LfNetwork network, Variable<AcVariableType> v) {
 
         LfBus bus = network.getBus(v.getElementNum());
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = bus.getAsym();
+        //AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus != null) {
             return true;
         }
@@ -266,23 +267,23 @@ public class NewtonRaphson {
                     break;
 
                 case BUS_V_ZERO:
-                    AsymBus asymBusVh = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusVh.setvZero(stateVector.get(v.getRow()));
+                    LfAsymBus asymBusVh = network.getBus(v.getElementNum()).getAsym();
+                    asymBusVh.setVz(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI_ZERO:
-                    AsymBus asymBusPhiH = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusPhiH.setAngleZero(stateVector.get(v.getRow()));
+                    LfAsymBus asymBusPhiH = network.getBus(v.getElementNum()).getAsym();
+                    asymBusPhiH.setAngleZ(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_V_NEGATIVE:
-                    AsymBus asymBusVi = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusVi.setvNegative(stateVector.get(v.getRow()));
+                    LfAsymBus asymBusVi = network.getBus(v.getElementNum()).getAsym();
+                    asymBusVi.setVn(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI_NEGATIVE:
-                    AsymBus asymBusPhiI = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
-                    asymBusPhiI.setAngleNegative(stateVector.get(v.getRow()));
+                    LfAsymBus asymBusPhiI = network.getBus(v.getElementNum()).getAsym();
+                    asymBusPhiI.setAngleN(stateVector.get(v.getRow()));
                     break;
 
                 case SHUNT_B:

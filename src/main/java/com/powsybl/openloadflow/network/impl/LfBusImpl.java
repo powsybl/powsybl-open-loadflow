@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.extensions.WindingConnectionType;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -62,7 +62,7 @@ public class LfBusImpl extends AbstractLfBus {
         country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
     }
 
-    private static void createAsymExt(Bus bus, LfBusImpl lfBus) {
+    private static void createAsym(Bus bus, LfBusImpl lfBus) {
         double totalDeltaPa = 0;
         double totalDeltaQa = 0;
         double totalDeltaPb = 0;
@@ -153,8 +153,7 @@ public class LfBusImpl extends AbstractLfBus {
             break;
         }
 
-        AsymBus asymBus = new AsymBus(lfBus, asymBusVariableType, hasPhaseA, hasPhaseB, hasPhaseC, loadConnectionType, totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc, isFortescueRep, isPositiveSequenceAsCurrent, loadType);
-        lfBus.setProperty(AsymBus.PROPERTY_ASYMMETRICAL, asymBus);
+        lfBus.setAsym(new LfAsymBus(asymBusVariableType, hasPhaseA, hasPhaseB, hasPhaseC, loadConnectionType, totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc, isFortescueRep, isPositiveSequenceAsCurrent, loadType));
     }
 
     public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {
@@ -162,7 +161,7 @@ public class LfBusImpl extends AbstractLfBus {
         Objects.requireNonNull(parameters);
         var lfBus = new LfBusImpl(bus, network, bus.getV(), Math.toRadians(bus.getAngle()), parameters, participating);
         if (parameters.isAsymmetrical()) {
-            createAsymExt(bus, lfBus);
+            createAsym(bus, lfBus);
         }
         return lfBus;
     }
@@ -237,7 +236,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getTargetP() {
-        AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = this.getAsym();
         if (asymBus != null) {
             return getGenerationTargetP();
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
@@ -248,7 +247,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getTargetQ() {
-        AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = this.getAsym();
         if (asymBus != null) {
             return getGenerationTargetQ();
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation

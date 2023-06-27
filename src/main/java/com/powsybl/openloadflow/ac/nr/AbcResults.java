@@ -4,11 +4,12 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.network.LfAsymBus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.extensions.AsymBranch;
-import com.powsybl.openloadflow.network.extensions.AsymBus;
+//import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.complex.Complex;
@@ -71,21 +72,22 @@ public class AbcResults {
         boolean hasPhaseA = true;
         boolean hasPhaseB = true;
         boolean hasPhaseC = true;
-        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus = bus.getAsym();
+        //AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus != null) {
-            phHomo = asymBus.getAngleZero();
-            vHomo = asymBus.getvZero();
-            phInv = asymBus.getAngleNegative();
-            vInv = asymBus.getvNegative();
+            phHomo = asymBus.getAngleZ();
+            vHomo = asymBus.getVz();
+            phInv = asymBus.getAngleN();
+            vInv = asymBus.getVn();
             if (!asymBus.isFortescueRepresentation()) {
                 isFortescue = false;
             }
             hasPhaseA = asymBus.isHasPhaseA();
             hasPhaseB = asymBus.isHasPhaseB();
             hasPhaseC = asymBus.isHasPhaseC();
-            System.out.println(" zero = " + vHomo + " (" + asymBus.getAngleZero());
+            System.out.println(" zero = " + vHomo + " (" + asymBus.getAngleZ());
             System.out.println(" posi = " + v + " (" + bus.getAngle());
-            System.out.println(" nega = " + vInv + " (" + asymBus.getAngleNegative());
+            System.out.println(" nega = " + vInv + " (" + asymBus.getAngleN());
 
             //vZero = asymBus.getCompleteVandTheta(Fortescue.SequenceType.ZERO, vHomo, phHomo, v, ph, vInv, phInv, asymBus.isHasPhaseA(), asymBus.isHasPhaseB(), asymBus.isHasPhaseC(), asymBus.getAsymBusVariableType());
             //vNegative = asymBus.getCompleteVandTheta(Fortescue.SequenceType.NEGATIVE, vHomo, phHomo, v, ph, vInv, phInv, asymBus.isHasPhaseA(), asymBus.isHasPhaseB(), asymBus.isHasPhaseC(), asymBus.getAsymBusVariableType());
@@ -185,34 +187,36 @@ public class AbcResults {
             return;
         }
 
-        AsymBus asymBus1 = (AsymBus) bus1.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus1 = bus1.getAsym();
+        //AsymBus asymBus1 = (AsymBus) bus1.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus1 == null) {
             return;
         }
 
         double v1 = bus1.getV();
         double ph1 = bus1.getAngle();
-        double v1Homo = asymBus1.getvZero();
-        double ph1Homo = asymBus1.getAngleZero();
-        double v1Inv = asymBus1.getvNegative();
-        double ph1Inv = asymBus1.getAngleNegative();
+        double v1Homo = asymBus1.getVz();
+        double ph1Homo = asymBus1.getAngleZ();
+        double v1Inv = asymBus1.getVn();
+        double ph1Inv = asymBus1.getAngleN();
 
         LfBus bus2 = branch.getBus2();
         if (bus2 == null) {
             return;
         }
 
-        AsymBus asymBus2 = (AsymBus) bus2.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        LfAsymBus asymBus2 = bus2.getAsym();
+        //AsymBus asymBus2 = (AsymBus) bus2.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus2 == null) {
             return;
         }
 
         double v2 = bus2.getV();
         double ph2 = bus2.getAngle();
-        double v2Homo = asymBus2.getvZero();
-        double ph2Homo = asymBus2.getAngleZero();
-        double v2Inv = asymBus2.getvNegative();
-        double ph2Inv = asymBus2.getAngleNegative();
+        double v2Homo = asymBus2.getVz();
+        double ph2Homo = asymBus2.getAngleZ();
+        double v2Inv = asymBus2.getVn();
+        double ph2Inv = asymBus2.getAngleN();
 
         /*Vector2D bus1zero = Fortescue.getCartesianFromPolar(v1Homo, ph1Homo);
         Vector2D bus1Positive = Fortescue.getCartesianFromPolar(v1, ph1);
