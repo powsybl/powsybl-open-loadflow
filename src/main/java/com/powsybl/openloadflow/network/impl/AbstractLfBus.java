@@ -251,6 +251,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 double p0 = load.getP0() / PerUnit.SB * term.getC();
                 loadTargetP += p0;
                 initialLoadTargetP += p0;
+                boolean hasVariableActivePower = false;
                 if (parameters.isDistributedOnConformLoad()) {
                     LoadDetail loadDetail = load.getExtension(LoadDetail.class);
                     if (loadDetail != null) {
@@ -268,15 +269,16 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 loadTargetP += p0;
                 initialLoadTargetP += p0;
                 loadTargetQ += load.getQ0() / PerUnit.SB;
-            if (parameters.isDistributedOnConformLoad()) {
-                LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-                if (loadDetail != null) {
-                    hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
+                boolean hasVariableActivePower = false;
+                if (parameters.isDistributedOnConformLoad()) {
+                    LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+                    if (loadDetail != null) {
+                        hasVariableActivePower = loadDetail.getFixedActivePower() != load.getP0();
+                    }
                 }
-            }
-            if (p0 < 0 || hasVariableActivePower) {
-                ensurePowerFactorConstantByLoad = true;
-            }
+                if (p0 < 0 || hasVariableActivePower) {
+                    ensurePowerFactorConstantByLoad = true;
+                }
                 AbstractLfBus.this.load.add(load, parameters);
             });
     }
