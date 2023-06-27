@@ -10,12 +10,19 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Substation;
-import com.powsybl.iidm.network.extensions.LoadAsymmetrical;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
+import com.powsybl.iidm.network.extensions.WindingConnectionType;
+import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.openloadflow.network.LfAsymBus;
+import com.powsybl.openloadflow.network.extensions.AsymBusLoadType;
+import com.powsybl.openloadflow.network.extensions.AsymBusVariableType;
+import com.powsybl.openloadflow.network.extensions.LegConnectionType;
+import com.powsybl.openloadflow.network.extensions.iidm.BusAsymmetrical;
+import com.powsybl.openloadflow.network.extensions.iidm.BusVariableType;
+import com.powsybl.openloadflow.network.extensions.iidm.LoadType;
+import com.powsybl.openloadflow.network.extensions.iidm.LoadUnbalanced;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 
@@ -55,25 +62,99 @@ public class LfBusImpl extends AbstractLfBus {
         country = bus.getVoltageLevel().getSubstation().flatMap(Substation::getCountry).orElse(null);
     }
 
-    private static void createAsym(Bus bus, LfBusImpl lfBus) {
+    private static void createAsymExt(Bus bus, LfBusImpl lfBus) {
         double totalDeltaPa = 0;
         double totalDeltaQa = 0;
         double totalDeltaPb = 0;
         double totalDeltaQb = 0;
         double totalDeltaPc = 0;
         double totalDeltaQc = 0;
+        boolean isLoadAtBus = false;
+        boolean isWyeLoad = false;
+        boolean isDeltaLoad = false;
+        AsymBusLoadType loadType = AsymBusLoadType.CONSTANT_POWER;
+        LegConnectionType loadConnectionType;
         for (Load load : bus.getLoads()) {
-            var extension = load.getExtension(LoadAsymmetrical.class);
+            var extension = load.getExtension(LoadUnbalanced.class);
             if (extension != null) {
+                if (extension.getConnectionType() == WindingConnectionType.Y) {
+                    throw new IllegalStateException("non-grounded Y load not supported at Bus : " + bus.getId());
+                } else if (extension.getConnectionType() == WindingConnectionType.DELTA) {
+                    isDeltaLoad = true;
+                    isLoadAtBus = true;
+                } else if (extension.getConnectionType() == WindingConnectionType.Y_GROUNDED) {
+                    isWyeLoad = true;
+                    isLoadAtBus = true;
+                } else {
+                    throw new IllegalStateException("unknown load type at Bus : " + bus.getId());
+                }
                 totalDeltaPa += extension.getDeltaPa() / PerUnit.SB;
                 totalDeltaQa += extension.getDeltaQa() / PerUnit.SB;
                 totalDeltaPb += extension.getDeltaPb() / PerUnit.SB;
                 totalDeltaQb += extension.getDeltaQb() / PerUnit.SB;
                 totalDeltaPc += extension.getDeltaPc() / PerUnit.SB;
                 totalDeltaQc += extension.getDeltaQc() / PerUnit.SB;
+                if (extension.getLoadType() == LoadType.CONSTANT_CURRENT) {
+                    loadType = AsymBusLoadType.CONSTANT_CURRENT;
+                } else if (extension.getLoadType() == LoadType.CONSTANT_IMPEDANCE) {
+                    loadType = AsymBusLoadType.CONSTANT_IMPEDANCE;
+                }
             }
         }
-        lfBus.setAsym(new LfAsymBus(totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc));
+        if (isDeltaLoad && isWyeLoad) {
+            throw new IllegalStateException("load type Yg and Delta connected at same Bus : " + bus.getId() + " not supported, choose only one type of load");
+        } else if (isDeltaLoad) {
+            loadConnectionType = LegConnectionType.DELTA;
+        } else if (isWyeLoad) {
+            loadConnectionType = LegConnectionType.Y_GROUNDED;
+        } else {
+            if (isLoadAtBus) {
+                throw new IllegalStateException("unknown load type at Bus : " + bus.getId());
+            }
+            loadConnectionType = LegConnectionType.Y_GROUNDED;
+        }
+
+        boolean hasPhaseA = true;
+        boolean hasPhaseB = true;
+        boolean hasPhaseC = true;
+        boolean isFortescueRep = true;
+        boolean isPositiveSequenceAsCurrent = false;
+
+        // TODO: adapt for better efficiency
+        AsymBusVariableType asymBusVariableType = AsymBusVariableType.WYE;
+        for (Bus busi : bus.getVoltageLevel().getBusBreakerView().getBuses()) {
+            var extensionBus = busi.getExtension(BusAsymmetrical.class);
+            if (extensionBus != null) {
+                isFortescueRep = extensionBus.isFortescueRepresentation();
+                isPositiveSequenceAsCurrent = extensionBus.isPositiveSequenceAsCurrent();
+                if (extensionBus.getBusVariableType() == BusVariableType.DELTA) {
+                    asymBusVariableType = AsymBusVariableType.DELTA;
+                    if (!extensionBus.isHasPhaseA() || !extensionBus.isHasPhaseB() || !extensionBus.isHasPhaseC()) {
+                        throw new IllegalStateException("Bus with both missing phases and delta variables not yet handled for Bus : " + bus.getId());
+                    }
+                    if (!isFortescueRep) {
+                        throw new IllegalStateException("Bus with both missing phases and 3 phase representation not yet handled for Bus : " + bus.getId());
+                    }
+                } else {
+                    if (!extensionBus.isHasPhaseA()) {
+                        hasPhaseA = false;
+                        isFortescueRep = false;
+                    }
+                    if (!extensionBus.isHasPhaseB()) {
+                        hasPhaseB = false;
+                        isFortescueRep = false;
+                    }
+                    if (!extensionBus.isHasPhaseC()) {
+                        hasPhaseC = false;
+                        isFortescueRep = false;
+                    }
+                }
+            }
+            break;
+        }
+
+        AsymBus asymBus = new AsymBus(lfBus, asymBusVariableType, hasPhaseA, hasPhaseB, hasPhaseC, loadConnectionType, totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc, isFortescueRep, isPositiveSequenceAsCurrent, loadType);
+        lfBus.setProperty(AsymBus.PROPERTY_ASYMMETRICAL, asymBus);
     }
 
     public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {
@@ -81,7 +162,7 @@ public class LfBusImpl extends AbstractLfBus {
         Objects.requireNonNull(parameters);
         var lfBus = new LfBusImpl(bus, network, bus.getV(), Math.toRadians(bus.getAngle()), parameters, participating);
         if (parameters.isAsymmetrical()) {
-            createAsym(bus, lfBus);
+            createAsymExt(bus, lfBus);
         }
         return lfBus;
     }
@@ -156,21 +237,23 @@ public class LfBusImpl extends AbstractLfBus {
 
     @Override
     public double getTargetP() {
-        if (asym != null) {
+        AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        if (asymBus != null) {
             return getGenerationTargetP();
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
             // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
-        return super.getTargetP();
+        return getGenerationTargetP() - getLoadTargetP();
     }
 
     @Override
     public double getTargetQ() {
-        if (asym != null) {
+        AsymBus asymBus = (AsymBus) this.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        if (asymBus != null) {
             return getGenerationTargetQ();
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
             // in this case, load target is set to zero and the constant power load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
-        return super.getTargetQ();
+        return getGenerationTargetQ() - getLoadTargetQ();
     }
 }

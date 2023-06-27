@@ -11,10 +11,13 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.network.extensions.AsymBus;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.Fortescue;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -166,6 +169,16 @@ public class NewtonRaphson {
         }
     }
 
+    public static boolean isElementAsymBus(LfNetwork network, Variable<AcVariableType> v) {
+
+        LfBus bus = network.getBus(v.getElementNum());
+        AsymBus asymBus = (AsymBus) bus.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+        if (asymBus != null) {
+            return true;
+        }
+        return false;
+    }
+
     public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
         double[] x = new double[equationSystem.getIndex().getSortedVariablesToFind().size()];
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
@@ -176,6 +189,9 @@ public class NewtonRaphson {
 
                 case BUS_PHI:
                     x[v.getRow()] = initializer.getAngle(network.getBus(v.getElementNum()));
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getAngle(network.getBus(v.getElementNum()), Fortescue.SequenceType.POSITIVE);
+                    }
                     break;
 
                 case SHUNT_B:
@@ -192,12 +208,30 @@ public class NewtonRaphson {
 
                 case DUMMY_P:
                 case DUMMY_Q:
-                case BUS_PHI_ZERO:
-                case BUS_PHI_NEGATIVE:
                     x[v.getRow()] = 0;
                     break;
 
+                case BUS_PHI_ZERO:
+                    x[v.getRow()] = 0;
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getAngle(network.getBus(v.getElementNum()), Fortescue.SequenceType.ZERO);
+                    }
+                    break;
+
+                case BUS_PHI_NEGATIVE:
+                    x[v.getRow()] = 0;
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getAngle(network.getBus(v.getElementNum()), Fortescue.SequenceType.NEGATIVE);
+                    }
+                    break;
+
                 case BUS_V_ZERO:
+                    x[v.getRow()] = 0.1;
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getMagnitude(network.getBus(v.getElementNum()), Fortescue.SequenceType.ZERO);
+                    }
+                    break;
+
                 case BUS_V_NEGATIVE:
                     // when balanced, zero and negative sequence should be zero
                     // v_zero and v_negative initially set to zero will bring a singularity to the Jacobian
@@ -206,6 +240,9 @@ public class NewtonRaphson {
                     // the resolution of the system on the three sequences will bring a singularity
                     // Therefore, if the system is balanced by construction, we should run a balanced load flow only
                     x[v.getRow()] = 0.1;
+                    if (isElementAsymBus(network, v)) {
+                        x[v.getRow()] = UniformValueVoltageInitializer.getMagnitude(network.getBus(v.getElementNum()), Fortescue.SequenceType.NEGATIVE);
+                    }
                     break;
 
                 default:
@@ -229,19 +266,23 @@ public class NewtonRaphson {
                     break;
 
                 case BUS_V_ZERO:
-                    network.getBus(v.getElementNum()).getAsym().setVz(stateVector.get(v.getRow()));
+                    AsymBus asymBusVh = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                    asymBusVh.setvZero(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI_ZERO:
-                    network.getBus(v.getElementNum()).getAsym().setAngleZ(stateVector.get(v.getRow()));
+                    AsymBus asymBusPhiH = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                    asymBusPhiH.setAngleZero(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_V_NEGATIVE:
-                    network.getBus(v.getElementNum()).getAsym().setVn(stateVector.get(v.getRow()));
+                    AsymBus asymBusVi = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                    asymBusVi.setvNegative(stateVector.get(v.getRow()));
                     break;
 
                 case BUS_PHI_NEGATIVE:
-                    network.getBus(v.getElementNum()).getAsym().setAngleN(stateVector.get(v.getRow()));
+                    AsymBus asymBusPhiI = (AsymBus) network.getBus(v.getElementNum()).getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
+                    asymBusPhiI.setAngleNegative(stateVector.get(v.getRow()));
                     break;
 
                 case SHUNT_B:
@@ -321,6 +362,9 @@ public class NewtonRaphson {
 
         if (status == NewtonRaphsonStatus.CONVERGED || parameters.isAlwaysUpdateNetwork()) {
             updateNetwork();
+            AbcResults abcResults = new AbcResults();
+            abcResults.fillAbcBussesResults(network); // stores ABC voltages and phases
+            abcResults.fillAbcBranchesResults(network);
         }
 
         // update network state variable
