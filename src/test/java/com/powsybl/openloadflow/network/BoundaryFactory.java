@@ -327,6 +327,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setR(0.0)
                 .setX(0.1)
                 .setUcteXnodeCode("xnode")
+                .setP0(0.0)
+                .setQ0(0.0)
                 .add();
         DanglingLine dl3 = vl3.newDanglingLine()
                 .setBus("b3")
@@ -334,6 +336,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setR(0.0)
                 .setX(0.08)
                 .setUcteXnodeCode("xnode")
+                .setP0(0.0)
+                .setQ0(0.0)
                 .add();
 
         network.newTieLine()
@@ -363,6 +367,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setR(0.0)
                 .setX(0.1)
                 .setUcteXnodeCode("xnode2")
+                .setP0(0.0)
+                .setQ0(0.0)
                 .add();
         DanglingLine dl3 = network.getVoltageLevel("vl3").newDanglingLine()
                 .setBus("b3")
@@ -370,6 +376,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setR(0.0)
                 .setX(0.08)
                 .setUcteXnodeCode("xnode2")
+                .setP0(0.0)
+                .setQ0(0.0)
                 .add();
 
         network.newTieLine()
