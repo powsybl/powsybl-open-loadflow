@@ -265,7 +265,7 @@ public class LfShuntImpl extends AbstractLfShunt {
             throw new PowsyblException("Cannot re-init a shunt compensator with voltage control capabilities");
         }
         List<ShuntCompensator> shuntCompensators = shuntCompensatorsRefs.stream().map(Ref::get).collect(Collectors.toList());
-        b = computeB(shuntCompensators, zb);
-        g = computeG(shuntCompensators, zb);
+        setB(computeB(shuntCompensators, zb));
+        setG(computeG(shuntCompensators, zb));
     }
 }

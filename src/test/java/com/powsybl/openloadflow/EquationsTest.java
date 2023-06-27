@@ -55,7 +55,7 @@ class EquationsTest {
     private static final double A_1 = 0.324294234;
     private static final double V_2 = 1.0718794209362505;
     private static final double PH_2 = 0.18609589391040748;
-    private static final double B = 0.2748383993949494;
+    private static final double B_SHUNT = 0.2748383993949494;
     private static final double DROOP = 103.13240312354819;
     private static final double P_0 = 1.9280906677246095;
     private static final double LOSS_FACTOR_1 = 0.01100000023841858;
@@ -264,10 +264,17 @@ class EquationsTest {
         var shunt = Mockito.mock(LfShunt.class, new RuntimeExceptionAnswer());
         Mockito.doReturn(0).when(shunt).getNum();
         Mockito.doReturn(G_SHUNT).when(shunt).getG();
+        Mockito.doReturn(B_SHUNT).when(shunt).getB();
+        Mockito.doReturn(true).when(shunt).hasVoltageControlCapability();
         Mockito.doReturn(false).when(shunt).isDisabled();
 
         var bus = Mockito.mock(LfBus.class, ANSWER);
         Mockito.doReturn(0).when(bus).getNum();
+        Mockito.doReturn(bus).when(shunt).getBus();
+
+        LfNetwork network = Mockito.mock(LfNetwork.class);
+        Mockito.doReturn(List.of(shunt)).when(network).getShunts();
+        Mockito.doReturn(List.of(bus)).when(network).getBuses();
 
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var vVar = variableSet.getVariable(0, AcVariableType.BUS_V);
@@ -279,12 +286,19 @@ class EquationsTest {
         bVar.setRow(1);
         unknownVar.setRow(2);
 
-        var sv = new StateVector(new double[] {V_1, B, 0});
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new EquationSystem<>();
+        var sv = equationSystem.getStateVector();
+        sv.set(new double[] {V_1, B_SHUNT, 0});
 
-//        assertArrayEquals(new double[] {4.275919696380507E-5, 7.98163392892194E-5, Double.NaN, Double.NaN, Double.NaN},
-//                eval(new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, variableSet), variables, sv));
-//        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, Double.NaN, -1.7369285516652369},
-//                eval(new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, true), variables, sv));
+        AcEquationSystemCreationParameters creationParameters = new AcEquationSystemCreationParameters();
+        AcNetworkVector networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
+        networkVector.getBusVector().vRow[bus.getNum()] = vVar.getRow();
+        networkVector.getShuntVector().bRow[shunt.getNum()] = bVar.getRow();
+        networkVector.updatePowerFlows();
+        assertArrayEquals(new double[] {4.275919696380507E-5, 7.98163392892194E-5, Double.NaN, Double.NaN, Double.NaN},
+                eval(new ShuntCompensatorActiveFlowEquationTerm(networkVector.getShuntVector(), shunt.getNum(), bus.getNum(), variableSet), variables, sv));
+        assertArrayEquals(new double[] {-0.3155098135679268, -0.588945539602459, -1.1479830120627779, Double.NaN, -1.7369285516652369},
+                eval(new ShuntCompensatorReactiveFlowEquationTerm(networkVector.getShuntVector(), shunt.getNum(), bus.getNum(), variableSet, true), variables, sv));
     }
 
     @Test
