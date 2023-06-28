@@ -152,6 +152,14 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         if (equation != null) {
             Pair<ElementType, Integer> element = Pair.of(type.getElementType(), num);
             equationsByElement.get(element).remove(equation);
+            if (equationTermsByElement != null) {
+                for (EquationTerm<V, E> term : equation.getTerms()) {
+                    List<EquationTerm<V, E>> termsForThisElement = equationTermsByElement.get(Pair.of(term.getElementType(), term.getElementNum()));
+                    if (termsForThisElement != null) {
+                        termsForThisElement.remove(term);
+                    }
+                }
+            }
             notifyEquationChange(equation, EquationEventType.EQUATION_REMOVED);
         }
         return equation;
