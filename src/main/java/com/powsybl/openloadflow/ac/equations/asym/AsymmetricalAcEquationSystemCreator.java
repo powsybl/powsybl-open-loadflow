@@ -418,7 +418,7 @@ public class AsymmetricalAcEquationSystemCreator extends AcEquationSystemCreator
         boolean asymmetry = false;
         // check the existence of an extension
         if (branch.getBranchType() == LfBranch.BranchType.LINE || branch.getBranchType() == LfBranch.BranchType.TRANSFO_2) {
-            AsymBranch asymBranch = (AsymBranch) branch.getProperty(AsymBranch.PROPERTY_ASYMMETRICAL);
+            LfAsymLine asymBranch = branch.getAsymLine();
             if (asymBranch != null) {
                 boolean asymmetryCoupling = asymBranch.getAdmittanceMatrix().isCoupled();
                 boolean asymmetryMissingPhase = !(asymBranch.isHasPhaseA1() && asymBranch.isHasPhaseA2()

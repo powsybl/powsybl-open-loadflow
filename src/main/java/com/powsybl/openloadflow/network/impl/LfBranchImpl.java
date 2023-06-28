@@ -45,7 +45,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
             boolean openPhaseA = extension2.getOpenPhaseA();
             boolean openPhaseB = extension2.getOpenPhaseB();
             boolean openPhaseC = extension2.getOpenPhaseC();
-            AsymBranch asymLine;
+            LfAsymLine asymLine;
             if (extension2.getYabc() != null) {
                 // the prioritized option is to use data from ABC three phase admittance matrix
                 ComplexMatrix yabcPu = ComplexMatrix.getMatrixScaled(extension2.getYabc(), zb);
@@ -80,7 +80,7 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                     bus1VariableType = asymBus2.getAsymBusVariableType();
                 }
 
-                asymLine = new AsymBranch(yabcPu, openPhaseA, openPhaseB, openPhaseC, isBus1FortescueRepresented, isBus2FortescueRepresented,
+                asymLine = new LfAsymLine(yabcPu, openPhaseA, openPhaseB, openPhaseC, isBus1FortescueRepresented, isBus2FortescueRepresented,
                         hasPhaseA1, hasPhaseB1, hasPhaseC1, hasPhaseA2, hasPhaseB2, hasPhaseC2, bus1VariableType, bus2VariableType);
             } else {
                 // last option, use the Pi models of the Fortescue sequences
@@ -96,11 +96,11 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 SimplePiModel piNegativeComponent = new SimplePiModel()
                         .setR(piModel.getR())
                         .setX(piModel.getX());
-                asymLine = new AsymBranch(piZeroComponent, piPositiveComponent, piNegativeComponent,
+                asymLine = new LfAsymLine(piZeroComponent, piPositiveComponent, piNegativeComponent,
                         openPhaseA, openPhaseB, openPhaseC, AsymBusVariableType.WYE, AsymBusVariableType.WYE);
             }
 
-            lfBranchImpl.setProperty(AsymBranch.PROPERTY_ASYMMETRICAL, asymLine);
+            lfBranchImpl.setAsymLine(asymLine);
         }
     }
 
@@ -209,10 +209,10 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
                 mVbasePu.set(6, 6, vNom2Complex);
 
                 ComplexMatrix yabcPu = ComplexMatrix.getComplexMatrixFromRealCartesian(mIbasePu.getRealCartesianMatrix().times(yabcReal.times(mVbasePu.getRealCartesianMatrix())));
-                AsymBranch asymBranch = new AsymBranch(yabcPu, extension2.getOpenPhaseA1(), extension2.getOpenPhaseB1(), extension2.getOpenPhaseC1(),
+                LfAsymLine asymBranch = new LfAsymLine(yabcPu, extension2.getOpenPhaseA1(), extension2.getOpenPhaseB1(), extension2.getOpenPhaseC1(),
                         true, true, true, true, true, true, true, true, side1VariableType, side2VariableType); // TODO: rework line opening for a line
 
-                lfBranchImpl.setProperty(AsymBranch.PROPERTY_ASYMMETRICAL, asymBranch);
+                lfBranchImpl.setAsymLine(asymBranch);
 
             } else {
                 AsymTransfo2W asymTransfo2W;
