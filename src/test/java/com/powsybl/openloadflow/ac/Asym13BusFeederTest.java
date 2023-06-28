@@ -21,15 +21,17 @@ import org.apache.commons.math3.complex.ComplexUtils;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class Asym13nodesLoadsTest {
+public class Asym13BusFeederTest {
 
     private Network network;
     private Bus bus650;
     private Bus bus632;
     private Bus bus645;
     private Bus bus646;
+    private Bus bus652;
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
@@ -98,6 +100,7 @@ public class Asym13nodesLoadsTest {
         bus632 = network.getBusBreakerView().getBus("B632");
         bus645 = network.getBusBreakerView().getBus("B645");
         bus646 = network.getBusBreakerView().getBus("B646");
+        bus652 = network.getBusBreakerView().getBus("B652");
 
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters().setNoGeneratorReactiveLimits(true)
@@ -119,9 +122,10 @@ public class Asym13nodesLoadsTest {
 
         //assertVoltageEquals(4.16, bus650);
         //assertAngleEquals(0., bus650);
-        /*assertVoltageEquals(4.16, bus632);
-        assertVoltageEquals(4.160250008971789, bus645);
-        assertVoltageEquals(4.160271884980543, bus646);*/
+        assertVoltageEquals(4.2762101139626765, bus632);
+        assertVoltageEquals(4.230636258403482, bus645);
+        assertVoltageEquals(4.2218389287024145, bus646);
+        assertVoltageEquals(4.09426812981166, bus652);
     }
 
     public static Network ieee13LoadFeeder() {
