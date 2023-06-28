@@ -4,12 +4,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.network.LfAsymBus;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.extensions.AsymBranch;
-//import com.powsybl.openloadflow.network.extensions.AsymBus;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.ComplexMatrix;
 import com.powsybl.openloadflow.util.Fortescue;
 import org.apache.commons.math3.complex.Complex;
@@ -170,13 +165,11 @@ public class AbcResults {
 
         System.out.println(" ---------------- ABC result for branch = " + branch.getId());
 
-        AsymBranch asymBranch = (AsymBranch) branch.getProperty(AsymBranch.PROPERTY_ASYMMETRICAL);
+        LfAsymLine asymBranch = branch.getAsymLine();
         if (asymBranch == null) {
             return;
-            //System.out.println("Disymmetry detected  for branch : " + branch.getId() + " = " + disconnectionAsymmetry);
         }
 
-        //Line line = (Line) branch.getOriginalIds()
         ComplexMatrix yabc = asymBranch.getYabc();
         if (yabc == null) {
             return;
@@ -188,7 +181,6 @@ public class AbcResults {
         }
 
         LfAsymBus asymBus1 = bus1.getAsym();
-        //AsymBus asymBus1 = (AsymBus) bus1.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus1 == null) {
             return;
         }
@@ -206,7 +198,6 @@ public class AbcResults {
         }
 
         LfAsymBus asymBus2 = bus2.getAsym();
-        //AsymBus asymBus2 = (AsymBus) bus2.getProperty(AsymBus.PROPERTY_ASYMMETRICAL);
         if (asymBus2 == null) {
             return;
         }
